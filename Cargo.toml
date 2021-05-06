@@ -1,0 +1,32 @@
+[package]
+name = "modor"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2018"
+description = "Core library of Modor game engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "./README.md"
+keywords = ["game", "engine", "modular", "object", "framework"]
+categories = ["game-engines"]
+
+[dependencies]
+fxhash = "0.2"
+itertools = "0.10" # TODO: remove if possible (acceptable to keep it)
+scoped_threadpool = "0.1"
+
+[dev-dependencies]
+doc-comment = "0.3"
+microbench = "0.5"
+
+[[bench]]
+name = "parallel"
+harness = false
+
+[[bench]]
+name = "velocity"
+harness = false
+
+[[bench]]
+name = "velocity_with_option"
+harness = false
