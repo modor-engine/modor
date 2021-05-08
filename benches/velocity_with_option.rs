@@ -1,14 +1,12 @@
 use microbench::Options;
 use modor::*;
 
-fn main_group_builder() -> impl FnOnce(&mut GroupBuilder<'_>) {
-    |builder| {
-        for i in 0..10000 {
-            if i % 10 == 0 {
-                builder.with_entity::<DynamicBody>(i);
-            } else {
-                builder.with_entity::<StaticBody>(i);
-            }
+fn main_group_builder(builder: &mut GroupBuilder<'_>) {
+    for i in 0..10000 {
+        if i % 10 == 0 {
+            builder.with_entity::<DynamicBody>(i);
+        } else {
+            builder.with_entity::<StaticBody>(i);
         }
     }
 }
@@ -58,6 +56,6 @@ impl DynamicBody {
 fn main() {
     let options = Options::default();
 
-    let mut app = Application::default().with_group(main_group_builder());
+    let mut app = Application::default().with_group(main_group_builder);
     microbench::bench(&options, "update with option", || app.update());
 }

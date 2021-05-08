@@ -10,7 +10,6 @@ fn main() {
     app.update();
 }
 
-// TODO: make sure all examples use this convention
 fn build_main_group(builder: &mut GroupBuilder<'_>, offset: u32) {
     builder
         .with_entity::<ChildEntity>((42 + offset, offset))

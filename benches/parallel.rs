@@ -1,11 +1,9 @@
 use microbench::Options;
 use modor::*;
 
-fn main_group_builder() -> impl FnOnce(&mut GroupBuilder<'_>) {
-    |builder| {
-        for _ in 0..100000 {
-            builder.with_entity::<MainEntity>(());
-        }
+fn build_main_group(builder: &mut GroupBuilder<'_>) {
+    for _ in 0..100_000 {
+        builder.with_entity::<MainEntity>(());
     }
 }
 
@@ -51,12 +49,12 @@ fn main() {
     let options = Options::default();
 
     let mut app = Application::default()
-        .with_group(main_group_builder())
+        .with_group(build_main_group)
         .with_thread_count(1);
     microbench::bench(&options, "sequential update", || app.update());
 
     let mut app = Application::default()
-        .with_group(main_group_builder())
+        .with_group(build_main_group)
         .with_thread_count(2);
     microbench::bench(&options, "parallel update", || app.update());
 }
