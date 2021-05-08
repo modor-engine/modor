@@ -39,3 +39,4 @@ doc_comment::doctest!("../README.md");
 // - all pub types are outside the "internal" module
 // - statically assert public types to check auto traits Sync and Send (to avoid future breaking changes)
 // - try to include special cases in macros instead of manually writing it
+// - name of test modules should match the type names

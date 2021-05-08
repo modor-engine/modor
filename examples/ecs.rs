@@ -1,3 +1,5 @@
+#![allow(clippy::print_stdout)]
+
 use modor::*;
 
 fn main() {
@@ -6,7 +8,9 @@ fn main() {
         .with_group(|b| build_main_group(b, 100))
         .with_group(|b| build_main_group(b, 1000))
         .on_update(system!(print_strings_global));
+    println!("Update 1:");
     app.update();
+    println!("Update 2:");
     app.update();
 }
 
@@ -37,6 +41,7 @@ impl Entity for ChildEntity {
 }
 
 impl ChildEntity {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn print_value(&self, parent_value: &u32) {
         println!("Value: {}, parent: {}", self.0, parent_value);
     }
@@ -65,5 +70,5 @@ fn print_strings(string: &String) {
 
 #[allow(clippy::ptr_arg)]
 fn print_strings_global(string: &String) {
-    println!("String global: {:?}", string);
+    println!("String global: {}", string);
 }
