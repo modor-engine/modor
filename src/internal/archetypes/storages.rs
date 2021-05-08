@@ -172,7 +172,6 @@ impl TypeArchetypeStorage {
     }
 }
 
-// TODO: Replace hashmap with vec
 #[derive(Default)]
 pub(super) struct NextArchetypeStorage(Vec<FxHashMap<(Option<usize>, usize), usize>>);
 
@@ -209,7 +208,6 @@ impl NextArchetypeStorage {
     }
 }
 
-// TODO: Replace hashmap with vec
 #[derive(Default)]
 pub(super) struct PreviousArchetypeStorage(Vec<FxHashMap<(usize, usize), Option<usize>>>);
 

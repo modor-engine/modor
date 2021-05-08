@@ -8,14 +8,11 @@ use std::any::{Any, TypeId};
 pub(crate) mod interfaces;
 mod storages;
 
-// TODO: store components directly in RwLock, and use get_mut to add components
-// TODO: if done, move in core to avoid data redundancy (= better performance)
-
 #[derive(Default)]
 pub(super) struct ComponentFacade {
     components: ComponentStorage,
     archetype_positions: ArchetypePositionStorage,
-    types: TypeStorage, // TODO: remove ?
+    types: TypeStorage,
 }
 
 impl ComponentFacade {

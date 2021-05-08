@@ -48,7 +48,6 @@ impl LocationStorage {
 pub(super) struct ArchetypeEntityStorage(Vec<Vec<usize>>);
 
 impl ArchetypeEntityStorage {
-    #[allow(unused)] // TODO: remove
     pub(super) fn idxs(&self, archetype_idx: usize) -> &[usize] {
         &self.0[archetype_idx]
     }

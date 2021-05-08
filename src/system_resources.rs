@@ -158,10 +158,6 @@ pub struct Group<'a> {
     data: SystemData<'a>,
 }
 
-// TODO: can be called many times, issue ? => Many make unusable Group after deletion
-// TODO: if it's the case, handle Group and Option<Group> types as SystemParam
-// TODO: also if it's the case, remove Clone impl of Group + methods consume the object
-// TODO: or maybe only last operation taken into account, but is it safe ?
 impl<'a> Group<'a> {
     pub(crate) fn new(group_idx: NonZeroUsize, data: SystemData<'a>) -> Self {
         Self { group_idx, data }

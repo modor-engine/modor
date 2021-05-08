@@ -23,7 +23,6 @@ impl MainFacade {
         group_idx
     }
 
-    #[allow(dead_code)] // TODO: delete
     pub(crate) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         for type_idxs in self.core.group_component_type_idxs(group_idx) {
             for &archetype_idx in self.core.group_archetype_idxs(group_idx) {
@@ -44,7 +43,6 @@ impl MainFacade {
         self.core.create_entity(group_idx)
     }
 
-    #[allow(dead_code)] // TODO: delete
     pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
         if let Some(location) = self.core.entity_location(entity_idx) {
             for &component_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
@@ -80,7 +78,6 @@ impl MainFacade {
         }
     }
 
-    #[allow(dead_code)] // TODO: delete
     pub(crate) fn delete_component<C>(&mut self, entity_idx: usize)
     where
         C: Any,

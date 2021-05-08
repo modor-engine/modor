@@ -32,7 +32,6 @@ impl GroupStorage {
     }
 }
 
-// TODO: delete and use instead ArchetypeEntityStorage + archetypes from group
 #[derive(Default)]
 pub(super) struct EntityStorage(Vec<FxHashSet<usize>>);
 
