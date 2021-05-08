@@ -3,6 +3,7 @@ use crate::internal::core::CoreFacade;
 use crate::internal::group_actions::GroupActionFacade;
 use crate::internal::system::data::SystemInfo;
 use crate::internal::system::SystemFacade;
+use crate::GroupBuilder;
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
 use std::sync::Mutex;
@@ -107,7 +108,21 @@ impl MainFacade {
             &self.components.components(),
             &self.group_actions,
         );
-        // TODO: do something with group actions
+    }
+
+    pub(crate) fn apply_system_actions(&mut self) {
+        let group_actions = self.group_actions.get_mut().unwrap();
+        let deleted_group_idxs: Vec<_> = group_actions.deleted_group_idxs().collect();
+        let replaced_group_idxs: Vec<_> = group_actions.replaced_group_idxs().collect();
+        group_actions.reset();
+        for deleted_group_idx in deleted_group_idxs {
+            self.delete_group(deleted_group_idx);
+        }
+        for (replaced_group_idx, group_builder_fn) in replaced_group_idxs {
+            self.delete_group(replaced_group_idx);
+            let new_group_idx = self.create_group();
+            group_builder_fn(&mut GroupBuilder::new(self, new_group_idx));
+        }
     }
 
     pub(crate) fn set_thread_count(&mut self, count: u32) {

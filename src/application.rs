@@ -31,5 +31,6 @@ impl Application {
 
     pub fn update(&mut self) {
         self.0.run_systems();
+        self.0.apply_system_actions();
     }
 }
