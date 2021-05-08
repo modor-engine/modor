@@ -27,4 +27,15 @@ pub use systems::*;
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");
 
-// TODO: make static asserts to check auto traits Sync and Send (to avoid future breaking changes)
+// TODO: check the below rules are respected
+// - use one letter convention for closure params
+// - don't put "s" (plural) before "Facade" and "System" type suffixes
+// - put "s" if multiple params in macros
+// - avoid line breaks for a single instruction when not method chaining
+// - docstrings starts with infinitive verb
+// - put maximum of logic in "internal" module
+// - choose carefully between "component_type" and "type" names
+// - choose the lowest possible visibility before "mod", "use", "struct", "enum" and "fn"
+// - all pub types are outside the "internal" module
+// - statically assert public types to check auto traits Sync and Send (to avoid future breaking changes)
+// - try to include special cases in macros instead of manually writing it

@@ -2,8 +2,6 @@ use crate::{QueryMut, TupleSystemParam};
 use std::any::Any;
 use std::slice::{Iter, IterMut};
 
-// TODO: check visibility of all items
-
 pub struct OptionComponentIter<'a, C>(Option<Iter<'a, C>>)
 where
     C: Any;

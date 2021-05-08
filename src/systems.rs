@@ -37,7 +37,6 @@ pub trait System<'a, 'b, T> {
     );
 }
 
-// TODO: try to use macro generation instead
 impl<'a, 'b, SYS> System<'a, 'b, ()> for SYS
 where
     SYS: FnMut(),

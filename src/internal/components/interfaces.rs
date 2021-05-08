@@ -4,7 +4,6 @@ use std::ops::Deref;
 use std::slice::{Iter, IterMut};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-// TODO: move in public modules
 pub struct Components(pub(super) Box<dyn Any + Sync + Send>);
 
 impl From<Box<dyn Any + Sync + Send>> for Components {
