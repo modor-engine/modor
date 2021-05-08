@@ -76,7 +76,6 @@ impl EntityGroupStorage {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_group_storage {
     use super::*;

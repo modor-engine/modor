@@ -186,7 +186,6 @@ impl SystemsToRunStorage {
     }
 }
 
-// coverage=off // TODO: remove all coverage annotations
 #[cfg(test)]
 mod tests_system_type_storage {
     use super::*;

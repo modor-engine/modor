@@ -39,7 +39,6 @@ impl GroupFacade {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_group_facade {
     use super::*;

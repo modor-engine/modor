@@ -28,7 +28,6 @@ impl EntityTypeStorage {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_component_type_storage {
     use super::*;

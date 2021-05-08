@@ -49,7 +49,6 @@ impl EntityFacade {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_entity_facade {
     use super::*;

@@ -120,7 +120,6 @@ impl CoreFacade {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_core_facade {
     use super::*;

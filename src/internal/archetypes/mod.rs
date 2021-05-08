@@ -151,7 +151,6 @@ impl ArchetypeFacade {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_archetype_facade {
     use super::*;

@@ -245,7 +245,6 @@ impl PreviousArchetypeStorage {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_property_storage {
     use super::*;

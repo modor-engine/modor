@@ -80,7 +80,6 @@ impl ArchetypeEntityStorage {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_entity_storage {
     use super::*;

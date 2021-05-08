@@ -223,7 +223,6 @@ impl TypeStorage {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_component_storage {
     use super::*;

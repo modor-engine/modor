@@ -129,7 +129,6 @@ impl Drop for ComponentLocks<'_> {
     }
 }
 
-// coverage=off
 #[cfg(test)]
 mod tests_components {
     use super::*;
