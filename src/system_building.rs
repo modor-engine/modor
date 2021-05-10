@@ -54,7 +54,8 @@ macro_rules! for_each {
         let mut system = $system;
         let mut query_run = query.run(system);
         let mut system = query_run.system;
-        let info = SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
+        let info =
+            ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
         (::modor::_system_wrapper!(system))(&query_run.data, info);
     }};
 }
@@ -66,7 +67,8 @@ macro_rules! for_each_mut {
         let mut system = $system;
         let mut query_run = query.run(system);
         let mut system = query_run.system;
-        let info = SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
+        let info =
+            ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
         (::modor::_system_wrapper!(system))(&query_run.data, info);
     }};
 }
@@ -75,10 +77,10 @@ macro_rules! for_each_mut {
 #[doc(hidden)]
 macro_rules! _system_wrapper {
     ($($system:expr),+) => {
-        |data: &::modor::SystemData<'_>, info: SystemInfo| {
-            use ::modor::OnlyOptionalParamsSystemCheck as _OnlyOptionalParamsSystemCheck;
-            use ::modor::SystemStandardCheck as _SystemStandardCheck;
-            use ::modor::SystemTypeIncompatibilityCheck as _SystemTypeIncompatibilityCheck;
+        |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+            use ::modor::SystemWithCorrectParams as _SystemWithCorrectParams;
+            use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
+            use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
             $(let mut system = ::modor::SystemStaticChecker::new($system).check_statically();
             let mut locks = ::modor::System::lock(&system, data);
             if ::modor::System::has_mandatory_component(&system) {

@@ -1,177 +1,61 @@
 use crate::{
-    ComponentSystemParam, ConstSystemParam, NotMandatoryComponentSystemParam, Query, QueryMut,
-    System, TupleSystemParam,
+    Const, EntityPartSystemParam, MultipleSystemParams, Mut, NotEnoughEntityPartSystemParam,
+    NotMandatoryComponentSystemParam, System, SystemParam,
 };
+use std::any::Any;
 use std::marker::PhantomData;
 
-// TODO: only use traits defined in system_params module (and create new traits if necessary)
+pub struct SystemStaticChecker<'a, 'b, S, T>(S, PhantomData<(&'a T, &'b T)>);
 
-pub trait IncompatibleSystemParam<T, PHANTOM> {}
-
-impl<T, U, PHANTOM> IncompatibleSystemParam<Option<T>, (PHANTOM, (), (), (), ())> for U where
-    T: IncompatibleSystemParam<U, PHANTOM>
-{
-}
-
-impl<T, U, PHANTOM> IncompatibleSystemParam<T, (PHANTOM,)> for Option<U> where
-    T: IncompatibleSystemParam<U, PHANTOM>
-{
-}
-
-impl<T> IncompatibleSystemParam<&T, ()> for &mut T {}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<&'a T, (PHANTOM,)> for QueryMut<'_, U>
+impl<'a, 'b, S, T> SystemStaticChecker<'a, 'b, S, T>
 where
-    &'a T: IncompatibleSystemParam<U, PHANTOM>,
-    U: TupleSystemParam,
+    S: System<'a, 'b, T>,
 {
-}
-
-impl<T> IncompatibleSystemParam<&mut T, ()> for &T {}
-
-impl<T> IncompatibleSystemParam<&mut T, ()> for &mut T {}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<&'a mut T, (PHANTOM,)> for Query<'_, U>
-where
-    &'a mut T: IncompatibleSystemParam<U, PHANTOM>,
-    U: ConstSystemParam + TupleSystemParam,
-{
-}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<&'a mut T, (PHANTOM,)> for QueryMut<'_, U>
-where
-    &'a mut T: IncompatibleSystemParam<U, PHANTOM>,
-    U: TupleSystemParam,
-{
-}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<Query<'_, T>, (PHANTOM,)> for &'a mut U where
-    T: ConstSystemParam + TupleSystemParam + IncompatibleSystemParam<&'a mut U, PHANTOM>
-{
-}
-
-impl<T, U, PHANTOM> IncompatibleSystemParam<Query<'_, T>, (PHANTOM,)> for QueryMut<'_, U>
-where
-    T: ConstSystemParam + TupleSystemParam + IncompatibleSystemParam<U, PHANTOM>,
-    U: TupleSystemParam,
-{
-}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<QueryMut<'_, T>, (PHANTOM,)> for &'a U where
-    T: IncompatibleSystemParam<&'a U, PHANTOM> + TupleSystemParam
-{
-}
-
-impl<'a, T, U, PHANTOM> IncompatibleSystemParam<QueryMut<'_, T>, (PHANTOM,)> for &'a mut U where
-    T: IncompatibleSystemParam<&'a mut U, PHANTOM> + TupleSystemParam
-{
-}
-
-impl<T, U, PHANTOM> IncompatibleSystemParam<QueryMut<'_, T>, (PHANTOM,)> for Query<'_, U>
-where
-    T: IncompatibleSystemParam<U, PHANTOM> + TupleSystemParam,
-    U: ConstSystemParam + TupleSystemParam,
-{
-}
-
-impl<T, U, PHANTOM> IncompatibleSystemParam<QueryMut<'_, T>, (PHANTOM,)> for QueryMut<'_, U>
-where
-    T: IncompatibleSystemParam<U, PHANTOM> + TupleSystemParam,
-    U: TupleSystemParam,
-{
-}
-
-macro_rules! impl_incompatible_system_param {
-    ($param:ident $(,$params:ident)*) => {
-        impl<'a, $param, $($params,)* ITEM, PHANTOM>
-            IncompatibleSystemParam<ITEM, (PHANTOM,)>
-            for ($param, $($params),*)
-        where
-            $param: IncompatibleSystemParam<ITEM, PHANTOM>
-        {
-        }
-
-        impl<'a, $param, $($params,)* ITEM, PHANTOM>
-            IncompatibleSystemParam<ITEM, (PHANTOM, ())>
-            for ($param, $($params),*)
-        where
-            ($($params,)*): IncompatibleSystemParam<ITEM, PHANTOM>
-        {
-        }
-
-        impl<'a, $param, $($params,)* ITEM, PHANTOM>
-            IncompatibleSystemParam<($param, $($params),*), (PHANTOM, (), ())>
-            for ITEM
-        where
-            $param: IncompatibleSystemParam<ITEM, PHANTOM>
-        {
-        }
-
-        impl<'a, $param, $($params,)* ITEM, PHANTOM>
-            IncompatibleSystemParam<($param, $($params),*), (PHANTOM, (), (), ())>
-            for ITEM
-        where
-            ($($params,)*): IncompatibleSystemParam<ITEM, PHANTOM>
-        {
-        }
-    };
-}
-
-run_for_tuples!(impl_incompatible_system_param);
-
-pub struct SystemStaticChecker<'a, 'b, SYS, T>(SYS, PhantomData<(&'a T, &'b T)>);
-
-impl<'a, 'b, SYS, T> SystemStaticChecker<'a, 'b, SYS, T>
-where
-    SYS: System<'a, 'b, T>,
-{
-    pub fn new(system: SYS) -> Self {
+    pub fn new(system: S) -> Self {
         Self(system, PhantomData)
     }
 }
 
-pub trait SystemStandardCheck<SYS, PHANTOM> {
-    fn check_statically(self) -> SYS;
+pub trait SystemWithCorrectParams<S, Z> {
+    fn check_statically(self) -> S;
 }
 
-impl<'a, 'b, SYS, PHANTOM> SystemStandardCheck<SYS, PHANTOM>
-    for SystemStaticChecker<'a, 'b, SYS, PHANTOM>
+impl<'a, 'b, S, Z> SystemWithCorrectParams<S, Z> for SystemStaticChecker<'a, 'b, S, Z>
 where
-    SYS: System<'a, 'b, PHANTOM>,
+    S: System<'a, 'b, Z>,
 {
-    fn check_statically(self) -> SYS {
+    fn check_statically(self) -> S {
         self.0
     }
 }
 
-pub trait OnlyOptionalParamsSystemCheck<SYS, PHANTOM> {
-    fn check_statically(self) -> SYS;
+pub trait SystemWithMissingComponentParam<S, Z> {
+    fn check_statically(self) -> S;
 }
 
 macro_rules! impl_only_optional_params_system_check {
     ($param:ident $(,$params:ident)*) => {
-        impl<'a, 'b, 'c, SYS, SYS2, $param, $($params,)* PHANTOM>
-            OnlyOptionalParamsSystemCheck<SYS, (PHANTOM, SYS2)>
-            for SystemStaticChecker<'a, 'b, SYS, ($param, $($params),*)>
+        impl<'a, 'b, 'c, S, $param, $($params,)* Z>
+            SystemWithMissingComponentParam<S, (Z, ())>
+            for SystemStaticChecker<'a, 'b, S, ($param, $($params),*)>
         where
-            $param: NotMandatoryComponentSystemParam + ComponentSystemParam,
+            $param: NotEnoughEntityPartSystemParam,
             $($params: NotMandatoryComponentSystemParam,)*
         {
-            fn check_statically(self) -> SYS {
+            fn check_statically(self) -> S {
                 self.0
             }
         }
 
-        impl<'a, 'b, 'c, SYS, SYS2, $param, $($params,)* PHANTOM>
-            OnlyOptionalParamsSystemCheck<SYS, (PHANTOM, SYS2, ())>
-            for SystemStaticChecker<'a, 'b, SYS, ($param, $($params),*)>
+        impl<'a, 'b, 'c, S1, S2, $param, $($params,)* Z>
+            SystemWithMissingComponentParam<S1, (Z, S2, ())>
+            for SystemStaticChecker<'a, 'b, S1, ($param, $($params),*)>
         where
             $param: NotMandatoryComponentSystemParam,
-            SystemStaticChecker<'c, 'c, SYS2, ($($params,)*)>:
-                OnlyOptionalParamsSystemCheck<SYS2, PHANTOM>,
+            SystemStaticChecker<'c, 'c, S2, ($($params,)*)>: SystemWithMissingComponentParam<S2, Z>,
             $($params: 'c,)*
         {
-            fn check_statically(self) -> SYS {
+            fn check_statically(self) -> S1 {
                 self.0
             }
         }
@@ -180,47 +64,34 @@ macro_rules! impl_only_optional_params_system_check {
 
 run_for_tuples!(impl_only_optional_params_system_check);
 
-pub trait SystemTypeIncompatibilityCheck<SYS, T, PHANTOM> {
-    fn check_statically(self) -> SYS;
+pub trait SystemWithIncompatibleParams<S, Z> {
+    fn check_statically(self) -> S;
 }
 
 macro_rules! impl_incompatibility_system_check {
     ($param:ident $(,$params:ident)*) => {
-        impl<'a, 'b, SYS, $param, $($params,)* PHANTOM>
-            SystemTypeIncompatibilityCheck<SYS, ($param, $($params),*), (PHANTOM,)>
-            for SystemStaticChecker<'a, 'b, SYS, ($param, $($params),*)>
+        impl<'a, 'b, S, $param, $($params,)* Z>
+            SystemWithIncompatibleParams<S, (Z, ($param, $($params),*))>
+            for SystemStaticChecker<'a, 'b, S, ($param, $($params),*)>
         where
-            SYS: System<'a, 'b, ($param, $($params),*)>,
-            $param: IncompatibleSystemParam<($($params,)*), PHANTOM>,
+            S: System<'a, 'b, ($param, $($params),*)>,
+            $param: IncompatibleSystemParam<($($params,)*), Z>,
         {
-            fn check_statically(self) -> SYS {
+            fn check_statically(self) -> S {
                 self.0
             }
         }
 
-        impl<'a, 'b, SYS, $param, $($params,)* PHANTOM>
-            SystemTypeIncompatibilityCheck<SYS, ($param, $($params),*), (PHANTOM, ())>
-            for SystemStaticChecker<'a, 'b, SYS, ($param, $($params),*)>
+        impl<'a, 'b, 'c, S1, S2, $param, $($params,)* Z>
+            SystemWithIncompatibleParams<S1, (Z, ($param, $($params),*), S2)>
+            for SystemStaticChecker<'a, 'b, S1, ($param, $($params),*)>
         where
-            SYS: System<'a, 'b, ($param, $($params),*)>,
-            ($($params,)*): IncompatibleSystemParam<$param, PHANTOM>,
-        {
-            fn check_statically(self) -> SYS {
-                self.0
-            }
-        }
-
-        impl<'a, 'b, 'c, SYS, SYS2, $param, $($params,)* PHANTOM, PHANTOM2>
-            SystemTypeIncompatibilityCheck<SYS, ($param, $($params),*), (PHANTOM, PHANTOM2, SYS2)>
-            for SystemStaticChecker<'a, 'b, SYS, ($param, $($params),*)>
-        where
-            SYS: System<'a, 'b, ($param, $($params),*)>,
-            SYS2: System<'c, 'c, ($($params,)*)>,
-            SystemStaticChecker<'c, 'c, SYS2, ($($params,)*)>:
-                SystemTypeIncompatibilityCheck<SYS2, ($($params,)*), PHANTOM2>,
+            S1: System<'a, 'b, ($param, $($params),*)>,
+            S2: System<'c, 'c, ($($params,)*)>,
+            SystemStaticChecker<'c, 'c, S2, ($($params,)*)>: SystemWithIncompatibleParams<S2, Z>,
             $($params: 'c,)*
         {
-            fn check_statically(self) -> SYS {
+            fn check_statically(self) -> S1 {
                 self.0
             }
         }
@@ -228,3 +99,79 @@ macro_rules! impl_incompatibility_system_check {
 }
 
 run_for_tuples!(impl_incompatibility_system_check);
+
+pub trait IncompatibleSystemParam<T, Z> {}
+
+impl<T, U, C> IncompatibleSystemParam<U, ((), C)> for T
+where
+    T: EntityPartSystemParam<Resource = C, Mutability = Const>,
+    U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+    C: Any,
+{
+}
+
+impl<T, U, C> IncompatibleSystemParam<U, ((), C, ())> for T
+where
+    T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+    U: EntityPartSystemParam<Resource = C, Mutability = Const>,
+    C: Any,
+{
+}
+
+impl<T, U, C> IncompatibleSystemParam<U, ((), C, ((),))> for T
+where
+    T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+    U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+    C: Any,
+{
+}
+
+macro_rules! impl_incompatible_system_param {
+    ($param:ident $(,$params:ident)*) => {
+        impl<'a, 'b, $param, $($params,)* T, U, Z>
+            IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*))>
+            for T
+        where
+            $param: SystemParam<'a, 'b>,
+            $($params: SystemParam<'a, 'b>,)*
+            T: MultipleSystemParams<T = ($param, $($params),*)>,
+            U: IncompatibleSystemParam<$param, Z>,
+        {
+        }
+
+        impl<'a, 'b, $param, $($params,)* T, U, Z>
+            IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*), ())>
+            for T
+        where
+            $param: SystemParam<'a, 'b>,
+            $($params: SystemParam<'a, 'b>,)*
+            T: MultipleSystemParams<T = ($param, $($params),*)>,
+            U: IncompatibleSystemParam<($($params,)*), Z>,
+        {
+        }
+
+        impl<'a, 'b, $param, $($params,)* T, U, Z>
+            IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), ((),))>
+            for U
+        where
+            $param: SystemParam<'a, 'b>,
+            $($params: SystemParam<'a, 'b>,)*
+            T: MultipleSystemParams<T = ($param, $($params),*)>,
+            U: IncompatibleSystemParam<$param, Z>,
+        {
+        }
+
+        impl<'a, 'b, $param, $($params,)* T, U, Z>
+            IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), (((),),))>
+            for U
+        where
+            $param: SystemParam<'a, 'b>,
+            $($params: SystemParam<'a, 'b>,)*
+            T: MultipleSystemParams<T = ($param, $($params),*)>,
+            U: IncompatibleSystemParam<($($params,)*), Z>,
+        {
+        }
+    };
+}
+
+run_for_tuples!(impl_incompatible_system_param);

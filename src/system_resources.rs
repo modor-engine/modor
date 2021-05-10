@@ -44,9 +44,9 @@ macro_rules! impl_query_run {
         where
             ($($param,)*): ConstSystemParam + TupleSystemParam,
         {
-            pub fn run<SYS>(&self, system: SYS) -> QueryRun<'a, SYS>
+            pub fn run<S>(&self, system: S) -> QueryRun<'a, S>
             where
-                SYS: System<'b, 'c, ($($param,)*)>,
+                S: System<'b, 'c, ($($param,)*)>,
             {
                 QueryRun {
                     data: self.data.clone(),
@@ -126,9 +126,9 @@ macro_rules! impl_query_mut_run {
         where
             ($($param,)*): TupleSystemParam,
         {
-            pub fn run<SYS>(&mut self, system: SYS) -> QueryRun<'a, SYS>
+            pub fn run<S>(&mut self, system: S) -> QueryRun<'a, S>
             where
-                SYS: System<'b, 'c, ($($param,)*)>,
+                S: System<'b, 'c, ($($param,)*)>,
             {
                 QueryRun {
                     data: self.data.clone(),
@@ -144,9 +144,9 @@ macro_rules! impl_query_mut_run {
 impl_query_mut_run!();
 run_for_tuples!(impl_query_mut_run);
 
-pub struct QueryRun<'a, SYS> {
+pub struct QueryRun<'a, S> {
     pub data: SystemData<'a>,
-    pub system: SYS,
+    pub system: S,
     pub filtered_component_types: Vec<TypeId>,
     pub group_idx: Option<NonZeroUsize>,
 }

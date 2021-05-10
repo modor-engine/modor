@@ -437,7 +437,113 @@ macro_rules! impl_tuple_system_param {
 impl_tuple_system_param!();
 run_for_tuples!(impl_tuple_system_param);
 
+pub trait MultipleSystemParams {
+    type T: TupleSystemParam;
+}
+
+impl<T> MultipleSystemParams for T
+where
+    T: TupleSystemParam,
+{
+    type T = Self;
+}
+
+impl<T> MultipleSystemParams for Query<'_, T>
+where
+    T: ConstSystemParam + TupleSystemParam,
+{
+    type T = T;
+}
+
+impl<T> MultipleSystemParams for QueryMut<'_, T>
+where
+    T: TupleSystemParam,
+{
+    type T = T;
+}
+
+pub trait ConstSystemParam {}
+
+impl<C> ConstSystemParam for &C where C: Any {}
+
+impl<C> ConstSystemParam for Option<&C> where C: Any {}
+
+impl<T> ConstSystemParam for Query<'_, T> where T: ConstSystemParam + TupleSystemParam {}
+
+macro_rules! impl_const_system_param {
+    ($($param:ident),*) => {
+        impl<'a, 'b, $($param),*> ConstSystemParam for ($($param,)*)
+        where
+            $($param: ConstSystemParam + SystemParam<'a, 'b>,)*
+        {
+        }
+    };
+}
+
+impl_const_system_param!();
+run_for_tuples!(impl_const_system_param);
+
+pub struct Const;
+
+pub struct Mut;
+
+pub trait EntityPartSystemParam {
+    type Resource;
+    type Mutability;
+}
+
+impl<C> EntityPartSystemParam for &C
+where
+    C: Any,
+{
+    type Resource = C;
+    type Mutability = Const;
+}
+
+impl<C> EntityPartSystemParam for Option<&C>
+where
+    C: Any,
+{
+    type Resource = C;
+    type Mutability = Const;
+}
+
+impl<C> EntityPartSystemParam for &mut C
+where
+    C: Any,
+{
+    type Resource = C;
+    type Mutability = Mut;
+}
+
+impl<C> EntityPartSystemParam for Option<&mut C>
+where
+    C: Any,
+{
+    type Resource = C;
+    type Mutability = Mut;
+}
+
+impl EntityPartSystemParam for Group<'_> {
+    type Resource = Group<'static>;
+    type Mutability = Mut;
+}
+
+pub trait NotEnoughEntityPartSystemParam {}
+
+impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
+
+impl<C> NotEnoughEntityPartSystemParam for Option<&mut C> where C: Any {}
+
+impl NotEnoughEntityPartSystemParam for Group<'_> {}
+
 pub trait NotMandatoryComponentSystemParam {}
+
+impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
+
+impl<C> NotMandatoryComponentSystemParam for Option<&mut C> where C: Any {}
+
+impl NotMandatoryComponentSystemParam for Group<'_> {}
 
 impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where
     T: ConstSystemParam + TupleSystemParam
@@ -445,35 +551,3 @@ impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where
 }
 
 impl<T> NotMandatoryComponentSystemParam for QueryMut<'_, T> where T: TupleSystemParam {}
-
-impl<'a, 'b, T> NotMandatoryComponentSystemParam for Option<T> where T: SystemParam<'a, 'b> {}
-
-pub trait ConstSystemParam {}
-
-impl<C> ConstSystemParam for &C where C: Any {}
-
-impl<T> ConstSystemParam for Query<'_, T> where T: ConstSystemParam + TupleSystemParam {}
-
-impl ConstSystemParam for () {}
-
-macro_rules! impl_const_system_param {
-    ($($param:ident),+) => {
-        impl<'a, 'b, $($param),+> ConstSystemParam for ($($param,)+)
-        where
-            $($param: ConstSystemParam + SystemParam<'a, 'b>,)+
-        {
-        }
-    };
-}
-
-run_for_tuples!(impl_const_system_param);
-
-pub trait ComponentSystemParam {}
-
-impl<C> ComponentSystemParam for &C where C: Any {}
-
-impl<C> ComponentSystemParam for &mut C where C: Any {}
-
-impl<C> ComponentSystemParam for Option<&C> where C: Any {}
-
-impl<C> ComponentSystemParam for Option<&mut C> where C: Any {}

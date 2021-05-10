@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use]
+extern crate static_assertions;
+
 #[macro_use]
 mod utils;
 

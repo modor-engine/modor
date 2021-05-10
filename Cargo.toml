@@ -18,6 +18,7 @@ scoped_threadpool = "0.1"
 [dev-dependencies]
 doc-comment = "0.3"
 microbench = "0.5"
+static_assertions = "1.1"
 
 [[bench]]
 name = "parallel"

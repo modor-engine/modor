@@ -37,9 +37,9 @@ pub trait System<'a, 'b, T> {
     );
 }
 
-impl<'a, 'b, SYS> System<'a, 'b, ()> for SYS
+impl<'a, 'b, S> System<'a, 'b, ()> for S
 where
-    SYS: FnMut(),
+    S: FnMut(),
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = false;
@@ -72,9 +72,9 @@ where
 
 macro_rules! impl_fn_system {
     ($(($param:ident, $index:tt)),+) => {
-        impl<'a, 'b: 'a, SYS, $($param),+> System<'a, 'b, ($($param,)+)> for SYS
+        impl<'a, 'b: 'a, S, $($param),+> System<'a, 'b, ($($param,)+)> for S
         where
-            SYS: FnMut($($param),+),
+            S: FnMut($($param),+),
             $($param: SystemParam<'a, 'b>,)+
         {
             const HAS_MANDATORY_COMPONENT: bool = $($param::HAS_MANDATORY_COMPONENT)||+;
@@ -93,7 +93,9 @@ macro_rules! impl_fn_system {
 
             fn archetypes(&self, data: &SystemData<'_>, info: &SystemInfo) -> Vec<ArchetypeInfo> {
                 let mut mandatory_component_types = info.filtered_component_types.to_vec();
-                $(mandatory_component_types.extend($param::mandatory_component_types().into_iter());)+
+                $(mandatory_component_types.extend(
+                    $param::mandatory_component_types().into_iter()
+                );)+
                 data.archetypes(&mandatory_component_types, info.group_idx)
             }
 
