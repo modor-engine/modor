@@ -1,11 +1,11 @@
 use crate::internal::main::MainFacade;
 use crate::internal::system::data::SystemInfo;
-use crate::{LightEntity, LightEntityBuilder, SystemBuilder};
+use crate::SystemBuilder;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
-pub trait Entity: Sized + Any + Sync + Send {
+pub trait EntityMainComponent: Sized + Any + Sync + Send {
     type Params: Any;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built;
@@ -14,20 +14,20 @@ pub trait Entity: Sized + Any + Sync + Send {
     fn on_update(runner: &mut EntityRunner<'_, Self>) {}
 }
 
-pub struct EntityBuilder<'a, E> {
+pub struct EntityBuilder<'a, M> {
     ecs: &'a mut MainFacade,
     entity_idx: usize,
     group_idx: NonZeroUsize,
-    phantom: PhantomData<E>,
+    phantom: PhantomData<M>,
 }
 
-impl<'a, E> EntityBuilder<'a, E>
+impl<'a, M> EntityBuilder<'a, M>
 where
-    E: Entity,
+    M: EntityMainComponent,
 {
     pub fn inherit_from<P>(&mut self, params: P::Params) -> &mut Self
     where
-        P: Entity,
+        P: EntityMainComponent,
     {
         let mut entity_builder = EntityBuilder::new(self.ecs, self.entity_idx, self.group_idx);
         P::build(&mut entity_builder, params);
@@ -42,10 +42,10 @@ where
         self
     }
 
-    pub fn with_self(&mut self, entity: E) -> Built {
+    pub fn with_self(&mut self, entity: M) -> Built {
         self.with(entity);
-        if self.ecs.add_entity_type(self.group_idx, TypeId::of::<E>()) {
-            E::on_update(&mut EntityRunner::new(self.ecs, self.group_idx));
+        if self.ecs.add_entity_type(self.group_idx, TypeId::of::<M>()) {
+            M::on_update(&mut EntityRunner::new(self.ecs, self.group_idx));
         }
         Built::new()
     }
@@ -58,27 +58,20 @@ where
             phantom: PhantomData,
         }
     }
-
-    pub(crate) fn light_builder(&mut self) -> LightEntityBuilder<'_, E>
-    where
-        E: LightEntity,
-    {
-        LightEntityBuilder::new(self.ecs, self.entity_idx, self.group_idx)
-    }
 }
 
-pub struct EntityRunner<'a, E> {
+pub struct EntityRunner<'a, M> {
     ecs: &'a mut MainFacade,
     group_idx: NonZeroUsize,
-    phantom: PhantomData<E>,
+    phantom: PhantomData<M>,
 }
 
-impl<'a, E> EntityRunner<'a, E>
+impl<'a, M> EntityRunner<'a, M>
 where
-    E: Entity,
+    M: EntityMainComponent,
 {
     pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
-        let entity_type = Some(TypeId::of::<E>());
+        let entity_type = Some(TypeId::of::<M>());
         let system = SystemInfo::new(
             system.wrapper,
             system.component_types,

@@ -22,7 +22,7 @@ struct Velocity(f32, f32);
 
 struct StaticBody;
 
-impl Entity for StaticBody {
+impl EntityMainComponent for StaticBody {
     type Params = usize;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
@@ -65,7 +65,7 @@ impl StaticBody {
 
 struct DynamicBody;
 
-impl Entity for DynamicBody {
+impl EntityMainComponent for DynamicBody {
     type Params = usize;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {

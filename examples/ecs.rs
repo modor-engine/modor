@@ -24,7 +24,7 @@ fn build_main_group(builder: &mut GroupBuilder<'_>, offset: u32) {
 
 struct ChildEntity(u32, u32);
 
-impl Entity for ChildEntity {
+impl EntityMainComponent for ChildEntity {
     type Params = (u32, u32);
 
     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
@@ -55,7 +55,7 @@ impl ChildEntity {
 
 struct ParentEntity;
 
-impl Entity for ParentEntity {
+impl EntityMainComponent for ParentEntity {
     type Params = u32;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {

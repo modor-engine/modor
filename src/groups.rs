@@ -1,6 +1,6 @@
 use crate::internal::main::MainFacade;
 use crate::internal::system::data::SystemInfo;
-use crate::{Entity, EntityBuilder, SystemBuilder};
+use crate::{EntityBuilder, EntityMainComponent, SystemBuilder};
 use std::num::NonZeroUsize;
 
 pub struct GroupBuilder<'a> {
@@ -20,13 +20,13 @@ impl<'a> GroupBuilder<'a> {
         self
     }
 
-    pub fn with_entity<C>(&mut self, params: C::Params) -> &mut Self
+    pub fn with_entity<M>(&mut self, params: M::Params) -> &mut Self
     where
-        C: Entity,
+        M: EntityMainComponent,
     {
         let entity_idx = self.ecs.create_entity(self.group_idx);
         let mut entity_builder = EntityBuilder::new(self.ecs, entity_idx, self.group_idx);
-        C::build(&mut entity_builder, params);
+        M::build(&mut entity_builder, params);
         self
     }
 

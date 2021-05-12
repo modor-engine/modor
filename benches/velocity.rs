@@ -1,42 +1,46 @@
 use microbench::Options;
 use modor::*;
 
+#[allow(clippy::cast_precision_loss)]
 fn build_main_group(builder: &mut GroupBuilder<'_>) {
     for i in 0..10000 {
         if i % 10 == 0 {
-            builder.with_entity::<DynamicBody>(i);
+            builder.with_entity::<DynamicBody>(i as f32);
         } else {
-            builder.with_entity::<StaticBody>(i);
+            builder.with_entity::<StaticBody>(i as f32);
         }
     }
 }
 
-#[derive(Debug)]
-struct Position(f32, f32);
+struct StaticBody {
+    pos_x: f32,
+    pos_y: f32,
+}
 
-#[derive(Debug)]
-struct Velocity(f32, f32);
+impl EntityMainComponent for StaticBody {
+    type Params = f32;
 
-struct StaticBody;
-
-impl LightEntity for StaticBody {
-    type LightParams = usize;
-
-    fn build(builder: &mut LightEntityBuilder<'_, Self>, value: Self::LightParams) {
-        builder.with(Position(value as f32, value as f32 + 0.5));
+    fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
+        builder.with_self(Self {
+            pos_x: value,
+            pos_y: value + 0.5,
+        })
     }
 }
 
-struct DynamicBody;
+struct DynamicBody {
+    vel_x: f32,
+    vel_y: f32,
+}
 
-impl Entity for DynamicBody {
-    type Params = usize;
+impl EntityMainComponent for DynamicBody {
+    type Params = f32;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
-        builder
-            .inherit_from::<StaticBody>(value)
-            .with(Velocity(value as f32 + 0.25, value as f32 + 0.75))
-            .with_self(Self)
+        builder.inherit_from::<StaticBody>(value).with_self(Self {
+            vel_x: value + 0.25,
+            vel_y: value + 0.75,
+        })
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
@@ -45,9 +49,9 @@ impl Entity for DynamicBody {
 }
 
 impl DynamicBody {
-    fn update(position: &mut Position, velocity: &Velocity) {
-        position.0 += velocity.0;
-        position.1 += velocity.1;
+    fn update(&self, static_body: &mut StaticBody) {
+        static_body.pos_x += self.vel_x;
+        static_body.pos_y += self.vel_y;
     }
 }
 
