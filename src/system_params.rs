@@ -1,7 +1,7 @@
 use crate::internal::components::interfaces::Components;
 use crate::{
-    ArchetypeInfo, Group, OptionComponentIter, OptionComponentMutIter, Query, QueryMut,
-    QueryMutIterator, SystemData, SystemInfo, TypeAccess,
+    ArchetypeInfo, Group, GroupIterator, OptionComponentIter, OptionComponentMutIter, Query,
+    QueryMut, QueryMutIterator, SystemData, SystemInfo, TypeAccess,
 };
 use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
@@ -256,7 +256,7 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = true;
     type Lock = &'b SystemData<'b>;
-    type Iterator = Repeat<Self>;
+    type Iterator = GroupIterator<'a>;
 
     fn component_types() -> Vec<TypeAccess> {
         Vec::new()
@@ -276,7 +276,7 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
     ) -> Self::Iterator {
-        iter::repeat(Self::new(archetype.group_idx, lock.clone()))
+        GroupIterator::new(archetype.group_idx, lock.clone())
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {

@@ -6,7 +6,6 @@ use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
-#[derive(Clone)]
 pub struct Group<'a> {
     group_idx: NonZeroUsize,
     data: SystemData<'a>,

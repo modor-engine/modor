@@ -1,5 +1,6 @@
-use crate::{QueryMut, TupleSystemParam};
+use crate::{Group, QueryMut, SystemData, TupleSystemParam};
 use std::any::Any;
+use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
 
 pub struct OptionComponentIter<'a, C>(Option<Iter<'a, C>>)
@@ -51,6 +52,25 @@ where
         self.0
             .as_mut()
             .map_or(Some(None), |iter| iter.next().map(Some))
+    }
+}
+
+pub struct GroupIterator<'a> {
+    group_idx: NonZeroUsize,
+    data: SystemData<'a>,
+}
+
+impl<'a> GroupIterator<'a> {
+    pub(crate) fn new(group_idx: NonZeroUsize, data: SystemData<'a>) -> Self {
+        Self { group_idx, data }
+    }
+}
+
+impl<'a> Iterator for GroupIterator<'a> {
+    type Item = Group<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(Group::new(self.group_idx, self.data.clone()))
     }
 }
 

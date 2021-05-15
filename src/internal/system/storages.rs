@@ -77,7 +77,7 @@ mod tests_system_storage {
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let mut group_actions = GroupActionFacade::default();
+        let group_actions = GroupActionFacade::default();
         let group_actions = Mutex::new(group_actions);
         let data = SystemData::new(&core, &component_interface, &group_actions);
         use_data_fn(&data);
