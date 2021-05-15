@@ -1,7 +1,51 @@
-use crate::{ConstSystemParam, GroupBuilder, System, SystemData, TupleSystemParam};
+use crate::{
+    ConstSystemParam, EntityBuilder, EntityMainComponent, GroupBuilder, System, SystemData,
+    TupleSystemParam,
+};
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
+
+#[derive(Clone)]
+pub struct Group<'a> {
+    group_idx: NonZeroUsize,
+    data: SystemData<'a>,
+}
+
+impl<'a> Group<'a> {
+    pub fn replace<F>(&mut self, build_group_fn: F)
+    where
+        F: FnOnce(&mut GroupBuilder<'_>) + Sync + Send + 'static,
+    {
+        self.data
+            .group_actions_mut()
+            .mark_group_as_replaced(self.group_idx, Box::new(build_group_fn));
+    }
+
+    pub fn delete(&mut self) {
+        self.data
+            .group_actions_mut()
+            .mark_group_as_deleted(self.group_idx);
+    }
+
+    pub fn create_entity<M>(&mut self, params: M::Params)
+    where
+        M: EntityMainComponent,
+    {
+        let group_idx = self.group_idx;
+        self.data.group_actions_mut().add_entity_to_create(
+            group_idx,
+            Box::new(move |m| {
+                let entity_idx = m.create_entity(group_idx);
+                M::build(&mut EntityBuilder::new(m, entity_idx, group_idx), params);
+            }),
+        );
+    }
+
+    pub(crate) fn new(group_idx: NonZeroUsize, data: SystemData<'a>) -> Self {
+        Self { group_idx, data }
+    }
+}
 
 pub struct Query<'a, T>
 where
@@ -149,32 +193,4 @@ pub struct QueryRun<'a, S> {
     pub system: S,
     pub filtered_component_types: Vec<TypeId>,
     pub group_idx: Option<NonZeroUsize>,
-}
-
-// TODO: add checks (can only be here for foreach systems)
-#[derive(Clone)]
-pub struct Group<'a> {
-    group_idx: NonZeroUsize,
-    data: SystemData<'a>,
-}
-
-impl<'a> Group<'a> {
-    pub(crate) fn new(group_idx: NonZeroUsize, data: SystemData<'a>) -> Self {
-        Self { group_idx, data }
-    }
-
-    pub fn replace<F>(&mut self, build_group_fn: F)
-    where
-        F: FnOnce(&mut GroupBuilder<'_>) + Sync + Send + 'static,
-    {
-        self.data
-            .group_actions_mut()
-            .mark_group_as_replaced(self.group_idx, build_group_fn);
-    }
-
-    pub fn delete(&mut self) {
-        self.data
-            .group_actions_mut()
-            .mark_group_as_deleted(self.group_idx);
-    }
 }

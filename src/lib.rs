@@ -42,3 +42,4 @@ doc_comment::doctest!("../README.md");
 // - statically assert public types to check auto traits Sync and Send (to avoid future breaking changes)
 // - try to include special cases in macros instead of manually writing it
 // - name of test modules should match the type names
+// - https://rust-lang.github.io/api-guidelines/checklist.html

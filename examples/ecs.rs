@@ -37,6 +37,7 @@ impl EntityMainComponent for ChildEntity {
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
         runner.run(system!(Self::print_value));
         runner.run(system!(Self::delete_group));
+        runner.run(system!(Self::create_entity));
     }
 }
 
@@ -49,6 +50,12 @@ impl ChildEntity {
     fn delete_group(&self, mut group: Group<'_>) {
         if self.1 == 100 {
             group.delete();
+        }
+    }
+
+    fn create_entity(&self, mut group: Group<'_>) {
+        if self.0 == 1042 {
+            group.create_entity::<Self>((1043, 1000));
         }
     }
 }

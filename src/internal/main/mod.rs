@@ -1,5 +1,6 @@
 use crate::internal::components::ComponentFacade;
 use crate::internal::core::CoreFacade;
+use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
 use crate::internal::group_actions::GroupActionFacade;
 use crate::internal::system::data::SystemInfo;
 use crate::internal::system::SystemFacade;
@@ -19,9 +20,7 @@ pub(crate) struct MainFacade {
 impl MainFacade {
     /// Return group index.
     pub(crate) fn create_group(&mut self) -> NonZeroUsize {
-        let group_idx = self.core.create_group();
-        self.group_actions_mut().register_group(group_idx);
-        group_idx
+        self.core.create_group()
     }
 
     pub(crate) fn delete_group(&mut self, group_idx: NonZeroUsize) {
@@ -113,16 +112,12 @@ impl MainFacade {
     pub(crate) fn apply_system_actions(&mut self) {
         let group_actions = self.group_actions.get_mut().unwrap();
         let deleted_group_idxs: Vec<_> = group_actions.deleted_group_idxs().collect();
-        let replaced_group_idxs: Vec<_> = group_actions.replaced_group_idxs().collect();
+        let replaced_group_builders: Vec<_> = group_actions.replaced_group_builders().collect();
+        let entity_builders: Vec<_> = group_actions.entity_builders().collect();
         group_actions.reset();
-        for deleted_group_idx in deleted_group_idxs {
-            self.delete_group(deleted_group_idx);
-        }
-        for (replaced_group_idx, group_builder_fn) in replaced_group_idxs {
-            self.delete_group(replaced_group_idx);
-            let new_group_idx = self.create_group();
-            group_builder_fn(&mut GroupBuilder::new(self, new_group_idx));
-        }
+        self.apply_group_deletions(deleted_group_idxs);
+        self.apply_group_replacements(replaced_group_builders);
+        self.apply_entity_creations(entity_builders)
     }
 
     pub(crate) fn set_thread_count(&mut self, count: u32) {
@@ -140,5 +135,28 @@ impl MainFacade {
         let type_idx = self.core.add_component_type(TypeId::of::<C>());
         self.components.create_type::<C>();
         type_idx
+    }
+
+    fn apply_entity_creations(&mut self, entity_builders: Vec<CreateEntityFn>) {
+        for entity_builder in entity_builders {
+            entity_builder(self);
+        }
+    }
+
+    fn apply_group_replacements(
+        &mut self,
+        replaced_group_builders: Vec<(NonZeroUsize, BuildGroupFn)>,
+    ) {
+        for (replaced_group_idx, group_builder_fn) in replaced_group_builders {
+            self.delete_group(replaced_group_idx);
+            let new_group_idx = self.create_group();
+            group_builder_fn(&mut GroupBuilder::new(self, new_group_idx));
+        }
+    }
+
+    fn apply_group_deletions(&mut self, deleted_group_idxs: Vec<NonZeroUsize>) {
+        for deleted_group_idx in deleted_group_idxs {
+            self.delete_group(deleted_group_idx);
+        }
     }
 }

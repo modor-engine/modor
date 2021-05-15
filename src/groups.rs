@@ -4,7 +4,7 @@ use crate::{EntityBuilder, EntityMainComponent, SystemBuilder};
 use std::num::NonZeroUsize;
 
 pub struct GroupBuilder<'a> {
-    ecs: &'a mut MainFacade,
+    main: &'a mut MainFacade,
     group_idx: NonZeroUsize,
 }
 
@@ -16,7 +16,7 @@ impl<'a> GroupBuilder<'a> {
             None,
             system.group_actions,
         );
-        self.ecs.add_system(Some(self.group_idx), system);
+        self.main.add_system(Some(self.group_idx), system);
         self
     }
 
@@ -24,13 +24,13 @@ impl<'a> GroupBuilder<'a> {
     where
         M: EntityMainComponent,
     {
-        let entity_idx = self.ecs.create_entity(self.group_idx);
-        let mut entity_builder = EntityBuilder::new(self.ecs, entity_idx, self.group_idx);
+        let entity_idx = self.main.create_entity(self.group_idx);
+        let mut entity_builder = EntityBuilder::new(self.main, entity_idx, self.group_idx);
         M::build(&mut entity_builder, params);
         self
     }
 
-    pub(crate) fn new(ecs: &'a mut MainFacade, group_idx: NonZeroUsize) -> Self {
-        Self { ecs, group_idx }
+    pub(crate) fn new(main: &'a mut MainFacade, group_idx: NonZeroUsize) -> Self {
+        Self { main, group_idx }
     }
 }

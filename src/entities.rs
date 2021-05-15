@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
 pub trait EntityMainComponent: Sized + Any + Sync + Send {
-    type Params: Any;
+    type Params: Any + Sync + Send;
 
     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built;
 
@@ -15,7 +15,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
 }
 
 pub struct EntityBuilder<'a, M> {
-    ecs: &'a mut MainFacade,
+    main: &'a mut MainFacade,
     entity_idx: usize,
     group_idx: NonZeroUsize,
     phantom: PhantomData<M>,
@@ -29,7 +29,7 @@ where
     where
         P: EntityMainComponent,
     {
-        let mut entity_builder = EntityBuilder::new(self.ecs, self.entity_idx, self.group_idx);
+        let mut entity_builder = EntityBuilder::new(self.main, self.entity_idx, self.group_idx);
         P::build(&mut entity_builder, params);
         self
     }
@@ -38,21 +38,25 @@ where
     where
         C: Any + Sync + Send,
     {
-        self.ecs.add_component(self.entity_idx, component);
+        self.main.add_component(self.entity_idx, component);
         self
     }
 
     pub fn with_self(&mut self, entity: M) -> Built {
         self.with(entity);
-        if self.ecs.add_entity_type(self.group_idx, TypeId::of::<M>()) {
-            M::on_update(&mut EntityRunner::new(self.ecs, self.group_idx));
+        if self.main.add_entity_type(self.group_idx, TypeId::of::<M>()) {
+            M::on_update(&mut EntityRunner::new(self.main, self.group_idx));
         }
         Built::new()
     }
 
-    pub(crate) fn new(ecs: &'a mut MainFacade, entity_idx: usize, group_idx: NonZeroUsize) -> Self {
+    pub(crate) fn new(
+        main: &'a mut MainFacade,
+        entity_idx: usize,
+        group_idx: NonZeroUsize,
+    ) -> Self {
         Self {
-            ecs,
+            main,
             entity_idx,
             group_idx,
             phantom: PhantomData,
@@ -61,7 +65,7 @@ where
 }
 
 pub struct EntityRunner<'a, M> {
-    ecs: &'a mut MainFacade,
+    main: &'a mut MainFacade,
     group_idx: NonZeroUsize,
     phantom: PhantomData<M>,
 }
@@ -78,13 +82,13 @@ where
             entity_type,
             system.group_actions,
         );
-        self.ecs.add_system(Some(self.group_idx), system);
+        self.main.add_system(Some(self.group_idx), system);
         self
     }
 
     pub(crate) fn new(ecs: &'a mut MainFacade, group_idx: NonZeroUsize) -> Self {
         Self {
-            ecs,
+            main: ecs,
             group_idx,
             phantom: PhantomData,
         }

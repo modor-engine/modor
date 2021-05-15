@@ -1,24 +1,45 @@
-use crate::internal::group_actions::data::BuildGroupFn;
+use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn, GroupBuilderState};
 use fxhash::FxHashSet;
+use std::mem;
 use std::num::NonZeroUsize;
 
 #[derive(Default)]
-pub(super) struct ReplacedGroupsStorage(Vec<Option<BuildGroupFn>>);
+pub(super) struct ReplacedGroupsStorage(Vec<GroupBuilderState>);
 
 impl ReplacedGroupsStorage {
-    pub(super) fn register(&mut self, group_idx: NonZeroUsize) {
+    pub(super) fn is_marked_as_replaced(&self, group_idx: NonZeroUsize) -> bool {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(None));
+        self.0.get(group_pos).map_or(false, |b| {
+            matches!(b, GroupBuilderState::Some(_) | GroupBuilderState::Removed)
+        })
     }
 
     pub(super) fn add(&mut self, group_idx: NonZeroUsize, build_fn: BuildGroupFn) {
         let group_pos = group_idx.get() - 1;
-        self.0[group_pos] = Some(build_fn);
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(GroupBuilderState::None));
+        self.0[group_pos] = GroupBuilderState::Some(build_fn);
     }
 
     pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Option<BuildGroupFn> {
         let group_pos = group_idx.get() - 1;
-        self.0[group_pos].take()
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(GroupBuilderState::None));
+        match &self.0[group_pos] {
+            GroupBuilderState::Some(_) => {
+                let old = mem::replace(&mut self.0[group_pos], GroupBuilderState::Removed);
+                if let GroupBuilderState::Some(build_fn) = old {
+                    Some(build_fn)
+                } else {
+                    None
+                }
+            }
+            GroupBuilderState::Removed | GroupBuilderState::None => None,
+        }
+    }
+
+    pub(super) fn reset(&mut self, group_idx: NonZeroUsize) {
+        let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(GroupBuilderState::None));
+        self.0[group_pos] = GroupBuilderState::None
     }
 }
 
@@ -28,21 +49,18 @@ pub(super) struct DeletedGroupsStorage(Vec<bool>);
 impl DeletedGroupsStorage {
     pub(super) fn is_marked_as_deleted(&self, group_idx: NonZeroUsize) -> bool {
         let group_pos = group_idx.get() - 1;
-        self.0[group_pos]
-    }
-
-    pub(super) fn register(&mut self, group_idx: NonZeroUsize) {
-        let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(false));
+        self.0.get(group_pos).copied().unwrap_or(false)
     }
 
     pub(super) fn add(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(false));
         self.0[group_pos] = true;
     }
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(false));
         self.0[group_pos] = false;
     }
 }
@@ -64,43 +82,77 @@ impl ModifiedGroupsStorage {
     }
 }
 
+#[derive(Default)]
+pub(super) struct CreatedEntitiesStorage(Vec<Vec<CreateEntityFn>>);
+
+impl CreatedEntitiesStorage {
+    pub(super) fn add(&mut self, group_idx: NonZeroUsize, create_fn: CreateEntityFn) {
+        let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
+        self.0[group_pos].push(create_fn);
+    }
+
+    pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Vec<CreateEntityFn> {
+        let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
+        mem::take(&mut self.0[group_pos])
+    }
+}
+
 #[cfg(test)]
 mod tests_replaced_groups_storage {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
-    fn register_group() {
-        let mut storage = ReplacedGroupsStorage::default();
-
-        storage.register(2.try_into().unwrap());
-
-        assert!(storage.remove(1.try_into().unwrap()).is_none());
-        assert!(storage.remove(2.try_into().unwrap()).is_none());
-        assert_panics!(storage.remove(3.try_into().unwrap()).is_none());
-    }
-
-    #[test]
     fn add_group_builder() {
         let mut storage = ReplacedGroupsStorage::default();
-        storage.register(2.try_into().unwrap());
 
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
 
-        assert!(storage.remove(1.try_into().unwrap()).is_none());
-        assert!(storage.remove(2.try_into().unwrap()).is_some());
+        assert!(!storage.is_marked_as_replaced(1.try_into().unwrap()));
+        assert!(storage.is_marked_as_replaced(2.try_into().unwrap()));
+        assert!(!storage.is_marked_as_replaced(3.try_into().unwrap()));
     }
 
     #[test]
-    fn remove_group_builder() {
+    fn remove_nonexisting_group_builder() {
         let mut storage = ReplacedGroupsStorage::default();
-        storage.register(2.try_into().unwrap());
+
+        let build_fn = storage.remove(2.try_into().unwrap());
+
+        assert!(build_fn.is_none());
+    }
+
+    #[test]
+    fn remove_existing_group_builder() {
+        let mut storage = ReplacedGroupsStorage::default();
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
 
         let build_fn = storage.remove(2.try_into().unwrap());
 
         assert!(build_fn.is_some());
+        assert!(storage.is_marked_as_replaced(2.try_into().unwrap()));
         assert!(storage.remove(2.try_into().unwrap()).is_none());
+    }
+
+    #[test]
+    fn reset_existing_group_builder() {
+        let mut storage = ReplacedGroupsStorage::default();
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+
+        storage.reset(2.try_into().unwrap());
+
+        assert!(!storage.is_marked_as_replaced(2.try_into().unwrap()));
+    }
+
+    #[test]
+    fn reset_nonexisting_group_builder() {
+        let mut storage = ReplacedGroupsStorage::default();
+
+        storage.reset(2.try_into().unwrap());
+
+        assert!(!storage.is_marked_as_replaced(2.try_into().unwrap()));
     }
 }
 
@@ -110,31 +162,19 @@ mod tests_deleted_groups_storage {
     use std::convert::TryInto;
 
     #[test]
-    fn register_group() {
-        let mut storage = DeletedGroupsStorage::default();
-
-        storage.register(2.try_into().unwrap());
-
-        assert!(!storage.is_marked_as_deleted(1.try_into().unwrap()));
-        assert!(!storage.is_marked_as_deleted(2.try_into().unwrap()));
-        assert_panics!(!storage.is_marked_as_deleted(3.try_into().unwrap()));
-    }
-
-    #[test]
     fn add_group() {
         let mut storage = DeletedGroupsStorage::default();
-        storage.register(2.try_into().unwrap());
 
         storage.add(2.try_into().unwrap());
 
         assert!(!storage.is_marked_as_deleted(1.try_into().unwrap()));
         assert!(storage.is_marked_as_deleted(2.try_into().unwrap()));
+        assert!(!storage.is_marked_as_deleted(3.try_into().unwrap()));
     }
 
     #[test]
     fn delete_group() {
         let mut storage = DeletedGroupsStorage::default();
-        storage.register(2.try_into().unwrap());
         storage.add(2.try_into().unwrap());
 
         storage.delete(2.try_into().unwrap());
@@ -166,5 +206,37 @@ mod tests_modified_groups_storage {
         storage.reset();
 
         assert_eq!(storage.idxs().next(), None);
+    }
+}
+
+#[cfg(test)]
+mod tests_created_entities_storage {
+    use super::*;
+    use std::convert::TryInto;
+
+    #[test]
+    fn add_entity_builders() {
+        let mut storage = CreatedEntitiesStorage::default();
+
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+
+        assert_eq!(storage.remove(1.try_into().unwrap()).len(), 0);
+        assert_eq!(storage.remove(2.try_into().unwrap()).len(), 3);
+        assert_eq!(storage.remove(3.try_into().unwrap()).len(), 0);
+    }
+
+    #[test]
+    fn remove_entity_builders() {
+        let mut storage = CreatedEntitiesStorage::default();
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+        storage.add(2.try_into().unwrap(), Box::new(|_| ()));
+
+        let builders = storage.remove(2.try_into().unwrap());
+
+        assert_eq!(builders.len(), 3);
+        assert_eq!(storage.remove(2.try_into().unwrap()).len(), 0);
     }
 }

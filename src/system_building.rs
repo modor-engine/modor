@@ -47,6 +47,7 @@ macro_rules! system {
     }};
 }
 
+// TODO: move query type check from for_each(_mut) to system!() 
 #[macro_export]
 macro_rules! for_each {
     ($query:expr, $system:expr) => {{

@@ -309,8 +309,6 @@ mod tests_system_facade {
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
         let mut group_actions = GroupActionFacade::default();
-        group_actions.register_group(1.try_into().unwrap());
-        group_actions.register_group(2.try_into().unwrap());
         let group_actions = Mutex::new(group_actions);
 
         facade.run(&core, &component_interface, &group_actions);
@@ -348,8 +346,6 @@ mod tests_system_facade {
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
         let mut group_actions = GroupActionFacade::default();
-        group_actions.register_group(1.try_into().unwrap());
-        group_actions.register_group(2.try_into().unwrap());
         let group_actions = Mutex::new(group_actions);
 
         facade.run(&core, &component_interface, &group_actions);
