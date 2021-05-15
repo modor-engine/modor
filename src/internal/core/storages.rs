@@ -19,12 +19,20 @@ impl ComponentTypeStorage {
 }
 
 #[derive(Default)]
-pub(super) struct EntityTypeStorage(FxHashSet<(NonZeroUsize, TypeId)>);
+pub(super) struct EntityTypeStorage(Vec<FxHashSet<TypeId>>);
 
 impl EntityTypeStorage {
     /// Return whether the type is new for the group.
     pub(super) fn add(&mut self, group_idx: NonZeroUsize, entity_type: TypeId) -> bool {
-        self.0.insert((group_idx, entity_type))
+        let group_idx = group_idx.get() - 1;
+        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashSet::default()));
+        self.0[group_idx].insert(entity_type)
+    }
+
+    pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
+        let group_idx = group_idx.get() - 1;
+        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashSet::default()));
+        self.0[group_idx] = FxHashSet::default();
     }
 }
 
@@ -111,5 +119,24 @@ mod tests_entity_type_storage {
         let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
 
         assert!(!is_new);
+    }
+
+    #[test]
+    fn delete_nonexisting_group() {
+        let mut storage = EntityTypeStorage::default();
+
+        storage.delete(2.try_into().unwrap());
+
+        assert!(storage.add(2.try_into().unwrap(), TypeId::of::<u32>()));
+    }
+
+    #[test]
+    fn delete_existing_group() {
+        let mut storage = EntityTypeStorage::default();
+        storage.add(2.try_into().unwrap(), TypeId::of::<u32>());
+
+        storage.delete(2.try_into().unwrap());
+
+        assert!(storage.add(2.try_into().unwrap(), TypeId::of::<u32>()));
     }
 }

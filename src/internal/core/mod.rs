@@ -41,6 +41,7 @@ impl CoreFacade {
         }
         self.archetypes.delete_all(group_idx);
         self.groups.delete(group_idx);
+        self.entity_types.delete(group_idx);
     }
 
     pub(crate) fn archetype_type_idxs(&self, archetype_idx: usize) -> &[usize] {
@@ -246,6 +247,8 @@ mod tests_core_facade {
         let group2_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group1_idx);
         let entity2_idx = facade.create_entity(group2_idx);
+        facade.add_entity_type(group1_idx, TypeId::of::<i64>());
+        facade.add_entity_type(group2_idx, TypeId::of::<u32>());
         let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
         let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
         facade.add_component(entity1_idx, component_type1_idx);
@@ -262,6 +265,8 @@ mod tests_core_facade {
         assert_panics!(facade.groups.idx(entity1_idx));
         assert_eq!(facade.groups.idx(entity2_idx), group2_idx);
         assert_eq!(facade.groups.create(), group1_idx);
+        assert!(facade.entity_types.add(group1_idx, TypeId::of::<i64>()));
+        assert!(!facade.entity_types.add(group2_idx, TypeId::of::<u32>()));
     }
 
     #[test]
