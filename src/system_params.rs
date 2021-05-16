@@ -1,18 +1,17 @@
 use crate::internal::components::interfaces::Components;
 use crate::{
-    ArchetypeInfo, Group, GroupIterator, OptionComponentIter, OptionComponentMutIter, Query,
-    QueryMut, QueryMutIterator, SystemData, SystemInfo, TypeAccess,
+    ArchetypeInfo, Entity, EntityIterator, Group, GroupIterator, OptionComponentIter,
+    OptionComponentMutIter, Query, QueryMut, QueryMutIterator, SystemData, SystemInfo, TypeAccess,
 };
 use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
 use std::slice::{Iter, IterMut};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
-// TODO: define type to create/delete entities/groups in systems
-
 pub trait SystemParam<'a, 'b>: Sized {
     const HAS_MANDATORY_COMPONENT: bool;
     const HAS_GROUP_ACTIONS: bool;
+    const HAS_ENTITY_ACTIONS: bool;
     type Lock: 'b;
     type Iterator: Iterator<Item = Self>;
 
@@ -38,6 +37,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Lock = Option<RwLockReadGuard<'b, Components>>;
     type Iterator = Iter<'a, C>;
 
@@ -74,6 +74,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Lock = Option<RwLockWriteGuard<'b, Components>>;
     type Iterator = IterMut<'a, C>;
 
@@ -111,6 +112,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Lock = Option<RwLockReadGuard<'b, Components>>;
     type Iterator = OptionComponentIter<'a, C>;
 
@@ -150,6 +152,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Lock = Option<RwLockWriteGuard<'b, Components>>;
     type Iterator = OptionComponentMutIter<'a, C>;
 
@@ -182,12 +185,79 @@ where
     }
 }
 
+impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
+    const HAS_MANDATORY_COMPONENT: bool = false;
+    const HAS_GROUP_ACTIONS: bool = true;
+    const HAS_ENTITY_ACTIONS: bool = false;
+    type Lock = &'b SystemData<'b>;
+    type Iterator = GroupIterator<'a>;
+
+    fn component_types() -> Vec<TypeAccess> {
+        Vec::new()
+    }
+
+    fn mandatory_component_types() -> Vec<TypeId> {
+        Vec::new()
+    }
+
+    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+        data
+    }
+
+    fn iter(
+        _data: &SystemData<'_>,
+        _info: &SystemInfo,
+        lock: &'a mut Self::Lock,
+        archetype: ArchetypeInfo,
+    ) -> Self::Iterator {
+        GroupIterator::new(archetype.group_idx, lock.clone())
+    }
+
+    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+        panic!("group retrieved with no entity component")
+    }
+}
+
+impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
+    const HAS_MANDATORY_COMPONENT: bool = false;
+    const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = true;
+    type Lock = &'b SystemData<'b>;
+    type Iterator = EntityIterator<'a>;
+
+    fn component_types() -> Vec<TypeAccess> {
+        Vec::new()
+    }
+
+    fn mandatory_component_types() -> Vec<TypeId> {
+        Vec::new()
+    }
+
+    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+        data
+    }
+
+    fn iter(
+        _data: &SystemData<'_>,
+        _info: &SystemInfo,
+        lock: &'a mut Self::Lock,
+        archetype: ArchetypeInfo,
+    ) -> Self::Iterator {
+        EntityIterator::new(lock.entity_idxs(archetype.idx).iter(), lock.clone())
+    }
+
+    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+        panic!("entity retrieved with no entity component")
+    }
+}
+
 impl<'a, 'b: 'a, T> SystemParam<'a, 'b> for Query<'a, T>
 where
     T: ConstSystemParam + TupleSystemParam + SystemParam<'a, 'b>,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = T::HAS_GROUP_ACTIONS;
+    const HAS_ENTITY_ACTIONS: bool = T::HAS_ENTITY_ACTIONS;
     type Lock = &'b SystemData<'b>;
     type Iterator = Repeat<Self>;
 
@@ -223,6 +293,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = T::HAS_GROUP_ACTIONS;
+    const HAS_ENTITY_ACTIONS: bool = T::HAS_ENTITY_ACTIONS;
     type Lock = &'b SystemData<'b>;
     type Iterator = QueryMutIterator<'a, T>;
 
@@ -252,41 +323,10 @@ where
     }
 }
 
-impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
-    const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = true;
-    type Lock = &'b SystemData<'b>;
-    type Iterator = GroupIterator<'a>;
-
-    fn component_types() -> Vec<TypeAccess> {
-        Vec::new()
-    }
-
-    fn mandatory_component_types() -> Vec<TypeId> {
-        Vec::new()
-    }
-
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
-        data
-    }
-
-    fn iter(
-        _data: &SystemData<'_>,
-        _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
-        archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        GroupIterator::new(archetype.group_idx, lock.clone())
-    }
-
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
-        panic!("group retrieved for no entity")
-    }
-}
-
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Lock = ();
     type Iterator = Repeat<()>;
 
@@ -320,6 +360,7 @@ macro_rules! impl_system_param_for_tuple {
         {
             const HAS_MANDATORY_COMPONENT: bool = $($params::HAS_MANDATORY_COMPONENT)||+;
             const HAS_GROUP_ACTIONS: bool = $($params::HAS_GROUP_ACTIONS)||+;
+            const HAS_ENTITY_ACTIONS: bool = $($params::HAS_ENTITY_ACTIONS)||+;
             type Lock = ($($params::Lock,)+);
             #[allow(clippy::type_complexity)]
             type Iterator = impl_system_param_for_tuple!(@iterator_type $($params),+);
@@ -529,6 +570,11 @@ impl EntityPartSystemParam for Group<'_> {
     type Mutability = Mut;
 }
 
+impl EntityPartSystemParam for Entity<'_> {
+    type Resource = Entity<'static>;
+    type Mutability = Mut;
+}
+
 pub trait NotEnoughEntityPartSystemParam {}
 
 impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
@@ -537,6 +583,8 @@ impl<C> NotEnoughEntityPartSystemParam for Option<&mut C> where C: Any {}
 
 impl NotEnoughEntityPartSystemParam for Group<'_> {}
 
+impl NotEnoughEntityPartSystemParam for Entity<'_> {}
+
 pub trait NotMandatoryComponentSystemParam {}
 
 impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
@@ -544,6 +592,8 @@ impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
 impl<C> NotMandatoryComponentSystemParam for Option<&mut C> where C: Any {}
 
 impl NotMandatoryComponentSystemParam for Group<'_> {}
+
+impl NotMandatoryComponentSystemParam for Entity<'_> {}
 
 impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where
     T: ConstSystemParam + TupleSystemParam

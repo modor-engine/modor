@@ -1,5 +1,5 @@
 use crate::internal::main::MainFacade;
-use crate::internal::system::data::SystemInfo;
+use crate::internal::system::data::SystemDetails;
 use crate::{EntityBuilder, EntityMainComponent, SystemBuilder};
 use std::num::NonZeroUsize;
 
@@ -10,11 +10,12 @@ pub struct GroupBuilder<'a> {
 
 impl<'a> GroupBuilder<'a> {
     pub fn on_update(&mut self, system: SystemBuilder) -> &mut Self {
-        let system = SystemInfo::new(
+        let system = SystemDetails::new(
             system.wrapper,
             system.component_types,
             None,
             system.group_actions,
+            system.entity_actions,
         );
         self.main.add_system(Some(self.group_idx), system);
         self

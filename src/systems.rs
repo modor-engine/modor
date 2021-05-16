@@ -1,5 +1,6 @@
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
+use crate::internal::entity_actions::EntityActionFacade;
 use crate::internal::group_actions::GroupActionFacade;
 use crate::{SystemParam, TypeAccess};
 use std::any::{Any, TypeId};
@@ -10,6 +11,7 @@ use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 pub trait System<'a, 'b, T> {
     const HAS_MANDATORY_COMPONENT: bool;
     const HAS_GROUP_ACTIONS: bool;
+    const HAS_ENTITY_ACTIONS: bool;
     type Locks: 'b;
 
     fn has_mandatory_component(&self) -> bool {
@@ -18,6 +20,10 @@ pub trait System<'a, 'b, T> {
 
     fn has_group_actions(&self) -> bool {
         Self::HAS_GROUP_ACTIONS
+    }
+
+    fn has_entity_actions(&self) -> bool {
+        Self::HAS_ENTITY_ACTIONS
     }
 
     fn component_types(&self) -> Vec<TypeAccess>;
@@ -43,6 +49,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_GROUP_ACTIONS: bool = false;
+    const HAS_ENTITY_ACTIONS: bool = false;
     type Locks = ();
 
     fn component_types(&self) -> Vec<TypeAccess> {
@@ -79,6 +86,7 @@ macro_rules! impl_fn_system {
         {
             const HAS_MANDATORY_COMPONENT: bool = $($param::HAS_MANDATORY_COMPONENT)||+;
             const HAS_GROUP_ACTIONS: bool = $($param::HAS_GROUP_ACTIONS)||+;
+            const HAS_ENTITY_ACTIONS: bool = $($param::HAS_ENTITY_ACTIONS)||+;
             type Locks = ($($param::Lock,)+);
 
             fn component_types(&self) -> Vec<TypeAccess> {
@@ -125,6 +133,7 @@ pub struct SystemData<'a> {
     core: &'a CoreFacade,
     components: &'a ComponentInterface<'a>,
     group_actions: &'a Mutex<GroupActionFacade>,
+    entity_actions: &'a Mutex<EntityActionFacade>,
 }
 
 impl<'a> SystemData<'a> {
@@ -132,11 +141,13 @@ impl<'a> SystemData<'a> {
         core: &'a CoreFacade,
         components: &'a ComponentInterface<'a>,
         group_actions: &'a Mutex<GroupActionFacade>,
+        entity_actions: &'a Mutex<EntityActionFacade>,
     ) -> Self {
         Self {
             core,
             components,
             group_actions,
+            entity_actions,
         }
     }
 
@@ -146,6 +157,10 @@ impl<'a> SystemData<'a> {
         group_idx: Option<NonZeroUsize>,
     ) -> Vec<ArchetypeInfo> {
         self.core.archetypes(component_types, group_idx)
+    }
+
+    pub(crate) fn entity_idxs(&self, archetype_idx: usize) -> &[usize] {
+        self.core.archetype_entity_idxs(archetype_idx)
     }
 
     pub(crate) fn read_components<C>(&self) -> Option<RwLockReadGuard<'_, Components>>
@@ -186,6 +201,10 @@ impl<'a> SystemData<'a> {
 
     pub(crate) fn group_actions_mut(&self) -> MutexGuard<'_, GroupActionFacade> {
         self.group_actions.try_lock().unwrap()
+    }
+
+    pub(crate) fn entity_actions_mut(&self) -> MutexGuard<'_, EntityActionFacade> {
+        self.entity_actions.try_lock().unwrap()
     }
 }
 

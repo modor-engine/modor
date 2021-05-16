@@ -54,7 +54,8 @@ impl EntityMainComponent for Text {
             .run(system!(Self::update_text))
             .run(system!(Self::replace_group))
             .run(system!(Self::delete_group))
-            .run(system!(Self::add_entity));
+            .run(system!(Self::add_entity))
+            .run(system!(Self::delete_entity));
     }
 }
 
@@ -82,6 +83,13 @@ impl Text {
         if self.group_id == 0 && id == &0 && self.update_id == 1 {
             group.create_entity::<Self>((9999, self.group_id));
             println!("Entity 9999 created in group {}", self.group_id);
+        }
+    }
+
+    fn delete_entity(id: &u32, mut entity: Entity<'_>) {
+        if id == &1 {
+            entity.delete();
+            println!("Entity 1 deleted");
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::internal::main::MainFacade;
-use crate::internal::system::data::SystemInfo;
+use crate::internal::system::data::SystemDetails;
 use crate::SystemBuilder;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
@@ -76,11 +76,12 @@ where
 {
     pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
         let entity_type = Some(TypeId::of::<M>());
-        let system = SystemInfo::new(
+        let system = SystemDetails::new(
             system.wrapper,
             system.component_types,
             entity_type,
             system.group_actions,
+            system.entity_actions,
         );
         self.main.add_system(Some(self.group_idx), system);
         self

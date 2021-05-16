@@ -1,4 +1,4 @@
-use crate::{Group, QueryMut, SystemData, TupleSystemParam};
+use crate::{Entity, Group, QueryMut, SystemData, TupleSystemParam};
 use std::any::Any;
 use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
@@ -71,6 +71,27 @@ impl<'a> Iterator for GroupIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(Group::new(self.group_idx, self.data.clone()))
+    }
+}
+
+pub struct EntityIterator<'a> {
+    entity_idxs: Iter<'a, usize>,
+    data: SystemData<'a>,
+}
+
+impl<'a> EntityIterator<'a> {
+    pub(crate) fn new(entity_idxs: Iter<'a, usize>, data: SystemData<'a>) -> Self {
+        Self { entity_idxs, data }
+    }
+}
+
+impl<'a> Iterator for EntityIterator<'a> {
+    type Item = Entity<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.entity_idxs
+            .next()
+            .map(|&i| Entity::new(i, self.data.clone()))
     }
 }
 

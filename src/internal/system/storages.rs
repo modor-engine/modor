@@ -66,6 +66,7 @@ mod tests_system_storage {
     use super::*;
     use crate::internal::components::ComponentFacade;
     use crate::internal::core::CoreFacade;
+    use crate::internal::entity_actions::EntityActionFacade;
     use crate::internal::group_actions::GroupActionFacade;
     use std::sync::Mutex;
 
@@ -77,9 +78,9 @@ mod tests_system_storage {
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let group_actions = GroupActionFacade::default();
-        let group_actions = Mutex::new(group_actions);
-        let data = SystemData::new(&core, &component_interface, &group_actions);
+        let group_actions = Mutex::new(GroupActionFacade::default());
+        let entity_actions = Mutex::new(EntityActionFacade::default());
+        let data = SystemData::new(&core, &component_interface, &group_actions, &entity_actions);
         use_data_fn(&data);
         use_deleted_groups_fn(
             &group_actions

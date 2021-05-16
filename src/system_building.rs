@@ -7,6 +7,7 @@ pub struct SystemBuilder {
     pub(crate) wrapper: SystemWrapper,
     pub(crate) component_types: Vec<TypeAccess>,
     pub(crate) group_actions: bool,
+    pub(crate) entity_actions: bool,
 }
 
 impl SystemBuilder {
@@ -14,11 +15,13 @@ impl SystemBuilder {
         wrapper: SystemWrapper,
         component_types: Vec<TypeAccess>,
         group_actions: bool,
+        entity_actions: bool,
     ) -> Self {
         Self {
             wrapper,
             component_types,
             group_actions,
+            entity_actions,
         }
     }
 }
@@ -40,14 +43,21 @@ impl TypeAccess {
 #[macro_export]
 macro_rules! system {
     ($($system:expr),+) => {{
+        // TODO: move this logic outside the macro
         let mut types = Vec::new();
         $(types.extend(::modor::System::component_types(&$system).into_iter());)+
-        let mut group_actions = $(::modor::System::has_group_actions(&$system))&&+;
-        ::modor::SystemBuilder::new(::modor::_system_wrapper!($($system),+), types, group_actions)
+        let mut group_actions = $(::modor::System::has_group_actions(&$system))||+;
+        let mut entity_actions = $(::modor::System::has_entity_actions(&$system))||+;
+        ::modor::SystemBuilder::new(
+            ::modor::_system_wrapper!($($system),+),
+            types,
+            group_actions,
+            entity_actions,
+        )
     }};
 }
 
-// TODO: move query type check from for_each(_mut) to system!() 
+// TODO: move query type check from for_each(_mut) to system!()
 #[macro_export]
 macro_rules! for_each {
     ($query:expr, $system:expr) => {{

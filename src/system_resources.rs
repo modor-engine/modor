@@ -46,6 +46,25 @@ impl<'a> Group<'a> {
     }
 }
 
+pub struct Entity<'a> {
+    entity_idx: usize,
+    data: SystemData<'a>,
+}
+
+impl<'a> Entity<'a> {
+    pub fn delete(&mut self) {
+        self.data
+            .entity_actions_mut()
+            .mark_entity_as_deleted(self.entity_idx)
+    }
+
+    // TODO: add and delete component
+
+    pub(crate) fn new(entity_idx: usize, data: SystemData<'a>) -> Self {
+        Self { entity_idx, data }
+    }
+}
+
 pub struct Query<'a, T>
 where
     T: ConstSystemParam + TupleSystemParam,

@@ -48,6 +48,10 @@ impl CoreFacade {
         self.archetypes.type_idxs(archetype_idx)
     }
 
+    pub(crate) fn archetype_entity_idxs(&self, archetype_idx: usize) -> &[usize] {
+        self.entities.idxs(archetype_idx)
+    }
+
     pub(crate) fn archetypes(
         &self,
         component_types: &[TypeId],
@@ -282,6 +286,21 @@ mod tests_core_facade {
         let type_idxs = facade.archetype_type_idxs(archetype2_idx);
 
         assert_eq!(type_idxs, [archetype1_idx, archetype2_idx]);
+    }
+
+    #[test]
+    fn retrieve_archetype_entity_idxs() {
+        let mut facade = CoreFacade::default();
+        let group_idx = facade.create_group();
+        let entity1_idx = facade.create_entity(group_idx);
+        let entity2_idx = facade.create_entity(group_idx);
+        let component_type1_idx = facade.add_component_type(TypeId::of::<u32>());
+        let archetype_idx = facade.add_component(entity1_idx, component_type1_idx);
+        facade.add_component(entity2_idx, component_type1_idx);
+
+        let entity_idxs = facade.archetype_entity_idxs(archetype_idx);
+
+        assert_eq!(entity_idxs, [entity1_idx, entity2_idx]);
     }
 
     #[test]

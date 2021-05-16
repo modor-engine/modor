@@ -16,6 +16,10 @@ impl EntityFacade {
         self.locations.get(entity_idx)
     }
 
+    pub(super) fn idxs(&self, archetype_idx: usize) -> &[usize] {
+        self.archetype_entities.idxs(archetype_idx)
+    }
+
     pub(super) fn create(&mut self) -> usize {
         self.entities.create()
     }
@@ -122,6 +126,19 @@ mod tests_entity_facade {
         let actual_entity_location = facade.location(entity2_idx);
 
         assert_eq!(actual_entity_location, Some(EntityLocation::new(5, 1)));
+    }
+
+    #[test]
+    fn retrieve_entity_idxs_from_archetype() {
+        let mut facade = EntityFacade::default();
+        let entity1_idx = facade.create();
+        let entity2_idx = facade.create();
+        facade.move_(entity1_idx, Some(5));
+        facade.move_(entity2_idx, Some(5));
+
+        let entity_idxs = facade.idxs(5);
+
+        assert_eq!(entity_idxs, [entity1_idx, entity2_idx]);
     }
 
     #[test]

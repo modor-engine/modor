@@ -1,5 +1,5 @@
 use crate::internal::main::MainFacade;
-use crate::internal::system::data::SystemInfo;
+use crate::internal::system::data::SystemDetails;
 use crate::{GroupBuilder, SystemBuilder};
 
 #[derive(Default)]
@@ -19,11 +19,12 @@ impl Application {
     }
 
     pub fn on_update(mut self, system: SystemBuilder) -> Self {
-        let system = SystemInfo::new(
+        let system = SystemDetails::new(
             system.wrapper,
             system.component_types,
             None,
             system.group_actions,
+            system.entity_actions,
         );
         self.0.add_system(None, system);
         self

@@ -13,8 +13,10 @@ mod storages;
 pub(super) struct SystemStateFacade {
     system_component_types: SystemTypesStorage,
     system_group_actions: SystemActionsStorage,
+    system_entity_actions: SystemActionsStorage,
     component_types_state: TypeStateStorage,
     group_actions_state: ActionStateStorage,
+    entity_actions_state: ActionStateStorage,
     systems_to_run: SystemsToRunStorage,
 }
 
@@ -22,6 +24,7 @@ impl SystemStateFacade {
     pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         self.system_component_types.delete(group_idx);
         self.system_group_actions.delete(group_idx);
+        self.system_entity_actions.delete(group_idx);
         self.systems_to_run.delete(group_idx);
     }
 
@@ -31,6 +34,7 @@ impl SystemStateFacade {
         system_idx: usize,
         component_types: Vec<TypeAccess>,
         group_actions: bool,
+        entity_actions: bool,
     ) {
         component_types
             .iter()
@@ -40,6 +44,8 @@ impl SystemStateFacade {
             .set(group_idx, system_idx, component_types);
         self.system_group_actions
             .set(group_idx, system_idx, group_actions);
+        self.system_entity_actions
+            .set(group_idx, system_idx, entity_actions);
     }
 
     pub(super) fn lock_next_system(&mut self, previous_run_system: LockedSystem) -> LockedSystem {
@@ -61,8 +67,12 @@ impl SystemStateFacade {
             let system_idx = system_location.system_idx;
             let component_types = self.system_component_types.get(group_idx, system_idx);
             let group_actions = self.system_group_actions.has_actions(group_idx, system_idx);
+            let entity_actions = self
+                .system_entity_actions
+                .has_actions(group_idx, system_idx);
             self.component_types_state.can_be_locked(component_types)
                 && self.group_actions_state.can_be_locked(group_actions)
+                && self.entity_actions_state.can_be_locked(entity_actions)
         })
     }
 
@@ -74,6 +84,10 @@ impl SystemStateFacade {
             self.component_types_state.lock(component_types);
             let group_actions = self.system_group_actions.has_actions(group_idx, system_idx);
             self.group_actions_state.lock(group_actions);
+            let entity_actions = self
+                .system_entity_actions
+                .has_actions(group_idx, system_idx);
+            self.entity_actions_state.lock(entity_actions);
             self.systems_to_run.set_as_run(system_location);
             LockedSystem::Some(system_location)
         })
@@ -87,6 +101,10 @@ impl SystemStateFacade {
             self.component_types_state.unlock(component_types);
             let group_actions = self.system_group_actions.has_actions(group_idx, system_idx);
             self.group_actions_state.unlock(group_actions);
+            let entity_actions = self
+                .system_entity_actions
+                .has_actions(group_idx, system_idx);
+            self.entity_actions_state.unlock(entity_actions);
         }
     }
 }
@@ -102,27 +120,30 @@ mod tests_system_state_facade {
         let mut facade = SystemStateFacade::default();
         let type_access = vec![TypeAccess::Read(TypeId::of::<u32>())];
 
-        facade.add_system(2, 0, type_access.clone(), true);
+        facade.add_system(2, 0, type_access.clone(), true, true);
 
         assert!(facade.component_types_state.can_be_locked(&type_access));
         assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
         assert_eq!(facade.system_component_types.get(2, 0), type_access);
         assert!(facade.system_group_actions.has_actions(2, 0));
+        assert!(facade.system_entity_actions.has_actions(2, 0));
     }
 
     #[test]
     fn delete_group() {
         let mut facade = SystemStateFacade::default();
         let type_access = vec![TypeAccess::Read(TypeId::of::<u32>())];
-        facade.add_system(1, 0, type_access.clone(), true);
-        facade.add_system(2, 0, type_access.clone(), true);
+        facade.add_system(1, 0, type_access.clone(), true, true);
+        facade.add_system(2, 0, type_access.clone(), true, true);
 
         facade.delete_group(1.try_into().unwrap());
 
         assert_panics!(facade.system_component_types.get(1, 0));
         assert_panics!(facade.system_group_actions.has_actions(1, 0));
+        assert_panics!(facade.system_entity_actions.has_actions(1, 0));
         assert_eq!(facade.system_component_types.get(2, 0), type_access);
         assert!(facade.system_group_actions.has_actions(2, 0));
+        assert!(facade.system_entity_actions.has_actions(2, 0));
         assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
     }
 
@@ -130,14 +151,15 @@ mod tests_system_state_facade {
     fn lock_first_system_without_previous_locked_system() {
         let mut facade = SystemStateFacade::default();
         let type_access = TypeAccess::Write(TypeId::of::<u32>());
-        facade.add_system(1, 0, vec![type_access], true);
-        facade.add_system(2, 0, vec![type_access], true);
+        facade.add_system(1, 0, vec![type_access], true, true);
+        facade.add_system(2, 0, vec![type_access], true, true);
 
         let locked_system = facade.lock_next_system(LockedSystem::None);
 
         assert_eq!(locked_system, LockedSystem::Some(SystemLocation::new(1, 0)));
         assert!(!facade.component_types_state.can_be_locked(&[type_access]));
         assert!(!facade.group_actions_state.can_be_locked(true));
+        assert!(!facade.entity_actions_state.can_be_locked(true));
         assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
     }
 
@@ -146,10 +168,10 @@ mod tests_system_state_facade {
         let mut facade = SystemStateFacade::default();
         let type1_access = TypeAccess::Write(TypeId::of::<u32>());
         let type2_access = TypeAccess::Write(TypeId::of::<i64>());
-        facade.add_system(1, 0, vec![type1_access], true);
-        facade.add_system(2, 0, vec![type2_access], true);
-        facade.add_system(3, 0, vec![type1_access], false);
-        facade.add_system(4, 0, vec![type2_access], false);
+        facade.add_system(1, 0, vec![type1_access], true, true);
+        facade.add_system(2, 0, vec![type2_access], true, false);
+        facade.add_system(3, 0, vec![type1_access], false, true);
+        facade.add_system(4, 0, vec![type2_access], false, false);
         facade.lock_next_system(LockedSystem::None);
 
         let locked_system = facade.lock_next_system(LockedSystem::None);
@@ -164,8 +186,8 @@ mod tests_system_state_facade {
     fn lock_next_system_with_previous_locked_system() {
         let mut facade = SystemStateFacade::default();
         let type_access = TypeAccess::Write(TypeId::of::<u32>());
-        facade.add_system(1, 0, vec![type_access], true);
-        facade.add_system(2, 0, vec![type_access], true);
+        facade.add_system(1, 0, vec![type_access], true, true);
+        facade.add_system(2, 0, vec![type_access], true, true);
         let locked_system = facade.lock_next_system(LockedSystem::None);
 
         let locked_system = facade.lock_next_system(locked_system);
@@ -173,6 +195,7 @@ mod tests_system_state_facade {
         assert_eq!(locked_system, LockedSystem::Some(SystemLocation::new(2, 0)));
         assert!(!facade.component_types_state.can_be_locked(&[type_access]));
         assert!(!facade.group_actions_state.can_be_locked(true));
+        assert!(!facade.entity_actions_state.can_be_locked(true));
         assert_eq!(facade.systems_to_run.iter().next(), None);
     }
 
@@ -180,8 +203,8 @@ mod tests_system_state_facade {
     fn lock_next_system_with_no_lockable_system() {
         let mut facade = SystemStateFacade::default();
         let type_access = TypeAccess::Write(TypeId::of::<u32>());
-        facade.add_system(1, 0, vec![type_access], true);
-        facade.add_system(2, 0, vec![type_access], true);
+        facade.add_system(1, 0, vec![type_access], true, true);
+        facade.add_system(2, 0, vec![type_access], true, true);
         facade.lock_next_system(LockedSystem::None);
 
         let locked_system = facade.lock_next_system(LockedSystem::None);
@@ -193,7 +216,7 @@ mod tests_system_state_facade {
     fn lock_next_system_with_no_more_system_to_lock() {
         let mut facade = SystemStateFacade::default();
         let type_access = TypeAccess::Write(TypeId::of::<u32>());
-        facade.add_system(1, 0, vec![type_access], true);
+        facade.add_system(1, 0, vec![type_access], true, true);
         facade.lock_next_system(LockedSystem::None);
 
         let locked_system = facade.lock_next_system(LockedSystem::None);
@@ -205,7 +228,7 @@ mod tests_system_state_facade {
     fn reset() {
         let mut facade = SystemStateFacade::default();
         let type_access = TypeAccess::Write(TypeId::of::<u32>());
-        facade.add_system(1, 0, vec![type_access], true);
+        facade.add_system(1, 0, vec![type_access], true, true);
         facade.lock_next_system(LockedSystem::None);
         facade.lock_next_system(LockedSystem::None);
 
