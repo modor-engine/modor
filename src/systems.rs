@@ -1,7 +1,6 @@
+use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
-use crate::internal::entity_actions::EntityActionFacade;
-use crate::internal::group_actions::GroupActionFacade;
 use crate::{SystemParam, TypeAccess};
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
@@ -10,20 +9,15 @@ use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
 pub trait System<'a, 'b, T> {
     const HAS_MANDATORY_COMPONENT: bool;
-    const HAS_GROUP_ACTIONS: bool;
-    const HAS_ENTITY_ACTIONS: bool;
+    const HAS_ACTIONS: bool;
     type Locks: 'b;
 
     fn has_mandatory_component(&self) -> bool {
         Self::HAS_MANDATORY_COMPONENT
     }
 
-    fn has_group_actions(&self) -> bool {
-        Self::HAS_GROUP_ACTIONS
-    }
-
-    fn has_entity_actions(&self) -> bool {
-        Self::HAS_ENTITY_ACTIONS
+    fn has_actions(&self) -> bool {
+        Self::HAS_ACTIONS
     }
 
     fn component_types(&self) -> Vec<TypeAccess>;
@@ -48,8 +42,7 @@ where
     S: FnMut(),
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Locks = ();
 
     fn component_types(&self) -> Vec<TypeAccess> {
@@ -85,8 +78,7 @@ macro_rules! impl_fn_system {
             $($param: SystemParam<'a, 'b>,)+
         {
             const HAS_MANDATORY_COMPONENT: bool = $($param::HAS_MANDATORY_COMPONENT)||+;
-            const HAS_GROUP_ACTIONS: bool = $($param::HAS_GROUP_ACTIONS)||+;
-            const HAS_ENTITY_ACTIONS: bool = $($param::HAS_ENTITY_ACTIONS)||+;
+            const HAS_ACTIONS: bool = $($param::HAS_ACTIONS)||+;
             type Locks = ($($param::Lock,)+);
 
             fn component_types(&self) -> Vec<TypeAccess> {
@@ -132,22 +124,19 @@ run_for_tuples_with_idxs!(impl_fn_system);
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
     components: &'a ComponentInterface<'a>,
-    group_actions: &'a Mutex<GroupActionFacade>,
-    entity_actions: &'a Mutex<EntityActionFacade>,
+    actions: &'a Mutex<ActionFacade>,
 }
 
 impl<'a> SystemData<'a> {
     pub(crate) fn new(
         core: &'a CoreFacade,
         components: &'a ComponentInterface<'a>,
-        group_actions: &'a Mutex<GroupActionFacade>,
-        entity_actions: &'a Mutex<EntityActionFacade>,
+        actions: &'a Mutex<ActionFacade>,
     ) -> Self {
         Self {
             core,
             components,
-            group_actions,
-            entity_actions,
+            actions,
         }
     }
 
@@ -199,12 +188,8 @@ impl<'a> SystemData<'a> {
         self.components.iter_mut::<C>(guard, archetype_idx)
     }
 
-    pub(crate) fn group_actions_mut(&self) -> MutexGuard<'_, GroupActionFacade> {
-        self.group_actions.try_lock().unwrap()
-    }
-
-    pub(crate) fn entity_actions_mut(&self) -> MutexGuard<'_, EntityActionFacade> {
-        self.entity_actions.try_lock().unwrap()
+    pub(crate) fn actions_mut(&self) -> MutexGuard<'_, ActionFacade> {
+        self.actions.try_lock().unwrap()
     }
 }
 

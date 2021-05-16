@@ -1,7 +1,6 @@
+use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::ComponentInterface;
 use crate::internal::core::CoreFacade;
-use crate::internal::entity_actions::EntityActionFacade;
-use crate::internal::group_actions::GroupActionFacade;
 use crate::internal::system::storages::{EntityTypeStorage, SystemStorage};
 use crate::internal::system_state::data::LockedSystem;
 use crate::internal::system_state::SystemStateFacade;
@@ -47,8 +46,7 @@ impl SystemFacade {
             group_idx,
             system_idx,
             system.component_types,
-            system.group_actions,
-            system.entity_actions,
+            system.actions,
         );
     }
 
@@ -57,10 +55,9 @@ impl SystemFacade {
         &mut self,
         core: &CoreFacade,
         components: &ComponentInterface<'_>,
-        group_actions: &Mutex<GroupActionFacade>,
-        entity_actions: &Mutex<EntityActionFacade>,
+        actions: &Mutex<ActionFacade>,
     ) {
-        let data = SystemData::new(core, components, group_actions, entity_actions);
+        let data = SystemData::new(core, components, actions);
         if let Some(pool) = &mut self.pool {
             Self::run_systems_in_parallel(
                 &data,
@@ -185,7 +182,7 @@ mod tests_system_facade {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_type = Some(TypeId::of::<i64>());
-        let system = SystemDetails::new(|_, _| (), component_types, entity_type, true, true);
+        let system = SystemDetails::new(|_, _| (), component_types, entity_type, true);
 
         facade.add(None, system);
 
@@ -201,7 +198,7 @@ mod tests_system_facade {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_type = Some(TypeId::of::<i64>());
-        let system = SystemDetails::new(|_, _| (), component_types, entity_type, true, true);
+        let system = SystemDetails::new(|_, _| (), component_types, entity_type, true);
 
         facade.add(Some(2.try_into().unwrap()), system);
 
@@ -216,9 +213,9 @@ mod tests_system_facade {
     fn add_other_system_in_other_group_with_same_component_types() {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<i64>())];
-        let system1 = SystemDetails::new(|_, _| (), component_types.clone(), None, true, false);
+        let system1 = SystemDetails::new(|_, _| (), component_types.clone(), None, true);
         let entity_type = Some(TypeId::of::<u32>());
-        let system2 = SystemDetails::new(|_, _| (), component_types, entity_type, false, true);
+        let system2 = SystemDetails::new(|_, _| (), component_types, entity_type, false);
         facade.add(Some(2.try_into().unwrap()), system1);
 
         facade.add(Some(2.try_into().unwrap()), system2);
@@ -236,10 +233,10 @@ mod tests_system_facade {
     fn add_other_system_in_other_group_with_same_group_actions() {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<i64>())];
-        let system1 = SystemDetails::new(|_, _| (), component_types, None, true, false);
+        let system1 = SystemDetails::new(|_, _| (), component_types, None, true);
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_type = Some(TypeId::of::<u32>());
-        let system2 = SystemDetails::new(|_, _| (), component_types, entity_type, true, true);
+        let system2 = SystemDetails::new(|_, _| (), component_types, entity_type, true);
         facade.add(Some(2.try_into().unwrap()), system1);
 
         facade.add(Some(2.try_into().unwrap()), system2);
@@ -258,9 +255,9 @@ mod tests_system_facade {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_type = Some(TypeId::of::<u32>());
-        let system1 = SystemDetails::new(|_, _| (), component_types, entity_type, true, false);
+        let system1 = SystemDetails::new(|_, _| (), component_types, entity_type, true);
         let component_types = vec![TypeAccess::Write(TypeId::of::<i64>())];
-        let system2 = SystemDetails::new(|_, _| (), component_types, None, false, true);
+        let system2 = SystemDetails::new(|_, _| (), component_types, None, false);
         facade.add(Some(2.try_into().unwrap()), system1);
 
         facade.add(Some(2.try_into().unwrap()), system2);
@@ -279,7 +276,7 @@ mod tests_system_facade {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_idx = Some(TypeId::of::<i64>());
-        let system = SystemDetails::new(|_, _| (), component_types, entity_idx, true, true);
+        let system = SystemDetails::new(|_, _| (), component_types, entity_idx, true);
         facade.add(Some(2.try_into().unwrap()), system);
 
         facade.delete_group(2.try_into().unwrap());
@@ -287,9 +284,8 @@ mod tests_system_facade {
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let group_actions = Mutex::new(GroupActionFacade::default());
-        let entity_actions = Mutex::new(EntityActionFacade::default());
-        let data = SystemData::new(&core, &component_interface, &group_actions, &entity_actions);
+        let actions = Mutex::new(ActionFacade::default());
+        let data = SystemData::new(&core, &component_interface, &actions);
         assert_panics!(facade.systems.run(2, 0, &data, Vec::new()));
         assert_panics!(facade.entity_types.get(2, 0));
         let location = LockedSystem::Done;
@@ -299,9 +295,8 @@ mod tests_system_facade {
     #[allow(clippy::needless_pass_by_value)]
     fn wrapper1(data: &SystemData<'_>, info: SystemInfo) {
         assert_eq!(info.filtered_component_types, [TypeId::of::<i16>()]);
-        data.group_actions_mut()
+        data.actions_mut()
             .mark_group_as_deleted(1.try_into().unwrap());
-        data.entity_actions_mut().mark_entity_as_deleted(3);
         thread::sleep(Duration::from_millis(10));
     }
 
@@ -309,9 +304,8 @@ mod tests_system_facade {
     fn wrapper2(data: &SystemData<'_>, info: SystemInfo) {
         thread::sleep(Duration::from_millis(10));
         assert_eq!(info.filtered_component_types, []);
-        data.group_actions_mut()
+        data.actions_mut()
             .mark_group_as_deleted(2.try_into().unwrap());
-        data.entity_actions_mut().mark_entity_as_deleted(4);
     }
 
     #[test]
@@ -319,26 +313,23 @@ mod tests_system_facade {
         let mut facade = SystemFacade::default();
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_idx = Some(TypeId::of::<i16>());
-        let system = SystemDetails::new(wrapper1, component_types, entity_idx, true, true);
+        let system = SystemDetails::new(wrapper1, component_types, entity_idx, true);
         facade.add(Some(1.try_into().unwrap()), system);
         let component_types = vec![TypeAccess::Write(TypeId::of::<i64>())];
-        let system = SystemDetails::new(wrapper2, component_types, None, true, true);
+        let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let group_actions = Mutex::new(GroupActionFacade::default());
-        let entity_actions = Mutex::new(EntityActionFacade::default());
+        let actions = Mutex::new(ActionFacade::default());
 
-        facade.run(&core, &component_interface, &group_actions, &entity_actions);
+        facade.run(&core, &component_interface, &actions);
 
-        let group_actions = group_actions.try_lock().unwrap();
-        assert_iter!(
-            group_actions.deleted_group_idxs(),
-            &[1.try_into().unwrap(), 2.try_into().unwrap()]
+        let action_result = actions.try_lock().unwrap().reset();
+        assert_eq!(
+            action_result.deleted_group_idxs,
+            [1.try_into().unwrap(), 2.try_into().unwrap()]
         );
-        let entity_actions = entity_actions.try_lock().unwrap();
-        assert_iter!(entity_actions.deleted_entity_idxs(), &[4, 3]);
     }
 
     #[test]
@@ -347,25 +338,22 @@ mod tests_system_facade {
         facade.set_thread_count(2);
         let component_types = vec![TypeAccess::Write(TypeId::of::<u32>())];
         let entity_idx = Some(TypeId::of::<i16>());
-        let system = SystemDetails::new(wrapper1, component_types, entity_idx, true, true);
+        let system = SystemDetails::new(wrapper1, component_types, entity_idx, true);
         facade.add(Some(1.try_into().unwrap()), system);
         let component_types = vec![TypeAccess::Write(TypeId::of::<i64>())];
-        let system = SystemDetails::new(wrapper2, component_types, None, true, true);
+        let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let group_actions = Mutex::new(GroupActionFacade::default());
-        let entity_actions = Mutex::new(EntityActionFacade::default());
+        let actions = Mutex::new(ActionFacade::default());
 
-        facade.run(&core, &component_interface, &group_actions, &entity_actions);
+        facade.run(&core, &component_interface, &actions);
 
-        let group_actions = group_actions.try_lock().unwrap();
-        assert_iter!(
-            group_actions.deleted_group_idxs(),
-            &[1.try_into().unwrap(), 2.try_into().unwrap()]
+        let action_result = actions.try_lock().unwrap().reset();
+        assert_eq!(
+            action_result.deleted_group_idxs,
+            [1.try_into().unwrap(), 2.try_into().unwrap()]
         );
-        let entity_actions = entity_actions.try_lock().unwrap();
-        assert_iter!(entity_actions.deleted_entity_idxs(), &[4, 3]);
     }
 }

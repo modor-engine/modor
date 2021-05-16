@@ -19,13 +19,8 @@ impl Application {
     }
 
     pub fn on_update(mut self, system: SystemBuilder) -> Self {
-        let system = SystemDetails::new(
-            system.wrapper,
-            system.component_types,
-            None,
-            system.group_actions,
-            system.entity_actions,
-        );
+        let system =
+            SystemDetails::new(system.wrapper, system.component_types, None, system.actions);
         self.0.add_system(None, system);
         self
     }

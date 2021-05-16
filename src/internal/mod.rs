@@ -1,3 +1,4 @@
+pub(super) mod actions;
 pub(super) mod archetypes;
 pub(super) mod components;
 pub(super) mod core;

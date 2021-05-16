@@ -64,10 +64,9 @@ impl EntityTypeStorage {
 #[cfg(test)]
 mod tests_system_storage {
     use super::*;
+    use crate::internal::actions::ActionFacade;
     use crate::internal::components::ComponentFacade;
     use crate::internal::core::CoreFacade;
-    use crate::internal::entity_actions::EntityActionFacade;
-    use crate::internal::group_actions::GroupActionFacade;
     use std::sync::Mutex;
 
     fn use_data<F, G>(use_data_fn: F, use_deleted_groups_fn: G)
@@ -78,15 +77,16 @@ mod tests_system_storage {
         let core = CoreFacade::default();
         let mut components = ComponentFacade::default();
         let component_interface = components.components();
-        let group_actions = Mutex::new(GroupActionFacade::default());
-        let entity_actions = Mutex::new(EntityActionFacade::default());
-        let data = SystemData::new(&core, &component_interface, &group_actions, &entity_actions);
+        let actions = Mutex::new(ActionFacade::default());
+        let data = SystemData::new(&core, &component_interface, &actions);
         use_data_fn(&data);
         use_deleted_groups_fn(
-            &group_actions
+            &actions
                 .try_lock()
                 .unwrap()
-                .deleted_group_idxs()
+                .reset()
+                .deleted_group_idxs
+                .into_iter()
                 .map(Into::into)
                 .collect::<Vec<_>>(),
         );
@@ -107,7 +107,7 @@ mod tests_system_storage {
         let system_idx = storage.add(1, |data, info| {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(1.try_into().unwrap());
         });
 
@@ -138,7 +138,7 @@ mod tests_system_storage {
         let system_idx = storage.add(1, |data, info| {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(1.try_into().unwrap());
         });
 
@@ -160,7 +160,7 @@ mod tests_system_storage {
         let system_idx = storage.add(0, |data, info| {
             assert_eq!(info.group_idx, None);
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(1.try_into().unwrap());
         });
 
@@ -178,7 +178,7 @@ mod tests_system_storage {
     fn delete_nonexisting_group() {
         let mut storage = SystemStorage::default();
         let system_idx = storage.add(1, |data, _| {
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(1.try_into().unwrap());
         });
 
@@ -194,11 +194,11 @@ mod tests_system_storage {
     fn delete_existing_group() {
         let mut storage = SystemStorage::default();
         let system1_idx = storage.add(1, |data, _| {
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(1.try_into().unwrap());
         });
         let system2_idx = storage.add(2, |data, _| {
-            data.group_actions_mut()
+            data.actions_mut()
                 .mark_group_as_deleted(2.try_into().unwrap());
         });
 

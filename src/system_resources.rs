@@ -17,13 +17,13 @@ impl<'a> Group<'a> {
         F: FnOnce(&mut GroupBuilder<'_>) + Sync + Send + 'static,
     {
         self.data
-            .group_actions_mut()
+            .actions_mut()
             .mark_group_as_replaced(self.group_idx, Box::new(build_group_fn));
     }
 
     pub fn delete(&mut self) {
         self.data
-            .group_actions_mut()
+            .actions_mut()
             .mark_group_as_deleted(self.group_idx);
     }
 
@@ -32,7 +32,7 @@ impl<'a> Group<'a> {
         M: EntityMainComponent,
     {
         let group_idx = self.group_idx;
-        self.data.group_actions_mut().add_entity_to_create(
+        self.data.actions_mut().add_entity_to_create(
             group_idx,
             Box::new(move |m| {
                 let entity_idx = m.create_entity(group_idx);
@@ -54,7 +54,7 @@ pub struct Entity<'a> {
 impl<'a> Entity<'a> {
     pub fn delete(&mut self) {
         self.data
-            .entity_actions_mut()
+            .actions_mut()
             .mark_entity_as_deleted(self.entity_idx)
     }
 

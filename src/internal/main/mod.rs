@@ -1,8 +1,7 @@
+use crate::internal::actions::ActionFacade;
 use crate::internal::components::ComponentFacade;
 use crate::internal::core::CoreFacade;
-use crate::internal::entity_actions::EntityActionFacade;
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
-use crate::internal::group_actions::GroupActionFacade;
 use crate::internal::system::data::SystemDetails;
 use crate::internal::system::SystemFacade;
 use crate::GroupBuilder;
@@ -15,9 +14,7 @@ pub(crate) struct MainFacade {
     core: CoreFacade,
     components: ComponentFacade,
     systems: SystemFacade,
-    // TODO: move in new ActionFacade type
-    group_actions: Mutex<GroupActionFacade>,
-    entity_actions: Mutex<EntityActionFacade>,
+    actions: Mutex<ActionFacade>,
 }
 
 impl MainFacade {
@@ -81,7 +78,37 @@ impl MainFacade {
         }
     }
 
-    pub(crate) fn delete_component<C>(&mut self, entity_idx: usize)
+    pub(crate) fn add_system(&mut self, group_idx: Option<NonZeroUsize>, system: SystemDetails) {
+        self.systems.add(group_idx, system)
+    }
+
+    pub(crate) fn run_systems(&mut self) {
+        self.systems
+            .run(&self.core, &self.components.components(), &self.actions);
+    }
+
+    pub(crate) fn apply_system_actions(&mut self) {
+        let result = self.actions.try_lock().unwrap().reset();
+        self.apply_group_deletions(result.deleted_group_idxs);
+        self.apply_group_replacements(result.replaced_group_builders);
+        self.apply_entity_creations(result.entity_builders);
+        self.apply_entity_deletions(result.deleted_entity_idxs);
+    }
+
+    pub(crate) fn set_thread_count(&mut self, count: u32) {
+        self.systems.set_thread_count(count)
+    }
+
+    fn create_component_type<C>(&mut self) -> usize
+    where
+        C: Any + Sync + Send,
+    {
+        let type_idx = self.core.add_component_type(TypeId::of::<C>());
+        self.components.create_type::<C>();
+        type_idx
+    }
+
+    fn delete_component<C>(&mut self, entity_idx: usize)
     where
         C: Any,
     {
@@ -98,55 +125,6 @@ impl MainFacade {
             }
         }
         self.components.swap_delete(type_idx, location);
-    }
-
-    pub(crate) fn add_system(&mut self, group_idx: Option<NonZeroUsize>, system: SystemDetails) {
-        self.systems.add(group_idx, system)
-    }
-
-    pub(crate) fn run_systems(&mut self) {
-        self.systems.run(
-            &self.core,
-            &self.components.components(),
-            &self.group_actions,
-            &self.entity_actions,
-        );
-    }
-
-    pub(crate) fn apply_system_actions(&mut self) {
-        self.apply_group_actions();
-        self.apply_entity_actions();
-    }
-
-    pub(crate) fn set_thread_count(&mut self, count: u32) {
-        self.systems.set_thread_count(count)
-    }
-
-    fn create_component_type<C>(&mut self) -> usize
-    where
-        C: Any + Sync + Send,
-    {
-        let type_idx = self.core.add_component_type(TypeId::of::<C>());
-        self.components.create_type::<C>();
-        type_idx
-    }
-
-    fn apply_group_actions(&mut self) {
-        let actions = self.group_actions.get_mut().unwrap();
-        let deleted_group_idxs: Vec<_> = actions.deleted_group_idxs().collect();
-        let replaced_group_builders: Vec<_> = actions.replaced_group_builders().collect();
-        let entity_builders: Vec<_> = actions.entity_builders().collect();
-        actions.reset();
-        self.apply_group_deletions(deleted_group_idxs);
-        self.apply_group_replacements(replaced_group_builders);
-        self.apply_entity_creations(entity_builders)
-    }
-
-    fn apply_entity_actions(&mut self) {
-        let actions = self.entity_actions.get_mut().unwrap();
-        let deleted_entity_idxs: Vec<_> = actions.deleted_entity_idxs().collect();
-        actions.reset();
-        self.apply_entity_deletions(deleted_entity_idxs);
     }
 
     fn apply_entity_creations(&mut self, entity_builders: Vec<CreateEntityFn>) {

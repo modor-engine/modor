@@ -10,13 +10,8 @@ pub struct GroupBuilder<'a> {
 
 impl<'a> GroupBuilder<'a> {
     pub fn on_update(&mut self, system: SystemBuilder) -> &mut Self {
-        let system = SystemDetails::new(
-            system.wrapper,
-            system.component_types,
-            None,
-            system.group_actions,
-            system.entity_actions,
-        );
+        let system =
+            SystemDetails::new(system.wrapper, system.component_types, None, system.actions);
         self.main.add_system(Some(self.group_idx), system);
         self
     }

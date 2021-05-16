@@ -80,8 +80,7 @@ where
             system.wrapper,
             system.component_types,
             entity_type,
-            system.group_actions,
-            system.entity_actions,
+            system.actions,
         );
         self.main.add_system(Some(self.group_idx), system);
         self

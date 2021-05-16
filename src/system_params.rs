@@ -10,8 +10,7 @@ use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
 pub trait SystemParam<'a, 'b>: Sized {
     const HAS_MANDATORY_COMPONENT: bool;
-    const HAS_GROUP_ACTIONS: bool;
-    const HAS_ENTITY_ACTIONS: bool;
+    const HAS_ACTIONS: bool;
     type Lock: 'b;
     type Iterator: Iterator<Item = Self>;
 
@@ -36,8 +35,7 @@ where
     C: Any,
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Lock = Option<RwLockReadGuard<'b, Components>>;
     type Iterator = Iter<'a, C>;
 
@@ -73,8 +71,7 @@ where
     C: Any,
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Lock = Option<RwLockWriteGuard<'b, Components>>;
     type Iterator = IterMut<'a, C>;
 
@@ -111,8 +108,7 @@ where
     C: Any,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Lock = Option<RwLockReadGuard<'b, Components>>;
     type Iterator = OptionComponentIter<'a, C>;
 
@@ -151,8 +147,7 @@ where
     C: Any,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Lock = Option<RwLockWriteGuard<'b, Components>>;
     type Iterator = OptionComponentMutIter<'a, C>;
 
@@ -187,8 +182,7 @@ where
 
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = true;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = true;
     type Lock = &'b SystemData<'b>;
     type Iterator = GroupIterator<'a>;
 
@@ -220,8 +214,7 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
 
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = true;
+    const HAS_ACTIONS: bool = true;
     type Lock = &'b SystemData<'b>;
     type Iterator = EntityIterator<'a>;
 
@@ -256,8 +249,7 @@ where
     T: ConstSystemParam + TupleSystemParam + SystemParam<'a, 'b>,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = T::HAS_GROUP_ACTIONS;
-    const HAS_ENTITY_ACTIONS: bool = T::HAS_ENTITY_ACTIONS;
+    const HAS_ACTIONS: bool = T::HAS_ACTIONS;
     type Lock = &'b SystemData<'b>;
     type Iterator = Repeat<Self>;
 
@@ -292,8 +284,7 @@ where
     T: TupleSystemParam + SystemParam<'a, 'b>,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = T::HAS_GROUP_ACTIONS;
-    const HAS_ENTITY_ACTIONS: bool = T::HAS_ENTITY_ACTIONS;
+    const HAS_ACTIONS: bool = T::HAS_ACTIONS;
     type Lock = &'b SystemData<'b>;
     type Iterator = QueryMutIterator<'a, T>;
 
@@ -325,8 +316,7 @@ where
 
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
     const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_GROUP_ACTIONS: bool = false;
-    const HAS_ENTITY_ACTIONS: bool = false;
+    const HAS_ACTIONS: bool = false;
     type Lock = ();
     type Iterator = Repeat<()>;
 
@@ -359,8 +349,7 @@ macro_rules! impl_system_param_for_tuple {
             $($params: SystemParam<'a, 'b>,)+
         {
             const HAS_MANDATORY_COMPONENT: bool = $($params::HAS_MANDATORY_COMPONENT)||+;
-            const HAS_GROUP_ACTIONS: bool = $($params::HAS_GROUP_ACTIONS)||+;
-            const HAS_ENTITY_ACTIONS: bool = $($params::HAS_ENTITY_ACTIONS)||+;
+            const HAS_ACTIONS: bool = $($params::HAS_ACTIONS)||+;
             type Lock = ($($params::Lock,)+);
             #[allow(clippy::type_complexity)]
             type Iterator = impl_system_param_for_tuple!(@iterator_type $($params),+);
