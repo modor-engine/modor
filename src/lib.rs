@@ -43,3 +43,4 @@ doc_comment::doctest!("../README.md");
 // - try to include special cases in macros instead of manually writing it
 // - name of test modules should match the type names, and be on form "<typename>_tests"
 // - https://rust-lang.github.io/api-guidelines/checklist.html
+// - avoid unwrap (use expect instead)

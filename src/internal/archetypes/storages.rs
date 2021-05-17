@@ -1,3 +1,4 @@
+use crate::internal::archetypes::data::MissingComponentError;
 use fxhash::FxHashMap;
 use std::mem;
 use std::num::NonZeroUsize;
@@ -37,9 +38,9 @@ impl PropertyStorage {
         group_idx: NonZeroUsize,
         archetype_idx: usize,
         type_idx: usize,
-    ) -> Option<Option<usize>> {
-        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx);
-        if type_idxs.is_empty() {
+    ) -> Result<Option<Option<usize>>, MissingComponentError> {
+        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx)?;
+        Ok(if type_idxs.is_empty() {
             Some(None)
         } else {
             self.properties
@@ -47,7 +48,7 @@ impl PropertyStorage {
                 .map(Option::as_ref)
                 .position(|p| p.map_or(false, |p| p.0 == type_idxs && p.1 == group_idx))
                 .map(Some)
-        }
+        })
     }
 
     pub(super) fn create_next(
@@ -69,7 +70,7 @@ impl PropertyStorage {
         archetype_idx: usize,
         type_idx: usize,
     ) -> Option<usize> {
-        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx);
+        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx).unwrap();
         if type_idxs.is_empty() {
             None
         } else {
@@ -91,11 +92,19 @@ impl PropertyStorage {
         type_idxs
     }
 
-    fn previous_type_idxs(&self, archetype_idx: usize, type_idx: usize) -> Vec<usize> {
+    fn previous_type_idxs(
+        &self,
+        archetype_idx: usize,
+        type_idx: usize,
+    ) -> Result<Vec<usize>, MissingComponentError> {
         let mut type_idxs = self.properties[archetype_idx].as_ref().unwrap().0.clone();
-        let pos = type_idxs.binary_search(&type_idx).unwrap();
-        type_idxs.remove(pos);
         type_idxs
+            .binary_search(&type_idx)
+            .map(|pos| {
+                type_idxs.remove(pos);
+                type_idxs
+            })
+            .map_err(|_| MissingComponentError)
     }
 
     fn generate_archetype_idx(&mut self) -> usize {
@@ -266,9 +275,12 @@ mod tests_property_storage {
         assert_eq!(storage.next_idx(group_idx, None, 3), None);
         assert_eq!(storage.next_idx(3.try_into().unwrap(), None, 2), None);
         assert_panics!(storage.next_idx(group_idx, Some(3), 2));
-        assert_eq!(storage.previous_idx(group_idx, 0, 2), Some(None));
+        assert_eq!(storage.previous_idx(group_idx, 0, 2), Ok(Some(None)));
         assert_panics!(storage.previous_idx(group_idx, 1, 2));
-        assert_panics!(storage.previous_idx(group_idx, 0, 3));
+        assert_eq!(
+            storage.previous_idx(group_idx, 0, 3),
+            Err(MissingComponentError)
+        );
     }
 
     #[test]
@@ -300,9 +312,9 @@ mod tests_property_storage {
         assert_eq!(storage.type_idxs(1), [2, 5]);
         assert_eq!(storage.group_idx(1), group_idx);
         assert_eq!(storage.next_idx(group_idx, Some(0), 5), Some(1));
-        assert_eq!(storage.previous_idx(group_idx, 1, 5), Some(Some(0)));
-        assert_eq!(storage.previous_idx(group_idx, 1, 2), None);
-        assert_eq!(storage.previous_idx(3.try_into().unwrap(), 1, 2), None);
+        assert_eq!(storage.previous_idx(group_idx, 1, 5), Ok(Some(Some(0))));
+        assert_eq!(storage.previous_idx(group_idx, 1, 2), Ok(None));
+        assert_eq!(storage.previous_idx(3.try_into().unwrap(), 1, 2), Ok(None));
     }
 
     #[test]
@@ -324,7 +336,7 @@ mod tests_property_storage {
         let archetype_idx = storage.create_previous(group_idx, 0, 2);
 
         assert_eq!(archetype_idx, None);
-        assert_eq!(storage.previous_idx(group_idx, 0, 2), Some(None));
+        assert_eq!(storage.previous_idx(group_idx, 0, 2), Ok(Some(None)));
     }
 
     #[test]
@@ -337,7 +349,7 @@ mod tests_property_storage {
         let archetype_idx = storage.create_previous(group_idx, 1, 2);
 
         assert_eq!(archetype_idx, Some(2));
-        assert_eq!(storage.previous_idx(group_idx, 1, 2), Some(Some(2)));
+        assert_eq!(storage.previous_idx(group_idx, 1, 2), Ok(Some(Some(2))));
         assert_eq!(storage.next_idx(group_idx, Some(2), 2), Some(1));
     }
 
@@ -360,7 +372,7 @@ mod tests_property_storage {
 
         assert_panics!(storage.type_idxs(0));
         assert_panics!(storage.group_idx(0));
-        assert_eq!(storage.previous_idx(group_idx, 1, 3), None);
+        assert_eq!(storage.previous_idx(group_idx, 1, 3), Ok(None));
         assert_eq!(storage.next_idx(group_idx, None, 2), None);
         assert_eq!(storage.create_next(group_idx, None, 3), 0);
         assert_eq!(storage.create_next(group_idx, None, 4), 2);

@@ -1,3 +1,4 @@
+use crate::internal::archetypes::data::MissingComponentError;
 use crate::internal::archetypes::ArchetypeFacade;
 use crate::internal::core::storages::{ComponentTypeStorage, EntityTypeStorage};
 use crate::internal::entities::data::EntityLocation;
@@ -115,13 +116,21 @@ impl CoreFacade {
     }
 
     /// Return the new archetype index of the entity.
-    pub(super) fn delete_component(&mut self, entity_idx: usize, type_idx: usize) -> Option<usize> {
-        let src_archetype_idx = self.entities.location(entity_idx).unwrap().archetype_idx;
+    pub(super) fn delete_component(
+        &mut self,
+        entity_idx: usize,
+        type_idx: usize,
+    ) -> Result<Option<usize>, MissingComponentError> {
+        let src_archetype_idx = self
+            .entities
+            .location(entity_idx)
+            .ok_or(MissingComponentError)?
+            .archetype_idx;
         let dst_archetype_idx = self
             .archetypes
-            .delete_component(src_archetype_idx, type_idx);
+            .delete_component(src_archetype_idx, type_idx)?;
         self.entities.move_(entity_idx, dst_archetype_idx);
-        dst_archetype_idx
+        Ok(dst_archetype_idx)
     }
 }
 
@@ -406,7 +415,7 @@ mod tests_core_facade {
     }
 
     #[test]
-    fn delete_component() {
+    fn delete_existing_component() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
@@ -418,12 +427,38 @@ mod tests_core_facade {
         let archetype_idx = facade.delete_component(entity_idx, component_type1_idx);
 
         let expected_archetype_idx = last_archetype_idx + 1;
-        assert_eq!(archetype_idx, Some(expected_archetype_idx));
+        assert_eq!(archetype_idx, Ok(Some(expected_archetype_idx)));
         let location = Some(EntityLocation::new(expected_archetype_idx, 0));
         assert_eq!(facade.entities.location(entity_idx), location);
         let actual_group_idx = facade.archetypes.group_idx(expected_archetype_idx);
         assert_eq!(actual_group_idx, group_idx);
         let actual_type_idxs = facade.archetypes.type_idxs(expected_archetype_idx);
         assert_eq!(actual_type_idxs, [component_type2_idx]);
+    }
+
+    #[test]
+    fn delete_missing_component_from_empty_entity() {
+        let mut facade = CoreFacade::default();
+        let group_idx = facade.create_group();
+        let entity_idx = facade.create_entity(group_idx);
+        let component_type_idx = facade.add_component_type(TypeId::of::<u32>());
+
+        let archetype_idx = facade.delete_component(entity_idx, component_type_idx);
+
+        assert_eq!(archetype_idx, Err(MissingComponentError));
+    }
+
+    #[test]
+    fn delete_missing_component_from_nonempty_entity() {
+        let mut facade = CoreFacade::default();
+        let group_idx = facade.create_group();
+        let entity_idx = facade.create_entity(group_idx);
+        let component_type1_idx = facade.add_component_type(TypeId::of::<u32>());
+        let component_type2_idx = facade.add_component_type(TypeId::of::<i64>());
+        facade.add_component(entity_idx, component_type1_idx);
+
+        let archetype_idx = facade.delete_component(entity_idx, component_type2_idx);
+
+        assert_eq!(archetype_idx, Err(MissingComponentError));
     }
 }

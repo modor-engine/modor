@@ -58,7 +58,25 @@ impl<'a> Entity<'a> {
             .mark_entity_as_deleted(self.entity_idx)
     }
 
-    // TODO: add and delete component
+    pub fn add_component<C>(&mut self, component: C)
+    where
+        C: Any + Sync + Send,
+    {
+        let entity_idx = self.entity_idx;
+        self.data.actions_mut().add_component_to_add(
+            entity_idx,
+            Box::new(move |m| m.add_component(entity_idx, component)),
+        )
+    }
+
+    pub fn delete_component<C>(&mut self)
+    where
+        C: Any + Sync + Send,
+    {
+        self.data
+            .actions_mut()
+            .mark_component_as_deleted::<C>(self.entity_idx)
+    }
 
     pub(crate) fn new(entity_idx: usize, data: SystemData<'a>) -> Self {
         Self { entity_idx, data }

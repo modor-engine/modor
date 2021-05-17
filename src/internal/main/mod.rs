@@ -1,6 +1,7 @@
 use crate::internal::actions::ActionFacade;
 use crate::internal::components::ComponentFacade;
 use crate::internal::core::CoreFacade;
+use crate::internal::entity_actions::data::AddComponentFn;
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
 use crate::internal::system::data::SystemDetails;
 use crate::internal::system::SystemFacade;
@@ -89,10 +90,12 @@ impl MainFacade {
 
     pub(crate) fn apply_system_actions(&mut self) {
         let result = self.actions.try_lock().unwrap().reset();
+        self.apply_entity_deletions(result.deleted_entity_idxs);
+        self.apply_component_deletion(result.deleted_component_types);
+        self.apply_component_adds(result.component_adders);
         self.apply_group_deletions(result.deleted_group_idxs);
         self.apply_group_replacements(result.replaced_group_builders);
         self.apply_entity_creations(result.entity_builders);
-        self.apply_entity_deletions(result.deleted_entity_idxs);
     }
 
     pub(crate) fn set_thread_count(&mut self, count: u32) {
@@ -108,23 +111,20 @@ impl MainFacade {
         type_idx
     }
 
-    fn delete_component<C>(&mut self, entity_idx: usize)
-    where
-        C: Any,
-    {
-        let type_idx = self.core.component_type_idx(TypeId::of::<C>()).unwrap();
+    fn delete_component(&mut self, entity_idx: usize, component_type: TypeId) -> Option<()> {
+        let type_idx = self.core.component_type_idx(component_type)?;
         let location = self.core.entity_location(entity_idx).unwrap();
-        if let Some(new_archetype_idx) = self.core.delete_component(entity_idx, type_idx) {
+        if let Ok(new_archetype_idx) = self.core.delete_component(entity_idx, type_idx) {
+            self.components.swap_delete(type_idx, location);
+            let new_archetype_idx = new_archetype_idx?;
             for &moved_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                self.components
-                    .move_(moved_type_idx, location, new_archetype_idx);
-            }
-        } else {
-            for &deleted_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                self.components.swap_delete(deleted_type_idx, location);
+                if moved_type_idx != type_idx {
+                    self.components
+                        .move_(moved_type_idx, location, new_archetype_idx);
+                }
             }
         }
-        self.components.swap_delete(type_idx, location);
+        Some(())
     }
 
     fn apply_entity_creations(&mut self, entity_builders: Vec<CreateEntityFn>) {
@@ -153,6 +153,18 @@ impl MainFacade {
     fn apply_entity_deletions(&mut self, deleted_entity_idxs: Vec<usize>) {
         for deleted_entity_idx in deleted_entity_idxs {
             self.delete_entity(deleted_entity_idx);
+        }
+    }
+
+    fn apply_component_adds(&mut self, component_adders: Vec<AddComponentFn>) {
+        for add_component_fn in component_adders {
+            add_component_fn(self);
+        }
+    }
+
+    fn apply_component_deletion(&mut self, deleted_component_types: Vec<(usize, TypeId)>) {
+        for (entity_idx, component_type) in deleted_component_types {
+            self.delete_component(entity_idx, component_type);
         }
     }
 }

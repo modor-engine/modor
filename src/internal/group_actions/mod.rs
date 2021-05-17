@@ -8,7 +8,7 @@ pub(super) mod data;
 mod storages;
 
 #[derive(Default)]
-pub(crate) struct GroupActionFacade {
+pub(super) struct GroupActionFacade {
     replaced_groups: ReplacedGroupsStorage,
     deleted_groups: DeletedGroupsStorage,
     modified_groups: ModifiedGroupsStorage,
@@ -27,7 +27,7 @@ impl GroupActionFacade {
             .filter_map(move |g| replaced_groups.remove(g).map(|f| (g, f)))
     }
 
-    pub(crate) fn mark_group_as_replaced(
+    pub(super) fn mark_group_as_replaced(
         &mut self,
         group_idx: NonZeroUsize,
         build_fn: BuildGroupFn,
@@ -42,12 +42,12 @@ impl GroupActionFacade {
             .filter(move |&g| self.deleted_groups.is_marked_as_deleted(g))
     }
 
-    pub(crate) fn mark_group_as_deleted(&mut self, group_idx: NonZeroUsize) {
+    pub(super) fn mark_group_as_deleted(&mut self, group_idx: NonZeroUsize) {
         self.deleted_groups.add(group_idx);
         self.modified_groups.add(group_idx);
     }
 
-    pub(crate) fn entity_builders(&mut self) -> impl Iterator<Item = CreateEntityFn> + '_ {
+    pub(super) fn entity_builders(&mut self) -> impl Iterator<Item = CreateEntityFn> + '_ {
         let replaced_groups = &mut self.replaced_groups;
         let deleted_groups = &self.deleted_groups;
         let created_entities = &mut self.created_entities;
@@ -58,7 +58,7 @@ impl GroupActionFacade {
             .flat_map(move |g| created_entities.remove(g).into_iter())
     }
 
-    pub(crate) fn add_entity_to_create(
+    pub(super) fn add_entity_to_create(
         &mut self,
         group_idx: NonZeroUsize,
         create_fn: CreateEntityFn,

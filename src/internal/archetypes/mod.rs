@@ -4,8 +4,10 @@ use crate::internal::archetypes::storages::{
 };
 use itertools::Itertools;
 use std::num::NonZeroUsize;
+use crate::internal::archetypes::data::MissingComponentError;
 
 mod storages;
+pub(super) mod data;
 
 #[derive(Default)]
 pub(super) struct ArchetypeFacade {
@@ -87,23 +89,25 @@ impl ArchetypeFacade {
         &mut self,
         src_archetype_idx: usize,
         type_idx: usize,
-    ) -> Option<usize> {
+    ) -> Result<Option<usize>, MissingComponentError> {
         let group_idx = self.properties.group_idx(src_archetype_idx);
-        if let Some(dst_archetype_idx) =
-            self.previous_archetypes
-                .idx(group_idx, src_archetype_idx, type_idx)
-        {
-            dst_archetype_idx
-        } else if let Some(dst_archetype_idx) =
-            self.properties
-                .previous_idx(group_idx, src_archetype_idx, type_idx)
-        {
-            let previous_archetypes = &mut self.previous_archetypes;
-            previous_archetypes.add(group_idx, src_archetype_idx, type_idx, dst_archetype_idx);
-            dst_archetype_idx
-        } else {
-            self.create_previous_archetype(src_archetype_idx, type_idx, group_idx)
-        }
+        Ok(
+            if let Some(dst_archetype_idx) =
+                self.previous_archetypes
+                    .idx(group_idx, src_archetype_idx, type_idx)
+            {
+                dst_archetype_idx
+            } else if let Some(dst_archetype_idx) =
+                self.properties
+                    .previous_idx(group_idx, src_archetype_idx, type_idx)?
+            {
+                let previous_archetypes = &mut self.previous_archetypes;
+                previous_archetypes.add(group_idx, src_archetype_idx, type_idx, dst_archetype_idx);
+                dst_archetype_idx
+            } else {
+                self.create_previous_archetype(src_archetype_idx, type_idx, group_idx)
+            },
+        )
     }
 
     fn create_next_archetype(
@@ -220,7 +224,7 @@ mod tests_archetype_facade {
 
         let archetype_idx = facade.delete_component(1, 3);
 
-        assert_eq!(archetype_idx, Some(0));
+        assert_eq!(archetype_idx, Ok(Some(0)));
         assert_eq!(
             facade.previous_archetypes.idx(group_idx, 1, 3),
             Some(Some(0))
@@ -233,15 +237,28 @@ mod tests_archetype_facade {
         let group_idx = 1.try_into().unwrap();
         facade.add_component(group_idx, None, 2);
         facade.add_component(group_idx, Some(0), 3);
-        facade.delete_component(1, 3);
+        let _ = facade.delete_component(1, 3);
 
         let archetype_idx = facade.delete_component(1, 3);
 
-        assert_eq!(archetype_idx, Some(0));
+        assert_eq!(archetype_idx, Ok(Some(0)));
         assert_eq!(
             facade.previous_archetypes.idx(group_idx, 1, 3),
             Some(Some(0))
         );
+    }
+
+    #[test]
+    fn delete_missing_component_from_existing_archetype() {
+        let mut facade = ArchetypeFacade::default();
+        let group_idx = 1.try_into().unwrap();
+        facade.add_component(group_idx, None, 2);
+        facade.add_component(group_idx, Some(0), 3);
+
+        let archetype_idx = facade.delete_component(1, 4);
+
+        assert_eq!(archetype_idx, Err(MissingComponentError));
+        assert_eq!(facade.previous_archetypes.idx(group_idx, 1, 4), None);
     }
 
     #[test]
@@ -253,7 +270,7 @@ mod tests_archetype_facade {
 
         let archetype_idx = facade.delete_component(1, 2);
 
-        assert_eq!(archetype_idx, Some(2));
+        assert_eq!(archetype_idx, Ok(Some(2)));
         assert_eq!(facade.properties.type_idxs(2), [3]);
         assert_eq!(facade.properties.group_idx(2), group_idx);
         assert_eq!(facade.group_archetypes.idxs(group_idx), [0, 1, 2]);
@@ -272,7 +289,7 @@ mod tests_archetype_facade {
 
         let archetype_idx = facade.delete_component(0, 2);
 
-        assert_eq!(archetype_idx, None);
+        assert_eq!(archetype_idx, Ok(None));
         assert_eq!(facade.previous_archetypes.idx(group_idx, 0, 2), Some(None));
     }
 
@@ -349,10 +366,10 @@ mod tests_archetype_facade {
         facade.add_component(group1_idx, Some(0), 4);
         facade.add_component(group2_idx, None, 3);
         facade.add_component(group2_idx, Some(2), 6);
-        facade.delete_component(2, 3);
-        facade.delete_component(1, 4);
-        facade.delete_component(0, 3);
-        facade.delete_component(3, 6);
+        let _ = facade.delete_component(2, 3);
+        let _ = facade.delete_component(1, 4);
+        let _ = facade.delete_component(0, 3);
+        let _ = facade.delete_component(3, 6);
 
         facade.delete_all(group1_idx);
 
