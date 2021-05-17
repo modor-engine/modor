@@ -44,7 +44,10 @@ where
 
     pub fn with_self(&mut self, entity: M) -> Built {
         self.with(entity);
-        if self.main.add_entity_type(self.group_idx, TypeId::of::<M>()) {
+        let new_type_for_group = self
+            .main
+            .add_entity_main_component_type(self.group_idx, TypeId::of::<M>());
+        if new_type_for_group {
             M::on_update(&mut EntityRunner::new(self.main, self.group_idx));
         }
         Built::new()

@@ -19,9 +19,9 @@ impl ComponentTypeStorage {
 }
 
 #[derive(Default)]
-pub(super) struct EntityTypeStorage(Vec<FxHashSet<TypeId>>);
+pub(super) struct EntityMainComponentTypeStorage(Vec<FxHashSet<TypeId>>);
 
-impl EntityTypeStorage {
+impl EntityMainComponentTypeStorage {
     /// Return whether the type is new for the group.
     pub(super) fn add(&mut self, group_idx: NonZeroUsize, entity_type: TypeId) -> bool {
         let group_idx = group_idx.get() - 1;
@@ -84,7 +84,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn add_first_type() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
 
         let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<usize>());
 
@@ -93,7 +93,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn add_different_type_with_same_group() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
         storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
 
         let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<i64>());
@@ -103,7 +103,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn add_same_type_with_different_group() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
         storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
 
         let is_new = storage.add(2.try_into().unwrap(), TypeId::of::<u32>());
@@ -113,7 +113,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn add_same_type_with_same_group() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
         storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
 
         let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
@@ -123,7 +123,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn delete_nonexisting_group() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
 
         storage.delete(2.try_into().unwrap());
 
@@ -132,7 +132,7 @@ mod tests_entity_type_storage {
 
     #[test]
     fn delete_existing_group() {
-        let mut storage = EntityTypeStorage::default();
+        let mut storage = EntityMainComponentTypeStorage::default();
         storage.add(2.try_into().unwrap(), TypeId::of::<u32>());
 
         storage.delete(2.try_into().unwrap());

@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
-// TODO: rename all "nonexisting" by "missing"
 #[derive(Debug, PartialEq, Eq)]
 pub(in super::super) struct MissingComponentError;
 

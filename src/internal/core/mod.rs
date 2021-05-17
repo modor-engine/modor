@@ -1,6 +1,6 @@
 use crate::internal::archetypes::data::MissingComponentError;
 use crate::internal::archetypes::ArchetypeFacade;
-use crate::internal::core::storages::{ComponentTypeStorage, EntityTypeStorage};
+use crate::internal::core::storages::{ComponentTypeStorage, EntityMainComponentTypeStorage};
 use crate::internal::entities::data::EntityLocation;
 use crate::internal::entities::EntityFacade;
 use crate::internal::groups::GroupFacade;
@@ -16,7 +16,7 @@ pub(crate) struct CoreFacade {
     archetypes: ArchetypeFacade,
     entities: EntityFacade,
     component_types: ComponentTypeStorage,
-    entity_types: EntityTypeStorage,
+    entity_main_component_types: EntityMainComponentTypeStorage,
 }
 
 impl CoreFacade {
@@ -42,7 +42,7 @@ impl CoreFacade {
         }
         self.archetypes.delete_all(group_idx);
         self.groups.delete(group_idx);
-        self.entity_types.delete(group_idx);
+        self.entity_main_component_types.delete(group_idx);
     }
 
     pub(crate) fn archetype_type_idxs(&self, archetype_idx: usize) -> &[usize] {
@@ -79,8 +79,12 @@ impl CoreFacade {
     }
 
     /// Return whether the type is new for the group.
-    pub(super) fn add_entity_type(&mut self, group_idx: NonZeroUsize, entity_type: TypeId) -> bool {
-        self.entity_types.add(group_idx, entity_type)
+    pub(super) fn add_entity_main_component_type(
+        &mut self,
+        group_idx: NonZeroUsize,
+        entity_type: TypeId,
+    ) -> bool {
+        self.entity_main_component_types.add(group_idx, entity_type)
     }
 
     /// Return entity index.
@@ -150,15 +154,15 @@ mod tests_core_facade {
     }
 
     #[test]
-    fn add_entity_type() {
+    fn add_entity_main_component_type() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let type_id = TypeId::of::<usize>();
 
-        let is_new = facade.add_entity_type(group_idx, type_id);
+        let is_new = facade.add_entity_main_component_type(group_idx, type_id);
 
         assert!(is_new);
-        assert!(!facade.entity_types.add(group_idx, type_id));
+        assert!(!facade.entity_main_component_types.add(group_idx, type_id));
     }
 
     #[test]
@@ -260,8 +264,8 @@ mod tests_core_facade {
         let group2_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group1_idx);
         let entity2_idx = facade.create_entity(group2_idx);
-        facade.add_entity_type(group1_idx, TypeId::of::<i64>());
-        facade.add_entity_type(group2_idx, TypeId::of::<u32>());
+        facade.add_entity_main_component_type(group1_idx, TypeId::of::<i64>());
+        facade.add_entity_main_component_type(group2_idx, TypeId::of::<u32>());
         let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
         let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
         facade.add_component(entity1_idx, component_type1_idx);
@@ -278,8 +282,12 @@ mod tests_core_facade {
         assert_panics!(facade.groups.idx(entity1_idx));
         assert_eq!(facade.groups.idx(entity2_idx), group2_idx);
         assert_eq!(facade.groups.create(), group1_idx);
-        assert!(facade.entity_types.add(group1_idx, TypeId::of::<i64>()));
-        assert!(!facade.entity_types.add(group2_idx, TypeId::of::<u32>()));
+        assert!(facade
+            .entity_main_component_types
+            .add(group1_idx, TypeId::of::<i64>()));
+        assert!(!facade
+            .entity_main_component_types
+            .add(group2_idx, TypeId::of::<u32>()));
     }
 
     #[test]

@@ -35,8 +35,13 @@ impl MainFacade {
     }
 
     /// Return whether the type is new for the group.
-    pub(crate) fn add_entity_type(&mut self, group_idx: NonZeroUsize, entity_type: TypeId) -> bool {
-        self.core.add_entity_type(group_idx, entity_type)
+    pub(crate) fn add_entity_main_component_type(
+        &mut self,
+        group_idx: NonZeroUsize,
+        entity_type: TypeId,
+    ) -> bool {
+        self.core
+            .add_entity_main_component_type(group_idx, entity_type)
     }
 
     /// Return entity index.
