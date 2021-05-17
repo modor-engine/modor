@@ -296,7 +296,7 @@ mod tests_system_facade {
     fn wrapper1(data: &SystemData<'_>, info: SystemInfo) {
         assert_eq!(info.filtered_component_types, [TypeId::of::<i16>()]);
         data.actions_mut()
-            .mark_group_as_deleted(1.try_into().unwrap());
+            .delete_group(1.try_into().unwrap());
         thread::sleep(Duration::from_millis(10));
     }
 
@@ -305,7 +305,7 @@ mod tests_system_facade {
         thread::sleep(Duration::from_millis(10));
         assert_eq!(info.filtered_component_types, []);
         data.actions_mut()
-            .mark_group_as_deleted(2.try_into().unwrap());
+            .delete_group(2.try_into().unwrap());
     }
 
     #[test]

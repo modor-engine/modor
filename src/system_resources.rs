@@ -18,13 +18,11 @@ impl<'a> Group<'a> {
     {
         self.data
             .actions_mut()
-            .mark_group_as_replaced(self.group_idx, Box::new(build_group_fn));
+            .replace_group(self.group_idx, Box::new(build_group_fn));
     }
 
     pub fn delete(&mut self) {
-        self.data
-            .actions_mut()
-            .mark_group_as_deleted(self.group_idx);
+        self.data.actions_mut().delete_group(self.group_idx);
     }
 
     pub fn create_entity<M>(&mut self, params: M::Params)
@@ -32,7 +30,7 @@ impl<'a> Group<'a> {
         M: EntityMainComponent,
     {
         let group_idx = self.group_idx;
-        self.data.actions_mut().add_entity_to_create(
+        self.data.actions_mut().create_entity(
             group_idx,
             Box::new(move |m| {
                 let entity_idx = m.create_entity(group_idx);
@@ -53,9 +51,7 @@ pub struct Entity<'a> {
 
 impl<'a> Entity<'a> {
     pub fn delete(&mut self) {
-        self.data
-            .actions_mut()
-            .mark_entity_as_deleted(self.entity_idx)
+        self.data.actions_mut().delete_entity(self.entity_idx)
     }
 
     pub fn add_component<C>(&mut self, component: C)
@@ -63,7 +59,7 @@ impl<'a> Entity<'a> {
         C: Any + Sync + Send,
     {
         let entity_idx = self.entity_idx;
-        self.data.actions_mut().add_component_to_add(
+        self.data.actions_mut().add_component(
             entity_idx,
             Box::new(move |m| m.add_component(entity_idx, component)),
         )
@@ -75,7 +71,7 @@ impl<'a> Entity<'a> {
     {
         self.data
             .actions_mut()
-            .mark_component_as_deleted::<C>(self.entity_idx)
+            .delete_component::<C>(self.entity_idx)
     }
 
     pub(crate) fn new(entity_idx: usize, data: SystemData<'a>) -> Self {

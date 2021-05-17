@@ -27,11 +27,7 @@ impl GroupActionFacade {
             .filter_map(move |g| replaced_groups.remove(g).map(|f| (g, f)))
     }
 
-    pub(super) fn mark_group_as_replaced(
-        &mut self,
-        group_idx: NonZeroUsize,
-        build_fn: BuildGroupFn,
-    ) {
+    pub(super) fn replace_group(&mut self, group_idx: NonZeroUsize, build_fn: BuildGroupFn) {
         self.replaced_groups.add(group_idx, Box::new(build_fn));
         self.modified_groups.add(group_idx)
     }
@@ -42,7 +38,7 @@ impl GroupActionFacade {
             .filter(move |&g| self.deleted_groups.is_marked_as_deleted(g))
     }
 
-    pub(super) fn mark_group_as_deleted(&mut self, group_idx: NonZeroUsize) {
+    pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         self.deleted_groups.add(group_idx);
         self.modified_groups.add(group_idx);
     }
@@ -58,11 +54,7 @@ impl GroupActionFacade {
             .flat_map(move |g| created_entities.remove(g).into_iter())
     }
 
-    pub(super) fn add_entity_to_create(
-        &mut self,
-        group_idx: NonZeroUsize,
-        create_fn: CreateEntityFn,
-    ) {
+    pub(super) fn create_entity(&mut self, group_idx: NonZeroUsize, create_fn: CreateEntityFn) {
         self.created_entities.add(group_idx, create_fn);
         self.modified_groups.add(group_idx);
     }
@@ -83,33 +75,33 @@ mod tests_group_action_facade {
     use std::convert::TryInto;
 
     #[test]
-    fn mark_group_as_replaced() {
+    fn replace_group() {
         let mut facade = GroupActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.mark_group_as_replaced(group_idx, Box::new(|_| ()));
+        facade.replace_group(group_idx, Box::new(|_| ()));
 
         assert!(facade.replaced_groups.remove(group_idx).is_some());
         assert_iter!(facade.modified_groups.idxs(), [group_idx]);
     }
 
     #[test]
-    fn mark_group_as_deleted() {
+    fn delete_group() {
         let mut facade = GroupActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.mark_group_as_deleted(group_idx);
+        facade.delete_group(group_idx);
 
         assert!(facade.deleted_groups.is_marked_as_deleted(group_idx));
         assert_iter!(facade.modified_groups.idxs(), [group_idx]);
     }
 
     #[test]
-    fn add_entity_to_create() {
+    fn create_entity() {
         let mut facade = GroupActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.add_entity_to_create(group_idx, Box::new(|_| ()));
+        facade.create_entity(group_idx, Box::new(|_| ()));
 
         assert_eq!(facade.created_entities.remove(group_idx).len(), 1);
         assert_iter!(facade.modified_groups.idxs(), [group_idx]);
@@ -120,9 +112,9 @@ mod tests_group_action_facade {
         let mut facade = GroupActionFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.mark_group_as_deleted(group1_idx);
-        facade.mark_group_as_replaced(group1_idx, Box::new(|_| ()));
-        facade.mark_group_as_replaced(group2_idx, Box::new(|_| ()));
+        facade.delete_group(group1_idx);
+        facade.replace_group(group1_idx, Box::new(|_| ()));
+        facade.replace_group(group2_idx, Box::new(|_| ()));
 
         let replaced_group_idxs: Vec<_> = facade.replaced_group_builders().collect();
 
@@ -136,9 +128,9 @@ mod tests_group_action_facade {
         let mut facade = GroupActionFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.mark_group_as_replaced(group1_idx, Box::new(|_| ()));
-        facade.mark_group_as_deleted(group2_idx);
-        facade.mark_group_as_replaced(group2_idx, Box::new(|_| ()));
+        facade.replace_group(group1_idx, Box::new(|_| ()));
+        facade.delete_group(group2_idx);
+        facade.replace_group(group2_idx, Box::new(|_| ()));
 
         let deleted_group_idxs = facade.deleted_group_idxs();
 
@@ -149,7 +141,7 @@ mod tests_group_action_facade {
     fn retrieve_entity_builders_when_no_deleted_and_replaced_groups() {
         let mut facade = GroupActionFacade::default();
         let group_idx = 2.try_into().unwrap();
-        facade.add_entity_to_create(group_idx, Box::new(|_| ()));
+        facade.create_entity(group_idx, Box::new(|_| ()));
 
         let entity_builders: Vec<_> = facade.entity_builders().collect();
 
@@ -162,11 +154,11 @@ mod tests_group_action_facade {
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
         let group3_idx = 3.try_into().unwrap();
-        facade.mark_group_as_replaced(group1_idx, Box::new(|_| ()));
-        facade.add_entity_to_create(group1_idx, Box::new(|_| ()));
-        facade.mark_group_as_deleted(group2_idx);
-        facade.add_entity_to_create(group2_idx, Box::new(|_| ()));
-        facade.add_entity_to_create(group3_idx, Box::new(|_| ()));
+        facade.replace_group(group1_idx, Box::new(|_| ()));
+        facade.create_entity(group1_idx, Box::new(|_| ()));
+        facade.delete_group(group2_idx);
+        facade.create_entity(group2_idx, Box::new(|_| ()));
+        facade.create_entity(group3_idx, Box::new(|_| ()));
 
         let entity_builders: Vec<_> = facade.entity_builders().collect();
 
@@ -178,12 +170,12 @@ mod tests_group_action_facade {
         let mut facade = GroupActionFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.mark_group_as_replaced(group1_idx, Box::new(|_| ()));
-        facade.mark_group_as_replaced(group2_idx, Box::new(|_| ()));
-        facade.mark_group_as_deleted(group1_idx);
-        facade.mark_group_as_deleted(group2_idx);
-        facade.add_entity_to_create(group1_idx, Box::new(|_| ()));
-        facade.add_entity_to_create(group2_idx, Box::new(|_| ()));
+        facade.replace_group(group1_idx, Box::new(|_| ()));
+        facade.replace_group(group2_idx, Box::new(|_| ()));
+        facade.delete_group(group1_idx);
+        facade.delete_group(group2_idx);
+        facade.create_entity(group1_idx, Box::new(|_| ()));
+        facade.create_entity(group2_idx, Box::new(|_| ()));
 
         facade.reset();
 

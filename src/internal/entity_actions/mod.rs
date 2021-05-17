@@ -24,8 +24,7 @@ impl EntityActionFacade {
             .filter(move |&i| deleted_entities.is_marked_as_deleted(i))
     }
 
-    // TODO: rename in "delete_entity" (and rename other methods)
-    pub(super) fn mark_entity_as_deleted(&mut self, entity_idx: usize) {
+    pub(super) fn delete_entity(&mut self, entity_idx: usize) {
         self.deleted_entities.add(entity_idx);
         self.modified_entities.add(entity_idx);
     }
@@ -39,11 +38,7 @@ impl EntityActionFacade {
             .flat_map(move |i| added_components.remove(i).into_iter())
     }
 
-    pub(super) fn add_component_to_add(
-        &mut self,
-        entity_idx: usize,
-        add_component_fn: AddComponentFn,
-    ) {
+    pub(super) fn add_component(&mut self, entity_idx: usize, add_component_fn: AddComponentFn) {
         self.added_components.add(entity_idx, add_component_fn);
         self.modified_entities.add(entity_idx);
     }
@@ -62,7 +57,7 @@ impl EntityActionFacade {
             })
     }
 
-    pub(super) fn mark_component_as_deleted<C>(&mut self, entity_idx: usize)
+    pub(super) fn delete_component<C>(&mut self, entity_idx: usize)
     where
         C: Any,
     {
@@ -86,30 +81,30 @@ mod tests_entity_action_facade {
     use std::iter;
 
     #[test]
-    fn mark_entity_as_deleted() {
+    fn delete_entity() {
         let mut facade = EntityActionFacade::default();
 
-        facade.mark_entity_as_deleted(1);
+        facade.delete_entity(1);
 
         assert!(facade.deleted_entities.is_marked_as_deleted(1));
         assert_iter!(facade.modified_entities.idxs(), [1]);
     }
 
     #[test]
-    fn add_component_to_add() {
+    fn add_component() {
         let mut facade = EntityActionFacade::default();
 
-        facade.add_component_to_add(1, Box::new(|_| ()));
+        facade.add_component(1, Box::new(|_| ()));
 
         assert_eq!(facade.added_components.remove(1).len(), 1);
         assert_iter!(facade.modified_entities.idxs(), [1]);
     }
 
     #[test]
-    fn mark_component_as_deleted() {
+    fn delete_component() {
         let mut facade = EntityActionFacade::default();
 
-        facade.mark_component_as_deleted::<u32>(1);
+        facade.delete_component::<u32>(1);
 
         assert_eq!(
             facade.deleted_components.remove(1),
@@ -121,8 +116,8 @@ mod tests_entity_action_facade {
     #[test]
     fn retrieve_deleted_entities() {
         let mut facade = EntityActionFacade::default();
-        facade.mark_entity_as_deleted(1);
-        facade.mark_entity_as_deleted(3);
+        facade.delete_entity(1);
+        facade.delete_entity(3);
 
         let deleted_entity_idxs = facade.deleted_entity_idxs();
 
@@ -132,10 +127,10 @@ mod tests_entity_action_facade {
     #[test]
     fn retrieve_component_adders() {
         let mut facade = EntityActionFacade::default();
-        facade.add_component_to_add(1, Box::new(|_| ()));
-        facade.add_component_to_add(1, Box::new(|_| ()));
-        facade.mark_entity_as_deleted(2);
-        facade.add_component_to_add(2, Box::new(|_| ()));
+        facade.add_component(1, Box::new(|_| ()));
+        facade.add_component(1, Box::new(|_| ()));
+        facade.delete_entity(2);
+        facade.add_component(2, Box::new(|_| ()));
 
         let component_adders: Vec<_> = facade.component_adders().collect();
 
@@ -145,9 +140,9 @@ mod tests_entity_action_facade {
     #[test]
     fn retrieve_deleted_component_types() {
         let mut facade = EntityActionFacade::default();
-        facade.mark_component_as_deleted::<u32>(1);
-        facade.mark_component_as_deleted::<i64>(2);
-        facade.mark_entity_as_deleted(2);
+        facade.delete_component::<u32>(1);
+        facade.delete_component::<i64>(2);
+        facade.delete_entity(2);
 
         let deleted_component_types = facade.deleted_component_types();
 
@@ -157,8 +152,8 @@ mod tests_entity_action_facade {
     #[test]
     fn reset() {
         let mut facade = EntityActionFacade::default();
-        facade.mark_entity_as_deleted(1);
-        facade.mark_entity_as_deleted(3);
+        facade.delete_entity(1);
+        facade.delete_entity(3);
 
         facade.reset();
 

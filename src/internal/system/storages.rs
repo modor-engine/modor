@@ -108,7 +108,7 @@ mod tests_system_storage {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
             data.actions_mut()
-                .mark_group_as_deleted(1.try_into().unwrap());
+                .delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -139,7 +139,7 @@ mod tests_system_storage {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
             data.actions_mut()
-                .mark_group_as_deleted(1.try_into().unwrap());
+                .delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 1);
@@ -161,7 +161,7 @@ mod tests_system_storage {
             assert_eq!(info.group_idx, None);
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
             data.actions_mut()
-                .mark_group_as_deleted(1.try_into().unwrap());
+                .delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -179,7 +179,7 @@ mod tests_system_storage {
         let mut storage = SystemStorage::default();
         let system_idx = storage.add(1, |data, _| {
             data.actions_mut()
-                .mark_group_as_deleted(1.try_into().unwrap());
+                .delete_group(1.try_into().unwrap());
         });
 
         storage.delete(2.try_into().unwrap());
@@ -195,11 +195,11 @@ mod tests_system_storage {
         let mut storage = SystemStorage::default();
         let system1_idx = storage.add(1, |data, _| {
             data.actions_mut()
-                .mark_group_as_deleted(1.try_into().unwrap());
+                .delete_group(1.try_into().unwrap());
         });
         let system2_idx = storage.add(2, |data, _| {
             data.actions_mut()
-                .mark_group_as_deleted(2.try_into().unwrap());
+                .delete_group(2.try_into().unwrap());
         });
 
         storage.delete(1.try_into().unwrap());

@@ -15,47 +15,32 @@ pub(crate) struct ActionFacade {
 }
 
 impl ActionFacade {
-    pub(crate) fn mark_entity_as_deleted(&mut self, entity_idx: usize) {
-        self.entity_actions.mark_entity_as_deleted(entity_idx)
+    pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
+        self.entity_actions.delete_entity(entity_idx)
     }
 
-    pub(crate) fn add_component_to_add(
-        &mut self,
-        entity_idx: usize,
-        add_component_fn: AddComponentFn,
-    ) {
+    pub(crate) fn add_component(&mut self, entity_idx: usize, add_component_fn: AddComponentFn) {
         self.entity_actions
-            .add_component_to_add(entity_idx, add_component_fn);
+            .add_component(entity_idx, add_component_fn);
     }
 
-    pub(crate) fn mark_component_as_deleted<C>(&mut self, entity_idx: usize)
+    pub(crate) fn delete_component<C>(&mut self, entity_idx: usize)
     where
         C: Any,
     {
-        self.entity_actions
-            .mark_component_as_deleted::<C>(entity_idx);
+        self.entity_actions.delete_component::<C>(entity_idx);
     }
 
-    pub(crate) fn mark_group_as_replaced(
-        &mut self,
-        group_idx: NonZeroUsize,
-        build_fn: BuildGroupFn,
-    ) {
-        self.group_actions
-            .mark_group_as_replaced(group_idx, build_fn)
+    pub(crate) fn replace_group(&mut self, group_idx: NonZeroUsize, build_fn: BuildGroupFn) {
+        self.group_actions.replace_group(group_idx, build_fn)
     }
 
-    pub(crate) fn mark_group_as_deleted(&mut self, group_idx: NonZeroUsize) {
-        self.group_actions.mark_group_as_deleted(group_idx)
+    pub(crate) fn delete_group(&mut self, group_idx: NonZeroUsize) {
+        self.group_actions.delete_group(group_idx)
     }
 
-    pub(crate) fn add_entity_to_create(
-        &mut self,
-        group_idx: NonZeroUsize,
-        create_fn: CreateEntityFn,
-    ) {
-        self.group_actions
-            .add_entity_to_create(group_idx, create_fn)
+    pub(crate) fn create_entity(&mut self, group_idx: NonZeroUsize, create_fn: CreateEntityFn) {
+        self.group_actions.create_entity(group_idx, create_fn)
     }
 
     pub(super) fn reset(&mut self) -> ActionResult {
@@ -83,7 +68,7 @@ mod tests_action_facade {
     fn mark_entity_as_deleted() {
         let mut facade = ActionFacade::default();
 
-        facade.mark_entity_as_deleted(1);
+        facade.delete_entity(1);
 
         let result = facade.reset();
         assert_eq!(result.deleted_entity_idxs, [1]);
@@ -93,7 +78,7 @@ mod tests_action_facade {
     fn add_component_to_add() {
         let mut facade = ActionFacade::default();
 
-        facade.add_component_to_add(1, Box::new(|_| ()));
+        facade.add_component(1, Box::new(|_| ()));
 
         let result = facade.reset();
         assert_eq!(result.component_adders.len(), 1);
@@ -103,18 +88,18 @@ mod tests_action_facade {
     fn mark_component_as_deleted() {
         let mut facade = ActionFacade::default();
 
-        facade.mark_component_as_deleted::<u32>(1);
+        facade.delete_component::<u32>(1);
 
         let result = facade.reset();
         assert_eq!(result.deleted_component_types, [(1, TypeId::of::<u32>())]);
     }
 
     #[test]
-    fn mark_group_as_replaced() {
+    fn replace_group() {
         let mut facade = ActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.mark_group_as_replaced(group_idx, Box::new(|_| ()));
+        facade.replace_group(group_idx, Box::new(|_| ()));
 
         let result = facade.reset();
         assert_eq!(result.replaced_group_builders.len(), 1);
@@ -122,22 +107,22 @@ mod tests_action_facade {
     }
 
     #[test]
-    fn mark_group_as_deleted() {
+    fn delete_group() {
         let mut facade = ActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.mark_group_as_deleted(group_idx);
+        facade.delete_group(group_idx);
 
         let result = facade.reset();
         assert_eq!(result.deleted_group_idxs, [group_idx])
     }
 
     #[test]
-    fn add_entity_to_create() {
+    fn create_entity() {
         let mut facade = ActionFacade::default();
         let group_idx = 2.try_into().unwrap();
 
-        facade.add_entity_to_create(group_idx, Box::new(|_| ()));
+        facade.create_entity(group_idx, Box::new(|_| ()));
 
         let result = facade.reset();
         assert_eq!(result.entity_builders.len(), 1);
@@ -146,8 +131,8 @@ mod tests_action_facade {
     #[test]
     fn reset() {
         let mut facade = ActionFacade::default();
-        facade.mark_entity_as_deleted(1);
-        facade.mark_group_as_deleted(2.try_into().unwrap());
+        facade.delete_entity(1);
+        facade.delete_group(2.try_into().unwrap());
 
         facade.reset();
 
