@@ -38,7 +38,11 @@ pub(super) struct EntityStorage(Vec<FxHashSet<usize>>);
 impl EntityStorage {
     pub(super) fn idxs(&self, group_idx: NonZeroUsize) -> impl Iterator<Item = usize> + '_ {
         let group_pos = group_idx.get() - 1;
-        self.0[group_pos].iter().copied()
+        self.0
+            .get(group_pos)
+            .into_iter()
+            .flat_map(FxHashSet::iter)
+            .copied()
     }
 
     pub(super) fn add(&mut self, entity_idx: usize, group_idx: NonZeroUsize) {
@@ -54,7 +58,9 @@ impl EntityStorage {
 
     pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
-        self.0[group_pos] = FxHashSet::default();
+        if group_pos < self.0.len() {
+            self.0[group_pos] = FxHashSet::default();
+        }
     }
 }
 
@@ -138,7 +144,7 @@ mod tests_entity_storage {
         assert_eq!(storage.idxs(1.try_into().unwrap()).next(), None);
         assert_iter!(storage.idxs(2.try_into().unwrap()), [4, 1]);
         assert_iter!(storage.idxs(3.try_into().unwrap()), [5]);
-        assert_panics!(storage.idxs(4.try_into().unwrap()));
+        assert_eq!(storage.idxs(4.try_into().unwrap()).next(), None);
     }
 
     #[test]
@@ -161,11 +167,12 @@ mod tests_entity_storage {
     }
 
     #[test]
-    #[should_panic]
-    fn delete_nonexiting_group() {
+    fn delete_missing_group() {
         let mut storage = EntityStorage::default();
 
         storage.delete_group(1.try_into().unwrap());
+
+        assert_eq!(storage.idxs(1.try_into().unwrap()).next(), None);
     }
 
     #[test]

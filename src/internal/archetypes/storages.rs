@@ -121,9 +121,13 @@ impl PropertyStorage {
 pub(super) struct GroupArchetypeStorage(Vec<Vec<usize>>);
 
 impl GroupArchetypeStorage {
-    pub(super) fn idxs(&self, group_idx: NonZeroUsize) -> &[usize] {
+    pub(super) fn idxs(&self, group_idx: NonZeroUsize) -> impl Iterator<Item = usize> + '_ {
         let group_pos = group_idx.get() - 1;
-        &self.0[group_pos]
+        self.0
+            .get(group_pos)
+            .into_iter()
+            .flat_map(|i| i.iter())
+            .copied()
     }
 
     pub(super) fn add(&mut self, group_idx: NonZeroUsize, archetype_idx: usize) {
@@ -134,6 +138,7 @@ impl GroupArchetypeStorage {
 
     pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Vec<usize> {
         let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
         let mut archetype_idxs = Vec::new();
         mem::swap(&mut self.0[group_pos], &mut archetype_idxs);
         archetype_idxs
@@ -396,14 +401,23 @@ mod tests_group_archetype_storage {
         storage.add(3.try_into().unwrap(), 5);
         storage.add(2.try_into().unwrap(), 6);
 
-        assert_eq!(storage.idxs(1.try_into().unwrap()), []);
-        assert_eq!(storage.idxs(2.try_into().unwrap()), [6]);
-        assert_eq!(storage.idxs(3.try_into().unwrap()), [4, 5]);
-        assert_panics!(storage.idxs(4.try_into().unwrap()));
+        assert_eq!(storage.idxs(1.try_into().unwrap()).next(), None);
+        assert_iter!(storage.idxs(2.try_into().unwrap()), [6]);
+        assert_iter!(storage.idxs(3.try_into().unwrap()), [4, 5]);
+        assert_eq!(storage.idxs(4.try_into().unwrap()).next(), None);
     }
 
     #[test]
-    fn remove_archetype() {
+    fn remove_archetype_for_missing_group() {
+        let mut storage = GroupArchetypeStorage::default();
+
+        let archetype_idx = storage.remove(1.try_into().unwrap());
+
+        assert_eq!(archetype_idx, Vec::new());
+    }
+
+    #[test]
+    fn remove_archetype_for_existing_group() {
         let mut storage = GroupArchetypeStorage::default();
         storage.add(1.try_into().unwrap(), 3);
         storage.add(2.try_into().unwrap(), 4);
@@ -411,8 +425,8 @@ mod tests_group_archetype_storage {
         let archetype_idx = storage.remove(1.try_into().unwrap());
 
         assert_eq!(archetype_idx, vec![3]);
-        assert_eq!(storage.idxs(1.try_into().unwrap()), []);
-        assert_eq!(storage.idxs(2.try_into().unwrap()), [4]);
+        assert_eq!(storage.idxs(1.try_into().unwrap()).next(), None);
+        assert_iter!(storage.idxs(2.try_into().unwrap()), [4]);
     }
 }
 

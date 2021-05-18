@@ -38,6 +38,7 @@ impl LocationStorage {
     }
 
     pub(super) fn remove(&mut self, entity_idx: usize) -> Option<EntityLocation> {
+        (self.0.len()..=entity_idx).for_each(|_| self.0.push(None));
         let mut location = None;
         mem::swap(&mut self.0[entity_idx], &mut location);
         location
@@ -146,11 +147,12 @@ mod tests_location_storage {
     }
 
     #[test]
-    #[should_panic]
     fn remove_nonexisting_entity() {
         let mut storage = LocationStorage::default();
 
-        storage.remove(0);
+        let location = storage.remove(0);
+
+        assert_eq!(location, None);
     }
 
     #[test]

@@ -44,11 +44,9 @@ where
 
     pub fn with_self(&mut self, entity: M) -> Built {
         self.with(entity);
-        let new_type_for_group = self
-            .main
-            .add_entity_main_component_type(self.group_idx, TypeId::of::<M>());
-        if new_type_for_group {
-            M::on_update(&mut EntityRunner::new(self.main, self.group_idx));
+        let new_type = self.main.add_entity_main_component::<M>();
+        if new_type {
+            M::on_update(&mut EntityRunner::new(self.main));
         }
         Built::new()
     }
@@ -69,7 +67,6 @@ where
 
 pub struct EntityRunner<'a, M> {
     main: &'a mut MainFacade,
-    group_idx: NonZeroUsize,
     phantom: PhantomData<M>,
 }
 
@@ -85,14 +82,13 @@ where
             entity_type,
             system.actions,
         );
-        self.main.add_system(Some(self.group_idx), system);
+        self.main.add_system(None, system);
         self
     }
 
-    pub(crate) fn new(ecs: &'a mut MainFacade, group_idx: NonZeroUsize) -> Self {
+    pub(crate) fn new(ecs: &'a mut MainFacade) -> Self {
         Self {
             main: ecs,
-            group_idx,
             phantom: PhantomData,
         }
     }

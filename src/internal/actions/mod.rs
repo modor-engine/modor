@@ -46,11 +46,11 @@ impl ActionFacade {
     pub(super) fn reset(&mut self) -> ActionResult {
         let result = ActionResult {
             deleted_entity_idxs: self.entity_actions.deleted_entity_idxs().collect(),
+            entity_builders: self.group_actions.entity_builders().collect(),
             deleted_component_types: self.entity_actions.deleted_component_types().collect(),
             component_adders: self.entity_actions.component_adders().collect(),
             deleted_group_idxs: self.group_actions.deleted_group_idxs().collect(),
             replaced_group_builders: self.group_actions.replaced_group_builders().collect(),
-            entity_builders: self.group_actions.entity_builders().collect(),
         };
         self.group_actions.reset();
         self.entity_actions.reset();

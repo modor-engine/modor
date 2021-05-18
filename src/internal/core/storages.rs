@@ -1,5 +1,5 @@
 use fxhash::{FxHashMap, FxHashSet};
-use std::{any::TypeId, num::NonZeroUsize};
+use std::any::TypeId;
 
 #[derive(Default)]
 pub(super) struct ComponentTypeStorage(FxHashMap<TypeId, usize>);
@@ -19,20 +19,12 @@ impl ComponentTypeStorage {
 }
 
 #[derive(Default)]
-pub(super) struct EntityMainComponentTypeStorage(Vec<FxHashSet<TypeId>>);
+pub(super) struct EntityMainComponentTypeStorage(FxHashSet<TypeId>);
 
 impl EntityMainComponentTypeStorage {
     /// Return whether the type is new for the group.
-    pub(super) fn add(&mut self, group_idx: NonZeroUsize, entity_type: TypeId) -> bool {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashSet::default()));
-        self.0[group_idx].insert(entity_type)
-    }
-
-    pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashSet::default()));
-        self.0[group_idx] = FxHashSet::default();
+    pub(super) fn add(&mut self, entity_type: TypeId) -> bool {
+        self.0.insert(entity_type)
     }
 }
 
@@ -80,63 +72,33 @@ mod tests_component_type_storage {
 #[cfg(test)]
 mod tests_entity_type_storage {
     use super::*;
-    use std::convert::TryInto;
 
     #[test]
     fn add_first_type() {
         let mut storage = EntityMainComponentTypeStorage::default();
 
-        let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<usize>());
+        let is_new = storage.add(TypeId::of::<usize>());
 
         assert!(is_new);
     }
 
     #[test]
-    fn add_different_type_with_same_group() {
+    fn add_different_type() {
         let mut storage = EntityMainComponentTypeStorage::default();
-        storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
+        storage.add(TypeId::of::<u32>());
 
-        let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<i64>());
+        let is_new = storage.add(TypeId::of::<i64>());
 
         assert!(is_new);
     }
 
     #[test]
-    fn add_same_type_with_different_group() {
+    fn add_same_type() {
         let mut storage = EntityMainComponentTypeStorage::default();
-        storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
+        storage.add(TypeId::of::<u32>());
 
-        let is_new = storage.add(2.try_into().unwrap(), TypeId::of::<u32>());
-
-        assert!(is_new);
-    }
-
-    #[test]
-    fn add_same_type_with_same_group() {
-        let mut storage = EntityMainComponentTypeStorage::default();
-        storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
-
-        let is_new = storage.add(1.try_into().unwrap(), TypeId::of::<u32>());
+        let is_new = storage.add(TypeId::of::<u32>());
 
         assert!(!is_new);
-    }
-
-    #[test]
-    fn delete_nonexisting_group() {
-        let mut storage = EntityMainComponentTypeStorage::default();
-
-        storage.delete(2.try_into().unwrap());
-
-        assert!(storage.add(2.try_into().unwrap(), TypeId::of::<u32>()));
-    }
-
-    #[test]
-    fn delete_existing_group() {
-        let mut storage = EntityMainComponentTypeStorage::default();
-        storage.add(2.try_into().unwrap(), TypeId::of::<u32>());
-
-        storage.delete(2.try_into().unwrap());
-
-        assert!(storage.add(2.try_into().unwrap(), TypeId::of::<u32>()));
     }
 }

@@ -19,7 +19,7 @@ pub(super) struct SystemFacade {
     systems: SystemStorage,
     entity_types: EntityTypeStorage,
     state: SystemStateFacade,
-    pool: Option<Pool>,
+    pub(super) pool: Option<Pool>,
 }
 
 impl SystemFacade {
@@ -295,8 +295,7 @@ mod tests_system_facade {
     #[allow(clippy::needless_pass_by_value)]
     fn wrapper1(data: &SystemData<'_>, info: SystemInfo) {
         assert_eq!(info.filtered_component_types, [TypeId::of::<i16>()]);
-        data.actions_mut()
-            .delete_group(1.try_into().unwrap());
+        data.actions_mut().delete_group(1.try_into().unwrap());
         thread::sleep(Duration::from_millis(10));
     }
 
@@ -304,8 +303,7 @@ mod tests_system_facade {
     fn wrapper2(data: &SystemData<'_>, info: SystemInfo) {
         thread::sleep(Duration::from_millis(10));
         assert_eq!(info.filtered_component_types, []);
-        data.actions_mut()
-            .delete_group(2.try_into().unwrap());
+        data.actions_mut().delete_group(2.try_into().unwrap());
     }
 
     #[test]

@@ -44,13 +44,6 @@ impl EntityFacade {
             self.locations.set(moved_entity_idx, location);
         }
     }
-
-    pub(super) fn delete_all(&mut self, archetype_idx: usize) {
-        for entity_idx in self.archetype_entities.remove_all(archetype_idx) {
-            self.locations.remove(entity_idx);
-            self.entities.delete(entity_idx);
-        }
-    }
 }
 
 #[cfg(test)]
@@ -173,28 +166,5 @@ mod tests_entity_facade {
         assert_eq!(facade.locations.get(entity2_idx), None);
         assert_eq!(facade.archetype_entities.idxs(5), [entity1_idx]);
         assert_eq!(facade.entities.create(), entity2_idx);
-    }
-
-    #[test]
-    fn delete_archetype_entities() {
-        let mut facade = EntityFacade::default();
-        let entity1_idx = facade.create();
-        let entity2_idx = facade.create();
-        let entity3_idx = facade.create();
-        facade.move_(entity1_idx, Some(5));
-        facade.move_(entity2_idx, Some(6));
-        facade.move_(entity3_idx, Some(5));
-
-        facade.delete_all(5);
-
-        assert_eq!(facade.locations.get(entity1_idx), None);
-        let location = Some(EntityLocation::new(6, 0));
-        assert_eq!(facade.locations.get(entity2_idx), location);
-        assert_eq!(facade.locations.get(entity3_idx), None);
-        assert_eq!(facade.archetype_entities.idxs(5), []);
-        assert_eq!(facade.archetype_entities.idxs(6), [entity2_idx]);
-        assert_eq!(facade.entities.create(), entity3_idx);
-        assert_eq!(facade.entities.create(), entity1_idx);
-        assert_eq!(facade.entities.create(), entity3_idx + 1);
     }
 }

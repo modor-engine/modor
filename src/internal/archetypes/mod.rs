@@ -1,13 +1,13 @@
+use crate::internal::archetypes::data::MissingComponentError;
 use crate::internal::archetypes::storages::{
     GroupArchetypeStorage, NextArchetypeStorage, PreviousArchetypeStorage, PropertyStorage,
     TypeArchetypeStorage,
 };
 use itertools::Itertools;
 use std::num::NonZeroUsize;
-use crate::internal::archetypes::data::MissingComponentError;
 
-mod storages;
 pub(super) mod data;
+mod storages;
 
 #[derive(Default)]
 pub(super) struct ArchetypeFacade {
@@ -25,8 +25,7 @@ impl ArchetypeFacade {
     ) -> impl Iterator<Item = usize> + '_ {
         self.group_archetypes
             .idxs(group_idx)
-            .iter()
-            .flat_map(move |&a| self.properties.type_idxs(a).iter().copied())
+            .flat_map(move |a| self.properties.type_idxs(a).iter().copied())
             .unique()
     }
 
@@ -42,7 +41,10 @@ impl ArchetypeFacade {
         self.type_archetypes.idxs(type_idxs)
     }
 
-    pub(super) fn idxs_with_group(&self, group_idx: NonZeroUsize) -> &[usize] {
+    pub(super) fn idxs_with_group(
+        &self,
+        group_idx: NonZeroUsize,
+    ) -> impl Iterator<Item = usize> + '_ {
         self.group_archetypes.idxs(group_idx)
     }
 
@@ -170,7 +172,7 @@ mod tests_archetype_facade {
 
         assert_eq!(archetype_idx, 0);
         assert_eq!(facade.properties.type_idxs(0), [2]);
-        assert_eq!(facade.group_archetypes.idxs(group_idx), [0]);
+        assert_iter!(facade.group_archetypes.idxs(group_idx), [0]);
         assert_eq!(facade.type_archetypes.idxs(&[2]), [0]);
         assert_eq!(facade.next_archetypes.idx(group_idx, None, 2), Some(0));
     }
@@ -185,7 +187,7 @@ mod tests_archetype_facade {
 
         assert_eq!(archetype_idx, 1);
         assert_eq!(facade.properties.type_idxs(1), [3]);
-        assert_eq!(facade.group_archetypes.idxs(group_idx), [0, 1]);
+        assert_iter!(facade.group_archetypes.idxs(group_idx), [0, 1]);
         assert_eq!(facade.type_archetypes.idxs(&[3]), [1]);
         assert_eq!(facade.next_archetypes.idx(group_idx, None, 3), Some(1));
     }
@@ -273,7 +275,7 @@ mod tests_archetype_facade {
         assert_eq!(archetype_idx, Ok(Some(2)));
         assert_eq!(facade.properties.type_idxs(2), [3]);
         assert_eq!(facade.properties.group_idx(2), group_idx);
-        assert_eq!(facade.group_archetypes.idxs(group_idx), [0, 1, 2]);
+        assert_iter!(facade.group_archetypes.idxs(group_idx), [0, 1, 2]);
         assert_eq!(facade.type_archetypes.idxs(&[3]), [1, 2]);
         assert_eq!(
             facade.previous_archetypes.idx(group_idx, 1, 2),
@@ -354,7 +356,7 @@ mod tests_archetype_facade {
 
         let archetype_idxs = facade.idxs_with_group(group1_idx);
 
-        assert_eq!(archetype_idxs, [0, 1]);
+        assert_iter!(archetype_idxs, [0, 1]);
     }
 
     #[test]
@@ -381,8 +383,8 @@ mod tests_archetype_facade {
         assert_panics!(facade.properties.type_idxs(0));
         assert_panics!(facade.properties.type_idxs(1));
         assert_eq!(facade.properties.type_idxs(2), [3]);
-        assert_eq!(facade.group_archetypes.idxs(group1_idx), []);
-        assert_eq!(facade.group_archetypes.idxs(group2_idx), [2, 3]);
+        assert_eq!(facade.group_archetypes.idxs(group1_idx).next(), None);
+        assert_iter!(facade.group_archetypes.idxs(group2_idx), [2, 3]);
         assert_eq!(facade.type_archetypes.idxs(&[3]), [3, 2]);
         assert_eq!(facade.type_archetypes.idxs(&[6]), [3]);
         assert_eq!(next_archetypes.idx(group1_idx, None, 3), None);

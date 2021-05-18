@@ -15,6 +15,13 @@ impl GroupFacade {
         self.entity_groups.idx(entity_idx)
     }
 
+    pub(super) fn entity_idxs(
+        &mut self,
+        group_idx: NonZeroUsize,
+    ) -> impl Iterator<Item = usize> + '_ {
+        self.entities.idxs(group_idx)
+    }
+
     pub(super) fn create(&mut self) -> NonZeroUsize {
         self.groups.create()
     }
@@ -73,6 +80,18 @@ mod tests_group_facade {
         let group_idx = facade.idx(2);
 
         assert_eq!(group_idx, 1.try_into().unwrap());
+    }
+
+    #[test]
+    fn retrieve_enity_idxs() {
+        let mut facade = GroupFacade::default();
+        let group_idx = facade.create();
+        facade.add_entity(group_idx, 2);
+        facade.add_entity(group_idx, 3);
+
+        let entity_idxs = facade.entity_idxs(group_idx);
+
+        assert_iter!(entity_idxs, [2, 3]);
     }
 
     #[test]
