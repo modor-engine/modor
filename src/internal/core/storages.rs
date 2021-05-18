@@ -22,7 +22,6 @@ impl ComponentTypeStorage {
 pub(super) struct EntityMainComponentTypeStorage(FxHashSet<TypeId>);
 
 impl EntityMainComponentTypeStorage {
-    /// Return whether the type is new for the group.
     pub(super) fn add(&mut self, entity_type: TypeId) -> bool {
         self.0.insert(entity_type)
     }

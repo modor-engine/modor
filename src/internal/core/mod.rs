@@ -34,7 +34,6 @@ impl CoreFacade {
         self.archetypes.group_type_idxs(group_idx)
     }
 
-    /// Return group index.
     pub(super) fn create_group(&mut self) -> NonZeroUsize {
         self.groups.create()
     }
@@ -80,7 +79,6 @@ impl CoreFacade {
         self.entities.location(entity_idx)
     }
 
-    /// Return whether the type is new for the group.
     pub(super) fn add_entity_main_component_type<C>(&mut self) -> bool
     where
         C: Any,
@@ -88,7 +86,6 @@ impl CoreFacade {
         self.entity_main_component_types.add(TypeId::of::<C>())
     }
 
-    /// Return entity index.
     pub(super) fn create_entity(&mut self, group_idx: NonZeroUsize) -> usize {
         let entity_idx = self.entities.create();
         self.groups.add_entity(group_idx, entity_idx);
@@ -104,12 +101,10 @@ impl CoreFacade {
         self.component_types.idx(type_id)
     }
 
-    /// Return component type index.
     pub(super) fn add_component_type(&mut self, type_id: TypeId) -> usize {
         self.component_types.add(type_id)
     }
 
-    /// Return the new archetype index of the entity.
     pub(super) fn add_component(&mut self, entity_idx: usize, type_idx: usize) -> usize {
         let group_idx = self.groups.idx(entity_idx);
         let old_archetype_idx = self.entities.location(entity_idx).map(|a| a.archetype_idx);
@@ -120,7 +115,6 @@ impl CoreFacade {
         new_archetype_idx
     }
 
-    /// Return the new archetype index of the entity.
     pub(super) fn delete_component(
         &mut self,
         entity_idx: usize,

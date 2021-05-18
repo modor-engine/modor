@@ -59,8 +59,6 @@ impl ArchetypeFacade {
         }
     }
 
-    // TODO: remove return comments
-    /// Return the new archetype index of the entity.
     #[allow(clippy::option_if_let_else)]
     pub(super) fn add_component(
         &mut self,
@@ -85,7 +83,6 @@ impl ArchetypeFacade {
         }
     }
 
-    /// Return the new archetype index of the entity.
     #[allow(clippy::option_if_let_else)]
     pub(super) fn delete_component(
         &mut self,

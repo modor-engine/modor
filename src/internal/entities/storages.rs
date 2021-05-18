@@ -53,7 +53,6 @@ impl ArchetypeEntityStorage {
             .map_or(&EMPTY_IDX_SLICE, |i| i.as_slice())
     }
 
-    /// Return new location of the entity and the index of the entity that is now at source location.
     pub(super) fn move_(
         &mut self,
         entity_idx: usize,

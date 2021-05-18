@@ -19,7 +19,6 @@ pub(crate) struct MainFacade {
 }
 
 impl MainFacade {
-    /// Return group index.
     pub(crate) fn create_group(&mut self) -> NonZeroUsize {
         self.core.create_group()
     }
@@ -34,7 +33,6 @@ impl MainFacade {
         self.systems.delete_group(group_idx);
     }
 
-    /// Return whether the type is new for the group.
     pub(crate) fn add_entity_main_component<C>(&mut self) -> bool
     where
         C: Any,
@@ -42,7 +40,6 @@ impl MainFacade {
         self.core.add_entity_main_component_type::<C>()
     }
 
-    /// Return entity index.
     pub(crate) fn create_entity(&mut self, group_idx: NonZeroUsize) -> usize {
         self.core.create_entity(group_idx)
     }
