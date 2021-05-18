@@ -77,7 +77,11 @@ macro_rules! _system_wrapper {
             use ::modor::SystemWithCorrectParams as _SystemWithCorrectParams;
             use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
             use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
-            _run_system!(data, info, $($system),+);
+            _run_system!(
+                data,
+                info,
+                $(::modor::SystemStaticChecker::new($system).check_statically()),+
+            );
         }
     };
 }

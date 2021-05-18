@@ -197,12 +197,21 @@ macro_rules! impl_incompatible_multiple_system_params {
             for T
         where
             T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            A: IncompatibleSystemParam<($($params,)*), Z>,
+            $param: IncompatibleSystemParam<($($params,)*), Z>,
         {
         }
 
         impl<T, $param, $($params,)* Z>
             IncompatibleMultipleSystemParams<(((),), Z, ($param, $($params),*))>
+            for T
+        where
+            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+            $param: IncompatibleMultipleSystemParams<Z>,
+        {
+        }
+
+        impl<T, $param, $($params,)* Z>
+            IncompatibleMultipleSystemParams<((((),),), Z, ($param, $($params),*))>
             for T
         where
             T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
