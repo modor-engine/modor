@@ -454,42 +454,43 @@ run_for_tuples_with_idxs!(impl_system_param_for_tuple);
 
 pub trait TupleSystemParam {}
 
+impl TupleSystemParam for () {}
+
 macro_rules! impl_tuple_system_param {
-    ($($param:ident),*) => {
-        impl<'a, 'b, $($param),*> TupleSystemParam for ($($param,)*)
+    ($($params:ident),*) => {
+        impl<'a, 'b $(,$params)*> TupleSystemParam for ($($params,)*)
         where
-            $($param: SystemParam<'a, 'b>,)*
+            $($params: SystemParam<'a, 'b>),*
         {
         }
     };
 }
 
-impl_tuple_system_param!();
 run_for_tuples!(impl_tuple_system_param);
 
 pub trait MultipleSystemParams {
-    type T: TupleSystemParam;
+    type TupleSystemParams: TupleSystemParam;
 }
 
 impl<T> MultipleSystemParams for T
 where
     T: TupleSystemParam,
 {
-    type T = Self;
+    type TupleSystemParams = Self;
 }
 
 impl<T> MultipleSystemParams for Query<'_, T>
 where
     T: ConstSystemParam + TupleSystemParam,
 {
-    type T = T;
+    type TupleSystemParams = T;
 }
 
 impl<T> MultipleSystemParams for QueryMut<'_, T>
 where
     T: TupleSystemParam,
 {
-    type T = T;
+    type TupleSystemParams = T;
 }
 
 pub trait ConstSystemParam {}
