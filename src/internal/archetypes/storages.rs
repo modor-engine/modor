@@ -138,10 +138,7 @@ impl GroupArchetypeStorage {
 
     pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Vec<usize> {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
-        let mut archetype_idxs = Vec::new();
-        mem::swap(&mut self.0[group_pos], &mut archetype_idxs);
-        archetype_idxs
+        self.0.get_mut(group_pos).map_or_else(Vec::new, mem::take)
     }
 }
 
@@ -196,9 +193,9 @@ impl NextArchetypeStorage {
         archetype_idx: Option<usize>,
         type_idx: usize,
     ) -> Option<usize> {
-        let group_idx = group_idx.get() - 1;
+        let group_pos = group_idx.get() - 1;
         self.0
-            .get(group_idx)
+            .get(group_pos)
             .and_then(|a| a.get(&(archetype_idx, type_idx)))
             .copied()
     }
@@ -210,15 +207,16 @@ impl NextArchetypeStorage {
         type_idx: usize,
         next_archetype_idx: usize,
     ) {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashMap::default()));
-        self.0[group_idx].insert((archetype_idx, type_idx), next_archetype_idx);
+        let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(FxHashMap::default()));
+        self.0[group_pos].insert((archetype_idx, type_idx), next_archetype_idx);
     }
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashMap::default()));
-        self.0[group_idx] = FxHashMap::default();
+        let group_pos = group_idx.get() - 1;
+        if let Some(archetype_idxs) = self.0.get_mut(group_pos) {
+            *archetype_idxs = FxHashMap::default();
+        }
     }
 }
 
@@ -233,9 +231,9 @@ impl PreviousArchetypeStorage {
         archetype_idx: usize,
         type_idx: usize,
     ) -> Option<Option<usize>> {
-        let group_idx = group_idx.get() - 1;
+        let group_pos = group_idx.get() - 1;
         self.0
-            .get(group_idx)
+            .get(group_pos)
             .and_then(|a| a.get(&(archetype_idx, type_idx)))
             .copied()
     }
@@ -247,15 +245,16 @@ impl PreviousArchetypeStorage {
         type_idx: usize,
         previous_archetype_idx: Option<usize>,
     ) {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashMap::default()));
-        self.0[group_idx].insert((archetype_idx, type_idx), previous_archetype_idx);
+        let group_pos = group_idx.get() - 1;
+        (self.0.len()..=group_pos).for_each(|_| self.0.push(FxHashMap::default()));
+        self.0[group_pos].insert((archetype_idx, type_idx), previous_archetype_idx);
     }
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
-        let group_idx = group_idx.get() - 1;
-        (self.0.len()..=group_idx).for_each(|_| self.0.push(FxHashMap::default()));
-        self.0[group_idx] = FxHashMap::default();
+        let group_pos = group_idx.get() - 1;
+        if let Some(archetype_idxs) = self.0.get_mut(group_pos) {
+            *archetype_idxs = FxHashMap::default();
+        }
     }
 }
 
@@ -290,7 +289,7 @@ mod tests_property_storage {
 
     #[test]
     #[should_panic]
-    fn create_next_archetype_from_nonexisting_archetype() {
+    fn create_next_archetype_from_missing_archetype() {
         let mut storage = PropertyStorage::default();
 
         storage.create_next(1.try_into().unwrap(), Some(0), 2);
@@ -324,7 +323,7 @@ mod tests_property_storage {
 
     #[test]
     #[should_panic]
-    fn create_previous_archetype_from_existing_archetype_using_nonexisting_type() {
+    fn create_previous_archetype_from_existing_archetype_using_missing_type() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
         storage.create_next(group_idx, None, 2);
@@ -360,7 +359,7 @@ mod tests_property_storage {
 
     #[test]
     #[should_panic]
-    fn delete_nonexisting_archetype() {
+    fn delete_missing_archetype() {
         let mut storage = PropertyStorage::default();
 
         storage.delete(0);
@@ -461,7 +460,7 @@ mod tests_type_archetype_storage {
 
     #[test]
     #[should_panic]
-    fn delete_archetype_from_nonexisting_type() {
+    fn delete_archetype_from_missing_type() {
         let mut storage = TypeArchetypeStorage::default();
         storage.add(0, 1);
 
@@ -470,7 +469,7 @@ mod tests_type_archetype_storage {
 
     #[test]
     #[should_panic]
-    fn delete_nonexisting_archetype_from_existing_type() {
+    fn delete_missing_archetype_from_existing_type() {
         let mut storage = TypeArchetypeStorage::default();
         storage.add(0, 1);
 
@@ -515,7 +514,7 @@ mod tests_next_archetype_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = NextArchetypeStorage::default();
 
         storage.delete(1.try_into().unwrap());
@@ -554,7 +553,7 @@ mod tests_previous_archetype_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = PreviousArchetypeStorage::default();
 
         storage.delete(1.try_into().unwrap());

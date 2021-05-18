@@ -111,22 +111,6 @@ impl ComponentStorage {
         swap_delete_fn(self, type_idx, archetype_pos, entity_pos)
     }
 
-    fn downcast_components<C>(&self, type_idx: usize) -> &Vec<Vec<C>>
-    where
-        C: Any,
-    {
-        let type_components = &self.components[type_idx];
-        type_components.downcast_ref().unwrap()
-    }
-
-    fn downcast_components_mut<C>(&mut self, type_idx: usize) -> &mut Vec<Vec<C>>
-    where
-        C: Any,
-    {
-        let type_components = &mut self.components[type_idx];
-        type_components.downcast_mut().unwrap()
-    }
-
     fn create_archetype_generic<C>(&mut self, type_idx: usize) -> usize
     where
         C: Any,
@@ -165,8 +149,25 @@ impl ComponentStorage {
         C: Any,
     {
         let components = self.downcast_components_mut::<C>(type_idx);
-        (components.len()..=archetype_pos).for_each(|_| components.push(Vec::new()));
-        components[archetype_pos] = Vec::new();
+        if let Some(archetype_pos) = components.get_mut(archetype_pos) {
+            *archetype_pos = Vec::new();
+        }
+    }
+
+    fn downcast_components<C>(&self, type_idx: usize) -> &Vec<Vec<C>>
+    where
+        C: Any,
+    {
+        let type_components = &self.components[type_idx];
+        type_components.downcast_ref().unwrap()
+    }
+
+    fn downcast_components_mut<C>(&mut self, type_idx: usize) -> &mut Vec<Vec<C>>
+    where
+        C: Any,
+    {
+        let type_components = &mut self.components[type_idx];
+        type_components.downcast_mut().unwrap()
     }
 }
 
@@ -265,14 +266,14 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn add_component_for_nonexisting_type() {
+    fn add_component_for_missing_type() {
         let mut storage = ComponentStorage::default();
 
         storage.add::<u32>(0, 0, 0);
     }
 
     #[test]
-    fn add_component_for_nonexisting_archetype() {
+    fn add_component_for_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<i64>();
         storage.create_type::<u32>();
@@ -313,7 +314,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn replace_component_for_nonexisting_type() {
+    fn replace_component_for_missing_type() {
         let mut storage = ComponentStorage::default();
 
         storage.replace::<u32>(0, 0, 0, 0);
@@ -321,7 +322,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn replace_component_for_nonexisting_archetype() {
+    fn replace_component_for_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
@@ -330,7 +331,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn replace_component_for_nonexisting_entity() {
+    fn replace_component_for_missing_entity() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
         storage.add::<u32>(0, 0, 10);
@@ -375,7 +376,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn move_component_from_nonexisting_archetype() {
+    fn move_component_from_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
@@ -384,7 +385,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn move_nonexisting_component_from_existing_archetype() {
+    fn move_missing_component_from_existing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
         storage.add::<u32>(0, 1, 10);
@@ -394,7 +395,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn move_existing_component_to_nonexisting_archetype() {
+    fn move_existing_component_to_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
         storage.add::<u32>(0, 1, 10);
@@ -424,7 +425,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn swap_delete_component_for_nonexisting_type() {
+    fn swap_delete_component_for_missing_type() {
         let mut storage = ComponentStorage::default();
 
         storage.swap_delete(0, 0, 0);
@@ -432,7 +433,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn swap_delete_component_for_nonexisting_archetype() {
+    fn swap_delete_component_for_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
@@ -457,21 +458,21 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn delete_archetype_components_for_nonexisting_type() {
+    fn delete_archetype_components_for_missing_type() {
         let mut storage = ComponentStorage::default();
 
         storage.delete_archetype(0, 0);
     }
 
     #[test]
-    fn delete_archetype_components_for_nonexisting_archetype() {
+    fn delete_archetype_components_for_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
         storage.delete_archetype(0, 1);
 
         let components = storage.export();
-        assert_eq_components::<u32>(&components, 0, &[Vec::new(), Vec::new()]);
+        assert_eq_components::<u32>(&components, 0, &[]);
     }
 
     #[test]
@@ -522,7 +523,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn retrieve_whether_component_exists_using_nonexisting_type_idx() {
+    fn retrieve_whether_component_exists_using_missing_type_idx() {
         let storage = ComponentStorage::default();
 
         storage.exists::<u32>(0, 1, 2);
@@ -539,7 +540,7 @@ mod tests_component_storage {
 
     #[test]
     #[should_panic]
-    fn retrieve_whether_component_exists_using_nonexisting_archetype_pos() {
+    fn retrieve_whether_component_exists_using_missing_archetype_pos() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
@@ -547,7 +548,7 @@ mod tests_component_storage {
     }
 
     #[test]
-    fn retrieve_whether_nonexisting_component_exists() {
+    fn retrieve_whether_missing_component_exists() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
         storage.add::<u32>(0, 1, 10);
@@ -597,7 +598,7 @@ mod tests_archetype_position_storage {
 
     #[test]
     #[should_panic]
-    fn create_position_for_nonexisting_type() {
+    fn create_position_for_missing_type() {
         let mut storage = ArchetypePositionStorage::default();
 
         storage.create(0, 0);
@@ -620,7 +621,7 @@ mod tests_archetype_position_storage {
 
     #[test]
     #[should_panic]
-    fn delete_position_with_nonexisting_type() {
+    fn delete_position_with_missing_type() {
         let mut storage = ArchetypePositionStorage::default();
 
         storage.delete(1, 0);
@@ -628,7 +629,7 @@ mod tests_archetype_position_storage {
 
     #[test]
     #[should_panic]
-    fn delete_position_with_nonexisting_archetype() {
+    fn delete_position_with_missing_archetype() {
         let mut storage = ArchetypePositionStorage::default();
         storage.create_type();
         storage.create_type();

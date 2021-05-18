@@ -120,7 +120,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn add_component_for_nonexisting_archetype() {
+    fn add_component_for_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
@@ -149,7 +149,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn delete_archetype_for_nonexisting_archetype() {
+    fn delete_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
@@ -162,7 +162,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn delete_archetype_for_existing_archetype() {
+    fn delete_existing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
         facade.add::<u32>(0, 2, 10);
@@ -196,7 +196,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn retrieve_whether_component_exists_using_nonexisting_archetype() {
+    fn retrieve_whether_component_exists_using_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
@@ -206,7 +206,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn retrieve_whether_nonexisting_component_exists_using_existing_archetype() {
+    fn retrieve_whether_missing_component_exists_using_existing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
         facade.add::<u32>(0, 1, 10);
@@ -231,7 +231,7 @@ mod tests_component_facade {
 
     #[test]
     #[should_panic]
-    fn replace_component_to_nonexisting_archetype() {
+    fn replace_component_to_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
@@ -255,7 +255,7 @@ mod tests_component_facade {
 
     #[test]
     #[should_panic]
-    fn move_component_from_nonexisting_archetype() {
+    fn move_component_from_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
@@ -263,7 +263,7 @@ mod tests_component_facade {
     }
 
     #[test]
-    fn move_component_to_nonexisting_archetype() {
+    fn move_component_to_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
         facade.add::<u32>(0, 2, 10);
@@ -301,7 +301,7 @@ mod tests_component_facade {
 
     #[test]
     #[should_panic]
-    fn swap_remove_component_for_nonexisting_archetype() {
+    fn swap_remove_component_for_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 

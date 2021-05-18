@@ -175,7 +175,7 @@ mod tests_system_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = SystemStorage::default();
         let system_idx = storage.add(1, |data, _| {
             data.actions_mut()
@@ -232,7 +232,7 @@ mod tests_entity_type_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = EntityTypeStorage::default();
         storage.set(1, 2, Some(TypeId::of::<u32>()));
 

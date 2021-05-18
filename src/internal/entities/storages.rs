@@ -1,5 +1,6 @@
 use crate::internal::entities::data::EntityLocation;
-use std::mem;
+
+const EMPTY_IDX_SLICE: [usize; 0] = [];
 
 #[derive(Default)]
 pub(super) struct EntityStorage {
@@ -18,7 +19,7 @@ impl EntityStorage {
 
     pub(super) fn delete(&mut self, entity_idx: usize) {
         if entity_idx >= self.next_idx {
-            panic!("internal error: cannot delete nonexisting entity");
+            panic!("internal error: cannot delete not existing entity");
         }
         self.deleted_idxs.push(entity_idx);
     }
@@ -38,10 +39,7 @@ impl LocationStorage {
     }
 
     pub(super) fn remove(&mut self, entity_idx: usize) -> Option<EntityLocation> {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(None));
-        let mut location = None;
-        mem::swap(&mut self.0[entity_idx], &mut location);
-        location
+        self.0.get_mut(entity_idx).and_then(Option::take)
     }
 }
 
@@ -50,10 +48,12 @@ pub(super) struct ArchetypeEntityStorage(Vec<Vec<usize>>);
 
 impl ArchetypeEntityStorage {
     pub(super) fn idxs(&self, archetype_idx: usize) -> &[usize] {
-        &self.0[archetype_idx]
+        self.0
+            .get(archetype_idx)
+            .map_or(&EMPTY_IDX_SLICE, |i| i.as_slice())
     }
 
-    // Return new location of the entity and the index of the entity that is now at source location.
+    /// Return new location of the entity and the index of the entity that is now at source location.
     pub(super) fn move_(
         &mut self,
         entity_idx: usize,
@@ -72,12 +72,6 @@ impl ArchetypeEntityStorage {
             EntityLocation::new(dst_archetype_idx, dst_entity_pos)
         });
         (dst_location, moved_entity_idx)
-    }
-
-    pub(super) fn remove_all(&mut self, archetype_idx: usize) -> Vec<usize> {
-        let mut entity_idxs = Vec::new();
-        mem::swap(&mut entity_idxs, &mut self.0[archetype_idx]);
-        entity_idxs
     }
 }
 
@@ -106,7 +100,7 @@ mod tests_entity_storage {
 
     #[test]
     #[should_panic]
-    fn delete_nonexisting_entity() {
+    fn delete_missing_entity() {
         let mut storage = EntityStorage::default();
         storage.create();
         storage.create();
@@ -147,7 +141,7 @@ mod tests_location_storage {
     }
 
     #[test]
-    fn remove_nonexisting_entity() {
+    fn remove_missing_entity() {
         let mut storage = LocationStorage::default();
 
         let location = storage.remove(0);
@@ -183,7 +177,7 @@ mod tests_archetype_entity_storage {
         assert_eq!(moved_entity_idx, None);
         assert_eq!(storage.idxs(0), []);
         assert_eq!(storage.idxs(1), [10]);
-        assert_panics!(storage.idxs(2))
+        assert_eq!(storage.idxs(2), []);
     }
 
     #[test]
@@ -246,20 +240,5 @@ mod tests_archetype_entity_storage {
         assert_eq!(moved_entity_idx, Some(30));
         assert_eq!(storage.idxs(0), []);
         assert_eq!(storage.idxs(1), [30, 20]);
-    }
-
-    #[test]
-    fn remove_all_entities_from_archetype() {
-        let mut storage = ArchetypeEntityStorage::default();
-        storage.move_(10, None, Some(0));
-        storage.move_(20, None, Some(1));
-        storage.move_(30, None, Some(1));
-        storage.move_(40, None, Some(1));
-
-        let entity_idxs = storage.remove_all(1);
-
-        assert_eq!(entity_idxs, vec![20, 30, 40]);
-        assert_eq!(storage.idxs(0), [10]);
-        assert_eq!(storage.idxs(1), []);
     }
 }

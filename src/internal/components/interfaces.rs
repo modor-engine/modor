@@ -236,7 +236,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn read_nonexisting_component_type() {
+    fn read_missing_component_type() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -264,7 +264,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn write_nonexisting_component_type() {
+    fn write_missing_component_type() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -292,7 +292,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn iter_on_nonexisting_archetype() {
+    fn iter_on_missing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -319,7 +319,7 @@ mod tests_component_interface {
 
     #[test]
     #[should_panic]
-    fn iter_with_wrong_nonexisting_type_on_existing_archetype() {
+    fn iter_with_missing_type_on_existing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -330,7 +330,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn iter_with_correct_type_on_existing_archetype() {
+    fn iter_with_existing_type_on_existing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -343,7 +343,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn iter_mut_on_nonexisting_archetype() {
+    fn iter_mut_on_missing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -369,7 +369,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn iter_mut_with_wrong_nonexisting_type_on_existing_archetype() {
+    fn iter_mut_with_missing_type_on_existing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();
@@ -380,7 +380,7 @@ mod tests_component_interface {
     }
 
     #[test]
-    fn iter_mut_with_correct_type_on_existing_archetype() {
+    fn iter_mut_with_existing_type_on_existing_archetype() {
         let mut components = create_components();
         let archetype_positions = create_archetype_positions();
         let types = create_types();

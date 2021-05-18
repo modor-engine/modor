@@ -44,7 +44,7 @@ mod tests_component_type_storage {
     }
 
     #[test]
-    fn add_different_nonexisting_type() {
+    fn add_different_type() {
         let mut storage = ComponentTypeStorage::default();
         storage.add(TypeId::of::<u32>());
 
@@ -57,7 +57,7 @@ mod tests_component_type_storage {
     }
 
     #[test]
-    fn add_existing_type() {
+    fn add_same_type() {
         let mut storage = ComponentTypeStorage::default();
         storage.add(TypeId::of::<u32>());
 

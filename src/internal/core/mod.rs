@@ -314,7 +314,7 @@ mod tests_core_facade {
     }
 
     #[test]
-    fn retrieve_archetype_from_nonexisting_component_type_and_group() {
+    fn retrieve_archetype_from_too_much_component_types_and_group() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);

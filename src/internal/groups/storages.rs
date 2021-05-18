@@ -26,7 +26,7 @@ impl GroupStorage {
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
         if group_idx.get() >= self.next_idx.get() {
-            panic!("internal error: cannot delete nonexisting group");
+            panic!("internal error: cannot delete not existing group");
         }
         self.deleted_idxs.push(group_idx);
     }
@@ -58,8 +58,8 @@ impl EntityStorage {
 
     pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
-        if group_pos < self.0.len() {
-            self.0[group_pos] = FxHashSet::default();
+        if let Some(entity_idxs) = self.0.get_mut(group_pos) {
+            *entity_idxs = FxHashSet::default();
         }
     }
 }
@@ -107,7 +107,7 @@ mod tests_group_storage {
 
     #[test]
     #[should_panic]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = GroupStorage::default();
         storage.create();
         storage.create();
@@ -149,7 +149,7 @@ mod tests_entity_storage {
 
     #[test]
     #[should_panic]
-    fn test_entity_from_nonexisting_group() {
+    fn delete_entity_from_missing_group() {
         let mut storage = EntityStorage::default();
 
         storage.delete(2, 1.try_into().unwrap());
@@ -207,7 +207,7 @@ mod tests_entity_group_storage {
 
     #[test]
     #[should_panic]
-    fn delete_nonexisting_entity() {
+    fn delete_missing_entity() {
         let mut storage = EntityGroupStorage::default();
 
         storage.delete(0);

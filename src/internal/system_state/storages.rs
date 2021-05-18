@@ -203,7 +203,7 @@ mod tests_system_type_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = SystemTypesStorage::default();
         storage.set(1, 2, vec![TypeAccess::Read(TypeId::of::<u32>())]);
 
@@ -242,7 +242,7 @@ mod tests_system_actions_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = SystemActionsStorage::default();
         storage.set(1, 2, true);
 
@@ -290,7 +290,7 @@ mod tests_type_state_storage {
 
     #[test]
     #[should_panic]
-    fn lock_nonexisting_type_for_read() {
+    fn lock_missing_type_for_read() {
         let mut storage = TypeStateStorage::default();
         let type1_id = TypeId::of::<u32>();
         let type2_id = TypeId::of::<i64>();
@@ -351,7 +351,7 @@ mod tests_type_state_storage {
 
     #[test]
     #[should_panic]
-    fn lock_nonexisting_type_for_write() {
+    fn lock_missing_type_for_write() {
         let mut storage = TypeStateStorage::default();
         let type1_id = TypeId::of::<u32>();
         let type2_id = TypeId::of::<i64>();
@@ -416,7 +416,7 @@ mod tests_type_state_storage {
 
     #[test]
     #[should_panic]
-    fn unlock_nonexisting_type_for_read() {
+    fn unlock_missing_type_for_read() {
         let mut storage = TypeStateStorage::default();
         let type1_id = TypeId::of::<u32>();
         let type2_id = TypeId::of::<i64>();
@@ -483,7 +483,7 @@ mod tests_type_state_storage {
 
     #[test]
     #[should_panic]
-    fn unlock_nonexisting_type_for_write() {
+    fn unlock_missing_type_for_write() {
         let mut storage = TypeStateStorage::default();
         let type1_id = TypeId::of::<u32>();
         let type2_id = TypeId::of::<i64>();
@@ -649,7 +649,7 @@ mod tests_systems_to_run_storage {
     }
 
     #[test]
-    fn delete_nonexisting_group() {
+    fn delete_missing_group() {
         let mut storage = SystemsToRunStorage::default();
         storage.add(1, 0);
 

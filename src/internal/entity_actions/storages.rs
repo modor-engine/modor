@@ -17,8 +17,9 @@ impl DeletedEntitiesStorage {
     }
 
     pub(super) fn delete(&mut self, entity_idx: usize) {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(false));
-        self.0[entity_idx] = false;
+        if let Some(deleted) = self.0.get_mut(entity_idx) {
+            *deleted = false;
+        }
     }
 }
 
@@ -32,13 +33,13 @@ impl AddedComponentsStorage {
     }
 
     pub(super) fn remove(&mut self, entity_idx: usize) -> Vec<AddComponentFn> {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(Vec::new()));
-        mem::take(&mut self.0[entity_idx])
+        self.0.get_mut(entity_idx).map_or_else(Vec::new, mem::take)
     }
 
     pub(super) fn reset(&mut self, entity_idx: usize) {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(Vec::new()));
-        self.0[entity_idx] = Vec::new();
+        if let Some(adders) = self.0.get_mut(entity_idx) {
+            *adders = Vec::new();
+        }
     }
 }
 
@@ -55,13 +56,15 @@ impl DeletedComponentsStorage {
     }
 
     pub(super) fn remove(&mut self, entity_idx: usize) -> FxHashSet<TypeId> {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(FxHashSet::default()));
-        mem::take(&mut self.0[entity_idx])
+        self.0
+            .get_mut(entity_idx)
+            .map_or_else(FxHashSet::default, mem::take)
     }
 
     pub(super) fn reset(&mut self, entity_idx: usize) {
-        (self.0.len()..=entity_idx).for_each(|_| self.0.push(FxHashSet::default()));
-        self.0[entity_idx] = FxHashSet::default();
+        if let Some(adders) = self.0.get_mut(entity_idx) {
+            *adders = FxHashSet::default();
+        }
     }
 }
 
@@ -98,7 +101,7 @@ mod tests_deleted_entities_storage {
     }
 
     #[test]
-    fn delete_nonexisting_entity() {
+    fn delete_missing_entity() {
         let mut storage = DeletedEntitiesStorage::default();
 
         storage.delete(1);
@@ -136,7 +139,16 @@ mod tests_added_components_storage {
     }
 
     #[test]
-    fn remove_components_for_entity() {
+    fn remove_components_for_missing_entity() {
+        let mut storage = AddedComponentsStorage::default();
+
+        let component_adders = storage.remove(1);
+
+        assert_eq!(component_adders.len(), 0);
+    }
+
+    #[test]
+    fn remove_components_for_existing_entity() {
         let mut storage = AddedComponentsStorage::default();
         storage.add(1, Box::new(|_| ()));
 
@@ -147,7 +159,18 @@ mod tests_added_components_storage {
     }
 
     #[test]
-    fn reset_entity() {
+    fn reset_missing_entity() {
+        let mut storage = AddedComponentsStorage::default();
+        storage.add(2, Box::new(|_| ()));
+
+        storage.reset(1);
+
+        assert_eq!(storage.remove(1).len(), 0);
+        assert_eq!(storage.remove(2).len(), 1);
+    }
+
+    #[test]
+    fn reset_existing_entity() {
         let mut storage = AddedComponentsStorage::default();
         storage.add(1, Box::new(|_| ()));
         storage.add(2, Box::new(|_| ()));
@@ -181,7 +204,16 @@ mod tests_deleted_components_storage {
     }
 
     #[test]
-    fn remove_components_for_entity() {
+    fn remove_components_for_missing_entity() {
+        let mut storage = DeletedComponentsStorage::default();
+
+        let deleted_component_types = storage.remove(1);
+
+        assert_eq!(deleted_component_types, FxHashSet::default());
+    }
+
+    #[test]
+    fn remove_components_for_existing_entity() {
         let mut storage = DeletedComponentsStorage::default();
         storage.add::<u32>(1);
         storage.add::<i64>(1);
@@ -199,7 +231,17 @@ mod tests_deleted_components_storage {
     }
 
     #[test]
-    fn reset_entity() {
+    fn reset_missing_entity() {
+        let mut storage = DeletedComponentsStorage::default();
+        storage.add::<i64>(2);
+
+        storage.reset(1);
+
+        assert_eq!(storage.remove(1), FxHashSet::default());
+    }
+
+    #[test]
+    fn reset_existing_entity() {
         let mut storage = DeletedComponentsStorage::default();
         storage.add::<u32>(1);
         storage.add::<i64>(2);

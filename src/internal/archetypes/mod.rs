@@ -164,7 +164,7 @@ mod tests_archetype_facade {
     use std::convert::TryInto;
 
     #[test]
-    fn add_component_in_first_nonexisting_archetype() {
+    fn add_component_in_first_new_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
 
@@ -178,7 +178,7 @@ mod tests_archetype_facade {
     }
 
     #[test]
-    fn add_component_in_other_nonexisting_archetype() {
+    fn add_component_in_other_new_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
         facade.add_component(group_idx, None, 2);
@@ -264,7 +264,7 @@ mod tests_archetype_facade {
     }
 
     #[test]
-    fn delete_component_to_nonexisting_archetype() {
+    fn delete_component_to_new_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
         facade.add_component(group_idx, None, 2);

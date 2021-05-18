@@ -64,8 +64,8 @@ impl EntityMainComponent for Text {
             .run(system!(Self::delete_entity))
             .run(system!(Self::add_component))
             .run(system!(Self::delete_existing_component))
-            .run(system!(Self::delete_nonexisting_component))
-            .run(system!(Self::delete_not_assigned_component));
+            .run(system!(Self::delete_component_with_missing_type))
+            .run(system!(Self::delete_missing_component));
     }
 }
 
@@ -117,14 +117,14 @@ impl Text {
         }
     }
 
-    fn delete_nonexisting_component(id: &u32, mut entity: Entity<'_>) {
+    fn delete_component_with_missing_type(id: &u32, mut entity: Entity<'_>) {
         if id == &6 {
             entity.delete_component::<i16>();
             println!("Nonexistent component i16 deleted for entity {}", id);
         }
     }
 
-    fn delete_not_assigned_component(id: &u32, mut entity: Entity<'_>) {
+    fn delete_missing_component(id: &u32, mut entity: Entity<'_>) {
         if id == &6 {
             entity.delete_component::<Other>();
             println!("Not assigned component Other deleted for entity {}", id);

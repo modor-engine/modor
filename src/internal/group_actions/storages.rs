@@ -22,10 +22,9 @@ impl ReplacedGroupsStorage {
 
     pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Option<BuildGroupFn> {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(GroupBuilderState::None));
-        match &self.0[group_pos] {
+        self.0.get_mut(group_pos).and_then(|b| match b {
             GroupBuilderState::Some(_) => {
-                let old = mem::replace(&mut self.0[group_pos], GroupBuilderState::Removed);
+                let old = mem::replace(b, GroupBuilderState::Removed);
                 if let GroupBuilderState::Some(build_fn) = old {
                     Some(build_fn)
                 } else {
@@ -33,13 +32,14 @@ impl ReplacedGroupsStorage {
                 }
             }
             GroupBuilderState::Removed | GroupBuilderState::None => None,
-        }
+        })
     }
 
     pub(super) fn reset(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(GroupBuilderState::None));
-        self.0[group_pos] = GroupBuilderState::None
+        if let Some(builder) = self.0.get_mut(group_pos) {
+            *builder = GroupBuilderState::None;
+        }
     }
 }
 
@@ -60,8 +60,9 @@ impl DeletedGroupsStorage {
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(false));
-        self.0[group_pos] = false;
+        if let Some(deleted) = self.0.get_mut(group_pos) {
+            *deleted = false;
+        }
     }
 }
 
@@ -94,8 +95,7 @@ impl CreatedEntitiesStorage {
 
     pub(super) fn remove(&mut self, group_idx: NonZeroUsize) -> Vec<CreateEntityFn> {
         let group_pos = group_idx.get() - 1;
-        (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
-        mem::take(&mut self.0[group_pos])
+        self.0.get_mut(group_pos).map_or_else(Vec::new, mem::take)
     }
 }
 
@@ -116,7 +116,7 @@ mod tests_replaced_groups_storage {
     }
 
     #[test]
-    fn remove_nonexisting_group_builder() {
+    fn remove_missing_group_builder() {
         let mut storage = ReplacedGroupsStorage::default();
 
         let build_fn = storage.remove(2.try_into().unwrap());
@@ -147,7 +147,7 @@ mod tests_replaced_groups_storage {
     }
 
     #[test]
-    fn reset_nonexisting_group_builder() {
+    fn reset_missing_group_builder() {
         let mut storage = ReplacedGroupsStorage::default();
 
         storage.reset(2.try_into().unwrap());
@@ -173,7 +173,16 @@ mod tests_deleted_groups_storage {
     }
 
     #[test]
-    fn delete_group() {
+    fn delete_missing_group() {
+        let mut storage = DeletedGroupsStorage::default();
+
+        storage.delete(2.try_into().unwrap());
+
+        assert!(!storage.is_marked_as_deleted(2.try_into().unwrap()));
+    }
+
+    #[test]
+    fn delete_existing_group() {
         let mut storage = DeletedGroupsStorage::default();
         storage.add(2.try_into().unwrap());
 
@@ -228,7 +237,16 @@ mod tests_created_entities_storage {
     }
 
     #[test]
-    fn remove_entity_builders() {
+    fn remove_missing_entity_builders() {
+        let mut storage = CreatedEntitiesStorage::default();
+
+        let builders = storage.remove(2.try_into().unwrap());
+
+        assert_eq!(builders.len(), 0);
+    }
+
+    #[test]
+    fn remove_existing_entity_builders() {
         let mut storage = CreatedEntitiesStorage::default();
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
