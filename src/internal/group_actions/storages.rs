@@ -4,9 +4,9 @@ use std::mem;
 use std::num::NonZeroUsize;
 
 #[derive(Default)]
-pub(super) struct ReplacedGroupsStorage(Vec<GroupBuilderState>);
+pub(super) struct ReplacedGroupStorage(Vec<GroupBuilderState>);
 
-impl ReplacedGroupsStorage {
+impl ReplacedGroupStorage {
     pub(super) fn is_marked_as_replaced(&self, group_idx: NonZeroUsize) -> bool {
         let group_pos = group_idx.get() - 1;
         self.0.get(group_pos).map_or(false, |b| {
@@ -44,9 +44,9 @@ impl ReplacedGroupsStorage {
 }
 
 #[derive(Default)]
-pub(super) struct DeletedGroupsStorage(Vec<bool>);
+pub(super) struct DeletedGroupStorage(Vec<bool>);
 
-impl DeletedGroupsStorage {
+impl DeletedGroupStorage {
     pub(super) fn is_marked_as_deleted(&self, group_idx: NonZeroUsize) -> bool {
         let group_pos = group_idx.get() - 1;
         self.0.get(group_pos).copied().unwrap_or(false)
@@ -67,9 +67,9 @@ impl DeletedGroupsStorage {
 }
 
 #[derive(Default)]
-pub(super) struct ModifiedGroupsStorage(FxHashSet<NonZeroUsize>);
+pub(super) struct ModifiedGroupStorage(FxHashSet<NonZeroUsize>);
 
-impl ModifiedGroupsStorage {
+impl ModifiedGroupStorage {
     pub(super) fn idxs(&self) -> impl Iterator<Item = NonZeroUsize> + '_ {
         self.0.iter().copied()
     }
@@ -84,9 +84,9 @@ impl ModifiedGroupsStorage {
 }
 
 #[derive(Default)]
-pub(super) struct CreatedEntitiesStorage(Vec<Vec<CreateEntityFn>>);
+pub(super) struct CreatedEntityStorage(Vec<Vec<CreateEntityFn>>);
 
-impl CreatedEntitiesStorage {
+impl CreatedEntityStorage {
     pub(super) fn add(&mut self, group_idx: NonZeroUsize, create_fn: CreateEntityFn) {
         let group_pos = group_idx.get() - 1;
         (self.0.len()..=group_pos).for_each(|_| self.0.push(Vec::new()));
@@ -100,13 +100,13 @@ impl CreatedEntitiesStorage {
 }
 
 #[cfg(test)]
-mod tests_replaced_groups_storage {
+mod replaced_group_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn add_group_builder() {
-        let mut storage = ReplacedGroupsStorage::default();
+        let mut storage = ReplacedGroupStorage::default();
 
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
 
@@ -117,7 +117,7 @@ mod tests_replaced_groups_storage {
 
     #[test]
     fn remove_missing_group_builder() {
-        let mut storage = ReplacedGroupsStorage::default();
+        let mut storage = ReplacedGroupStorage::default();
 
         let build_fn = storage.remove(2.try_into().unwrap());
 
@@ -126,7 +126,7 @@ mod tests_replaced_groups_storage {
 
     #[test]
     fn remove_existing_group_builder() {
-        let mut storage = ReplacedGroupsStorage::default();
+        let mut storage = ReplacedGroupStorage::default();
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
 
         let build_fn = storage.remove(2.try_into().unwrap());
@@ -138,7 +138,7 @@ mod tests_replaced_groups_storage {
 
     #[test]
     fn reset_existing_group_builder() {
-        let mut storage = ReplacedGroupsStorage::default();
+        let mut storage = ReplacedGroupStorage::default();
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
 
         storage.reset(2.try_into().unwrap());
@@ -148,7 +148,7 @@ mod tests_replaced_groups_storage {
 
     #[test]
     fn reset_missing_group_builder() {
-        let mut storage = ReplacedGroupsStorage::default();
+        let mut storage = ReplacedGroupStorage::default();
 
         storage.reset(2.try_into().unwrap());
 
@@ -157,13 +157,13 @@ mod tests_replaced_groups_storage {
 }
 
 #[cfg(test)]
-mod tests_deleted_groups_storage {
+mod deleted_group_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn add_group() {
-        let mut storage = DeletedGroupsStorage::default();
+        let mut storage = DeletedGroupStorage::default();
 
         storage.add(2.try_into().unwrap());
 
@@ -174,7 +174,7 @@ mod tests_deleted_groups_storage {
 
     #[test]
     fn delete_missing_group() {
-        let mut storage = DeletedGroupsStorage::default();
+        let mut storage = DeletedGroupStorage::default();
 
         storage.delete(2.try_into().unwrap());
 
@@ -183,7 +183,7 @@ mod tests_deleted_groups_storage {
 
     #[test]
     fn delete_existing_group() {
-        let mut storage = DeletedGroupsStorage::default();
+        let mut storage = DeletedGroupStorage::default();
         storage.add(2.try_into().unwrap());
 
         storage.delete(2.try_into().unwrap());
@@ -193,13 +193,13 @@ mod tests_deleted_groups_storage {
 }
 
 #[cfg(test)]
-mod tests_modified_groups_storage {
+mod modified_group_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn add_group() {
-        let mut storage = ModifiedGroupsStorage::default();
+        let mut storage = ModifiedGroupStorage::default();
 
         storage.add(2.try_into().unwrap());
 
@@ -208,7 +208,7 @@ mod tests_modified_groups_storage {
 
     #[test]
     fn reset() {
-        let mut storage = ModifiedGroupsStorage::default();
+        let mut storage = ModifiedGroupStorage::default();
         storage.add(2.try_into().unwrap());
         storage.add(4.try_into().unwrap());
 
@@ -219,13 +219,13 @@ mod tests_modified_groups_storage {
 }
 
 #[cfg(test)]
-mod tests_created_entities_storage {
+mod created_entity_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn add_entity_builders() {
-        let mut storage = CreatedEntitiesStorage::default();
+        let mut storage = CreatedEntityStorage::default();
 
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
@@ -238,7 +238,7 @@ mod tests_created_entities_storage {
 
     #[test]
     fn remove_missing_entity_builders() {
-        let mut storage = CreatedEntitiesStorage::default();
+        let mut storage = CreatedEntityStorage::default();
 
         let builders = storage.remove(2.try_into().unwrap());
 
@@ -247,7 +247,7 @@ mod tests_created_entities_storage {
 
     #[test]
     fn remove_existing_entity_builders() {
-        let mut storage = CreatedEntitiesStorage::default();
+        let mut storage = CreatedEntityStorage::default();
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));
         storage.add(2.try_into().unwrap(), Box::new(|_| ()));

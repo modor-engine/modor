@@ -47,7 +47,7 @@ impl EntityFacade {
 }
 
 #[cfg(test)]
-mod tests_entity_facade {
+mod entity_facade_tests {
     use super::*;
 
     #[test]

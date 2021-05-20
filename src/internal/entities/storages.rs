@@ -75,7 +75,7 @@ impl ArchetypeEntityStorage {
 }
 
 #[cfg(test)]
-mod tests_entity_storage {
+mod entity_storage_tests {
     use super::*;
 
     #[test]
@@ -122,7 +122,7 @@ mod tests_entity_storage {
 }
 
 #[cfg(test)]
-mod tests_location_storage {
+mod location_storage_tests {
     use super::*;
 
     #[test]
@@ -163,7 +163,7 @@ mod tests_location_storage {
 }
 
 #[cfg(test)]
-mod tests_archetype_entity_storage {
+mod archetype_entity_storage_tests {
     use super::*;
 
     #[test]

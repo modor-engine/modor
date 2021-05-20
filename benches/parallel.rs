@@ -48,12 +48,12 @@ impl MainEntity {
 fn main() {
     let options = Options::default();
 
-    let mut app = Application::default()
+    let mut app = Application::new()
         .with_group(build_main_group)
         .with_thread_count(1);
     microbench::bench(&options, "sequential update", || app.update());
 
-    let mut app = Application::default()
+    let mut app = Application::new()
         .with_group(build_main_group)
         .with_thread_count(2);
     microbench::bench(&options, "parallel update", || app.update());

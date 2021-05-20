@@ -1,7 +1,7 @@
 use modor::*;
 
 fn main() {
-    Application::default()
+    Application::new()
         .with_group(build_main_group)
         .with_thread_count(2)
         .update();

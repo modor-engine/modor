@@ -20,14 +20,14 @@ pub(crate) struct CoreFacade {
 }
 
 impl CoreFacade {
-    pub(crate) fn group_archetype_idxs(
+    pub(super) fn group_archetype_idxs(
         &self,
         group_idx: NonZeroUsize,
     ) -> impl Iterator<Item = usize> + '_ {
         self.archetypes.idxs_with_group(group_idx)
     }
 
-    pub(crate) fn group_component_type_idxs(
+    pub(super) fn group_component_type_idxs(
         &self,
         group_idx: NonZeroUsize,
     ) -> impl Iterator<Item = usize> + '_ {
@@ -46,7 +46,7 @@ impl CoreFacade {
         self.groups.delete(group_idx);
     }
 
-    pub(crate) fn archetype_type_idxs(&self, archetype_idx: usize) -> &[usize] {
+    pub(super) fn archetype_type_idxs(&self, archetype_idx: usize) -> &[usize] {
         self.archetypes.type_idxs(archetype_idx)
     }
 
@@ -97,7 +97,7 @@ impl CoreFacade {
         self.groups.delete_entity(entity_idx);
     }
 
-    pub(crate) fn component_type_idx(&self, type_id: TypeId) -> Option<usize> {
+    pub(super) fn component_type_idx(&self, type_id: TypeId) -> Option<usize> {
         self.component_types.idx(type_id)
     }
 
@@ -134,7 +134,7 @@ impl CoreFacade {
 }
 
 #[cfg(test)]
-mod tests_core_facade {
+mod core_facade_tests {
     use super::*;
     use std::convert::TryInto;
 

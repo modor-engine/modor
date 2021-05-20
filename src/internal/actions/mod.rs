@@ -59,7 +59,7 @@ impl ActionFacade {
 }
 
 #[cfg(test)]
-mod tests_action_facade {
+mod action_facade_tests {
     use super::*;
     use std::any::TypeId;
     use std::convert::TryInto;

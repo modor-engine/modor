@@ -47,7 +47,7 @@ impl GroupFacade {
 }
 
 #[cfg(test)]
-mod tests_group_facade {
+mod group_facade_tests {
     use super::*;
     use std::convert::TryInto;
 

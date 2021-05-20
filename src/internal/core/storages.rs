@@ -28,7 +28,7 @@ impl EntityMainComponentTypeStorage {
 }
 
 #[cfg(test)]
-mod tests_component_type_storage {
+mod component_type_storage_tests {
     use super::*;
 
     #[test]
@@ -69,7 +69,7 @@ mod tests_component_type_storage {
 }
 
 #[cfg(test)]
-mod tests_entity_type_storage {
+mod entity_type_storage_tests {
     use super::*;
 
     #[test]

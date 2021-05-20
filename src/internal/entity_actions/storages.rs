@@ -4,9 +4,9 @@ use std::any::{Any, TypeId};
 use std::mem;
 
 #[derive(Default)]
-pub(super) struct DeletedEntitiesStorage(Vec<bool>);
+pub(super) struct DeletedEntityStorage(Vec<bool>);
 
-impl DeletedEntitiesStorage {
+impl DeletedEntityStorage {
     pub(super) fn is_marked_as_deleted(&self, entity_idx: usize) -> bool {
         self.0.get(entity_idx).copied().unwrap_or(false)
     }
@@ -24,9 +24,9 @@ impl DeletedEntitiesStorage {
 }
 
 #[derive(Default)]
-pub(super) struct AddedComponentsStorage(Vec<Vec<AddComponentFn>>);
+pub(super) struct AddedComponentStorage(Vec<Vec<AddComponentFn>>);
 
-impl AddedComponentsStorage {
+impl AddedComponentStorage {
     pub(super) fn add(&mut self, entity_idx: usize, add_component_fn: AddComponentFn) {
         (self.0.len()..=entity_idx).for_each(|_| self.0.push(Vec::new()));
         self.0[entity_idx].push(add_component_fn);
@@ -44,9 +44,9 @@ impl AddedComponentsStorage {
 }
 
 #[derive(Default)]
-pub(super) struct DeletedComponentsStorage(Vec<FxHashSet<TypeId>>);
+pub(super) struct DeletedComponentStorage(Vec<FxHashSet<TypeId>>);
 
-impl DeletedComponentsStorage {
+impl DeletedComponentStorage {
     pub(super) fn add<C>(&mut self, entity_idx: usize)
     where
         C: Any,
@@ -69,9 +69,9 @@ impl DeletedComponentsStorage {
 }
 
 #[derive(Default)]
-pub(super) struct ModifiedEntitiesStorage(FxHashSet<usize>);
+pub(super) struct ModifiedEntityStorage(FxHashSet<usize>);
 
-impl ModifiedEntitiesStorage {
+impl ModifiedEntityStorage {
     pub(super) fn idxs(&self) -> impl Iterator<Item = usize> + '_ {
         self.0.iter().copied()
     }
@@ -86,12 +86,12 @@ impl ModifiedEntitiesStorage {
 }
 
 #[cfg(test)]
-mod tests_deleted_entities_storage {
+mod deleted_entity_storage_tests {
     use super::*;
 
     #[test]
     fn add_entity() {
-        let mut storage = DeletedEntitiesStorage::default();
+        let mut storage = DeletedEntityStorage::default();
 
         storage.add(1);
 
@@ -102,7 +102,7 @@ mod tests_deleted_entities_storage {
 
     #[test]
     fn delete_missing_entity() {
-        let mut storage = DeletedEntitiesStorage::default();
+        let mut storage = DeletedEntityStorage::default();
 
         storage.delete(1);
 
@@ -112,7 +112,7 @@ mod tests_deleted_entities_storage {
 
     #[test]
     fn delete_existing_entity() {
-        let mut storage = DeletedEntitiesStorage::default();
+        let mut storage = DeletedEntityStorage::default();
         storage.add(1);
 
         storage.delete(1);
@@ -123,12 +123,12 @@ mod tests_deleted_entities_storage {
 }
 
 #[cfg(test)]
-mod tests_added_components_storage {
+mod added_component_storage_tests {
     use super::*;
 
     #[test]
     fn add_components_for_entity() {
-        let mut storage = AddedComponentsStorage::default();
+        let mut storage = AddedComponentStorage::default();
 
         storage.add(1, Box::new(|_| ()));
         storage.add(1, Box::new(|_| ()));
@@ -140,7 +140,7 @@ mod tests_added_components_storage {
 
     #[test]
     fn remove_components_for_missing_entity() {
-        let mut storage = AddedComponentsStorage::default();
+        let mut storage = AddedComponentStorage::default();
 
         let component_adders = storage.remove(1);
 
@@ -149,7 +149,7 @@ mod tests_added_components_storage {
 
     #[test]
     fn remove_components_for_existing_entity() {
-        let mut storage = AddedComponentsStorage::default();
+        let mut storage = AddedComponentStorage::default();
         storage.add(1, Box::new(|_| ()));
 
         let component_adders = storage.remove(1);
@@ -160,7 +160,7 @@ mod tests_added_components_storage {
 
     #[test]
     fn reset_missing_entity() {
-        let mut storage = AddedComponentsStorage::default();
+        let mut storage = AddedComponentStorage::default();
         storage.add(2, Box::new(|_| ()));
 
         storage.reset(1);
@@ -171,7 +171,7 @@ mod tests_added_components_storage {
 
     #[test]
     fn reset_existing_entity() {
-        let mut storage = AddedComponentsStorage::default();
+        let mut storage = AddedComponentStorage::default();
         storage.add(1, Box::new(|_| ()));
         storage.add(2, Box::new(|_| ()));
 
@@ -183,13 +183,13 @@ mod tests_added_components_storage {
 }
 
 #[cfg(test)]
-mod tests_deleted_components_storage {
+mod deleted_component_storage_tests {
     use super::*;
     use std::iter;
 
     #[test]
     fn add_components_for_entity() {
-        let mut storage = DeletedComponentsStorage::default();
+        let mut storage = DeletedComponentStorage::default();
 
         storage.add::<u32>(1);
         storage.add::<i64>(1);
@@ -205,7 +205,7 @@ mod tests_deleted_components_storage {
 
     #[test]
     fn remove_components_for_missing_entity() {
-        let mut storage = DeletedComponentsStorage::default();
+        let mut storage = DeletedComponentStorage::default();
 
         let deleted_component_types = storage.remove(1);
 
@@ -214,7 +214,7 @@ mod tests_deleted_components_storage {
 
     #[test]
     fn remove_components_for_existing_entity() {
-        let mut storage = DeletedComponentsStorage::default();
+        let mut storage = DeletedComponentStorage::default();
         storage.add::<u32>(1);
         storage.add::<i64>(1);
 
@@ -232,7 +232,7 @@ mod tests_deleted_components_storage {
 
     #[test]
     fn reset_missing_entity() {
-        let mut storage = DeletedComponentsStorage::default();
+        let mut storage = DeletedComponentStorage::default();
         storage.add::<i64>(2);
 
         storage.reset(1);
@@ -242,7 +242,7 @@ mod tests_deleted_components_storage {
 
     #[test]
     fn reset_existing_entity() {
-        let mut storage = DeletedComponentsStorage::default();
+        let mut storage = DeletedComponentStorage::default();
         storage.add::<u32>(1);
         storage.add::<i64>(2);
 
@@ -254,12 +254,12 @@ mod tests_deleted_components_storage {
 }
 
 #[cfg(test)]
-mod tests_modified_entities_storage {
+mod modified_entity_storage_tests {
     use super::*;
 
     #[test]
     fn add_entity() {
-        let mut storage = ModifiedEntitiesStorage::default();
+        let mut storage = ModifiedEntityStorage::default();
 
         storage.add(1);
 
@@ -268,7 +268,7 @@ mod tests_modified_entities_storage {
 
     #[test]
     fn reset() {
-        let mut storage = ModifiedEntitiesStorage::default();
+        let mut storage = ModifiedEntityStorage::default();
         storage.add(1);
         storage.add(3);
 

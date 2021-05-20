@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::slice::{Iter, IterMut};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub struct Components(pub(super) Box<dyn Any + Sync + Send>);
+pub(crate) struct Components(pub(super) Box<dyn Any + Sync + Send>);
 
 impl From<Box<dyn Any + Sync + Send>> for Components {
     fn from(components: Box<dyn Any + Sync + Send>) -> Self {

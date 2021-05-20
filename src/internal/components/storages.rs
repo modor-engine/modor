@@ -38,7 +38,7 @@ impl ComponentStorage {
         delete_archetype_fn(self, type_idx, archetype_pos)
     }
 
-    pub(crate) fn exists<C>(&self, type_idx: usize, archetype_pos: usize, entity_pos: usize) -> bool
+    pub(super) fn exists<C>(&self, type_idx: usize, archetype_pos: usize, entity_pos: usize) -> bool
     where
         C: Any,
     {
@@ -225,7 +225,7 @@ impl TypeStorage {
 }
 
 #[cfg(test)]
-mod tests_component_storage {
+mod component_storage_tests {
     use super::*;
     use std::fmt::Debug;
 
@@ -574,7 +574,7 @@ mod tests_component_storage {
 }
 
 #[cfg(test)]
-mod tests_archetype_position_storage {
+mod archetype_position_storage_tests {
     use super::*;
 
     #[test]
@@ -674,7 +674,7 @@ mod tests_archetype_position_storage {
 }
 
 #[cfg(test)]
-mod tests_type_storage {
+mod type_storage_tests {
     use super::*;
 
     #[test]

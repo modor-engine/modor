@@ -62,7 +62,7 @@ impl EntityTypeStorage {
 }
 
 #[cfg(test)]
-mod tests_system_storage {
+mod system_storage_tests {
     use super::*;
     use crate::internal::actions::ActionFacade;
     use crate::internal::components::ComponentFacade;
@@ -216,7 +216,7 @@ mod tests_system_storage {
 }
 
 #[cfg(test)]
-mod tests_entity_type_storage {
+mod entity_type_storage_tests {
     use super::*;
 
     #[test]

@@ -6,6 +6,10 @@ use crate::{GroupBuilder, SystemBuilder};
 pub struct Application(MainFacade);
 
 impl Application {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn with_group(mut self, build_group_fn: impl FnOnce(&mut GroupBuilder<'_>)) -> Self {
         let group_idx = self.0.create_group();
         let mut group_builder = GroupBuilder::new(&mut self.0, group_idx);

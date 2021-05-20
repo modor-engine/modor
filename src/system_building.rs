@@ -25,21 +25,13 @@ pub enum TypeAccess {
     Write(TypeId),
 }
 
-impl TypeAccess {
-    pub(crate) fn to_inner(&self) -> TypeId {
-        match self {
-            Self::Read(type_id) | Self::Write(type_id) => *type_id,
-        }
-    }
-}
-
 #[macro_export]
 macro_rules! system {
-    ($($system:expr),+) => {{
+    ($($systems:expr),+) => {{
         let mut types = Vec::new();
-        $(types.extend(::modor::System::component_types(&$system).into_iter());)+
-        let mut actions = $(::modor::System::has_actions(&$system))||+;
-        ::modor::SystemBuilder::new(::modor::_system_wrapper!($($system),+), types, actions)
+        $(types.extend(::modor::System::component_types(&$systems).into_iter());)+
+        let mut actions = $(::modor::System::has_actions(&$systems))||+;
+        ::modor::SystemBuilder::new(::modor::_system_wrapper!($($systems),+), types, actions)
     }};
 }
 
@@ -72,7 +64,7 @@ macro_rules! for_each_mut {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! _system_wrapper {
-    ($($system:expr),+) => {
+    ($($systems:expr),+) => {
         |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
             use ::modor::SystemWithCorrectParams as _SystemWithCorrectParams;
             use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
@@ -80,7 +72,7 @@ macro_rules! _system_wrapper {
             _run_system!(
                 data,
                 info,
-                $(::modor::SystemStaticChecker::new($system).check_statically()),+
+                $(::modor::SystemStaticChecker::new($systems).check_statically()),+
             );
         }
     };
@@ -89,11 +81,11 @@ macro_rules! _system_wrapper {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! _run_system {
-    ($data:expr, $info:expr, $($system:expr),+) => {
+    ($data:expr, $info:expr, $($systems:expr),+) => {
         let mut data = $data;
         let mut info = $info;
         $(
-            let mut system = $system;
+            let mut system = $systems;
             let mut locks = ::modor::System::lock(&system, data);
             if ::modor::System::has_mandatory_component(&system) {
                 for archetype in ::modor::System::archetypes(&system, data, &info) {

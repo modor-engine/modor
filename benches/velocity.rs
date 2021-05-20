@@ -59,9 +59,9 @@ fn main() {
     let options = Options::default();
 
     microbench::bench(&options, "build", || {
-        Application::default().with_group(build_main_group)
+        Application::new().with_group(build_main_group)
     });
 
-    let mut app = Application::default().with_group(build_main_group);
+    let mut app = Application::new().with_group(build_main_group);
     microbench::bench(&options, "update", || app.update());
 }

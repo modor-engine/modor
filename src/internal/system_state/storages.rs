@@ -5,9 +5,9 @@ use std::any::TypeId;
 use std::num::NonZeroUsize;
 
 #[derive(Default)]
-pub(super) struct SystemTypesStorage(Vec<Vec<Vec<TypeAccess>>>);
+pub(super) struct SystemTypeStorage(Vec<Vec<Vec<TypeAccess>>>);
 
-impl SystemTypesStorage {
+impl SystemTypeStorage {
     pub(super) fn get(&self, group_idx: usize, system_idx: usize) -> &[TypeAccess] {
         &self.0[group_idx][system_idx]
     }
@@ -26,9 +26,9 @@ impl SystemTypesStorage {
 }
 
 #[derive(Default)]
-pub(super) struct SystemActionsStorage(Vec<Vec<bool>>);
+pub(super) struct SystemActionStorage(Vec<Vec<bool>>);
 
-impl SystemActionsStorage {
+impl SystemActionStorage {
     pub(super) fn has_actions(&self, group_idx: usize, system_idx: usize) -> bool {
         self.0[group_idx][system_idx]
     }
@@ -139,9 +139,9 @@ impl ActionStateStorage {
 }
 
 #[derive(Default)]
-pub(super) struct SystemsToRunStorage(Vec<Vec<bool>>);
+pub(super) struct RunnableSystemStorage(Vec<Vec<bool>>);
 
-impl SystemsToRunStorage {
+impl RunnableSystemStorage {
     pub(super) fn is_empty(&self) -> bool {
         self.0
             .iter()
@@ -187,13 +187,13 @@ impl SystemsToRunStorage {
 }
 
 #[cfg(test)]
-mod tests_system_type_storage {
+mod system_type_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn set_system_types() {
-        let mut storage = SystemTypesStorage::default();
+        let mut storage = SystemTypeStorage::default();
 
         storage.set(2, 3, vec![TypeAccess::Read(TypeId::of::<u32>())]);
 
@@ -204,7 +204,7 @@ mod tests_system_type_storage {
 
     #[test]
     fn delete_missing_group() {
-        let mut storage = SystemTypesStorage::default();
+        let mut storage = SystemTypeStorage::default();
         storage.set(1, 2, vec![TypeAccess::Read(TypeId::of::<u32>())]);
 
         storage.delete(2.try_into().unwrap());
@@ -214,7 +214,7 @@ mod tests_system_type_storage {
 
     #[test]
     fn delete_existing_group() {
-        let mut storage = SystemTypesStorage::default();
+        let mut storage = SystemTypeStorage::default();
         storage.set(1, 2, vec![TypeAccess::Read(TypeId::of::<i64>())]);
         storage.set(2, 3, vec![TypeAccess::Read(TypeId::of::<u32>())]);
 
@@ -226,13 +226,13 @@ mod tests_system_type_storage {
 }
 
 #[cfg(test)]
-mod tests_system_actions_storage {
+mod system_action_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn set_system_actions() {
-        let mut storage = SystemActionsStorage::default();
+        let mut storage = SystemActionStorage::default();
 
         storage.set(2, 3, true);
 
@@ -243,7 +243,7 @@ mod tests_system_actions_storage {
 
     #[test]
     fn delete_missing_group() {
-        let mut storage = SystemActionsStorage::default();
+        let mut storage = SystemActionStorage::default();
         storage.set(1, 2, true);
 
         storage.delete(2.try_into().unwrap());
@@ -253,7 +253,7 @@ mod tests_system_actions_storage {
 
     #[test]
     fn delete_existing_group() {
-        let mut storage = SystemActionsStorage::default();
+        let mut storage = SystemActionStorage::default();
         storage.set(1, 2, false);
         storage.set(2, 3, true);
 
@@ -265,7 +265,7 @@ mod tests_system_actions_storage {
 }
 
 #[cfg(test)]
-mod tests_type_state_storage {
+mod type_state_storage_tests {
     use super::*;
 
     #[test]
@@ -533,7 +533,7 @@ mod tests_type_state_storage {
 
 #[cfg(test)]
 
-mod tests_action_state_storage {
+mod action_state_storage_tests {
     use super::*;
 
     #[test]
@@ -626,13 +626,13 @@ mod tests_action_state_storage {
 }
 
 #[cfg(test)]
-mod tests_systems_to_run_storage {
+mod runnable_system_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
     #[test]
     fn add_systems() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
 
         storage.add(2, 0);
         storage.add(3, 1);
@@ -650,7 +650,7 @@ mod tests_systems_to_run_storage {
 
     #[test]
     fn delete_missing_group() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
         storage.add(1, 0);
 
         storage.delete(2.try_into().unwrap());
@@ -660,7 +660,7 @@ mod tests_systems_to_run_storage {
 
     #[test]
     fn delete_existing_group() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
         storage.add(1, 0);
         storage.add(2, 0);
 
@@ -671,7 +671,7 @@ mod tests_systems_to_run_storage {
 
     #[test]
     fn set_one_system_as_run() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
         storage.add(2, 0);
         storage.add(2, 1);
 
@@ -683,7 +683,7 @@ mod tests_systems_to_run_storage {
 
     #[test]
     fn set_all_systems_as_run() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
         storage.add(2, 0);
         storage.add(2, 1);
 
@@ -696,7 +696,7 @@ mod tests_systems_to_run_storage {
 
     #[test]
     fn reset() {
-        let mut storage = SystemsToRunStorage::default();
+        let mut storage = RunnableSystemStorage::default();
         storage.add(2, 0);
         storage.add(2, 1);
         storage.set_as_run(SystemLocation::new(2, 0));

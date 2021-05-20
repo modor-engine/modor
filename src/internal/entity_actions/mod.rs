@@ -1,7 +1,6 @@
 use crate::internal::entity_actions::data::AddComponentFn;
 use crate::internal::entity_actions::storages::{
-    AddedComponentsStorage, DeletedComponentsStorage, DeletedEntitiesStorage,
-    ModifiedEntitiesStorage,
+    AddedComponentStorage, DeletedComponentStorage, DeletedEntityStorage, ModifiedEntityStorage,
 };
 use std::any::{Any, TypeId};
 
@@ -10,10 +9,10 @@ mod storages;
 
 #[derive(Default)]
 pub(super) struct EntityActionFacade {
-    deleted_entities: DeletedEntitiesStorage,
-    added_components: AddedComponentsStorage,
-    deleted_components: DeletedComponentsStorage,
-    modified_entities: ModifiedEntitiesStorage,
+    deleted_entities: DeletedEntityStorage,
+    added_components: AddedComponentStorage,
+    deleted_components: DeletedComponentStorage,
+    modified_entities: ModifiedEntityStorage,
 }
 
 impl EntityActionFacade {
@@ -76,7 +75,7 @@ impl EntityActionFacade {
 }
 
 #[cfg(test)]
-mod tests_entity_action_facade {
+mod entity_action_facade_tests {
     use super::*;
     use std::iter;
 

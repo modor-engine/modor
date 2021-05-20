@@ -1,13 +1,14 @@
 use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
+use crate::systems::internal::Sealed;
 use crate::{SystemParam, TypeAccess};
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
 use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
-pub trait System<'a, 'b, T> {
+pub trait System<'a, 'b, T>: Sealed<T> {
     const HAS_MANDATORY_COMPONENT: bool;
     const HAS_ACTIONS: bool;
     type Locks: 'b;
@@ -36,6 +37,8 @@ pub trait System<'a, 'b, T> {
         archetype: ArchetypeInfo,
     );
 }
+
+impl<S> Sealed<()> for S where S: FnMut() {}
 
 impl<'a, 'b, S> System<'a, 'b, ()> for S
 where
@@ -71,36 +74,43 @@ where
 }
 
 macro_rules! impl_fn_system {
-    ($(($param:ident, $index:tt)),+) => {
-        impl<'a, 'b: 'a, S, $($param),+> System<'a, 'b, ($($param,)+)> for S
+    ($(($params:ident, $indexes:tt)),+) => {
+        impl<'a, 'b: 'a, S, $($params),+> Sealed<($($params,)+)> for S
         where
-            S: FnMut($($param),+),
-            $($param: SystemParam<'a, 'b>,)+
+            S: FnMut($($params),+),
+            $($params: SystemParam<'a, 'b>,)+
         {
-            const HAS_MANDATORY_COMPONENT: bool = $($param::HAS_MANDATORY_COMPONENT)||+;
-            const HAS_ACTIONS: bool = $($param::HAS_ACTIONS)||+;
-            type Locks = ($($param::Lock,)+);
+        }
+
+        impl<'a, 'b: 'a, S, $($params),+> System<'a, 'b, ($($params,)+)> for S
+        where
+            S: FnMut($($params),+),
+            $($params: SystemParam<'a, 'b>,)+
+        {
+            const HAS_MANDATORY_COMPONENT: bool = $($params::HAS_MANDATORY_COMPONENT)||+;
+            const HAS_ACTIONS: bool = $($params::HAS_ACTIONS)||+;
+            type Locks = ($($params::Lock,)+);
 
             fn component_types(&self) -> Vec<TypeAccess> {
                 let mut types = Vec::new();
-                $(types.extend($param::component_types().into_iter());)+
+                $(types.extend($params::component_types().into_iter());)+
                 types
             }
 
             fn lock(&self, data: &'b SystemData<'_>) -> Self::Locks {
-                ($($param::lock(data),)+)
+                ($($params::lock(data),)+)
             }
 
             fn archetypes(&self, data: &SystemData<'_>, info: &SystemInfo) -> Vec<ArchetypeInfo> {
                 let mut mandatory_component_types = info.filtered_component_types.to_vec();
                 $(mandatory_component_types.extend(
-                    $param::mandatory_component_types().into_iter()
+                    $params::mandatory_component_types().into_iter()
                 );)+
                 data.archetypes(&mandatory_component_types, info.group_idx)
             }
 
             fn run_once(&mut self, info: &SystemInfo, locks: &'a mut Self::Locks) {
-                self($($param::get(info, &mut locks.$index)),+)
+                self($($params::get(info, &mut locks.$indexes)),+)
             }
 
             #[allow(non_snake_case, unused_parens)]
@@ -111,8 +121,8 @@ macro_rules! impl_fn_system {
                 locks: &'a mut Self::Locks,
                 archetype: ArchetypeInfo,
             ) {
-                itertools::izip!($($param::iter(data, info, &mut locks.$index, archetype)),+)
-                    .for_each(|($($param),+)| self($($param),+));
+                itertools::izip!($($params::iter(data, info, &mut locks.$indexes, archetype)),+)
+                    .for_each(|($($params),+)| self($($params),+));
             }
         }
     };
@@ -140,30 +150,22 @@ impl<'a> SystemData<'a> {
         }
     }
 
-    pub(crate) fn archetypes(
-        &self,
-        component_types: &[TypeId],
-        group_idx: Option<NonZeroUsize>,
-    ) -> Vec<ArchetypeInfo> {
-        self.core.archetypes(component_types, group_idx)
-    }
-
     pub(crate) fn entity_idxs(&self, archetype_idx: usize) -> &[usize] {
         self.core.archetype_entity_idxs(archetype_idx)
     }
 
-    pub(crate) fn read_components<C>(&self) -> Option<RwLockReadGuard<'_, Components>>
+    pub(crate) fn read_components<C>(&self) -> Option<ComponentsConst<'_>>
     where
         C: Any,
     {
-        self.components.read::<C>()
+        self.components.read::<C>().map(ComponentsConst)
     }
 
-    pub(crate) fn write_components<C>(&self) -> Option<RwLockWriteGuard<'_, Components>>
+    pub(crate) fn write_components<C>(&self) -> Option<ComponentsMut<'_>>
     where
         C: Any,
     {
-        self.components.write::<C>()
+        self.components.write::<C>().map(ComponentsMut)
     }
 
     pub(crate) fn component_iter<C>(
@@ -191,6 +193,14 @@ impl<'a> SystemData<'a> {
     pub(crate) fn actions_mut(&self) -> MutexGuard<'_, ActionFacade> {
         self.actions.try_lock().unwrap()
     }
+
+    fn archetypes(
+        &self,
+        component_types: &[TypeId],
+        group_idx: Option<NonZeroUsize>,
+    ) -> Vec<ArchetypeInfo> {
+        self.core.archetypes(component_types, group_idx)
+    }
 }
 
 pub struct SystemInfo {
@@ -214,7 +224,15 @@ pub struct ArchetypeInfo {
 }
 
 impl ArchetypeInfo {
-    pub fn new(idx: usize, group_idx: NonZeroUsize) -> Self {
+    pub(crate) fn new(idx: usize, group_idx: NonZeroUsize) -> Self {
         Self { idx, group_idx }
     }
+}
+
+pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
+
+pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
+
+mod internal {
+    pub trait Sealed<T> {}
 }

@@ -115,14 +115,14 @@ where
 }
 
 macro_rules! impl_query_run {
-    ($($param:ident),*) => {
-        impl<'a, 'b, 'c $(,$param)*> Query<'a, ($($param,)*)>
+    ($($params:ident),*) => {
+        impl<'a, 'b, 'c $(,$params)*> Query<'a, ($($params,)*)>
         where
-            ($($param,)*): ConstSystemParam + TupleSystemParam,
+            ($($params,)*): ConstSystemParam + TupleSystemParam,
         {
             pub fn run<S>(&self, system: S) -> QueryRun<'a, S>
             where
-                S: System<'b, 'c, ($($param,)*)>,
+                S: System<'b, 'c, ($($params,)*)>,
             {
                 QueryRun {
                     data: self.data.clone(),
@@ -197,14 +197,14 @@ where
 }
 
 macro_rules! impl_query_mut_run {
-    ($($param:ident),*) => {
-        impl<'a, 'b, 'c $(,$param)*> QueryMut<'a, ($($param,)*)>
+    ($($params:ident),*) => {
+        impl<'a, 'b, 'c $(,$params)*> QueryMut<'a, ($($params,)*)>
         where
-            ($($param,)*): TupleSystemParam,
+            ($($params,)*): TupleSystemParam,
         {
             pub fn run<S>(&mut self, system: S) -> QueryRun<'a, S>
             where
-                S: System<'b, 'c, ($($param,)*)>,
+                S: System<'b, 'c, ($($params,)*)>,
             {
                 QueryRun {
                     data: self.data.clone(),

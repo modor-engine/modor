@@ -259,7 +259,7 @@ impl PreviousArchetypeStorage {
 }
 
 #[cfg(test)]
-mod tests_property_storage {
+mod property_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
@@ -387,7 +387,7 @@ mod tests_property_storage {
 }
 
 #[cfg(test)]
-mod tests_group_archetype_storage {
+mod group_archetype_storage_tests {
     use std::convert::TryInto;
 
     use super::*;
@@ -430,7 +430,7 @@ mod tests_group_archetype_storage {
 }
 
 #[cfg(test)]
-mod tests_type_archetype_storage {
+mod type_archetype_storage_tests {
     use super::*;
 
     #[test]
@@ -497,7 +497,7 @@ mod tests_type_archetype_storage {
 }
 
 #[cfg(test)]
-mod tests_next_archetype_storage {
+mod next_archetype_storage_tests {
     use super::*;
     use std::convert::TryInto;
 
@@ -536,7 +536,7 @@ mod tests_next_archetype_storage {
 }
 
 #[cfg(test)]
-mod tests_previous_archetype_storage {
+mod previous_archetype_storage_tests {
     use super::*;
     use std::convert::TryInto;
 

@@ -1,3 +1,5 @@
+use self::internal::Sealed;
+use crate::system_params::internal::SealedSystemParam;
 use crate::{
     Const, EntityPartSystemParam, MultipleSystemParams, Mut, NotEnoughEntityPartSystemParam,
     NotMandatoryComponentSystemParam, System, SystemParam,
@@ -16,20 +18,22 @@ where
     }
 }
 
-pub trait SystemWithCorrectParams<S, Z> {
+impl<'a, 'b, S, T> Sealed for SystemStaticChecker<'a, 'b, S, T> {}
+
+pub trait SystemWithCorrectParams<S, T>: Sealed {
     fn check_statically(self) -> S;
 }
 
-impl<'a, 'b, S, Z> SystemWithCorrectParams<S, Z> for SystemStaticChecker<'a, 'b, S, Z>
+impl<'a, 'b, S, T> SystemWithCorrectParams<S, T> for SystemStaticChecker<'a, 'b, S, T>
 where
-    S: System<'a, 'b, Z>,
+    S: System<'a, 'b, T>,
 {
     fn check_statically(self) -> S {
         self.0
     }
 }
 
-pub trait SystemWithMissingComponentParam<S, Z> {
+pub trait SystemWithMissingComponentParam<S, Z>: Sealed {
     fn check_statically(self) -> S;
 }
 
@@ -64,7 +68,7 @@ macro_rules! impl_only_optional_params_system_check {
 
 run_for_tuples!(impl_only_optional_params_system_check);
 
-pub trait SystemWithIncompatibleParams<S, Z> {
+pub trait SystemWithIncompatibleParams<S, Z>: Sealed {
     fn check_statically(self) -> S;
 }
 
@@ -112,7 +116,7 @@ macro_rules! impl_incompatibility_system_check {
 
 run_for_tuples!(impl_incompatibility_system_check);
 
-pub trait IncompatibleSystemParam<T, Z> {}
+pub trait IncompatibleSystemParam<T, Z>: SealedSystemParam {}
 
 impl<T, U, C> IncompatibleSystemParam<U, ((), C)> for T
 where
@@ -188,7 +192,7 @@ macro_rules! impl_incompatible_system_param {
 
 run_for_tuples!(impl_incompatible_system_param);
 
-pub trait IncompatibleMultipleSystemParams<Z> {}
+pub trait IncompatibleMultipleSystemParams<Z>: SealedSystemParam {}
 
 macro_rules! impl_incompatible_multiple_system_params {
     ($param:ident $(,$params:ident)*) => {
@@ -222,3 +226,7 @@ macro_rules! impl_incompatible_multiple_system_params {
 }
 
 run_for_tuples!(impl_incompatible_multiple_system_params);
+
+mod internal {
+    pub trait Sealed {}
+}

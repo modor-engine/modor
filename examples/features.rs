@@ -3,7 +3,7 @@
 use modor::*;
 
 fn main() {
-    let mut app = Application::default()
+    let mut app = Application::new()
         .with_group(|b| build_main_group(b, 0))
         .with_group(|b| build_main_group(b, 1))
         .with_group(|b| build_main_group(b, 2))

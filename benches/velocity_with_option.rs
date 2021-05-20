@@ -60,6 +60,6 @@ impl DynamicBody {
 fn main() {
     let options = Options::default();
 
-    let mut app = Application::default().with_group(build_main_group);
+    let mut app = Application::new().with_group(build_main_group);
     microbench::bench(&options, "update with option", || app.update());
 }

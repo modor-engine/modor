@@ -55,18 +55,18 @@ where
     }
 }
 
-pub struct GroupIterator<'a> {
+pub struct GroupIter<'a> {
     group_idx: NonZeroUsize,
     data: SystemData<'a>,
 }
 
-impl<'a> GroupIterator<'a> {
+impl<'a> GroupIter<'a> {
     pub(crate) fn new(group_idx: NonZeroUsize, data: SystemData<'a>) -> Self {
         Self { group_idx, data }
     }
 }
 
-impl<'a> Iterator for GroupIterator<'a> {
+impl<'a> Iterator for GroupIter<'a> {
     type Item = Group<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -74,18 +74,18 @@ impl<'a> Iterator for GroupIterator<'a> {
     }
 }
 
-pub struct EntityIterator<'a> {
+pub struct EntityIter<'a> {
     entity_idxs: Iter<'a, usize>,
     data: SystemData<'a>,
 }
 
-impl<'a> EntityIterator<'a> {
+impl<'a> EntityIter<'a> {
     pub(crate) fn new(entity_idxs: Iter<'a, usize>, data: SystemData<'a>) -> Self {
         Self { entity_idxs, data }
     }
 }
 
-impl<'a> Iterator for EntityIterator<'a> {
+impl<'a> Iterator for EntityIter<'a> {
     type Item = Entity<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -95,20 +95,20 @@ impl<'a> Iterator for EntityIterator<'a> {
     }
 }
 
-pub struct QueryMutIterator<'a, T>(QueryMut<'a, T>)
+pub struct QueryMutIter<'a, T>(QueryMut<'a, T>)
 where
     T: TupleSystemParam;
 
-impl<'a, T> QueryMutIterator<'a, T>
+impl<'a, T> QueryMutIter<'a, T>
 where
     T: TupleSystemParam,
 {
     pub(crate) fn new(iter: QueryMut<'a, T>) -> Self {
-        QueryMutIterator(iter)
+        QueryMutIter(iter)
     }
 }
 
-impl<'a, T> Iterator for QueryMutIterator<'a, T>
+impl<'a, T> Iterator for QueryMutIter<'a, T>
 where
     T: TupleSystemParam,
 {

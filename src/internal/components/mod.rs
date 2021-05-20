@@ -105,7 +105,7 @@ impl ComponentFacade {
 }
 
 #[cfg(test)]
-mod tests_component_facade {
+mod component_facade_tests {
     use super::*;
 
     #[test]

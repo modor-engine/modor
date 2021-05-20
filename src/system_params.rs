@@ -1,18 +1,18 @@
-use crate::internal::components::interfaces::Components;
+use self::internal::SealedSystemParam;
 use crate::{
-    ArchetypeInfo, Entity, EntityIterator, Group, GroupIterator, OptionComponentIter,
-    OptionComponentMutIter, Query, QueryMut, QueryMutIterator, SystemData, SystemInfo, TypeAccess,
+    ArchetypeInfo, ComponentsConst, ComponentsMut, Entity, EntityIter, Group, GroupIter,
+    OptionComponentIter, OptionComponentMutIter, Query, QueryMut, QueryMutIter, SystemData,
+    SystemInfo, TypeAccess,
 };
 use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
 use std::slice::{Iter, IterMut};
-use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
-pub trait SystemParam<'a, 'b>: Sized {
+pub trait SystemParam<'a, 'b>: SealedSystemParam {
     const HAS_MANDATORY_COMPONENT: bool;
     const HAS_ACTIONS: bool;
     type Lock: 'b;
-    type Iterator: Iterator<Item = Self>;
+    type Iter: Iterator<Item = Self>;
 
     fn component_types() -> Vec<TypeAccess>;
 
@@ -25,10 +25,12 @@ pub trait SystemParam<'a, 'b>: Sized {
         info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator;
+    ) -> Self::Iter;
 
     fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self;
 }
+
+impl<'a, 'b: 'a, C> SealedSystemParam for &'a C {}
 
 impl<'a, 'b: 'a, C> SystemParam<'a, 'b> for &'a C
 where
@@ -36,8 +38,8 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<RwLockReadGuard<'b, Components>>;
-    type Iterator = Iter<'a, C>;
+    type Lock = Option<ComponentsConst<'b>>;
+    type Iter = Iter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
         vec![TypeAccess::Read(TypeId::of::<C>())]
@@ -56,8 +58,8 @@ where
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        data.component_iter(lock.as_ref().unwrap(), archetype.idx)
+    ) -> Self::Iter {
+        data.component_iter(&lock.as_ref().unwrap().0, archetype.idx)
             .unwrap()
     }
 
@@ -66,14 +68,16 @@ where
     }
 }
 
+impl<'a, 'b: 'a, C> SealedSystemParam for &'a mut C {}
+
 impl<'a, 'b: 'a, C> SystemParam<'a, 'b> for &'a mut C
 where
     C: Any,
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<RwLockWriteGuard<'b, Components>>;
-    type Iterator = IterMut<'a, C>;
+    type Lock = Option<ComponentsMut<'b>>;
+    type Iter = IterMut<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
         vec![TypeAccess::Write(TypeId::of::<C>())]
@@ -92,8 +96,8 @@ where
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        data.component_iter_mut(lock.as_mut().unwrap(), archetype.idx)
+    ) -> Self::Iter {
+        data.component_iter_mut(&mut lock.as_mut().unwrap().0, archetype.idx)
             .unwrap()
     }
 
@@ -101,6 +105,8 @@ where
         panic!("single component retrieved")
     }
 }
+
+impl<'a, 'b: 'a, C> SealedSystemParam for Option<&'a C> {}
 
 #[allow(clippy::use_self)]
 impl<'a, 'b: 'a, C> SystemParam<'a, 'b> for Option<&'a C>
@@ -109,8 +115,8 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<RwLockReadGuard<'b, Components>>;
-    type Iterator = OptionComponentIter<'a, C>;
+    type Lock = Option<ComponentsConst<'b>>;
+    type Iter = OptionComponentIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
         vec![TypeAccess::Read(TypeId::of::<C>())]
@@ -129,10 +135,10 @@ where
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
+    ) -> Self::Iter {
         OptionComponentIter::new(
             lock.as_ref()
-                .and_then(|l| data.component_iter(l, archetype.idx)),
+                .and_then(|l| data.component_iter(&l.0, archetype.idx)),
         )
     }
 
@@ -141,6 +147,8 @@ where
     }
 }
 
+impl<'a, 'b: 'a, C> SealedSystemParam for Option<&'a mut C> {}
+
 #[allow(clippy::use_self)]
 impl<'a, 'b: 'a, C> SystemParam<'a, 'b> for Option<&'a mut C>
 where
@@ -148,8 +156,8 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<RwLockWriteGuard<'b, Components>>;
-    type Iterator = OptionComponentMutIter<'a, C>;
+    type Lock = Option<ComponentsMut<'b>>;
+    type Iter = OptionComponentMutIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
         vec![TypeAccess::Write(TypeId::of::<C>())]
@@ -168,10 +176,10 @@ where
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
+    ) -> Self::Iter {
         OptionComponentMutIter::new(
             lock.as_mut()
-                .and_then(|l| data.component_iter_mut(l, archetype.idx)),
+                .and_then(|l| data.component_iter_mut(&mut l.0, archetype.idx)),
         )
     }
 
@@ -180,11 +188,13 @@ where
     }
 }
 
+impl<'a, 'b: 'a> SealedSystemParam for Group<'a> {}
+
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = true;
     type Lock = &'b SystemData<'b>;
-    type Iterator = GroupIterator<'a>;
+    type Iter = GroupIter<'a>;
 
     fn component_types() -> Vec<TypeAccess> {
         Vec::new()
@@ -203,8 +213,8 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        GroupIterator::new(archetype.group_idx, lock.clone())
+    ) -> Self::Iter {
+        GroupIter::new(archetype.group_idx, lock.clone())
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
@@ -212,11 +222,13 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
     }
 }
 
+impl<'a, 'b: 'a> SealedSystemParam for Entity<'a> {}
+
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = true;
     type Lock = &'b SystemData<'b>;
-    type Iterator = EntityIterator<'a>;
+    type Iter = EntityIter<'a>;
 
     fn component_types() -> Vec<TypeAccess> {
         Vec::new()
@@ -235,14 +247,16 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
         _info: &SystemInfo,
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        EntityIterator::new(lock.entity_idxs(archetype.idx).iter(), lock.clone())
+    ) -> Self::Iter {
+        EntityIter::new(lock.entity_idxs(archetype.idx).iter(), lock.clone())
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
         panic!("entity retrieved with no entity component")
     }
 }
+
+impl<'a, 'b: 'a, T> SealedSystemParam for Query<'a, T> where T: ConstSystemParam + TupleSystemParam {}
 
 impl<'a, 'b: 'a, T> SystemParam<'a, 'b> for Query<'a, T>
 where
@@ -251,7 +265,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = T::HAS_ACTIONS;
     type Lock = &'b SystemData<'b>;
-    type Iterator = Repeat<Self>;
+    type Iter = Repeat<Self>;
 
     fn component_types() -> Vec<TypeAccess> {
         T::component_types()
@@ -270,7 +284,7 @@ where
         info: &SystemInfo,
         lock: &'a mut Self::Lock,
         _archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
+    ) -> Self::Iter {
         iter::repeat(Self::new(lock.clone(), info.group_idx))
     }
 
@@ -279,6 +293,8 @@ where
     }
 }
 
+impl<'a, 'b: 'a, T> SealedSystemParam for QueryMut<'a, T> where T: TupleSystemParam {}
+
 impl<'a, 'b: 'a, T> SystemParam<'a, 'b> for QueryMut<'a, T>
 where
     T: TupleSystemParam + SystemParam<'a, 'b>,
@@ -286,7 +302,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = T::HAS_ACTIONS;
     type Lock = &'b SystemData<'b>;
-    type Iterator = QueryMutIterator<'a, T>;
+    type Iter = QueryMutIter<'a, T>;
 
     fn component_types() -> Vec<TypeAccess> {
         T::component_types()
@@ -305,8 +321,8 @@ where
         info: &SystemInfo,
         lock: &'a mut Self::Lock,
         _archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
-        QueryMutIterator::new(Self::new(lock.clone(), info.group_idx))
+    ) -> Self::Iter {
+        QueryMutIter::new(Self::new(lock.clone(), info.group_idx))
     }
 
     fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
@@ -314,11 +330,13 @@ where
     }
 }
 
+impl<'a, 'b: 'a> SealedSystemParam for () {}
+
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
     type Lock = ();
-    type Iterator = Repeat<()>;
+    type Iter = Repeat<()>;
 
     fn component_types() -> Vec<TypeAccess> {
         Vec::new()
@@ -335,7 +353,7 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
         _info: &SystemInfo,
         _lock: &'a mut Self::Lock,
         _archetype: ArchetypeInfo,
-    ) -> Self::Iterator {
+    ) -> Self::Iter {
         iter::repeat(())
     }
 
@@ -343,7 +361,9 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
 }
 
 macro_rules! impl_system_param_for_tuple {
-    ($(($params:ident, $index:tt)),+) => {
+    ($(($params:ident, $indexes:tt)),+) => {
+        impl<'a, 'b: 'a, $($params),+> SealedSystemParam for ($($params,)+) {}
+
         impl<'a, 'b: 'a, $($params),+> SystemParam<'a, 'b> for ($($params,)+)
         where
             $($params: SystemParam<'a, 'b>,)+
@@ -352,7 +372,7 @@ macro_rules! impl_system_param_for_tuple {
             const HAS_ACTIONS: bool = $($params::HAS_ACTIONS)||+;
             type Lock = ($($params::Lock,)+);
             #[allow(clippy::type_complexity)]
-            type Iterator = impl_system_param_for_tuple!(@iterator_type $($params),+);
+            type Iter = impl_system_param_for_tuple!(@iterator_type $($params),+);
 
             fn component_types() -> Vec<TypeAccess> {
                 let mut types = Vec::new();
@@ -375,15 +395,15 @@ macro_rules! impl_system_param_for_tuple {
                 info: &SystemInfo,
                 lock: &'a mut Self::Lock,
                 archetype: ArchetypeInfo,
-            ) -> Self::Iterator {
+            ) -> Self::Iter {
                 impl_system_param_for_tuple!(
-                    @iteration data, lock, archetype, info, $($params, $index),+
+                    @iteration data, lock, archetype, info, $($params, $indexes),+
                 )
             }
 
             fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
                 (
-                    $($params::get(info, &mut lock.$index),)+
+                    $($params::get(info, &mut lock.$indexes),)+
                 )
             }
         }
@@ -410,7 +430,7 @@ macro_rules! impl_system_param_for_tuple {
         itertools::izip!($($params::iter($data, $info, &mut $lock.$index, $archetype),)+)
     };
     (@iterator_type $param1:ident, $param2:ident) => {
-        Zip<$param1::Iterator, $param2::Iterator>
+        Zip<$param1::Iter, $param2::Iter>
     };
     (@iterator_type $($params:ident),+) => {
         Map<
@@ -422,22 +442,30 @@ macro_rules! impl_system_param_for_tuple {
         impl_system_param_for_tuple!(@iterator_zip @reverse ($($params),+), ())
     };
     (@iterator_zip @reverse ($param:ident $(, $params:ident)*), ($($reversed_params:ident),*)) => {
-        impl_system_param_for_tuple!(@iterator_zip @reverse ($($params),*), ($param $(,$reversed_params)*))
+        impl_system_param_for_tuple!(
+            @iterator_zip @reverse
+            ($($params),*),
+            ($param $(,$reversed_params)*)
+        )
     };
     (@iterator_zip @reverse (), ($($reversed_params:ident),+)) => {
         impl_system_param_for_tuple!(@iterator_zip @generate $($reversed_params),+)
     };
     (@iterator_zip @generate $param:ident $(, $params:ident)+) => {
-        Zip<impl_system_param_for_tuple!(@iterator_zip @generate $($params),+), $param::Iterator>
+        Zip<impl_system_param_for_tuple!(@iterator_zip @generate $($params),+), $param::Iter>
     };
     (@iterator_zip @generate $param:ident) => {
-        $param::Iterator
+        $param::Iter
     };
     (@iterator_tuple $($params:ident),+) => {
         impl_system_param_for_tuple!(@iterator_tuple @reverse ($($params),+), ())
     };
     (@iterator_tuple @reverse ($param:ident $(, $params:ident)*), ($($reversed_params:ident),*)) => {
-        impl_system_param_for_tuple!(@iterator_tuple @reverse ($($params),*), ($param $(,$reversed_params)*))
+        impl_system_param_for_tuple!(
+            @iterator_tuple @reverse
+            ($($params),*),
+            ($param $(,$reversed_params)*)
+        )
     };
     (@iterator_tuple @reverse (), ($($reversed_params:ident),+)) => {
         impl_system_param_for_tuple!(@iterator_tuple @generate $($reversed_params),+)
@@ -452,9 +480,7 @@ macro_rules! impl_system_param_for_tuple {
 
 run_for_tuples_with_idxs!(impl_system_param_for_tuple);
 
-pub trait TupleSystemParam {}
-
-impl TupleSystemParam for () {}
+pub trait TupleSystemParam: SealedSystemParam {}
 
 macro_rules! impl_tuple_system_param {
     ($($params:ident),*) => {
@@ -466,9 +492,10 @@ macro_rules! impl_tuple_system_param {
     };
 }
 
+impl_tuple_system_param!();
 run_for_tuples!(impl_tuple_system_param);
 
-pub trait MultipleSystemParams {
+pub trait MultipleSystemParams: SealedSystemParam {
     type TupleSystemParams: TupleSystemParam;
 }
 
@@ -493,7 +520,7 @@ where
     type TupleSystemParams = T;
 }
 
-pub trait ConstSystemParam {}
+pub trait ConstSystemParam: SealedSystemParam {}
 
 impl<C> ConstSystemParam for &C where C: Any {}
 
@@ -502,10 +529,10 @@ impl<C> ConstSystemParam for Option<&C> where C: Any {}
 impl<T> ConstSystemParam for Query<'_, T> where T: ConstSystemParam + TupleSystemParam {}
 
 macro_rules! impl_const_system_param {
-    ($($param:ident),*) => {
-        impl<'a, 'b, $($param),*> ConstSystemParam for ($($param,)*)
+    ($($params:ident),*) => {
+        impl<'a, 'b, $($params),*> ConstSystemParam for ($($params,)*)
         where
-            $($param: ConstSystemParam + SystemParam<'a, 'b>,)*
+            $($params: ConstSystemParam + SystemParam<'a, 'b>,)*
         {
         }
     };
@@ -518,7 +545,7 @@ pub struct Const;
 
 pub struct Mut;
 
-pub trait EntityPartSystemParam {
+pub trait EntityPartSystemParam: SealedSystemParam {
     type Resource;
     type Mutability;
 }
@@ -565,7 +592,7 @@ impl EntityPartSystemParam for Entity<'_> {
     type Mutability = Mut;
 }
 
-pub trait NotEnoughEntityPartSystemParam {}
+pub trait NotEnoughEntityPartSystemParam: SealedSystemParam {}
 
 impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
 
@@ -575,7 +602,7 @@ impl NotEnoughEntityPartSystemParam for Group<'_> {}
 
 impl NotEnoughEntityPartSystemParam for Entity<'_> {}
 
-pub trait NotMandatoryComponentSystemParam {}
+pub trait NotMandatoryComponentSystemParam: SealedSystemParam {}
 
 impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
 
@@ -591,3 +618,7 @@ impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where
 }
 
 impl<T> NotMandatoryComponentSystemParam for QueryMut<'_, T> where T: TupleSystemParam {}
+
+pub(crate) mod internal {
+    pub trait SealedSystemParam {}
+}

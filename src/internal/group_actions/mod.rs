@@ -1,6 +1,6 @@
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
 use crate::internal::group_actions::storages::{
-    CreatedEntitiesStorage, DeletedGroupsStorage, ModifiedGroupsStorage, ReplacedGroupsStorage,
+    CreatedEntityStorage, DeletedGroupStorage, ModifiedGroupStorage, ReplacedGroupStorage,
 };
 use std::num::NonZeroUsize;
 
@@ -9,10 +9,10 @@ mod storages;
 
 #[derive(Default)]
 pub(super) struct GroupActionFacade {
-    replaced_groups: ReplacedGroupsStorage,
-    deleted_groups: DeletedGroupsStorage,
-    modified_groups: ModifiedGroupsStorage,
-    created_entities: CreatedEntitiesStorage,
+    replaced_groups: ReplacedGroupStorage,
+    deleted_groups: DeletedGroupStorage,
+    modified_groups: ModifiedGroupStorage,
+    created_entities: CreatedEntityStorage,
 }
 
 impl GroupActionFacade {
@@ -70,7 +70,7 @@ impl GroupActionFacade {
 }
 
 #[cfg(test)]
-mod tests_group_action_facade {
+mod group_action_facade_tests {
     use super::*;
     use std::convert::TryInto;
 

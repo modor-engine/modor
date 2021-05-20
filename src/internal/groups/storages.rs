@@ -83,7 +83,7 @@ impl EntityGroupStorage {
 }
 
 #[cfg(test)]
-mod tests_group_storage {
+mod group_storage_tests {
     use super::*;
 
     #[test]
@@ -130,7 +130,7 @@ mod tests_group_storage {
 }
 
 #[cfg(test)]
-mod tests_entity_storage {
+mod entity_storage_tests {
     use super::*;
 
     #[test]
@@ -189,7 +189,7 @@ mod tests_entity_storage {
 }
 
 #[cfg(test)]
-mod tests_entity_group_storage {
+mod entity_group_storage_tests {
     use super::*;
 
     #[test]

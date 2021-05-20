@@ -1,7 +1,7 @@
 use modor::*;
 
 fn main() {
-    Application::default().with_group(build_main_group).update();
+    Application::new().with_group(build_main_group).update();
 }
 
 fn build_main_group(builder: &mut GroupBuilder<'_>) {

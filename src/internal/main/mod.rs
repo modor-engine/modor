@@ -23,16 +23,6 @@ impl MainFacade {
         self.core.create_group()
     }
 
-    pub(crate) fn delete_group(&mut self, group_idx: NonZeroUsize) {
-        for type_idxs in self.core.group_component_type_idxs(group_idx) {
-            for archetype_idx in self.core.group_archetype_idxs(group_idx) {
-                self.components.delete_archetype(type_idxs, archetype_idx);
-            }
-        }
-        self.core.delete_group(group_idx);
-        self.systems.delete_group(group_idx);
-    }
-
     pub(crate) fn add_entity_main_component<C>(&mut self) -> bool
     where
         C: Any,
@@ -44,15 +34,6 @@ impl MainFacade {
         self.core.create_entity(group_idx)
     }
 
-    pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
-        if let Some(location) = self.core.entity_location(entity_idx) {
-            for &component_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                self.components.swap_delete(component_type_idx, location);
-            }
-        }
-        self.core.delete_entity(entity_idx);
-    }
-
     pub(crate) fn add_component<C>(&mut self, entity_idx: usize, component: C)
     where
         C: Any + Sync + Send,
@@ -60,7 +41,7 @@ impl MainFacade {
         let type_idx = self
             .core
             .component_type_idx(TypeId::of::<C>())
-            .map_or_else(|| self.create_component_type::<C>(), |type_idx| type_idx);
+            .unwrap_or_else(|| self.create_component_type::<C>());
         let location = self.core.entity_location(entity_idx);
         if let Some(location) = location {
             if self.components.exists::<C>(type_idx, location) {
@@ -100,6 +81,25 @@ impl MainFacade {
 
     pub(crate) fn set_thread_count(&mut self, count: u32) {
         self.systems.set_thread_count(count)
+    }
+
+    fn delete_group(&mut self, group_idx: NonZeroUsize) {
+        for type_idxs in self.core.group_component_type_idxs(group_idx) {
+            for archetype_idx in self.core.group_archetype_idxs(group_idx) {
+                self.components.delete_archetype(type_idxs, archetype_idx);
+            }
+        }
+        self.core.delete_group(group_idx);
+        self.systems.delete_group(group_idx);
+    }
+
+    pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
+        if let Some(location) = self.core.entity_location(entity_idx) {
+            for &component_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
+                self.components.swap_delete(component_type_idx, location);
+            }
+        }
+        self.core.delete_entity(entity_idx);
     }
 
     fn create_component_type<C>(&mut self) -> usize
@@ -170,7 +170,7 @@ impl MainFacade {
 }
 
 #[cfg(test)]
-mod tests_main_facade {
+mod main_facade_tests {
     use super::*;
     use crate::{Built, EntityBuilder, EntityMainComponent, SystemWrapper, TypeAccess};
     use scoped_threadpool::Pool;
@@ -285,10 +285,10 @@ mod tests_main_facade {
         facade.add_system(
             Some(group_idx),
             SystemDetails::new(
-                |data, info| {
-                    data.actions_mut().delete_entity(10);
-                    assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
-                    assert_eq!(info.filtered_component_types, [TypeId::of::<i64>()])
+                |d, i| {
+                    d.actions_mut().delete_entity(10);
+                    assert_eq!(i.group_idx, Some(1.try_into().unwrap()));
+                    assert_eq!(i.filtered_component_types, [TypeId::of::<i64>()])
                 },
                 vec![TypeAccess::Read(TypeId::of::<u32>())],
                 Some(TypeId::of::<i64>()),
@@ -306,74 +306,9 @@ mod tests_main_facade {
     }
 
     #[test]
-    fn delete_empty_group() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-
-        facade.delete_group(group_idx);
-
-        assert_eq!(facade.core.create_group(), group_idx);
-    }
-
-    #[test]
-    fn delete_nonempty_group() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity_idx, 42);
-        facade.add_component::<i64>(entity_idx, 13);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_entity(10);
-        facade.add_system(
-            Some(group_idx),
-            SystemDetails::new(wrapper, Vec::new(), None, true),
-        );
-
-        facade.delete_group(group_idx);
-
-        assert_eq!(facade.core.create_group(), group_idx);
-        facade.systems.run(
-            &facade.core,
-            &facade.components.components(),
-            &facade.actions,
-        );
-        let action_result = facade.actions.get_mut().unwrap().reset();
-        assert_eq!(action_result.deleted_entity_idxs, []);
-        assert_components::<u32>(&mut facade, 0, None);
-        assert_components::<u32>(&mut facade, 1, None);
-        assert_components::<i64>(&mut facade, 1, None);
-    }
-
-    #[test]
-    fn delete_entity_without_component() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-
-        facade.delete_entity(entity_idx);
-
-        assert_eq!(facade.core.create_entity(group_idx), entity_idx);
-    }
-
-    #[test]
-    fn delete_entity_with_component() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity_idx, 42);
-        facade.add_component::<i64>(entity_idx, 13);
-
-        facade.delete_entity(entity_idx);
-
-        assert_eq!(facade.core.create_entity(group_idx), entity_idx);
-        assert_components::<u32>(&mut facade, 0, Some(Vec::new()));
-        assert_components::<u32>(&mut facade, 1, Some(Vec::new()));
-        assert_components::<i64>(&mut facade, 1, Some(Vec::new()));
-    }
-
-    #[test]
     fn run_systems() {
         let mut facade = MainFacade::default();
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_entity(10);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_entity(10);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
 
         facade.run_systems();
@@ -383,11 +318,11 @@ mod tests_main_facade {
     }
 
     #[test]
-    fn apply_entity_deletion_system_action() {
+    fn apply_entity_without_component_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_entity(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_entity(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -397,15 +332,34 @@ mod tests_main_facade {
     }
 
     #[test]
+    fn apply_entity_with_component_deletion_system_action() {
+        let mut facade = MainFacade::default();
+        let group_idx = facade.create_group();
+        let entity_idx = facade.create_entity(group_idx);
+        facade.add_component::<u32>(entity_idx, 42);
+        facade.add_component::<i64>(entity_idx, 13);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_entity(0);
+        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
+        facade.run_systems();
+
+        facade.apply_system_actions();
+
+        assert_eq!(facade.core.create_entity(group_idx), entity_idx);
+        assert_components::<u32>(&mut facade, 0, Some(Vec::new()));
+        assert_components::<u32>(&mut facade, 1, Some(Vec::new()));
+        assert_components::<i64>(&mut facade, 1, Some(Vec::new()));
+    }
+
+    #[test]
     fn apply_entity_creation_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
-        let wrapper: SystemWrapper = |data, _| {
+        let wrapper: SystemWrapper = |d, _| {
             let group_idx = 1.try_into().unwrap();
             let create_fn: CreateEntityFn = Box::new(move |m| {
                 m.create_entity(group_idx);
             });
-            data.actions_mut().create_entity(group_idx, create_fn);
+            d.actions_mut().create_entity(group_idx, create_fn);
         };
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
@@ -520,10 +474,9 @@ mod tests_main_facade {
     }
 
     #[test]
-    fn apply_group_deletion_system_action() {
+    fn apply_empty_group_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
-        facade.create_entity(group_idx);
         let wrapper: SystemWrapper =
             |data, _| data.actions_mut().delete_group(1.try_into().unwrap());
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
@@ -532,6 +485,42 @@ mod tests_main_facade {
         facade.apply_system_actions();
 
         assert_eq!(facade.core.create_group(), group_idx);
+    }
+
+    #[test]
+    fn apply_nonempty_group_deletion_system_action() {
+        let mut facade = MainFacade::default();
+        let group_idx = facade.create_group();
+        let entity_idx = facade.create_entity(group_idx);
+        facade.add_component::<u32>(entity_idx, 42);
+        facade.add_component::<i64>(entity_idx, 13);
+        facade.create_entity(group_idx);
+        let wrapper1: SystemWrapper =
+            |data, _| data.actions_mut().delete_group(1.try_into().unwrap());
+        facade.add_system(
+            Some(group_idx),
+            SystemDetails::new(wrapper1, Vec::new(), None, true),
+        );
+        let wrapper2: SystemWrapper = |d, _| d.actions_mut().delete_entity(1);
+        facade.add_system(
+            Some(group_idx),
+            SystemDetails::new(wrapper2, Vec::new(), None, true),
+        );
+        facade.run_systems();
+
+        facade.apply_system_actions();
+
+        assert_eq!(facade.core.create_group(), group_idx);
+        facade.systems.run(
+            &facade.core,
+            &facade.components.components(),
+            &facade.actions,
+        );
+        let action_result = facade.actions.get_mut().unwrap().reset();
+        assert_eq!(action_result.deleted_entity_idxs, []);
+        assert_components::<u32>(&mut facade, 0, None);
+        assert_components::<u32>(&mut facade, 1, None);
+        assert_components::<i64>(&mut facade, 1, None);
     }
 
     #[test]

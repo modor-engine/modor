@@ -86,7 +86,7 @@ where
         self
     }
 
-    pub(crate) fn new(ecs: &'a mut MainFacade) -> Self {
+    fn new(ecs: &'a mut MainFacade) -> Self {
         Self {
             main: ecs,
             phantom: PhantomData,
@@ -97,7 +97,7 @@ where
 pub struct Built(PhantomData<()>);
 
 impl Built {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         Self(PhantomData)
     }
 }

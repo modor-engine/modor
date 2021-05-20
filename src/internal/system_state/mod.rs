@@ -1,9 +1,10 @@
 use crate::internal::system_state::data::{LockedSystem, SystemLocation};
 use crate::internal::system_state::storages::{
-    ActionStateStorage, SystemActionsStorage, SystemTypesStorage, SystemsToRunStorage,
+    ActionStateStorage, RunnableSystemStorage, SystemActionStorage, SystemTypeStorage,
     TypeStateStorage,
 };
 use crate::TypeAccess;
+use std::any::TypeId;
 use std::num::NonZeroUsize;
 
 pub(super) mod data;
@@ -11,18 +12,18 @@ mod storages;
 
 #[derive(Default)]
 pub(super) struct SystemStateFacade {
-    system_component_types: SystemTypesStorage,
-    system_actions: SystemActionsStorage,
+    system_component_types: SystemTypeStorage,
+    system_actions: SystemActionStorage,
     component_types_state: TypeStateStorage,
     action_state: ActionStateStorage,
-    systems_to_run: SystemsToRunStorage,
+    runnable_systems: RunnableSystemStorage,
 }
 
 impl SystemStateFacade {
     pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
         self.system_component_types.delete(group_idx);
         self.system_actions.delete(group_idx);
-        self.systems_to_run.delete(group_idx);
+        self.runnable_systems.delete(group_idx);
     }
 
     pub(super) fn add_system(
@@ -34,8 +35,10 @@ impl SystemStateFacade {
     ) {
         component_types
             .iter()
-            .for_each(|t| self.component_types_state.add(t.to_inner()));
-        self.systems_to_run.add(group_idx, system_idx);
+            .copied()
+            .map(Self::extract_type)
+            .for_each(|t| self.component_types_state.add(t));
+        self.runnable_systems.add(group_idx, system_idx);
         self.system_component_types
             .set(group_idx, system_idx, component_types);
         self.system_actions.set(group_idx, system_idx, actions);
@@ -43,7 +46,7 @@ impl SystemStateFacade {
 
     pub(super) fn lock_next_system(&mut self, previous_run_system: LockedSystem) -> LockedSystem {
         self.unlock_system(previous_run_system);
-        if self.systems_to_run.is_empty() {
+        if self.runnable_systems.is_empty() {
             return LockedSystem::Done;
         }
         let system_to_run_location = self.next_system();
@@ -51,11 +54,11 @@ impl SystemStateFacade {
     }
 
     pub(super) fn reset(&mut self) {
-        self.systems_to_run.reset();
+        self.runnable_systems.reset();
     }
 
     fn next_system(&mut self) -> Option<SystemLocation> {
-        self.systems_to_run.iter().find(|&system_location| {
+        self.runnable_systems.iter().find(|&system_location| {
             let group_idx = system_location.group_idx;
             let system_idx = system_location.system_idx;
             let component_types = self.system_component_types.get(group_idx, system_idx);
@@ -73,7 +76,7 @@ impl SystemStateFacade {
             self.component_types_state.lock(component_types);
             let actions = self.system_actions.has_actions(group_idx, system_idx);
             self.action_state.lock(actions);
-            self.systems_to_run.set_as_run(system_location);
+            self.runnable_systems.set_as_run(system_location);
             LockedSystem::Some(system_location)
         })
     }
@@ -88,10 +91,16 @@ impl SystemStateFacade {
             self.action_state.unlock(actions);
         }
     }
+
+    pub(crate) fn extract_type(type_access: TypeAccess) -> TypeId {
+        match type_access {
+            TypeAccess::Read(type_id) | TypeAccess::Write(type_id) => type_id,
+        }
+    }
 }
 
 #[cfg(test)]
-mod tests_system_state_facade {
+mod system_state_facade_tests {
     use super::*;
     use std::any::TypeId;
     use std::convert::TryInto;
@@ -104,7 +113,7 @@ mod tests_system_state_facade {
         facade.add_system(2, 0, type_access.clone(), true);
 
         assert!(facade.component_types_state.can_be_locked(&type_access));
-        assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
+        assert_iter!(facade.runnable_systems.iter(), [SystemLocation::new(2, 0)]);
         assert_eq!(facade.system_component_types.get(2, 0), type_access);
         assert!(facade.system_actions.has_actions(2, 0));
     }
@@ -122,7 +131,7 @@ mod tests_system_state_facade {
         assert_panics!(facade.system_actions.has_actions(1, 0));
         assert_eq!(facade.system_component_types.get(2, 0), type_access);
         assert!(facade.system_actions.has_actions(2, 0));
-        assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
+        assert_iter!(facade.runnable_systems.iter(), [SystemLocation::new(2, 0)]);
     }
 
     #[test]
@@ -137,7 +146,7 @@ mod tests_system_state_facade {
         assert_eq!(locked_system, LockedSystem::Some(SystemLocation::new(1, 0)));
         assert!(!facade.component_types_state.can_be_locked(&[type_access]));
         assert!(!facade.action_state.can_be_locked(true));
-        assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(2, 0)]);
+        assert_iter!(facade.runnable_systems.iter(), [SystemLocation::new(2, 0)]);
     }
 
     #[test]
@@ -156,7 +165,7 @@ mod tests_system_state_facade {
         assert_eq!(locked_system, LockedSystem::Some(SystemLocation::new(4, 0)));
         assert!(!facade.component_types_state.can_be_locked(&[type2_access]));
         let locations = [SystemLocation::new(2, 0), SystemLocation::new(3, 0)];
-        assert_iter!(facade.systems_to_run.iter(), locations);
+        assert_iter!(facade.runnable_systems.iter(), locations);
     }
 
     #[test]
@@ -172,7 +181,7 @@ mod tests_system_state_facade {
         assert_eq!(locked_system, LockedSystem::Some(SystemLocation::new(2, 0)));
         assert!(!facade.component_types_state.can_be_locked(&[type_access]));
         assert!(!facade.action_state.can_be_locked(true));
-        assert_eq!(facade.systems_to_run.iter().next(), None);
+        assert_eq!(facade.runnable_systems.iter().next(), None);
     }
 
     #[test]
@@ -210,6 +219,6 @@ mod tests_system_state_facade {
 
         facade.reset();
 
-        assert_iter!(facade.systems_to_run.iter(), [SystemLocation::new(1, 0)]);
+        assert_iter!(facade.runnable_systems.iter(), [SystemLocation::new(1, 0)]);
     }
 }

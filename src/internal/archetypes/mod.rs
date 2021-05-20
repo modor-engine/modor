@@ -156,7 +156,7 @@ impl ArchetypeFacade {
 }
 
 #[cfg(test)]
-mod tests_archetype_facade {
+mod archetype_facade_tests {
     use super::*;
     use std::convert::TryInto;
 

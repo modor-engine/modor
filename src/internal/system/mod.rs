@@ -140,7 +140,7 @@ impl SystemFacade {
 }
 
 #[cfg(test)]
-mod tests_system_facade {
+mod system_facade_tests {
     use super::*;
     use crate::internal::components::ComponentFacade;
     use crate::internal::system_state::data::SystemLocation;
