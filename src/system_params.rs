@@ -59,8 +59,12 @@ where
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        data.component_iter(&lock.as_ref().unwrap().0, archetype.idx)
-            .unwrap()
+        let components_guard = &lock
+            .as_ref()
+            .expect("internal error: access to not existing components")
+            .0;
+        data.component_iter(components_guard, archetype.idx)
+            .expect("internal error: iter on mandatory components that does not exist")
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
@@ -97,8 +101,12 @@ where
         lock: &'a mut Self::Lock,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        data.component_iter_mut(&mut lock.as_mut().unwrap().0, archetype.idx)
-            .unwrap()
+        let components_guard = &mut lock
+            .as_mut()
+            .expect("internal error: mutably access to not existing components")
+            .0;
+        data.component_iter_mut(components_guard, archetype.idx)
+            .expect("internal error: mutably iter on mandatory components that does not exist")
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {

@@ -70,7 +70,11 @@ impl MainFacade {
     }
 
     pub(crate) fn apply_system_actions(&mut self) {
-        let result = self.actions.try_lock().unwrap().reset();
+        let result = self
+            .actions
+            .try_lock()
+            .expect("internal error: reset locked actions")
+            .reset();
         self.apply_entity_deletions(result.deleted_entity_idxs);
         self.apply_entity_creations(result.entity_builders);
         self.apply_component_deletion(result.deleted_component_types);
@@ -96,7 +100,7 @@ impl MainFacade {
     pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
         if let Some(location) = self.core.entity_location(entity_idx) {
             for &component_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                self.components.swap_delete(component_type_idx, location);
+                self.components.delete(component_type_idx, location);
             }
         }
         self.core.delete_entity(entity_idx);
@@ -115,7 +119,7 @@ impl MainFacade {
         let type_idx = self.core.component_type_idx(component_type)?;
         let location = self.core.entity_location(entity_idx)?;
         if let Ok(new_archetype_idx) = self.core.delete_component(entity_idx, type_idx) {
-            self.components.swap_delete(type_idx, location);
+            self.components.delete(type_idx, location);
             let new_archetype_idx = new_archetype_idx?;
             for &moved_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
                 if moved_type_idx != type_idx {

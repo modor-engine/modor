@@ -532,7 +532,6 @@ mod type_state_storage_tests {
 }
 
 #[cfg(test)]
-
 mod action_state_storage_tests {
     use super::*;
 

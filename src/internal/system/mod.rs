@@ -101,7 +101,9 @@ impl SystemFacade {
             }
             Self::run_thread(state_ref, data, systems, entity_types);
         });
-        *state = state_mutex.into_inner().unwrap();
+        *state = state_mutex
+            .into_inner()
+            .expect("internal error: extract locked system state");
         state.reset();
     }
 
@@ -113,7 +115,10 @@ impl SystemFacade {
     ) {
         let mut system_location = LockedSystem::None;
         loop {
-            system_location = state.lock().unwrap().lock_next_system(system_location);
+            system_location = state
+                .lock()
+                .expect("internal error: lock system state already locked in same thread")
+                .lock_next_system(system_location);
             if let LockedSystem::Done = &system_location {
                 break;
             } else if let LockedSystem::Some(system_location) = &system_location {

@@ -104,7 +104,7 @@ impl ArchetypeFacade {
                 previous_archetypes.add(group_idx, src_archetype_idx, type_idx, dst_archetype_idx);
                 dst_archetype_idx
             } else {
-                self.create_previous_archetype(src_archetype_idx, type_idx, group_idx)
+                self.create_previous_archetype(src_archetype_idx, type_idx, group_idx)?
             },
         )
     }
@@ -135,10 +135,10 @@ impl ArchetypeFacade {
         src_archetype_idx: usize,
         deleted_type_idx: usize,
         group_idx: NonZeroUsize,
-    ) -> Option<usize> {
+    ) -> Result<Option<usize>, MissingComponentError> {
         let properties = &mut self.properties;
         let dst_archetype_idx =
-            properties.create_previous(group_idx, src_archetype_idx, deleted_type_idx);
+            properties.create_previous(group_idx, src_archetype_idx, deleted_type_idx)?;
         if let Some(archetype_idx) = dst_archetype_idx {
             self.group_archetypes.add(group_idx, archetype_idx);
             for &type_idx in properties.type_idxs(archetype_idx) {
@@ -151,7 +151,7 @@ impl ArchetypeFacade {
             deleted_type_idx,
             dst_archetype_idx,
         );
-        dst_archetype_idx
+        Ok(dst_archetype_idx)
     }
 }
 

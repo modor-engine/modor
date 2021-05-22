@@ -136,8 +136,7 @@ mod action_facade_tests {
 
         facade.reset();
 
-        let result = facade.reset();
-        assert_eq!(result.deleted_entity_idxs, []);
-        assert_eq!(result.deleted_group_idxs, []);
+        assert_iter!(facade.entity_actions.deleted_entity_idxs(), []);
+        assert_iter!(facade.group_actions.deleted_group_idxs(), []);
     }
 }

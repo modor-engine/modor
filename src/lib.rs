@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(clippy::unwrap_used))]
+
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
@@ -39,7 +41,6 @@ doc_comment::doctest!("../README.md");
 // - all pub types are outside the "internal" module
 // - try to include special cases in macros instead of manually writing it
 // - https://rust-lang.github.io/api-guidelines/checklist.html
-// - avoid unwrap (use expect instead)
 // - statically assert public types to check auto traits Sync and Send (to avoid future breaking changes)
 // - statically assert public "mutable" types does not implement Clone
 // - avoid line breaks for a single instruction when not method chaining

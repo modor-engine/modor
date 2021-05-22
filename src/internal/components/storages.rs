@@ -6,7 +6,7 @@ use std::sync::RwLock;
 type CreateArchetypeFn = fn(&mut ComponentStorage, usize) -> usize;
 type DeleteArchetypeFn = fn(&mut ComponentStorage, usize, usize);
 type MoveFn = fn(&mut ComponentStorage, usize, usize, usize, usize);
-type SwapRemoveFn = fn(&mut ComponentStorage, usize, usize, usize);
+type DeleteFn = fn(&mut ComponentStorage, usize, usize, usize);
 
 #[derive(Default)]
 pub(super) struct ComponentStorage {
@@ -14,7 +14,7 @@ pub(super) struct ComponentStorage {
     create_archetype_fns: Vec<CreateArchetypeFn>,
     delete_archetype_fns: Vec<DeleteArchetypeFn>,
     move_fns: Vec<MoveFn>,
-    swap_remove_fns: Vec<SwapRemoveFn>,
+    delete_fns: Vec<DeleteFn>,
 }
 
 impl ComponentStorage {
@@ -27,8 +27,8 @@ impl ComponentStorage {
         self.create_archetype_fns.push(create_archetype_fn);
         let move_fn = Self::move_generic::<C>;
         self.move_fns.push(move_fn);
-        let swap_remove_fn = Self::swap_delete_generic::<C>;
-        self.swap_remove_fns.push(swap_remove_fn);
+        let delete_fn = Self::delete_generic::<C>;
+        self.delete_fns.push(delete_fn);
         let delete_archetype_fn = Self::delete_archetype_generic::<C>;
         self.delete_archetype_fns.push(delete_archetype_fn);
     }
@@ -106,8 +106,8 @@ impl ComponentStorage {
         )
     }
 
-    pub(super) fn swap_delete(&mut self, type_idx: usize, archetype_pos: usize, entity_pos: usize) {
-        let swap_delete_fn = self.swap_remove_fns[type_idx];
+    pub(super) fn delete(&mut self, type_idx: usize, archetype_pos: usize, entity_pos: usize) {
+        let swap_delete_fn = self.delete_fns[type_idx];
         swap_delete_fn(self, type_idx, archetype_pos, entity_pos)
     }
 
@@ -136,7 +136,7 @@ impl ComponentStorage {
         components[dst_archetype_pos].push(component);
     }
 
-    fn swap_delete_generic<C>(&mut self, type_idx: usize, archetype_pos: usize, entity_pos: usize)
+    fn delete_generic<C>(&mut self, type_idx: usize, archetype_pos: usize, entity_pos: usize)
     where
         C: Any,
     {
@@ -159,7 +159,9 @@ impl ComponentStorage {
         C: Any,
     {
         let type_components = &self.components[type_idx];
-        type_components.downcast_ref().unwrap()
+        type_components
+            .downcast_ref()
+            .expect("internal error: downcast component storage with wrong component type")
     }
 
     fn downcast_components_mut<C>(&mut self, type_idx: usize) -> &mut Vec<Vec<C>>
@@ -167,7 +169,9 @@ impl ComponentStorage {
         C: Any,
     {
         let type_components = &mut self.components[type_idx];
-        type_components.downcast_mut().unwrap()
+        type_components
+            .downcast_mut()
+            .expect("internal error: mutably downcast component storage with wrong component type")
     }
 }
 
@@ -425,23 +429,23 @@ mod component_storage_tests {
 
     #[test]
     #[should_panic]
-    fn swap_delete_component_for_missing_type() {
+    fn delete_component_for_missing_type() {
         let mut storage = ComponentStorage::default();
 
-        storage.swap_delete(0, 0, 0);
+        storage.delete(0, 0, 0);
     }
 
     #[test]
     #[should_panic]
-    fn swap_delete_component_for_missing_archetype() {
+    fn delete_component_for_missing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<u32>();
 
-        storage.swap_delete(0, 0, 0);
+        storage.delete(0, 0, 0);
     }
 
     #[test]
-    fn swap_delete_component_for_existing_archetype() {
+    fn delete_component_for_existing_archetype() {
         let mut storage = ComponentStorage::default();
         storage.create_type::<String>();
         storage.create_type::<u32>();
@@ -450,7 +454,7 @@ mod component_storage_tests {
         storage.add::<i64>(2, 1, 20);
         storage.add::<i64>(2, 1, 30);
 
-        storage.swap_delete(2, 1, 0);
+        storage.delete(2, 1, 0);
 
         let components = storage.export();
         assert_eq_components::<i64>(&components, 2, &[Vec::new(), vec![30, 20]]);

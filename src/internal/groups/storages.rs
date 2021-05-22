@@ -9,7 +9,9 @@ pub(super) struct GroupStorage {
 impl Default for GroupStorage {
     fn default() -> Self {
         Self {
-            next_idx: 1.try_into().unwrap(),
+            next_idx: 1
+                .try_into()
+                .expect("internal error: group index conversion during initialization"),
             deleted_idxs: Vec::new(),
         }
     }
@@ -19,14 +21,16 @@ impl GroupStorage {
     pub(super) fn create(&mut self) -> NonZeroUsize {
         self.deleted_idxs.pop().unwrap_or_else(|| {
             let idx = self.next_idx;
-            self.next_idx = (self.next_idx.get() + 1).try_into().unwrap();
+            self.next_idx = (self.next_idx.get() + 1)
+                .try_into()
+                .expect("internal error: group index conversion during group creation");
             idx
         })
     }
 
     pub(super) fn delete(&mut self, group_idx: NonZeroUsize) {
         if group_idx.get() >= self.next_idx.get() {
-            panic!("internal error: cannot delete not existing group");
+            panic!("internal error: delete not existing group");
         }
         self.deleted_idxs.push(group_idx);
     }
@@ -69,7 +73,7 @@ pub(super) struct EntityGroupStorage(Vec<Option<NonZeroUsize>>);
 
 impl EntityGroupStorage {
     pub(super) fn idx(&self, entity_idx: usize) -> NonZeroUsize {
-        self.0[entity_idx].unwrap()
+        self.0[entity_idx].expect("internal error: retrieve group of deleted entity")
     }
 
     pub(super) fn set(&mut self, entity_idx: usize, group_idx: NonZeroUsize) {

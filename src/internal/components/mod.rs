@@ -62,7 +62,9 @@ impl ComponentFacade {
     {
         let archetype_idx = location.archetype_idx;
         let entity_pos = location.entity_pos;
-        let archetype_pos = self.archetype_pos(type_idx, archetype_idx).unwrap();
+        let archetype_pos = self
+            .archetype_pos(type_idx, archetype_idx)
+            .expect("internal error: replace component in not existing archetype");
         self.components
             .replace(type_idx, archetype_pos, entity_pos, component);
     }
@@ -75,7 +77,9 @@ impl ComponentFacade {
     ) {
         let src_archetype_idx = src_location.archetype_idx;
         let src_entity_pos = src_location.entity_pos;
-        let src_archetype_pos = self.archetype_pos(type_idx, src_archetype_idx).unwrap();
+        let src_archetype_pos = self
+            .archetype_pos(type_idx, src_archetype_idx)
+            .expect("internal error: move component from not existing archetype");
         let dst_archetype_pos = self.archetype_pos_or_create(type_idx, dst_archetype_idx);
         self.components.move_(
             type_idx,
@@ -85,12 +89,13 @@ impl ComponentFacade {
         );
     }
 
-    pub(super) fn swap_delete(&mut self, type_idx: usize, location: EntityLocation) {
+    pub(super) fn delete(&mut self, type_idx: usize, location: EntityLocation) {
         let archetype_idx = location.archetype_idx;
         let entity_pos = location.entity_pos;
-        let archetype_pos = self.archetype_pos(type_idx, archetype_idx).unwrap();
-        self.components
-            .swap_delete(type_idx, archetype_pos, entity_pos);
+        let archetype_pos = self
+            .archetype_pos(type_idx, archetype_idx)
+            .expect("internal error: delete component from not existing archetype");
+        self.components.delete(type_idx, archetype_pos, entity_pos);
     }
 
     fn archetype_pos_or_create(&mut self, type_idx: usize, archetype_idx: usize) -> usize {
@@ -301,15 +306,15 @@ mod component_facade_tests {
 
     #[test]
     #[should_panic]
-    fn swap_remove_component_for_missing_archetype() {
+    fn delete_component_for_missing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
 
-        facade.swap_delete(0, EntityLocation::new(2, 1));
+        facade.delete(0, EntityLocation::new(2, 1));
     }
 
     #[test]
-    fn swap_delete_component_for_existing_archetype() {
+    fn delete_component_for_existing_archetype() {
         let mut facade = ComponentFacade::default();
         facade.create_type::<u32>();
         facade.add::<u32>(0, 2, 10);
@@ -317,7 +322,7 @@ mod component_facade_tests {
         facade.add::<u32>(0, 2, 30);
         facade.add::<u32>(0, 2, 40);
 
-        facade.swap_delete(0, EntityLocation::new(2, 1));
+        facade.delete(0, EntityLocation::new(2, 1));
 
         let components = facade.components.export();
         let type_components = components[0].read().unwrap();

@@ -23,7 +23,10 @@ impl Components {
     where
         C: Any,
     {
-        let components: &Vec<Vec<C>> = self.0.downcast_ref().unwrap();
+        let components: &Vec<Vec<C>> = self
+            .0
+            .downcast_ref()
+            .expect("internal error: iter on components using wrong type");
         components.get(archetype_pos).map(|c| c.iter())
     }
 
@@ -31,7 +34,10 @@ impl Components {
     where
         C: Any,
     {
-        let components: &mut Vec<Vec<C>> = self.0.downcast_mut().unwrap();
+        let components: &mut Vec<Vec<C>> = self
+            .0
+            .downcast_mut()
+            .expect("internal error: mutably iter on components using wrong type");
         components.get_mut(archetype_pos).map(|c| c.iter_mut())
     }
 }
@@ -62,7 +68,12 @@ impl ComponentInterface<'_> {
         C: Any,
     {
         let type_idx = self.types.idx(TypeId::of::<C>())?;
-        Some(self.components.get(type_idx)?.try_read().unwrap())
+        Some(
+            self.components
+                .get(type_idx)?
+                .try_read()
+                .expect("internal error: read already locked components"),
+        )
     }
 
     pub(crate) fn write<C>(&self) -> Option<RwLockWriteGuard<'_, Components>>
@@ -70,7 +81,12 @@ impl ComponentInterface<'_> {
         C: Any,
     {
         let type_idx = self.types.idx(TypeId::of::<C>())?;
-        Some(self.components.get(type_idx)?.try_write().unwrap())
+        Some(
+            self.components
+                .get(type_idx)?
+                .try_write()
+                .expect("internal error: mutably read already locked components"),
+        )
     }
 
     pub(crate) fn iter<'a, C>(
@@ -81,7 +97,10 @@ impl ComponentInterface<'_> {
     where
         C: Any,
     {
-        let type_idx = self.types.idx(TypeId::of::<C>()).unwrap();
+        let type_idx = self
+            .types
+            .idx(TypeId::of::<C>())
+            .expect("internal error: iter on components with not registered type");
         let position_pos = self.archetype_positions.get(type_idx, archetype_idx)?;
         guard.iter(position_pos)
     }
@@ -94,7 +113,10 @@ impl ComponentInterface<'_> {
     where
         C: Any,
     {
-        let type_idx = self.types.idx(TypeId::of::<C>()).unwrap();
+        let type_idx = self
+            .types
+            .idx(TypeId::of::<C>())
+            .expect("internal error: mutably iter on components with not registered type");
         let position_pos = self.archetype_positions.get(type_idx, archetype_idx)?;
         guard.iter_mut(position_pos)
     }

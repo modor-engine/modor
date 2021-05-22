@@ -25,6 +25,7 @@
 -W clippy::todo
 -W clippy::unimplemented
 -W clippy::unneeded_field_pattern
+-W clippy::unwrap_used
 -W clippy::use_debug
 -W clippy::verbose_file_reads
 -W clippy::wildcard_enum_match_arm

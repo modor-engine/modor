@@ -22,7 +22,11 @@ impl SystemStorage {
         data: &SystemData<'_>,
         filtered_component_types: Vec<TypeId>,
     ) {
-        let group_filter = (group_idx != 0).then(|| group_idx.try_into().unwrap());
+        let group_filter = (group_idx != 0).then(|| {
+            group_idx
+                .try_into()
+                .expect("internal error: group index conversion before running system")
+        });
         let info = SystemInfo::new(filtered_component_types, group_filter);
         self.0[group_idx][system_idx](data, info);
     }
@@ -107,8 +111,7 @@ mod system_storage_tests {
         let system_idx = storage.add(1, |data, info| {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut()
-                .delete_group(1.try_into().unwrap());
+            data.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -138,8 +141,7 @@ mod system_storage_tests {
         let system_idx = storage.add(1, |data, info| {
             assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut()
-                .delete_group(1.try_into().unwrap());
+            data.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 1);
@@ -160,8 +162,7 @@ mod system_storage_tests {
         let system_idx = storage.add(0, |data, info| {
             assert_eq!(info.group_idx, None);
             assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut()
-                .delete_group(1.try_into().unwrap());
+            data.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -178,8 +179,7 @@ mod system_storage_tests {
     fn delete_missing_group() {
         let mut storage = SystemStorage::default();
         let system_idx = storage.add(1, |data, _| {
-            data.actions_mut()
-                .delete_group(1.try_into().unwrap());
+            data.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         storage.delete(2.try_into().unwrap());
@@ -194,12 +194,10 @@ mod system_storage_tests {
     fn delete_existing_group() {
         let mut storage = SystemStorage::default();
         let system1_idx = storage.add(1, |data, _| {
-            data.actions_mut()
-                .delete_group(1.try_into().unwrap());
+            data.actions_mut().delete_group(1.try_into().unwrap());
         });
         let system2_idx = storage.add(2, |data, _| {
-            data.actions_mut()
-                .delete_group(2.try_into().unwrap());
+            data.actions_mut().delete_group(2.try_into().unwrap());
         });
 
         storage.delete(1.try_into().unwrap());

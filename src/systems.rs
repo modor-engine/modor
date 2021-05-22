@@ -191,7 +191,9 @@ impl<'a> SystemData<'a> {
     }
 
     pub(crate) fn actions_mut(&self) -> MutexGuard<'_, ActionFacade> {
-        self.actions.try_lock().unwrap()
+        self.actions
+            .try_lock()
+            .expect("internal error: lock already locked actions")
     }
 
     fn archetypes(

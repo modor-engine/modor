@@ -11,11 +11,17 @@ pub(super) struct PropertyStorage {
 
 impl PropertyStorage {
     pub(super) fn type_idxs(&self, archetype_idx: usize) -> &[usize] {
-        &self.properties[archetype_idx].as_ref().unwrap().0
+        &self.properties[archetype_idx]
+            .as_ref()
+            .expect("internal error: component types retrieved for deleted archetype")
+            .0
     }
 
     pub(super) fn group_idx(&self, archetype_idx: usize) -> NonZeroUsize {
-        self.properties[archetype_idx].as_ref().unwrap().1
+        self.properties[archetype_idx]
+            .as_ref()
+            .expect("internal error: groups retrieved for deleted archetype")
+            .1
     }
 
     pub(super) fn next_idx(
@@ -69,15 +75,15 @@ impl PropertyStorage {
         group_idx: NonZeroUsize,
         archetype_idx: usize,
         type_idx: usize,
-    ) -> Option<usize> {
-        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx).unwrap();
-        if type_idxs.is_empty() {
+    ) -> Result<Option<usize>, MissingComponentError> {
+        let type_idxs = self.previous_type_idxs(archetype_idx, type_idx)?;
+        Ok(if type_idxs.is_empty() {
             None
         } else {
             let new_archetype_idx = self.generate_archetype_idx();
             self.properties[new_archetype_idx] = Some((type_idxs, group_idx));
             Some(new_archetype_idx)
-        }
+        })
     }
 
     pub(super) fn delete(&mut self, archetype_idx: usize) {
@@ -86,7 +92,7 @@ impl PropertyStorage {
     }
 
     fn next_type_idxs(&self, archetype_idx: usize, type_idx: usize) -> Vec<usize> {
-        let mut type_idxs = self.properties[archetype_idx].as_ref().unwrap().0.clone();
+        let mut type_idxs = self.type_idxs(archetype_idx).to_vec();
         let pos = type_idxs.binary_search(&type_idx).unwrap_err();
         type_idxs.insert(pos, type_idx);
         type_idxs
@@ -97,7 +103,7 @@ impl PropertyStorage {
         archetype_idx: usize,
         type_idx: usize,
     ) -> Result<Vec<usize>, MissingComponentError> {
-        let mut type_idxs = self.properties[archetype_idx].as_ref().unwrap().0.clone();
+        let mut type_idxs = self.type_idxs(archetype_idx).to_vec();
         type_idxs
             .binary_search(&type_idx)
             .map(|pos| {
@@ -147,21 +153,21 @@ pub(super) struct TypeArchetypeStorage(Vec<Vec<usize>>);
 
 impl TypeArchetypeStorage {
     pub(super) fn idxs(&self, type_idxs: &[usize]) -> Vec<usize> {
-        if type_idxs.is_empty() {
-            return Vec::new();
-        }
-        let (&reference_type_idx, other_type_idxs) = type_idxs.split_first().unwrap();
-        let mut archetype_idxs = self.type_archetype_idxs(reference_type_idx).to_vec();
-        for &type_idx in other_type_idxs {
-            let other_archetype_idxs = self.type_archetype_idxs(type_idx);
-            for archetype_pos in (0..archetype_idxs.len()).rev() {
-                let archetype_idx = archetype_idxs[archetype_pos];
-                if !other_archetype_idxs.contains(&archetype_idx) {
-                    archetype_idxs.swap_remove(archetype_pos);
+        if let Some((&reference_type_idx, other_type_idxs)) = type_idxs.split_first() {
+            let mut archetype_idxs = self.type_archetype_idxs(reference_type_idx).to_vec();
+            for &type_idx in other_type_idxs {
+                let other_archetype_idxs = self.type_archetype_idxs(type_idx);
+                for archetype_pos in (0..archetype_idxs.len()).rev() {
+                    let archetype_idx = archetype_idxs[archetype_pos];
+                    if !other_archetype_idxs.contains(&archetype_idx) {
+                        archetype_idxs.swap_remove(archetype_pos);
+                    }
                 }
             }
+            archetype_idxs
+        } else {
+            Vec::new()
         }
-        archetype_idxs
     }
 
     pub(super) fn add(&mut self, type_idx: usize, archetype_idx: usize) {
@@ -174,7 +180,7 @@ impl TypeArchetypeStorage {
         let archetype_pos = archetype_idxs
             .iter()
             .position(|&a| a == archetype_idx)
-            .unwrap();
+            .expect("internal error: delete not existing archetype from component types");
         archetype_idxs.swap_remove(archetype_pos);
     }
 
@@ -322,13 +328,14 @@ mod property_storage_tests {
     }
 
     #[test]
-    #[should_panic]
     fn create_previous_archetype_from_existing_archetype_using_missing_type() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
         storage.create_next(group_idx, None, 2);
 
-        storage.create_previous(group_idx, 0, 3);
+        let archetype_idx = storage.create_previous(group_idx, 0, 3);
+
+        assert_eq!(archetype_idx, Err(MissingComponentError));
     }
 
     #[test]
@@ -339,7 +346,7 @@ mod property_storage_tests {
 
         let archetype_idx = storage.create_previous(group_idx, 0, 2);
 
-        assert_eq!(archetype_idx, None);
+        assert_eq!(archetype_idx, Ok(None));
         assert_eq!(storage.previous_idx(group_idx, 0, 2), Ok(Some(None)));
     }
 
@@ -352,7 +359,7 @@ mod property_storage_tests {
 
         let archetype_idx = storage.create_previous(group_idx, 1, 2);
 
-        assert_eq!(archetype_idx, Some(2));
+        assert_eq!(archetype_idx, Ok(Some(2)));
         assert_eq!(storage.previous_idx(group_idx, 1, 2), Ok(Some(Some(2))));
         assert_eq!(storage.next_idx(group_idx, Some(2), 2), Some(1));
     }
