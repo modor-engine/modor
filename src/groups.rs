@@ -30,3 +30,11 @@ impl<'a> GroupBuilder<'a> {
         Self { main, group_idx }
     }
 }
+
+#[cfg(test)]
+mod group_builder_tests {
+    use super::*;
+
+    assert_impl_all!(GroupBuilder<'_>:  Send);
+    assert_not_impl_any!(GroupBuilder<'_>: Clone);
+}

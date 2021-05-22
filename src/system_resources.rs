@@ -6,6 +6,8 @@ use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
+// TODO: try to merge Query and QueryMut
+
 pub struct Group<'a> {
     group_idx: NonZeroUsize,
     data: SystemData<'a>,
@@ -225,4 +227,35 @@ pub struct QueryRun<'a, S> {
     pub system: S,
     pub filtered_component_types: Vec<TypeId>,
     pub group_idx: Option<NonZeroUsize>,
+}
+
+#[cfg(test)]
+mod group_tests {
+    use super::*;
+
+    assert_impl_all!(Group<'_>: Sync, Send);
+    assert_not_impl_any!(Group<'_>: Clone);
+}
+
+#[cfg(test)]
+mod entity_tests {
+    use super::*;
+
+    assert_impl_all!(Entity<'_>: Sync, Send);
+    assert_not_impl_any!(Entity<'_>: Clone);
+}
+
+#[cfg(test)]
+mod query_tests {
+    use super::*;
+
+    assert_impl_all!(Query<'_, (&u32,)>: Sync, Send, Clone);
+}
+
+#[cfg(test)]
+mod query_mut_tests {
+    use super::*;
+
+    assert_impl_all!(QueryMut<'_, (&u32,)>: Sync, Send);
+    assert_not_impl_any!(QueryMut<'_, (&u32,)>: Clone);
 }

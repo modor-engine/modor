@@ -101,3 +101,27 @@ impl Built {
         Self(PhantomData)
     }
 }
+
+#[cfg(test)]
+mod entity_builder_tests {
+    use super::*;
+
+    assert_impl_all!(EntityBuilder<'_, String>: Send);
+    assert_not_impl_any!(EntityBuilder<'_, String>: Clone);
+}
+
+#[cfg(test)]
+mod entity_runner_tests {
+    use super::*;
+
+    assert_impl_all!(EntityRunner<'_, String>: Send);
+    assert_not_impl_any!(EntityRunner<'_, String>: Clone);
+}
+
+#[cfg(test)]
+mod built_tests {
+    use super::*;
+
+    assert_impl_all!(Built: Sync, Send);
+    assert_not_impl_any!(Built: Clone);
+}

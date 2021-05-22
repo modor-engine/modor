@@ -230,3 +230,10 @@ run_for_tuples!(impl_incompatible_multiple_system_params);
 mod internal {
     pub trait Sealed {}
 }
+
+#[cfg(test)]
+mod system_static_checker_tests {
+    use super::*;
+
+    assert_impl_all!(SystemStaticChecker<'_, '_, fn(&u32), (&u32,)>: Sync, Send);
+}

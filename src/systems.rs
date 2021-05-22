@@ -238,3 +238,42 @@ pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
 mod internal {
     pub trait Sealed<T> {}
 }
+
+#[cfg(test)]
+mod system_data_tests {
+    use super::*;
+
+    assert_impl_all!(SystemData<'_>: Sync, Send, Clone);
+}
+
+#[cfg(test)]
+mod system_info_tests {
+    use super::*;
+
+    assert_impl_all!(SystemInfo: Sync, Send);
+    assert_not_impl_any!(SystemInfo: Clone);
+}
+
+#[cfg(test)]
+mod archetype_info_tests {
+    use super::*;
+    use std::fmt::Debug;
+
+    assert_impl_all!(ArchetypeInfo: Sync, Send, Copy, Eq, Debug);
+}
+
+#[cfg(test)]
+mod components_const_tests {
+    use super::*;
+
+    assert_impl_all!(ComponentsConst<'_>: Sync);
+    assert_not_impl_any!(ComponentsConst<'_>: Clone);
+}
+
+#[cfg(test)]
+mod components_mut_tests {
+    use super::*;
+
+    assert_impl_all!(ComponentsMut<'_>: Sync);
+    assert_not_impl_any!(ComponentsMut<'_>: Clone);
+}

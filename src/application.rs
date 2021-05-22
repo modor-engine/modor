@@ -34,3 +34,11 @@ impl Application {
         self.0.apply_system_actions();
     }
 }
+
+#[cfg(test)]
+mod application_tests {
+    use super::*;
+
+    assert_impl_all!(Application: Send);
+    assert_not_impl_any!(Application: Clone);
+}

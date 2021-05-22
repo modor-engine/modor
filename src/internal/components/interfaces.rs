@@ -151,7 +151,7 @@ impl Drop for ComponentLocks<'_> {
 }
 
 #[cfg(test)]
-mod tests_components {
+mod components_tests {
     use super::*;
 
     #[test]
@@ -183,7 +183,7 @@ mod tests_components {
 }
 
 #[cfg(test)]
-mod tests_component_interface {
+mod component_interface_tests {
     use super::*;
     use std::ptr;
 

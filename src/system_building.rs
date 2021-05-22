@@ -97,3 +97,26 @@ macro_rules! _run_system {
         )+
     };
 }
+
+#[cfg(test)]
+mod system_wrapper_tests {
+    use super::*;
+
+    assert_impl_all!(SystemWrapper: Sync, Send, Clone);
+}
+
+#[cfg(test)]
+mod system_builder_tests {
+    use super::*;
+
+    assert_impl_all!(SystemBuilder: Sync, Send);
+    assert_not_impl_any!(SystemBuilder: Clone);
+}
+
+#[cfg(test)]
+mod type_access_tests {
+    use super::*;
+    use std::fmt::Debug;
+
+    assert_impl_all!(TypeAccess: Sync, Send, Copy, Eq, Debug);
+}

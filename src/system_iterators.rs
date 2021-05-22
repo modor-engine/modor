@@ -118,3 +118,43 @@ where
         Some(self.0.clone())
     }
 }
+
+#[cfg(test)]
+mod option_component_iter_tests {
+    use super::*;
+
+    assert_impl_all!(OptionComponentIter<'_, u32>: Sync, Send);
+    assert_not_impl_any!(OptionComponentIter<'_, u32>: Clone);
+}
+
+#[cfg(test)]
+mod option_component_mut_iter_tests {
+    use super::*;
+
+    assert_impl_all!(OptionComponentMutIter<'_, u32>: Sync, Send);
+    assert_not_impl_any!(OptionComponentMutIter<'_, u32>: Clone);
+}
+
+#[cfg(test)]
+mod group_iter_tests {
+    use super::*;
+
+    assert_impl_all!(GroupIter<'_>: Sync, Send);
+    assert_not_impl_any!(GroupIter<'_>: Clone);
+}
+
+#[cfg(test)]
+mod entity_iter_tests {
+    use super::*;
+
+    assert_impl_all!(EntityIter<'_>: Sync, Send);
+    assert_not_impl_any!(EntityIter<'_>: Clone);
+}
+
+#[cfg(test)]
+mod query_mut_iter_tests {
+    use super::*;
+
+    assert_impl_all!(QueryMutIter<'_, (&u32, )>: Sync, Send);
+    assert_not_impl_any!(QueryMutIter<'_, (&u32, )>: Clone);
+}
