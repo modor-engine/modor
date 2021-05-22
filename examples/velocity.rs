@@ -52,7 +52,7 @@ impl StaticBody {
         println!("Number of entities with velocity: {}", n);
     }
 
-    fn count_velocity_mut(mut query: QueryMut<'_, (&mut Velocity,)>) {
+    fn count_velocity_mut(mut query: Query<'_, (&mut Velocity,)>) {
         let mut n = 0;
         for_each_mut!(query, |_vel: &mut Velocity| n += 1);
         println!("Number of entities with velocity mut: {}", n);

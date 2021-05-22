@@ -51,9 +51,9 @@ macro_rules! for_each {
 #[macro_export]
 macro_rules! for_each_mut {
     ($query:expr, $system:expr) => {{
-        let query: &mut ::modor::QueryMut<_> = &mut $query;
+        let query: &mut ::modor::Query<_> = &mut $query;
         let mut system = $system;
-        let mut query_run = query.run(system);
+        let mut query_run = query.run_mut(system);
         let mut system = query_run.system;
         let info =
             ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);

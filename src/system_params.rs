@@ -1,8 +1,8 @@
 use self::internal::SealedSystemParam;
 use crate::{
     ArchetypeInfo, ComponentsConst, ComponentsMut, Entity, EntityIter, Group, GroupIter,
-    OptionComponentIter, OptionComponentMutIter, Query, QueryMut, QueryMutIter, SystemData,
-    SystemInfo, TypeAccess,
+    OptionComponentIter, OptionComponentMutIter, Query, QueryIter, SystemData, SystemInfo,
+    TypeAccess,
 };
 use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
@@ -264,53 +264,16 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
     }
 }
 
-impl<'a, 'b: 'a, T> SealedSystemParam for Query<'a, T> where T: ConstSystemParam + TupleSystemParam {}
+impl<'a, 'b: 'a, T> SealedSystemParam for Query<'a, T> where T: TupleSystemParam {}
 
 impl<'a, 'b: 'a, T> SystemParam<'a, 'b> for Query<'a, T>
-where
-    T: ConstSystemParam + TupleSystemParam + SystemParam<'a, 'b>,
-{
-    const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_ACTIONS: bool = T::HAS_ACTIONS;
-    type Lock = &'b SystemData<'b>;
-    type Iter = Repeat<Self>;
-
-    fn component_types() -> Vec<TypeAccess> {
-        T::component_types()
-    }
-
-    fn mandatory_component_types() -> Vec<TypeId> {
-        Vec::new()
-    }
-
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
-        data
-    }
-
-    fn iter(
-        _data: &SystemData<'_>,
-        info: &SystemInfo,
-        lock: &'a mut Self::Lock,
-        _archetype: ArchetypeInfo,
-    ) -> Self::Iter {
-        iter::repeat(Self::new(lock.clone(), info.group_idx))
-    }
-
-    fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
-        Self::new(lock.clone(), info.group_idx)
-    }
-}
-
-impl<'a, 'b: 'a, T> SealedSystemParam for QueryMut<'a, T> where T: TupleSystemParam {}
-
-impl<'a, 'b: 'a, T> SystemParam<'a, 'b> for QueryMut<'a, T>
 where
     T: TupleSystemParam + SystemParam<'a, 'b>,
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = T::HAS_ACTIONS;
     type Lock = &'b SystemData<'b>;
-    type Iter = QueryMutIter<'a, T>;
+    type Iter = QueryIter<'a, T>;
 
     fn component_types() -> Vec<TypeAccess> {
         T::component_types()
@@ -330,7 +293,7 @@ where
         lock: &'a mut Self::Lock,
         _archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        QueryMutIter::new(Self::new(lock.clone(), info.group_idx))
+        QueryIter::new(Self::new(lock.clone(), info.group_idx))
     }
 
     fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
@@ -516,13 +479,6 @@ where
 
 impl<T> MultipleSystemParams for Query<'_, T>
 where
-    T: ConstSystemParam + TupleSystemParam,
-{
-    type TupleSystemParams = T;
-}
-
-impl<T> MultipleSystemParams for QueryMut<'_, T>
-where
     T: TupleSystemParam,
 {
     type TupleSystemParams = T;
@@ -534,7 +490,7 @@ impl<C> ConstSystemParam for &C where C: Any {}
 
 impl<C> ConstSystemParam for Option<&C> where C: Any {}
 
-impl<T> ConstSystemParam for Query<'_, T> where T: ConstSystemParam + TupleSystemParam {}
+impl<T> ConstSystemParam for Query<'_, T> where T: TupleSystemParam + ConstSystemParam {}
 
 macro_rules! impl_const_system_param {
     ($($params:ident),*) => {
@@ -620,12 +576,7 @@ impl NotMandatoryComponentSystemParam for Group<'_> {}
 
 impl NotMandatoryComponentSystemParam for Entity<'_> {}
 
-impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where
-    T: ConstSystemParam + TupleSystemParam
-{
-}
-
-impl<T> NotMandatoryComponentSystemParam for QueryMut<'_, T> where T: TupleSystemParam {}
+impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where T: TupleSystemParam {}
 
 pub(crate) mod internal {
     pub trait SealedSystemParam {}

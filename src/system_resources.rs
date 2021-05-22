@@ -6,8 +6,6 @@ use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
-// TODO: try to merge Query and QueryMut
-
 pub struct Group<'a> {
     group_idx: NonZeroUsize,
     data: SystemData<'a>,
@@ -83,7 +81,7 @@ impl<'a> Entity<'a> {
 
 pub struct Query<'a, T>
 where
-    T: ConstSystemParam + TupleSystemParam,
+    T: TupleSystemParam,
 {
     data: SystemData<'a>,
     filtered_component_types: Vec<TypeId>,
@@ -93,7 +91,7 @@ where
 
 impl<'a, T> Query<'a, T>
 where
-    T: ConstSystemParam + TupleSystemParam,
+    T: TupleSystemParam,
 {
     pub fn add_component<C>(&mut self)
     where
@@ -114,15 +112,51 @@ where
             phantom: PhantomData,
         }
     }
+
+    pub(crate) fn duplicate(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            filtered_component_types: self.filtered_component_types.clone(),
+            group_idx: self.group_idx,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, T> Clone for Query<'a, T>
+where
+    T: TupleSystemParam + ConstSystemParam,
+{
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            filtered_component_types: self.filtered_component_types.clone(),
+            group_idx: self.group_idx,
+            phantom: PhantomData,
+        }
+    }
 }
 
 macro_rules! impl_query_run {
     ($($params:ident),*) => {
         impl<'a, 'b, 'c $(,$params)*> Query<'a, ($($params,)*)>
         where
-            ($($params,)*): ConstSystemParam + TupleSystemParam,
+            ($($params,)*): TupleSystemParam,
         {
             pub fn run<S>(&self, system: S) -> QueryRun<'a, S>
+            where
+                S: System<'b, 'c, ($($params,)*)>,
+                ($($params,)*): ConstSystemParam,
+            {
+                QueryRun {
+                    data: self.data.clone(),
+                    system,
+                    filtered_component_types: self.filtered_component_types.clone(),
+                    group_idx: self.group_idx,
+                }
+            }
+
+            pub fn run_mut<S>(&mut self, system: S) -> QueryRun<'a, S>
             where
                 S: System<'b, 'c, ($($params,)*)>,
             {
@@ -139,88 +173,6 @@ macro_rules! impl_query_run {
 
 impl_query_run!();
 run_for_tuples!(impl_query_run);
-
-impl<'a, T> Clone for Query<'a, T>
-where
-    T: ConstSystemParam + TupleSystemParam,
-{
-    fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            filtered_component_types: self.filtered_component_types.clone(),
-            group_idx: self.group_idx,
-            phantom: PhantomData,
-        }
-    }
-}
-
-pub struct QueryMut<'a, T>
-where
-    T: TupleSystemParam,
-{
-    data: SystemData<'a>,
-    filtered_component_types: Vec<TypeId>,
-    group_idx: Option<NonZeroUsize>,
-    phantom: PhantomData<T>,
-}
-
-impl<'a, T> QueryMut<'a, T>
-where
-    T: TupleSystemParam,
-{
-    pub fn add_component<C>(&mut self)
-    where
-        C: Any,
-    {
-        self.filtered_component_types.push(TypeId::of::<C>());
-    }
-
-    pub fn accept_any_group(&mut self) {
-        self.group_idx = None;
-    }
-
-    pub(crate) fn new(data: SystemData<'a>, group_idx: Option<NonZeroUsize>) -> Self {
-        Self {
-            data,
-            filtered_component_types: Vec::new(),
-            group_idx,
-            phantom: PhantomData,
-        }
-    }
-
-    pub(crate) fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            filtered_component_types: self.filtered_component_types.clone(),
-            group_idx: self.group_idx,
-            phantom: PhantomData,
-        }
-    }
-}
-
-macro_rules! impl_query_mut_run {
-    ($($params:ident),*) => {
-        impl<'a, 'b, 'c $(,$params)*> QueryMut<'a, ($($params,)*)>
-        where
-            ($($params,)*): TupleSystemParam,
-        {
-            pub fn run<S>(&mut self, system: S) -> QueryRun<'a, S>
-            where
-                S: System<'b, 'c, ($($params,)*)>,
-            {
-                QueryRun {
-                    data: self.data.clone(),
-                    system,
-                    filtered_component_types: self.filtered_component_types.clone(),
-                    group_idx: self.group_idx,
-                }
-            }
-        }
-    };
-}
-
-impl_query_mut_run!();
-run_for_tuples!(impl_query_mut_run);
 
 pub struct QueryRun<'a, S> {
     pub data: SystemData<'a>,
@@ -250,12 +202,14 @@ mod query_tests {
     use super::*;
 
     assert_impl_all!(Query<'_, (&u32,)>: Sync, Send, Clone);
+    assert_impl_all!(Query<'_, (&mut u32,)>: Sync, Send);
+    assert_not_impl_any!(Query<'_, (&mut u32,)>: Clone);
 }
 
 #[cfg(test)]
-mod query_mut_tests {
+mod query_run_tests {
     use super::*;
 
-    assert_impl_all!(QueryMut<'_, (&u32,)>: Sync, Send);
-    assert_not_impl_any!(QueryMut<'_, (&u32,)>: Clone);
+    assert_impl_all!(QueryRun<'_, fn(&u32,)>: Sync, Send);
+    assert_not_impl_any!(QueryRun<'_, fn(&u32,)>: Clone);
 }

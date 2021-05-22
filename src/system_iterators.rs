@@ -1,4 +1,4 @@
-use crate::{Entity, Group, QueryMut, SystemData, TupleSystemParam};
+use crate::{Entity, Group, Query, SystemData, TupleSystemParam};
 use std::any::Any;
 use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
@@ -95,27 +95,27 @@ impl<'a> Iterator for EntityIter<'a> {
     }
 }
 
-pub struct QueryMutIter<'a, T>(QueryMut<'a, T>)
+pub struct QueryIter<'a, T>(Query<'a, T>)
 where
     T: TupleSystemParam;
 
-impl<'a, T> QueryMutIter<'a, T>
+impl<'a, T> QueryIter<'a, T>
 where
     T: TupleSystemParam,
 {
-    pub(crate) fn new(iter: QueryMut<'a, T>) -> Self {
-        QueryMutIter(iter)
+    pub(crate) fn new(iter: Query<'a, T>) -> Self {
+        QueryIter(iter)
     }
 }
 
-impl<'a, T> Iterator for QueryMutIter<'a, T>
+impl<'a, T> Iterator for QueryIter<'a, T>
 where
     T: TupleSystemParam,
 {
-    type Item = QueryMut<'a, T>;
+    type Item = Query<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.0.clone())
+        Some(self.0.duplicate())
     }
 }
 
@@ -152,9 +152,9 @@ mod entity_iter_tests {
 }
 
 #[cfg(test)]
-mod query_mut_iter_tests {
+mod query_iter_tests {
     use super::*;
 
-    assert_impl_all!(QueryMutIter<'_, (&u32, )>: Sync, Send);
-    assert_not_impl_any!(QueryMutIter<'_, (&u32, )>: Clone);
+    assert_impl_all!(QueryIter<'_, (&u32, )>: Sync, Send);
+    assert_not_impl_any!(QueryIter<'_, (&u32, )>: Clone);
 }
