@@ -1,6 +1,6 @@
 use crate::internal::main::MainFacade;
 use crate::internal::system::data::SystemDetails;
-use crate::{GroupBuilder, SystemBuilder};
+use crate::{GroupBuilder, SystemBuilder, SystemData, SystemInfo, SystemOnceBuilder};
 
 #[derive(Default)]
 pub struct Application(MainFacade);
@@ -31,6 +31,14 @@ impl Application {
 
     pub fn update(&mut self) {
         self.0.run_systems();
+        self.0.apply_system_actions();
+    }
+
+    pub fn run<S>(&mut self, system: SystemOnceBuilder<S>)
+    where
+        S: FnMut(&SystemData<'_>, SystemInfo),
+    {
+        self.0.run_system_once(system);
         self.0.apply_system_actions();
     }
 }

@@ -19,6 +19,19 @@ impl SystemBuilder {
     }
 }
 
+pub struct SystemOnceBuilder<S> {
+    pub(crate) wrapper: S,
+}
+
+impl<S> SystemOnceBuilder<S>
+where
+    S: FnMut(&SystemData<'_>, SystemInfo),
+{
+    pub fn new(wrapper: S) -> Self {
+        Self { wrapper }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TypeAccess {
     Read(TypeId),
@@ -33,6 +46,13 @@ macro_rules! system {
         let mut actions = $(::modor::System::has_actions(&$systems))||+;
         ::modor::SystemBuilder::new(::modor::_system_wrapper!($($systems),+), types, actions)
     }};
+}
+
+#[macro_export]
+macro_rules! system_once {
+    ($systems:expr) => {
+        ::modor::SystemOnceBuilder::new(::modor::_system_wrapper!($systems))
+    };
 }
 
 #[macro_export]
@@ -111,6 +131,15 @@ mod system_builder_tests {
 
     assert_impl_all!(SystemBuilder: Sync, Send);
     assert_not_impl_any!(SystemBuilder: Clone);
+}
+
+#[cfg(test)]
+mod system_once_builder_tests {
+    use super::*;
+
+    assert_impl_all!(SystemOnceBuilder<fn(&u32)>: Sync, Send);
+    assert_not_impl_any!(SystemOnceBuilder<fn(&u32)>: Clone);
+    assert_not_impl_any!(SystemOnceBuilder<Box<dyn FnMut(&u32)>>: Sync, Send);
 }
 
 #[cfg(test)]

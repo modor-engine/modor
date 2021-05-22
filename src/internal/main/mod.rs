@@ -5,7 +5,7 @@ use crate::internal::entity_actions::data::AddComponentFn;
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
 use crate::internal::system::data::SystemDetails;
 use crate::internal::system::SystemFacade;
-use crate::GroupBuilder;
+use crate::{GroupBuilder, SystemData, SystemInfo, SystemOnceBuilder};
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
 use std::sync::Mutex;
@@ -67,6 +67,16 @@ impl MainFacade {
     pub(crate) fn run_systems(&mut self) {
         self.systems
             .run(&self.core, &self.components.components(), &self.actions);
+    }
+
+    pub(crate) fn run_system_once<S>(&mut self, mut system: SystemOnceBuilder<S>)
+    where
+        S: FnMut(&SystemData<'_>, SystemInfo),
+    {
+        let components = self.components.components();
+        let info = SystemInfo::new(Vec::new(), None);
+        let data = SystemData::new(&self.core, &components, &self.actions);
+        (system.wrapper)(&data, info);
     }
 
     pub(crate) fn apply_system_actions(&mut self) {
@@ -316,6 +326,17 @@ mod main_facade_tests {
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
 
         facade.run_systems();
+
+        let action_result = facade.actions.get_mut().unwrap().reset();
+        assert_eq!(action_result.deleted_entity_idxs, [10]);
+    }
+
+    #[test]
+    fn run_system_once() {
+        let mut facade = MainFacade::default();
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_entity(10);
+
+        facade.run_system_once(SystemOnceBuilder::new(wrapper));
 
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, [10]);

@@ -10,10 +10,16 @@ fn main() {
         .with_group(|b| build_main_group(b, 3))
         .on_update(system!(print_id))
         .on_update(system!(print_id_for_entity_with_additional_component));
+
     println!("##### Update 1 #####");
     app.update();
     println!("##### Update 2 #####");
     app.update();
+
+    let mut ids = Vec::new();
+    app.run(system_once!(|id: &u32| ids.push(*id)));
+    ids.sort_unstable();
+    assert_eq!(ids, [0, 4, 5, 6, 7, 9999]);
 }
 
 fn build_main_group(builder: &mut GroupBuilder<'_>, group_id: u32) {
