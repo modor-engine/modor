@@ -19,10 +19,14 @@ pub(super) struct SystemFacade {
     systems: SystemStorage,
     entity_types: EntityTypeStorage,
     state: SystemStateFacade,
-    pub(super) pool: Option<Pool>,
+    pool: Option<Pool>,
 }
 
 impl SystemFacade {
+    pub(super) fn thread_count(&self) -> u32 {
+        self.pool.as_ref().map_or(0, Pool::thread_count) + 1
+    }
+
     pub(super) fn set_thread_count(&mut self, count: u32) {
         if count < 2 {
             self.pool = None;
@@ -180,6 +184,26 @@ mod system_facade_tests {
         facade.set_thread_count(2);
 
         assert_eq!(facade.pool.as_ref().map(Pool::thread_count), Some(1));
+    }
+
+    #[test]
+    fn retrieve_thread_count_when_one() {
+        let mut facade = SystemFacade::default();
+        facade.set_thread_count(1);
+
+        let thread_count = facade.thread_count();
+
+        assert_eq!(thread_count, 1);
+    }
+
+    #[test]
+    fn retrieve_thread_count_when_greater_than_one() {
+        let mut facade = SystemFacade::default();
+        facade.set_thread_count(2);
+
+        let thread_count = facade.thread_count();
+
+        assert_eq!(thread_count, 2);
     }
 
     #[test]

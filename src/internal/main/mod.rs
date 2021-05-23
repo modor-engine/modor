@@ -93,6 +93,10 @@ impl MainFacade {
         self.apply_group_replacements(result.replaced_group_builders);
     }
 
+    pub(crate) fn thread_count(&self) -> u32 {
+        self.systems.thread_count()
+    }
+
     pub(crate) fn set_thread_count(&mut self, count: u32) {
         self.systems.set_thread_count(count)
     }
@@ -187,7 +191,6 @@ impl MainFacade {
 mod main_facade_tests {
     use super::*;
     use crate::{Built, EntityBuilder, EntityMainComponent, SystemWrapper, TypeAccess};
-    use scoped_threadpool::Pool;
     use std::convert::TryInto;
     use std::fmt::Debug;
 
@@ -573,11 +576,19 @@ mod main_facade_tests {
     #[test]
     fn set_thread_count() {
         let mut facade = MainFacade::default();
-        let thread_count = 2;
 
-        facade.set_thread_count(thread_count);
+        facade.set_thread_count(2);
 
-        let pool = facade.systems.pool.as_ref();
-        assert_eq!(pool.map(Pool::thread_count), Some(thread_count - 1));
+        assert_eq!(facade.systems.thread_count(), 2);
+    }
+
+    #[test]
+    fn retrieve_thread_count() {
+        let mut facade = MainFacade::default();
+        facade.set_thread_count(2);
+
+        let thread_count = facade.thread_count();
+
+        assert_eq!(thread_count, 2);
     }
 }

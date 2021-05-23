@@ -64,7 +64,7 @@ macro_rules! for_each {
         let mut system = query_run.system;
         let info =
             ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
-        _run_system!(&query_run.data, info, system);
+        ::modor::_run_system!(&query_run.data, info, system);
     }};
 }
 
@@ -77,7 +77,7 @@ macro_rules! for_each_mut {
         let mut system = query_run.system;
         let info =
             ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
-        _run_system!(&query_run.data, info, system);
+        ::modor::_run_system!(&query_run.data, info, system);
     }};
 }
 
@@ -89,7 +89,7 @@ macro_rules! _system_wrapper {
             use ::modor::SystemWithCorrectParams as _SystemWithCorrectParams;
             use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
             use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
-            _run_system!(
+            ::modor::_run_system!(
                 data,
                 info,
                 $(::modor::SystemStaticChecker::new($systems).check_statically()),+
