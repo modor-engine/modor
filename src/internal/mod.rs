@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 pub(super) mod actions;
 pub(super) mod archetypes;
 pub(super) mod components;

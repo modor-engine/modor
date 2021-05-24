@@ -5,12 +5,11 @@
 extern crate static_assertions;
 
 #[macro_use]
-mod macros;
+mod internal;
 
 mod application;
 mod entities;
 mod groups;
-mod internal;
 mod system_building;
 mod system_checks;
 mod system_iterators;
