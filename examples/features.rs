@@ -35,10 +35,10 @@ struct AdditionalComponent;
 struct Id;
 
 impl EntityMainComponent for Id {
-    type Params = u32;
+    type Data = u32;
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-        builder.with(params).with_self(Self)
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        builder.with(data).with_self(Self)
     }
 }
 
@@ -48,16 +48,16 @@ struct Text {
 }
 
 impl EntityMainComponent for Text {
-    type Params = (u32, u32);
+    type Data = (u32, u32);
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
         builder
-            .inherit_from::<Id>(params.0)
+            .inherit_from::<Id>(data.0)
             .with(String::from("Wrong text"))
-            .with(format!("Update 0 for text entity with ID {}", params.0)) // erase previous
+            .with(format!("Update 0 for text entity with ID {}", data.0)) // erase previous
             .with_self(Self {
                 update_id: 0,
-                group_id: params.1,
+                group_id: data.1,
             })
     }
 
@@ -141,9 +141,9 @@ impl Text {
 struct Other;
 
 impl EntityMainComponent for Other {
-    type Params = ();
+    type Data = ();
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, _params: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Data) -> Built {
         builder.with_self(Self)
     }
 }

@@ -16,13 +16,13 @@ impl<'a> GroupBuilder<'a> {
         self
     }
 
-    pub fn with_entity<M>(&mut self, params: M::Params) -> &mut Self
+    pub fn with_entity<M>(&mut self, data: M::Data) -> &mut Self
     where
         M: EntityMainComponent,
     {
         let entity_idx = self.main.create_entity(self.group_idx);
         let mut entity_builder = EntityBuilder::new(self.main, entity_idx, self.group_idx);
-        M::build(&mut entity_builder, params);
+        M::build(&mut entity_builder, data);
         self
     }
 

@@ -198,10 +198,10 @@ mod main_facade_tests {
     struct MainComponentType(u32);
 
     impl EntityMainComponent for MainComponentType {
-        type Params = u32;
+        type Data = u32;
 
-        fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-            builder.with_self(Self(params))
+        fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
         }
     }
 

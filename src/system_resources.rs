@@ -25,7 +25,7 @@ impl<'a> Group<'a> {
         self.data.actions_mut().delete_group(self.group_idx);
     }
 
-    pub fn create_entity<M>(&mut self, params: M::Params)
+    pub fn create_entity<M>(&mut self, data: M::Data)
     where
         M: EntityMainComponent,
     {
@@ -34,7 +34,7 @@ impl<'a> Group<'a> {
             group_idx,
             Box::new(move |m| {
                 let entity_idx = m.create_entity(group_idx);
-                M::build(&mut EntityBuilder::new(m, entity_idx, group_idx), params);
+                M::build(&mut EntityBuilder::new(m, entity_idx, group_idx), data);
             }),
         );
     }

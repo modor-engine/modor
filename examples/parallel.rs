@@ -25,9 +25,9 @@ struct Writer2(f32);
 struct MainEntity;
 
 impl EntityMainComponent for MainEntity {
-    type Params = ();
+    type Data = ();
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Data) -> Built {
         builder
             .with(Reader(42.))
             .with(Writer1(0.))

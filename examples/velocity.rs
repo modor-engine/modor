@@ -23,11 +23,11 @@ struct Velocity(f32, f32);
 struct StaticBody;
 
 impl EntityMainComponent for StaticBody {
-    type Params = usize;
+    type Data = usize;
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
         builder
-            .with(Position(value as f32, value as f32 + 0.5))
+            .with(Position(data as f32, data as f32 + 0.5))
             .with_self(Self)
     }
 
@@ -66,12 +66,12 @@ impl StaticBody {
 struct DynamicBody;
 
 impl EntityMainComponent for DynamicBody {
-    type Params = usize;
+    type Data = usize;
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
         builder
-            .inherit_from::<StaticBody>(value)
-            .with(Velocity(value as f32 + 0.25, value as f32 + 0.75))
+            .inherit_from::<StaticBody>(data)
+            .with(Velocity(data as f32 + 0.25, data as f32 + 0.75))
             .with_self(Self)
     }
 

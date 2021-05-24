@@ -18,12 +18,12 @@ struct StaticBody {
 }
 
 impl EntityMainComponent for StaticBody {
-    type Params = f32;
+    type Data = f32;
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
         builder.with_self(Self {
-            pos_x: value,
-            pos_y: value + 0.5,
+            pos_x: data,
+            pos_y: data + 0.5,
         })
     }
 }
@@ -34,12 +34,12 @@ struct DynamicBody {
 }
 
 impl EntityMainComponent for DynamicBody {
-    type Params = f32;
+    type Data = f32;
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Params) -> Built {
-        builder.inherit_from::<StaticBody>(value).with_self(Self {
-            vel_x: value + 0.25,
-            vel_y: value + 0.75,
+    fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        builder.inherit_from::<StaticBody>(data).with_self(Self {
+            vel_x: data + 0.25,
+            vel_y: data + 0.75,
         })
     }
 

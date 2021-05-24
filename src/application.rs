@@ -23,10 +23,10 @@ use crate::{GroupBuilder, SystemBuilder, SystemData, SystemInfo, SystemOnceBuild
 /// struct Button(String);
 ///
 /// impl EntityMainComponent for Button {
-///     type Params = String;
+///     type Data = String;
 ///
-///     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-///         builder.with_self(Self(params))
+///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+///         builder.with_self(Self(data))
 ///     }
 /// }
 /// ```
@@ -58,8 +58,7 @@ impl Application {
 
     /// Set the number of threads used to update the application.
     ///
-    /// If `count` is `0` or `1`, it means the updates are only done in main thread.
-    ///
+    /// If `count` is `0` or `1`, it means the updates are only done in main thread.<br>
     /// If this method is never called, the application only uses the main thread.
     ///
     /// # Examples
@@ -118,19 +117,19 @@ impl Application {
     /// # struct Text {label: String}
     /// #
     /// # impl EntityMainComponent for Text {
-    /// #     type Params = (String);
+    /// #     type Data = String;
     /// #
-    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-    /// #         builder.with_self(Self {label: params})
+    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    /// #         builder.with_self(Self {label: data})
     /// #     }
     /// # }
     /// #
     /// # struct TextBox;
     /// #
     /// # impl EntityMainComponent for TextBox {
-    /// #     type Params = (TextBoxType);
+    /// #     type Data = TextBoxType;
     /// #
-    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
+    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Data) -> Built {
     /// #         builder.with_self(Self)
     /// #     }
     /// # }
@@ -143,9 +142,9 @@ impl Application {
     /// # struct Button;
     /// #
     /// # impl EntityMainComponent for Button {
-    /// #     type Params = (String);
+    /// #     type Data = String;
     /// #
-    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
+    /// #     fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Data) -> Built {
     /// #         builder.with_self(Self)
     /// #     }
     /// # }
@@ -163,8 +162,9 @@ impl Application {
     /// components, or to run actions like deleting an entity, creating a group, ...
     ///
     /// Systems registered by this method are run each time
-    /// [`Application::update`](Application::update) is called, and iterates on all queried
-    /// entities regardless their group and type.
+    /// [`Application::update`](crate::Application::update) is called, and iterates on all queried
+    /// entities regardless their group and type.<br>
+    /// Execution order of systems is undefined.
     ///
     /// `system` must be defined using the [`system!`](crate::system!) macro.
     ///
@@ -198,11 +198,11 @@ impl Application {
     /// struct Body;
     ///
     /// impl EntityMainComponent for Body {
-    ///     type Params = f32;
+    ///     type Data = f32;
     ///
-    ///     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
+    ///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
     ///         builder
-    ///             .with(Position { x: params, y: params + 0.5 })
+    ///             .with(Position { x: data, y: data + 0.5 })
     ///             .with(Velocity { x: 2., y: 5. })
     ///             .with_self(Self)
     ///     }
@@ -231,7 +231,6 @@ impl Application {
     ///
     /// # Examples
     ///
-    ///
     /// ```rust
     /// # use modor::{
     /// #     Application, system, EntityMainComponent, Built, EntityBuilder, GroupBuilder,
@@ -249,11 +248,11 @@ impl Application {
     /// struct Body;
     ///
     /// impl EntityMainComponent for Body {
-    ///     type Params = f32;
+    ///     type Data = f32;
     ///
-    ///     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
+    ///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
     ///         builder
-    ///             .with(Position { x: params, y: params + 0.5 })
+    ///             .with(Position { x: data, y: data + 0.5 })
     ///             .with(Velocity { x: 2., y: 5. })
     ///             .with_self(Self)
     ///     }
@@ -318,10 +317,10 @@ impl Application {
     /// struct Number(u32);
     ///
     /// impl EntityMainComponent for Number {
-    ///     type Params = u32;
+    ///     type Data = u32;
     ///
-    ///     fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-    ///         builder.with_self(Self(params))
+    ///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    ///         builder.with_self(Self(data))
     ///     }
     /// }
     /// ```
@@ -347,9 +346,9 @@ mod application_tests {
     struct Number(u32);
 
     impl EntityMainComponent for Number {
-        type Params = u32;
-        fn build(builder: &mut EntityBuilder<'_, Self>, params: Self::Params) -> Built {
-            builder.with_self(Self(params))
+        type Data = u32;
+        fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
         }
     }
 
