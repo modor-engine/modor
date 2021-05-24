@@ -159,12 +159,12 @@ impl Application {
     /// Add a system.
     ///
     /// Systems are functions or closures able to iterate on entities to update their
-    /// components, or to run actions like deleting an entity, creating a group, ...
+    /// components, or to run actions like deleting an entity, creating a group, ...<br>
+    /// Execution order of systems is undefined.
     ///
     /// Systems registered by this method are run each time
     /// [`Application::update`](crate::Application::update) is called, and iterates on all queried
-    /// entities regardless their group and type.<br>
-    /// Execution order of systems is undefined.
+    /// entities regardless their group and type.
     ///
     /// `system` must be defined using the [`system!`](crate::system!) macro.
     ///

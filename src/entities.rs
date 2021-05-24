@@ -423,14 +423,14 @@ where
     /// Add a system for the entities.
     ///
     /// Systems are functions or closures able to iterate on entities to update their
-    /// components, or to run actions like deleting an entity, creating a group, ...
+    /// components, or to run actions like deleting an entity, creating a group, ...<br>
+    /// Execution order of systems is undefined.
     ///
     /// Systems registered by this method are run each time
     /// [`Application::update`](crate::Application::update) is called, and iterates on all queried
     /// entities containing a component of type `M` regardless their group.<br>
     /// [`Query`](crate::Query) arguments of entity systems iterate on all queried entities
-    /// regardless the entity group and type.<br>
-    /// Execution order of systems is undefined.
+    /// regardless the entity group and type.
     ///
     /// `system` must be defined using the [`system!`](crate::system!) macro.
     ///
@@ -502,8 +502,10 @@ where
     }
 }
 
-/// Type that ensures [`EntityBuilder::with_self`](crate::EntityBuilder::with_self) has been called,
-/// and so that entities are correctly built.
+/// Type that ensures entities are correctly built.
+///
+/// This is done by ensuring [`EntityBuilder::with_self`](crate::EntityBuilder::with_self)
+/// has been called at least once.
 ///
 /// # Examples
 ///
