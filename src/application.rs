@@ -2,7 +2,7 @@ use crate::internal::main::MainFacade;
 use crate::internal::system::data::SystemDetails;
 use crate::{GroupBuilder, SystemBuilder, SystemData, SystemInfo, SystemOnceBuilder};
 
-/// Entrypoint of modor.
+/// Entrypoint of Modor.
 ///
 /// # Examples
 ///

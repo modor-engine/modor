@@ -1,6 +1,7 @@
 -W anonymous_parameters
 -W bare_trait_objects
 -W elided_lifetimes_in_paths
+-W missing_docs
 -W trivial_numeric_casts
 -W unreachable_pub
 -W unsafe_code
@@ -30,10 +31,8 @@
 -W clippy::verbose_file_reads
 -W clippy::wildcard_enum_match_arm
 -W clippy::wrong_pub_self_convention
--A missing_docs # TODO: change to warn
 -A clippy::filter_map # generally less clear
 -A clippy::missing_const_for_fn # not necessary each time it's possible
--A clippy::missing_errors_doc # TODO: remove this line
 -A clippy::module_name_repetitions # structure names are rarely used with module names
 -A clippy::multiple_crate_versions # cannot be easily fixed
 -A clippy::must_use_candidate # not accurate

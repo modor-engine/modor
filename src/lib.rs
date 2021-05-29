@@ -1,3 +1,71 @@
+//! Modor is modular and kind of object-oriented game engine.
+//!
+//! This game engine is based on the
+//! [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but
+//! proposes an API that considers entities like strongly typed objects, and provides tools similar
+//! to the object-oriented paradigm:
+//! - data are represented by components
+//! - logic are represented with systems only run on the entity type
+//! - data and logic inheritance is possible between entity types
+//!
+//! # Examples
+//!
+//! ```rust
+//! use modor::*;
+//!
+//! Application::new()
+//!     .with_group(build_entity_group)
+//!     .update();
+//!
+//! fn build_entity_group(builder: &mut GroupBuilder<'_>) {
+//!     builder
+//!         .with_entity::<Character>((Position(45., 65.), CharacterType::Main))
+//!         .with_entity::<Character>((Position(98., 12.), CharacterType::Enemy))
+//!         .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy));
+//! }
+//!
+//! #[derive(Debug)]
+//! struct Position(f32, f32);
+//!
+//! enum CharacterType {
+//!     Main,
+//!     Neutral,
+//!     Enemy,
+//! }
+//!
+//! struct Enemy;
+//!
+//! struct Character {
+//!     ammunition: u32,
+//! }
+//!
+//! impl EntityMainComponent for Character {
+//!     type Data = (Position, CharacterType);
+//!
+//!     fn build(builder: &mut EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
+//!         if let CharacterType::Enemy = type_ {
+//!             builder.with(Enemy);
+//!         }
+//!         builder
+//!             .with(position)
+//!             .with_self(Self { ammunition: 10 })
+//!     }
+//!
+//!     fn on_update(runner: &mut EntityRunner<'_, Self>) {
+//!         runner.run(system!(Self::fire_when_enemy));
+//!     }
+//! }
+//!
+//! impl Character {
+//!     fn fire_when_enemy(&mut self, position: &Position, _: &Enemy) {
+//!         if self.ammunition > 0 {
+//!             self.ammunition -= 1;
+//!             println!("Enemy at {:?} has fired", position);
+//!         }
+//!     }
+//! }
+//! ```
+
 #![cfg_attr(test, allow(clippy::unwrap_used))]
 
 #[cfg(test)]
@@ -44,3 +112,4 @@ doc_comment::doctest!("../README.md");
 // - statically assert public "mutable" types does not implement Clone
 // - avoid line breaks for a single instruction when not method chaining
 // - put maximum of logic in "internal" module
+// - README, documentation and CHANGELOG are up-to-date

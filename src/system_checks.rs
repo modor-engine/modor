@@ -7,12 +7,15 @@ use crate::{
 use std::any::Any;
 use std::marker::PhantomData;
 
+// TODO: remove this type
+#[doc(hidden)]
 pub struct SystemStaticChecker<'a, 'b, S, T>(S, PhantomData<(&'a T, &'b T)>);
 
 impl<'a, 'b, S, T> SystemStaticChecker<'a, 'b, S, T>
 where
     S: System<'a, 'b, T>,
 {
+    #[doc(hidden)]
     pub fn new(system: S) -> Self {
         Self(system, PhantomData)
     }
@@ -20,11 +23,16 @@ where
 
 impl<'a, 'b, S, T> Sealed for SystemStaticChecker<'a, 'b, S, T> {}
 
-pub trait SystemWithCorrectParams<S, T>: Sealed {
+// TODO: remove this trait
+/// Characterise any system.
+///
+/// See documentation of [`system!`](crate::system!) macro for more information.
+pub trait SystemWithParams<S, T>: Sealed {
+    #[doc(hidden)]
     fn check_statically(self) -> S;
 }
 
-impl<'a, 'b, S, T> SystemWithCorrectParams<S, T> for SystemStaticChecker<'a, 'b, S, T>
+impl<'a, 'b, S, T> SystemWithParams<S, T> for SystemStaticChecker<'a, 'b, S, T>
 where
     S: System<'a, 'b, T>,
 {
@@ -33,7 +41,11 @@ where
     }
 }
 
+/// Characterise a system with a missing component parameter.
+///
+/// See documentation of [`system!`](crate::system!) macro for more information.
 pub trait SystemWithMissingComponentParam<S, Z>: Sealed {
+    #[doc(hidden)]
     fn check_statically(self) -> S;
 }
 
@@ -68,7 +80,11 @@ macro_rules! impl_only_optional_params_system_check {
 
 run_for_tuples!(impl_only_optional_params_system_check);
 
+/// Characterise a system with incompatible parameters.
+///
+/// See documentation of [`system!`](crate::system!) macro for more information.
 pub trait SystemWithIncompatibleParams<S, Z>: Sealed {
+    #[doc(hidden)]
     fn check_statically(self) -> S;
 }
 
@@ -116,6 +132,7 @@ macro_rules! impl_incompatibility_system_check {
 
 run_for_tuples!(impl_incompatibility_system_check);
 
+#[doc(hidden)]
 pub trait IncompatibleSystemParam<T, Z>: SealedSystemParam {}
 
 impl<T, U, C> IncompatibleSystemParam<U, ((), C)> for T
@@ -192,6 +209,7 @@ macro_rules! impl_incompatible_system_param {
 
 run_for_tuples!(impl_incompatible_system_param);
 
+#[doc(hidden)]
 pub trait IncompatibleMultipleSystemParams<Z>: SealedSystemParam {}
 
 macro_rules! impl_incompatible_multiple_system_params {

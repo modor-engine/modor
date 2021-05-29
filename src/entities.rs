@@ -229,9 +229,9 @@ where
     ///
     /// impl Parent {
     ///     // Iterates on entities containing both
-    ///     // - String component (because of system args)
-    ///     // - Parent component (because specified in EntityMainComponent::on_update)
-    ///     // Because Child inherit from Parent, the system iterates on Child entities too.
+    ///     // - `String` component (because of system args)
+    ///     // - `Parent` component (because specified in `EntityMainComponent::on_update`)
+    ///     // Because `Child` inherit from `Parent`, the system iterates on `Child` entities too.
     ///     fn parent_system(label: &mut String) {
     ///         *label = format!("modified label (initial: {})", label);
     ///     }
@@ -247,7 +247,7 @@ where
     ///             .inherit_from::<Parent>(data)
     ///             .with(42_u32)
     ///             .with_self(Self)
-    ///         // child entity contains components of type Parent, String, Child and u32
+    ///         // child entity contains components of type `Parent`, `String`, `Child` and `u32`
     ///     }
     /// }
     /// ```
@@ -276,7 +276,7 @@ where
     /// impl EntityMainComponent for Body {
     ///     type Data = (f32, f32);
     ///
-    ///     // entity contains Position, Velocity and Body components
+    ///     // entity contains `Position`, `Velocity` and `Body` components
     ///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
     ///         builder
     ///             .with(Position { x: data.0, y: data.1 })
@@ -319,7 +319,7 @@ where
     /// impl EntityMainComponent for Body {
     ///     type Data = (f32, f32);
     ///
-    ///     // entity contains Position, Velocity and Body components
+    ///     // entity contains `Position`, `Velocity` and `Body` components
     ///     fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
     ///         builder
     ///             .with(Position { x: data.0, y: data.1 })

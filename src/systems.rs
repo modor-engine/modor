@@ -8,27 +8,41 @@ use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
 use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
+/// Characterize a system that is runnable by the application.
+///
+/// System can be registered and run by the application using the [`system!`](crate::system!) and
+/// [`system_once!`](crate::system_once!) macros.
 pub trait System<'a, 'b, T>: Sealed<T> {
+    #[doc(hidden)]
     const HAS_MANDATORY_COMPONENT: bool;
+    #[doc(hidden)]
     const HAS_ACTIONS: bool;
+    #[doc(hidden)]
     type Locks: 'b;
 
+    #[doc(hidden)]
     fn has_mandatory_component(&self) -> bool {
         Self::HAS_MANDATORY_COMPONENT
     }
 
+    #[doc(hidden)]
     fn has_actions(&self) -> bool {
         Self::HAS_ACTIONS
     }
 
+    #[doc(hidden)]
     fn component_types(&self) -> Vec<TypeAccess>;
 
+    #[doc(hidden)]
     fn lock(&self, data: &'b SystemData<'_>) -> Self::Locks;
 
+    #[doc(hidden)]
     fn archetypes(&self, data: &SystemData<'_>, info: &SystemInfo) -> Vec<ArchetypeInfo>;
 
+    #[doc(hidden)]
     fn run_once(&mut self, info: &SystemInfo, locks: &'a mut Self::Locks);
 
+    #[doc(hidden)]
     fn run(
         &mut self,
         data: &'b SystemData<'_>,
@@ -130,6 +144,7 @@ macro_rules! impl_fn_system {
 
 run_for_tuples_with_idxs!(impl_fn_system);
 
+#[doc(hidden)]
 #[derive(Clone)]
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
@@ -205,12 +220,14 @@ impl<'a> SystemData<'a> {
     }
 }
 
+#[doc(hidden)]
 pub struct SystemInfo {
     pub(crate) filtered_component_types: Vec<TypeId>,
     pub(crate) group_idx: Option<NonZeroUsize>,
 }
 
 impl SystemInfo {
+    #[doc(hidden)]
     pub fn new(filtered_component_types: Vec<TypeId>, group_idx: Option<NonZeroUsize>) -> Self {
         Self {
             filtered_component_types,
@@ -219,6 +236,7 @@ impl SystemInfo {
     }
 }
 
+#[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ArchetypeInfo {
     pub(crate) idx: usize,
@@ -231,8 +249,10 @@ impl ArchetypeInfo {
     }
 }
 
+#[doc(hidden)]
 pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
 
+#[doc(hidden)]
 pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
 
 mod internal {

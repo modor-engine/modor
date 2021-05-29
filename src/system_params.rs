@@ -8,18 +8,27 @@ use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
 use std::slice::{Iter, IterMut};
 
+/// Characterise a type that can be a parameter of a [`System`](crate::System).
 pub trait SystemParam<'a, 'b>: SealedSystemParam {
+    #[doc(hidden)]
     const HAS_MANDATORY_COMPONENT: bool;
+    #[doc(hidden)]
     const HAS_ACTIONS: bool;
+    #[doc(hidden)]
     type Lock: 'b;
+    #[doc(hidden)]
     type Iter: Iterator<Item = Self>;
 
+    #[doc(hidden)]
     fn component_types() -> Vec<TypeAccess>;
 
+    #[doc(hidden)]
     fn mandatory_component_types() -> Vec<TypeId>;
 
+    #[doc(hidden)]
     fn lock(data: &'b SystemData<'_>) -> Self::Lock;
 
+    #[doc(hidden)]
     fn iter(
         data: &'b SystemData<'_>,
         info: &SystemInfo,
@@ -27,6 +36,7 @@ pub trait SystemParam<'a, 'b>: SealedSystemParam {
         archetype: ArchetypeInfo,
     ) -> Self::Iter;
 
+    #[doc(hidden)]
     fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self;
 }
 
@@ -451,6 +461,7 @@ macro_rules! impl_system_param_for_tuple {
 
 run_for_tuples_with_idxs!(impl_system_param_for_tuple);
 
+/// Characterise a tuple of [`SystemParam`](crate::SystemParam) items.
 pub trait TupleSystemParam: SealedSystemParam {}
 
 macro_rules! impl_tuple_system_param {
@@ -466,24 +477,8 @@ macro_rules! impl_tuple_system_param {
 impl_tuple_system_param!();
 run_for_tuples!(impl_tuple_system_param);
 
-pub trait MultipleSystemParams: SealedSystemParam {
-    type TupleSystemParams: TupleSystemParam;
-}
-
-impl<T> MultipleSystemParams for T
-where
-    T: TupleSystemParam,
-{
-    type TupleSystemParams = Self;
-}
-
-impl<T> MultipleSystemParams for Query<'_, T>
-where
-    T: TupleSystemParam,
-{
-    type TupleSystemParams = T;
-}
-
+/// Characterise a [`SystemParam`](crate::SystemParam) that accesses to resources in an immutable
+/// way.
 pub trait ConstSystemParam: SealedSystemParam {}
 
 impl<C> ConstSystemParam for &C where C: Any {}
@@ -505,10 +500,32 @@ macro_rules! impl_const_system_param {
 impl_const_system_param!();
 run_for_tuples!(impl_const_system_param);
 
+#[doc(hidden)]
+pub trait MultipleSystemParams: SealedSystemParam {
+    type TupleSystemParams: TupleSystemParam;
+}
+
+impl<T> MultipleSystemParams for T
+where
+    T: TupleSystemParam,
+{
+    type TupleSystemParams = Self;
+}
+
+impl<T> MultipleSystemParams for Query<'_, T>
+where
+    T: TupleSystemParam,
+{
+    type TupleSystemParams = T;
+}
+
+#[doc(hidden)]
 pub struct Const;
 
+#[doc(hidden)]
 pub struct Mut;
 
+#[doc(hidden)]
 pub trait EntityPartSystemParam: SealedSystemParam {
     type Resource;
     type Mutability;
@@ -556,6 +573,7 @@ impl EntityPartSystemParam for Entity<'_> {
     type Mutability = Mut;
 }
 
+#[doc(hidden)]
 pub trait NotEnoughEntityPartSystemParam: SealedSystemParam {}
 
 impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
@@ -566,6 +584,7 @@ impl NotEnoughEntityPartSystemParam for Group<'_> {}
 
 impl NotEnoughEntityPartSystemParam for Entity<'_> {}
 
+#[doc(hidden)]
 pub trait NotMandatoryComponentSystemParam: SealedSystemParam {}
 
 impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}

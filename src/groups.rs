@@ -44,7 +44,7 @@ impl<'a> GroupBuilder<'a> {
     /// entities that belong to the group.<br>
     /// By default, [`Query`](crate::Query) arguments of group systems also iterate on queried entities
     /// that belong to the group. They can iterate on all entities of the application by calling
-    /// [`Query::accept_any_group`](crate::Query::accept_any_group).
+    /// [`Query::unlock_groups`](crate::Query::unlock_groups).
     ///
     /// # Examples
     ///

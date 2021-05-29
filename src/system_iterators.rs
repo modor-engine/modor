@@ -3,6 +3,7 @@ use std::any::Any;
 use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
 
+#[doc(hidden)]
 pub struct OptionComponentIter<'a, C>(Option<Iter<'a, C>>)
 where
     C: Any;
@@ -29,6 +30,7 @@ where
     }
 }
 
+#[doc(hidden)]
 pub struct OptionComponentMutIter<'a, C>(Option<IterMut<'a, C>>)
 where
     C: Any;
@@ -55,6 +57,7 @@ where
     }
 }
 
+#[doc(hidden)]
 pub struct GroupIter<'a> {
     group_idx: NonZeroUsize,
     data: SystemData<'a>,
@@ -74,6 +77,7 @@ impl<'a> Iterator for GroupIter<'a> {
     }
 }
 
+#[doc(hidden)]
 pub struct EntityIter<'a> {
     entity_idxs: Iter<'a, usize>,
     data: SystemData<'a>,
@@ -95,6 +99,7 @@ impl<'a> Iterator for EntityIter<'a> {
     }
 }
 
+#[doc(hidden)]
 pub struct QueryIter<'a, T>(Query<'a, T>)
 where
     T: TupleSystemParam;
