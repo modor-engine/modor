@@ -584,6 +584,18 @@ impl NotEnoughEntityPartSystemParam for Group<'_> {}
 
 impl NotEnoughEntityPartSystemParam for Entity<'_> {}
 
+macro_rules! impl_not_enough_entity_part_system_param {
+    ($($params:ident),*) => {
+        impl<$($params),*> NotEnoughEntityPartSystemParam for ($($params,)*)
+        where
+            $($params: NotEnoughEntityPartSystemParam,)*
+        {
+        }
+    };
+}
+
+run_for_tuples!(impl_not_enough_entity_part_system_param);
+
 #[doc(hidden)]
 pub trait NotMandatoryComponentSystemParam: SealedSystemParam {}
 
@@ -596,6 +608,11 @@ impl NotMandatoryComponentSystemParam for Group<'_> {}
 impl NotMandatoryComponentSystemParam for Entity<'_> {}
 
 impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where T: TupleSystemParam {}
+
+#[doc(hidden)]
+pub trait QuerySystemParam: SealedSystemParam {}
+
+impl<T> QuerySystemParam for Query<'_, T> where T: TupleSystemParam {}
 
 pub(crate) mod internal {
     pub trait SealedSystemParam {}

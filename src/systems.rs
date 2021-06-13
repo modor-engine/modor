@@ -1,7 +1,7 @@
 use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
-use crate::systems::internal::Sealed;
+use crate::systems::internal::SealedSystem;
 use crate::{SystemParam, TypeAccess};
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
@@ -12,7 +12,7 @@ use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 ///
 /// System can be registered and run by the application using the [`system!`](crate::system!) and
 /// [`system_once!`](crate::system_once!) macros.
-pub trait System<'a, 'b, T>: Sealed<T> {
+pub trait System<'a, 'b, T>: SealedSystem<T> {
     #[doc(hidden)]
     const HAS_MANDATORY_COMPONENT: bool;
     #[doc(hidden)]
@@ -52,7 +52,7 @@ pub trait System<'a, 'b, T>: Sealed<T> {
     );
 }
 
-impl<S> Sealed<()> for S where S: FnMut() {}
+impl<S> SealedSystem<()> for S where S: FnMut() {}
 
 impl<'a, 'b, S> System<'a, 'b, ()> for S
 where
@@ -89,7 +89,7 @@ where
 
 macro_rules! impl_fn_system {
     ($(($params:ident, $indexes:tt)),+) => {
-        impl<'a, 'b: 'a, S, $($params),+> Sealed<($($params,)+)> for S
+        impl<'a, 'b: 'a, S, $($params),+> SealedSystem<($($params,)+)> for S
         where
             S: FnMut($($params),+),
             $($params: SystemParam<'a, 'b>,)+
@@ -255,8 +255,8 @@ pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
 #[doc(hidden)]
 pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
 
-mod internal {
-    pub trait Sealed<T> {}
+pub(crate) mod internal {
+    pub trait SealedSystem<T> {}
 }
 
 #[cfg(test)]

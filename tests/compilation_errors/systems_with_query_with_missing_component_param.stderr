@@ -1,0 +1,53 @@
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_query_with_missing_component_param.rs:4:5
+  |
+4 |     system!(query_with_only_not_component_entity_params);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_query_component_params` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemQueryComponentParamChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithQueryWithMissingComponentParam` for the type `SystemQueryComponentParamChecker<'a, 'b, S1, (A, B)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_query_with_missing_component_param.rs:5:5
+  |
+5 |     system!(tuple_with_query_with_only_not_component_entity_params);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_query_component_params` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemQueryComponentParamChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithQueryWithMissingComponentParam` for the type `SystemQueryComponentParamChecker<'a, 'b, S1, (A, B)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_query_with_missing_component_param.rs:6:5
+  |
+6 |     system!(query_with_query_with_only_not_component_entity_params);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_query_component_params` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemQueryComponentParamChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithQueryWithMissingComponentParam` for the type `SystemQueryComponentParamChecker<'a, 'b, S1, (A, B)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

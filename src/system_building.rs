@@ -48,7 +48,6 @@ pub enum TypeAccess {
     Write(TypeId),
 }
 
-// TODO: create SystemChain type implementing System and only accept one parameter in system! macro
 /// Create a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
 /// This macro accepts one or more `systems` in input.<br>
@@ -78,6 +77,8 @@ pub enum TypeAccess {
 /// - [`SystemWithMissingComponentParam`](crate::SystemWithMissingComponentParam): the system is
 ///     invalid because some parameters are specific to iterative systems, but a parameter of type
 ///     component is missing
+/// - [`SystemWithQueryWithMissingComponentParam`](crate::SystemWithQueryWithMissingComponentParam):
+///     the system is invalid because one of its query parameters has a missing component parameter
 /// - [`SystemWithIncompatibleParams`](crate::SystemWithIncompatibleParams): the system has
 ///     multiple parameters that mutably access to the same resource
 ///
@@ -120,7 +121,7 @@ pub enum TypeAccess {
 /// // `Group` is only valid in iterative systems
 /// fn system_with_missing_component(group: Group<'_>) {}
 ///
-/// // Optional components are not enough in iterative systems
+/// // optional components are not enough in iterative systems
 /// fn system_also_with_missing_component(optional_component: Option<&String>) {}
 ///
 /// // there are both const and mut references to `u32` component
@@ -161,6 +162,8 @@ macro_rules! system {
 /// - [`SystemWithMissingComponentParam`](crate::SystemWithMissingComponentParam): the system is
 ///     invalid because some parameters are specific to iterative systems, but a parameter of type
 ///     component is missing
+/// - [`SystemWithQueryWithMissingComponentParam`](crate::SystemWithQueryWithMissingComponentParam):
+///     the system is invalid because one of its query parameters has a missing component parameter
 /// - [`SystemWithIncompatibleParams`](crate::SystemWithIncompatibleParams): the system has
 ///     multiple parameters that mutably access to the same resource
 ///
@@ -291,10 +294,24 @@ macro_rules! _system_wrapper {
             use ::modor::SystemWithParams as _SystemWithParams;
             use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
             use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
+            use ::modor::SystemWithQueryWithMissingComponentParam
+                as _SystemWithQueryWithMissingComponentParam;
             ::modor::_run_system!(
                 data,
                 info,
-                $(::modor::SystemStaticChecker::new($systems).check_statically()),+
+                $({
+                    let mut system = $systems;
+                    system = ::modor::SystemComponentParamChecker::new(system)
+                        .check_component_params()
+                        .into_inner();
+                    system = ::modor::SystemParamCompatibilityChecker::new(system)
+                        .check_param_compatibility()
+                        .into_inner();
+                    system = ::modor::SystemQueryComponentParamChecker::new(system)
+                        .check_query_component_params()
+                        .into_inner();
+                    system
+                }),+
             );
         }
     };

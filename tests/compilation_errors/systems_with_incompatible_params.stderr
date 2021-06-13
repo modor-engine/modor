@@ -1,0 +1,197 @@
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:4:5
+  |
+4 |     system!(const_and_mut_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:5:5
+  |
+5 |     system!(mut_and_const_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S1, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:6:5
+  |
+6 |     system!(mut_and_mut_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:7:5
+  |
+7 |     system!(const_and_mut_same_option_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:8:5
+  |
+8 |     system!(two_groups);
+  |     ^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_incompatible_params.rs:9:5
+  |
+9 |     system!(two_entities);
+  |     ^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+  = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+30|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+  |
+30|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_incompatible_params.rs:10:5
+   |
+10 |     system!(incompatible_tuples);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+307|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+   |
+307|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_incompatible_params.rs:11:5
+   |
+11 |     system!(incompatible_queries);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+307|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+   |
+307|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_incompatible_params.rs:12:5
+   |
+12 |     system!(tuples_with_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S1, (A, B)>`
+   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+307|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+   |
+307|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_incompatible_params.rs:13:5
+   |
+13 |     system!(query_with_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S1, (A, B)>`
+   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+307|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+   |
+307|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_incompatible_params.rs:14:5
+   |
+14 |     system!(nested_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_compatibility` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, T>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithIncompatibleParams` for the type `SystemParamCompatibilityChecker<'a, 'b, S, (A, B, C)>`
+   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+307|                     system = modor::SystemWithParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: disambiguate the associated function for candidate #2
+   |
+307|                     system = modor::SystemWithIncompatibleParams::check_param_compatibility(::modor::SystemParamCompatibilityChecker::new(system))
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
