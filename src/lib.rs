@@ -75,25 +75,22 @@ extern crate static_assertions;
 #[macro_use]
 mod internal;
 
-mod application;
-mod entities;
-mod groups;
-mod system_building;
-mod system_checks;
-mod system_iterators;
-mod system_params;
-mod system_resources;
-mod systems;
+mod external;
 
-pub use application::*;
-pub use entities::*;
-pub use groups::*;
-pub use system_building::*;
-pub use system_checks::*;
-pub use system_iterators::*;
-pub use system_params::*;
-pub use system_resources::*;
-pub use systems::*;
+pub use external::application::*;
+pub use external::entities::*;
+pub use external::groups::*;
+pub use external::systems::building::*;
+pub use external::systems::checks::component_params::*;
+pub use external::systems::checks::param_compatibility::*;
+pub use external::systems::checks::query_component_params::*;
+pub use external::systems::checks::*;
+pub use external::systems::checks::*;
+pub use external::systems::checks::*;
+pub use external::systems::definition::*;
+pub use external::systems::iterators::*;
+pub use external::systems::params::*;
+pub use external::systems::resources::*;
 
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");

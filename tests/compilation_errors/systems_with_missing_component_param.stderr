@@ -42,9 +42,9 @@ error[E0034]: multiple applicable items in scope
    |
    = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemComponentParamChecker<'a, 'b, S, T>`
 note: candidate #2 is defined in the trait `modor::SystemWithMissingComponentParam`
-  --> $DIR/system_checks.rs:65:5
+  --> $DIR/component_params.rs:37:5
    |
-65 |     fn check_component_params(self) -> Self {
+37 |     fn check_component_params(self) -> Self {
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
@@ -64,9 +64,9 @@ error[E0034]: multiple applicable items in scope
    |
    = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemComponentParamChecker<'a, 'b, S, T>`
 note: candidate #2 is defined in the trait `modor::SystemWithMissingComponentParam`
-  --> $DIR/system_checks.rs:65:5
+  --> $DIR/component_params.rs:37:5
    |
-65 |     fn check_component_params(self) -> Self {
+37 |     fn check_component_params(self) -> Self {
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1

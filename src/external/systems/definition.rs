@@ -1,7 +1,7 @@
+use crate::external::systems::definition::internal::SealedSystem;
 use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
-use crate::systems::internal::SealedSystem;
 use crate::{SystemParam, TypeAccess};
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
