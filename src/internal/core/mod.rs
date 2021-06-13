@@ -1,10 +1,10 @@
+use crate::external::systems::definition::internal::ArchetypeInfo;
 use crate::internal::archetypes::data::MissingComponentError;
 use crate::internal::archetypes::ArchetypeFacade;
 use crate::internal::core::storages::{ComponentTypeStorage, EntityMainComponentTypeStorage};
 use crate::internal::entities::data::EntityLocation;
 use crate::internal::entities::EntityFacade;
 use crate::internal::groups::GroupFacade;
-use crate::ArchetypeInfo;
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
 

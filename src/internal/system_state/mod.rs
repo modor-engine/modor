@@ -1,9 +1,9 @@
+use crate::external::systems::building::internal::TypeAccess;
 use crate::internal::system_state::data::{LockedSystem, SystemLocation};
 use crate::internal::system_state::storages::{
     ActionStateStorage, RunnableSystemStorage, SystemActionStorage, SystemTypeStorage,
     TypeStateStorage,
 };
-use crate::TypeAccess;
 use std::any::TypeId;
 use std::num::NonZeroUsize;
 

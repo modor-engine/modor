@@ -1,4 +1,5 @@
-use crate::{SystemWrapper, TypeAccess};
+use crate::external::systems::building::internal::TypeAccess;
+use crate::SystemWrapper;
 use std::any::TypeId;
 
 pub(crate) struct SystemDetails {

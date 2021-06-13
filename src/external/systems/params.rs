@@ -1,8 +1,11 @@
 use self::internal::SealedSystemParam;
+use crate::external::systems::building::internal::TypeAccess;
+use crate::external::systems::definition::internal::{
+    ArchetypeInfo, ComponentsConst, ComponentsMut,
+};
 use crate::{
-    ArchetypeInfo, ComponentsConst, ComponentsMut, Entity, EntityIter, Group, GroupIter,
-    OptionComponentIter, OptionComponentMutIter, Query, QueryIter, SystemData, SystemInfo,
-    TypeAccess,
+    Entity, EntityIter, Group, GroupIter, OptionComponentIter, OptionComponentMutIter, Query,
+    QueryIter, SystemData, SystemInfo,
 };
 use std::any::{Any, TypeId};
 use std::iter::{self, Map, Repeat, Zip};
@@ -500,91 +503,92 @@ macro_rules! impl_const_system_param {
 impl_const_system_param!();
 run_for_tuples!(impl_const_system_param);
 
-#[doc(hidden)]
-pub trait MultipleSystemParams: SealedSystemParam {
-    type TupleSystemParams: TupleSystemParam;
-}
+pub(crate) mod internal {
+    use crate::{Entity, Group, Query, TupleSystemParam};
+    use std::any::Any;
 
-impl<T> MultipleSystemParams for T
-where
-    T: TupleSystemParam,
-{
-    type TupleSystemParams = Self;
-}
+    pub trait SealedSystemParam {}
 
-impl<T> MultipleSystemParams for Query<'_, T>
-where
-    T: TupleSystemParam,
-{
-    type TupleSystemParams = T;
-}
+    pub trait MultipleSystemParams: SealedSystemParam {
+        type TupleSystemParams: TupleSystemParam;
+    }
 
-#[doc(hidden)]
-pub struct Const;
+    impl<T> MultipleSystemParams for T
+    where
+        T: TupleSystemParam,
+    {
+        type TupleSystemParams = Self;
+    }
 
-#[doc(hidden)]
-pub struct Mut;
+    impl<T> MultipleSystemParams for Query<'_, T>
+    where
+        T: TupleSystemParam,
+    {
+        type TupleSystemParams = T;
+    }
 
-#[doc(hidden)]
-pub trait EntityPartSystemParam: SealedSystemParam {
-    type Resource;
-    type Mutability;
-}
+    pub struct Const;
 
-impl<C> EntityPartSystemParam for &C
-where
-    C: Any,
-{
-    type Resource = C;
-    type Mutability = Const;
-}
+    pub struct Mut;
 
-impl<C> EntityPartSystemParam for Option<&C>
-where
-    C: Any,
-{
-    type Resource = C;
-    type Mutability = Const;
-}
+    pub trait EntityPartSystemParam: SealedSystemParam {
+        type Resource;
+        type Mutability;
+    }
 
-impl<C> EntityPartSystemParam for &mut C
-where
-    C: Any,
-{
-    type Resource = C;
-    type Mutability = Mut;
-}
+    impl<C> EntityPartSystemParam for &C
+    where
+        C: Any,
+    {
+        type Resource = C;
+        type Mutability = Const;
+    }
 
-impl<C> EntityPartSystemParam for Option<&mut C>
-where
-    C: Any,
-{
-    type Resource = C;
-    type Mutability = Mut;
-}
+    impl<C> EntityPartSystemParam for Option<&C>
+    where
+        C: Any,
+    {
+        type Resource = C;
+        type Mutability = Const;
+    }
 
-impl EntityPartSystemParam for Group<'_> {
-    type Resource = Group<'static>;
-    type Mutability = Mut;
-}
+    impl<C> EntityPartSystemParam for &mut C
+    where
+        C: Any,
+    {
+        type Resource = C;
+        type Mutability = Mut;
+    }
 
-impl EntityPartSystemParam for Entity<'_> {
-    type Resource = Entity<'static>;
-    type Mutability = Mut;
-}
+    impl<C> EntityPartSystemParam for Option<&mut C>
+    where
+        C: Any,
+    {
+        type Resource = C;
+        type Mutability = Mut;
+    }
 
-#[doc(hidden)]
-pub trait NotEnoughEntityPartSystemParam: SealedSystemParam {}
+    impl EntityPartSystemParam for Group<'_> {
+        type Resource = Group<'static>;
+        type Mutability = Mut;
+    }
 
-impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
+    impl EntityPartSystemParam for Entity<'_> {
+        type Resource = Entity<'static>;
+        type Mutability = Mut;
+    }
 
-impl<C> NotEnoughEntityPartSystemParam for Option<&mut C> where C: Any {}
+    pub trait NotEnoughEntityPartSystemParam: SealedSystemParam {}
 
-impl NotEnoughEntityPartSystemParam for Group<'_> {}
+    impl<C> NotEnoughEntityPartSystemParam for Option<&C> where C: Any {}
 
-impl NotEnoughEntityPartSystemParam for Entity<'_> {}
+    impl<C> NotEnoughEntityPartSystemParam for Option<&mut C> where C: Any {}
 
-macro_rules! impl_not_enough_entity_part_system_param {
+    impl NotEnoughEntityPartSystemParam for Group<'_> {}
+
+    impl NotEnoughEntityPartSystemParam for Entity<'_> {}
+
+    macro_rules! impl_not_enough_entity_part_system_param {
     ($($params:ident),*) => {
         impl<$($params),*> NotEnoughEntityPartSystemParam for ($($params,)*)
         where
@@ -594,26 +598,21 @@ macro_rules! impl_not_enough_entity_part_system_param {
     };
 }
 
-run_for_tuples!(impl_not_enough_entity_part_system_param);
+    run_for_tuples!(impl_not_enough_entity_part_system_param);
 
-#[doc(hidden)]
-pub trait NotMandatoryComponentSystemParam: SealedSystemParam {}
+    pub trait NotMandatoryComponentSystemParam: SealedSystemParam {}
 
-impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
+    impl<C> NotMandatoryComponentSystemParam for Option<&C> where C: Any {}
 
-impl<C> NotMandatoryComponentSystemParam for Option<&mut C> where C: Any {}
+    impl<C> NotMandatoryComponentSystemParam for Option<&mut C> where C: Any {}
 
-impl NotMandatoryComponentSystemParam for Group<'_> {}
+    impl NotMandatoryComponentSystemParam for Group<'_> {}
 
-impl NotMandatoryComponentSystemParam for Entity<'_> {}
+    impl NotMandatoryComponentSystemParam for Entity<'_> {}
 
-impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where T: TupleSystemParam {}
+    impl<T> NotMandatoryComponentSystemParam for Query<'_, T> where T: TupleSystemParam {}
 
-#[doc(hidden)]
-pub trait QuerySystemParam: SealedSystemParam {}
+    pub trait QuerySystemParam: SealedSystemParam {}
 
-impl<T> QuerySystemParam for Query<'_, T> where T: TupleSystemParam {}
-
-pub(crate) mod internal {
-    pub trait SealedSystemParam {}
+    impl<T> QuerySystemParam for Query<'_, T> where T: TupleSystemParam {}
 }

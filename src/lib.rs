@@ -85,12 +85,11 @@ pub use external::systems::checks::component_params::*;
 pub use external::systems::checks::param_compatibility::*;
 pub use external::systems::checks::query_component_params::*;
 pub use external::systems::checks::*;
-pub use external::systems::checks::*;
-pub use external::systems::checks::*;
 pub use external::systems::definition::*;
-pub use external::systems::iterators::*;
 pub use external::systems::params::*;
 pub use external::systems::resources::*;
+
+pub(crate) use external::systems::iterators::*;
 
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");

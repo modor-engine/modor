@@ -3,8 +3,6 @@ pub(crate) mod component_params;
 pub(crate) mod param_compatibility;
 pub(crate) mod query_component_params;
 
-// TODO: move internal pub types in "internal" modules
-
 /// Characterise any system.
 ///
 /// See documentation of [`system!`](crate::system!) macro for more information.

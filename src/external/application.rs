@@ -336,7 +336,8 @@ impl Application {
 #[cfg(test)]
 mod application_tests {
     use super::*;
-    use crate::{Built, EntityBuilder, EntityMainComponent, TypeAccess};
+    use crate::external::systems::building::internal::TypeAccess;
+    use crate::{Built, EntityBuilder, EntityMainComponent};
     use static_assertions::_core::any::TypeId;
     use std::convert::TryInto;
 

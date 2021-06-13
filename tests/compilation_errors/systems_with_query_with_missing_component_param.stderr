@@ -9,11 +9,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: disambiguate the associated function for candidate #2
   |
-31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0034]: multiple applicable items in scope
@@ -27,11 +27,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: disambiguate the associated function for candidate #2
   |
-31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0034]: multiple applicable items in scope
@@ -45,9 +45,9 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in a macro (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-31|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithParams::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: disambiguate the associated function for candidate #2
   |
-31|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
+30|                     system = modor::SystemWithQueryWithMissingComponentParam::check_query_component_params(::modor::SystemQueryComponentParamChecker::new(system))
   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

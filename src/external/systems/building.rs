@@ -1,8 +1,7 @@
+use crate::external::systems::building::internal::TypeAccess;
 use crate::{SystemData, SystemInfo};
-use std::any::TypeId;
 
-#[doc(hidden)]
-pub type SystemWrapper = fn(&SystemData<'_>, SystemInfo);
+pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo);
 
 /// Description of a system to add.
 ///
@@ -39,13 +38,6 @@ where
     pub fn new(wrapper: S) -> Self {
         Self { wrapper }
     }
-}
-
-#[doc(hidden)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TypeAccess {
-    Read(TypeId),
-    Write(TypeId),
 }
 
 /// Create a valid instance of [`SystemBuilder`](crate::SystemBuilder).
@@ -337,6 +329,16 @@ macro_rules! _run_system {
     };
 }
 
+pub(crate) mod internal {
+    use std::any::TypeId;
+
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    pub enum TypeAccess {
+        Read(TypeId),
+        Write(TypeId),
+    }
+}
+
 #[cfg(test)]
 mod system_wrapper_tests {
     use super::*;
@@ -363,7 +365,7 @@ mod system_once_builder_tests {
 
 #[cfg(test)]
 mod type_access_tests {
-    use super::*;
+    use super::internal::*;
     use std::fmt::Debug;
 
     assert_impl_all!(TypeAccess: Sync, Send, Copy, Eq, Debug);

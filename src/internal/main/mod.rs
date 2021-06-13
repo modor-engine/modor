@@ -190,7 +190,8 @@ impl MainFacade {
 #[cfg(test)]
 mod main_facade_tests {
     use super::*;
-    use crate::{Built, EntityBuilder, EntityMainComponent, SystemWrapper, TypeAccess};
+    use crate::external::systems::building::internal::TypeAccess;
+    use crate::{Built, EntityBuilder, EntityMainComponent, SystemWrapper};
     use std::convert::TryInto;
     use std::fmt::Debug;
 

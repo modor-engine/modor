@@ -1,7 +1,7 @@
 use crate::external::systems::checks::internal::SealedChecker;
+use crate::external::systems::params::internal::{MultipleSystemParams, QuerySystemParam};
 use crate::{
-    MultipleSystemParams, QuerySystemParam, System, SystemComponentParamChecker,
-    SystemWithMissingComponentParam, SystemWithParams,
+    System, SystemComponentParamChecker, SystemWithMissingComponentParam, SystemWithParams,
 };
 use std::marker::PhantomData;
 

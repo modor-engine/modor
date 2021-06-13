@@ -1,5 +1,5 @@
+use crate::external::systems::building::internal::TypeAccess;
 use crate::internal::system_state::data::{SystemLocation, TypeState};
-use crate::TypeAccess;
 use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::num::NonZeroUsize;

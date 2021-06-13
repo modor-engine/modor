@@ -151,9 +151,10 @@ impl SystemFacade {
 #[cfg(test)]
 mod system_facade_tests {
     use super::*;
+    use crate::external::systems::building::internal::TypeAccess;
     use crate::internal::components::ComponentFacade;
     use crate::internal::system_state::data::SystemLocation;
-    use crate::{SystemInfo, TypeAccess};
+    use crate::SystemInfo;
     use std::any::TypeId;
     use std::convert::TryInto;
     use std::thread;

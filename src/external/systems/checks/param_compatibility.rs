@@ -1,9 +1,8 @@
 use crate::external::systems::checks::internal::SealedChecker;
-use crate::external::systems::params::internal::SealedSystemParam;
-use crate::{
-    Const, EntityPartSystemParam, MultipleSystemParams, Mut, System, SystemParam, SystemWithParams,
+use crate::external::systems::checks::param_compatibility::internal::{
+    IncompatibleMultipleSystemParams, IncompatibleSystemParam,
 };
-use std::any::Any;
+use crate::{System, SystemWithParams};
 use std::marker::PhantomData;
 
 #[doc(hidden)]
@@ -77,118 +76,124 @@ macro_rules! impl_incompatibility_system_check {
 
 run_for_tuples!(impl_incompatibility_system_check);
 
-#[doc(hidden)]
-pub trait IncompatibleSystemParam<T, Z>: SealedSystemParam {}
-
-impl<T, U, C> IncompatibleSystemParam<U, ((), C)> for T
-where
-    T: EntityPartSystemParam<Resource = C, Mutability = Const>,
-    U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
-    C: Any,
-{
-}
-
-impl<T, U, C> IncompatibleSystemParam<U, ((), C, ())> for T
-where
-    T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
-    U: EntityPartSystemParam<Resource = C, Mutability = Const>,
-    C: Any,
-{
-}
-
-impl<T, U, C> IncompatibleSystemParam<U, ((), C, ((),))> for T
-where
-    T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
-    U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
-    C: Any,
-{
-}
-
-macro_rules! impl_incompatible_system_param {
-    ($param:ident $(,$params:ident)*) => {
-        impl<'a, 'b, $param, $($params,)* T, U, Z>
-            IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*))>
-            for T
-        where
-            $param: SystemParam<'a, 'b>,
-            $($params: SystemParam<'a, 'b>,)*
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            U: IncompatibleSystemParam<$param, Z>,
-        {
-        }
-
-        impl<'a, 'b, $param, $($params,)* T, U, Z>
-            IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*), ())>
-            for T
-        where
-            $param: SystemParam<'a, 'b>,
-            $($params: SystemParam<'a, 'b>,)*
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            U: IncompatibleSystemParam<($($params,)*), Z>,
-        {
-        }
-
-        impl<'a, 'b, $param, $($params,)* T, U, Z>
-            IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), ((),))>
-            for U
-        where
-            $param: SystemParam<'a, 'b>,
-            $($params: SystemParam<'a, 'b>,)*
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            U: IncompatibleSystemParam<$param, Z>,
-        {
-        }
-
-        impl<'a, 'b, $param, $($params,)* T, U, Z>
-            IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), (((),),))>
-            for U
-        where
-            $param: SystemParam<'a, 'b>,
-            $($params: SystemParam<'a, 'b>,)*
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            U: IncompatibleSystemParam<($($params,)*), Z>,
-        {
-        }
+mod internal {
+    use crate::external::systems::params::internal::{
+        Const, EntityPartSystemParam, MultipleSystemParams, Mut,
     };
+    use crate::SystemParam;
+    use std::any::Any;
+
+    pub trait IncompatibleSystemParam<T, Z> {}
+
+    impl<T, U, C> IncompatibleSystemParam<U, ((), C)> for T
+    where
+        T: EntityPartSystemParam<Resource = C, Mutability = Const>,
+        U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+        C: Any,
+    {
+    }
+
+    impl<T, U, C> IncompatibleSystemParam<U, ((), C, ())> for T
+    where
+        T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+        U: EntityPartSystemParam<Resource = C, Mutability = Const>,
+        C: Any,
+    {
+    }
+
+    impl<T, U, C> IncompatibleSystemParam<U, ((), C, ((),))> for T
+    where
+        T: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+        U: EntityPartSystemParam<Resource = C, Mutability = Mut>,
+        C: Any,
+    {
+    }
+
+    macro_rules! impl_incompatible_system_param {
+        ($param:ident $(,$params:ident)*) => {
+            impl<'a, 'b, $param, $($params,)* T, U, Z>
+                IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*))>
+                for T
+            where
+                $param: SystemParam<'a, 'b>,
+                $($params: SystemParam<'a, 'b>,)*
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                U: IncompatibleSystemParam<$param, Z>,
+            {
+            }
+
+            impl<'a, 'b, $param, $($params,)* T, U, Z>
+                IncompatibleSystemParam<U, (((),), Z, ($param, $($params),*), ())>
+                for T
+            where
+                $param: SystemParam<'a, 'b>,
+                $($params: SystemParam<'a, 'b>,)*
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                U: IncompatibleSystemParam<($($params,)*), Z>,
+            {
+            }
+
+            impl<'a, 'b, $param, $($params,)* T, U, Z>
+                IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), ((),))>
+                for U
+            where
+                $param: SystemParam<'a, 'b>,
+                $($params: SystemParam<'a, 'b>,)*
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                U: IncompatibleSystemParam<$param, Z>,
+            {
+            }
+
+            impl<'a, 'b, $param, $($params,)* T, U, Z>
+                IncompatibleSystemParam<T, (((),), Z, ($param, $($params),*), (((),),))>
+                for U
+            where
+                $param: SystemParam<'a, 'b>,
+                $($params: SystemParam<'a, 'b>,)*
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                U: IncompatibleSystemParam<($($params,)*), Z>,
+            {
+            }
+        };
+    }
+
+    run_for_tuples!(impl_incompatible_system_param);
+
+    pub trait IncompatibleMultipleSystemParams<Z> {}
+
+    macro_rules! impl_incompatible_multiple_system_params {
+        ($param:ident $(,$params:ident)*) => {
+            impl<T, $param, $($params,)* Z>
+                IncompatibleMultipleSystemParams<((), Z, ($param, $($params),*))>
+                for T
+            where
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                $param: IncompatibleSystemParam<($($params,)*), Z>,
+            {
+            }
+
+            impl<T, $param, $($params,)* Z>
+                IncompatibleMultipleSystemParams<(((),), Z, ($param, $($params),*))>
+                for T
+            where
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                $param: IncompatibleMultipleSystemParams<Z>,
+            {
+            }
+
+            impl<T, $param, $($params,)* Z>
+                IncompatibleMultipleSystemParams<((((),),), Z, ($param, $($params),*))>
+                for T
+            where
+                T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
+                ($($params,)*): IncompatibleMultipleSystemParams<Z>,
+            {
+            }
+        };
+    }
+
+    run_for_tuples!(impl_incompatible_multiple_system_params);
 }
-
-run_for_tuples!(impl_incompatible_system_param);
-
-#[doc(hidden)]
-pub trait IncompatibleMultipleSystemParams<Z>: SealedSystemParam {}
-
-macro_rules! impl_incompatible_multiple_system_params {
-    ($param:ident $(,$params:ident)*) => {
-        impl<T, $param, $($params,)* Z>
-            IncompatibleMultipleSystemParams<((), Z, ($param, $($params),*))>
-            for T
-        where
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            $param: IncompatibleSystemParam<($($params,)*), Z>,
-        {
-        }
-
-        impl<T, $param, $($params,)* Z>
-            IncompatibleMultipleSystemParams<(((),), Z, ($param, $($params),*))>
-            for T
-        where
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            $param: IncompatibleMultipleSystemParams<Z>,
-        {
-        }
-
-        impl<T, $param, $($params,)* Z>
-            IncompatibleMultipleSystemParams<((((),),), Z, ($param, $($params),*))>
-            for T
-        where
-            T: MultipleSystemParams<TupleSystemParams = ($param, $($params),*)>,
-            ($($params,)*): IncompatibleMultipleSystemParams<Z>,
-        {
-        }
-    };
-}
-
-run_for_tuples!(impl_incompatible_multiple_system_params);
 
 #[cfg(test)]
 mod system_param_compatibility_checker {

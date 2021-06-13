@@ -1,8 +1,11 @@
-use crate::external::systems::definition::internal::SealedSystem;
+use crate::external::systems::building::internal::TypeAccess;
+use crate::external::systems::definition::internal::{
+    ArchetypeInfo, ComponentsConst, ComponentsMut, SealedSystem,
+};
 use crate::internal::actions::ActionFacade;
 use crate::internal::components::interfaces::{ComponentInterface, Components};
 use crate::internal::core::CoreFacade;
-use crate::{SystemParam, TypeAccess};
+use crate::SystemParam;
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
@@ -145,6 +148,22 @@ macro_rules! impl_fn_system {
 run_for_tuples_with_idxs!(impl_fn_system);
 
 #[doc(hidden)]
+pub struct SystemInfo {
+    pub(crate) filtered_component_types: Vec<TypeId>,
+    pub(crate) group_idx: Option<NonZeroUsize>,
+}
+
+impl SystemInfo {
+    #[doc(hidden)]
+    pub fn new(filtered_component_types: Vec<TypeId>, group_idx: Option<NonZeroUsize>) -> Self {
+        Self {
+            filtered_component_types,
+            group_idx,
+        }
+    }
+}
+
+#[doc(hidden)]
 #[derive(Clone)]
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
@@ -211,7 +230,7 @@ impl<'a> SystemData<'a> {
             .expect("internal error: lock already locked actions")
     }
 
-    fn archetypes(
+    pub(super) fn archetypes(
         &self,
         component_types: &[TypeId],
         group_idx: Option<NonZeroUsize>,
@@ -220,50 +239,28 @@ impl<'a> SystemData<'a> {
     }
 }
 
-#[doc(hidden)]
-pub struct SystemInfo {
-    pub(crate) filtered_component_types: Vec<TypeId>,
-    pub(crate) group_idx: Option<NonZeroUsize>,
-}
+pub(crate) mod internal {
+    use crate::internal::components::interfaces::Components;
+    use std::num::NonZeroUsize;
+    use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
-impl SystemInfo {
-    #[doc(hidden)]
-    pub fn new(filtered_component_types: Vec<TypeId>, group_idx: Option<NonZeroUsize>) -> Self {
-        Self {
-            filtered_component_types,
-            group_idx,
+    pub trait SealedSystem<T> {}
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub struct ArchetypeInfo {
+        pub(crate) idx: usize,
+        pub(crate) group_idx: NonZeroUsize,
+    }
+
+    impl ArchetypeInfo {
+        pub(crate) fn new(idx: usize, group_idx: NonZeroUsize) -> Self {
+            Self { idx, group_idx }
         }
     }
-}
 
-#[doc(hidden)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ArchetypeInfo {
-    pub(crate) idx: usize,
-    pub(crate) group_idx: NonZeroUsize,
-}
+    pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
 
-impl ArchetypeInfo {
-    pub(crate) fn new(idx: usize, group_idx: NonZeroUsize) -> Self {
-        Self { idx, group_idx }
-    }
-}
-
-#[doc(hidden)]
-pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
-
-#[doc(hidden)]
-pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
-
-pub(crate) mod internal {
-    pub trait SealedSystem<T> {}
-}
-
-#[cfg(test)]
-mod system_data_tests {
-    use super::*;
-
-    assert_impl_all!(SystemData<'_>: Sync, Send, Clone);
+    pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
 }
 
 #[cfg(test)]
@@ -275,8 +272,15 @@ mod system_info_tests {
 }
 
 #[cfg(test)]
-mod archetype_info_tests {
+mod system_data_tests {
     use super::*;
+
+    assert_impl_all!(SystemData<'_>: Sync, Send, Clone);
+}
+
+#[cfg(test)]
+mod archetype_info_tests {
+    use super::internal::*;
     use std::fmt::Debug;
 
     assert_impl_all!(ArchetypeInfo: Sync, Send, Copy, Eq, Debug);
@@ -284,7 +288,7 @@ mod archetype_info_tests {
 
 #[cfg(test)]
 mod components_const_tests {
-    use super::*;
+    use super::internal::*;
 
     assert_impl_all!(ComponentsConst<'_>: Sync);
     assert_not_impl_any!(ComponentsConst<'_>: Clone);
@@ -292,7 +296,7 @@ mod components_const_tests {
 
 #[cfg(test)]
 mod components_mut_tests {
-    use super::*;
+    use super::internal::*;
 
     assert_impl_all!(ComponentsMut<'_>: Sync);
     assert_not_impl_any!(ComponentsMut<'_>: Clone);

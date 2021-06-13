@@ -1,7 +1,8 @@
 use crate::external::systems::checks::internal::SealedChecker;
-use crate::{
-    NotEnoughEntityPartSystemParam, NotMandatoryComponentSystemParam, System, SystemWithParams,
+use crate::external::systems::params::internal::{
+    NotEnoughEntityPartSystemParam, NotMandatoryComponentSystemParam,
 };
+use crate::{System, SystemWithParams};
 use std::marker::PhantomData;
 
 #[doc(hidden)]
