@@ -196,8 +196,39 @@ mod internal {
 }
 
 #[cfg(test)]
-mod system_param_compatibility_checker {
+mod system_param_compatibility_checker_tests {
     use super::*;
 
     assert_impl_all!(SystemParamCompatibilityChecker<'_, '_, fn(&u32), (&u32,)>: Sync, Send);
+
+    fn system_example() {}
+
+    #[test]
+    fn into_inner() {
+        let checker = SystemParamCompatibilityChecker::new(system_example);
+
+        let system = checker.into_inner();
+
+        assert_eq!(system as usize, system_example as usize);
+    }
+}
+
+#[cfg(test)]
+mod system_with_incompatible_params_tests {
+    use super::*;
+
+    struct ExampleChecker(u32);
+
+    impl SealedChecker for ExampleChecker {}
+
+    impl SystemWithIncompatibleParams<(), ()> for ExampleChecker {}
+
+    #[test]
+    fn check_param_compatibility() {
+        let checker = ExampleChecker(42);
+
+        let run_checker = SystemWithIncompatibleParams::check_param_compatibility(checker);
+
+        assert_eq!(run_checker.0, 42);
+    }
 }

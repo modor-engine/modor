@@ -19,14 +19,14 @@ impl Into<Box<dyn Any + Sync + Send>> for Components {
 }
 
 impl Components {
-    pub(super) fn iter<C>(&self, archetype_pos: usize) -> Option<Iter<'_, C>>
+    pub(crate) fn iter<C>(&self, archetype_pos: usize) -> Option<Iter<'_, C>>
     where
         C: Any,
     {
         let components: &Vec<Vec<C>> = self
             .0
             .downcast_ref()
-            .expect("internal error: iter on components using wrong type");
+            .expect("internal error: iterate on components using wrong type");
         components.get(archetype_pos).map(|c| c.iter())
     }
 
@@ -37,7 +37,7 @@ impl Components {
         let components: &mut Vec<Vec<C>> = self
             .0
             .downcast_mut()
-            .expect("internal error: mutably iter on components using wrong type");
+            .expect("internal error: mutably iterate on components using wrong type");
         components.get_mut(archetype_pos).map(|c| c.iter_mut())
     }
 }
@@ -100,7 +100,7 @@ impl ComponentInterface<'_> {
         let type_idx = self
             .types
             .idx(TypeId::of::<C>())
-            .expect("internal error: iter on components with not registered type");
+            .expect("internal error: iterate on components with not registered type");
         let position_pos = self.archetype_positions.get(type_idx, archetype_idx)?;
         guard.iter(position_pos)
     }
@@ -116,7 +116,7 @@ impl ComponentInterface<'_> {
         let type_idx = self
             .types
             .idx(TypeId::of::<C>())
-            .expect("internal error: mutably iter on components with not registered type");
+            .expect("internal error: mutably iterate on components with not registered type");
         let position_pos = self.archetype_positions.get(type_idx, archetype_idx)?;
         guard.iter_mut(position_pos)
     }

@@ -26,3 +26,41 @@ pub trait SystemWithParams<S, T>: Sized + SealedChecker {
 mod internal {
     pub trait SealedChecker {}
 }
+
+#[cfg(test)]
+mod system_with_params_tests {
+    use super::*;
+
+    struct ExampleChecker(u32);
+
+    impl SealedChecker for ExampleChecker {}
+
+    impl SystemWithParams<(), ()> for ExampleChecker {}
+
+    #[test]
+    fn check_component_params() {
+        let checker = ExampleChecker(42);
+
+        let run_checker = SystemWithParams::check_component_params(checker);
+
+        assert_eq!(run_checker.0, 42);
+    }
+
+    #[test]
+    fn check_query_component_params() {
+        let checker = ExampleChecker(42);
+
+        let run_checker = SystemWithParams::check_query_component_params(checker);
+
+        assert_eq!(run_checker.0, 42);
+    }
+
+    #[test]
+    fn check_param_compatibility() {
+        let checker = ExampleChecker(42);
+
+        let run_checker = SystemWithParams::check_param_compatibility(checker);
+
+        assert_eq!(run_checker.0, 42);
+    }
+}

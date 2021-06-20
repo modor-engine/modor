@@ -67,8 +67,39 @@ macro_rules! impl_only_optional_params_system_check {
 run_for_tuples!(impl_only_optional_params_system_check);
 
 #[cfg(test)]
-mod system_component_param_checker {
+mod system_component_param_checker_tests {
     use super::*;
 
     assert_impl_all!(SystemComponentParamChecker<'_, '_, fn(&u32), (&u32,)>: Sync, Send);
+
+    fn system_example() {}
+
+    #[test]
+    fn into_inner() {
+        let checker = SystemComponentParamChecker::new(system_example);
+
+        let system = checker.into_inner();
+
+        assert_eq!(system as usize, system_example as usize);
+    }
+}
+
+#[cfg(test)]
+mod system_with_missing_component_param_tests {
+    use super::*;
+
+    struct ExampleChecker(u32);
+
+    impl SealedChecker for ExampleChecker {}
+
+    impl SystemWithMissingComponentParam<(), ()> for ExampleChecker {}
+
+    #[test]
+    fn check_component_params() {
+        let checker = ExampleChecker(42);
+
+        let run_checker = SystemWithMissingComponentParam::check_component_params(checker);
+
+        assert_eq!(run_checker.0, 42);
+    }
 }

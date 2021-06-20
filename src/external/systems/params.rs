@@ -77,7 +77,7 @@ where
             .expect("internal error: access to not existing components")
             .0;
         data.component_iter(components_guard, archetype.idx)
-            .expect("internal error: iter on mandatory components that does not exist")
+            .expect("internal error: iterate on mandatory components that does not exist")
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
@@ -119,7 +119,7 @@ where
             .expect("internal error: mutably access to not existing components")
             .0;
         data.component_iter_mut(components_guard, archetype.idx)
-            .expect("internal error: mutably iter on mandatory components that does not exist")
+            .expect("internal error: mutably iterate on mandatory components that does not exist")
     }
 
     fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
