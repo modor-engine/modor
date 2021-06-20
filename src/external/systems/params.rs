@@ -18,7 +18,7 @@ pub trait SystemParam<'a, 'b>: SealedSystemParam {
     #[doc(hidden)]
     const HAS_ACTIONS: bool;
     #[doc(hidden)]
-    type Lock: 'b;
+    type Guard: 'b;
     #[doc(hidden)]
     type Iter: Iterator<Item = Self>;
 
@@ -29,18 +29,18 @@ pub trait SystemParam<'a, 'b>: SealedSystemParam {
     fn mandatory_component_types() -> Vec<TypeId>;
 
     #[doc(hidden)]
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock;
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard;
 
     #[doc(hidden)]
     fn iter(
         data: &'b SystemData<'_>,
         info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter;
 
     #[doc(hidden)]
-    fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self;
+    fn get(info: &SystemInfo, guard: &'a mut Self::Guard) -> Self;
 }
 
 impl<'a, 'b: 'a, C> SealedSystemParam for &'a C {}
@@ -51,7 +51,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<ComponentsConst<'b>>;
+    type Guard = Option<ComponentsConst<'b>>;
     type Iter = Iter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -62,17 +62,17 @@ where
         vec![TypeId::of::<C>()]
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data.read_components::<C>()
     }
 
     fn iter(
         data: &'b SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        let components_guard = &lock
+        let components_guard = &guard
             .as_ref()
             .expect("internal error: access to not existing components")
             .0;
@@ -80,7 +80,7 @@ where
             .expect("internal error: iterate on mandatory components that does not exist")
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("single component retrieved")
     }
 }
@@ -93,7 +93,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<ComponentsMut<'b>>;
+    type Guard = Option<ComponentsMut<'b>>;
     type Iter = IterMut<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -104,17 +104,17 @@ where
         vec![TypeId::of::<C>()]
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data.write_components::<C>()
     }
 
     fn iter(
         data: &'b SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        let components_guard = &mut lock
+        let components_guard = &mut guard
             .as_mut()
             .expect("internal error: mutably access to not existing components")
             .0;
@@ -122,7 +122,7 @@ where
             .expect("internal error: mutably iterate on mandatory components that does not exist")
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("single component retrieved")
     }
 }
@@ -136,7 +136,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<ComponentsConst<'b>>;
+    type Guard = Option<ComponentsConst<'b>>;
     type Iter = OptionComponentIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -147,23 +147,24 @@ where
         Vec::new()
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data.read_components::<C>()
     }
 
     fn iter(
         data: &'b SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
         OptionComponentIter::new(
-            lock.as_ref()
+            guard
+                .as_ref()
                 .and_then(|l| data.component_iter(&l.0, archetype.idx)),
         )
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("single component retrieved")
     }
 }
@@ -177,7 +178,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
-    type Lock = Option<ComponentsMut<'b>>;
+    type Guard = Option<ComponentsMut<'b>>;
     type Iter = OptionComponentMutIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -188,23 +189,24 @@ where
         Vec::new()
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data.write_components::<C>()
     }
 
     fn iter(
         data: &'b SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
         OptionComponentMutIter::new(
-            lock.as_mut()
+            guard
+                .as_mut()
                 .and_then(|l| data.component_iter_mut(&mut l.0, archetype.idx)),
         )
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("single component retrieved")
     }
 }
@@ -214,7 +216,7 @@ impl<'a, 'b: 'a> SealedSystemParam for Group<'a> {}
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = true;
-    type Lock = &'b SystemData<'b>;
+    type Guard = &'b SystemData<'b>;
     type Iter = GroupIter<'a>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -225,20 +227,20 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Group<'a> {
         Vec::new()
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data
     }
 
     fn iter(
         _data: &SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        GroupIter::new(archetype.group_idx, lock.clone())
+        GroupIter::new(archetype.group_idx, guard.clone())
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("group retrieved with no entity component")
     }
 }
@@ -248,7 +250,7 @@ impl<'a, 'b: 'a> SealedSystemParam for Entity<'a> {}
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = true;
-    type Lock = &'b SystemData<'b>;
+    type Guard = &'b SystemData<'b>;
     type Iter = EntityIter<'a>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -259,20 +261,20 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for Entity<'a> {
         Vec::new()
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data
     }
 
     fn iter(
         _data: &SystemData<'_>,
         _info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        EntityIter::new(lock.entity_idxs(archetype.idx).iter(), lock.clone())
+        EntityIter::new(guard.entity_idxs(archetype.idx).iter(), guard.clone())
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {
         panic!("entity retrieved with no entity component")
     }
 }
@@ -285,7 +287,7 @@ where
 {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = T::HAS_ACTIONS;
-    type Lock = &'b SystemData<'b>;
+    type Guard = &'b SystemData<'b>;
     type Iter = QueryIter<'a, T>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -296,21 +298,21 @@ where
         Vec::new()
     }
 
-    fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+    fn lock(data: &'b SystemData<'_>) -> Self::Guard {
         data
     }
 
     fn iter(
         _data: &SystemData<'_>,
         info: &SystemInfo,
-        lock: &'a mut Self::Lock,
+        guard: &'a mut Self::Guard,
         _archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        QueryIter::new(Self::new(lock.clone(), info.group_idx))
+        QueryIter::new(Self::new(guard.clone(), info.group_idx))
     }
 
-    fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
-        Self::new(lock.clone(), info.group_idx)
+    fn get(info: &SystemInfo, guard: &'a mut Self::Guard) -> Self {
+        Self::new(guard.clone(), info.group_idx)
     }
 }
 
@@ -319,7 +321,7 @@ impl<'a, 'b: 'a> SealedSystemParam for () {}
 impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ACTIONS: bool = false;
-    type Lock = ();
+    type Guard = ();
     type Iter = Repeat<()>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -330,18 +332,18 @@ impl<'a, 'b: 'a> SystemParam<'a, 'b> for () {
         Vec::new()
     }
 
-    fn lock(_data: &'b SystemData<'_>) -> Self::Lock {}
+    fn lock(_data: &'b SystemData<'_>) -> Self::Guard {}
 
     fn iter(
         _data: &'b SystemData<'_>,
         _info: &SystemInfo,
-        _lock: &'a mut Self::Lock,
+        _guard: &'a mut Self::Guard,
         _archetype: ArchetypeInfo,
     ) -> Self::Iter {
         iter::repeat(())
     }
 
-    fn get(_info: &SystemInfo, _lock: &'a mut Self::Lock) -> Self {}
+    fn get(_info: &SystemInfo, _guard: &'a mut Self::Guard) -> Self {}
 }
 
 macro_rules! impl_system_param_for_tuple {
@@ -354,7 +356,7 @@ macro_rules! impl_system_param_for_tuple {
         {
             const HAS_MANDATORY_COMPONENT: bool = $($params::HAS_MANDATORY_COMPONENT)||+;
             const HAS_ACTIONS: bool = $($params::HAS_ACTIONS)||+;
-            type Lock = ($($params::Lock,)+);
+            type Guard = ($($params::Guard,)+);
             #[allow(clippy::type_complexity)]
             type Iter = impl_system_param_for_tuple!(@iterator_type $($params),+);
 
@@ -370,24 +372,24 @@ macro_rules! impl_system_param_for_tuple {
                 types
             }
 
-            fn lock(data: &'b SystemData<'_>) -> Self::Lock {
+            fn lock(data: &'b SystemData<'_>) -> Self::Guard {
                 ($($params::lock(data),)+)
             }
 
             fn iter(
                 data: &'b SystemData<'_>,
                 info: &SystemInfo,
-                lock: &'a mut Self::Lock,
+                guard: &'a mut Self::Guard,
                 archetype: ArchetypeInfo,
             ) -> Self::Iter {
                 impl_system_param_for_tuple!(
-                    @iteration data, lock, archetype, info, $($params, $indexes),+
+                    @iteration data, guard, archetype, info, $($params, $indexes),+
                 )
             }
 
-            fn get(info: &SystemInfo, lock: &'a mut Self::Lock) -> Self {
+            fn get(info: &SystemInfo, guard: &'a mut Self::Guard) -> Self {
                 (
-                    $($params::get(info, &mut lock.$indexes),)+
+                    $($params::get(info, &mut guard.$indexes),)+
                 )
             }
         }
@@ -395,23 +397,23 @@ macro_rules! impl_system_param_for_tuple {
     (
         @iteration
         $data:ident,
-        $lock:ident,
+        $guard:ident,
         $archetype:ident,
         $info:ident,
         $param:ident,
         $index:tt
     ) => {
-        A::iter($data, $info, &mut $lock.$index, $archetype).map(|item| (item,))
+        A::iter($data, $info, &mut $guard.$index, $archetype).map(|item| (item,))
     };
     (
         @iteration
         $data:ident,
-        $lock:ident,
+        $guard:ident,
         $archetype:ident,
         $info:ident,
         $($params:ident, $index:tt),+
     ) => {
-        itertools::izip!($($params::iter($data, $info, &mut $lock.$index, $archetype),)+)
+        itertools::izip!($($params::iter($data, $info, &mut $guard.$index, $archetype),)+)
     };
     (@iterator_type $param1:ident, $param2:ident) => {
         Zip<$param1::Iter, $param2::Iter>

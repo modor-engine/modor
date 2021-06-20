@@ -317,13 +317,13 @@ macro_rules! _run_system {
         let mut info = $info;
         $(
             let mut system = $systems;
-            let mut locks = ::modor::System::lock(&system, data);
+            let mut guards = ::modor::System::lock(&system, data);
             if ::modor::System::has_mandatory_component(&system) {
                 for archetype in ::modor::System::archetypes(&system, data, &info) {
-                    ::modor::System::run(&mut system, data, &info, &mut locks, archetype);
+                    ::modor::System::run(&mut system, data, &info, &mut guards, archetype);
                 }
             } else {
-                ::modor::System::run_once(&mut system, &info, &mut locks);
+                ::modor::System::run_once(&mut system, &info, &mut guards);
             }
         )+
     };

@@ -11,8 +11,6 @@ use std::num::NonZeroUsize;
 use std::slice::{Iter, IterMut};
 use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
-// TODO: rename "lock" into "guard" when necessary
-
 /// Characterize a system that is runnable by the application.
 ///
 /// System can be registered and run by the application using the [`system!`](crate::system!) and
@@ -23,7 +21,7 @@ pub trait System<'a, 'b, T>: SealedSystem<T> {
     #[doc(hidden)]
     const HAS_ACTIONS: bool;
     #[doc(hidden)]
-    type Locks: 'b;
+    type Guards: 'b;
 
     #[doc(hidden)]
     fn has_mandatory_component(&self) -> bool {
@@ -39,20 +37,20 @@ pub trait System<'a, 'b, T>: SealedSystem<T> {
     fn component_types(&self) -> Vec<TypeAccess>;
 
     #[doc(hidden)]
-    fn lock(&self, data: &'b SystemData<'_>) -> Self::Locks;
+    fn lock(&self, data: &'b SystemData<'_>) -> Self::Guards;
 
     #[doc(hidden)]
     fn archetypes(&self, data: &SystemData<'_>, info: &SystemInfo) -> Vec<ArchetypeInfo>;
 
     #[doc(hidden)]
-    fn run_once(&mut self, info: &SystemInfo, locks: &'a mut Self::Locks);
+    fn run_once(&mut self, info: &SystemInfo, guards: &'a mut Self::Guards);
 
     #[doc(hidden)]
     fn run(
         &mut self,
         data: &'b SystemData<'_>,
         info: &SystemInfo,
-        locks: &'a mut Self::Locks,
+        guards: &'a mut Self::Guards,
         archetype: ArchetypeInfo,
     );
 }
@@ -74,7 +72,7 @@ macro_rules! impl_fn_system {
             const HAS_MANDATORY_COMPONENT: bool =
                 impl_fn_system!(@condition $($params::HAS_MANDATORY_COMPONENT),*);
             const HAS_ACTIONS: bool = impl_fn_system!(@condition $($params::HAS_ACTIONS),*);
-            type Locks = ($($params::Lock,)*);
+            type Guards = ($($params::Guard,)*);
 
             #[allow(unused_mut)]
             fn component_types(&self) -> Vec<TypeAccess> {
@@ -84,7 +82,7 @@ macro_rules! impl_fn_system {
             }
 
             #[allow(unused_variables)]
-            fn lock(&self, data: &'b SystemData<'_>) -> Self::Locks {
+            fn lock(&self, data: &'b SystemData<'_>) -> Self::Guards {
                 ($($params::lock(data),)*)
             }
 
@@ -94,8 +92,8 @@ macro_rules! impl_fn_system {
             }
 
             #[allow(unused_variables)]
-            fn run_once(&mut self, info: &SystemInfo, locks: &'a mut Self::Locks) {
-                self($($params::get(info, &mut locks.$indexes)),*)
+            fn run_once(&mut self, info: &SystemInfo, guards: &'a mut Self::Guards) {
+                self($($params::get(info, &mut guards.$indexes)),*)
             }
 
             #[allow(non_snake_case, unused_parens, unused_variables)]
@@ -103,23 +101,23 @@ macro_rules! impl_fn_system {
                 &mut self,
                 data: &'b SystemData<'_>,
                 info: &SystemInfo,
-                locks: &'a mut Self::Locks,
+                guards: &'a mut Self::Guards,
                 archetype: ArchetypeInfo,
             ) {
-                impl_fn_system!(@run self, data, info, locks, archetype $(,($params, $indexes))*);
+                impl_fn_system!(@run self, data, info, guards, archetype $(,($params, $indexes))*);
             }
         }
     };
     (@condition $($term:expr),+) => { $($term)||* };
     (@condition) => { false };
     (
-        @run $system:ident, $data:ident, $info:ident, $locks:ident, $archetype:ident
+        @run $system:ident, $data:ident, $info:ident, $guards:ident, $archetype:ident
         $(,($params:ident, $indexes:tt))+
     ) => {
-        itertools::izip!($($params::iter($data, $info, &mut $locks.$indexes, $archetype)),*)
+        itertools::izip!($($params::iter($data, $info, &mut $guards.$indexes, $archetype)),*)
             .for_each(|($($params),*)| $system($($params),*));
     };
-    (@run $system:ident, $data:ident, $info:ident, $locks:ident, $archetype:ident) => {
+    (@run $system:ident, $data:ident, $info:ident, $guards:ident, $archetype:ident) => {
         $system();
     };
     (@types $system:ident, $info:ident $(,$params:ident)+) => {{
@@ -441,9 +439,9 @@ mod system_tests {
             let mut count = 0;
             let mut system = |_: Query<'_, (&u32,)>| count += 1;
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], None);
-            let mut locks = System::lock(&system, data);
+            let mut guards = System::lock(&system, data);
 
-            System::run_once(&mut system, &info, &mut locks);
+            System::run_once(&mut system, &info, &mut guards);
 
             assert_eq!(count, 1);
         }));
@@ -478,10 +476,10 @@ mod system_tests {
             let mut components = Vec::new();
             let mut system = |c: &u32| components.push(*c);
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], None);
-            let mut locks = System::lock(&system, data);
+            let mut guards = System::lock(&system, data);
             let archetype = ArchetypeInfo::new(1, group_idx);
 
-            System::run(&mut system, data, &info, &mut locks, archetype);
+            System::run(&mut system, data, &info, &mut guards, archetype);
 
             assert_eq!(components, [20]);
         }));
