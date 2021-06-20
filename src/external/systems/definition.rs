@@ -57,83 +57,48 @@ pub trait System<'a, 'b, T>: SealedSystem<T> {
     );
 }
 
-impl<S> SealedSystem<()> for S where S: FnMut() {}
-
-// TODO: include in below macro definition
-impl<'a, 'b, S> System<'a, 'b, ()> for S
-where
-    S: FnMut(),
-{
-    const HAS_MANDATORY_COMPONENT: bool = false;
-    const HAS_ACTIONS: bool = false;
-    type Locks = ();
-
-    fn component_types(&self) -> Vec<TypeAccess> {
-        Vec::new()
-    }
-
-    fn lock(&self, _data: &'b SystemData<'_>) -> Self::Locks {}
-
-    fn archetypes(&self, _data: &SystemData<'_>, _info: &SystemInfo) -> Vec<ArchetypeInfo> {
-        Vec::new()
-    }
-
-    fn run_once(&mut self, _info: &SystemInfo, _locks: &'a mut Self::Locks) {
-        self();
-    }
-
-    fn run(
-        &mut self,
-        _data: &'b SystemData<'_>,
-        _info: &SystemInfo,
-        _locks: &'a mut Self::Locks,
-        _archetype: ArchetypeInfo,
-    ) {
-        self();
-    }
-}
-
 macro_rules! impl_fn_system {
-    ($(($params:ident, $indexes:tt)),+) => {
-        impl<'a, 'b: 'a, S, $($params),+> SealedSystem<($($params,)+)> for S
+    ($(($params:ident, $indexes:tt)),*) => {
+        impl<'a, 'b: 'a, S, $($params),*> SealedSystem<($($params,)*)> for S
         where
-            S: FnMut($($params),+),
-            $($params: SystemParam<'a, 'b>,)+
+            S: FnMut($($params),*),
+            $($params: SystemParam<'a, 'b>,)*
         {
         }
 
-        impl<'a, 'b: 'a, S, $($params),+> System<'a, 'b, ($($params,)+)> for S
+        impl<'a, 'b: 'a, S, $($params),*> System<'a, 'b, ($($params,)*)> for S
         where
-            S: FnMut($($params),+),
-            $($params: SystemParam<'a, 'b>,)+
+            S: FnMut($($params),*),
+            $($params: SystemParam<'a, 'b>,)*
         {
-            const HAS_MANDATORY_COMPONENT: bool = $($params::HAS_MANDATORY_COMPONENT)||+;
-            const HAS_ACTIONS: bool = $($params::HAS_ACTIONS)||+;
-            type Locks = ($($params::Lock,)+);
+            const HAS_MANDATORY_COMPONENT: bool =
+                impl_fn_system!(@condition $($params::HAS_MANDATORY_COMPONENT),*);
+            const HAS_ACTIONS: bool = impl_fn_system!(@condition $($params::HAS_ACTIONS),*);
+            type Locks = ($($params::Lock,)*);
 
+            #[allow(unused_mut)]
             fn component_types(&self) -> Vec<TypeAccess> {
                 let mut types = Vec::new();
-                $(types.extend($params::component_types().into_iter());)+
+                $(types.extend($params::component_types().into_iter());)*
                 types
             }
 
+            #[allow(unused_variables)]
             fn lock(&self, data: &'b SystemData<'_>) -> Self::Locks {
-                ($($params::lock(data),)+)
+                ($($params::lock(data),)*)
             }
 
             fn archetypes(&self, data: &SystemData<'_>, info: &SystemInfo) -> Vec<ArchetypeInfo> {
-                let mut mandatory_component_types = info.filtered_component_types.to_vec();
-                $(mandatory_component_types.extend(
-                    $params::mandatory_component_types().into_iter()
-                );)+
+                let mandatory_component_types = impl_fn_system!(@types self, info $(,$params)*);
                 data.archetypes(&mandatory_component_types, info.group_idx)
             }
 
+            #[allow(unused_variables)]
             fn run_once(&mut self, info: &SystemInfo, locks: &'a mut Self::Locks) {
-                self($($params::get(info, &mut locks.$indexes)),+)
+                self($($params::get(info, &mut locks.$indexes)),*)
             }
 
-            #[allow(non_snake_case, unused_parens)]
+            #[allow(non_snake_case, unused_parens, unused_variables)]
             fn run(
                 &mut self,
                 data: &'b SystemData<'_>,
@@ -141,13 +106,31 @@ macro_rules! impl_fn_system {
                 locks: &'a mut Self::Locks,
                 archetype: ArchetypeInfo,
             ) {
-                itertools::izip!($($params::iter(data, info, &mut locks.$indexes, archetype)),+)
-                    .for_each(|($($params),+)| self($($params),+));
+                impl_fn_system!(@run self, data, info, locks, archetype $(,($params, $indexes))*);
             }
         }
     };
+    (@condition $($term:expr),+) => { $($term)||* };
+    (@condition) => { false };
+    (
+        @run $system:ident, $data:ident, $info:ident, $locks:ident, $archetype:ident
+        $(,($params:ident, $indexes:tt))+
+    ) => {
+        itertools::izip!($($params::iter($data, $info, &mut $locks.$indexes, $archetype)),*)
+            .for_each(|($($params),*)| $system($($params),*));
+    };
+    (@run $system:ident, $data:ident, $info:ident, $locks:ident, $archetype:ident) => {
+        $system();
+    };
+    (@types $system:ident, $info:ident $(,$params:ident)+) => {{
+        let mut mandatory_component_types = $info.filtered_component_types.to_vec();
+        $(mandatory_component_types.extend($params::mandatory_component_types().into_iter());)*
+        mandatory_component_types
+    }};
+    (@types $system:ident, $info:ident) => { Vec::new() };
 }
 
+impl_fn_system!();
 run_for_tuples_with_idxs!(impl_fn_system);
 
 #[doc(hidden)]
