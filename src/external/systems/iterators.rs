@@ -195,8 +195,7 @@ mod group_iter_tests {
 
             let group = group_iter.next();
             assert!(group.is_some());
-            let mut group = group.unwrap();
-            group.delete();
+            group.unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -230,14 +229,12 @@ mod entity_iter_tests {
 
             let entity = entity_iter.next();
             assert!(entity.is_some());
-            let mut entity = entity.unwrap();
-            entity.delete();
+            entity.unwrap().delete();
             let entity = entity_iter.next();
             assert!(entity.is_some());
             let entity = entity_iter.next();
             assert!(entity.is_some());
-            let mut entity = entity.unwrap();
-            entity.delete();
+            entity.unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -272,8 +269,7 @@ mod query_iter_tests {
 
             let query = query_iter.next();
             assert!(query.is_some());
-            let query = query.unwrap();
-            let query_run = query.run(|_: &u32| ());
+            let query_run = query.unwrap().run(|_: &u32| ());
             assert_eq!(query_run.group_idx, Some(group_idx));
             assert_eq!(query_run.filtered_component_types, [TypeId::of::<i64>()]);
         }));

@@ -108,7 +108,7 @@ macro_rules! impl_fn_system {
             }
         }
     };
-    (@condition $($term:expr),+) => { $($term)||* };
+    (@condition $($term:expr),+) => { $($term)||+ };
     (@condition) => { false };
     (
         @run $system:ident, $data:ident, $info:ident, $guards:ident, $archetype:ident
@@ -252,6 +252,7 @@ mod system_tests {
     use super::*;
     use crate::internal::main::MainFacade;
     use crate::{Group, Query, SystemInfo, SystemOnceBuilder};
+    use std::ptr;
 
     #[test]
     fn retrieve_whether_system_with_no_param_has_mandatory_component() {
@@ -379,7 +380,7 @@ mod system_tests {
 
             assert!(lock1.is_some());
             assert_option_iter!(lock1.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
-            assert!(std::ptr::eq(lock2, data));
+            assert!(ptr::eq(lock2, data));
         }));
     }
 

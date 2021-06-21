@@ -91,6 +91,8 @@ pub use external::systems::resources::*;
 
 pub(crate) use external::systems::iterators::*;
 
+// TODO: investigate parametrized tests (https://crates.io/crates/test_case)
+
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");
 
