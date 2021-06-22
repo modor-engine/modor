@@ -278,7 +278,6 @@ mod component_interface_tests {
 
         let guard = interface.read::<u32>();
 
-        assert!(guard.is_some());
         let guard = guard.unwrap();
         assert_option_iter!(guard.iter::<u32>(0), Some(vec![&10]));
         assert_option_iter!(guard.iter::<u32>(1), Some(vec![&20, &30]));
@@ -306,7 +305,6 @@ mod component_interface_tests {
 
         let guard = interface.write::<u32>();
 
-        assert!(guard.is_some());
         let mut guard = guard.unwrap();
         assert_option_iter!(guard.iter_mut::<u32>(0), Some(vec![&mut 10]));
         assert_option_iter!(guard.iter_mut::<u32>(1), Some(vec![&mut 20, &mut 30]));

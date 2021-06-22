@@ -644,7 +644,6 @@ mod component_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let guard = Param::lock(data);
 
-            assert!(guard.is_some());
             assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }
@@ -752,7 +751,6 @@ mod component_mut_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let guard = Param::lock(data);
 
-            assert!(guard.is_some());
             assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }
@@ -860,7 +858,6 @@ mod component_option_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let guard = Param::lock(data);
 
-            assert!(guard.is_some());
             assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }
@@ -974,7 +971,6 @@ mod component_mut_option_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let guard = Param::lock(data);
 
-            assert!(guard.is_some());
             assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }
@@ -1108,9 +1104,7 @@ mod group_system_param_tests {
 
             let mut iter = <Param<'_> as SystemParam>::iter(data, &info, &mut guard, archetype);
 
-            let group = iter.next();
-            assert!(group.is_some());
-            group.unwrap().delete();
+            iter.next().unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -1190,14 +1184,9 @@ mod entity_system_param_tests {
 
             let mut iter = <Param<'_> as SystemParam>::iter(data, &info, &mut guard, archetype);
 
-            let entity = iter.next();
-            assert!(entity.is_some());
-            entity.unwrap().delete();
-            let entity = iter.next();
-            assert!(entity.is_some());
-            let entity = iter.next();
-            assert!(entity.is_some());
-            entity.unwrap().delete();
+            iter.next().unwrap().delete();
+            assert!(iter.next().is_some());
+            iter.next().unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -1279,9 +1268,8 @@ mod query_system_param_tests {
 
             let mut iter = <Param<'_> as SystemParam>::iter(data, &info, &mut guard, archetype);
 
-            let query = iter.next();
-            assert!(query.is_some());
-            let query_run = query.unwrap().run_mut(|_: &u32, _: Option<&mut i64>| ());
+            let mut query = iter.next().unwrap();
+            let query_run = query.run_mut(|_: &u32, _: Option<&mut i64>| ());
             assert_eq!(query_run.group_idx, Some(group_idx));
             assert_eq!(query_run.filtered_component_types, []);
         }));
@@ -1346,8 +1334,6 @@ mod tuple_with_many_items_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let (guard1, guard2) = Param::lock(data);
 
-            assert!(guard1.is_some());
-            assert!(guard2.is_some());
             let guard1 = guard1.unwrap();
             let guard2 = guard2.unwrap();
             assert_option_iter!(guard1.0.iter::<u32>(0), Some(vec![&10]));

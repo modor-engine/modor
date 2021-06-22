@@ -242,9 +242,8 @@ mod component_storage_tests {
     {
         assert!(components.len() > type_idx);
         let guard = &components[type_idx].try_read().unwrap();
-        let downcast_components = guard.0.downcast_ref::<Vec<Vec<C>>>();
-        assert!(downcast_components.is_some());
-        assert_eq!(downcast_components.unwrap(), expected);
+        let downcast_components = guard.0.downcast_ref::<Vec<Vec<C>>>().unwrap();
+        assert_eq!(downcast_components, expected);
     }
 
     #[test]

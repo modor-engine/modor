@@ -378,7 +378,6 @@ mod system_tests {
 
             let (lock1, lock2) = System::lock(&system, data);
 
-            assert!(lock1.is_some());
             assert_option_iter!(lock1.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
             assert!(ptr::eq(lock2, data));
         }));
@@ -529,7 +528,6 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let components = data.read_components::<u32>();
 
-            assert!(components.is_some());
             assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }
@@ -545,7 +543,6 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let components = data.write_components::<u32>();
 
-            assert!(components.is_some());
             assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
     }

@@ -193,9 +193,7 @@ mod group_iter_tests {
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
             let mut group_iter = GroupIter::new(group_idx, data.clone());
 
-            let group = group_iter.next();
-            assert!(group.is_some());
-            group.unwrap().delete();
+            group_iter.next().unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -227,14 +225,9 @@ mod entity_iter_tests {
             let components = &[0, 1, 2];
             let mut entity_iter = EntityIter::new(components.iter(), data.clone());
 
-            let entity = entity_iter.next();
-            assert!(entity.is_some());
-            entity.unwrap().delete();
-            let entity = entity_iter.next();
-            assert!(entity.is_some());
-            let entity = entity_iter.next();
-            assert!(entity.is_some());
-            entity.unwrap().delete();
+            entity_iter.next().unwrap().delete();
+            assert!(entity_iter.next().is_some());
+            entity_iter.next().unwrap().delete();
         }));
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
@@ -267,9 +260,8 @@ mod query_iter_tests {
 
             let mut query_iter = QueryIter::new(query);
 
-            let query = query_iter.next();
-            assert!(query.is_some());
-            let query_run = query.unwrap().run(|_: &u32| ());
+            let query = query_iter.next().unwrap();
+            let query_run = query.run(|_: &u32| ());
             assert_eq!(query_run.group_idx, Some(group_idx));
             assert_eq!(query_run.filtered_component_types, [TypeId::of::<i64>()]);
         }));
