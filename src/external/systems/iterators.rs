@@ -262,7 +262,7 @@ mod query_iter_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
         main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(data.clone(), Some(group_idx));
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
             query.filter::<i64>();
 
             let mut query_iter = QueryIter::new(query);

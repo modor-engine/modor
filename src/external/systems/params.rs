@@ -308,11 +308,11 @@ where
         guard: &'a mut Self::Guard,
         _archetype: ArchetypeInfo,
     ) -> Self::Iter {
-        QueryIter::new(Self::new(guard.clone(), info.group_idx))
+        QueryIter::new(Self::new(info.group_idx, guard.clone()))
     }
 
     fn get(info: &SystemInfo, guard: &'a mut Self::Guard) -> Self {
-        Self::new(guard.clone(), info.group_idx)
+        Self::new(info.group_idx, guard.clone())
     }
 }
 
@@ -583,14 +583,14 @@ pub(crate) mod internal {
     impl NotEnoughEntityPartSystemParam for Entity<'_> {}
 
     macro_rules! impl_not_enough_entity_part_system_param {
-    ($($params:ident),*) => {
-        impl<$($params),*> NotEnoughEntityPartSystemParam for ($($params,)*)
-        where
-            $($params: NotEnoughEntityPartSystemParam,)*
-        {
-        }
-    };
-}
+        ($($params:ident),*) => {
+            impl<$($params),*> NotEnoughEntityPartSystemParam for ($($params,)*)
+            where
+                $($params: NotEnoughEntityPartSystemParam,)*
+            {
+            }
+        };
+    }
 
     run_for_tuples!(impl_not_enough_entity_part_system_param);
 

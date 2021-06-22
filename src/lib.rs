@@ -92,6 +92,7 @@ pub use external::systems::resources::*;
 pub(crate) use external::systems::iterators::*;
 
 // TODO: investigate parametrized tests (https://crates.io/crates/test_case)
+// TODO: remove `assert!(x.is_some())` from tests
 
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");
@@ -111,3 +112,4 @@ doc_comment::doctest!("../README.md");
 // - avoid line breaks for a single instruction when not method chaining
 // - put maximum of logic in "internal" module
 // - README, documentation and CHANGELOG are up-to-date
+// - don't put assert!(x.is_some()); in tests as unwrap already test the value exists

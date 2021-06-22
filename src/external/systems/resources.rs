@@ -366,7 +366,7 @@ where
         self.group_idx = None;
     }
 
-    pub(crate) fn new(data: SystemData<'a>, group_idx: Option<NonZeroUsize>) -> Self {
+    pub(crate) fn new(group_idx: Option<NonZeroUsize>, data: SystemData<'a>) -> Self {
         Self {
             data,
             filtered_component_types: Vec::new(),
@@ -449,26 +449,306 @@ pub struct QueryRun<'a, S> {
 #[cfg(test)]
 mod group_tests {
     use super::*;
+    use crate::internal::main::MainFacade;
+    use crate::{Built, SystemOnceBuilder};
+
+    #[derive(PartialEq, Debug)]
+    struct Number(u32);
+
+    impl EntityMainComponent for Number {
+        type Data = u32;
+        fn build(builder: &mut EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
+        }
+    }
 
     assert_impl_all!(Group<'_>: Sync, Send);
     assert_not_impl_any!(Group<'_>: Clone);
+
+    #[test]
+    fn replace() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut group = Group::new(group_idx, data.clone());
+
+            group.replace(|b| {
+                b.with_entity::<Number>(20);
+            });
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(0), [0]);
+            let guard = data.read_components::<Number>().unwrap();
+            let components = data.component_iter::<Number>(&guard.0, 0);
+            assert_option_iter!(components, Some(vec![&Number(20)]));
+        }));
+    }
+
+    #[test]
+    fn delete() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut group = Group::new(group_idx, data.clone());
+
+            group.delete();
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(0), []);
+        }));
+    }
+
+    #[test]
+    fn create_entity() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut group = Group::new(group_idx, data.clone());
+
+            group.create_entity::<Number>(20);
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(0), [0]);
+            assert_eq!(data.entity_idxs(1), [1]);
+            let guard = data.read_components::<Number>().unwrap();
+            let components = data.component_iter::<Number>(&guard.0, 1);
+            assert_option_iter!(components, Some(vec![&Number(20)]));
+        }));
+    }
 }
 
 #[cfg(test)]
 mod entity_tests {
     use super::*;
+    use crate::internal::main::MainFacade;
+    use crate::SystemOnceBuilder;
 
     assert_impl_all!(Entity<'_>: Sync, Send);
     assert_not_impl_any!(Entity<'_>: Clone);
+
+    #[test]
+    fn delete() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity1_idx = main.create_entity(group_idx);
+        let entity2_idx = main.create_entity(group_idx);
+        main.add_component(entity1_idx, 10_u32);
+        main.add_component(entity2_idx, 20_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut entity = Entity::new(0, data.clone());
+
+            entity.delete();
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(0), [1]);
+        }));
+    }
+
+    #[test]
+    fn add_component() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut entity = Entity::new(0, data.clone());
+
+            entity.add_component(20_i64);
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(1), [0]);
+            let guard = data.read_components::<u32>().unwrap();
+            let components = data.component_iter::<u32>(&guard.0, 1);
+            assert_option_iter!(components, Some(vec![&10]));
+            let guard = data.read_components::<i64>().unwrap();
+            let components = data.component_iter::<i64>(&guard.0, 1);
+            assert_option_iter!(components, Some(vec![&20]));
+        }));
+    }
+
+    #[test]
+    fn delete_component() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.add_component(entity_idx, 20_i64);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut entity = Entity::new(0, data.clone());
+
+            entity.delete_component::<u32>();
+        }));
+
+        main.apply_system_actions();
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            assert_eq!(data.entity_idxs(2), [0]);
+            let guard = data.read_components::<u32>().unwrap();
+            assert!(data.component_iter::<u32>(&guard.0, 2).is_none());
+            let guard = data.read_components::<i64>().unwrap();
+            let components = data.component_iter::<i64>(&guard.0, 2);
+            assert_option_iter!(components, Some(vec![&20]));
+        }));
+    }
 }
 
 #[cfg(test)]
 mod query_tests {
     use super::*;
+    use crate::internal::main::MainFacade;
+    use crate::SystemOnceBuilder;
 
     assert_impl_all!(Query<'_, (&u32,)>: Sync, Send, Clone);
     assert_impl_all!(Query<'_, (&mut u32,)>: Sync, Send);
     assert_not_impl_any!(Query<'_, (&mut u32,)>: Clone);
+
+    #[test]
+    fn run_default() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            let mut count = 0;
+            let system = |x: &u32| count += x;
+
+            let mut query_run = query.run(system);
+
+            assert_eq!(query_run.group_idx, Some(group_idx));
+            assert_eq!(query_run.filtered_component_types, vec![]);
+            (query_run.system)(&42);
+            assert_eq!(count, 42);
+        }));
+    }
+
+    #[test]
+    fn run_with_filtered_components() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            query.filter::<u32>();
+            query.filter::<i64>();
+            let system = |_: &u32| ();
+
+            let query_run = query.run(system);
+
+            let types = query_run.filtered_component_types;
+            assert_eq!(types, vec![TypeId::of::<u32>(), TypeId::of::<i64>()]);
+        }));
+    }
+
+    #[test]
+    fn run_with_unlocked_groups() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            query.unlock_groups();
+            let system = |_: &u32| ();
+
+            let query_run = query.run(system);
+
+            assert_eq!(query_run.group_idx, None);
+        }));
+    }
+
+    #[test]
+    fn run_mut_default() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            let mut count = 0;
+            let system = |x: &u32| count += x;
+
+            let mut query_run = query.run_mut(system);
+
+            assert_eq!(query_run.group_idx, Some(group_idx));
+            assert_eq!(query_run.filtered_component_types, vec![]);
+            (query_run.system)(&42);
+            assert_eq!(count, 42);
+        }));
+    }
+
+    #[test]
+    fn run_mut_with_filtered_components() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            query.filter::<u32>();
+            query.filter::<i64>();
+            let system = |_: &u32| ();
+
+            let query_run = query.run_mut(system);
+
+            let types = query_run.filtered_component_types;
+            assert_eq!(types, vec![TypeId::of::<u32>(), TypeId::of::<i64>()]);
+        }));
+    }
+
+    #[test]
+    fn run_mut_with_unlocked_groups() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            query.unlock_groups();
+            let system = |_: &u32| ();
+
+            let query_run = query.run_mut(system);
+
+            assert_eq!(query_run.group_idx, None);
+        }));
+    }
+
+    #[test]
+    fn clone() {
+        let mut main = MainFacade::default();
+        let group_idx = main.create_group();
+        let entity_idx = main.create_entity(group_idx);
+        main.add_component(entity_idx, 10_u32);
+        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+            query.unlock_groups();
+            query.filter::<u32>();
+            let system = |_: &u32| ();
+
+            let query_clone = query.clone();
+
+            let query_run = query_clone.run(system);
+            assert_eq!(query_run.group_idx, None);
+            let types = query_run.filtered_component_types;
+            assert_eq!(types, vec![TypeId::of::<u32>()]);
+        }));
+    }
 }
 
 #[cfg(test)]
