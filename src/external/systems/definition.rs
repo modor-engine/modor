@@ -13,11 +13,15 @@ use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
 /// Characterize a system that is runnable by the application.
 ///
-/// System can be registered and run by the application using the [`system!`](crate::system!) and
-/// [`system_once!`](crate::system_once!) macros.
+/// System can be registered and run by the application using one of the following macros:
+/// - [`system!`](crate::system!)
+/// - [`entity_system!`](crate::entity_system!)
+/// - [`system_once!`](crate::system_once!)
 pub trait System<'a, 'b, T>: SealedSystem<T> {
     #[doc(hidden)]
     const HAS_MANDATORY_COMPONENT: bool;
+    #[doc(hidden)]
+    const HAS_ENTITY_PART: bool;
     #[doc(hidden)]
     const HAS_ACTIONS: bool;
     #[doc(hidden)]
@@ -26,6 +30,11 @@ pub trait System<'a, 'b, T>: SealedSystem<T> {
     #[doc(hidden)]
     fn has_mandatory_component(&self) -> bool {
         Self::HAS_MANDATORY_COMPONENT
+    }
+
+    #[doc(hidden)]
+    fn has_entity_part(&self) -> bool {
+        Self::HAS_ENTITY_PART
     }
 
     #[doc(hidden)]
@@ -71,6 +80,8 @@ macro_rules! impl_fn_system {
         {
             const HAS_MANDATORY_COMPONENT: bool =
                 impl_fn_system!(@condition $($params::HAS_MANDATORY_COMPONENT),*);
+            const HAS_ENTITY_PART: bool =
+                impl_fn_system!(@condition $($params::HAS_ENTITY_PART),*);
             const HAS_ACTIONS: bool = impl_fn_system!(@condition $($params::HAS_ACTIONS),*);
             type Guards = ($($params::Guard,)*);
 
@@ -358,10 +369,10 @@ mod system_tests {
     #[test]
     fn lock_resources_for_system_with_no_param() {
         let mut main = MainFacade::default();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let system = || ();
 
-            assert!(matches!(System::lock(&system, data), ()));
+            assert!(matches!(System::lock(&system, d), ()));
         }));
     }
 
@@ -373,13 +384,13 @@ mod system_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let system = |_: &u32, _: Group<'_>| ();
 
-            let (lock1, lock2) = System::lock(&system, data);
+            let (lock1, lock2) = System::lock(&system, d);
 
             assert_option_iter!(lock1.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
-            assert!(ptr::eq(lock2, data));
+            assert!(ptr::eq(lock2, d));
         }));
     }
 
@@ -389,11 +400,11 @@ mod system_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let system = || ();
             let info = SystemInfo::new(vec![TypeId::of::<u32>()], Some(group_idx));
 
-            let archetypes = System::archetypes(&system, data, &info);
+            let archetypes = System::archetypes(&system, d, &info);
 
             assert_eq!(archetypes, []);
         }));
@@ -408,11 +419,11 @@ mod system_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
         main.add_component(entity2_idx, 30_i64);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let system = |_: &u32, _: Group<'_>| ();
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], Some(group_idx));
 
-            let archetypes = System::archetypes(&system, data, &info);
+            let archetypes = System::archetypes(&system, d, &info);
 
             assert_eq!(archetypes, [ArchetypeInfo::new(1, group_idx)]);
         }));
@@ -435,11 +446,11 @@ mod system_tests {
     #[test]
     fn run_once_system_with_params() {
         let mut main = MainFacade::default();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let mut count = 0;
             let mut system = |_: Query<'_, (&u32,)>| count += 1;
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], None);
-            let mut guards = System::lock(&system, data);
+            let mut guards = System::lock(&system, d);
 
             System::run_once(&mut system, &info, &mut guards);
 
@@ -451,13 +462,13 @@ mod system_tests {
     fn run_system_with_no_param() {
         let mut main = MainFacade::default();
         let group_idx = main.create_group();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let mut count = 0;
             let mut system = || count += 1;
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], None);
             let archetype = ArchetypeInfo::new(0, group_idx);
 
-            System::run(&mut system, data, &info, &mut (), archetype);
+            System::run(&mut system, d, &info, &mut (), archetype);
 
             assert_eq!(count, 1);
         }));
@@ -472,14 +483,14 @@ mod system_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
         main.add_component(entity2_idx, 30_i64);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let mut components = Vec::new();
             let mut system = |c: &u32| components.push(*c);
             let info = SystemInfo::new(vec![TypeId::of::<i64>()], None);
-            let mut guards = System::lock(&system, data);
+            let mut guards = System::lock(&system, d);
             let archetype = ArchetypeInfo::new(1, group_idx);
 
-            System::run(&mut system, data, &info, &mut guards, archetype);
+            System::run(&mut system, d, &info, &mut guards, archetype);
 
             assert_eq!(components, [20]);
         }));
@@ -510,8 +521,8 @@ mod system_data_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let entity_idxs = data.entity_idxs(0);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let entity_idxs = d.entity_idxs(0);
 
             assert_eq!(entity_idxs, [0, 1]);
         }));
@@ -525,8 +536,8 @@ mod system_data_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let components = data.read_components::<u32>();
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let components = d.read_components::<u32>();
 
             assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
@@ -540,8 +551,8 @@ mod system_data_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let components = data.write_components::<u32>();
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let components = d.write_components::<u32>();
 
             assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
         }));
@@ -555,10 +566,10 @@ mod system_data_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let components = data.read_components::<u32>().unwrap();
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let components = d.read_components::<u32>().unwrap();
 
-            let component_iter = data.component_iter::<u32>(&components.0, 0);
+            let component_iter = d.component_iter::<u32>(&components.0, 0);
 
             assert_option_iter!(component_iter, Some(vec![&10, &20]));
         }));
@@ -572,10 +583,10 @@ mod system_data_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut components = data.write_components::<u32>().unwrap();
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut components = d.write_components::<u32>().unwrap();
 
-            let component_iter = data.component_iter_mut::<u32>(&mut components.0, 0);
+            let component_iter = d.component_iter_mut::<u32>(&mut components.0, 0);
 
             assert_option_iter!(component_iter, Some(vec![&mut 10, &mut 20]));
         }));
@@ -590,14 +601,14 @@ mod system_data_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
 
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            data.actions_mut().delete_entity(0);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            d.actions_mut().delete_entity(0);
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let components = data.read_components::<u32>().unwrap();
-            let component_iter = data.component_iter::<u32>(&components.0, 0);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let components = d.read_components::<u32>().unwrap();
+            let component_iter = d.component_iter::<u32>(&components.0, 0);
             assert_option_iter!(component_iter, Some(vec![&20]));
         }));
     }
@@ -612,9 +623,9 @@ mod system_data_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
 
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let actions = data.actions_mut();
-            data.actions_mut().delete_entity(0);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let actions = d.actions_mut();
+            d.actions_mut().delete_entity(0);
             drop(actions);
         }));
     }
@@ -633,11 +644,11 @@ mod system_data_tests {
         main.add_component(entity2_idx, 20_i64);
         main.add_component(entity3_idx, 30_i64);
         main.add_component(entity4_idx, 40_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let component_types = &[TypeId::of::<u32>()];
             let group_idx_filter = Some(group1_idx);
 
-            let archetypes = data.archetypes(component_types, group_idx_filter);
+            let archetypes = d.archetypes(component_types, group_idx_filter);
 
             let expected_archetypes = [
                 ArchetypeInfo::new(0, group1_idx),

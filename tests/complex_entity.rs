@@ -18,7 +18,7 @@ impl EntityMainComponent for Parent {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::increment));
+        runner.run(entity_system!(Self::increment));
     }
 }
 
@@ -42,8 +42,8 @@ impl EntityMainComponent for Child {
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
         runner
-            .run(system!(Self::increment))
-            .run(system!(Self::duplicate_if_not_zero));
+            .run(entity_system!(Self::increment))
+            .run(entity_system!(Self::duplicate_if_not_zero));
     }
 }
 

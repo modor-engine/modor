@@ -52,7 +52,7 @@
 //!     }
 //!
 //!     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-//!         runner.run(system!(Self::fire_when_enemy));
+//!         runner.run(entity_system!(Self::fire_when_enemy));
 //!     }
 //! }
 //!

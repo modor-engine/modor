@@ -44,7 +44,7 @@ impl EntityMainComponent for DynamicBody {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::update));
+        runner.run(entity_system!(Self::update));
     }
 }
 

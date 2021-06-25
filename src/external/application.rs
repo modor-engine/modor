@@ -233,7 +233,7 @@ impl Application {
     ///
     /// ```rust
     /// # use modor::{
-    /// #     Application, system, EntityMainComponent, Built, EntityBuilder, GroupBuilder,
+    /// #     Application, entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder,
     /// #     EntityRunner
     /// # };
     /// #
@@ -258,7 +258,7 @@ impl Application {
     ///     }
     ///
     ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-    ///         runner.run(system!(Self::update_position));
+    ///         runner.run(entity_system!(Self::update_position));
     ///     }
     /// }
     ///

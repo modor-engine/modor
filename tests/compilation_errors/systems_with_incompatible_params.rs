@@ -12,6 +12,30 @@ fn main() {
     system!(tuples_with_incompatible_params);
     system!(query_with_incompatible_params);
     system!(nested_incompatible_params);
+
+    system_once!(const_and_mut_same_component);
+    system_once!(mut_and_const_same_component);
+    system_once!(mut_and_mut_same_component);
+    system_once!(const_and_mut_same_option_component);
+    system_once!(two_groups);
+    system_once!(two_entities);
+    system_once!(incompatible_tuples);
+    system_once!(incompatible_queries);
+    system_once!(tuples_with_incompatible_params);
+    system_once!(query_with_incompatible_params);
+    system_once!(nested_incompatible_params);
+
+    entity_system!(const_and_mut_same_component);
+    entity_system!(mut_and_const_same_component);
+    entity_system!(mut_and_mut_same_component);
+    entity_system!(const_and_mut_same_option_component);
+    entity_system!(two_groups);
+    entity_system!(two_entities);
+    entity_system!(incompatible_tuples);
+    entity_system!(incompatible_queries);
+    entity_system!(tuples_with_incompatible_params);
+    entity_system!(query_with_incompatible_params);
+    entity_system!(nested_incompatible_params);
 }
 
 fn const_and_mut_same_component(_: &u32, _: &String, _: &mut u32) {}

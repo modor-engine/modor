@@ -32,10 +32,10 @@ impl EntityMainComponent for StaticBody {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::print));
-        runner.run(system!(Self::count_velocity));
-        runner.run(system!(Self::count_velocity_mut));
-        runner.run(system!(Self::option));
+        runner.run(entity_system!(Self::print));
+        runner.run(entity_system!(Self::count_velocity));
+        runner.run(entity_system!(Self::count_velocity_mut));
+        runner.run(entity_system!(Self::option));
     }
 }
 
@@ -76,7 +76,7 @@ impl EntityMainComponent for DynamicBody {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::print));
+        runner.run(entity_system!(Self::print));
     }
 }
 

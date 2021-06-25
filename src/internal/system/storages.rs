@@ -108,10 +108,10 @@ mod system_storage_tests {
     fn add_first_system_to_group() {
         let mut storage = SystemStorage::default();
 
-        let system_idx = storage.add(1, |data, info| {
-            assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
-            assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut().delete_group(1.try_into().unwrap());
+        let system_idx = storage.add(1, |d, i| {
+            assert_eq!(i.group_idx, Some(1.try_into().unwrap()));
+            assert_eq!(i.filtered_component_types, vec![TypeId::of::<u32>()]);
+            d.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -138,10 +138,10 @@ mod system_storage_tests {
         let mut storage = SystemStorage::default();
         storage.add(1, |_, _| ());
 
-        let system_idx = storage.add(1, |data, info| {
-            assert_eq!(info.group_idx, Some(1.try_into().unwrap()));
-            assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut().delete_group(1.try_into().unwrap());
+        let system_idx = storage.add(1, |d, i| {
+            assert_eq!(i.group_idx, Some(1.try_into().unwrap()));
+            assert_eq!(i.filtered_component_types, vec![TypeId::of::<u32>()]);
+            d.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 1);
@@ -159,10 +159,10 @@ mod system_storage_tests {
     fn add_system_to_global_group() {
         let mut storage = SystemStorage::default();
 
-        let system_idx = storage.add(0, |data, info| {
-            assert_eq!(info.group_idx, None);
-            assert_eq!(info.filtered_component_types, vec![TypeId::of::<u32>()]);
-            data.actions_mut().delete_group(1.try_into().unwrap());
+        let system_idx = storage.add(0, |d, i| {
+            assert_eq!(i.group_idx, None);
+            assert_eq!(i.filtered_component_types, vec![TypeId::of::<u32>()]);
+            d.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         assert_eq!(system_idx, 0);
@@ -178,8 +178,8 @@ mod system_storage_tests {
     #[test]
     fn delete_missing_group() {
         let mut storage = SystemStorage::default();
-        let system_idx = storage.add(1, |data, _| {
-            data.actions_mut().delete_group(1.try_into().unwrap());
+        let system_idx = storage.add(1, |d, _| {
+            d.actions_mut().delete_group(1.try_into().unwrap());
         });
 
         storage.delete(2.try_into().unwrap());
@@ -193,11 +193,11 @@ mod system_storage_tests {
     #[test]
     fn delete_existing_group() {
         let mut storage = SystemStorage::default();
-        let system1_idx = storage.add(1, |data, _| {
-            data.actions_mut().delete_group(1.try_into().unwrap());
+        let system1_idx = storage.add(1, |d, _| {
+            d.actions_mut().delete_group(1.try_into().unwrap());
         });
-        let system2_idx = storage.add(2, |data, _| {
-            data.actions_mut().delete_group(2.try_into().unwrap());
+        let system2_idx = storage.add(2, |d, _| {
+            d.actions_mut().delete_group(2.try_into().unwrap());
         });
 
         storage.delete(1.try_into().unwrap());

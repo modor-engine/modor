@@ -36,8 +36,8 @@ impl EntityMainComponent for MainEntity {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::update1));
-        runner.run(system!(Self::update2));
+        runner.run(entity_system!(Self::update1));
+        runner.run(entity_system!(Self::update2));
     }
 }
 

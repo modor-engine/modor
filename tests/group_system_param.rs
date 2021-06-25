@@ -15,13 +15,12 @@ impl EntityMainComponent for GroupReplacer {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(system!(Self::replace_group));
+        runner.run(entity_system!(Self::replace_group));
     }
 }
 
 impl GroupReplacer {
-    // TODO: remove &self
-    fn replace_group(&self, mut group: Group<'_>) {
+    fn replace_group(mut group: Group<'_>) {
         group.replace(|b| {
             b.with_entity::<Self>(100);
             b.with_entity::<Self>(200);

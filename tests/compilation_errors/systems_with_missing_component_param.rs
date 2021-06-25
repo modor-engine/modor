@@ -6,6 +6,12 @@ fn main() {
     system!(multiple_not_component_entity_params);
     system!(not_component_entity_params_and_query);
     system!(tuple_with_not_component_entity_params);
+
+    system_once!(only_option_component);
+    system_once!(only_group);
+    system_once!(multiple_not_component_entity_params);
+    system_once!(not_component_entity_params_and_query);
+    system_once!(tuple_with_not_component_entity_params);
 }
 
 fn only_option_component(_: Option<&u32>) {}

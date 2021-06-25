@@ -471,8 +471,8 @@ mod group_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut group = Group::new(group_idx, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut group = Group::new(group_idx, d.clone());
 
             group.replace(|b| {
                 b.with_entity::<Number>(20);
@@ -480,10 +480,10 @@ mod group_tests {
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(0), [0]);
-            let guard = data.read_components::<Number>().unwrap();
-            let components = data.component_iter::<Number>(&guard.0, 0);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(0), [0]);
+            let guard = d.read_components::<Number>().unwrap();
+            let components = d.component_iter::<Number>(&guard.0, 0);
             assert_option_iter!(components, Some(vec![&Number(20)]));
         }));
     }
@@ -494,15 +494,15 @@ mod group_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut group = Group::new(group_idx, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut group = Group::new(group_idx, d.clone());
 
             group.delete();
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(0), []);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(0), []);
         }));
     }
 
@@ -512,18 +512,18 @@ mod group_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut group = Group::new(group_idx, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut group = Group::new(group_idx, d.clone());
 
             group.create_entity::<Number>(20);
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(0), [0]);
-            assert_eq!(data.entity_idxs(1), [1]);
-            let guard = data.read_components::<Number>().unwrap();
-            let components = data.component_iter::<Number>(&guard.0, 1);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(0), [0]);
+            assert_eq!(d.entity_idxs(1), [1]);
+            let guard = d.read_components::<Number>().unwrap();
+            let components = d.component_iter::<Number>(&guard.0, 1);
             assert_option_iter!(components, Some(vec![&Number(20)]));
         }));
     }
@@ -546,15 +546,15 @@ mod entity_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut entity = Entity::new(0, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut entity = Entity::new(0, d.clone());
 
             entity.delete();
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(0), [1]);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(0), [1]);
         }));
     }
 
@@ -564,20 +564,20 @@ mod entity_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut entity = Entity::new(0, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut entity = Entity::new(0, d.clone());
 
             entity.add_component(20_i64);
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(1), [0]);
-            let guard = data.read_components::<u32>().unwrap();
-            let components = data.component_iter::<u32>(&guard.0, 1);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(1), [0]);
+            let guard = d.read_components::<u32>().unwrap();
+            let components = d.component_iter::<u32>(&guard.0, 1);
             assert_option_iter!(components, Some(vec![&10]));
-            let guard = data.read_components::<i64>().unwrap();
-            let components = data.component_iter::<i64>(&guard.0, 1);
+            let guard = d.read_components::<i64>().unwrap();
+            let components = d.component_iter::<i64>(&guard.0, 1);
             assert_option_iter!(components, Some(vec![&20]));
         }));
     }
@@ -589,19 +589,19 @@ mod entity_tests {
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
         main.add_component(entity_idx, 20_i64);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut entity = Entity::new(0, data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut entity = Entity::new(0, d.clone());
 
             entity.delete_component::<u32>();
         }));
 
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            assert_eq!(data.entity_idxs(2), [0]);
-            let guard = data.read_components::<u32>().unwrap();
-            assert!(data.component_iter::<u32>(&guard.0, 2).is_none());
-            let guard = data.read_components::<i64>().unwrap();
-            let components = data.component_iter::<i64>(&guard.0, 2);
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            assert_eq!(d.entity_idxs(2), [0]);
+            let guard = d.read_components::<u32>().unwrap();
+            assert!(d.component_iter::<u32>(&guard.0, 2).is_none());
+            let guard = d.read_components::<i64>().unwrap();
+            let components = d.component_iter::<i64>(&guard.0, 2);
             assert_option_iter!(components, Some(vec![&20]));
         }));
     }
@@ -623,8 +623,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             let mut count = 0;
             let system = |x: &u32| count += x;
 
@@ -643,8 +643,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             query.filter::<u32>();
             query.filter::<i64>();
             let system = |_: &u32| ();
@@ -662,8 +662,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             query.unlock_groups();
             let system = |_: &u32| ();
 
@@ -679,8 +679,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             let mut count = 0;
             let system = |x: &u32| count += x;
 
@@ -699,8 +699,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             query.filter::<u32>();
             query.filter::<i64>();
             let system = |_: &u32| ();
@@ -718,8 +718,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             query.unlock_groups();
             let system = |_: &u32| ();
 
@@ -735,8 +735,8 @@ mod query_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|data, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        main.run_system_once(SystemOnceBuilder::new(|d, _| {
+            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
             query.unlock_groups();
             query.filter::<u32>();
             let system = |_: &u32| ();

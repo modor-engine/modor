@@ -1,6 +1,6 @@
 use crate::internal::main::MainFacade;
 use crate::internal::system::data::SystemDetails;
-use crate::SystemBuilder;
+use crate::EntitySystemBuilder;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
@@ -15,7 +15,7 @@ use std::num::NonZeroUsize;
 ///
 /// ```rust
 /// # use modor::{
-/// #     system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
+/// #     entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
 /// # };
 /// #
 /// struct Body;
@@ -31,7 +31,7 @@ use std::num::NonZeroUsize;
 ///     }
 ///
 ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-///         runner.run(system!(Self::update_position));
+///         runner.run(entity_system!(Self::update_position));
 ///     }
 /// }
 ///
@@ -105,7 +105,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     ///
     /// ```rust
     /// # use modor::{
-    /// #     system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
+    /// #     entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
     /// # };
     /// #
     /// struct Body;
@@ -122,8 +122,8 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     ///
     ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
     ///         runner
-    ///             .run(system!(Self::update_position))
-    ///             .run(system!(Self::increment_velocity));
+    ///             .run(entity_system!(Self::update_position))
+    ///             .run(entity_system!(Self::increment_velocity));
     ///     }
     /// }
     ///
@@ -208,7 +208,7 @@ where
     ///
     /// ```rust
     /// # use modor::{
-    /// #     system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
+    /// #     entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
     /// # };
     /// #
     /// struct Parent;
@@ -223,7 +223,7 @@ where
     ///     }
     ///
     ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-    ///         runner.run(system!(Self::parent_system));
+    ///         runner.run(entity_system!(Self::parent_system));
     ///     }
     /// }
     ///
@@ -367,7 +367,7 @@ where
 ///
 /// ```rust
 /// # use modor::{
-/// #     system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
+/// #     entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
 /// # };
 /// #
 /// struct Body;
@@ -384,8 +384,8 @@ where
 ///
 ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
 ///         runner
-///             .run(system!(Self::update_position))
-///             .run(system!(Self::increment_velocity));
+///             .run(entity_system!(Self::update_position))
+///             .run(entity_system!(Self::increment_velocity));
 ///     }
 /// }
 ///
@@ -428,17 +428,18 @@ where
     ///
     /// Systems registered by this method are run each time
     /// [`Application::update`](crate::Application::update) is called, and iterates on all queried
-    /// entities containing a component of type `M` regardless their group.<br>
+    /// entities containing a component of type `M` (even if component type `M` is not present in
+    /// system parameters) regardless their group.<br>
     /// [`Query`](crate::Query) arguments of entity systems iterate on all queried entities
     /// regardless the entity group and type.
     ///
-    /// `system` must be defined using the [`system!`](crate::system!) macro.
+    /// `system` must be defined using the [`entity_system!`](crate::entity_system!) macro.
     ///
     /// # Examples
     ///
     /// ```rust
     /// # use modor::{
-    /// #     system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
+    /// #     entity_system, EntityMainComponent, Built, EntityBuilder, GroupBuilder, EntityRunner
     /// # };
     /// #
     /// struct Body;
@@ -455,8 +456,8 @@ where
     ///
     ///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
     ///         runner
-    ///             .run(system!(Self::update_position))
-    ///             .run(system!(Self::increment_velocity));
+    ///             .run(entity_system!(Self::update_position))
+    ///             .run(entity_system!(Self::increment_velocity));
     ///     }
     /// }
     ///
@@ -482,7 +483,7 @@ where
     /// #     y: f32,
     /// # }
     /// ```
-    pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
+    pub fn run(&mut self, system: EntitySystemBuilder) -> &mut Self {
         let entity_type = Some(TypeId::of::<M>());
         let system = SystemDetails::new(
             system.wrapper,
@@ -646,7 +647,7 @@ mod entity_runner_tests {
         main.create_group();
         let mut builder = EntityRunner::<MyEntity>::new(&mut main);
 
-        builder.run(SystemBuilder::new(
+        builder.run(EntitySystemBuilder::new(
             |d, i| {
                 d.actions_mut().delete_group(1.try_into().unwrap());
                 assert_eq!(i.filtered_component_types, vec![TypeId::of::<MyEntity>()]);

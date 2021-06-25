@@ -405,7 +405,7 @@ mod main_facade_tests {
         let entity_idx = facade.create_entity(group_idx);
         facade.add_component::<u32>(entity_idx, 42);
         facade.add_component::<i64>(entity_idx, 13);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_component::<String>(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<String>(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -422,7 +422,7 @@ mod main_facade_tests {
         facade.create_entity(group_idx);
         let entity_idx = facade.create_entity(group_idx);
         facade.add_component::<u32>(entity_idx, 42);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_component::<u32>(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<u32>(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -440,7 +440,7 @@ mod main_facade_tests {
         let entity2_idx = facade.create_entity(group_idx);
         facade.add_component::<u32>(entity2_idx, 20);
         facade.add_component::<i64>(entity2_idx, 30);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_component::<i64>(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<i64>(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -457,7 +457,7 @@ mod main_facade_tests {
         let group_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group_idx);
         facade.add_component::<u32>(entity1_idx, 10);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_component::<u32>(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<u32>(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -473,7 +473,7 @@ mod main_facade_tests {
         let entity1_idx = facade.create_entity(group_idx);
         facade.add_component::<u32>(entity1_idx, 10);
         facade.add_component::<i64>(entity1_idx, 20);
-        let wrapper: SystemWrapper = |data, _| data.actions_mut().delete_component::<u32>(0);
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<u32>(0);
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -490,9 +490,9 @@ mod main_facade_tests {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         facade.create_entity(group_idx);
-        let wrapper: SystemWrapper = |data, _| {
+        let wrapper: SystemWrapper = |d, _| {
             let add_fn: AddComponentFn = Box::new(|m| m.add_component::<u32>(0, 10));
-            data.actions_mut().add_component(0, add_fn);
+            d.actions_mut().add_component(0, add_fn);
         };
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
@@ -506,8 +506,7 @@ mod main_facade_tests {
     fn apply_empty_group_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
-        let wrapper: SystemWrapper =
-            |data, _| data.actions_mut().delete_group(1.try_into().unwrap());
+        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_group(1.try_into().unwrap());
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
         facade.run_systems();
 
@@ -524,8 +523,7 @@ mod main_facade_tests {
         facade.add_component::<u32>(entity_idx, 42);
         facade.add_component::<i64>(entity_idx, 13);
         facade.create_entity(group_idx);
-        let wrapper1: SystemWrapper =
-            |data, _| data.actions_mut().delete_group(1.try_into().unwrap());
+        let wrapper1: SystemWrapper = |d, _| d.actions_mut().delete_group(1.try_into().unwrap());
         facade.add_system(
             Some(group_idx),
             SystemDetails::new(wrapper1, Vec::new(), None, true),
@@ -557,11 +555,11 @@ mod main_facade_tests {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let wrapper: SystemWrapper = |data, _| {
+        let wrapper: SystemWrapper = |d, _| {
             let build_fn: BuildGroupFn = Box::new(|builder| {
                 builder.with_entity::<MainComponentType>(10);
             });
-            data.actions_mut()
+            d.actions_mut()
                 .replace_group(1.try_into().unwrap(), build_fn)
         };
         facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));

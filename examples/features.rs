@@ -63,15 +63,15 @@ impl EntityMainComponent for Text {
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
         runner
-            .run(system!(Self::update_text))
-            .run(system!(Self::replace_group))
-            .run(system!(Self::delete_group))
-            .run(system!(Self::add_entity))
-            .run(system!(Self::delete_entity))
-            .run(system!(Self::add_component))
-            .run(system!(Self::delete_existing_component))
-            .run(system!(Self::delete_component_with_missing_type))
-            .run(system!(Self::delete_missing_component));
+            .run(entity_system!(Self::update_text))
+            .run(entity_system!(Self::replace_group))
+            .run(entity_system!(Self::delete_group))
+            .run(entity_system!(Self::add_entity))
+            .run(entity_system!(Self::delete_entity))
+            .run(entity_system!(Self::add_component))
+            .run(entity_system!(Self::delete_existing_component))
+            .run(entity_system!(Self::delete_component_with_missing_type))
+            .run(entity_system!(Self::delete_missing_component));
     }
 }
 

@@ -4,6 +4,14 @@ fn main() {
     system!(query_with_only_not_component_entity_params);
     system!(tuple_with_query_with_only_not_component_entity_params);
     system!(query_with_query_with_only_not_component_entity_params);
+
+    system_once!(query_with_only_not_component_entity_params);
+    system_once!(tuple_with_query_with_only_not_component_entity_params);
+    system_once!(query_with_query_with_only_not_component_entity_params);
+
+    entity_system!(query_with_only_not_component_entity_params);
+    entity_system!(tuple_with_query_with_only_not_component_entity_params);
+    entity_system!(query_with_query_with_only_not_component_entity_params);
 }
 
 fn query_with_only_not_component_entity_params(

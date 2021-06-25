@@ -22,6 +22,25 @@ impl SystemBuilder {
         }
     }
 }
+/// Description of an entity system to add.
+///
+/// Instances of this type are created using the [`entity_system!`](crate::entity_system!) macro.
+pub struct EntitySystemBuilder {
+    pub(crate) wrapper: SystemWrapper,
+    pub(crate) component_types: Vec<TypeAccess>,
+    pub(crate) actions: bool,
+}
+
+impl EntitySystemBuilder {
+    #[doc(hidden)]
+    pub fn new(wrapper: SystemWrapper, component_types: Vec<TypeAccess>, actions: bool) -> Self {
+        Self {
+            wrapper,
+            component_types,
+            actions,
+        }
+    }
+}
 
 /// Description of a system to run once.
 ///
@@ -42,11 +61,8 @@ where
 
 /// Create a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
-/// This macro accepts one or more `systems` in input.<br>
-/// If multiple systems are provided, it is ensured they are always run in order.
-///
-/// Accepted systems are functions and static closures with no captured variables that implement the
-/// [`System`](crate::System) trait.
+/// `system` must be a function or a static closures with no captured variables that
+/// implements the [`System`](crate::System) trait.
 ///
 /// # System behaviour
 ///
@@ -121,11 +137,100 @@ where
 /// ```
 #[macro_export]
 macro_rules! system {
-    ($($systems:expr),+) => {{
-        let mut types = Vec::new();
-        $(types.extend(::modor::System::component_types(&$systems).into_iter());)+
-        let mut actions = $(::modor::System::has_actions(&$systems))||+;
-        ::modor::SystemBuilder::new(::modor::_system_wrapper!($($systems),+), types, actions)
+    ($system:expr) => {{
+        let mut types = ::modor::System::component_types(&$system);
+        let mut actions = ::modor::System::has_actions(&$system);
+        ::modor::SystemBuilder::new(::modor::_system_wrapper!($system), types, actions)
+    }};
+}
+
+/// Create a valid instance of [`EntitySystemBuilder`](crate::EntitySystemBuilder).
+///
+/// Expected `system` is the same as the [`system!`](crate:system!) macro, expect it is considered
+/// as a valid iterative system even if it has not as parameter a reference to a component type
+/// not contained in an `Option`.
+///
+/// # Examples
+///
+/// Valid systems:
+/// ```rust
+/// # use modor::{
+/// #     Application, Query, entity_system, for_each_mut, EntityMainComponent, EntityBuilder,
+/// #     Built, EntityRunner
+/// # };
+/// #
+/// Application::new()
+///     .with_group(|b| {
+///         b.with_entity::<Number>(42);
+///     })
+///     .update();
+///
+/// struct Number(u32);
+///
+/// impl EntityMainComponent for Number {
+///     type Data = u32;
+///
+///     fn build(builder: &mut EntityBuilder<'_, Self>, value: Self::Data) -> Built {
+///         builder
+///             .with(String::from(""))
+///             .with_self(Self(value))
+///     }
+///
+///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
+///         runner
+///             .run(entity_system!(Self::iterative_system))
+///             .run(entity_system!(Self::iterative_system_without_mandatory_component_param))
+///             .run(entity_system!(Self::non_iterative_system));
+///     }
+/// }
+///
+/// impl Number {
+///     // run for each entity with at least a component of type `Number`
+///     // `String` type is used optionally, so it does not have an impact on the entity filtering
+///     fn iterative_system(&self, string: Option<&mut String>) {
+///         if let Some(string) = string {
+///             *string = format!("number: {}", self.0);
+///         }
+///     }
+///
+///     // run for each entity with at least a component of type `Number`
+///     // `Number` filtering is implicitly done as this is an iterative entity system
+///     fn iterative_system_without_mandatory_component_param(string: Option<&mut String>) {
+///         if let Some(string) = string {
+///             print!("{}", string);
+///         }
+///     }
+///
+///     // run only once per application update, as there is no component parameter
+///     fn non_iterative_system<'a>(mut query: Query<'a, (&'a Self, Option<&'a mut String>)>) {
+///         for_each_mut!(query, |number: &Self, string: Option<&mut String>| {
+///             if let Some(string) = string {
+///                 *string = format!("number: {}", number.0);
+///             }
+///         });
+///     }
+/// }
+/// ```
+///
+/// Invalid systems:
+/// ```rust
+/// # use modor::Query;
+/// #
+/// // there are both const and mut references to `u32` component
+/// fn system_with_incompatible_params(param1: (&mut u32, &String), param2: &u32) {}
+///
+/// // optional components are not enough in iterative systems
+/// fn system_with_query_with_missing_mandatory_component_param(
+///     query: Query<'_, (Option<&String>,)>
+/// ) {
+/// }
+/// ```
+#[macro_export]
+macro_rules! entity_system {
+    ($system:expr) => {{
+        let mut types = ::modor::System::component_types(&$system);
+        let mut actions = ::modor::System::has_actions(&$system);
+        ::modor::EntitySystemBuilder::new(::modor::_entity_system_wrapper!($system), types, actions)
     }};
 }
 
@@ -205,8 +310,8 @@ macro_rules! system {
 /// ```
 #[macro_export]
 macro_rules! system_once {
-    ($systems:expr) => {
-        ::modor::SystemOnceBuilder::new(::modor::_system_wrapper!($systems))
+    ($system:expr) => {
+        ::modor::SystemOnceBuilder::new(::modor::_system_wrapper!($system))
     };
 }
 
@@ -239,9 +344,9 @@ macro_rules! for_each {
         let mut system = $system;
         let mut query_run = query.run(system);
         let mut system = query_run.system;
-        let info =
-            ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
-        ::modor::_run_system!(&query_run.data, info, system);
+        let filtered_component_types = query_run.filtered_component_types;
+        let info = ::modor::SystemInfo::new(filtered_component_types, query_run.group_idx);
+        ::modor::_run_system!(&query_run.data, info, system, false);
     }};
 }
 
@@ -272,39 +377,54 @@ macro_rules! for_each_mut {
         let mut system = $system;
         let mut query_run = query.run_mut(system);
         let mut system = query_run.system;
-        let info =
-            ::modor::SystemInfo::new(query_run.filtered_component_types, query_run.group_idx);
-        ::modor::_run_system!(&query_run.data, info, system);
+        let filtered_component_types = query_run.filtered_component_types;
+        let info = ::modor::SystemInfo::new(filtered_component_types, query_run.group_idx);
+        ::modor::_run_system!(&query_run.data, info, system, false);
     }};
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! _system_wrapper {
-    ($($systems:expr),+) => {
+    ($system:expr) => {
         |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
             use ::modor::SystemWithParams as _SystemWithParams;
+            use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
             use ::modor::SystemWithMissingComponentParam as _SystemWithMissingComponentParam;
+            use ::modor::SystemWithQueryWithMissingComponentParam
+                as _SystemWithQueryWithMissingComponentParam;
+            let mut system = $system;
+            system = ::modor::SystemParamCompatibilityChecker::new(system)
+                .check_param_compatibility()
+                .into_inner();
+            system = ::modor::SystemComponentParamChecker::new(system)
+                .check_component_params()
+                .into_inner();
+            system = ::modor::SystemQueryComponentParamChecker::new(system)
+                .check_query_component_params()
+                .into_inner();
+            ::modor::_run_system!(data, info, system, false);
+        }
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _entity_system_wrapper {
+    ($system:expr) => {
+        |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+            use ::modor::SystemWithParams as _SystemWithParams;
             use ::modor::SystemWithIncompatibleParams as _SystemWithIncompatibleParams;
             use ::modor::SystemWithQueryWithMissingComponentParam
                 as _SystemWithQueryWithMissingComponentParam;
-            ::modor::_run_system!(
-                data,
-                info,
-                $({
-                    let mut system = $systems;
-                    system = ::modor::SystemComponentParamChecker::new(system)
-                        .check_component_params()
-                        .into_inner();
-                    system = ::modor::SystemParamCompatibilityChecker::new(system)
-                        .check_param_compatibility()
-                        .into_inner();
-                    system = ::modor::SystemQueryComponentParamChecker::new(system)
-                        .check_query_component_params()
-                        .into_inner();
-                    system
-                }),+
-            );
+            let mut system = $system;
+            system = ::modor::SystemParamCompatibilityChecker::new(system)
+                .check_param_compatibility()
+                .into_inner();
+            system = ::modor::SystemQueryComponentParamChecker::new(system)
+                .check_query_component_params()
+                .into_inner();
+            ::modor::_run_system!(data, info, system, true);
         }
     };
 }
@@ -312,20 +432,20 @@ macro_rules! _system_wrapper {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! _run_system {
-    ($data:expr, $info:expr, $($systems:expr),+) => {
+    ($data:expr, $info:expr, $system:expr, $is_entity_system:tt) => {
         let mut data = $data;
         let mut info = $info;
-        $(
-            let mut system = $systems;
-            let mut guards = ::modor::System::lock(&system, data);
-            if ::modor::System::has_mandatory_component(&system) {
-                for archetype in ::modor::System::archetypes(&system, data, &info) {
-                    ::modor::System::run(&mut system, data, &info, &mut guards, archetype);
-                }
-            } else {
-                ::modor::System::run_once(&mut system, &info, &mut guards);
+        let mut system = $system;
+        let mut guards = ::modor::System::lock(&system, data);
+        let has_mandatory_component = ::modor::System::has_mandatory_component(&system);
+        let has_entity_part = ::modor::System::has_entity_part(&system);
+        if has_entity_part && (has_mandatory_component || $is_entity_system) {
+            for archetype in ::modor::System::archetypes(&system, data, &info) {
+                ::modor::System::run(&mut system, data, &info, &mut guards, archetype);
             }
-        )+
+        } else {
+            ::modor::System::run_once(&mut system, &info, &mut guards);
+        }
     };
 }
 
