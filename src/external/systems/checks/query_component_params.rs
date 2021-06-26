@@ -1,5 +1,5 @@
 use crate::external::systems::checks::internal::SealedChecker;
-use crate::external::systems::params::internal::{MultipleSystemParams, QuerySystemParam};
+use crate::external::systems::param_traits::internal::{MultipleSystemParams, QuerySystemParam};
 use crate::{
     System, SystemComponentParamChecker, SystemWithMissingComponentParam, SystemWithParams,
 };

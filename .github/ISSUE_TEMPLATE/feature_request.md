@@ -17,4 +17,4 @@ A description of the feature you propose.
 One or more code examples that shows the feature in action.
 
 **Additional context**
-Any other context about the feature request here.
+Any other context about the feature, like for example implementation details.

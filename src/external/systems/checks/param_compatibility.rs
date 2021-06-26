@@ -77,7 +77,7 @@ macro_rules! impl_incompatibility_system_check {
 run_for_tuples!(impl_incompatibility_system_check);
 
 mod internal {
-    use crate::external::systems::params::internal::{
+    use crate::external::systems::param_traits::internal::{
         Const, EntityPartSystemParam, MultipleSystemParams, Mut,
     };
     use crate::SystemParam;

@@ -1,5 +1,5 @@
 use crate::external::systems::checks::internal::SealedChecker;
-use crate::external::systems::params::internal::{
+use crate::external::systems::param_traits::internal::{
     NotEnoughEntityPartSystemParam, NotMandatoryComponentSystemParam,
 };
 use crate::{System, SystemWithParams};

@@ -86,8 +86,8 @@ pub use external::systems::checks::param_compatibility::*;
 pub use external::systems::checks::query_component_params::*;
 pub use external::systems::checks::*;
 pub use external::systems::definition::*;
-pub use external::systems::params::*;
-pub use external::systems::resources::*;
+pub use external::systems::param_traits::*;
+pub use external::systems::param_types::*;
 
 pub(crate) use external::systems::iterators::*;
 
