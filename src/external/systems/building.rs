@@ -197,7 +197,7 @@ macro_rules! system {
 ///     // `Number` filtering is implicitly done as this is an iterative entity system
 ///     fn iterative_system_without_mandatory_component_param(string: Option<&mut String>) {
 ///         if let Some(string) = string {
-///             print!("{}", string);
+///             println!("{}", string);
 ///         }
 ///     }
 ///
