@@ -173,7 +173,7 @@ mod group_builder_tests {
         assert!(!main.add_entity_main_component::<MyEntity>());
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<MyEntity>().unwrap();
-            let component_iter = d.component_iter::<MyEntity>(&components.0, 0);
+            let component_iter = components.0.archetype_iter(0);
             assert_option_iter!(component_iter, Some(vec![&MyEntity(String::from("text"))]));
         }));
     }

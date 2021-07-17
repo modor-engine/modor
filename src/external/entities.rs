@@ -577,13 +577,13 @@ mod entity_builder_tests {
         assert!(!main.add_entity_main_component::<Parent>());
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<u32>().unwrap();
-            let component_iter = d.component_iter::<u32>(&components.0, 2);
+            let component_iter = components.0.archetype_iter(2);
             assert_option_iter!(component_iter, Some(vec![&42]));
             let components = d.read_components::<String>().unwrap();
-            let component_iter = d.component_iter::<String>(&components.0, 2);
+            let component_iter = components.0.archetype_iter(2);
             assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
             let components = d.read_components::<Parent>().unwrap();
-            let component_iter = d.component_iter::<Parent>(&components.0, 2);
+            let component_iter = components.0.archetype_iter(2);
             assert_option_iter!(component_iter, Some(vec![&Parent]));
         }));
     }
@@ -599,7 +599,7 @@ mod entity_builder_tests {
 
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<String>().unwrap();
-            let component_iter = d.component_iter::<String>(&components.0, 0);
+            let component_iter = components.0.archetype_iter(0);
             assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
         }));
     }
@@ -616,7 +616,7 @@ mod entity_builder_tests {
         assert!(!main.add_entity_main_component::<Child>());
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<Child>().unwrap();
-            let component_iter = d.component_iter::<Child>(&components.0, 0);
+            let component_iter = components.0.archetype_iter(0);
             assert_option_iter!(component_iter, Some(vec![&Child]));
         }));
     }

@@ -3,13 +3,12 @@ use crate::external::systems::definition::internal::{
     ArchetypeInfo, ComponentsConst, ComponentsMut, SealedSystem,
 };
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::interfaces::{ComponentInterface, Components};
+use crate::internal::components::ComponentFacade;
 use crate::internal::core::CoreFacade;
 use crate::SystemParam;
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
-use std::slice::{Iter, IterMut};
-use std::sync::{Mutex, MutexGuard, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Mutex, MutexGuard};
 
 /// Characterize a system that is runnable by the application.
 ///
@@ -162,14 +161,14 @@ impl SystemInfo {
 #[derive(Clone)]
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
-    components: &'a ComponentInterface<'a>,
+    components: &'a ComponentFacade,
     actions: &'a Mutex<ActionFacade>,
 }
 
 impl<'a> SystemData<'a> {
     pub(crate) fn new(
         core: &'a CoreFacade,
-        components: &'a ComponentInterface<'a>,
+        components: &'a ComponentFacade,
         actions: &'a Mutex<ActionFacade>,
     ) -> Self {
         Self {
@@ -183,40 +182,22 @@ impl<'a> SystemData<'a> {
         self.core.archetype_entity_idxs(archetype_idx)
     }
 
-    pub(crate) fn read_components<C>(&self) -> Option<ComponentsConst<'_>>
+    pub(crate) fn read_components<C>(&self) -> Option<ComponentsConst<'_, C>>
     where
         C: Any,
     {
-        self.components.read::<C>().map(ComponentsConst)
+        self.core
+            .component_type_idx(TypeId::of::<C>())
+            .map(|i| ComponentsConst(self.components.read_components(i)))
     }
 
-    pub(crate) fn write_components<C>(&self) -> Option<ComponentsMut<'_>>
+    pub(crate) fn write_components<C>(&self) -> Option<ComponentsMut<'_, C>>
     where
         C: Any,
     {
-        self.components.write::<C>().map(ComponentsMut)
-    }
-
-    pub(crate) fn component_iter<C>(
-        &self,
-        guard: &'a RwLockReadGuard<'_, Components>,
-        archetype_idx: usize,
-    ) -> Option<Iter<'a, C>>
-    where
-        C: Any,
-    {
-        self.components.iter::<C>(guard, archetype_idx)
-    }
-
-    pub(crate) fn component_iter_mut<C>(
-        &self,
-        guard: &'a mut RwLockWriteGuard<'_, Components>,
-        archetype_idx: usize,
-    ) -> Option<IterMut<'a, C>>
-    where
-        C: Any,
-    {
-        self.components.iter_mut::<C>(guard, archetype_idx)
+        self.core
+            .component_type_idx(TypeId::of::<C>())
+            .map(|i| ComponentsMut(self.components.write_components(i)))
     }
 
     pub(crate) fn actions_mut(&self) -> MutexGuard<'_, ActionFacade> {
@@ -235,9 +216,8 @@ impl<'a> SystemData<'a> {
 }
 
 pub(crate) mod internal {
-    use crate::internal::components::interfaces::Components;
+    use crate::internal::components::{ComponentReadGuard, ComponentWriteGuard};
     use std::num::NonZeroUsize;
-    use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
     pub trait SealedSystem<T> {}
 
@@ -253,9 +233,9 @@ pub(crate) mod internal {
         }
     }
 
-    pub struct ComponentsConst<'a>(pub(crate) RwLockReadGuard<'a, Components>);
+    pub struct ComponentsConst<'a, C>(pub(crate) ComponentReadGuard<'a, C>);
 
-    pub struct ComponentsMut<'a>(pub(crate) RwLockWriteGuard<'a, Components>);
+    pub struct ComponentsMut<'a, C>(pub(crate) ComponentWriteGuard<'a, C>);
 }
 
 #[cfg(test)]
@@ -389,7 +369,9 @@ mod system_tests {
 
             let (lock1, lock2) = System::lock(&system, d);
 
-            assert_option_iter!(lock1.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let components = lock1.unwrap();
+            let component_iter = components.0.archetype_iter(0);
+            assert_option_iter!(component_iter, Some(vec![&10, &20]));
             assert!(ptr::eq(lock2, d));
         }));
     }
@@ -539,7 +521,9 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<u32>();
 
-            assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let components = components.unwrap();
+            let component_iter = components.0.archetype_iter(0);
+            assert_option_iter!(component_iter, Some(vec![&10, &20]));
         }));
     }
 
@@ -554,7 +538,9 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.write_components::<u32>();
 
-            assert_option_iter!(components.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let mut components = components.unwrap();
+            let component_iter = components.0.archetype_iter_mut(0);
+            assert_option_iter!(component_iter, Some(vec![&mut 10, &mut 20]));
         }));
     }
 
@@ -569,7 +555,7 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<u32>().unwrap();
 
-            let component_iter = d.component_iter::<u32>(&components.0, 0);
+            let component_iter = components.0.archetype_iter(0);
 
             assert_option_iter!(component_iter, Some(vec![&10, &20]));
         }));
@@ -586,7 +572,7 @@ mod system_data_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let mut components = d.write_components::<u32>().unwrap();
 
-            let component_iter = d.component_iter_mut::<u32>(&mut components.0, 0);
+            let component_iter = components.0.archetype_iter_mut(0);
 
             assert_option_iter!(component_iter, Some(vec![&mut 10, &mut 20]));
         }));
@@ -608,7 +594,7 @@ mod system_data_tests {
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let components = d.read_components::<u32>().unwrap();
-            let component_iter = d.component_iter::<u32>(&components.0, 0);
+            let component_iter = components.0.archetype_iter(0);
             assert_option_iter!(component_iter, Some(vec![&20]));
         }));
     }
@@ -671,14 +657,14 @@ mod archetype_info_tests {
 mod components_const_tests {
     use super::internal::*;
 
-    assert_impl_all!(ComponentsConst<'_>: Sync);
-    assert_not_impl_any!(ComponentsConst<'_>: Clone);
+    assert_impl_all!(ComponentsConst<'_, String>: Sync);
+    assert_not_impl_any!(ComponentsConst<'_, String>: Clone);
 }
 
 #[cfg(test)]
 mod components_mut_tests {
     use super::internal::*;
 
-    assert_impl_all!(ComponentsMut<'_>: Sync);
-    assert_not_impl_any!(ComponentsMut<'_>: Clone);
+    assert_impl_all!(ComponentsMut<'_, String>: Sync);
+    assert_not_impl_any!(ComponentsMut<'_, String>: Clone);
 }

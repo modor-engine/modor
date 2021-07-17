@@ -1,18 +1,11 @@
-use crate::internal::components::interfaces::ComponentInterface;
-use crate::internal::components::storages::{
-    ArchetypePositionStorage, ComponentStorage, TypeStorage,
-};
 use crate::internal::entities::data::EntityLocation;
-use std::any::{Any, TypeId};
-
-pub(crate) mod interfaces;
-mod storages;
+use std::any::Any;
+use std::slice::{Iter, IterMut};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Default)]
-pub(super) struct ComponentFacade {
-    components: ComponentStorage,
-    archetype_positions: ArchetypePositionStorage,
-    types: TypeStorage,
+pub(crate) struct ComponentFacade {
+    components: Vec<Box<dyn ComponentArchetypes>>,
 }
 
 impl ComponentFacade {
@@ -20,53 +13,68 @@ impl ComponentFacade {
     where
         C: Any + Sync + Send,
     {
-        self.components.create_type::<C>();
-        self.archetype_positions.create_type();
-        self.types.add(TypeId::of::<C>());
+        self.components
+            .push(Box::new(RwLock::new(Vec::<Vec<C>>::new())))
     }
 
     pub(super) fn delete_archetype(&mut self, type_idx: usize, archetype_idx: usize) {
-        if let Some(archetype_pos) = self.archetype_positions.get(type_idx, archetype_idx) {
-            self.components.delete_archetype(type_idx, archetype_pos);
-            self.archetype_positions.delete(type_idx, archetype_idx);
-        }
+        self.components[type_idx].delete_archetype(archetype_idx);
     }
 
-    pub(super) fn components(&mut self) -> ComponentInterface<'_> {
-        ComponentInterface::new(&mut self.components, &self.archetype_positions, &self.types)
-    }
-
-    pub(super) fn exists<C>(&self, type_idx: usize, location: EntityLocation) -> bool
+    pub(crate) fn read_components<C>(&self, type_idx: usize) -> ComponentReadGuard<'_, C>
     where
         C: Any,
     {
-        let archetype_idx = location.archetype_idx;
-        let entity_pos = location.entity_pos;
-        let archetype_pos = self.archetype_pos(type_idx, archetype_idx);
-        archetype_pos.map_or(false, |a| {
-            self.components.exists::<C>(type_idx, a, entity_pos)
-        })
+        ComponentReadGuard(
+            self.components[type_idx]
+                .as_any()
+                .downcast_ref::<RwLock<Vec<Vec<C>>>>()
+                .expect("internal error: invalid component type used when reading components")
+                .read()
+                .expect("internal error: lock poisoned when reading components"),
+        )
+    }
+
+    pub(crate) fn write_components<C>(&self, type_idx: usize) -> ComponentWriteGuard<'_, C>
+    where
+        C: Any,
+    {
+        ComponentWriteGuard(
+            self.components[type_idx]
+                .as_any()
+                .downcast_ref::<RwLock<Vec<Vec<C>>>>()
+                .expect("internal error: invalid component type used when writing components")
+                .write()
+                .expect("internal error: lock poisoned when writing components"),
+        )
+    }
+
+    pub(super) fn exists<C>(&mut self, type_idx: usize, location: EntityLocation) -> bool
+    where
+        C: Any,
+    {
+        let components = self.retrieve_components_mut::<C>(type_idx);
+        components
+            .get(location.archetype_idx)
+            .and_then(|c| c.get(location.entity_pos))
+            .is_some()
     }
 
     pub(super) fn add<C>(&mut self, type_idx: usize, archetype_idx: usize, component: C)
     where
         C: Any,
     {
-        let archetype_pos = self.archetype_pos_or_create(type_idx, archetype_idx);
-        self.components.add(type_idx, archetype_pos, component);
+        let components = self.retrieve_components_mut(type_idx);
+        (components.len()..=archetype_idx).for_each(|_| components.push(Vec::new()));
+        components[archetype_idx].push(component);
     }
 
     pub(super) fn replace<C>(&mut self, type_idx: usize, location: EntityLocation, component: C)
     where
         C: Any,
     {
-        let archetype_idx = location.archetype_idx;
-        let entity_pos = location.entity_pos;
-        let archetype_pos = self
-            .archetype_pos(type_idx, archetype_idx)
-            .expect("internal error: replace component in not existing archetype");
-        self.components
-            .replace(type_idx, archetype_pos, entity_pos, component);
+        let components = self.retrieve_components_mut(type_idx);
+        components[location.archetype_idx][location.entity_pos] = component;
     }
 
     pub(super) fn move_(
@@ -75,257 +83,86 @@ impl ComponentFacade {
         src_location: EntityLocation,
         dst_archetype_idx: usize,
     ) {
-        let src_archetype_idx = src_location.archetype_idx;
-        let src_entity_pos = src_location.entity_pos;
-        let src_archetype_pos = self
-            .archetype_pos(type_idx, src_archetype_idx)
-            .expect("internal error: move component from not existing archetype");
-        let dst_archetype_pos = self.archetype_pos_or_create(type_idx, dst_archetype_idx);
-        self.components.move_(
-            type_idx,
-            src_archetype_pos,
-            src_entity_pos,
-            dst_archetype_pos,
-        );
+        self.components[type_idx].move_(src_location, dst_archetype_idx);
     }
 
     pub(super) fn delete(&mut self, type_idx: usize, location: EntityLocation) {
-        let archetype_idx = location.archetype_idx;
-        let entity_pos = location.entity_pos;
-        let archetype_pos = self
-            .archetype_pos(type_idx, archetype_idx)
-            .expect("internal error: delete component from not existing archetype");
-        self.components.delete(type_idx, archetype_pos, entity_pos);
+        self.components[type_idx].delete(location);
     }
 
-    fn archetype_pos_or_create(&mut self, type_idx: usize, archetype_idx: usize) -> usize {
-        self.archetype_positions
-            .get(type_idx, archetype_idx)
-            .unwrap_or_else(|| self.archetype_positions.create(type_idx, archetype_idx))
-    }
-
-    fn archetype_pos(&self, type_idx: usize, archetype_idx: usize) -> Option<usize> {
-        self.archetype_positions.get(type_idx, archetype_idx)
+    fn retrieve_components_mut<C>(&mut self, type_idx: usize) -> &mut Vec<Vec<C>>
+    where
+        C: Any,
+    {
+        self.components[type_idx]
+            .as_any_mut()
+            .downcast_mut::<RwLock<Vec<Vec<C>>>>()
+            .expect("internal error: invalid component type used when adding component")
+            .get_mut()
+            .expect("internal error: lock poisoned when adding component")
     }
 }
 
-#[cfg(test)]
-mod component_facade_tests {
-    use super::*;
+trait ComponentArchetypes: Any + Sync + Send {
+    fn as_any(&self) -> &dyn Any;
 
-    #[test]
-    fn create_type() {
-        let mut facade = ComponentFacade::default();
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 
-        facade.create_type::<u32>();
+    fn delete_archetype(&mut self, archetype_idx: usize);
 
-        assert_eq!(facade.components.export().len(), 1);
-        assert_eq!(facade.archetype_positions.get(0, 0), None);
-        assert_eq!(facade.types.idx(TypeId::of::<u32>()), Some(0));
+    fn move_(&mut self, src_location: EntityLocation, dst_archetype_idx: usize);
+
+    fn delete(&mut self, location: EntityLocation);
+}
+
+impl<C> ComponentArchetypes for RwLock<Vec<Vec<C>>>
+where
+    C: Any + Sync + Send,
+{
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
-    #[test]
-    fn add_component_for_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-
-        facade.add::<u32>(0, 1, 10);
-
-        let components = facade.components.export();
-        assert_eq!(components.len(), 1);
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10]));
-        assert_eq!(facade.archetype_positions.get(0, 1), Some(0));
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 
-    #[test]
-    fn add_component_for_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 1, 10);
-
-        facade.add::<u32>(0, 1, 20);
-
-        let components = facade.components.export();
-        assert_eq!(components.len(), 1);
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10, &20]));
-        assert_eq!(facade.archetype_positions.get(0, 1), Some(0));
+    fn delete_archetype(&mut self, archetype_idx: usize) {
+        let components = self
+            .get_mut()
+            .expect("internal error: lock poisoned when cleaning component archetype");
+        components[archetype_idx] = Vec::new();
     }
 
-    #[test]
-    fn delete_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-
-        facade.delete_archetype(0, 1);
-
-        let components = facade.components.export();
-        assert_eq!(components.len(), 1);
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), None);
+    fn move_(&mut self, src_location: EntityLocation, dst_archetype_idx: usize) {
+        let components = self
+            .get_mut()
+            .expect("internal error: lock poisoned when moving component");
+        (components.len()..=dst_archetype_idx).for_each(|_| components.push(Vec::new()));
+        let component = components[src_location.archetype_idx].swap_remove(src_location.entity_pos);
+        components[dst_archetype_idx].push(component);
     }
 
-    #[test]
-    fn delete_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 2, 10);
-        facade.add::<u32>(0, 3, 20);
-        facade.add::<u32>(0, 3, 30);
-
-        facade.delete_archetype(0, 3);
-
-        let components = facade.components.export();
-        assert_eq!(components.len(), 1);
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10]));
-        assert_option_iter!(type_components.iter::<u32>(1), Some(vec![]));
-        assert_eq!(facade.archetype_positions.get(0, 2), Some(0));
-        assert_eq!(facade.archetype_positions.get(0, 3), None);
+    fn delete(&mut self, location: EntityLocation) {
+        let components = self
+            .get_mut()
+            .expect("internal error: lock poisoned when deleting component");
+        components[location.archetype_idx].swap_remove(location.entity_pos);
     }
+}
 
-    #[test]
-    fn retrieve_components() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 2, 10);
-        facade.add::<u32>(0, 3, 20);
-        facade.add::<u32>(0, 3, 30);
+pub(crate) struct ComponentReadGuard<'a, C>(RwLockReadGuard<'a, Vec<Vec<C>>>);
 
-        let components = facade.components();
-
-        let guard = components.read::<u32>().unwrap();
-        assert_option_iter!(components.iter::<u32>(&guard, 2), Some(vec![&10]));
-        assert_option_iter!(components.iter::<u32>(&guard, 3), Some(vec![&20, &30]));
+impl<'a, C> ComponentReadGuard<'a, C> {
+    pub(crate) fn archetype_iter(&self, archetype_idx: usize) -> Option<Iter<'_, C>> {
+        self.0.get(archetype_idx).map(|c| c.iter())
     }
+}
 
-    #[test]
-    fn retrieve_whether_component_exists_using_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
+pub(crate) struct ComponentWriteGuard<'a, C>(RwLockWriteGuard<'a, Vec<Vec<C>>>);
 
-        let exists = facade.exists::<u32>(0, EntityLocation::new(1, 2));
-
-        assert!(!exists);
-    }
-
-    #[test]
-    fn retrieve_whether_missing_component_exists_using_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 1, 10);
-
-        let exists = facade.exists::<u32>(0, EntityLocation::new(1, 2));
-
-        assert!(!exists);
-    }
-
-    #[test]
-    fn retrieve_whether_existing_component_exists_using_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 1, 10);
-        facade.add::<u32>(0, 1, 20);
-        facade.add::<u32>(0, 1, 30);
-
-        let exists = facade.exists::<u32>(0, EntityLocation::new(1, 2));
-
-        assert!(exists);
-    }
-
-    #[test]
-    #[should_panic]
-    fn replace_component_to_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-
-        facade.replace::<u32>(0, EntityLocation::new(1, 2), 40);
-    }
-
-    #[test]
-    fn replace_component_to_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 1, 10);
-        facade.add::<u32>(0, 1, 20);
-        facade.add::<u32>(0, 1, 30);
-
-        facade.replace::<u32>(0, EntityLocation::new(1, 2), 40);
-
-        let components = facade.components.export();
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10, &20, &40]));
-    }
-
-    #[test]
-    #[should_panic]
-    fn move_component_from_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-
-        facade.move_(0, EntityLocation::new(2, 1), 4);
-    }
-
-    #[test]
-    fn move_component_to_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 2, 10);
-        facade.add::<u32>(0, 2, 20);
-        facade.add::<u32>(0, 2, 30);
-        facade.add::<u32>(0, 2, 40);
-
-        facade.move_(0, EntityLocation::new(2, 1), 4);
-
-        let components = facade.components.export();
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10, &40, &30]));
-        assert_option_iter!(type_components.iter::<u32>(1), Some(vec![&20]));
-        assert_eq!(facade.archetype_positions.get(0, 4), Some(1));
-    }
-
-    #[test]
-    fn move_component_to_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 2, 10);
-        facade.add::<u32>(0, 2, 20);
-        facade.add::<u32>(0, 2, 30);
-        facade.add::<u32>(0, 2, 40);
-        facade.add::<u32>(0, 4, 50);
-
-        facade.move_(0, EntityLocation::new(2, 1), 4);
-
-        let components = facade.components.export();
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10, &40, &30]));
-        assert_option_iter!(type_components.iter::<u32>(1), Some(vec![&50, &20]));
-        assert_eq!(facade.archetype_positions.get(0, 4), Some(1));
-    }
-
-    #[test]
-    #[should_panic]
-    fn delete_component_for_missing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-
-        facade.delete(0, EntityLocation::new(2, 1));
-    }
-
-    #[test]
-    fn delete_component_for_existing_archetype() {
-        let mut facade = ComponentFacade::default();
-        facade.create_type::<u32>();
-        facade.add::<u32>(0, 2, 10);
-        facade.add::<u32>(0, 2, 20);
-        facade.add::<u32>(0, 2, 30);
-        facade.add::<u32>(0, 2, 40);
-
-        facade.delete(0, EntityLocation::new(2, 1));
-
-        let components = facade.components.export();
-        let type_components = components[0].read().unwrap();
-        assert_option_iter!(type_components.iter::<u32>(0), Some(vec![&10, &40, &30]));
+impl<'a, C> ComponentWriteGuard<'a, C> {
+    pub(crate) fn archetype_iter_mut(&mut self, archetype_idx: usize) -> Option<IterMut<'_, C>> {
+        self.0.get_mut(archetype_idx).map(|c| c.iter_mut())
     }
 }

@@ -32,10 +32,11 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let entity_positions = &mut self.entity_positions;
-        self.components.as_mut().map_or_else(
-            || entity_positions.next().map(|_| None),
-            |components| components.next().map(Some),
-        )
+        entity_positions.next().map(|_| {
+            self.components
+                .as_mut()
+                .map_or_else(|| None, Iterator::next)
+        })
     }
 }
 
@@ -67,10 +68,11 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let entity_positions = &mut self.entity_positions;
-        self.components.as_mut().map_or_else(
-            || entity_positions.next().map(|_| None),
-            |components| components.next().map(Some),
-        )
+        entity_positions.next().map(|_| {
+            self.components
+                .as_mut()
+                .map_or_else(|| None, Iterator::next)
+        })
     }
 }
 

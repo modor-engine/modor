@@ -44,6 +44,7 @@ impl MainFacade {
             .unwrap_or_else(|| self.create_component_type::<C>());
         let location = self.core.entity_location(entity_idx);
         if let Some(location) = location {
+            // TODO: directly try to add component
             if self.components.exists::<C>(type_idx, location) {
                 self.components.replace(type_idx, location, component);
             } else {
@@ -66,16 +67,16 @@ impl MainFacade {
 
     pub(crate) fn run_systems(&mut self) {
         self.systems
-            .run(&self.core, &self.components.components(), &self.actions);
+            .run(&self.core, &self.components, &self.actions);
     }
 
+    // TODO: return SystemData instead to simplify tests
     pub(crate) fn run_system_once<S>(&mut self, mut system: SystemOnceBuilder<S>)
     where
         S: FnMut(&SystemData<'_>, SystemInfo),
     {
-        let components = self.components.components();
         let info = SystemInfo::new(Vec::new(), None);
-        let data = SystemData::new(&self.core, &components, &self.actions);
+        let data = SystemData::new(&self.core, &self.components, &self.actions);
         (system.wrapper)(&data, info);
     }
 
@@ -214,12 +215,10 @@ mod main_facade_tests {
     ) where
         C: Any + Eq + Debug,
     {
-        let components = facade.components.components();
-        let component_guard = components.read::<C>().unwrap();
-        assert_option_iter!(
-            components.iter::<C>(&component_guard, archetype_idx),
-            expected_components
-        );
+        let type_idx = facade.core.component_type_idx(TypeId::of::<C>()).unwrap();
+        let components = facade.components.read_components(type_idx);
+        let component_iter = components.archetype_iter(archetype_idx);
+        assert_option_iter!(component_iter, expected_components);
     }
 
     #[test]
@@ -314,11 +313,9 @@ mod main_facade_tests {
             ),
         );
 
-        facade.systems.run(
-            &facade.core,
-            &facade.components.components(),
-            &facade.actions,
-        );
+        facade
+            .systems
+            .run(&facade.core, &facade.components, &facade.actions);
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, [10]);
     }
@@ -538,16 +535,14 @@ mod main_facade_tests {
         facade.apply_system_actions();
 
         assert_eq!(facade.core.create_group(), group_idx);
-        facade.systems.run(
-            &facade.core,
-            &facade.components.components(),
-            &facade.actions,
-        );
+        facade
+            .systems
+            .run(&facade.core, &facade.components, &facade.actions);
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, []);
-        assert_components::<u32>(&mut facade, 0, None);
-        assert_components::<u32>(&mut facade, 1, None);
-        assert_components::<i64>(&mut facade, 1, None);
+        assert_components::<u32>(&mut facade, 0, Some(Vec::new()));
+        assert_components::<u32>(&mut facade, 1, Some(Vec::new()));
+        assert_components::<i64>(&mut facade, 1, Some(Vec::new()));
     }
 
     #[test]

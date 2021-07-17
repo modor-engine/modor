@@ -4,7 +4,7 @@ use crate::SystemData;
 use std::any::{Any, TypeId};
 use std::iter::FlatMap;
 use std::slice::Iter;
-use std::sync::{RwLock, RwLockReadGuard};
+use std::sync::RwLockReadGuard;
 
 impl<'a, 'b, C> SystemParam<'a, 'b> for &'b C
 where
@@ -19,7 +19,7 @@ where
         vec![TypeId::of::<C>()]
     }
 
-    fn lock(data: &'a SystemData<'_>) -> Self::Guard {
+    fn lock(_data: &'a SystemData<'_>) -> Self::Guard {
         /*let type_idx = data.type_idxs[&TypeId::of::<C>()];
         data.components[type_idx]
             .downcast_ref::<RwLock<Vec<Vec<C>>>>()
@@ -83,7 +83,7 @@ impl<'a, C> DoubleEndedIterator for ComponentArchetypeIter<'a, C> {
     }
 }
 
-struct ComponentIter<'a, C> {
+pub struct ComponentIter<'a, C> {
     #[allow(clippy::type_complexity)]
     components: FlatMap<ComponentArchetypeIter<'a, C>, Iter<'a, C>, fn(&Vec<C>) -> Iter<'_, C>>,
     len: usize,

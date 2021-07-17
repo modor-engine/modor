@@ -482,9 +482,9 @@ mod group_tests {
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             assert_eq!(d.entity_idxs(0), [0]);
-            let guard = d.read_components::<Number>().unwrap();
-            let components = d.component_iter::<Number>(&guard.0, 0);
-            assert_option_iter!(components, Some(vec![&Number(20)]));
+            let components = d.read_components::<Number>().unwrap();
+            let component_iter = components.0.archetype_iter(0);
+            assert_option_iter!(component_iter, Some(vec![&Number(20)]));
         }));
     }
 
@@ -522,9 +522,9 @@ mod group_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             assert_eq!(d.entity_idxs(0), [0]);
             assert_eq!(d.entity_idxs(1), [1]);
-            let guard = d.read_components::<Number>().unwrap();
-            let components = d.component_iter::<Number>(&guard.0, 1);
-            assert_option_iter!(components, Some(vec![&Number(20)]));
+            let components = d.read_components::<Number>().unwrap();
+            let component_iter = components.0.archetype_iter(1);
+            assert_option_iter!(component_iter, Some(vec![&Number(20)]));
         }));
     }
 }
@@ -573,12 +573,12 @@ mod entity_tests {
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             assert_eq!(d.entity_idxs(1), [0]);
-            let guard = d.read_components::<u32>().unwrap();
-            let components = d.component_iter::<u32>(&guard.0, 1);
-            assert_option_iter!(components, Some(vec![&10]));
-            let guard = d.read_components::<i64>().unwrap();
-            let components = d.component_iter::<i64>(&guard.0, 1);
-            assert_option_iter!(components, Some(vec![&20]));
+            let components = d.read_components::<u32>().unwrap();
+            let component_iter = components.0.archetype_iter(1);
+            assert_option_iter!(component_iter, Some(vec![&10]));
+            let components = d.read_components::<i64>().unwrap();
+            let component_iter = components.0.archetype_iter(1);
+            assert_option_iter!(component_iter, Some(vec![&20]));
         }));
     }
 
@@ -598,11 +598,11 @@ mod entity_tests {
         main.apply_system_actions();
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             assert_eq!(d.entity_idxs(2), [0]);
-            let guard = d.read_components::<u32>().unwrap();
-            assert!(d.component_iter::<u32>(&guard.0, 2).is_none());
-            let guard = d.read_components::<i64>().unwrap();
-            let components = d.component_iter::<i64>(&guard.0, 2);
-            assert_option_iter!(components, Some(vec![&20]));
+            let components = d.read_components::<u32>().unwrap();
+            assert!(components.0.archetype_iter(2).is_none());
+            let components = d.read_components::<i64>().unwrap();
+            let component_iter = components.0.archetype_iter(2);
+            assert_option_iter!(component_iter, Some(vec![&20]));
         }));
     }
 }

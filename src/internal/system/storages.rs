@@ -79,10 +79,9 @@ mod system_storage_tests {
         G: FnOnce(&[usize]),
     {
         let core = CoreFacade::default();
-        let mut components = ComponentFacade::default();
-        let component_interface = components.components();
+        let components = ComponentFacade::default();
         let actions = Mutex::new(ActionFacade::default());
-        let data = SystemData::new(&core, &component_interface, &actions);
+        let data = SystemData::new(&core, &components, &actions);
         use_data_fn(&data);
         use_deleted_groups_fn(
             &actions

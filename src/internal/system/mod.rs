@@ -1,5 +1,5 @@
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::interfaces::ComponentInterface;
+use crate::internal::components::ComponentFacade;
 use crate::internal::core::CoreFacade;
 use crate::internal::system::storages::{EntityTypeStorage, SystemStorage};
 use crate::internal::system_state::data::LockedSystem;
@@ -58,7 +58,7 @@ impl SystemFacade {
     pub(super) fn run(
         &mut self,
         core: &CoreFacade,
-        components: &ComponentInterface<'_>,
+        components: &ComponentFacade,
         actions: &Mutex<ActionFacade>,
     ) {
         let data = SystemData::new(core, components, actions);
@@ -152,7 +152,6 @@ impl SystemFacade {
 mod system_facade_tests {
     use super::*;
     use crate::external::systems::building::internal::TypeAccess;
-    use crate::internal::components::ComponentFacade;
     use crate::internal::system_state::data::SystemLocation;
     use crate::SystemInfo;
     use std::any::TypeId;
@@ -312,10 +311,9 @@ mod system_facade_tests {
         facade.delete_group(2.try_into().unwrap());
 
         let core = CoreFacade::default();
-        let mut components = ComponentFacade::default();
-        let component_interface = components.components();
+        let components = ComponentFacade::default();
         let actions = Mutex::new(ActionFacade::default());
-        let data = SystemData::new(&core, &component_interface, &actions);
+        let data = SystemData::new(&core, &components, &actions);
         assert_panics!(facade.systems.run(2, 0, &data, Vec::new()));
         assert_panics!(facade.entity_types.get(2, 0));
         let location = LockedSystem::Done;
@@ -347,11 +345,10 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let mut components = ComponentFacade::default();
-        let component_interface = components.components();
+        let components = ComponentFacade::default();
         let actions = Mutex::new(ActionFacade::default());
 
-        facade.run(&core, &component_interface, &actions);
+        facade.run(&core, &components, &actions);
 
         let action_result = actions.try_lock().unwrap().reset();
         assert_eq!(
@@ -372,11 +369,10 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let mut components = ComponentFacade::default();
-        let component_interface = components.components();
+        let components = ComponentFacade::default();
         let actions = Mutex::new(ActionFacade::default());
 
-        facade.run(&core, &component_interface, &actions);
+        facade.run(&core, &components, &actions);
 
         let action_result = actions.try_lock().unwrap().reset();
         assert_eq!(

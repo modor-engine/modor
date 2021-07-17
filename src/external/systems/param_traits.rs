@@ -54,7 +54,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsConst<'b>>;
+    type Guard = Option<ComponentsConst<'b, C>>;
     type Iter = Iter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -70,7 +70,7 @@ where
     }
 
     fn iter(
-        data: &'b SystemData<'_>,
+        _data: &'b SystemData<'_>,
         _info: &SystemInfo,
         guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
@@ -79,7 +79,8 @@ where
             .as_ref()
             .expect("internal error: access to not existing components")
             .0;
-        data.component_iter(components_guard, archetype.idx)
+        components_guard
+            .archetype_iter(archetype.idx)
             .expect("internal error: iterate on missing archetype")
     }
 
@@ -97,7 +98,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsMut<'b>>;
+    type Guard = Option<ComponentsMut<'b, C>>;
     type Iter = IterMut<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -113,7 +114,7 @@ where
     }
 
     fn iter(
-        data: &'b SystemData<'_>,
+        _data: &'b SystemData<'_>,
         _info: &SystemInfo,
         guard: &'a mut Self::Guard,
         archetype: ArchetypeInfo,
@@ -122,7 +123,8 @@ where
             .as_mut()
             .expect("internal error: mutably access to not existing components")
             .0;
-        data.component_iter_mut(components_guard, archetype.idx)
+        components_guard
+            .archetype_iter_mut(archetype.idx)
             .expect("internal error: mutably iterate on mandatory components that does not exist")
     }
 
@@ -141,7 +143,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsConst<'b>>;
+    type Guard = Option<ComponentsConst<'b, C>>;
     type Iter = OptionComponentIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -165,7 +167,7 @@ where
         OptionComponentIter::new(
             guard
                 .as_ref()
-                .and_then(|l| data.component_iter(&l.0, archetype.idx)),
+                .and_then(|l| l.0.archetype_iter(archetype.idx)),
             data.entity_idxs(archetype.idx).len(),
         )
     }
@@ -185,7 +187,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsMut<'b>>;
+    type Guard = Option<ComponentsMut<'b, C>>;
     type Iter = OptionComponentMutIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -209,7 +211,7 @@ where
         OptionComponentMutIter::new(
             guard
                 .as_mut()
-                .and_then(|l| data.component_iter_mut(&mut l.0, archetype.idx)),
+                .and_then(|l| l.0.archetype_iter_mut(archetype.idx)),
             data.entity_idxs(archetype.idx).len(),
         )
     }
@@ -664,7 +666,8 @@ mod component_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let guard = Param::lock(d);
 
-            assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let components = guard.unwrap();
+            assert_option_iter!(components.0.archetype_iter(0), Some(vec![&10, &20]));
         }));
     }
 
@@ -771,7 +774,9 @@ mod component_mut_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let guard = Param::lock(d);
 
-            assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let mut components = guard.unwrap();
+            let component_iter = components.0.archetype_iter_mut(0);
+            assert_option_iter!(component_iter, Some(vec![&mut 10, &mut 20]));
         }));
     }
 
@@ -878,7 +883,8 @@ mod component_option_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let guard = Param::lock(d);
 
-            assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let components = guard.unwrap();
+            assert_option_iter!(components.0.archetype_iter(0), Some(vec![&10, &20]));
         }));
     }
 
@@ -990,7 +996,9 @@ mod component_mut_option_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let guard = Param::lock(d);
 
-            assert_option_iter!(guard.unwrap().0.iter::<u32>(0), Some(vec![&10, &20]));
+            let mut components = guard.unwrap();
+            let component_iter = components.0.archetype_iter_mut(0);
+            assert_option_iter!(component_iter, Some(vec![&mut 10, &mut 20]));
         }));
     }
 
@@ -1352,11 +1360,11 @@ mod tuple_with_many_items_system_param_tests {
         main.run_system_once(SystemOnceBuilder::new(|d, _| {
             let (guard1, guard2) = Param::lock(d);
 
-            let guard1 = guard1.unwrap();
-            let guard2 = guard2.unwrap();
-            assert_option_iter!(guard1.0.iter::<u32>(0), Some(vec![&10]));
-            assert_option_iter!(guard1.0.iter::<u32>(1), Some(vec![&20]));
-            assert_option_iter!(guard2.0.iter::<i64>(0), Some(vec![&30]));
+            let components1 = guard1.unwrap();
+            let mut components2 = guard2.unwrap();
+            assert_option_iter!(components1.0.archetype_iter(0), Some(vec![&10]));
+            assert_option_iter!(components1.0.archetype_iter(1), Some(vec![&20]));
+            assert_option_iter!(components2.0.archetype_iter_mut(1), Some(vec![&mut 30]));
         }));
     }
 

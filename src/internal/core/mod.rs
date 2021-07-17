@@ -97,7 +97,7 @@ impl CoreFacade {
         self.groups.delete_entity(entity_idx);
     }
 
-    pub(super) fn component_type_idx(&self, type_id: TypeId) -> Option<usize> {
+    pub(crate) fn component_type_idx(&self, type_id: TypeId) -> Option<usize> {
         self.component_types.idx(type_id)
     }
 
