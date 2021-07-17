@@ -538,7 +538,6 @@ impl Built {
 #[cfg(test)]
 mod entity_builder_tests {
     use super::*;
-    use crate::SystemOnceBuilder;
 
     assert_impl_all!(EntityBuilder<'_, String>: Send);
     assert_not_impl_any!(EntityBuilder<'_, String>: Clone);
@@ -575,17 +574,16 @@ mod entity_builder_tests {
         builder.inherit_from::<Parent>("text".into());
 
         assert!(!main.add_entity_main_component::<Parent>());
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let components = d.read_components::<u32>().unwrap();
-            let component_iter = components.0.archetype_iter(2);
-            assert_option_iter!(component_iter, Some(vec![&42]));
-            let components = d.read_components::<String>().unwrap();
-            let component_iter = components.0.archetype_iter(2);
-            assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
-            let components = d.read_components::<Parent>().unwrap();
-            let component_iter = components.0.archetype_iter(2);
-            assert_option_iter!(component_iter, Some(vec![&Parent]));
-        }));
+        let data = main.system_data();
+        let components = data.read_components::<u32>().unwrap();
+        let component_iter = components.0.archetype_iter(2);
+        assert_option_iter!(component_iter, Some(vec![&42]));
+        let components = data.read_components::<String>().unwrap();
+        let component_iter = components.0.archetype_iter(2);
+        assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
+        let components = data.read_components::<Parent>().unwrap();
+        let component_iter = components.0.archetype_iter(2);
+        assert_option_iter!(component_iter, Some(vec![&Parent]));
     }
 
     #[test]
@@ -597,11 +595,10 @@ mod entity_builder_tests {
 
         builder.with::<String>("text".into());
 
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let components = d.read_components::<String>().unwrap();
-            let component_iter = components.0.archetype_iter(0);
-            assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
-        }));
+        let data = main.system_data();
+        let components = data.read_components::<String>().unwrap();
+        let component_iter = components.0.archetype_iter(0);
+        assert_option_iter!(component_iter, Some(vec![&String::from("text")]));
     }
 
     #[test]
@@ -614,11 +611,10 @@ mod entity_builder_tests {
         builder.with_self(Child);
 
         assert!(!main.add_entity_main_component::<Child>());
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let components = d.read_components::<Child>().unwrap();
-            let component_iter = components.0.archetype_iter(0);
-            assert_option_iter!(component_iter, Some(vec![&Child]));
-        }));
+        let data = main.system_data();
+        let components = data.read_components::<Child>().unwrap();
+        let component_iter = components.0.archetype_iter(0);
+        assert_option_iter!(component_iter, Some(vec![&Child]));
     }
 }
 

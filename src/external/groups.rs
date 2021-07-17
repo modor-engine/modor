@@ -124,7 +124,7 @@ impl<'a> GroupBuilder<'a> {
 #[cfg(test)]
 mod group_builder_tests {
     use super::*;
-    use crate::{Built, SystemOnceBuilder};
+    use crate::Built;
     use std::convert::TryInto;
 
     assert_impl_all!(GroupBuilder<'_>:  Send);
@@ -171,10 +171,9 @@ mod group_builder_tests {
         builder.with_entity::<MyEntity>("text".into());
 
         assert!(!main.add_entity_main_component::<MyEntity>());
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let components = d.read_components::<MyEntity>().unwrap();
-            let component_iter = components.0.archetype_iter(0);
-            assert_option_iter!(component_iter, Some(vec![&MyEntity(String::from("text"))]));
-        }));
+        let data = main.system_data();
+        let components = data.read_components::<MyEntity>().unwrap();
+        let component_iter = components.0.archetype_iter(0);
+        assert_option_iter!(component_iter, Some(vec![&MyEntity(String::from("text"))]));
     }
 }

@@ -324,11 +324,14 @@ impl Application {
     ///     }
     /// }
     /// ```
-    pub fn run<S>(&mut self, system: SystemOnceBuilder<S>)
+    // TODO: replace by more flexible `query` method (check can still be done with macro)
+    pub fn run<S>(&mut self, mut system: SystemOnceBuilder<S>)
     where
         S: FnMut(&SystemData<'_>, SystemInfo),
     {
-        self.0.run_system_once(system);
+        let data = self.0.system_data();
+        let info = SystemInfo::new(Vec::new(), None);
+        (system.wrapper)(&data, info);
         self.0.apply_system_actions();
     }
 }

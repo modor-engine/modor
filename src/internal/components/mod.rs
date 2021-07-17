@@ -3,6 +3,9 @@ use std::any::Any;
 use std::slice::{Iter, IterMut};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+// TODO: add tests
+// TODO: split file
+
 #[derive(Default)]
 pub(crate) struct ComponentFacade {
     components: Vec<Box<dyn ComponentArchetypes>>,

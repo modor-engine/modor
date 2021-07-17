@@ -216,7 +216,6 @@ mod option_component_mut_iter_tests {
 mod group_iter_tests {
     use super::*;
     use crate::internal::main::MainFacade;
-    use crate::SystemOnceBuilder;
 
     assert_impl_all!(GroupIter<'_>: Sync, Send);
     assert_not_impl_any!(GroupIter<'_>: Clone);
@@ -227,17 +226,16 @@ mod group_iter_tests {
         let group_idx = main.create_group();
         let entity_idx = main.create_entity(group_idx);
         main.add_component(entity_idx, 10_u32);
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let mut group_iter = GroupIter::new(group_idx, d.clone(), 2);
+        let data = main.system_data();
 
-            group_iter.next().unwrap().delete();
-            assert!(group_iter.next().is_some());
-            assert!(group_iter.next().is_none());
-        }));
+        let mut group_iter = GroupIter::new(group_idx, data.clone(), 2);
+
+        group_iter.next().unwrap().delete();
+        assert!(group_iter.next().is_some());
+        assert!(group_iter.next().is_none());
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            assert_eq!(d.entity_idxs(0), []);
-        }));
+        let data = main.system_data();
+        assert_eq!(data.entity_idxs(0), []);
     }
 }
 
@@ -245,7 +243,6 @@ mod group_iter_tests {
 mod entity_iter_tests {
     use super::*;
     use crate::internal::main::MainFacade;
-    use crate::SystemOnceBuilder;
 
     assert_impl_all!(EntityIter<'_>: Sync, Send);
     assert_not_impl_any!(EntityIter<'_>: Clone);
@@ -260,18 +257,17 @@ mod entity_iter_tests {
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
         main.add_component(entity3_idx, 30_u32);
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let components = &[0, 1, 2];
-            let mut entity_iter = EntityIter::new(components.iter(), d.clone());
+        let data = main.system_data();
+        let components = &[0, 1, 2];
 
-            entity_iter.next().unwrap().delete();
-            assert!(entity_iter.next().is_some());
-            entity_iter.next().unwrap().delete();
-        }));
+        let mut entity_iter = EntityIter::new(components.iter(), data.clone());
+
+        entity_iter.next().unwrap().delete();
+        assert!(entity_iter.next().is_some());
+        entity_iter.next().unwrap().delete();
         main.apply_system_actions();
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            assert_eq!(d.entity_idxs(0), [1]);
-        }));
+        let data = main.system_data();
+        assert_eq!(data.entity_idxs(0), [1]);
     }
 }
 
@@ -279,7 +275,6 @@ mod entity_iter_tests {
 mod query_iter_tests {
     use super::*;
     use crate::internal::main::MainFacade;
-    use crate::SystemOnceBuilder;
     use std::any::TypeId;
 
     assert_impl_all!(QueryIter<'_, (&u32, )>: Sync, Send);
@@ -293,18 +288,17 @@ mod query_iter_tests {
         let entity2_idx = main.create_entity(group_idx);
         main.add_component(entity1_idx, 10_u32);
         main.add_component(entity2_idx, 20_u32);
-        main.run_system_once(SystemOnceBuilder::new(|d, _| {
-            let mut query = Query::<(&u32,)>::new(Some(group_idx), d.clone());
-            query.filter::<i64>();
+        let data = main.system_data();
+        let mut query = Query::<(&u32,)>::new(Some(group_idx), data.clone());
+        query.filter::<i64>();
 
-            let mut query_iter = QueryIter::new(query, 2);
+        let mut query_iter = QueryIter::new(query, 2);
 
-            let query = query_iter.next().unwrap();
-            let query_run = query.run(|_: &u32| ());
-            assert_eq!(query_run.group_idx, Some(group_idx));
-            assert_eq!(query_run.filtered_component_types, [TypeId::of::<i64>()]);
-            assert!(query_iter.next().is_some());
-            assert!(query_iter.next().is_none());
-        }));
+        let query = query_iter.next().unwrap();
+        let query_run = query.run(|_: &u32| ());
+        assert_eq!(query_run.group_idx, Some(group_idx));
+        assert_eq!(query_run.filtered_component_types, [TypeId::of::<i64>()]);
+        assert!(query_iter.next().is_some());
+        assert!(query_iter.next().is_none());
     }
 }
