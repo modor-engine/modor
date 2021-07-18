@@ -52,17 +52,6 @@ impl ComponentFacade {
         )
     }
 
-    pub(super) fn exists<C>(&mut self, type_idx: usize, location: EntityLocation) -> bool
-    where
-        C: Any,
-    {
-        let components = self.retrieve_components_mut::<C>(type_idx);
-        components
-            .get(location.archetype_idx)
-            .and_then(|c| c.get(location.entity_pos))
-            .is_some()
-    }
-
     pub(super) fn add<C>(&mut self, type_idx: usize, archetype_idx: usize, component: C)
     where
         C: Any,

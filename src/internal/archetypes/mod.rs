@@ -1,4 +1,4 @@
-use crate::internal::archetypes::data::MissingComponentError;
+use crate::internal::archetypes::data::{ExistingComponentError, MissingComponentError};
 use crate::internal::archetypes::storages::{
     GroupArchetypeStorage, NextArchetypeStorage, PreviousArchetypeStorage, PropertyStorage,
     TypeArchetypeStorage,
@@ -59,31 +59,31 @@ impl ArchetypeFacade {
         }
     }
 
-    #[allow(clippy::option_if_let_else)]
     pub(super) fn add_component(
         &mut self,
         group_idx: NonZeroUsize,
         src_archetype_idx: Option<usize>,
         type_idx: usize,
-    ) -> usize {
-        if let Some(dst_archetype_idx) =
-            self.next_archetypes
-                .idx(group_idx, src_archetype_idx, type_idx)
-        {
-            dst_archetype_idx
-        } else if let Some(dst_archetype_idx) =
-            self.properties
-                .next_idx(group_idx, src_archetype_idx, type_idx)
-        {
-            let next_archetypes = &mut self.next_archetypes;
-            next_archetypes.add(group_idx, src_archetype_idx, type_idx, dst_archetype_idx);
-            dst_archetype_idx
-        } else {
-            self.create_next_archetype(src_archetype_idx, type_idx, group_idx)
-        }
+    ) -> Result<usize, ExistingComponentError> {
+        Ok(
+            if let Some(dst_archetype_idx) =
+                self.next_archetypes
+                    .idx(group_idx, src_archetype_idx, type_idx)
+            {
+                dst_archetype_idx
+            } else if let Some(dst_archetype_idx) =
+                self.properties
+                    .next_idx(group_idx, src_archetype_idx, type_idx)?
+            {
+                let next_archetypes = &mut self.next_archetypes;
+                next_archetypes.add(group_idx, src_archetype_idx, type_idx, dst_archetype_idx);
+                dst_archetype_idx
+            } else {
+                self.create_next_archetype(src_archetype_idx, type_idx, group_idx)?
+            },
+        )
     }
 
-    #[allow(clippy::option_if_let_else)]
     pub(super) fn delete_component(
         &mut self,
         src_archetype_idx: usize,
@@ -114,9 +114,10 @@ impl ArchetypeFacade {
         src_archetype_idx: Option<usize>,
         new_type_idx: usize,
         group_idx: NonZeroUsize,
-    ) -> usize {
+    ) -> Result<usize, ExistingComponentError> {
         let properties = &mut self.properties;
-        let dst_archetype_idx = properties.create_next(group_idx, src_archetype_idx, new_type_idx);
+        let dst_archetype_idx =
+            properties.create_next(group_idx, src_archetype_idx, new_type_idx)?;
         self.group_archetypes.add(group_idx, dst_archetype_idx);
         for &type_idx in properties.type_idxs(dst_archetype_idx) {
             self.type_archetypes.add(type_idx, dst_archetype_idx);
@@ -127,7 +128,7 @@ impl ArchetypeFacade {
             new_type_idx,
             dst_archetype_idx,
         );
-        dst_archetype_idx
+        Ok(dst_archetype_idx)
     }
 
     fn create_previous_archetype(
@@ -167,7 +168,7 @@ mod archetype_facade_tests {
 
         let archetype_idx = facade.add_component(group_idx, None, 2);
 
-        assert_eq!(archetype_idx, 0);
+        assert_eq!(archetype_idx, Ok(0));
         assert_eq!(facade.properties.type_idxs(0), [2]);
         assert_iter!(facade.group_archetypes.idxs(group_idx), [0]);
         assert_eq!(facade.type_archetypes.idxs(&[2]), [0]);
@@ -178,11 +179,11 @@ mod archetype_facade_tests {
     fn add_component_in_other_new_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, None, 2);
 
         let archetype_idx = facade.add_component(group_idx, None, 3);
 
-        assert_eq!(archetype_idx, 1);
+        assert_eq!(archetype_idx, Ok(1));
         assert_eq!(facade.properties.type_idxs(1), [3]);
         assert_iter!(facade.group_archetypes.idxs(group_idx), [0, 1]);
         assert_eq!(facade.type_archetypes.idxs(&[3]), [1]);
@@ -193,33 +194,44 @@ mod archetype_facade_tests {
     fn add_component_in_existing_and_directly_accessible_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 3);
+        let _ = facade.add_component(group_idx, None, 3);
 
         let archetype_idx = facade.add_component(group_idx, None, 3);
 
-        assert_eq!(archetype_idx, 0);
+        assert_eq!(archetype_idx, Ok(0));
     }
 
     #[test]
     fn add_component_in_existing_and_not_directly_accessible_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 4);
-        facade.add_component(group_idx, None, 5);
-        facade.add_component(group_idx, Some(0), 5);
+        let _ = facade.add_component(group_idx, None, 4);
+        let _ = facade.add_component(group_idx, None, 5);
+        let _ = facade.add_component(group_idx, Some(0), 5);
 
         let archetype_idx = facade.add_component(group_idx, Some(1), 4);
 
-        assert_eq!(archetype_idx, 2);
+        assert_eq!(archetype_idx, Ok(2));
         assert_eq!(facade.next_archetypes.idx(group_idx, Some(1), 4), Some(2));
+    }
+
+    #[test]
+    fn add_existing_component_type_in_archetype() {
+        let mut facade = ArchetypeFacade::default();
+        let group_idx = 1.try_into().unwrap();
+        let _ = facade.add_component(group_idx, None, 4);
+
+        let archetype_idx = facade.add_component(group_idx, Some(0), 4);
+
+        assert_eq!(archetype_idx, Err(ExistingComponentError));
     }
 
     #[test]
     fn delete_component_to_existing_and_not_directly_accessible_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
-        facade.add_component(group_idx, Some(0), 3);
+        let _ = facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, Some(0), 3);
 
         let archetype_idx = facade.delete_component(1, 3);
 
@@ -234,8 +246,8 @@ mod archetype_facade_tests {
     fn delete_component_to_existing_and_directly_accessible_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
-        facade.add_component(group_idx, Some(0), 3);
+        let _ = facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, Some(0), 3);
         let _ = facade.delete_component(1, 3);
 
         let archetype_idx = facade.delete_component(1, 3);
@@ -251,8 +263,8 @@ mod archetype_facade_tests {
     fn delete_missing_component_from_existing_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
-        facade.add_component(group_idx, Some(0), 3);
+        let _ = facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, Some(0), 3);
 
         let archetype_idx = facade.delete_component(1, 4);
 
@@ -264,8 +276,8 @@ mod archetype_facade_tests {
     fn delete_component_to_new_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
-        facade.add_component(group_idx, Some(0), 3);
+        let _ = facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, Some(0), 3);
 
         let archetype_idx = facade.delete_component(1, 2);
 
@@ -284,7 +296,7 @@ mod archetype_facade_tests {
     fn delete_component_to_no_archetype() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, None, 2);
 
         let archetype_idx = facade.delete_component(0, 2);
 
@@ -297,9 +309,9 @@ mod archetype_facade_tests {
         let mut facade = ArchetypeFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.add_component(group1_idx, None, 3);
-        facade.add_component(group1_idx, None, 4);
-        facade.add_component(group2_idx, Some(0), 5);
+        let _ = facade.add_component(group1_idx, None, 3);
+        let _ = facade.add_component(group1_idx, None, 4);
+        let _ = facade.add_component(group2_idx, Some(0), 5);
 
         let type_idxs = facade.group_type_idxs(group1_idx);
 
@@ -310,7 +322,7 @@ mod archetype_facade_tests {
     fn retrieve_archetype_group_idx() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, None, 2);
 
         let actual_group_idx = facade.group_idx(0);
 
@@ -321,8 +333,8 @@ mod archetype_facade_tests {
     fn retrieve_archetype_type_idxs() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 2);
-        facade.add_component(group_idx, Some(0), 3);
+        let _ = facade.add_component(group_idx, None, 2);
+        let _ = facade.add_component(group_idx, Some(0), 3);
 
         let type_idxs = facade.type_idxs(1);
 
@@ -333,9 +345,9 @@ mod archetype_facade_tests {
     fn retrieve_archetypes_with_types() {
         let mut facade = ArchetypeFacade::default();
         let group_idx = 1.try_into().unwrap();
-        facade.add_component(group_idx, None, 3);
-        facade.add_component(group_idx, Some(0), 4);
-        facade.add_component(group_idx, None, 4);
+        let _ = facade.add_component(group_idx, None, 3);
+        let _ = facade.add_component(group_idx, Some(0), 4);
+        let _ = facade.add_component(group_idx, None, 4);
 
         let archetype_idxs = facade.idxs_with_types(&[4]);
 
@@ -347,9 +359,9 @@ mod archetype_facade_tests {
         let mut facade = ArchetypeFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.add_component(group1_idx, None, 3);
-        facade.add_component(group1_idx, Some(0), 4);
-        facade.add_component(group2_idx, None, 4);
+        let _ = facade.add_component(group1_idx, None, 3);
+        let _ = facade.add_component(group1_idx, Some(0), 4);
+        let _ = facade.add_component(group2_idx, None, 4);
 
         let archetype_idxs = facade.idxs_with_group(group1_idx);
 
@@ -361,10 +373,10 @@ mod archetype_facade_tests {
         let mut facade = ArchetypeFacade::default();
         let group1_idx = 1.try_into().unwrap();
         let group2_idx = 2.try_into().unwrap();
-        facade.add_component(group1_idx, None, 3);
-        facade.add_component(group1_idx, Some(0), 4);
-        facade.add_component(group2_idx, None, 3);
-        facade.add_component(group2_idx, Some(2), 6);
+        let _ = facade.add_component(group1_idx, None, 3);
+        let _ = facade.add_component(group1_idx, Some(0), 4);
+        let _ = facade.add_component(group2_idx, None, 3);
+        let _ = facade.add_component(group2_idx, Some(2), 6);
         let _ = facade.delete_component(2, 3);
         let _ = facade.delete_component(1, 4);
         let _ = facade.delete_component(0, 3);

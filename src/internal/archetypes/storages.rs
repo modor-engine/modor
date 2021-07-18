@@ -1,4 +1,4 @@
-use crate::internal::archetypes::data::MissingComponentError;
+use crate::internal::archetypes::data::{ExistingComponentError, MissingComponentError};
 use fxhash::FxHashMap;
 use std::mem;
 use std::num::NonZeroUsize;
@@ -29,13 +29,17 @@ impl PropertyStorage {
         group_idx: NonZeroUsize,
         archetype_idx: Option<usize>,
         type_idx: usize,
-    ) -> Option<usize> {
-        let type_idxs =
-            archetype_idx.map_or_else(|| vec![type_idx], |a| self.next_type_idxs(a, type_idx));
-        self.properties
+    ) -> Result<Option<usize>, ExistingComponentError> {
+        let type_idxs = if let Some(archetype_idx) = archetype_idx {
+            self.next_type_idxs(archetype_idx, type_idx)?
+        } else {
+            vec![type_idx]
+        };
+        Ok(self
+            .properties
             .iter()
             .map(Option::as_ref)
-            .position(|p| p.map_or(false, |p| p.0 == type_idxs && p.1 == group_idx))
+            .position(|p| p.map_or(false, |p| p.0 == type_idxs && p.1 == group_idx)))
     }
 
     #[allow(clippy::option_option)]
@@ -62,12 +66,15 @@ impl PropertyStorage {
         group_idx: NonZeroUsize,
         archetype_idx: Option<usize>,
         type_idx: usize,
-    ) -> usize {
-        let type_idxs =
-            archetype_idx.map_or_else(|| vec![type_idx], |a| self.next_type_idxs(a, type_idx));
+    ) -> Result<usize, ExistingComponentError> {
+        let type_idxs = if let Some(archetype_idx) = archetype_idx {
+            self.next_type_idxs(archetype_idx, type_idx)?
+        } else {
+            vec![type_idx]
+        };
         let new_archetype_idx = self.generate_archetype_idx();
         self.properties[new_archetype_idx] = Some((type_idxs, group_idx));
-        new_archetype_idx
+        Ok(new_archetype_idx)
     }
 
     pub(super) fn create_previous(
@@ -91,11 +98,18 @@ impl PropertyStorage {
         self.deleted_archetype_idxs.push(archetype_idx);
     }
 
-    fn next_type_idxs(&self, archetype_idx: usize, type_idx: usize) -> Vec<usize> {
+    fn next_type_idxs(
+        &self,
+        archetype_idx: usize,
+        type_idx: usize,
+    ) -> Result<Vec<usize>, ExistingComponentError> {
         let mut type_idxs = self.type_idxs(archetype_idx).to_vec();
-        let pos = type_idxs.binary_search(&type_idx).unwrap_err();
-        type_idxs.insert(pos, type_idx);
-        type_idxs
+        if let Err(pos) = type_idxs.binary_search(&type_idx) {
+            type_idxs.insert(pos, type_idx);
+            Ok(type_idxs)
+        } else {
+            Err(ExistingComponentError)
+        }
     }
 
     fn previous_type_idxs(
@@ -276,21 +290,21 @@ mod property_storage_tests {
 
         let archetype_idx = storage.create_next(group_idx, None, 2);
 
-        assert_eq!(archetype_idx, 0);
+        assert_eq!(archetype_idx, Ok(0));
         assert_eq!(storage.type_idxs(0), [2]);
         assert_eq!(storage.group_idx(0), group_idx);
         assert_panics!(storage.type_idxs(1));
         assert_panics!(storage.group_idx(1));
-        assert_eq!(storage.next_idx(group_idx, None, 2), Some(0));
-        assert_eq!(storage.next_idx(group_idx, None, 3), None);
-        assert_eq!(storage.next_idx(3.try_into().unwrap(), None, 2), None);
+        assert_eq!(storage.next_idx(group_idx, None, 2), Ok(Some(0)));
+        assert_eq!(storage.next_idx(group_idx, None, 3), Ok(None));
+        let error = Err(ExistingComponentError);
+        assert_eq!(storage.next_idx(group_idx, Some(0), 2), error);
+        assert_eq!(storage.next_idx(3.try_into().unwrap(), None, 2), Ok(None));
         assert_panics!(storage.next_idx(group_idx, Some(3), 2));
         assert_eq!(storage.previous_idx(group_idx, 0, 2), Ok(Some(None)));
         assert_panics!(storage.previous_idx(group_idx, 1, 2));
-        assert_eq!(
-            storage.previous_idx(group_idx, 0, 3),
-            Err(MissingComponentError)
-        );
+        let error = Err(MissingComponentError);
+        assert_eq!(storage.previous_idx(group_idx, 0, 3), error);
     }
 
     #[test]
@@ -298,30 +312,31 @@ mod property_storage_tests {
     fn create_next_archetype_from_missing_archetype() {
         let mut storage = PropertyStorage::default();
 
-        storage.create_next(1.try_into().unwrap(), Some(0), 2);
+        let _ = storage.create_next(1.try_into().unwrap(), Some(0), 2);
     }
 
     #[test]
-    #[should_panic]
     fn create_next_archetype_from_existing_archetype_using_same_type() {
         let mut storage = PropertyStorage::default();
-        storage.create_next(1.try_into().unwrap(), None, 2);
+        let _ = storage.create_next(1.try_into().unwrap(), None, 2);
 
-        storage.create_next(1.try_into().unwrap(), Some(0), 2);
+        let archetype_idx = storage.create_next(1.try_into().unwrap(), Some(0), 2);
+
+        assert_eq!(archetype_idx, Err(ExistingComponentError));
     }
 
     #[test]
     fn create_next_archetype_from_existing_archetype_using_different_type() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
-        storage.create_next(group_idx, None, 2);
+        let _ = storage.create_next(group_idx, None, 2);
 
         let archetype_idx = storage.create_next(group_idx, Some(0), 5);
 
-        assert_eq!(archetype_idx, 1);
+        assert_eq!(archetype_idx, Ok(1));
         assert_eq!(storage.type_idxs(1), [2, 5]);
         assert_eq!(storage.group_idx(1), group_idx);
-        assert_eq!(storage.next_idx(group_idx, Some(0), 5), Some(1));
+        assert_eq!(storage.next_idx(group_idx, Some(0), 5), Ok(Some(1)));
         assert_eq!(storage.previous_idx(group_idx, 1, 5), Ok(Some(Some(0))));
         assert_eq!(storage.previous_idx(group_idx, 1, 2), Ok(None));
         assert_eq!(storage.previous_idx(3.try_into().unwrap(), 1, 2), Ok(None));
@@ -331,7 +346,7 @@ mod property_storage_tests {
     fn create_previous_archetype_from_existing_archetype_using_missing_type() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
-        storage.create_next(group_idx, None, 2);
+        let _ = storage.create_next(group_idx, None, 2);
 
         let archetype_idx = storage.create_previous(group_idx, 0, 3);
 
@@ -342,7 +357,7 @@ mod property_storage_tests {
     fn create_previous_archetype_from_existing_archetype_using_only_type() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
-        storage.create_next(group_idx, None, 2);
+        let _ = storage.create_next(group_idx, None, 2);
 
         let archetype_idx = storage.create_previous(group_idx, 0, 2);
 
@@ -354,14 +369,14 @@ mod property_storage_tests {
     fn create_previous_archetype_from_existing_archetype_using_one_of_types() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
-        storage.create_next(group_idx, None, 2);
-        storage.create_next(group_idx, Some(0), 3);
+        let _ = storage.create_next(group_idx, None, 2);
+        let _ = storage.create_next(group_idx, Some(0), 3);
 
         let archetype_idx = storage.create_previous(group_idx, 1, 2);
 
         assert_eq!(archetype_idx, Ok(Some(2)));
         assert_eq!(storage.previous_idx(group_idx, 1, 2), Ok(Some(Some(2))));
-        assert_eq!(storage.next_idx(group_idx, Some(2), 2), Some(1));
+        assert_eq!(storage.next_idx(group_idx, Some(2), 2), Ok(Some(1)));
     }
 
     #[test]
@@ -376,17 +391,17 @@ mod property_storage_tests {
     fn delete_existing_archetype() {
         let mut storage = PropertyStorage::default();
         let group_idx = 1.try_into().unwrap();
-        storage.create_next(group_idx, None, 2);
-        storage.create_next(group_idx, Some(0), 3);
+        let _ = storage.create_next(group_idx, None, 2);
+        let _ = storage.create_next(group_idx, Some(0), 3);
 
         storage.delete(0);
 
         assert_panics!(storage.type_idxs(0));
         assert_panics!(storage.group_idx(0));
         assert_eq!(storage.previous_idx(group_idx, 1, 3), Ok(None));
-        assert_eq!(storage.next_idx(group_idx, None, 2), None);
-        assert_eq!(storage.create_next(group_idx, None, 3), 0);
-        assert_eq!(storage.create_next(group_idx, None, 4), 2);
+        assert_eq!(storage.next_idx(group_idx, None, 2), Ok(None));
+        assert_eq!(storage.create_next(group_idx, None, 3), Ok(0));
+        assert_eq!(storage.create_next(group_idx, None, 4), Ok(2));
         assert_eq!(storage.type_idxs(0), [3]);
         assert_eq!(storage.type_idxs(1), [2, 3]);
         assert_eq!(storage.type_idxs(2), [4]);

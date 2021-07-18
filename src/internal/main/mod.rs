@@ -44,19 +44,20 @@ impl MainFacade {
             .unwrap_or_else(|| self.create_component_type::<C>());
         let location = self.core.entity_location(entity_idx);
         if let Some(location) = location {
-            // TODO: directly try to add component
-            if self.components.exists::<C>(type_idx, location) {
-                self.components.replace(type_idx, location, component);
-            } else {
-                let new_archetype_idx = self.core.add_component(entity_idx, type_idx);
+            if let Ok(new_archetype_idx) = self.core.add_component(entity_idx, type_idx) {
                 for &moved_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
                     self.components
                         .move_(moved_type_idx, location, new_archetype_idx);
                 }
-                self.components.add(type_idx, new_archetype_idx, component);
+                self.components.add(type_idx, new_archetype_idx, component)
+            } else {
+                self.components.replace(type_idx, location, component);
             }
         } else {
-            let new_archetype_idx = self.core.add_component(entity_idx, type_idx);
+            let new_archetype_idx = self
+                .core
+                .add_component(entity_idx, type_idx)
+                .expect("internal error: component already exists but no location for entity");
             self.components.add(type_idx, new_archetype_idx, component);
         }
     }
