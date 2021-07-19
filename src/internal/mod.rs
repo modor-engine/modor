@@ -3,7 +3,6 @@ mod macros;
 
 pub(super) mod actions;
 pub(super) mod archetypes;
-// pub(super) mod components_old; TODO: remove
 pub(super) mod components;
 pub(super) mod core;
 pub(super) mod entities;

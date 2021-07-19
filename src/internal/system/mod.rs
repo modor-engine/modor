@@ -1,5 +1,5 @@
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentFacade;
+use crate::internal::components::ComponentStorage;
 use crate::internal::core::CoreFacade;
 use crate::internal::system::storages::{EntityTypeStorage, SystemStorage};
 use crate::internal::system_state::data::LockedSystem;
@@ -58,7 +58,7 @@ impl SystemFacade {
     pub(super) fn run(
         &mut self,
         core: &CoreFacade,
-        components: &ComponentFacade,
+        components: &ComponentStorage,
         actions: &Mutex<ActionFacade>,
     ) {
         let data = SystemData::new(core, components, actions);
@@ -311,7 +311,7 @@ mod system_facade_tests {
         facade.delete_group(2.try_into().unwrap());
 
         let core = CoreFacade::default();
-        let components = ComponentFacade::default();
+        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
         let data = SystemData::new(&core, &components, &actions);
         assert_panics!(facade.systems.run(2, 0, &data, Vec::new()));
@@ -345,7 +345,7 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let components = ComponentFacade::default();
+        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
 
         facade.run(&core, &components, &actions);
@@ -369,7 +369,7 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let components = ComponentFacade::default();
+        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
 
         facade.run(&core, &components, &actions);

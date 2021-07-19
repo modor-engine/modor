@@ -1,17 +1,16 @@
+use crate::internal::components::data::{ComponentReadGuard, ComponentWriteGuard};
 use crate::internal::entities::data::EntityLocation;
 use std::any::Any;
-use std::slice::{Iter, IterMut};
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::RwLock;
 
-// TODO: add tests
-// TODO: split file
+pub(crate) mod data;
 
 #[derive(Default)]
-pub(crate) struct ComponentFacade {
+pub(crate) struct ComponentStorage {
     components: Vec<Box<dyn ComponentArchetypes>>,
 }
 
-impl ComponentFacade {
+impl ComponentStorage {
     pub(super) fn create_type<C>(&mut self)
     where
         C: Any + Sync + Send,
@@ -28,13 +27,13 @@ impl ComponentFacade {
     where
         C: Any,
     {
-        ComponentReadGuard(
+        ComponentReadGuard::new(
             self.components[type_idx]
                 .as_any()
                 .downcast_ref::<RwLock<Vec<Vec<C>>>>()
                 .expect("internal error: invalid component type used when reading components")
-                .read()
-                .expect("internal error: lock poisoned when reading components"),
+                .try_read()
+                .expect("internal error: lock poisoned or already locked when reading components"),
         )
     }
 
@@ -42,13 +41,13 @@ impl ComponentFacade {
     where
         C: Any,
     {
-        ComponentWriteGuard(
+        ComponentWriteGuard::new(
             self.components[type_idx]
                 .as_any()
                 .downcast_ref::<RwLock<Vec<Vec<C>>>>()
                 .expect("internal error: invalid component type used when writing components")
-                .write()
-                .expect("internal error: lock poisoned when writing components"),
+                .try_write()
+                .expect("internal error: lock poisoned or already locked when writing components"),
         )
     }
 
@@ -143,18 +142,362 @@ where
     }
 }
 
-pub(crate) struct ComponentReadGuard<'a, C>(RwLockReadGuard<'a, Vec<Vec<C>>>);
+#[cfg(test)]
+mod component_facade_tests {
+    use super::*;
 
-impl<'a, C> ComponentReadGuard<'a, C> {
-    pub(crate) fn archetype_iter(&self, archetype_idx: usize) -> Option<Iter<'_, C>> {
-        self.0.get(archetype_idx).map(|c| c.iter())
+    #[test]
+    fn create_types() {
+        let mut storage = ComponentStorage::default();
+
+        storage.create_type::<u32>();
+        storage.create_type::<i64>();
+
+        assert_panics!(storage.read_components::<i64>(0));
+        assert_panics!(storage.read_components::<u32>(1));
+        assert_panics!(storage.read_components::<u32>(2));
+        storage.read_components::<u32>(0);
+        storage.read_components::<i64>(1);
     }
-}
 
-pub(crate) struct ComponentWriteGuard<'a, C>(RwLockWriteGuard<'a, Vec<Vec<C>>>);
+    #[test]
+    #[should_panic]
+    fn add_component_with_missing_type() {
+        let mut storage = ComponentStorage::default();
 
-impl<'a, C> ComponentWriteGuard<'a, C> {
-    pub(crate) fn archetype_iter_mut(&mut self, archetype_idx: usize) -> Option<IterMut<'_, C>> {
-        self.0.get_mut(archetype_idx).map(|c| c.iter_mut())
+        storage.add(0, 0, 10_u32);
+    }
+
+    #[test]
+    #[should_panic]
+    fn add_component_with_invalid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+
+        storage.add(1, 0, 10_i64);
+    }
+
+    #[test]
+    fn add_component_with_valid_type_in_missing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+
+        storage.add(1, 2, 10_u32);
+
+        let components = storage.read_components::<u32>(1);
+        assert_option_iter!(components.archetype_iter(0), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(1), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&10]));
+        assert_option_iter!(components.archetype_iter(3), None);
+    }
+
+    #[test]
+    fn add_component_with_valid_type_in_existing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        storage.add(1, 2, 20_u32);
+
+        let components = storage.read_components::<u32>(1);
+        assert_option_iter!(components.archetype_iter(0), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(1), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&10, &20]));
+        assert_option_iter!(components.archetype_iter(3), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_archetype_with_missing_type() {
+        let mut storage = ComponentStorage::default();
+
+        storage.delete_archetype(0, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_missing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.delete_archetype(0, 0);
+    }
+
+    #[test]
+    fn delete_existing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        storage.delete_archetype(1, 2);
+
+        let components = storage.read_components::<u32>(1);
+        assert_option_iter!(components.archetype_iter(0), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(1), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(2), Some(Vec::new()));
+        assert_option_iter!(components.archetype_iter(3), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_components_with_missing_type() {
+        let storage = ComponentStorage::default();
+
+        storage.read_components::<u32>(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_components_with_wrong_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.read_components::<u32>(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_components_already_written() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<u32>();
+        let _guard = storage.write_components::<u32>(0);
+
+        storage.read_components::<u32>(0);
+    }
+
+    #[test]
+    fn read_components_already_read() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<u32>();
+        storage.add(0, 0, 10_u32);
+        let _guard = storage.read_components::<u32>(0);
+
+        let guard = storage.read_components::<u32>(0);
+
+        assert_option_iter!(guard.archetype_iter(0), Some(vec![&10]));
+    }
+
+    #[test]
+    fn read_components_with_valid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        let guard = storage.read_components::<u32>(1);
+
+        assert_option_iter!(guard.archetype_iter(0), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter(1), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter(2), Some(vec![&10]));
+        assert_option_iter!(guard.archetype_iter(3), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn write_components_with_missing_type() {
+        let storage = ComponentStorage::default();
+
+        storage.write_components::<u32>(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn write_components_with_wrong_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.write_components::<u32>(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn write_components_already_locked() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<u32>();
+        let _guard = storage.write_components::<u32>(0);
+
+        storage.write_components::<u32>(0);
+    }
+
+    #[test]
+    fn write_components_with_valid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        let mut guard = storage.write_components::<u32>(1);
+
+        assert_option_iter!(guard.archetype_iter_mut(0), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter_mut(1), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter_mut(2), Some(vec![&mut 10]));
+        assert_option_iter!(guard.archetype_iter_mut(3), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_component_with_missing_type() {
+        let mut storage = ComponentStorage::default();
+
+        storage.replace(0, EntityLocation::new(0, 0), 10_u32);
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_component_with_invalid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.replace(0, EntityLocation::new(0, 0), 10_u32);
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_component_in_missing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+
+        storage.replace(1, EntityLocation::new(0, 0), 10_u32);
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_component_in_missing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        storage.replace(1, EntityLocation::new(2, 3), 20_u32);
+    }
+
+    #[test]
+    fn replace_component_in_existing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+        storage.add(1, 2, 20_u32);
+        storage.add(1, 2, 30_u32);
+
+        storage.replace(1, EntityLocation::new(2, 0), 50_u32);
+
+        let guard = storage.read_components::<u32>(1);
+        assert_option_iter!(guard.archetype_iter(2), Some(vec![&50, &20, &30]));
+    }
+
+    #[test]
+    #[should_panic]
+    fn move_component_with_missing_type() {
+        let mut storage = ComponentStorage::default();
+
+        storage.move_(0, EntityLocation::new(0, 0), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn move_component_with_invalid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.move_(0, EntityLocation::new(0, 0), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn move_component_from_missing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+
+        storage.move_(1, EntityLocation::new(0, 0), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn move_component_from_missing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        storage.move_(1, EntityLocation::new(0, 1), 1);
+    }
+
+    #[test]
+    fn move_component_from_existing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+        storage.add(1, 2, 20_u32);
+        storage.add(1, 2, 30_u32);
+
+        storage.move_(1, EntityLocation::new(2, 0), 3);
+
+        let guard = storage.read_components::<u32>(1);
+        assert_option_iter!(guard.archetype_iter(2), Some(vec![&30, &20]));
+        assert_option_iter!(guard.archetype_iter(3), Some(vec![&10]));
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_component_with_missing_type() {
+        let mut storage = ComponentStorage::default();
+
+        storage.delete(0, EntityLocation::new(0, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_component_with_invalid_type() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+
+        storage.delete(0, EntityLocation::new(0, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_component_from_missing_archetype() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+
+        storage.delete(1, EntityLocation::new(0, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_component_from_missing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+
+        storage.delete(1, EntityLocation::new(0, 1));
+    }
+
+    #[test]
+    fn delete_component_from_existing_position() {
+        let mut storage = ComponentStorage::default();
+        storage.create_type::<i64>();
+        storage.create_type::<u32>();
+        storage.add(1, 2, 10_u32);
+        storage.add(1, 2, 20_u32);
+        storage.add(1, 2, 30_u32);
+
+        storage.delete(1, EntityLocation::new(2, 0));
+
+        let guard = storage.read_components::<u32>(1);
+        assert_option_iter!(guard.archetype_iter(0), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter(1), Some(Vec::new()));
+        assert_option_iter!(guard.archetype_iter(2), Some(vec![&30, &20]));
+        assert_option_iter!(guard.archetype_iter(3), None);
     }
 }

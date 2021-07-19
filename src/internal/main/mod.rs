@@ -1,5 +1,5 @@
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentFacade;
+use crate::internal::components::ComponentStorage;
 use crate::internal::core::CoreFacade;
 use crate::internal::entity_actions::data::AddComponentFn;
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
@@ -13,7 +13,7 @@ use std::sync::Mutex;
 #[derive(Default)]
 pub(crate) struct MainFacade {
     core: CoreFacade,
-    components: ComponentFacade,
+    components: ComponentStorage,
     systems: SystemFacade,
     actions: Mutex<ActionFacade>,
 }

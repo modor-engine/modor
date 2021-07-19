@@ -3,7 +3,7 @@ use crate::external::systems::definition::internal::{
     ArchetypeInfo, ComponentsConst, ComponentsMut, SealedSystem,
 };
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentFacade;
+use crate::internal::components::ComponentStorage;
 use crate::internal::core::CoreFacade;
 use crate::SystemParam;
 use std::any::{Any, TypeId};
@@ -161,14 +161,14 @@ impl SystemInfo {
 #[derive(Clone)]
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
-    components: &'a ComponentFacade,
+    components: &'a ComponentStorage,
     actions: &'a Mutex<ActionFacade>,
 }
 
 impl<'a> SystemData<'a> {
     pub(crate) fn new(
         core: &'a CoreFacade,
-        components: &'a ComponentFacade,
+        components: &'a ComponentStorage,
         actions: &'a Mutex<ActionFacade>,
     ) -> Self {
         Self {
@@ -216,7 +216,7 @@ impl<'a> SystemData<'a> {
 }
 
 pub(crate) mod internal {
-    use crate::internal::components::{ComponentReadGuard, ComponentWriteGuard};
+    use crate::internal::components::data::{ComponentReadGuard, ComponentWriteGuard};
     use std::num::NonZeroUsize;
 
     pub trait SealedSystem<T> {}
