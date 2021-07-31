@@ -1,9 +1,8 @@
 use crate::external::systems::building::internal::TypeAccess;
 use crate::external::systems::definition::internal::{
-    ArchetypeInfo, ComponentsConst, ComponentsMut, SealedSystem,
+    ArchetypeInfo, Components, ComponentsMut, SealedSystem,
 };
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentStorage;
 use crate::internal::core::CoreFacade;
 use crate::SystemParam;
 use std::any::{Any, TypeId};
@@ -161,43 +160,30 @@ impl SystemInfo {
 #[derive(Clone)]
 pub struct SystemData<'a> {
     core: &'a CoreFacade,
-    components: &'a ComponentStorage,
     actions: &'a Mutex<ActionFacade>,
 }
 
 impl<'a> SystemData<'a> {
-    pub(crate) fn new(
-        core: &'a CoreFacade,
-        components: &'a ComponentStorage,
-        actions: &'a Mutex<ActionFacade>,
-    ) -> Self {
-        Self {
-            core,
-            components,
-            actions,
-        }
+    pub(crate) fn new(core: &'a CoreFacade, actions: &'a Mutex<ActionFacade>) -> Self {
+        Self { core, actions }
     }
 
     pub(crate) fn entity_idxs(&self, archetype_idx: usize) -> &[usize] {
         self.core.archetype_entity_idxs(archetype_idx)
     }
 
-    pub(crate) fn read_components<C>(&self) -> Option<ComponentsConst<'_, C>>
+    pub(crate) fn read_components<C>(&self) -> Option<Components<'_, C>>
     where
         C: Any,
     {
-        self.core
-            .component_type_idx(TypeId::of::<C>())
-            .map(|i| ComponentsConst(self.components.read_components(i)))
+        self.core.read_components().map(Components)
     }
 
     pub(crate) fn write_components<C>(&self) -> Option<ComponentsMut<'_, C>>
     where
         C: Any,
     {
-        self.core
-            .component_type_idx(TypeId::of::<C>())
-            .map(|i| ComponentsMut(self.components.write_components(i)))
+        self.core.write_components().map(ComponentsMut)
     }
 
     pub(crate) fn actions_mut(&self) -> MutexGuard<'_, ActionFacade> {
@@ -233,7 +219,7 @@ pub(crate) mod internal {
         }
     }
 
-    pub struct ComponentsConst<'a, C>(pub(crate) ComponentReadGuard<'a, C>);
+    pub struct Components<'a, C>(pub(crate) ComponentReadGuard<'a, C>);
 
     pub struct ComponentsMut<'a, C>(pub(crate) ComponentWriteGuard<'a, C>);
 }
@@ -610,8 +596,8 @@ mod archetype_info_tests {
 mod components_const_tests {
     use super::internal::*;
 
-    assert_impl_all!(ComponentsConst<'_, String>: Sync);
-    assert_not_impl_any!(ComponentsConst<'_, String>: Clone);
+    assert_impl_all!(Components<'_, String>: Sync);
+    assert_not_impl_any!(Components<'_, String>: Clone);
 }
 
 #[cfg(test)]

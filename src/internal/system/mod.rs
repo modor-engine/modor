@@ -1,6 +1,3 @@
-use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentStorage;
-use crate::internal::core::CoreFacade;
 use crate::internal::system::storages::{EntityTypeStorage, SystemStorage};
 use crate::internal::system_state::data::LockedSystem;
 use crate::internal::system_state::SystemStateFacade;
@@ -55,13 +52,7 @@ impl SystemFacade {
     }
 
     #[allow(clippy::option_if_let_else)]
-    pub(super) fn run(
-        &mut self,
-        core: &CoreFacade,
-        components: &ComponentStorage,
-        actions: &Mutex<ActionFacade>,
-    ) {
-        let data = SystemData::new(core, components, actions);
+    pub(super) fn run(&mut self, data: SystemData<'_>) {
         if let Some(pool) = &mut self.pool {
             Self::run_systems_in_parallel(
                 &data,
@@ -152,12 +143,28 @@ impl SystemFacade {
 mod system_facade_tests {
     use super::*;
     use crate::external::systems::building::internal::TypeAccess;
+    use crate::internal::actions::ActionFacade;
+    use crate::internal::core::CoreFacade;
     use crate::internal::system_state::data::SystemLocation;
-    use crate::SystemInfo;
+    use crate::{SystemData, SystemInfo};
     use std::any::TypeId;
     use std::convert::TryInto;
     use std::thread;
     use std::time::Duration;
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn wrapper1(data: &SystemData<'_>, info: SystemInfo) {
+        assert_eq!(info.filtered_component_types, [TypeId::of::<i16>()]);
+        data.actions_mut().delete_group(1.try_into().unwrap());
+        thread::sleep(Duration::from_millis(10));
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn wrapper2(data: &SystemData<'_>, info: SystemInfo) {
+        thread::sleep(Duration::from_millis(10));
+        assert_eq!(info.filtered_component_types, []);
+        data.actions_mut().delete_group(2.try_into().unwrap());
+    }
 
     #[test]
     fn set_thread_count_to_zero() {
@@ -311,27 +318,12 @@ mod system_facade_tests {
         facade.delete_group(2.try_into().unwrap());
 
         let core = CoreFacade::default();
-        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
-        let data = SystemData::new(&core, &components, &actions);
+        let data = SystemData::new(&core, &actions);
         assert_panics!(facade.systems.run(2, 0, &data, Vec::new()));
         assert_panics!(facade.entity_types.get(2, 0));
         let location = LockedSystem::Done;
         assert_eq!(facade.state.lock_next_system(LockedSystem::None), location);
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    fn wrapper1(data: &SystemData<'_>, info: SystemInfo) {
-        assert_eq!(info.filtered_component_types, [TypeId::of::<i16>()]);
-        data.actions_mut().delete_group(1.try_into().unwrap());
-        thread::sleep(Duration::from_millis(10));
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    fn wrapper2(data: &SystemData<'_>, info: SystemInfo) {
-        thread::sleep(Duration::from_millis(10));
-        assert_eq!(info.filtered_component_types, []);
-        data.actions_mut().delete_group(2.try_into().unwrap());
     }
 
     #[test]
@@ -345,10 +337,10 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
+        let data = SystemData::new(&core, &actions);
 
-        facade.run(&core, &components, &actions);
+        facade.run(data);
 
         let action_result = actions.try_lock().unwrap().reset();
         assert_eq!(
@@ -369,10 +361,10 @@ mod system_facade_tests {
         let system = SystemDetails::new(wrapper2, component_types, None, true);
         facade.add(Some(2.try_into().unwrap()), system);
         let core = CoreFacade::default();
-        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
+        let data = SystemData::new(&core, &actions);
 
-        facade.run(&core, &components, &actions);
+        facade.run(data);
 
         let action_result = actions.try_lock().unwrap().reset();
         assert_eq!(

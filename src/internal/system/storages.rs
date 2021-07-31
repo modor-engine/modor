@@ -69,7 +69,6 @@ impl EntityTypeStorage {
 mod system_storage_tests {
     use super::*;
     use crate::internal::actions::ActionFacade;
-    use crate::internal::components::ComponentStorage;
     use crate::internal::core::CoreFacade;
     use std::sync::Mutex;
 
@@ -79,9 +78,8 @@ mod system_storage_tests {
         G: FnOnce(&[usize]),
     {
         let core = CoreFacade::default();
-        let components = ComponentStorage::default();
         let actions = Mutex::new(ActionFacade::default());
-        let data = SystemData::new(&core, &components, &actions);
+        let data = SystemData::new(&core, &actions);
         use_data_fn(&data);
         use_deleted_groups_fn(
             &actions

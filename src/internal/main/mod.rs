@@ -1,5 +1,4 @@
 use crate::internal::actions::ActionFacade;
-use crate::internal::components::ComponentStorage;
 use crate::internal::core::CoreFacade;
 use crate::internal::entity_actions::data::AddComponentFn;
 use crate::internal::group_actions::data::{BuildGroupFn, CreateEntityFn};
@@ -13,7 +12,6 @@ use std::sync::Mutex;
 #[derive(Default)]
 pub(crate) struct MainFacade {
     core: CoreFacade,
-    components: ComponentStorage,
     systems: SystemFacade,
     actions: Mutex<ActionFacade>,
 }
@@ -38,28 +36,7 @@ impl MainFacade {
     where
         C: Any + Sync + Send,
     {
-        let type_idx = self
-            .core
-            .component_type_idx(TypeId::of::<C>())
-            .unwrap_or_else(|| self.create_component_type::<C>());
-        let location = self.core.entity_location(entity_idx);
-        if let Some(location) = location {
-            if let Ok(new_archetype_idx) = self.core.add_component(entity_idx, type_idx) {
-                for &moved_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                    self.components
-                        .move_(moved_type_idx, location, new_archetype_idx);
-                }
-                self.components.add(type_idx, new_archetype_idx, component)
-            } else {
-                self.components.replace(type_idx, location, component);
-            }
-        } else {
-            let new_archetype_idx = self
-                .core
-                .add_component(entity_idx, type_idx)
-                .expect("internal error: component already exists but no location for entity");
-            self.components.add(type_idx, new_archetype_idx, component);
-        }
+        self.core.add_component(entity_idx, component);
     }
 
     pub(crate) fn add_system(&mut self, group_idx: Option<NonZeroUsize>, system: SystemDetails) {
@@ -67,12 +44,12 @@ impl MainFacade {
     }
 
     pub(crate) fn run_systems(&mut self) {
-        self.systems
-            .run(&self.core, &self.components, &self.actions);
+        let data = SystemData::new(&self.core, &self.actions);
+        self.systems.run(data);
     }
 
     pub(crate) fn system_data(&self) -> SystemData<'_> {
-        SystemData::new(&self.core, &self.components, &self.actions)
+        SystemData::new(&self.core, &self.actions)
     }
 
     pub(crate) fn apply_system_actions(&mut self) {
@@ -98,47 +75,12 @@ impl MainFacade {
     }
 
     fn delete_group(&mut self, group_idx: NonZeroUsize) {
-        for type_idxs in self.core.group_component_type_idxs(group_idx) {
-            for archetype_idx in self.core.group_archetype_idxs(group_idx) {
-                self.components.delete_archetype(type_idxs, archetype_idx);
-            }
-        }
         self.core.delete_group(group_idx);
         self.systems.delete_group(group_idx);
     }
 
-    pub(crate) fn delete_entity(&mut self, entity_idx: usize) {
-        if let Some(location) = self.core.entity_location(entity_idx) {
-            for &component_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                self.components.delete(component_type_idx, location);
-            }
-        }
+    fn delete_entity(&mut self, entity_idx: usize) {
         self.core.delete_entity(entity_idx);
-    }
-
-    fn create_component_type<C>(&mut self) -> usize
-    where
-        C: Any + Sync + Send,
-    {
-        let type_idx = self.core.add_component_type(TypeId::of::<C>());
-        self.components.create_type::<C>();
-        type_idx
-    }
-
-    fn delete_component(&mut self, entity_idx: usize, component_type: TypeId) -> Option<()> {
-        let type_idx = self.core.component_type_idx(component_type)?;
-        let location = self.core.entity_location(entity_idx)?;
-        if let Ok(new_archetype_idx) = self.core.delete_component(entity_idx, type_idx) {
-            self.components.delete(type_idx, location);
-            let new_archetype_idx = new_archetype_idx?;
-            for &moved_type_idx in self.core.archetype_type_idxs(location.archetype_idx) {
-                if moved_type_idx != type_idx {
-                    self.components
-                        .move_(moved_type_idx, location, new_archetype_idx);
-                }
-            }
-        }
-        Some(())
     }
 
     fn apply_entity_creations(&mut self, entity_builders: Vec<CreateEntityFn>) {
@@ -178,7 +120,7 @@ impl MainFacade {
 
     fn apply_component_deletion(&mut self, deleted_component_types: Vec<(usize, TypeId)>) {
         for (entity_idx, component_type) in deleted_component_types {
-            self.delete_component(entity_idx, component_type);
+            self.core.delete_component(entity_idx, component_type);
         }
     }
 }
@@ -187,7 +129,7 @@ impl MainFacade {
 mod main_facade_tests {
     use super::*;
     use crate::external::systems::building::internal::TypeAccess;
-    use crate::{Built, EntityBuilder, EntityMainComponent, SystemWrapper};
+    use crate::{Built, EntityBuilder, EntityMainComponent, SystemData, SystemWrapper};
     use std::convert::TryInto;
     use std::fmt::Debug;
 
@@ -210,8 +152,7 @@ mod main_facade_tests {
     ) where
         C: Any + Eq + Debug,
     {
-        let type_idx = facade.core.component_type_idx(TypeId::of::<C>()).unwrap();
-        let components = facade.components.read_components(type_idx);
+        let components = facade.core.read_components::<C>().unwrap();
         let component_iter = components.archetype_iter(archetype_idx);
         assert_option_iter!(component_iter, expected_components);
     }
@@ -255,8 +196,7 @@ mod main_facade_tests {
 
         facade.add_component(entity_idx, 42_u32);
 
-        assert_eq!(facade.core.component_type_idx(TypeId::of::<u32>()), Some(0));
-        assert_eq!(facade.core.archetype_type_idxs(0), &[0]);
+        assert_eq!(facade.core.archetype_entity_idxs(0), &[entity_idx]);
         assert_components::<u32>(&mut facade, 0, Some(vec![&42]));
     }
 
@@ -269,8 +209,8 @@ mod main_facade_tests {
 
         facade.add_component(entity_idx, 13_i64);
 
-        assert_eq!(facade.core.component_type_idx(TypeId::of::<i64>()), Some(1));
-        assert_eq!(facade.core.archetype_type_idxs(1), &[0, 1]);
+        assert_eq!(facade.core.archetype_entity_idxs(0), &[]);
+        assert_eq!(facade.core.archetype_entity_idxs(1), &[0]);
         assert_components::<u32>(&mut facade, 1, Some(vec![&42]));
         assert_components::<i64>(&mut facade, 1, Some(vec![&13]));
     }
@@ -284,8 +224,7 @@ mod main_facade_tests {
 
         facade.add_component(entity_idx, 13_u32);
 
-        assert_eq!(facade.core.component_type_idx(TypeId::of::<u32>()), Some(0));
-        assert_eq!(facade.core.archetype_type_idxs(0), &[0]);
+        assert_eq!(facade.core.archetype_entity_idxs(0), &[0]);
         assert_components::<u32>(&mut facade, 0, Some(vec![&13]));
     }
 
@@ -308,9 +247,8 @@ mod main_facade_tests {
             ),
         );
 
-        facade
-            .systems
-            .run(&facade.core, &facade.components, &facade.actions);
+        let data = SystemData::new(&facade.core, &facade.actions);
+        facade.systems.run(data);
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, [10]);
     }
@@ -533,9 +471,8 @@ mod main_facade_tests {
         facade.apply_system_actions();
 
         assert_eq!(facade.core.create_group(), group_idx);
-        facade
-            .systems
-            .run(&facade.core, &facade.components, &facade.actions);
+        let data = SystemData::new(&facade.core, &facade.actions);
+        facade.systems.run(data);
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, []);
         assert_components::<u32>(&mut facade, 0, Some(Vec::new()));

@@ -2,6 +2,7 @@ use crate::external::systems::definition::internal::ArchetypeInfo;
 use crate::SystemData;
 use std::any::TypeId;
 
+// TODO: ResMut cannot be iterable, so use "streams" instead of iterators for systems will be necessary
 // TODO: make sure traits are not implementable outside
 // TODO: move items in private mods when possible
 // TODO: add doc

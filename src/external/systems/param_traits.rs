@@ -1,7 +1,7 @@
 use self::internal::SealedSystemParam;
 use crate::external::systems::building::internal::TypeAccess;
 use crate::external::systems::definition::internal::{
-    ArchetypeInfo, ComponentsConst, ComponentsMut,
+    ArchetypeInfo, Components, ComponentsMut,
 };
 use crate::{
     Entity, EntityIter, Group, GroupIter, OptionComponentIter, OptionComponentMutIter, Query,
@@ -54,7 +54,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = true;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsConst<'b, C>>;
+    type Guard = Option<Components<'b, C>>;
     type Iter = Iter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {
@@ -143,7 +143,7 @@ where
     const HAS_MANDATORY_COMPONENT: bool = false;
     const HAS_ENTITY_PART: bool = true;
     const HAS_ACTIONS: bool = false;
-    type Guard = Option<ComponentsConst<'b, C>>;
+    type Guard = Option<Components<'b, C>>;
     type Iter = OptionComponentIter<'a, C>;
 
     fn component_types() -> Vec<TypeAccess> {

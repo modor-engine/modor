@@ -1,53 +1,37 @@
 use crate::external::systems::definition::internal::ArchetypeInfo;
 use crate::internal::archetypes::data::{ExistingComponentError, MissingComponentError};
 use crate::internal::archetypes::ArchetypeFacade;
-use crate::internal::core::storages::{ComponentTypeStorage, EntityMainComponentTypeStorage};
-use crate::internal::entities::data::EntityLocation;
+use crate::internal::components::data::{ComponentReadGuard, ComponentWriteGuard};
+use crate::internal::components::ComponentFacade;
 use crate::internal::entities::EntityFacade;
 use crate::internal::groups::GroupFacade;
 use std::any::{Any, TypeId};
 use std::num::NonZeroUsize;
-
-mod storages;
 
 #[derive(Default)]
 pub(crate) struct CoreFacade {
     groups: GroupFacade,
     archetypes: ArchetypeFacade,
     entities: EntityFacade,
-    component_types: ComponentTypeStorage,
-    entity_main_component_types: EntityMainComponentTypeStorage,
+    components: ComponentFacade,
 }
 
 impl CoreFacade {
-    pub(super) fn group_archetype_idxs(
-        &self,
-        group_idx: NonZeroUsize,
-    ) -> impl Iterator<Item = usize> + '_ {
-        self.archetypes.idxs_with_group(group_idx)
-    }
-
-    pub(super) fn group_component_type_idxs(
-        &self,
-        group_idx: NonZeroUsize,
-    ) -> impl Iterator<Item = usize> + '_ {
-        self.archetypes.group_type_idxs(group_idx)
-    }
-
     pub(super) fn create_group(&mut self) -> NonZeroUsize {
         self.groups.create()
     }
 
     pub(super) fn delete_group(&mut self, group_idx: NonZeroUsize) {
+        for type_idxs in self.archetypes.group_type_idxs(group_idx) {
+            for archetype_idx in self.archetypes.idxs_with_group(group_idx) {
+                self.components.delete_archetype(type_idxs, archetype_idx);
+            }
+        }
         for entity_idx in self.groups.entity_idxs(group_idx) {
             self.entities.delete(entity_idx);
         }
         self.archetypes.delete_all(group_idx);
         self.groups.delete(group_idx);
-    }
-
-    pub(super) fn archetype_type_idxs(&self, archetype_idx: usize) -> &[usize] {
-        self.archetypes.type_idxs(archetype_idx)
     }
 
     pub(crate) fn archetype_entity_idxs(&self, archetype_idx: usize) -> &[usize] {
@@ -61,7 +45,7 @@ impl CoreFacade {
     ) -> Vec<ArchetypeInfo> {
         let type_idxs: Vec<_> = component_types
             .iter()
-            .map(|&t| self.component_types.idx(t))
+            .map(|&t| self.components.type_idx(t))
             .collect();
         if type_idxs.iter().any(|&t| t == None) {
             return Vec::new();
@@ -75,15 +59,12 @@ impl CoreFacade {
             .collect()
     }
 
-    pub(super) fn entity_location(&self, entity_idx: usize) -> Option<EntityLocation> {
-        self.entities.location(entity_idx)
-    }
-
     pub(super) fn add_entity_main_component_type<C>(&mut self) -> bool
     where
         C: Any,
     {
-        self.entity_main_component_types.add(TypeId::of::<C>())
+        self.components
+            .add_entity_main_component_type(TypeId::of::<C>())
     }
 
     pub(super) fn create_entity(&mut self, group_idx: NonZeroUsize) -> usize {
@@ -93,19 +74,69 @@ impl CoreFacade {
     }
 
     pub(super) fn delete_entity(&mut self, entity_idx: usize) {
+        if let Some(location) = self.entities.location(entity_idx) {
+            let component_type_idxs = self.archetypes.type_idxs(location.archetype_idx);
+            self.components.delete_entity(component_type_idxs, location);
+        }
         self.entities.delete(entity_idx);
         self.groups.delete_entity(entity_idx);
     }
 
-    pub(crate) fn component_type_idx(&self, type_id: TypeId) -> Option<usize> {
-        self.component_types.idx(type_id)
+    pub(crate) fn read_components<C>(&self) -> Option<ComponentReadGuard<'_, C>>
+    where
+        C: Any,
+    {
+        self.components.read_components::<C>()
     }
 
-    pub(super) fn add_component_type(&mut self, type_id: TypeId) -> usize {
-        self.component_types.add(type_id)
+    pub(crate) fn write_components<C>(&self) -> Option<ComponentWriteGuard<'_, C>>
+    where
+        C: Any,
+    {
+        self.components.write_components::<C>()
     }
 
-    pub(super) fn add_component(
+    pub(super) fn add_component<C>(&mut self, entity_idx: usize, component: C)
+    where
+        C: Any + Sync + Send,
+    {
+        let type_idx = self.components.type_idx_or_create::<C>();
+        let location = self.entities.location(entity_idx);
+        if let Ok(new_archetype_idx) = self.add_component_type_to_entity(entity_idx, type_idx) {
+            let archetypes = &self.archetypes;
+            let moved_type_idxs: &[usize] =
+                location.map_or(&[], |l| archetypes.type_idxs(l.archetype_idx));
+            self.components.add(
+                moved_type_idxs,
+                location,
+                type_idx,
+                new_archetype_idx,
+                component,
+            );
+        } else if let Some(location) = location {
+            self.components.replace(type_idx, location, component);
+        } else {
+            panic!("internal error: component type already exists but no location for entity");
+        }
+    }
+
+    pub(super) fn delete_component(
+        &mut self,
+        entity_idx: usize,
+        component_type: TypeId,
+    ) -> Option<()> {
+        let type_idx = self.components.type_idx(component_type)?;
+        let location = self.entities.location(entity_idx)?;
+        if let Ok(new_archetype_idx) = self.delete_component_type_from_entity(entity_idx, type_idx)
+        {
+            let moved_type_idx = self.archetypes.type_idxs(location.archetype_idx);
+            self.components
+                .delete(moved_type_idx, location, new_archetype_idx, type_idx);
+        }
+        Some(())
+    }
+
+    fn add_component_type_to_entity(
         &mut self,
         entity_idx: usize,
         type_idx: usize,
@@ -119,7 +150,7 @@ impl CoreFacade {
         Ok(new_archetype_idx)
     }
 
-    pub(super) fn delete_component(
+    fn delete_component_type_from_entity(
         &mut self,
         entity_idx: usize,
         type_idx: usize,
@@ -137,6 +168,7 @@ impl CoreFacade {
     }
 }
 
+/*
 #[cfg(test)]
 mod core_facade_tests {
     use super::*;
@@ -489,3 +521,4 @@ mod core_facade_tests {
         assert_eq!(archetype_idx, Err(MissingComponentError));
     }
 }
+*/
