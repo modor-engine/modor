@@ -109,8 +109,8 @@ impl CoreFacade {
             self.components.add(
                 moved_type_idxs,
                 location,
-                type_idx,
                 new_archetype_idx,
+                type_idx,
                 component,
             );
         } else if let Some(location) = location {
