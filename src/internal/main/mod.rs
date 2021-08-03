@@ -79,10 +79,6 @@ impl MainFacade {
         self.systems.delete_group(group_idx);
     }
 
-    fn delete_entity(&mut self, entity_idx: usize) {
-        self.core.delete_entity(entity_idx);
-    }
-
     fn apply_entity_creations(&mut self, entity_builders: Vec<CreateEntityFn>) {
         for entity_builder in entity_builders {
             entity_builder(self);
@@ -108,7 +104,7 @@ impl MainFacade {
 
     fn apply_entity_deletions(&mut self, deleted_entity_idxs: Vec<usize>) {
         for deleted_entity_idx in deleted_entity_idxs {
-            self.delete_entity(deleted_entity_idx);
+            self.core.delete_entity(deleted_entity_idx);
         }
     }
 
@@ -144,19 +140,6 @@ mod main_facade_tests {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
-    fn assert_components<C>(
-        facade: &mut MainFacade,
-        archetype_idx: usize,
-        expected_components: Option<Vec<&C>>,
-    ) where
-        C: Any + Eq + Debug,
-    {
-        let components = facade.core.read_components::<C>().unwrap();
-        let component_iter = components.archetype_iter(archetype_idx);
-        assert_option_iter!(component_iter, expected_components);
-    }
-
     #[test]
     fn create_group() {
         let mut facade = MainFacade::default();
@@ -189,7 +172,7 @@ mod main_facade_tests {
     }
 
     #[test]
-    fn add_first_component_to_entity() {
+    fn add_component_to_entity() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
@@ -197,35 +180,8 @@ mod main_facade_tests {
         facade.add_component(entity_idx, 42_u32);
 
         assert_eq!(facade.core.archetype_entity_idxs(0), &[entity_idx]);
-        assert_components::<u32>(&mut facade, 0, Some(vec![&42]));
-    }
-
-    #[test]
-    fn add_component_with_different_type_to_entity() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component(entity_idx, 42_u32);
-
-        facade.add_component(entity_idx, 13_i64);
-
-        assert_eq!(facade.core.archetype_entity_idxs(0), &[]);
-        assert_eq!(facade.core.archetype_entity_idxs(1), &[0]);
-        assert_components::<u32>(&mut facade, 1, Some(vec![&42]));
-        assert_components::<i64>(&mut facade, 1, Some(vec![&13]));
-    }
-
-    #[test]
-    fn add_component_with_same_type_to_entity() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component(entity_idx, 42_u32);
-
-        facade.add_component(entity_idx, 13_u32);
-
-        assert_eq!(facade.core.archetype_entity_idxs(0), &[0]);
-        assert_components::<u32>(&mut facade, 0, Some(vec![&13]));
+        let components = facade.core.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![&42]));
     }
 
     #[test]
@@ -280,21 +236,7 @@ mod main_facade_tests {
     }
 
     #[test]
-    fn apply_entity_without_component_deletion_system_action() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_entity(0);
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_eq!(facade.core.create_entity(group_idx), entity_idx);
-    }
-
-    #[test]
-    fn apply_entity_with_component_deletion_system_action() {
+    fn apply_entity_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
@@ -307,9 +249,11 @@ mod main_facade_tests {
         facade.apply_system_actions();
 
         assert_eq!(facade.core.create_entity(group_idx), entity_idx);
-        assert_components::<u32>(&mut facade, 0, Some(Vec::new()));
-        assert_components::<u32>(&mut facade, 1, Some(Vec::new()));
-        assert_components::<i64>(&mut facade, 1, Some(Vec::new()));
+        let components = facade.core.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        let components = facade.core.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
     }
 
     #[test]
@@ -332,75 +276,7 @@ mod main_facade_tests {
     }
 
     #[test]
-    fn apply_not_registered_component_deletion_system_action() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity_idx, 42);
-        facade.add_component::<i64>(entity_idx, 13);
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<String>(0);
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_components::<u32>(&mut facade, 1, Some(vec![&42]));
-        assert_components::<i64>(&mut facade, 1, Some(vec![&13]));
-    }
-
-    #[test]
-    fn apply_component_deletion_system_action_for_entity_without_component() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        facade.create_entity(group_idx);
-        let entity_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity_idx, 42);
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<u32>(0);
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_components::<u32>(&mut facade, 0, Some(vec![&42]));
-    }
-
-    #[test]
-    fn apply_missing_component_deletion_system_action() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity1_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity1_idx, 10);
-        let entity2_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity2_idx, 20);
-        facade.add_component::<i64>(entity2_idx, 30);
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<i64>(0);
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_components::<u32>(&mut facade, 0, Some(vec![&10]));
-        assert_components::<u32>(&mut facade, 1, Some(vec![&20]));
-        assert_components::<i64>(&mut facade, 1, Some(vec![&30]));
-    }
-
-    #[test]
-    fn apply_alone_component_deletion_system_action() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let entity1_idx = facade.create_entity(group_idx);
-        facade.add_component::<u32>(entity1_idx, 10);
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_component::<u32>(0);
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_components::<u32>(&mut facade, 0, Some(vec![]));
-    }
-
-    #[test]
-    fn apply_not_alone_component_deletion_system_action() {
+    fn apply_component_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group_idx);
@@ -412,10 +288,12 @@ mod main_facade_tests {
 
         facade.apply_system_actions();
 
-        assert_components::<u32>(&mut facade, 0, Some(vec![]));
-        assert_components::<u32>(&mut facade, 1, Some(vec![]));
-        assert_components::<i64>(&mut facade, 1, Some(vec![]));
-        assert_components::<i64>(&mut facade, 2, Some(vec![&20]));
+        let components = facade.core.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        let components = facade.core.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&20]));
     }
 
     #[test]
@@ -432,24 +310,12 @@ mod main_facade_tests {
 
         facade.apply_system_actions();
 
-        assert_components::<u32>(&mut facade, 0, Some(vec![&10]));
+        let components = facade.core.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![&10]));
     }
 
     #[test]
-    fn apply_empty_group_deletion_system_action() {
-        let mut facade = MainFacade::default();
-        let group_idx = facade.create_group();
-        let wrapper: SystemWrapper = |d, _| d.actions_mut().delete_group(1.try_into().unwrap());
-        facade.add_system(None, SystemDetails::new(wrapper, Vec::new(), None, true));
-        facade.run_systems();
-
-        facade.apply_system_actions();
-
-        assert_eq!(facade.core.create_group(), group_idx);
-    }
-
-    #[test]
-    fn apply_nonempty_group_deletion_system_action() {
+    fn apply_group_deletion_system_action() {
         let mut facade = MainFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
@@ -475,9 +341,11 @@ mod main_facade_tests {
         facade.systems.run(data);
         let action_result = facade.actions.get_mut().unwrap().reset();
         assert_eq!(action_result.deleted_entity_idxs, []);
-        assert_components::<u32>(&mut facade, 0, Some(Vec::new()));
-        assert_components::<u32>(&mut facade, 1, Some(Vec::new()));
-        assert_components::<i64>(&mut facade, 1, Some(Vec::new()));
+        let components = facade.core.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        let components = facade.core.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
     }
 
     #[test]
@@ -499,7 +367,10 @@ mod main_facade_tests {
 
         assert_eq!(facade.core.create_group(), 2.try_into().unwrap());
         assert_eq!(facade.core.create_entity(group_idx), entity_idx + 1);
-        assert_components::<MainComponentType>(&mut facade, 0, Some(vec![&MainComponentType(10)]));
+
+        let components = facade.core.read_components::<MainComponentType>().unwrap();
+        let expected = vec![&MainComponentType(10)];
+        assert_option_iter!(components.archetype_iter(0), Some(expected));
     }
 
     #[test]

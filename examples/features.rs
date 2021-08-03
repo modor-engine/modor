@@ -126,7 +126,7 @@ impl Text {
     fn delete_component_with_missing_type(id: &u32, mut entity: Entity<'_>) {
         if id == &6 {
             entity.delete_component::<i16>();
-            println!("Nonexistent component i16 deleted for entity {}", id);
+            println!("Not existing component i16 deleted for entity {}", id);
         }
     }
 

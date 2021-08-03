@@ -113,27 +113,15 @@ impl CoreFacade {
                 type_idx,
                 component,
             );
-        } else if let Some(location) = location {
-            self.components.replace(type_idx, location, component);
         } else {
-            panic!("internal error: component type already exists but no location for entity");
+            let location = location
+                .expect("internal error: entity location not found but existing component type");
+            self.components.replace(type_idx, location, component);
         }
     }
 
-    pub(super) fn delete_component(
-        &mut self,
-        entity_idx: usize,
-        component_type: TypeId,
-    ) -> Option<()> {
-        let type_idx = self.components.type_idx(component_type)?;
-        let location = self.entities.location(entity_idx)?;
-        if let Ok(new_archetype_idx) = self.delete_component_type_from_entity(entity_idx, type_idx)
-        {
-            let moved_type_idx = self.archetypes.type_idxs(location.archetype_idx);
-            self.components
-                .delete(moved_type_idx, location, new_archetype_idx, type_idx);
-        }
-        Some(())
+    pub(super) fn delete_component(&mut self, entity_idx: usize, component_type: TypeId) {
+        self.delete_entity_internal(entity_idx, component_type);
     }
 
     fn add_component_type_to_entity(
@@ -148,6 +136,18 @@ impl CoreFacade {
                 .add_component(group_idx, old_archetype_idx, type_idx)?;
         self.entities.move_(entity_idx, Some(new_archetype_idx));
         Ok(new_archetype_idx)
+    }
+
+    fn delete_entity_internal(&mut self, entity_idx: usize, component_type: TypeId) -> Option<()> {
+        let type_idx = self.components.type_idx(component_type)?;
+        let location = self.entities.location(entity_idx)?;
+        let new_archetype_idx = self
+            .delete_component_type_from_entity(entity_idx, type_idx)
+            .ok()?;
+        let moved_type_idx = self.archetypes.type_idxs(location.archetype_idx);
+        self.components
+            .delete(moved_type_idx, location, new_archetype_idx, type_idx);
+        Some(())
     }
 
     fn delete_component_type_from_entity(
@@ -168,10 +168,10 @@ impl CoreFacade {
     }
 }
 
-/*
 #[cfg(test)]
 mod core_facade_tests {
     use super::*;
+    use crate::internal::entities::data::EntityLocation;
     use std::convert::TryInto;
 
     #[test]
@@ -191,7 +191,8 @@ mod core_facade_tests {
         let new_type = facade.add_entity_main_component_type::<u32>();
 
         assert!(new_type);
-        assert!(!facade.entity_main_component_types.add(TypeId::of::<u32>()));
+        let type_id = TypeId::of::<u32>();
+        assert!(!facade.components.add_entity_main_component_type(type_id));
     }
 
     #[test]
@@ -207,105 +208,57 @@ mod core_facade_tests {
     }
 
     #[test]
-    fn add_component_type() {
-        let mut facade = CoreFacade::default();
-        let type_id = TypeId::of::<u32>();
-
-        let type_idx = facade.add_component_type(type_id);
-
-        assert_eq!(type_idx, 0);
-        assert_eq!(facade.component_types.add(TypeId::of::<i64>()), 1);
-    }
-
-    #[test]
-    fn add_component_for_entity_without_archetype() {
+    fn add_component_for_entity_without_component() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        facade.add_component_type(TypeId::of::<i64>());
-        facade.add_component_type(TypeId::of::<String>());
-        let component_type_idx = facade.add_component_type(TypeId::of::<u32>());
 
-        let archetype_idx = facade.add_component(entity_idx, component_type_idx);
+        facade.add_component(entity_idx, 10_u32);
 
-        assert_eq!(archetype_idx, Ok(0));
-        assert_eq!(facade.archetypes.type_idxs(0), [component_type_idx]);
-        assert_eq!(facade.archetypes.group_idx(0), group_idx);
+        assert_eq!(facade.archetypes.type_idxs(0), &[0]);
         let location = EntityLocation::new(0, 0);
         assert_eq!(facade.entities.location(entity_idx), Some(location));
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![&10]));
     }
 
     #[test]
-    fn add_component_for_entity_with_archetype() {
+    fn add_component_for_entity_with_components() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        facade.add_component_type(TypeId::of::<i64>());
-        let component_type1_idx = facade.add_component_type(TypeId::of::<String>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let _ = facade.add_component(entity_idx, component_type1_idx);
+        facade.add_component(entity_idx, 10_u32);
 
-        let archetype_idx = facade.add_component(entity_idx, component_type2_idx);
+        facade.add_component(entity_idx, 20_i64);
 
-        assert_eq!(archetype_idx, Ok(1));
-        let archetype_type_idxs = [component_type1_idx, component_type2_idx];
-        assert_eq!(facade.archetypes.type_idxs(1), archetype_type_idxs);
-        assert_eq!(facade.archetypes.group_idx(1), group_idx);
+        assert_eq!(facade.archetypes.type_idxs(0), &[0]);
+        assert_eq!(facade.archetypes.type_idxs(1), &[0, 1]);
         let location = EntityLocation::new(1, 0);
         assert_eq!(facade.entities.location(entity_idx), Some(location));
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(1), Some(vec![&10]));
+        let components = facade.components.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(1), Some(vec![&20]));
     }
 
     #[test]
-    fn add_existing_component_type_in_entity() {
+    fn add_component_for_entity_with_same_component_type() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let component_type_idx = facade.add_component_type(TypeId::of::<u32>());
-        let _ = facade.add_component(entity_idx, component_type_idx);
+        facade.add_component(entity_idx, 10_u32);
 
-        let archetype_idx = facade.add_component(entity_idx, component_type_idx);
+        facade.add_component(entity_idx, 20_u32);
 
-        assert_eq!(archetype_idx, Err(ExistingComponentError));
-        assert_eq!(facade.archetypes.type_idxs(0), [component_type_idx]);
-        assert_eq!(facade.archetypes.group_idx(0), group_idx);
+        assert_eq!(facade.archetypes.type_idxs(0), &[0]);
         let location = EntityLocation::new(0, 0);
         assert_eq!(facade.entities.location(entity_idx), Some(location));
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![&20]));
     }
 
     #[test]
-    fn retrieve_group_archetypes() -> Result<(), ExistingComponentError> {
-        let mut facade = CoreFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let archetype1_idx = facade.add_component(entity_idx, component_type1_idx)?;
-        let archetype2_idx = facade.add_component(entity_idx, component_type2_idx)?;
-
-        let archetype_idxs = facade.group_archetype_idxs(group_idx);
-
-        assert_iter!(archetype_idxs, [archetype1_idx, archetype2_idx]);
-        Ok(())
-    }
-
-    #[test]
-    fn retrieve_group_component_types() {
-        let mut facade = CoreFacade::default();
-        let group_idx = facade.create_group();
-        let entity_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let _ = facade.add_component(entity_idx, component_type1_idx);
-        let _ = facade.add_component(entity_idx, component_type2_idx);
-
-        let component_type_idxs = facade.group_component_type_idxs(group_idx);
-
-        let group_component_type_idxs = [component_type1_idx, component_type2_idx];
-        assert_iter!(component_type_idxs, group_component_type_idxs);
-    }
-
-    #[test]
-    fn delete_group() -> Result<(), ExistingComponentError> {
+    fn delete_group() {
         let mut facade = CoreFacade::default();
         let group1_idx = facade.create_group();
         let group2_idx = facade.create_group();
@@ -313,55 +266,36 @@ mod core_facade_tests {
         let entity2_idx = facade.create_entity(group2_idx);
         facade.add_entity_main_component_type::<i64>();
         facade.add_entity_main_component_type::<u32>();
-        let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let _ = facade.add_component(entity1_idx, component_type1_idx);
-        let archetype2_idx = facade.add_component(entity2_idx, component_type2_idx)?;
+        facade.add_component(entity1_idx, 10_u32);
+        facade.add_component(entity2_idx, 20_i64);
 
         facade.delete_group(group1_idx);
 
         assert_eq!(facade.archetypes.group_type_idxs(group1_idx).next(), None);
         let actual_group2_type_idxs = facade.archetypes.group_type_idxs(group2_idx);
-        assert_iter!(actual_group2_type_idxs, [component_type2_idx]);
+        assert_iter!(actual_group2_type_idxs, [1]);
         assert_eq!(facade.entities.location(entity1_idx), None);
-        let location = Some(EntityLocation::new(archetype2_idx, 0));
+        let location = Some(EntityLocation::new(1, 0));
         assert_eq!(facade.entities.location(entity2_idx), location);
         assert_panics!(facade.groups.idx(entity1_idx));
         assert_eq!(facade.groups.idx(entity2_idx), group2_idx);
         assert_eq!(facade.groups.create(), group1_idx);
-        Ok(())
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        let components = facade.components.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(1), Some(vec![&20]));
     }
 
     #[test]
-    fn retrieve_archetype_types() -> Result<(), ExistingComponentError> {
+    fn retrieve_archetype_entity_idxs() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let archetype1_idx = facade.add_component(entity_idx, component_type1_idx)?;
-        let archetype2_idx = facade.add_component(entity_idx, component_type2_idx)?;
+        facade.add_component(entity_idx, 10_u32);
 
-        let type_idxs = facade.archetype_type_idxs(archetype2_idx);
+        let entity_idxs = facade.archetype_entity_idxs(0);
 
-        assert_eq!(type_idxs, [archetype1_idx, archetype2_idx]);
-        Ok(())
-    }
-
-    #[test]
-    fn retrieve_archetype_entity_idxs() -> Result<(), ExistingComponentError> {
-        let mut facade = CoreFacade::default();
-        let group_idx = facade.create_group();
-        let entity1_idx = facade.create_entity(group_idx);
-        let entity2_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<u32>());
-        let archetype_idx = facade.add_component(entity1_idx, component_type1_idx)?;
-        let _ = facade.add_component(entity2_idx, component_type1_idx);
-
-        let entity_idxs = facade.archetype_entity_idxs(archetype_idx);
-
-        assert_eq!(entity_idxs, [entity1_idx, entity2_idx]);
-        Ok(())
+        assert_eq!(entity_idxs, &[entity_idx]);
     }
 
     #[test]
@@ -369,156 +303,128 @@ mod core_facade_tests {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let type1_id = TypeId::of::<u32>();
-        let type2_id = TypeId::of::<i64>();
-        let component_type_idx = facade.add_component_type(type1_id);
-        let _ = facade.add_component(entity_idx, component_type_idx);
+        facade.add_component(entity_idx, 10_usize);
+        let type_ids = &[TypeId::of::<u32>(), TypeId::of::<i64>()];
 
-        let archetypes = facade.archetypes(&[type1_id, type2_id], Some(group_idx));
+        let archetypes = facade.archetypes(type_ids, Some(group_idx));
 
         assert_eq!(archetypes, []);
     }
 
     #[test]
-    fn retrieve_archetype_from_existing_component_types_and_group(
-    ) -> Result<(), ExistingComponentError> {
+    fn retrieve_archetype_from_existing_component_types_and_group() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let type1_id = TypeId::of::<u32>();
-        let type2_id = TypeId::of::<i64>();
-        let component_type1_idx = facade.add_component_type(type1_id);
-        let component_type2_idx = facade.add_component_type(type2_id);
-        let _ = facade.add_component(entity_idx, component_type1_idx);
-        let archetype2_idx = facade.add_component(entity_idx, component_type2_idx)?;
+        facade.add_component(entity_idx, 10_u32);
+        facade.add_component(entity_idx, 20_i64);
+        let type_ids = &[TypeId::of::<i64>()];
 
-        let archetypes = facade.archetypes(&[type2_id], Some(group_idx));
+        let archetypes = facade.archetypes(type_ids, Some(group_idx));
 
-        assert_eq!(archetypes, [ArchetypeInfo::new(archetype2_idx, group_idx)]);
-        Ok(())
+        assert_eq!(archetypes, [ArchetypeInfo::new(1, group_idx)]);
     }
 
     #[test]
-    fn retrieve_archetype_from_existing_component_types_and_no_group(
-    ) -> Result<(), ExistingComponentError> {
+    fn retrieve_archetype_from_existing_component_types_and_no_group() {
         let mut facade = CoreFacade::default();
         let group1_idx = facade.create_group();
         let group2_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group1_idx);
         let entity2_idx = facade.create_entity(group2_idx);
-        let type1_id = TypeId::of::<u32>();
-        let type2_id = TypeId::of::<i64>();
-        let component_type1_idx = facade.add_component_type(type1_id);
-        let component_type2_idx = facade.add_component_type(type2_id);
-        let _ = facade.add_component(entity1_idx, component_type1_idx);
-        let archetype2_idx = facade.add_component(entity1_idx, component_type2_idx)?;
-        let archetype3_idx = facade.add_component(entity2_idx, component_type2_idx)?;
+        facade.add_component(entity1_idx, 10_u32);
+        facade.add_component(entity1_idx, 20_i64);
+        facade.add_component(entity2_idx, 30_i64);
+        let type_ids = &[TypeId::of::<i64>()];
 
-        let archetypes = facade.archetypes(&[type2_id], None);
+        let archetypes = facade.archetypes(type_ids, None);
 
-        let archetype2_info = ArchetypeInfo::new(archetype2_idx, group1_idx);
-        let archetype3_info = ArchetypeInfo::new(archetype3_idx, group2_idx);
+        let archetype2_info = ArchetypeInfo::new(1, group1_idx);
+        let archetype3_info = ArchetypeInfo::new(2, group2_idx);
         assert_eq!(archetypes, [archetype2_info, archetype3_info]);
-        Ok(())
     }
 
     #[test]
-    fn retrieve_entity_location() -> Result<(), ExistingComponentError> {
+    fn delete_entity() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity1_idx = facade.create_entity(group_idx);
         let entity2_idx = facade.create_entity(group_idx);
-        let component_type_idx = facade.add_component_type(TypeId::of::<u32>());
-        let archetype_idx = facade.add_component(entity1_idx, component_type_idx)?;
-        let _ = facade.add_component(entity2_idx, component_type_idx);
-
-        let actual_location = facade.entity_location(entity2_idx);
-
-        assert_eq!(actual_location, Some(EntityLocation::new(archetype_idx, 1)));
-        Ok(())
-    }
-
-    #[test]
-    fn delete_entity() -> Result<(), ExistingComponentError> {
-        let mut facade = CoreFacade::default();
-        let group_idx = facade.create_group();
-        let entity1_idx = facade.create_entity(group_idx);
-        let entity2_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<i64>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<u32>());
-        let _ = facade.add_component(entity1_idx, component_type1_idx);
-        let archetype_idx = facade.add_component(entity2_idx, component_type2_idx)?;
+        facade.add_component(entity1_idx, 10_u32);
+        facade.add_component(entity2_idx, 20_i64);
 
         facade.delete_entity(entity1_idx);
 
         assert_eq!(facade.entities.location(entity1_idx), None);
-        let location = EntityLocation::new(archetype_idx, 0);
+        let location = EntityLocation::new(1, 0);
         assert_eq!(facade.entities.location(entity2_idx), Some(location));
         assert_panics!(facade.groups.idx(entity1_idx));
         assert_eq!(facade.groups.idx(entity2_idx), group_idx);
-        Ok(())
     }
 
     #[test]
-    fn retrieve_component_type_idx_from_type_id() {
-        let mut facade = CoreFacade::default();
-        let type1_id = TypeId::of::<u32>();
-        let type2_id = TypeId::of::<i64>();
-        facade.add_component_type(type1_id);
-        let component_type_idx = facade.add_component_type(type2_id);
-
-        let type_idx = facade.component_type_idx(type2_id);
-
-        assert_eq!(type_idx, Some(component_type_idx));
-    }
-
-    #[test]
-    fn delete_existing_component() -> Result<(), ExistingComponentError> {
+    fn write_components() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<u32>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<i64>());
-        let _ = facade.add_component(entity_idx, component_type1_idx);
-        let last_archetype_idx = facade.add_component(entity_idx, component_type2_idx)?;
+        facade.add_component(entity_idx, 10_u32);
 
-        let archetype_idx = facade.delete_component(entity_idx, component_type1_idx);
+        let mut components = facade.write_components::<u32>().unwrap();
 
-        let expected_archetype_idx = last_archetype_idx + 1;
-        assert_eq!(archetype_idx, Ok(Some(expected_archetype_idx)));
-        let location = Some(EntityLocation::new(expected_archetype_idx, 0));
-        assert_eq!(facade.entities.location(entity_idx), location);
-        let actual_group_idx = facade.archetypes.group_idx(expected_archetype_idx);
-        assert_eq!(actual_group_idx, group_idx);
-        let actual_type_idxs = facade.archetypes.type_idxs(expected_archetype_idx);
-        assert_eq!(actual_type_idxs, [component_type2_idx]);
-        Ok(())
+        assert_option_iter!(components.archetype_iter_mut(0), Some(vec![&mut 10]));
+        assert_option_iter!(components.archetype_iter_mut(1), None);
     }
 
     #[test]
-    fn delete_missing_component_from_empty_entity() {
+    fn delete_component_with_missing_type() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let component_type_idx = facade.add_component_type(TypeId::of::<u32>());
 
-        let archetype_idx = facade.delete_component(entity_idx, component_type_idx);
+        facade.delete_component(entity_idx, TypeId::of::<u32>());
 
-        assert_eq!(archetype_idx, Err(MissingComponentError));
+        assert_eq!(facade.entities.location(entity_idx), None);
+        assert!(facade.components.read_components::<u32>().is_none());
     }
 
     #[test]
-    fn delete_missing_component_from_nonempty_entity() {
+    fn delete_existing_component() {
         let mut facade = CoreFacade::default();
         let group_idx = facade.create_group();
         let entity_idx = facade.create_entity(group_idx);
-        let component_type1_idx = facade.add_component_type(TypeId::of::<u32>());
-        let component_type2_idx = facade.add_component_type(TypeId::of::<i64>());
-        let _ = facade.add_component(entity_idx, component_type1_idx);
+        facade.add_component(entity_idx, 10_u32);
+        facade.add_component(entity_idx, 20_i64);
 
-        let archetype_idx = facade.delete_component(entity_idx, component_type2_idx);
+        facade.delete_component(entity_idx, TypeId::of::<u32>());
 
-        assert_eq!(archetype_idx, Err(MissingComponentError));
+        let location = EntityLocation::new(2, 0);
+        assert_eq!(facade.entities.location(entity_idx), Some(location));
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(2), None);
+        let components = facade.components.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&20]));
+    }
+
+    #[test]
+    fn delete_not_existing_component() {
+        let mut facade = CoreFacade::default();
+        let group_idx = facade.create_group();
+        let entity_idx = facade.create_entity(group_idx);
+        facade.add_component(entity_idx, 10_u32);
+        facade.add_component(entity_idx, 20_i64);
+        facade.delete_component(entity_idx, TypeId::of::<u32>());
+
+        facade.delete_component(entity_idx, TypeId::of::<u32>());
+
+        let location = EntityLocation::new(2, 0);
+        assert_eq!(facade.entities.location(entity_idx), Some(location));
+        let components = facade.components.read_components::<u32>().unwrap();
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(2), None);
+        let components = facade.components.read_components::<i64>().unwrap();
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&20]));
     }
 }
-*/

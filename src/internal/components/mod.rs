@@ -98,11 +98,13 @@ impl ComponentFacade {
         type_idx: usize,
     ) {
         self.components.delete(type_idx, location);
-        if let Some(new_archetype_idx) = new_archetype_idx {
-            for &moved_type_idx in moved_type_idxs {
-                if moved_type_idx != type_idx {
+        for &moved_type_idx in moved_type_idxs {
+            if moved_type_idx != type_idx {
+                if let Some(new_archetype_idx) = new_archetype_idx {
                     self.components
                         .move_(moved_type_idx, location, new_archetype_idx);
+                } else {
+                    self.components.delete(moved_type_idx, location);
                 }
             }
         }
@@ -212,7 +214,52 @@ mod component_facade_tests {
     #[test]
     fn replace_component() {
         let mut facade = ComponentFacade::default();
+        facade.type_idx_or_create::<u32>();
+        facade.add(&[], None, 2, 0, 10_u32);
+        facade.add(&[], None, 2, 0, 20_u32);
 
-        // TODO
+        facade.replace(0, EntityLocation::new(2, 1), 30_u32);
+        let components = facade.components.read_components::<u32>(0);
+        assert_option_iter!(components.archetype_iter(2), Some(vec![&10, &30]));
+    }
+
+    #[test]
+    fn delete_component_with_new_archetype_specified() {
+        let mut facade = ComponentFacade::default();
+        facade.type_idx_or_create::<u32>();
+        facade.type_idx_or_create::<i64>();
+        facade.add(&[], None, 2, 0, 10_u32);
+        facade.add(&[0], Some(EntityLocation::new(2, 0)), 3, 1, 20_i64);
+
+        facade.delete(&[0, 1], EntityLocation::new(3, 0), Some(1), 0);
+
+        let components = facade.components.read_components::<u32>(0);
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(3), Some(vec![]));
+        let components = facade.components.read_components::<i64>(1);
+        assert_option_iter!(components.archetype_iter(1), Some(vec![&20]));
+        assert_option_iter!(components.archetype_iter(3), Some(vec![]));
+    }
+
+    #[test]
+    fn delete_component_with_no_new_archetype_specified() {
+        let mut facade = ComponentFacade::default();
+        facade.type_idx_or_create::<u32>();
+        facade.type_idx_or_create::<i64>();
+        facade.add(&[], None, 2, 0, 10_u32);
+        facade.add(&[0], Some(EntityLocation::new(2, 0)), 3, 1, 20_i64);
+
+        facade.delete(&[0, 1], EntityLocation::new(3, 0), None, 0);
+
+        let components = facade.components.read_components::<u32>(0);
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(2), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(3), Some(vec![]));
+        let components = facade.components.read_components::<i64>(1);
+        assert_option_iter!(components.archetype_iter(0), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(1), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(2), Some(vec![]));
+        assert_option_iter!(components.archetype_iter(3), Some(vec![]));
     }
 }
