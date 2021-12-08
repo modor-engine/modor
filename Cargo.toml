@@ -14,6 +14,7 @@ categories = ["game-engines"]
 fxhash = "0.2"
 itertools = "0.10"
 scoped_threadpool = "0.1"
+typed-index-collections = "3.0"
 
 [dev-dependencies]
 doc-comment = "0.3"

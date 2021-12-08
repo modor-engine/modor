@@ -1,11 +1,11 @@
-//! Modor is modular and kind of object-oriented game engine.
+//! Modor is a modular and kind of object-oriented game engine.
 //!
 //! This game engine is based on the
 //! [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but
-//! proposes an API that considers entities like strongly typed objects, and provides tools similar
+//! provides an API that represents entities like strongly typed objects, and provides tools similar
 //! to the object-oriented paradigm:
 //! - data are represented by components
-//! - logic are represented with systems only run on the entity type
+//! - logic is put in systems that are only run for the entity type where they are defined
 //! - data and logic inheritance is possible between entity types
 //!
 //! # Examples
@@ -13,15 +13,12 @@
 //! ```rust
 //! use modor::*;
 //!
-//! Application::new()
-//!     .with_group(build_entity_group)
-//!     .update();
-//!
-//! fn build_entity_group(builder: &mut GroupBuilder<'_>) {
-//!     builder
+//! fn main() {
+//!     App::new()
 //!         .with_entity::<Character>((Position(45., 65.), CharacterType::Main))
 //!         .with_entity::<Character>((Position(98., 12.), CharacterType::Enemy))
-//!         .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy));
+//!         .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy))
+//!         .update();
 //! }
 //!
 //! #[derive(Debug)]
@@ -42,17 +39,15 @@
 //! impl EntityMainComponent for Character {
 //!     type Data = (Position, CharacterType);
 //!
-//!     fn build(builder: &mut EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
-//!         if let CharacterType::Enemy = type_ {
-//!             builder.with(Enemy);
-//!         }
+//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
 //!         builder
+//!             .with_if(Enemy, matches!(type_, CharacterType::Enemy))
 //!             .with(position)
 //!             .with_self(Self { ammunition: 10 })
 //!     }
 //!
 //!     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-//!         runner.run(entity_system!(Self::fire_when_enemy));
+//!         runner.run(system!(Self::fire_when_enemy));
 //!     }
 //! }
 //!
@@ -73,40 +68,24 @@
 extern crate static_assertions;
 
 #[macro_use]
-mod internal;
+mod utils;
+mod app;
+mod entities;
+mod storages;
+mod system_checks;
+mod system_params;
+mod systems;
 
-mod external;
+pub mod testing;
 
-pub use external::application::*;
-pub use external::entities::*;
-pub use external::groups::*;
-pub use external::systems::building::*;
-pub use external::systems::checks::component_params::*;
-pub use external::systems::checks::param_compatibility::*;
-pub use external::systems::checks::query_component_params::*;
-pub use external::systems::checks::*;
-pub use external::systems::definition::*;
-pub use external::systems::param_traits::*;
-pub use external::systems::param_types::*;
+pub use app::*;
+pub use entities::*;
+pub use system_checks::*;
+pub use system_params::entity::*;
+pub use system_params::queries::*;
+pub use system_params::world::*;
+pub use system_params::*;
+pub use systems::*;
 
-pub(crate) use external::systems::iterators::*;
-
-#[cfg(doctest)]
-doc_comment::doctest!("../README.md");
-
-// TODO: check the below rules are respected
-// - use one letter convention for closure params
-// - don't put "s" (plural) before "Facade" and "System" type suffixes
-// - name of test modules should match the type names, and be on form "<typename>_tests"
-// - put "s" if multiple params in macros
-// - docstrings starts with infinitive verb
-// - choose the lowest possible visibility before "mod", "use", "struct", "enum" and "fn"
-// - all pub types are outside the "internal" module
-// - try to include special cases in macros instead of manually writing it
-// - https://rust-lang.github.io/api-guidelines/checklist.html
-// - statically assert public types to check auto traits Sync and Send (to avoid future breaking changes)
-// - statically assert public "mutable" types does not implement Clone
-// - avoid line breaks for a single instruction when not method chaining
-// - put maximum of logic in "internal" module
-// - README, documentation and CHANGELOG are up-to-date
-// - don't put assert!(x.is_some()); in tests as unwrap already test the value exists
+// TODO: check lints
+// TODO: adapt to Rust 2021

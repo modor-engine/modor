@@ -7,7 +7,7 @@ add_mutation_annotations() {
         echo "Add mutation annotation in $1..."
         replace=1
         while IFS= read -r line; do
-            if [[ "$line" =~ .*"#[cfg(test)]".* ]]; then
+            if [[ "$line" == "#[cfg(test)]" ]]; then
                 replace=0
             fi
             if [[ "$line" =~ .*" fn ".* ]] || [[ "$line" =~ ^"fn ".* ]] && [ $replace -eq 1 ]; then

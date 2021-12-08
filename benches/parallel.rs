@@ -1,11 +1,7 @@
 use microbench::Options;
 use modor::*;
-
-fn build_main_group(builder: &mut GroupBuilder<'_>) {
-    for _ in 0..100_000 {
-        builder.with_entity::<MainEntity>(());
-    }
-}
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug)]
 struct Reader(f32);
@@ -21,7 +17,7 @@ struct MainEntity;
 impl EntityMainComponent for MainEntity {
     type Data = ();
 
-    fn build(builder: &mut EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
         builder
             .with(Reader(42.))
             .with(Writer1(0.))
@@ -30,31 +26,35 @@ impl EntityMainComponent for MainEntity {
     }
 
     fn on_update(runner: &mut EntityRunner<'_, Self>) {
-        runner.run(entity_system!(Self::update1));
-        runner.run(entity_system!(Self::update2));
+        runner.run(system!(Self::update1));
+        runner.run(system!(Self::update2));
     }
 }
 
 impl MainEntity {
     fn update1(writer: &mut Writer1, reader: &Reader) {
         writer.0 = reader.0;
+        thread::sleep(Duration::from_nanos(1));
     }
 
     fn update2(writer: &mut Writer2, reader: &Reader) {
         writer.0 = reader.0;
+        thread::sleep(Duration::from_nanos(1));
     }
 }
 
 fn main() {
     let options = Options::default();
 
-    let mut app = Application::new()
-        .with_group(build_main_group)
-        .with_thread_count(1);
+    let mut app = App::new().with_thread_count(1);
+    for _ in 0..1000 {
+        app = app.with_entity::<MainEntity>(());
+    }
     microbench::bench(&options, "sequential update", || app.update());
 
-    let mut app = Application::new()
-        .with_group(build_main_group)
-        .with_thread_count(2);
+    let mut app = App::new().with_thread_count(2);
+    for _ in 0..1000 {
+        app = app.with_entity::<MainEntity>(());
+    }
     microbench::bench(&options, "parallel update", || app.update());
 }
