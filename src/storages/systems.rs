@@ -80,28 +80,25 @@ impl SystemStorage {
             component_types: &self.component_types,
             have_entity_actions: &self.have_entity_actions,
         };
-        let states = &self.states;
-        let entity_main_component_types = &self.entity_main_component_types;
-        let wrappers = &self.wrappers;
         let thread_count = pool.thread_count();
         pool.scoped(|scope| {
             for _ in 0..thread_count {
-                scope.execute(move || {
+                scope.execute(|| {
                     Self::run_thread(
                         data,
-                        states,
+                        &self.states,
                         system_properties,
-                        entity_main_component_types,
-                        wrappers,
+                        &self.entity_main_component_types,
+                        &self.wrappers,
                     );
                 });
             }
             Self::run_thread(
                 data,
-                states,
+                &self.states,
                 system_properties,
-                entity_main_component_types,
-                wrappers,
+                &self.entity_main_component_types,
+                &self.wrappers,
             );
         });
     }

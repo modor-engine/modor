@@ -2,7 +2,7 @@
 name = "modor"
 version = "0.1.0"
 authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Core library of Modor game engine"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"

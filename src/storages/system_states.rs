@@ -182,7 +182,7 @@ mod system_state_storage_tests {
             runnable_idxs: vec![2.into(), 3.into()],
         };
 
-        storage.reset(vec![0.into(), 1.into()].into_iter());
+        storage.reset([0.into(), 1.into()].into_iter());
 
         let state = ti_vec![LockState::Free, LockState::Free];
         assert_eq!(storage.component_type_state, state);
@@ -193,7 +193,7 @@ mod system_state_storage_tests {
     #[test]
     fn lock_systems_with_entity_action() {
         let mut storage = SystemStateStorage::default();
-        storage.reset(vec![0.into(), 1.into()].into_iter());
+        storage.reset([0.into(), 1.into()].into_iter());
         let properties = SystemProperties {
             component_types: &ti_vec![vec![], vec![]],
             have_entity_actions: &ti_vec![true, true],
@@ -222,7 +222,7 @@ mod system_state_storage_tests {
     #[test]
     fn lock_systems_with_components() {
         let mut storage = SystemStateStorage::default();
-        storage.reset(vec![0.into(), 1.into()].into_iter());
+        storage.reset([0.into(), 1.into()].into_iter());
         storage.register_component_type(1.into());
         let component_type_access = create_type_access(1.into(), Access::Write);
         let properties = SystemProperties {

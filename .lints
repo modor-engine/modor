@@ -1,5 +1,4 @@
 -W anonymous_parameters
--W bare_trait_objects
 -W elided_lifetimes_in_paths
 -W missing_docs
 -W trivial_numeric_casts

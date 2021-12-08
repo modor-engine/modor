@@ -72,12 +72,10 @@ impl ComponentStorage {
     where
         C: Any + Sync + Send,
     {
-        let are_entity_main_components = &mut self.are_entity_main_components;
-        let archetypes = &mut self.archetypes;
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
-            are_entity_main_components.push(false);
+            self.are_entity_main_components.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
-            archetypes.push_and_get_key(Box::new(archetype_lock))
+            self.archetypes.push_and_get_key(Box::new(archetype_lock))
         })
     }
 

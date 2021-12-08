@@ -131,7 +131,7 @@ where
         stream
             .entity_positions
             .next()
-            .map(move |_| Query::new(stream.data, P::borrow_guard(&mut stream.guard)))
+            .map(|_| Query::new(stream.data, P::borrow_guard(&mut stream.guard)))
     }
 }
 
