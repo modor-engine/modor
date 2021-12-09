@@ -123,7 +123,7 @@ mod app_tests {
 
         let components = new_app.0.components().read_components::<TestEntity>();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity("string".into())]];
-        assert_eq!(&*components, &expected_components)
+        assert_eq!(&*components, &expected_components);
     }
 
     #[test]
@@ -133,6 +133,6 @@ mod app_tests {
         app.update();
 
         let components = app.0.components().read_components::<TestEntity>();
-        assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![]])
+        assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![]]);
     }
 }

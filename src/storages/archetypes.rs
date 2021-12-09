@@ -361,12 +361,12 @@ mod archetype_storage_tests {
         let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
         let archetype3_idx = storage.add_component(archetype1_idx, type2_idx).unwrap();
 
-        let archetypes = storage.all_sorted();
+        let all_archetypes = storage.all_sorted();
 
         let archetype1 = create_archetype_info(archetype1_idx, 0);
         let archetype2 = create_archetype_info(archetype2_idx, 0);
         let archetype3 = create_archetype_info(archetype3_idx, 1);
-        assert_eq!(archetypes, [archetype1, archetype2, archetype3]);
+        assert_eq!(all_archetypes, [archetype1, archetype2, archetype3]);
     }
 
     #[test]
@@ -378,11 +378,11 @@ mod archetype_storage_tests {
         let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
         let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
 
-        let archetypes = storage.sorted_with_all_types(&[type1_idx]);
+        let all_archetypes = storage.sorted_with_all_types(&[type1_idx]);
 
         let archetype1 = create_archetype_info(archetype2_idx, 0);
         let archetype2 = create_archetype_info(archetype3_idx, 1);
-        assert_eq!(archetypes, [archetype1, archetype2]);
+        assert_eq!(all_archetypes, [archetype1, archetype2]);
     }
 
     #[test]

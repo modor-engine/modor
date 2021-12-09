@@ -299,10 +299,10 @@ mod component_ref_system_param_tests {
     fn retrieve_query_iter() {
         let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
         guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &guard;
+        let guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter(&mut guard_borrow, &iter_info);
+        let iter = <&u32>::query_iter(&guard_borrow, &iter_info);
 
         assert_iter!(iter, [&20, &40, &50]);
     }
@@ -311,10 +311,10 @@ mod component_ref_system_param_tests {
     fn retrieve_reversed_query_iter() {
         let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
         guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &guard;
+        let guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter(&mut guard_borrow, &iter_info).rev();
+        let iter = <&u32>::query_iter(&guard_borrow, &iter_info).rev();
 
         assert_iter!(iter, [&50, &40, &20]);
     }

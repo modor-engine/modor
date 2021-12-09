@@ -1,3 +1,5 @@
+//! Benchmark parallel execution of systems
+
 use microbench::Options;
 use modor::*;
 use std::thread;

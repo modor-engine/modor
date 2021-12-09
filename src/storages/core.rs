@@ -225,8 +225,9 @@ mod core_storage_tests {
     use super::*;
     use crate::SystemData;
 
+    #[allow(clippy::multiple_inherent_impl)]
     impl CoreStorage {
-        pub(crate) fn system_data(&self) -> SystemData {
+        pub(crate) fn system_data(&self) -> SystemData<'_> {
             SystemData {
                 components: &self.components,
                 archetypes: &self.archetypes,

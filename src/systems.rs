@@ -217,6 +217,7 @@ macro_rules! system {
     ($system:expr) => {{
         use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
 
+        #[allow(clippy::semicolon_if_nothing_returned)]
         ::modor::SystemBuilder::new(
             ::modor::System::properties(&$system),
             |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
@@ -227,7 +228,7 @@ macro_rules! system {
                 let iter_info = ::modor::System::iter_info(&system, data, &info);
                 let mut stream = ::modor::System::stream(&system, &mut guard_borrow, &iter_info);
                 while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
-                    ::modor::System::apply(&mut system, item)
+                    ::modor::System::apply(&mut system, item);
                 }
             },
         )
@@ -248,11 +249,11 @@ mod system_info_tests {
     use std::any::Any;
 
     impl SystemInfo {
-        pub(crate) fn with_one_filtered_type<C>() -> SystemInfo
+        pub(crate) fn with_one_filtered_type<C>() -> Self
         where
             C: Any,
         {
-            SystemInfo {
+            Self {
                 filtered_component_types: vec![TypeId::of::<C>()],
             }
         }

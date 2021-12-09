@@ -329,7 +329,7 @@ mod component_mut_option_system_param_tests {
         let mut guard = <Option<&mut u32>>::lock(&data);
         let guard_borrow = <Option<&mut u32>>::borrow_guard(&mut guard);
 
-        assert_eq!(guard_borrow, &ti_vec![ti_vec![], ti_vec![10_u32]])
+        assert_eq!(guard_borrow, &ti_vec![ti_vec![], ti_vec![10_u32]]);
     }
 
     #[test]
@@ -363,11 +363,11 @@ mod component_mut_option_system_param_tests {
     fn retrieve_query_iter() {
         let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
         guard.extend(vec![ti_vec![], ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &mut guard;
+        let guard_borrow = &mut guard;
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter(&mut guard_borrow, &iter_info);
+        let iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info);
 
         assert_iter!(iter, [Some(&20), None, None, Some(&40), Some(&50)]);
     }
@@ -376,11 +376,11 @@ mod component_mut_option_system_param_tests {
     fn retrieve_reversed_query_iter() {
         let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
         guard.extend(vec![ti_vec![], ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &mut guard;
+        let guard_borrow = &mut guard;
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter(&mut guard_borrow, &iter_info).rev();
+        let iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info).rev();
 
         assert_iter!(iter, [Some(&50), Some(&40), None, None, Some(&20)]);
     }

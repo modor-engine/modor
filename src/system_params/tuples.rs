@@ -302,6 +302,7 @@ mod internal {
     impl ExactSizeIterator for EmptyTupleIter {}
 }
 
+#[allow(clippy::let_unit_value)]
 #[cfg(test)]
 mod empty_tuple_system_param_tests {
     use super::*;
@@ -363,10 +364,10 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let mut guard_borrow = ();
+        let guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
-        let iter = <()>::query_iter(&mut guard_borrow, &iter_info);
+        let iter = <()>::query_iter(&guard_borrow, &iter_info);
 
         assert_iter!(iter, [(), (), ()]);
     }
@@ -443,10 +444,10 @@ mod tuple_with_one_item_system_param_tests {
     #[test]
     fn retrieve_query_iter() {
         let guard = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard_borrow = (&guard,);
+        let guard_borrow = (&guard,);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32,)>::query_iter(&mut guard_borrow, &iter_info);
+        let iter = <(&u32,)>::query_iter(&guard_borrow, &iter_info);
 
         assert_iter!(iter, [(&10,), (&20,)]);
     }
@@ -473,7 +474,7 @@ mod tuple_with_two_items_system_param_tests {
 
     #[test]
     fn retrieve_properties_with_entity_action() {
-        let properties = <(&u32, World)>::properties();
+        let properties = <(&u32, World<'_>)>::properties();
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);

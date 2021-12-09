@@ -13,13 +13,11 @@
 //! ```rust
 //! use modor::*;
 //!
-//! fn main() {
-//!     App::new()
-//!         .with_entity::<Character>((Position(45., 65.), CharacterType::Main))
-//!         .with_entity::<Character>((Position(98., 12.), CharacterType::Enemy))
-//!         .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy))
-//!         .update();
-//! }
+//! App::new()
+//!     .with_entity::<Character>((Position(45., 65.), CharacterType::Main))
+//!     .with_entity::<Character>((Position(98., 12.), CharacterType::Enemy))
+//!     .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy))
+//!     .update();
 //!
 //! #[derive(Debug)]
 //! struct Position(f32, f32);

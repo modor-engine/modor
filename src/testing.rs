@@ -194,7 +194,7 @@ impl EntityAssertion<'_> {
     }
 
     fn location(&self) -> Option<EntityLocationInArchetype> {
-        self.core.entities().location(self.entity_idx.into())
+        self.core.entities().location(self.entity_idx)
     }
 
     fn test_component_exists<C, F>(
@@ -249,7 +249,7 @@ mod test_app_tests {
         assert_eq!(entity_idx, 0);
         let components = app.0 .0.components().read_components::<TestEntity>();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity("string".into())]];
-        assert_eq!(&*components, &expected_components)
+        assert_eq!(&*components, &expected_components);
     }
 
     #[test]
@@ -260,7 +260,7 @@ mod test_app_tests {
 
         let components = app.0 .0.components().read_components::<TestEntity>();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity("string".into())]];
-        assert_eq!(&*components, &expected_components)
+        assert_eq!(&*components, &expected_components);
     }
 
     #[test]
@@ -269,7 +269,7 @@ mod test_app_tests {
 
         let app_ref = &*app;
 
-        assert!(ptr::eq(app_ref, &app.0))
+        assert!(ptr::eq(app_ref, &app.0));
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod test_app_tests {
 
         let app_ref = &mut *app as *const App;
 
-        assert!(ptr::eq(app_ref, &app.0))
+        assert!(ptr::eq(app_ref, &app.0));
     }
 }
 

@@ -1,3 +1,5 @@
+//! Benchmark system iteration with optional component
+
 use microbench::Options;
 use modor::*;
 
@@ -50,11 +52,11 @@ fn main() {
     let options = Options::default();
 
     let mut app = App::new();
-    for i in 0..10000 {
+    for i in 0..10000_u16 {
         if i % 10 == 0 {
-            app = app.with_entity::<DynamicBody>(i as f32);
+            app = app.with_entity::<DynamicBody>(f32::from(i));
         } else {
-            app = app.with_entity::<StaticBody>(i as f32);
+            app = app.with_entity::<StaticBody>(f32::from(i));
         }
     }
     microbench::bench(&options, "update with option", || app.update());

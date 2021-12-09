@@ -276,7 +276,7 @@ mod entity_builder_tests {
     use super::*;
     use crate::storages::archetypes::ArchetypeStorage;
 
-    assert_impl_all!(EntityBuilder<ParentEntity>: Send, Unpin);
+    assert_impl_all!(EntityBuilder<'_, ParentEntity>: Send, Unpin);
 
     #[derive(Debug, PartialEq)]
     struct ParentEntity(u32);
@@ -347,7 +347,7 @@ mod entity_builder_tests {
         assert_eq!(new_builder.dst_archetype_idx, 1.into());
         assert_eq!(new_builder.added_components.component, 20_i64);
         assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert_eq!(new_builder.added_components.is_added, true);
+        assert!(new_builder.added_components.is_added);
         assert!(matches!(new_builder.added_components.other_components, ()));
         assert!(core.components().read_components::<i64>().is_empty());
     }
@@ -363,7 +363,7 @@ mod entity_builder_tests {
         assert_eq!(new_builder.dst_archetype_idx, 1.into());
         assert_eq!(new_builder.added_components.component, 20_i64);
         assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert_eq!(new_builder.added_components.is_added, true);
+        assert!(new_builder.added_components.is_added);
         assert!(matches!(new_builder.added_components.other_components, ()));
         assert!(core.components().read_components::<i64>().is_empty());
     }
@@ -379,7 +379,7 @@ mod entity_builder_tests {
         assert_eq!(new_builder.dst_archetype_idx, ArchetypeStorage::DEFAULT_IDX);
         assert_eq!(new_builder.added_components.component, 20_i64);
         assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert_eq!(new_builder.added_components.is_added, false);
+        assert!(!new_builder.added_components.is_added);
         assert!(matches!(new_builder.added_components.other_components, ()));
         assert!(core.components().read_components::<i64>().is_empty());
     }
@@ -402,13 +402,13 @@ mod entity_builder_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![ChildEntity(30)]];
         assert_eq!(&*components, &expected_components);
         let components = core.components();
-        assert!(components.is_entity_main_component_type::<ChildEntity>())
+        assert!(components.is_entity_main_component_type::<ChildEntity>());
     }
 
     fn create_builder(
         core: &mut CoreStorage,
         location: Option<EntityLocationInArchetype>,
-    ) -> EntityBuilder<ChildEntity> {
+    ) -> EntityBuilder<'_, ChildEntity> {
         EntityBuilder {
             core,
             src_location: location,
@@ -425,7 +425,7 @@ mod entity_runner_tests {
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::SystemProperties;
 
-    assert_impl_all!(EntityRunner<TestEntity>: Send, Unpin);
+    assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
 
     struct TestEntity(u32);
 

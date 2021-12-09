@@ -333,10 +333,10 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let mut guard_borrow = &core.system_data();
+        let guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter(&mut guard_borrow, &iter_info);
+        let iter = Entity::query_iter(&guard_borrow, &iter_info);
 
         assert_iter!(iter.map(|e| e.id()), [1, 3, 4]);
     }
@@ -350,10 +350,10 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let mut guard_borrow = &core.system_data();
+        let guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter(&mut guard_borrow, &iter_info).rev();
+        let iter = Entity::query_iter(&guard_borrow, &iter_info).rev();
 
         assert_iter!(iter.map(|e| e.id()), [4, 3, 1]);
     }

@@ -104,6 +104,7 @@ pub(crate) mod internal {
         type Mutability: Mutability;
     }
 
+    #[allow(unreachable_pub)]
     pub trait Mutability {}
 
     pub struct Const;
@@ -210,6 +211,7 @@ mod system_param_iter_tests {
     use crate::storages::archetypes::{ArchetypeIdx, ArchetypeInfo};
     use crate::system_params::internal::{EntityIterInfo, SystemParamIterInfo};
 
+    #[allow(clippy::multiple_inherent_impl)]
     impl SystemParamIterInfo {
         pub(crate) fn new_union(archetype_info: Vec<(ArchetypeIdx, usize)>) -> Self {
             Self::ComponentUnionEntities(Self::create_entity_iter_info(archetype_info))
@@ -358,7 +360,7 @@ mod system_param_iter_tests {
         });
 
         let result = iter1.clone().merge(iter2.clone());
-        let reversed_result = iter1.merge(iter2.clone());
+        let reversed_result = iter1.merge(iter2);
 
         let archetypes = vec![create_archetype(2.into(), 15)];
         assert_eq!(

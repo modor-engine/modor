@@ -9,7 +9,7 @@ struct Position {
 
 impl Position {
     fn new(x: i32, y: i32) -> Self {
-        Position { x, y }
+        Self { x, y }
     }
 }
 
@@ -21,7 +21,7 @@ struct Size {
 
 impl Size {
     fn new(width: i32, height: i32) -> Self {
-        Size { width, height }
+        Self { width, height }
     }
 }
 

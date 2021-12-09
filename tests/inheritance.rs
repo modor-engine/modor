@@ -31,6 +31,7 @@ impl EntityMainComponent for Button {
 }
 
 impl Button {
+    #[allow(clippy::ptr_arg)]
     fn update(&mut self, label: &String, selections: Query<'_, &ButtonSelection>) {
         for selection in selections.iter() {
             if &selection.label == label {

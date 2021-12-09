@@ -143,6 +143,7 @@ pub(super) enum LockedSystem {
 mod system_state_storage_tests {
     use super::*;
 
+    #[allow(clippy::multiple_inherent_impl)]
     impl SystemStateStorage {
         pub(in super::super) fn last_component_type_idx(&self) -> Option<ComponentTypeIdx> {
             self.component_type_state.last_key()
@@ -153,7 +154,7 @@ mod system_state_storage_tests {
     fn register_missing_component_type() {
         let mut storage = SystemStateStorage {
             component_type_state: ti_vec![LockState::Written],
-            ..Default::default()
+            ..SystemStateStorage::default()
         };
 
         storage.register_component_type(2.into());
@@ -166,7 +167,7 @@ mod system_state_storage_tests {
     fn register_existing_component_type() {
         let mut storage = SystemStateStorage {
             component_type_state: ti_vec![LockState::Written],
-            ..Default::default()
+            ..SystemStateStorage::default()
         };
 
         storage.register_component_type(0.into());
