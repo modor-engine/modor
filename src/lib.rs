@@ -61,6 +61,9 @@
 
 #![cfg_attr(test, allow(clippy::unwrap_used))]
 
+#[cfg(doctest)]
+#[macro_use]
+extern crate doc_comment;
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
@@ -85,4 +88,5 @@ pub use system_params::world::*;
 pub use system_params::*;
 pub use systems::*;
 
-// TODO: check lints
+#[cfg(doctest)]
+doc_comment!(include_str!("../README.md"));

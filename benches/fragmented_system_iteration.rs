@@ -1,6 +1,6 @@
 //! Tests performance of archetype iteration in systems.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_main, Criterion};
 use modor::*;
 
 struct Data(f32);
@@ -35,11 +35,14 @@ macro_rules! create_entities {
     };
 }
 
-fn run_system(c: &mut Criterion) {
+#[allow(clippy::items_after_statements, clippy::cognitive_complexity)]
+fn run(c: &mut Criterion) {
     let mut app = App::new();
     create_entities!(app; A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
     c.bench_function("fragmented_system_iteration", |b| b.iter(|| app.update()));
 }
 
-criterion_group!(benches, run_system);
-criterion_main!(benches);
+mod group {
+    criterion::criterion_group!(benches, super::run);
+}
+criterion_main!(group::benches);

@@ -1,13 +1,13 @@
 //! Tests performance of entity creation.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_main, Criterion};
 use modor::*;
 
-pub struct Vec3(f32, f32, f32);
+struct Vec3(f32, f32, f32);
 
-pub struct Vec4(f32, f32, f32, f32);
+struct Vec4(f32, f32, f32, f32);
 
-pub struct Mat4(Vec4, Vec4, Vec4, Vec4);
+struct Mat4(Vec4, Vec4, Vec4, Vec4);
 
 struct Position(Vec3);
 
@@ -34,16 +34,18 @@ impl EntityMainComponent for Object {
     }
 }
 
-fn create_entities(c: &mut Criterion) {
+fn run(c: &mut Criterion) {
     c.bench_function("entity_creation", |b| {
         b.iter(|| {
             let mut app = App::new();
             for _ in 0..10_000 {
                 app = app.with_entity::<Object>(());
             }
-        })
+        });
     });
 }
 
-criterion_group!(benches, create_entities);
-criterion_main!(benches);
+mod group {
+    criterion::criterion_group!(benches, super::run);
+}
+criterion_main!(group::benches);

@@ -1,13 +1,13 @@
 //! Tests performance of direct component iteration in systems.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_main, Criterion};
 use modor::*;
 
-pub struct Vec3(f32, f32, f32);
+struct Vec3(f32, f32, f32);
 
-pub struct Vec4(f32, f32, f32, f32);
+struct Vec4(f32, f32, f32, f32);
 
-pub struct Mat4(Vec4, Vec4, Vec4, Vec4);
+struct Mat4(Vec4, Vec4, Vec4, Vec4);
 
 struct Position(Vec3);
 
@@ -46,7 +46,7 @@ impl Object {
     }
 }
 
-fn run_system(c: &mut Criterion) {
+fn run(c: &mut Criterion) {
     let mut app = App::new();
     for _ in 0..10_000 {
         app = app.with_entity::<Object>(());
@@ -54,5 +54,7 @@ fn run_system(c: &mut Criterion) {
     c.bench_function("simple_system_iteration", |b| b.iter(|| app.update()));
 }
 
-criterion_group!(benches, run_system);
-criterion_main!(benches);
+mod group {
+    criterion::criterion_group!(benches, super::run);
+}
+criterion_main!(group::benches);

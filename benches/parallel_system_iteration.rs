@@ -1,6 +1,6 @@
 //! Tests performance of parallel execution of systems.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_main, Criterion};
 use modor::*;
 
 struct A(f32);
@@ -91,7 +91,7 @@ fn ce(c: &mut C, e: &mut E) {
     std::mem::swap(&mut c.0, &mut e.0);
 }
 
-fn run_system(c: &mut Criterion) {
+fn run(c: &mut Criterion) {
     let mut app = App::new().with_thread_count(3);
     for _ in 0..10_000 {
         app = app.with_entity::<Item1>(());
@@ -108,5 +108,7 @@ fn run_system(c: &mut Criterion) {
     c.bench_function("parallel_system_iteration", |b| b.iter(|| app.update()));
 }
 
-criterion_group!(benches, run_system);
-criterion_main!(benches);
+mod group {
+    criterion::criterion_group!(benches, super::run);
+}
+criterion_main!(group::benches);
