@@ -22,7 +22,7 @@ impl EntityActionStorage {
     ) -> impl Iterator<Item = (EntityIdx, EntityState)> + '_ {
         self.modified_entity_idxs
             .drain(..)
-            .map( |e| (e, mem::take(&mut self.entity_states[e])))
+            .map(|e| (e, mem::take(&mut self.entity_states[e])))
     }
 
     pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {

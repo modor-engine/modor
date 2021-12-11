@@ -83,7 +83,7 @@ mod app_tests {
     use crate::storages::core::SystemProperties;
     use crate::{Built, EntityRunner, SystemBuilder};
 
-    assert_impl_all!(App: Send);
+    assert_impl_all!(App: Send, Unpin);
 
     #[derive(Debug, PartialEq)]
     struct TestEntity(String);

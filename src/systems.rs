@@ -261,7 +261,7 @@ mod system_info_tests {
 }
 
 #[cfg(test)]
-mod system_builder {
+mod system_builder_tests {
     use super::*;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 

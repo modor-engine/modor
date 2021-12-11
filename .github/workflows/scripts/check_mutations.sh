@@ -10,7 +10,7 @@ add_mutation_annotations() {
             if [[ "$line" == "#[cfg(test)]" ]]; then
                 replace=0
             fi
-            if [[ "$line" =~ .*" fn ".* ]] || [[ "$line" =~ ^"fn ".* ]] && [ $replace -eq 1 ]; then
+            if [[ "$line" =~ ^[^/]+.*" fn ".* ]] || [[ "$line" =~ ^"fn ".* ]] && [ $replace -eq 1 ]; then
                 echo "#[::mutagen::mutate] $line" >> "$1.tmp"
             else
                 # Fix to avoid "annotation needed" due to a bug with serde_json (https://github.com/llogiq/mutagen/issues/164)

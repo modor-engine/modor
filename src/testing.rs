@@ -220,6 +220,8 @@ mod test_app_tests {
     use crate::Built;
     use std::ptr;
 
+    assert_impl_all!(TestApp: Send, Unpin);
+
     #[derive(Debug, PartialEq)]
     struct TestEntity(String);
 
@@ -285,6 +287,8 @@ mod test_app_tests {
 #[cfg(test)]
 mod entity_assertion_tests {
     use super::*;
+
+    assert_impl_all!(TestApp: Unpin);
 
     #[test]
     #[should_panic(expected = "assertion failed: `assert_entity(0).exists()")]

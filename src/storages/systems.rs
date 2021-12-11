@@ -81,9 +81,9 @@ impl SystemStorage {
             have_entity_actions: &self.have_entity_actions,
         };
         let thread_count = pool.thread_count();
-        pool.scoped(|scope| {
+        pool.scoped(|s| {
             for _ in 0..thread_count {
-                scope.execute(|| {
+                s.execute(|| {
                     Self::run_thread(
                         data,
                         &self.states,
