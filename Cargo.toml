@@ -17,19 +17,23 @@ scoped_threadpool = "0.1"
 typed-index-collections = "3.0"
 
 [dev-dependencies]
+criterion = "0.3"
 doc-comment = "0.3"
-microbench = "0.5"
 static_assertions = "1.1"
 trybuild = "1.0"
 
 [[bench]]
-name = "parallel"
+name = "entity_creation"
 harness = false
 
 [[bench]]
-name = "velocity"
+name = "simple_system_iteration"
 harness = false
 
 [[bench]]
-name = "velocity_with_option"
+name = "fragmented_system_iteration"
+harness = false
+
+[[bench]]
+name = "parallel_system_iteration"
 harness = false
