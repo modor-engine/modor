@@ -224,6 +224,7 @@ pub(crate) struct ComponentTypeIdAccess {
 mod core_storage_tests {
     use super::*;
     use crate::SystemData;
+    use typed_index_collections::TiVec;
 
     #[allow(clippy::multiple_inherent_impl)]
     impl CoreStorage {
@@ -410,7 +411,7 @@ mod core_storage_tests {
         storage.apply_system_actions();
 
         assert_eq!(storage.entities.location(0.into()), None);
-        let components = ti_vec![ti_vec![], ti_vec![]];
+        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(&*storage.components.read_components::<u32>(), &components);
         assert_eq!(storage.archetypes.entity_idxs(0.into()).to_vec(), ti_vec![]);
         assert_eq!(storage.archetypes.entity_idxs(1.into()).to_vec(), ti_vec![]);
@@ -458,7 +459,7 @@ mod core_storage_tests {
         assert_eq!(storage.entities.location(0.into()), Some(location));
         let components = ti_vec![ti_vec![], ti_vec![10_u32], ti_vec![]];
         assert_eq!(&*storage.components.read_components::<u32>(), &components);
-        let components = ti_vec![ti_vec![], ti_vec![], ti_vec![]];
+        let components: TiVec<_, TiVec<_, i64>> = ti_vec![ti_vec![], ti_vec![], ti_vec![]];
         assert_eq!(&*storage.components.read_components::<i64>(), &components);
         let entity_idxs = storage.archetypes.entity_idxs(1.into()).to_vec();
         assert_eq!(entity_idxs, ti_vec![0.into()]);
