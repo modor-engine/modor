@@ -283,16 +283,28 @@ mod with_tests {
 
     assert_impl_all!(With<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 
+    macro_rules! test_with_tuple {
+        ($($params:ident),*) => {{
+            let types = <($(With<$params>,)*)>::filtered_component_types();
+            assert_eq!(types, vec![$(TypeId::of::<$params>()),*]);
+        }};
+    }
+
     #[test]
     fn retrieve_filtered_component_types() {
         let types = With::<u32>::filtered_component_types();
         assert_eq!(types, vec![TypeId::of::<u32>()]);
-        let types = <()>::filtered_component_types();
-        assert_eq!(types, vec![]);
-        let types = <(With<u32>,)>::filtered_component_types();
-        assert_eq!(types, vec![TypeId::of::<u32>()]);
-        let types = <(With<u32>, With<i64>)>::filtered_component_types();
-        assert_eq!(types, vec![TypeId::of::<u32>(), TypeId::of::<i64>()]);
+        test_with_tuple!();
+        test_with_tuple!(u8);
+        test_with_tuple!(u8, u16);
+        test_with_tuple!(u8, u16, u32);
+        test_with_tuple!(u8, u16, u32, u64);
+        test_with_tuple!(u8, u16, u32, u64, u128);
+        test_with_tuple!(u8, u16, u32, u64, u128, i8);
+        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16);
+        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32);
+        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
+        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
     }
 }
 

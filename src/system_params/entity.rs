@@ -336,9 +336,16 @@ mod entity_system_param_tests {
         let guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter(&guard_borrow, &iter_info);
+        let mut iter = Entity::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter.map(|e| e.id()), [1, 3, 4]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next().unwrap().id(), 1);
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next().unwrap().id(), 3);
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next().unwrap().id(), 4);
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
     }
 
     #[test]
@@ -353,9 +360,16 @@ mod entity_system_param_tests {
         let guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = Entity::query_iter(&guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter.map(|e| e.id()), [4, 3, 1]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next().unwrap().id(), 4);
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next().unwrap().id(), 3);
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next().unwrap().id(), 1);
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
     }
 
     #[test]
@@ -370,9 +384,16 @@ mod entity_system_param_tests {
         let mut guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter.map(|e| e.id()), [1, 3, 4]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next().unwrap().id(), 1);
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next().unwrap().id(), 3);
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next().unwrap().id(), 4);
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
     }
 
     #[test]
@@ -387,9 +408,16 @@ mod entity_system_param_tests {
         let mut guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter.map(|e| e.id()), [4, 3, 1]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next().unwrap().id(), 4);
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next().unwrap().id(), 3);
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next().unwrap().id(), 1);
+        assert_eq!(iter.len(), 0);
+        assert!(iter.next().is_none());
     }
 
     fn create_entity<C>(core: &mut CoreStorage, component: C)

@@ -30,7 +30,6 @@ impl SystemStorage {
         }
     }
 
-    #[allow(clippy::option_if_let_else)]
     pub(super) fn add(
         &mut self,
         wrapper: SystemWrapper,
@@ -161,7 +160,6 @@ impl SystemStorage {
 
 idx_type!(pub(crate) SystemIdx);
 
-#[derive(Clone)]
 pub(super) struct FullSystemProperties {
     pub(super) component_types: Vec<ComponentTypeAccess>,
     pub(super) has_entity_actions: bool,
@@ -186,7 +184,7 @@ mod system_storage_tests {
     use crate::storages::components::ComponentStorage;
     use crate::storages::entity_actions::{EntityActionStorage, EntityState};
     use std::thread;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn set_thread_count_to_0() {
@@ -356,7 +354,9 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
+        let start_time = Instant::now();
         storage.run(&data);
+        let duration = Instant::now() - start_time;
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         let entity_states: Vec<_> = entity_actions.drain_entity_states().collect();
@@ -364,6 +364,7 @@ mod system_storage_tests {
         assert!(matches!(entity_states[0].1, EntityState::Deleted));
         assert_eq!(entity_states[1].0, 3.into());
         assert!(matches!(entity_states[1].1, EntityState::Deleted));
+        assert!(duration < Duration::from_millis(15));
     }
 
     fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {

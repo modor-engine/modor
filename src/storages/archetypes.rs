@@ -1,14 +1,13 @@
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::entities::EntityIdx;
 use crate::utils;
-use std::cmp::Ordering;
 use typed_index_collections::{TiSlice, TiVec};
 
 pub(crate) struct ArchetypeStorage {
     type_idxs: TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
     entity_idxs: TiVec<ArchetypeIdx, TiVec<ArchetypeEntityPos, EntityIdx>>,
-    next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
-    previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
+    next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, ArchetypeIdx>>,
+    previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, ArchetypeIdx>>,
 }
 
 impl Default for ArchetypeStorage {
@@ -70,7 +69,7 @@ impl ArchetypeStorage {
         src_archetype_idx: ArchetypeIdx,
         type_idx: ComponentTypeIdx,
     ) -> Result<ArchetypeIdx, ExistingComponentError> {
-        if let Some(&Some(archetype_idx)) = self.next_idxs[src_archetype_idx].get(type_idx) {
+        if let Some(&archetype_idx) = self.next_idxs[src_archetype_idx].get(type_idx) {
             return Ok(archetype_idx);
         }
         let type_pos = self.type_idxs[src_archetype_idx]
@@ -83,7 +82,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let next_idxs = &mut self.next_idxs[src_archetype_idx];
-        utils::set_value(next_idxs, type_idx, Some(dst_archetype_idx));
+        utils::set_value(next_idxs, type_idx, dst_archetype_idx);
         Ok(dst_archetype_idx)
     }
 
@@ -92,7 +91,7 @@ impl ArchetypeStorage {
         src_archetype_idx: ArchetypeIdx,
         type_idx: ComponentTypeIdx,
     ) -> Result<ArchetypeIdx, MissingComponentError> {
-        if let Some(&Some(archetype_idx)) = self.previous_idxs[src_archetype_idx].get(type_idx) {
+        if let Some(&archetype_idx) = self.previous_idxs[src_archetype_idx].get(type_idx) {
             return Ok(archetype_idx);
         }
         let type_pos = self.type_idxs[src_archetype_idx]
@@ -104,7 +103,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let previous_idxs = &mut self.previous_idxs[src_archetype_idx];
-        utils::set_value(previous_idxs, type_idx, Some(dst_archetype_idx));
+        utils::set_value(previous_idxs, type_idx, dst_archetype_idx);
         Ok(dst_archetype_idx)
     }
 
@@ -153,7 +152,7 @@ pub struct EntityLocationInArchetype {
     pub(crate) pos: ArchetypeEntityPos,
 }
 
-#[derive(Eq, Clone, Copy, Debug)]
+#[derive(Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub(crate) struct ArchetypeInfo {
     pub(crate) idx: ArchetypeIdx,
     pub(crate) entity_count: usize,
@@ -162,18 +161,6 @@ pub(crate) struct ArchetypeInfo {
 impl PartialEq<Self> for ArchetypeInfo {
     fn eq(&self, other: &Self) -> bool {
         self.idx == other.idx
-    }
-}
-
-impl PartialOrd for ArchetypeInfo {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.idx.partial_cmp(&other.idx)
-    }
-}
-
-impl Ord for ArchetypeInfo {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.idx.cmp(&other.idx)
     }
 }
 
@@ -215,6 +202,8 @@ mod archetype_storage_tests {
 
         assert_eq!(new_archetype_idx, 1.into());
         assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type_idx]);
+        let next_idx = storage.next_idxs[archetype_idx][type_idx];
+        assert_eq!(next_idx, new_archetype_idx);
     }
 
     #[test]
@@ -228,6 +217,8 @@ mod archetype_storage_tests {
 
         assert_eq!(new_archetype_idx, archetype2_idx);
         assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type_idx]);
+        let next_idx = storage.next_idxs[archetype1_idx][type_idx];
+        assert_eq!(next_idx, new_archetype_idx);
     }
 
     #[test]
@@ -243,10 +234,10 @@ mod archetype_storage_tests {
         let new_archetype_idx = storage.add_component(archetype4_idx, type1_idx).unwrap();
 
         assert_eq!(new_archetype_idx, archetype3_idx);
-        assert_eq!(
-            storage.sorted_type_idxs(new_archetype_idx),
-            [type1_idx, type2_idx]
-        );
+        let type_idxs = storage.sorted_type_idxs(new_archetype_idx);
+        assert_eq!(type_idxs, [type1_idx, type2_idx]);
+        let next_idx = storage.next_idxs[archetype4_idx][type1_idx];
+        assert_eq!(next_idx, new_archetype_idx);
     }
 
     #[test]
@@ -259,6 +250,7 @@ mod archetype_storage_tests {
         let new_archetype_idx = storage.add_component(archetype2_idx, type_idx);
 
         assert_eq!(new_archetype_idx, Err(ExistingComponentError));
+        assert!(storage.next_idxs[archetype2_idx].is_empty())
     }
 
     #[test]
@@ -274,6 +266,8 @@ mod archetype_storage_tests {
 
         assert_eq!(new_archetype_idx, 3.into());
         assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type2_idx]);
+        let previous_idx = storage.previous_idxs[archetype3_idx][type1_idx];
+        assert_eq!(previous_idx, new_archetype_idx);
     }
 
     #[test]
@@ -290,6 +284,8 @@ mod archetype_storage_tests {
 
         assert_eq!(new_archetype_idx, archetype4_idx);
         assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type2_idx]);
+        let previous_idx = storage.previous_idxs[archetype3_idx][type1_idx];
+        assert_eq!(previous_idx, new_archetype_idx);
     }
 
     #[test]
@@ -306,6 +302,8 @@ mod archetype_storage_tests {
 
         assert_eq!(new_archetype_idx, archetype1_idx);
         assert_eq!(storage.sorted_type_idxs(new_archetype_idx), []);
+        let previous_idx = storage.previous_idxs[archetype4_idx][type2_idx];
+        assert_eq!(previous_idx, new_archetype_idx);
     }
 
     #[test]
@@ -319,6 +317,7 @@ mod archetype_storage_tests {
         let new_archetype_idx = storage.delete_component(archetype2_idx, type2_idx);
 
         assert_eq!(new_archetype_idx, Err(MissingComponentError));
+        assert!(storage.previous_idxs[archetype2_idx].is_empty())
     }
 
     #[test]

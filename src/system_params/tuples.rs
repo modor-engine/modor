@@ -3,6 +3,7 @@ use crate::system_params::internal::{
     QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
 use crate::system_params::tuples::internal::EmptyTupleIter;
+use crate::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::iter;
 use std::iter::{Map, Zip};
@@ -33,7 +34,9 @@ macro_rules! impl_tuple_system_param {
                     component_types: iter::empty()
                         $(.chain(properties.$indexes.component_types))*
                         .collect(),
-                    has_entity_actions: $(properties.$indexes.has_entity_actions ||)* false,
+                    has_entity_actions: utils::fold_or([
+                        $(properties.$indexes.has_entity_actions),*
+                    ]),
                 }
             }
 
@@ -373,11 +376,31 @@ mod empty_tuple_system_param_tests {
     }
 
     #[test]
+    fn retrieve_reversed_query_iter() {
+        let guard_borrow = ();
+        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+
+        let iter = <()>::query_iter(&guard_borrow, &iter_info).rev();
+
+        assert_iter!(iter, [(), (), ()]);
+    }
+
+    #[test]
     fn retrieve_query_iter_mut() {
         let mut guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
         let iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info);
+
+        assert_iter!(iter, [(), (), ()]);
+    }
+
+    #[test]
+    fn retrieve_reversed_query_iter_mut() {
+        let mut guard_borrow = ();
+        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+
+        let iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
         assert_iter!(iter, [(), (), ()]);
     }

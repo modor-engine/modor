@@ -85,7 +85,7 @@ mod entity_storage_tests {
     fn create_entities_after_deletion() {
         let mut storage = EntityStorage::default();
         let entity1_idx = storage.create(EntityLocationInArchetype::new(2.into(), 3.into()));
-        let entity2_idx = storage.create(EntityLocationInArchetype::new(4.into(), 5.into()));
+        storage.create(EntityLocationInArchetype::new(4.into(), 5.into()));
         storage.delete(entity1_idx);
         let location3 = EntityLocationInArchetype::new(6.into(), 7.into());
 
@@ -94,6 +94,6 @@ mod entity_storage_tests {
         assert_eq!(entity3_idx, entity1_idx);
         assert_eq!(storage.location(entity1_idx), Some(location3));
         let entity4_idx = storage.create(EntityLocationInArchetype::new(4.into(), 5.into()));
-        assert_eq!(entity4_idx, entity2_idx.next());
+        assert_eq!(entity4_idx, 2.into());
     }
 }

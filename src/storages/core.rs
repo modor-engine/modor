@@ -156,21 +156,17 @@ impl CoreStorage {
                 continue;
             };
             match entity_state {
-                EntityState::Unchanged(
-                    add_component_type_fns,
-                    add_component_fns,
-                    deleted_component_type_idxs,
-                ) => {
+                EntityState::Unchanged(add_component_fns, deleted_component_type_idxs) => {
                     let mut dst_archetype_idx = location.idx;
-                    for add_type_fn in add_component_type_fns {
-                        dst_archetype_idx = add_type_fn(self, dst_archetype_idx);
+                    for add_fns in &add_component_fns {
+                        dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
                     }
                     for type_idx in deleted_component_type_idxs {
                         dst_archetype_idx = self.delete_component_type(type_idx, dst_archetype_idx);
                     }
                     let dst_location = self.move_entity(location, dst_archetype_idx);
-                    for add_fn in add_component_fns {
-                        add_fn(self, dst_location);
+                    for add_fns in add_component_fns {
+                        (add_fns.add_fn)(self, dst_location);
                     }
                 }
                 EntityState::Deleted => self.delete_entity(entity_idx, location),
@@ -400,8 +396,10 @@ mod core_storage_tests {
         let mut storage = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type_idx, archetype2_idx) = storage.add_component_type::<u32>(archetype1_idx);
-        let location = storage.create_entity(archetype2_idx);
-        storage.add_component(10_u32, type_idx, location);
+        let location1 = storage.create_entity(archetype2_idx);
+        storage.add_component(10_u32, type_idx, location1);
+        let location2 = storage.create_entity(archetype2_idx);
+        storage.add_component(20_u32, type_idx, location2);
         storage
             .entity_actions
             .try_lock()
@@ -411,10 +409,13 @@ mod core_storage_tests {
         storage.apply_system_actions();
 
         assert_eq!(storage.entities.location(0.into()), None);
-        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![]];
+        let location = EntityLocationInArchetype::new(archetype2_idx, 0.into());
+        assert_eq!(storage.entities.location(1.into()), Some(location));
+        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![20_u32]];
         assert_eq!(&*storage.components.read_components::<u32>(), &components);
         assert_eq!(storage.archetypes.entity_idxs(0.into()).to_vec(), ti_vec![]);
-        assert_eq!(storage.archetypes.entity_idxs(1.into()).to_vec(), ti_vec![]);
+        let entity_idxs = storage.archetypes.entity_idxs(1.into()).to_vec();
+        assert_eq!(entity_idxs, ti_vec![1.into()]);
     }
 
     #[test]

@@ -206,10 +206,10 @@ mod world_tests {
         assert_eq!(states.len(), 1);
         let state = states.pop().unwrap();
         assert_eq!(state.0, 0.into());
-        if let EntityState::Unchanged(add_type_fn, mut add_fn, deleted_type_idxs) = state.1 {
-            assert_eq!(add_type_fn.len(), 1);
+        if let EntityState::Unchanged(mut add_fns, deleted_type_idxs) = state.1 {
+            assert_eq!(add_fns.len(), 1);
             assert_eq!(core.components().type_idx(TypeId::of::<u32>()), None);
-            add_type_fn[0](&mut core, ArchetypeStorage::DEFAULT_IDX);
+            (add_fns[0].add_type_fn)(&mut core, ArchetypeStorage::DEFAULT_IDX);
             let component_type_idx = core.components().type_idx(TypeId::of::<u32>());
             assert_eq!(component_type_idx, Some(0.into()));
             let src_location = EntityLocationInArchetype {
@@ -218,8 +218,7 @@ mod world_tests {
             };
             let (_, dst_archetype_idx) = core.add_component_type::<u32>(src_location.idx);
             let dst_location = core.create_entity(dst_archetype_idx);
-            assert_eq!(add_fn.len(), 1);
-            add_fn.pop().unwrap()(&mut core, dst_location);
+            (add_fns.pop().unwrap().add_fn)(&mut core, dst_location);
             let components = core.components().read_components::<u32>();
             assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
             assert_eq!(deleted_type_idxs, &[]);
@@ -243,9 +242,8 @@ mod world_tests {
         assert_eq!(states.len(), 1);
         let state = states.pop().unwrap();
         assert_eq!(state.0, 2.into());
-        if let EntityState::Unchanged(add_type_fn, add_fn, deleted_type_idxs) = state.1 {
-            assert_eq!(add_type_fn.len(), 0);
-            assert_eq!(add_fn.len(), 0);
+        if let EntityState::Unchanged(add_fns, deleted_type_idxs) = state.1 {
+            assert_eq!(add_fns.len(), 0);
             assert_eq!(deleted_type_idxs, &[1.into()]);
         } else {
             panic!("assertion failed: `states[0].1` matches `EntityState::Unchanged(_, _, _)`");

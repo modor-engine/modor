@@ -8,6 +8,118 @@ use crate::SystemParam;
 use std::any::TypeId;
 use std::sync::Mutex;
 
+/// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
+///
+/// The system passed as parameter must be a function or a static closure with no captured
+/// variables, and must implement the [`System`](crate::System) trait.
+///
+/// # System behaviour
+///
+/// There are two types of system:
+/// - iterative system: at least one of the argument types corresponds to an entity part
+/// - non-iterative system: none of the argument types correspond to an entity part
+///
+/// The types that can represent an entity part are:
+/// - `&C` where `C` is a component type
+/// - `&mut C` where `C` is a component type
+/// - `Option<&C>` where `C` is a component type
+/// - `Option<&mut C>` where `C` is a component type
+/// - [`Entity`](crate::Entity)
+/// - a tuple containing at least one of the previous types
+///
+/// An iterative system is run for each entity containing components of type `C` when
+/// `&C` or `&mut C` is the type of an argument. If there is no argument of type `&C` or `&mut C`,
+/// then the system iterates on all entities.
+///
+/// A non-iterative system is only run once per application update.
+///
+/// # Static checks
+///
+/// Compile time checks are applied by this macro to ensure the system will not panic at runtime.
+/// If the system is invalid, the macro returns a compile time error.
+///
+/// The [`SystemWithParams`](crate::SystemWithParams) trait is implemented for all systems.
+///
+/// The [`SystemWithParamMutabilityIssue`](crate::SystemWithParamMutabilityIssue) trait
+/// is implemented in case the system is invalid. If this trait is implemented for the system,
+/// it creates a compile time error due to a conflict with the implemented
+/// [`SystemWithParams`](crate::SystemWithParams) trait.
+///
+/// # Limitation on the number of parameters
+///
+/// A system supports up to 10 parameters.<br>
+/// If more parameters are needed, tuples can be used to group parameters and count as one.
+///
+/// # Examples
+///
+/// Valid systems:
+/// ```rust
+/// # use modor::{system, Entity, World, Query};
+/// #
+/// system!(iterative_system);
+/// system!(other_iterative_system);
+/// system!(non_iterative_system);
+/// system!(iterative_system_again);
+///
+/// fn iterative_system(id: &u32, message: Option<&mut String>) {
+///     // run for each entity with at least a component of type `u32`
+///     // `String` is not used to filter entities as it is optional
+///     if let Some(message) = message {
+///         *message = format!("id: {}", id);
+///     }
+/// }
+///
+/// fn other_iterative_system(entity: Entity<'_>) {
+///     // run for all entities
+///     println!("entity detected with ID {}", entity.id());
+/// }
+///
+/// fn non_iterative_system(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
+///     // run only once per application update
+///     query.iter().for_each(|entity| world.delete_entity(entity.id()));
+/// }
+///
+/// fn iterative_system_again(entity: Entity<'_>, mut world: World<'_>) {
+///     // run for all entities because one of the parameters is of type `Entity`
+///     // equivalent to the system `non_iterative_system`
+///     world.delete_entity(entity.id());
+/// }
+/// ```
+///
+/// Invalid systems:
+/// ```compile_fail
+/// use modor::{system, Entity, World, Query};
+///
+/// system!(invalid_system);
+///
+/// fn invalid_system(name: &String, name_mut: &mut String) {
+///     // invalid as `String` cannot be borrowed both mutably and immutably
+///     *name_mut = format!("[[[ {} ]]]", name);
+/// }
+/// ```
+#[macro_export]
+macro_rules! system {
+    ($system:expr) => {{
+        use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
+
+        #[allow(clippy::semicolon_if_nothing_returned)]
+        ::modor::SystemBuilder::new(
+            ::modor::System::properties(&$system),
+            |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+                let checker = ::modor::SystemParamMutabilityChecker::new($system);
+                let mut system = checker.check_param_mutability().into_inner();
+                let mut guard = ::modor::System::lock(&system, data);
+                let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
+                let iter_info = ::modor::System::iter_info(&system, data, &info);
+                let mut stream = ::modor::System::stream(&system, &mut guard_borrow, &iter_info);
+                while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
+                    ::modor::System::apply(&mut system, item);
+                }
+            },
+        )
+    }};
+}
+
 #[doc(hidden)]
 pub struct SystemInfo {
     pub(crate) filtered_component_types: Vec<TypeId>,
@@ -123,118 +235,6 @@ macro_rules! impl_system {
 impl_system!();
 run_for_tuples_with_idxs!(impl_system);
 
-/// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
-///
-/// The system passed as parameter must be a function or a static closure with no captured
-/// variables, and must implement the [`System`](crate::System) trait.
-///
-/// # System behaviour
-///
-/// There are two types of system:
-/// - iterative system: at least one of the argument types corresponds to an entity part
-/// - non-iterative system: none of the argument types correspond to an entity part
-///
-/// The types that can represent an entity part are:
-/// - `&C` where `C` is a component type
-/// - `&mut C` where `C` is a component type
-/// - `Option<&C>` where `C` is a component type
-/// - `Option<&mut C>` where `C` is a component type
-/// - [`Entity`](crate::Entity)
-/// - a tuple containing at least one of the previous types
-///
-/// An iterative system is run for each entity containing components of type `C` when
-/// `&C` or `&mut C` is the type of an argument. If there is no argument of type `&C` or `&mut C`,
-/// then the system iterates on all entities.
-///
-/// A non-iterative system is only run once per application update.
-///
-/// # Static checks
-///
-/// Compile time checks are applied by this macro to ensure the system will not panic at runtime.
-/// If the system is invalid, the macro returns a compile time error.
-///
-/// The [`SystemWithParams`](crate::SystemWithParams) trait is implemented for all systems.
-///
-/// The [`SystemWithParamMutabilityIssue`](crate::SystemWithParamMutabilityIssue) trait
-/// is implemented in case the system is invalid. If this trait is implemented for the system,
-/// it creates a compile time error due to a conflict with the implemented
-/// [`SystemWithParams`](crate::SystemWithParams) trait.
-///
-/// # Limitation on the number of parameters
-///
-/// A system supports up to 10 parameters.<br>
-/// If more parameters are needed, tuples can be used to group parameters and count as one.
-///
-/// # Examples
-///
-/// Valid systems:
-/// ```rust
-/// # use modor::{system, Entity, World, Query};
-/// #
-/// system!(iterative_system);
-/// system!(other_iterative_system);
-/// system!(non_iterative_system);
-/// system!(iterative_system_again);
-///
-/// fn iterative_system(id: &u32, message: Option<&mut String>) {
-///     // run for each entity with at least a component of type `u32`
-///     // `String` is not used to filter entities as it is optional
-///     if let Some(message) = message {
-///         *message = format!("id: {}", id);
-///     }
-/// }
-///
-/// fn other_iterative_system(entity: Entity<'_>) {
-///     // run for all entities
-///     println!("entity detected with ID {}", entity.id());
-/// }
-///
-/// fn non_iterative_system(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
-///     // run only once per application update
-///     query.iter().for_each(|entity| world.delete_entity(entity.id()));
-/// }
-///
-/// fn iterative_system_again(entity: Entity<'_>, mut world: World<'_>) {
-///     // run for all entities because one of the parameters is of type `Entity`
-///     // equivalent to the system `non_iterative_system`
-///     world.delete_entity(entity.id());
-/// }
-/// ```
-///
-/// Invalid systems:
-/// ```compile_fail
-/// use modor::{system, Entity, World, Query};
-///
-/// system!(invalid_system);
-///
-/// fn invalid_system(name: &String, name_mut: &mut String) {
-///     // invalid as `String` cannot be borrowed both mutably and immutably
-///     *name_mut = format!("[[[ {} ]]]", name);
-/// }
-/// ```
-#[macro_export]
-macro_rules! system {
-    ($system:expr) => {{
-        use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
-
-        #[allow(clippy::semicolon_if_nothing_returned)]
-        ::modor::SystemBuilder::new(
-            ::modor::System::properties(&$system),
-            |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
-                let checker = ::modor::SystemParamMutabilityChecker::new($system);
-                let mut system = checker.check_param_mutability().into_inner();
-                let mut guard = ::modor::System::lock(&system, data);
-                let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
-                let iter_info = ::modor::System::iter_info(&system, data, &info);
-                let mut stream = ::modor::System::stream(&system, &mut guard_borrow, &iter_info);
-                while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
-                    ::modor::System::apply(&mut system, item);
-                }
-            },
-        )
-    }};
-}
-
 pub(crate) mod internal {
     use crate::{SystemData, SystemInfo};
 
@@ -338,13 +338,49 @@ mod system_tests {
         assert_eq!(System::stream_next(&system, &mut stream), None);
     }
 
+    macro_rules! test_apply {
+        ([$($names:ident),*], [$($params:ident),*], [$($values:literal),*]) => {{
+            let mut collector = Vec::new();
+            let mut system = |$($names: &$params),*| collector.push(($(*$names,)*));
+
+            System::apply(&mut system, ($(&$values,)*));
+
+            assert_eq!(collector, vec![($($values,)*)]);
+        }};
+    }
+
     #[test]
     fn apply_params() {
-        let mut collector = vec![];
-        let mut system = |a: &u32, b: &mut i64| collector.push((*a, *b));
-
-        System::apply(&mut system, (&10, &mut 20));
-
-        assert_eq!(collector, vec![(10, 20)]);
+        test_apply!([], [], []);
+        test_apply!([a], [u8], [0]);
+        test_apply!([a, b], [u8, u16], [0, 1]);
+        test_apply!([a, b, c], [u8, u16, u32], [0, 1, 2]);
+        test_apply!([a, b, c, d], [u8, u16, u32, u64], [0, 1, 2, 3]);
+        test_apply!([a, b, c, d, e], [u8, u16, u32, u64, u128], [0, 1, 2, 3, 4]);
+        test_apply!(
+            [a, b, c, d, e, f],
+            [u8, u16, u32, u64, u128, i8],
+            [0, 1, 2, 3, 4, 5]
+        );
+        test_apply!(
+            [a, b, c, d, e, f, g],
+            [u8, u16, u32, u64, u128, i8, i16],
+            [0, 1, 2, 3, 4, 5, 6]
+        );
+        test_apply!(
+            [a, b, c, d, e, f, g, h],
+            [u8, u16, u32, u64, u128, i8, i16, i32],
+            [0, 1, 2, 3, 4, 5, 6, 7]
+        );
+        test_apply!(
+            [a, b, c, d, e, f, g, h, i],
+            [u8, u16, u32, u64, u128, i8, i16, i32, i64],
+            [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        );
+        test_apply!(
+            [a, b, c, d, e, f, g, h, i, j],
+            [u8, u16, u32, u64, u128, i8, i16, i32, i64, i128],
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        );
     }
 }

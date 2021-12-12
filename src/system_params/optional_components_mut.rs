@@ -135,7 +135,6 @@ pub(crate) mod internal {
     use typed_index_collections::TiVec;
 
     pub struct ComponentOptionIterMut<'a, C> {
-        #[allow(clippy::type_complexity)]
         components: Flatten<ArchetypeComponentIter<'a, C>>,
         len: usize,
     }
@@ -342,20 +341,14 @@ mod component_mut_option_system_param_tests {
 
         let mut stream = <Option<&mut u32>>::stream(&mut guard_borrow, &iter_info);
 
-        assert_eq!(
-            <Option<&mut u32>>::stream_next(&mut stream),
-            Some(Some(&mut 20))
-        );
+        let next = <Option<&mut u32>>::stream_next(&mut stream);
+        assert_eq!(next, Some(Some(&mut 20)));
         assert_eq!(<Option<&mut u32>>::stream_next(&mut stream), Some(None));
         assert_eq!(<Option<&mut u32>>::stream_next(&mut stream), Some(None));
-        assert_eq!(
-            <Option<&mut u32>>::stream_next(&mut stream),
-            Some(Some(&mut 40))
-        );
-        assert_eq!(
-            <Option<&mut u32>>::stream_next(&mut stream),
-            Some(Some(&mut 50))
-        );
+        let next = <Option<&mut u32>>::stream_next(&mut stream);
+        assert_eq!(next, Some(Some(&mut 40)));
+        let next = <Option<&mut u32>>::stream_next(&mut stream);
+        assert_eq!(next, Some(Some(&mut 50)));
         assert_eq!(<Option<&mut u32>>::stream_next(&mut stream), None);
     }
 
@@ -367,9 +360,20 @@ mod component_mut_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [Some(&20), None, None, Some(&40), Some(&50)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -380,9 +384,20 @@ mod component_mut_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <Option<&mut u32>>::query_iter(&guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [Some(&50), Some(&40), None, None, Some(&20)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -393,12 +408,20 @@ mod component_mut_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <Option<&mut u32>>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(
-            iter,
-            [Some(&mut 20), None, None, Some(&mut 40), Some(&mut 50)]
-        );
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&mut 20)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(Some(&mut 40)));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&mut 50)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -409,11 +432,19 @@ mod component_mut_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&mut u32>>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <Option<&mut u32>>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
-        assert_iter!(
-            iter,
-            [Some(&mut 50), Some(&mut 40), None, None, Some(&mut 20)]
-        );
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&mut 50)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(Some(&mut 40)));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&mut 20)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 }

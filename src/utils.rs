@@ -14,14 +14,6 @@ macro_rules! idx_type {
         #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
         $visibility struct $name($visibility usize);
 
-        impl $name {
-            #[allow(dead_code)]
-            #[inline]
-            $visibility fn next(self) -> Self {
-                Self(self.0 + 1)
-            }
-        }
-
         impl From<usize> for $name {
             #[inline]
             fn from(idx: usize) -> Self {
@@ -48,6 +40,10 @@ where
     vec.reserve(idx.saturating_sub(vec.len()));
     (vec.len()..=idx).for_each(|_| vec.push(V::default()));
     vec[K::from(idx)] = value;
+}
+
+pub(crate) fn fold_or<const N: usize>(booleans: [bool; N]) -> bool {
+    booleans.into_iter().fold(false, |a, b| a || b)
 }
 
 macro_rules! run_for_tuples_with_idxs {

@@ -3,7 +3,9 @@ vulnerability = "deny"
 unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
-ignore = []
+ignore = [
+    "RUSTSEC-2021-0127" # serde_cbor is used by criterion and has not yet been updated
+]
 
 [bans]
 multiple-versions = "deny"

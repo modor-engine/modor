@@ -134,7 +134,6 @@ pub(crate) mod internal {
     use typed_index_collections::TiVec;
 
     pub struct ComponentOptionIter<'a, C> {
-        #[allow(clippy::type_complexity)]
         components: Flatten<ArchetypeComponentIter<'a, C>>,
         len: usize,
     }
@@ -357,9 +356,20 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [Some(&20), None, None, Some(&40), Some(&50)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -370,9 +380,20 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [Some(&50), Some(&40), None, None, Some(&20)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -383,9 +404,20 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [Some(&20), None, None, Some(&40), Some(&50)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -396,8 +428,19 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [Some(&50), Some(&40), None, None, Some(&20)]);
+        assert_eq!(iter.len(), 5);
+        assert_eq!(iter.next(), Some(Some(&50)));
+        assert_eq!(iter.len(), 4);
+        assert_eq!(iter.next(), Some(Some(&40)));
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(None));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(Some(&20)));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 }

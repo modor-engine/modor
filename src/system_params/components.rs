@@ -302,9 +302,16 @@ mod component_ref_system_param_tests {
         let guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [&20, &40, &50]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(&40));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(&50));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -314,9 +321,16 @@ mod component_ref_system_param_tests {
         let guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [&50, &40, &20]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(&50));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(&40));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -326,9 +340,16 @@ mod component_ref_system_param_tests {
         let mut guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [&20, &40, &50]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(&40));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(&50));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -338,8 +359,15 @@ mod component_ref_system_param_tests {
         let mut guard_borrow = &guard;
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [&50, &40, &20]);
+        assert_eq!(iter.len(), 3);
+        assert_eq!(iter.next(), Some(&50));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.next(), Some(&40));
+        assert_eq!(iter.len(), 1);
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
     }
 }

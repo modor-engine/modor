@@ -37,26 +37,26 @@ impl EntityActionStorage {
         add_fn: AddComponentFn,
     ) {
         self.add_modified_entity(entity_idx);
-        if let Some(EntityState::Unchanged(add_type_fns, add_fns, _)) =
-            self.entity_states.get_mut(entity_idx)
-        {
-            add_type_fns.push(add_type_fn);
-            add_fns.push(add_fn);
+        if let Some(EntityState::Unchanged(add_fns, _)) = self.entity_states.get_mut(entity_idx) {
+            add_fns.push(AddComponentFns {
+                add_type_fn,
+                add_fn,
+            });
         }
     }
 
     pub(crate) fn delete_component(&mut self, entity_idx: EntityIdx, type_idx: ComponentTypeIdx) {
         self.add_modified_entity(entity_idx);
         let state = self.entity_states.get_mut(entity_idx);
-        if let Some(EntityState::Unchanged(_, _, deleted_types)) = state {
+        if let Some(EntityState::Unchanged(_, deleted_types)) = state {
             deleted_types.push(type_idx);
         }
     }
 
     fn add_modified_entity(&mut self, entity_idx: EntityIdx) {
         let state = self.entity_states.get(entity_idx);
-        if let Some(EntityState::Unchanged(add_type_fns, add_fns, deleted_types)) = state {
-            if add_type_fns.is_empty() && add_fns.is_empty() && deleted_types.is_empty() {
+        if let Some(EntityState::Unchanged(add_fns, deleted_types)) = state {
+            if add_fns.is_empty() && deleted_types.is_empty() {
                 self.modified_entity_idxs.push(entity_idx);
             }
         } else if state.is_none() {
@@ -69,17 +69,18 @@ impl EntityActionStorage {
 type DeletedComponentTypeIdx = ComponentTypeIdx;
 
 pub(crate) enum EntityState {
-    Unchanged(
-        Vec<AddComponentTypeFn>,
-        Vec<AddComponentFn>,
-        Vec<DeletedComponentTypeIdx>,
-    ),
+    Unchanged(Vec<AddComponentFns>, Vec<DeletedComponentTypeIdx>),
     Deleted,
+}
+
+pub(crate) struct AddComponentFns {
+    pub(crate) add_type_fn: AddComponentTypeFn,
+    pub(crate) add_fn: AddComponentFn,
 }
 
 impl Default for EntityState {
     fn default() -> Self {
-        Self::Unchanged(vec![], vec![], vec![])
+        Self::Unchanged(vec![], vec![])
     }
 }
 
@@ -118,9 +119,8 @@ mod entity_action_storage_tests {
         assert_eq!(states[0].0, 3.into());
         assert!(matches!(states[0].1, EntityState::Deleted));
         assert_eq!(states[1].0, 1.into());
-        if let EntityState::Unchanged(add_type_fn, add_fn, deleted_type_idxs) = &states[1].1 {
-            assert_eq!(add_type_fn.len(), 2);
-            assert_eq!(add_fn.len(), 2);
+        if let EntityState::Unchanged(add_fns, deleted_type_idxs) = &states[1].1 {
+            assert_eq!(add_fns.len(), 2);
             assert_eq!(deleted_type_idxs.len(), 0);
         } else {
             panic!("assertion failed: `states[1].1` matches `EntityState::Unchanged(_, _, _)`");
@@ -142,9 +142,8 @@ mod entity_action_storage_tests {
         assert_eq!(states.len(), 2);
         assert_eq!(states[0].0, 3.into());
         assert!(matches!(states[0].1, EntityState::Deleted));
-        if let EntityState::Unchanged(add_type_fn, add_fn, deleted_type_idxs) = &states[1].1 {
-            assert_eq!(add_type_fn.len(), 1);
-            assert_eq!(add_fn.len(), 1);
+        if let EntityState::Unchanged(add_fns, deleted_type_idxs) = &states[1].1 {
+            assert_eq!(add_fns.len(), 1);
             assert_eq!(deleted_type_idxs, &[1.into(), 2.into()]);
         } else {
             panic!("assertion failed: `states[1].1` matches `EntityState::Unchanged(_, _, _)`");

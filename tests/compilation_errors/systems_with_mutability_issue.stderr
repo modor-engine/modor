@@ -9,11 +9,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -27,11 +27,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -45,11 +45,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -63,11 +63,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -81,11 +81,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -99,11 +99,11 @@ error[E0034]: multiple applicable items in scope
   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
   |
-22|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
   |
-22|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -117,11 +117,11 @@ error[E0034]: multiple applicable items in scope
    = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
    |
-225|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
    |
-225|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -135,11 +135,11 @@ error[E0034]: multiple applicable items in scope
    = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
    |
-225|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
    |
-225|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -153,11 +153,11 @@ error[E0034]: multiple applicable items in scope
    = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
    |
-225|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
    |
-225|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 error[E0034]: multiple applicable items in scope
@@ -171,9 +171,9 @@ error[E0034]: multiple applicable items in scope
    = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: disambiguate the associated function for candidate #1
    |
-225|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 help: disambiguate the associated function for candidate #2
    |
-225|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
    |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
