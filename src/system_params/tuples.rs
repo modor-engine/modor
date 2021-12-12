@@ -34,7 +34,7 @@ macro_rules! impl_tuple_system_param {
                     component_types: iter::empty()
                         $(.chain(properties.$indexes.component_types))*
                         .collect(),
-                    has_entity_actions: utils::fold_or([
+                    has_entity_actions: utils::any([
                         $(properties.$indexes.has_entity_actions),*
                     ]),
                 }

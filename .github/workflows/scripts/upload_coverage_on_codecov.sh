@@ -1,5 +1,14 @@
 #!/bin/bash
 set -xeu
 
-grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing -o ./lcov.info --excl-start "#\[cfg\(test\)\]" --keep-only **/src/**/*
-bash <(curl -s https://codecov.io/bash) -f lcov.info || echo 'Codecov failed to upload'
+grcov . \
+    --binary-path ./target/debug/ \
+    --source-dir . \
+    --output-type lcov \
+    --branch \
+    --ignore-not-existing \
+    --output-path ./lcov.info \
+    --excl-line "#\[" \
+    --excl-start "#\[cfg\(test\)\]" \
+    --keep-only "**/src/**/*"
+bash <(curl -s https://codecov.io/bash) -f lcov.info

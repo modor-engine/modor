@@ -42,8 +42,8 @@ where
     vec[K::from(idx)] = value;
 }
 
-pub(crate) fn fold_or<const N: usize>(booleans: [bool; N]) -> bool {
-    booleans.into_iter().fold(false, |a, b| a || b)
+pub(crate) fn any<const N: usize>(booleans: [bool; N]) -> bool {
+    booleans.into_iter().any(|b| b)
 }
 
 macro_rules! run_for_tuples_with_idxs {
