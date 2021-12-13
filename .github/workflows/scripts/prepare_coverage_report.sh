@@ -10,4 +10,4 @@ grcov . \
     --output-path ./lcov.info \
     --excl-line "#\[" \
     --excl-start "#\[cfg\(test\)\]" \
-    --keep-only "**/src/**/*"
+    --keep-only "src/**/*"
