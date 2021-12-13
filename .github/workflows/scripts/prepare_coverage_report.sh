@@ -11,4 +11,3 @@ grcov . \
     --excl-line "#\[" \
     --excl-start "#\[cfg\(test\)\]" \
     --keep-only "**/src/**/*"
-bash <(curl -s https://codecov.io/bash) -f lcov.info

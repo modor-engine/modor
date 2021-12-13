@@ -63,8 +63,14 @@ jobs:
           path: coverage
           if-no-files-found: error
           retention-days: 1
+      - name: Prepare coverage report for Codecov
+        run: bash .github/workflows/scripts/prepare_coverage_report.sh
       - name: Upload coverage report on Codecov
-        run: bash .github/workflows/scripts/upload_coverage_on_codecov.sh
+        uses: codecov/codecov-action@v2
+        with:
+          files: ./lcov.info
+          fail_ci_if_error: true
+          verbose: true
       - name: Check coverage threshold
         run: bash .github/workflows/scripts/check_coverage.sh
 
