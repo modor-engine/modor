@@ -1,5 +1,7 @@
 target
+coverage
 **/*.rs.bk
 Cargo.lock
 .idea
 *.iml
+default.profraw

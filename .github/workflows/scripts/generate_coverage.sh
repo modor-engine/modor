@@ -11,6 +11,6 @@ grcov . \
     --branch \
     --ignore-not-existing \
     --output-path "$output_path" \
-    --excl-line "#\[" \
-    --excl-start "#\[cfg\(test\)\]" \
+    --excl-line '(#\[|^[^ ]+!\()' \
+    --excl-start '#\[cfg\(test\)\]' \
     --keep-only "src/**/*"
