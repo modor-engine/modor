@@ -113,7 +113,7 @@ jobs:
 
   lint-rust:
     runs-on: ubuntu-18.04
-#    needs: test
+    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v2
