@@ -34,9 +34,14 @@ jobs:
           profile: minimal
           override: true
       - name: Build
-        run: cargo build --all-targets
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets
       - name: Test
-        run: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
 
   check-coverage:
     runs-on: ubuntu-18.04
@@ -54,9 +59,15 @@ jobs:
           components: llvm-tools-preview
           override: true
       - name: Install grcov
-        run: cargo install grcov --debug
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: grcov --debug
       - name: Run unit tests
-        run: cargo test --lib
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib
         env:
           RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code
       - name: Generate HTML coverage report
@@ -102,7 +113,7 @@ jobs:
 
   lint-rust:
     runs-on: ubuntu-18.04
-    needs: test
+#    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -114,9 +125,15 @@ jobs:
           components: rustfmt, clippy
           override: true
       - name: Run clippy
-        run: cargo clippy --all-targets -- -D warnings $(cat .lints | cut -f1 -d"#" | tr '\n' ' ')
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets -- -D warnings $(cat .lints | cut -f1 -d"#" | tr '\n' ' ')
       - name: Run rustfmt
-        run: cargo fmt -- --check
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
 
