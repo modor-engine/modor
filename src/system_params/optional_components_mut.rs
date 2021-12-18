@@ -251,11 +251,10 @@ pub(crate) mod internal {
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
             self.entity_positions.next().map(|_| {
-                if let Some(components) = self.components.as_mut() {
-                    Some(components.next()?)
-                } else {
-                    None
-                }
+                self.components
+                    .as_mut()
+                    .expect("internal error: missing component mut during iteration")
+                    .next()
             })
         }
     }
@@ -264,11 +263,10 @@ pub(crate) mod internal {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
             self.entity_positions.next().map(|_| {
-                if let Some(components) = self.components.as_mut() {
-                    Some(components.next_back()?)
-                } else {
-                    None
-                }
+                self.components
+                    .as_mut()
+                    .expect("internal error: missing component mut during reversed iteration")
+                    .next_back()
             })
         }
     }

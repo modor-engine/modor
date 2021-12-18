@@ -124,7 +124,7 @@ jobs:
           components: rustfmt, clippy
           override: true
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' '))"
+        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
