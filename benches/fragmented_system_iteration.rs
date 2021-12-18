@@ -1,7 +1,7 @@
 //! Tests performance of archetype iteration in systems.
 
 use criterion::{criterion_main, Criterion};
-use modor::*;
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
 
 struct Data(f32);
 

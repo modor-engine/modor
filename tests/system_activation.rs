@@ -1,5 +1,7 @@
-use modor::testing::*;
-use modor::*;
+use modor::testing::TestApp;
+use modor::{
+    system, Built, Entity, EntityBuilder, EntityMainComponent, EntityRunner, Query, World,
+};
 
 struct SignalCounter(usize);
 

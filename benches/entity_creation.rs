@@ -1,7 +1,7 @@
 //! Tests performance of entity creation.
 
 use criterion::{criterion_main, Criterion};
-use modor::*;
+use modor::{App, Built, EntityBuilder, EntityMainComponent};
 
 struct Vec3(f32, f32, f32);
 

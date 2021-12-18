@@ -1,5 +1,5 @@
-use modor::testing::*;
-use modor::*;
+use modor::testing::TestApp;
+use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, EntityRunner, Query, With};
 
 #[derive(PartialEq)]
 struct Position {

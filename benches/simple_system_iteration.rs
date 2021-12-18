@@ -1,7 +1,7 @@
 //! Tests performance of direct component iteration in systems.
 
 use criterion::{criterion_main, Criterion};
-use modor::*;
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
 
 struct Vec3(f32, f32, f32);
 

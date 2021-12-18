@@ -1,5 +1,6 @@
 #![allow(clippy::trivially_copy_pass_by_ref)]
-use modor::*;
+
+use modor::{system, Query, World};
 use trybuild::TestCases;
 
 fn no_param() {}

@@ -1,5 +1,5 @@
-use modor::testing::*;
-use modor::*;
+use modor::testing::TestApp;
+use modor::{App, Built, EntityBuilder, EntityMainComponent};
 
 #[derive(PartialEq, Debug)]
 struct Number(u32);

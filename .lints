@@ -30,9 +30,7 @@
 -W clippy::verbose_file_reads
 -W clippy::wildcard_enum_match_arm
 -A clippy::missing_const_for_fn # not necessary each time it's possible
--A clippy::module_name_repetitions # structure names are rarely used with module names
 -A clippy::multiple_crate_versions # cannot be easily fixed
 -A clippy::must_use_candidate # not accurate
 -A clippy::needless_pass_by_value # not accurate
 -A clippy::redundant_pub_crate # not working well for now
--A clippy::wildcard_imports # more convenient for tests

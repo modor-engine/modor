@@ -1,7 +1,7 @@
 //! Tests performance of parallel execution of systems.
 
 use criterion::{criterion_main, Criterion};
-use modor::*;
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
 
 struct A(f32);
 struct B(f32);
