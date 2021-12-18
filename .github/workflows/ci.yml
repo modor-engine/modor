@@ -18,6 +18,7 @@ env:
   COV_THRESHOLD: 100.0
   MUTAGEN_THRESHOLD: 100.0
   CRATE_PATHS: .
+  CODECOV_UPLOAD: true
 
 jobs:
 
@@ -54,18 +55,26 @@ jobs:
           override: true
       - name: Install grcov
         run: cargo install grcov --debug
-      - name: Run coverage
-        run: bash .github/workflows/scripts/run_coverage.sh
+      - name: Run unit tests
+        run: cargo test --lib
+        env:
+          RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
+      - name: Generate HTML coverage report
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
         uses: actions/upload-artifact@v2
         with:
           name: coverage
           path: coverage
           if-no-files-found: error
-          retention-days: 1
-      - name: Prepare coverage report for Codecov
-        run: bash .github/workflows/scripts/prepare_coverage_report.sh
+          retention-days: 7
+      - name: Generate LCOV coverage report
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        run: bash .github/workflows/scripts/generate_coverage.sh lcov ./lcov.info
       - name: Upload coverage report on Codecov
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
         uses: codecov/codecov-action@v2
         with:
           files: ./lcov.info

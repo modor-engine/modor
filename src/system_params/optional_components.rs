@@ -237,13 +237,8 @@ pub(crate) mod internal {
 
     impl<'a, C> ComponentIter<'a, C> {
         fn new(components: Option<Iter<'a, C>>, entity_count: usize) -> Self {
-            let component_count = components.as_ref().map_or(0, Iter::len);
             Self {
-                components: if component_count > 0 {
-                    components
-                } else {
-                    None
-                },
+                components,
                 entity_positions: 0..entity_count,
             }
         }
@@ -254,22 +249,26 @@ pub(crate) mod internal {
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            if let Some(components) = self.components.as_mut() {
-                Some(Some(components.next()?))
-            } else {
-                self.entity_positions.next().map(|_| None)
-            }
+            self.entity_positions.next().map(|_| {
+                if let Some(components) = self.components.as_mut() {
+                    Some(components.next()?)
+                } else {
+                    None
+                }
+            })
         }
     }
 
     impl<'a, C> DoubleEndedIterator for ComponentIter<'a, C> {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
-            if let Some(components) = self.components.as_mut() {
-                Some(Some(components.next_back()?))
-            } else {
-                self.entity_positions.next().map(|_| None)
-            }
+            self.entity_positions.next().map(|_| {
+                if let Some(components) = self.components.as_mut() {
+                    Some(components.next_back()?)
+                } else {
+                    None
+                }
+            })
         }
     }
 }

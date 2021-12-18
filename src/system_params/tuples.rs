@@ -3,7 +3,6 @@ use crate::system_params::internal::{
     QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
 use crate::system_params::tuples::internal::EmptyTupleIter;
-use crate::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::iter;
 use std::iter::{Map, Zip};
@@ -34,9 +33,9 @@ macro_rules! impl_tuple_system_param {
                     component_types: iter::empty()
                         $(.chain(properties.$indexes.component_types))*
                         .collect(),
-                    has_entity_actions: utils::any([
+                    has_entity_actions: [
                         $(properties.$indexes.has_entity_actions),*
-                    ]),
+                    ].into_iter().any(|b| b),
                 }
             }
 

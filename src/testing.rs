@@ -114,12 +114,11 @@ impl EntityAssertion<'_> {
     ///
     /// This will panic if the entity does not exist.
     pub fn exists(self) -> Self {
-        if self.location().is_none() {
-            panic!(
-                "assertion failed: `assert_entity({}).exists()`",
-                usize::from(self.entity_idx)
-            );
-        }
+        assert!(
+            self.location().is_some(),
+            "assertion failed: assert_entity({}).exists()",
+            usize::from(self.entity_idx)
+        );
         self
     }
 
@@ -129,12 +128,11 @@ impl EntityAssertion<'_> {
     ///
     /// This will panic if the entity exists.
     pub fn does_not_exist(self) {
-        if self.location().is_some() {
-            panic!(
-                "assertion failed: `assert_entity({}).does_not_exist()`",
-                usize::from(self.entity_idx)
-            );
-        }
+        assert!(
+            self.location().is_none(),
+            "assertion failed: assert_entity({}).does_not_exist()",
+            usize::from(self.entity_idx)
+        );
     }
 
     /// Asserts the entity has a component of type `C` and runs `f` on this component.
@@ -149,18 +147,17 @@ impl EntityAssertion<'_> {
     {
         let location = self.location().unwrap_or_else(|| {
             panic!(
-                "assertion failed: `assert_entity({}).has<{}, _>(...)` (entity does not exist)",
+                "assertion failed: assert_entity({}).has<{}, _>(...) (entity does not exist)",
                 usize::from(self.entity_idx),
                 any::type_name::<C>()
             )
         });
-        if self.test_component_exists::<C, F>(location, f).is_none() {
-            panic!(
-                "assertion failed: `assert_entity({}).has<{}, _>(...)` (missing component in entity)",
-                usize::from(self.entity_idx),
-                any::type_name::<C>()
-            )
-        }
+        assert!(
+            self.test_component_exists::<C, F>(location, f).is_some(),
+            "assertion failed: assert_entity({}).has<{}, _>(...) (missing component in entity)",
+            usize::from(self.entity_idx),
+            any::type_name::<C>()
+        );
         self
     }
 
@@ -175,21 +172,18 @@ impl EntityAssertion<'_> {
     {
         let location = self.location().unwrap_or_else(|| {
             panic!(
-                "assertion failed: `assert_entity({}).has_not<{}>()` (entity does not exist)",
+                "assertion failed: assert_entity({}).has_not<{}>() (entity does not exist)",
                 usize::from(self.entity_idx),
                 any::type_name::<C>()
             )
         });
-        if self
-            .test_component_exists::<C, _>(location, |_| ())
-            .is_some()
-        {
-            panic!(
-                "assertion failed: `assert_entity({}).has_not<{}>()` (existing component in entity)",
-                usize::from(self.entity_idx),
-                any::type_name::<C>()
-            )
-        }
+        assert!(
+            self.test_component_exists::<C, _>(location, |_| ())
+                .is_none(),
+            "assertion failed: assert_entity({}).has_not<{}>() (existing component in entity)",
+            usize::from(self.entity_idx),
+            any::type_name::<C>()
+        );
         self
     }
 
@@ -291,7 +285,7 @@ mod entity_assertion_tests {
     assert_impl_all!(TestApp: Unpin);
 
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).exists()")]
+    #[should_panic(expected = "assertion failed: assert_entity(0).exists()")]
     fn assert_entity_exists_when_missing() {
         let core = CoreStorage::default();
         let assertion = EntityAssertion {
@@ -316,7 +310,7 @@ mod entity_assertion_tests {
         assert_eq!(new_assertion.entity_idx, 0.into());
     }
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).does_not_exist()")]
+    #[should_panic(expected = "assertion failed: assert_entity(0).does_not_exist()")]
     fn assert_entity_does_not_exist_when_existing() {
         let mut core = CoreStorage::default();
         core.create_entity(ArchetypeStorage::DEFAULT_IDX);
@@ -340,7 +334,7 @@ mod entity_assertion_tests {
     }
 
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).has<u32, _>(...)` \
+    #[should_panic(expected = "assertion failed: assert_entity(0).has<u32, _>(...) \
     (entity does not exist)")]
     fn assert_entity_has_component_when_entity_missing() {
         let core = CoreStorage::default();
@@ -353,7 +347,7 @@ mod entity_assertion_tests {
     }
 
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).has<u32, _>(...)` \
+    #[should_panic(expected = "assertion failed: assert_entity(0).has<u32, _>(...) \
     (missing component in entity)")]
     fn assert_entity_has_component_when_component_missing() {
         let mut core = CoreStorage::default();
@@ -400,7 +394,7 @@ mod entity_assertion_tests {
     }
 
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).has_not<u32>()` \
+    #[should_panic(expected = "assertion failed: assert_entity(0).has_not<u32>() \
     (entity does not exist)")]
     fn assert_entity_has_not_component_when_entity_missing() {
         let core = CoreStorage::default();
@@ -413,7 +407,7 @@ mod entity_assertion_tests {
     }
 
     #[test]
-    #[should_panic(expected = "assertion failed: `assert_entity(0).has_not<u32>()` \
+    #[should_panic(expected = "assertion failed: assert_entity(0).has_not<u32>() \
     (existing component in entity)")]
     fn assert_entity_has_not_component_when_component_existing() {
         let mut core = CoreStorage::default();

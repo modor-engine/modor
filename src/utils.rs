@@ -42,10 +42,6 @@ where
     vec[K::from(idx)] = value;
 }
 
-pub(crate) fn any<const N: usize>(booleans: [bool; N]) -> bool {
-    booleans.into_iter().any(|b| b)
-}
-
 macro_rules! run_for_tuples_with_idxs {
     ($macro:ident) => {
         run_for_tuples_with_idxs!(
@@ -94,5 +90,28 @@ mod test_utils {
         ($actual_iter:expr, $expected_slice:expr) => {{
             assert_eq!($actual_iter.collect::<Vec<_>>(), $expected_slice);
         }};
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_missing_value_in_ti_vec() {
+        let mut vec = TiVec::<usize, usize>::new();
+
+        set_value(&mut vec, 2, 10);
+
+        assert_eq!(vec, ti_vec![0, 0, 10]);
+    }
+
+    #[test]
+    fn set_existing_value_in_ti_vec() {
+        let mut vec: TiVec<usize, usize> = ti_vec![0, 0, 10];
+
+        set_value(&mut vec, 1, 20);
+
+        assert_eq!(vec, ti_vec![0, 20, 10]);
     }
 }

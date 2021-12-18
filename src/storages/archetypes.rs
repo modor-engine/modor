@@ -250,7 +250,7 @@ mod archetype_storage_tests {
         let new_archetype_idx = storage.add_component(archetype2_idx, type_idx);
 
         assert_eq!(new_archetype_idx, Err(ExistingComponentError));
-        assert!(storage.next_idxs[archetype2_idx].is_empty())
+        assert!(storage.next_idxs[archetype2_idx].is_empty());
     }
 
     #[test]
@@ -317,7 +317,7 @@ mod archetype_storage_tests {
         let new_archetype_idx = storage.delete_component(archetype2_idx, type2_idx);
 
         assert_eq!(new_archetype_idx, Err(MissingComponentError));
-        assert!(storage.previous_idxs[archetype2_idx].is_empty())
+        assert!(storage.previous_idxs[archetype2_idx].is_empty());
     }
 
     #[test]
