@@ -37,14 +37,9 @@ jobs:
           profile: minimal
           override: true
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   test-windows:
     runs-on: windows-2019
@@ -59,14 +54,9 @@ jobs:
           profile: minimal
           override: true
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   test-macos:
     runs-on: macos-10.15
@@ -81,14 +71,9 @@ jobs:
           profile: minimal
           override: true
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   check-publication:
     environment: Deployment
