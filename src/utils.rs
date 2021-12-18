@@ -37,7 +37,6 @@ where
     V: Default,
 {
     let idx = usize::from(idx);
-    vec.reserve(idx.saturating_sub(vec.len()));
     (vec.len()..=idx).for_each(|_| vec.push(V::default()));
     vec[K::from(idx)] = value;
 }

@@ -4,11 +4,14 @@ unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
 ignore = [
-    "RUSTSEC-2021-0127" # serde_cbor is used by criterion and has not yet been updated
+    "RUSTSEC-2021-0127" # serde_cbor is used by criterion
 ]
 
 [bans]
 multiple-versions = "deny"
+skip = [
+    { name = "itoa", version = "0.4" }, # criterion uses an older version of itoa
+]
 
 [sources]
 unknown-registry = "deny"

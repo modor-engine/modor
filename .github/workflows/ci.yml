@@ -58,7 +58,7 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib
         env:
-          RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
+          RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code
       - name: Generate HTML coverage report
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
         run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
