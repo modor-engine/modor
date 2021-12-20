@@ -7,6 +7,7 @@
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
 [![Mutation tested with mutagen](https://img.shields.io/badge/mutation%20tested-mutagen-blue.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Lines of code](https://tokei.rs/b1/github/modor-engine/modor?category=code)](https://github.com/modor-engine/modor)
+[![Safe Rust](https://img.shields.io/badge/safe%20rust-%E2%9C%94%EF%B8%8F-green.svg)](https://github.com/modor-engine/modor/search?q=unsafe)
 
 Core library of Modor
 

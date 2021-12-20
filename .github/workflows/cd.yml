@@ -91,7 +91,6 @@ jobs:
           command: test
 
   check-publication:
-    environment: Deployment
     runs-on: ubuntu-18.04
     needs: check-version
     steps:
@@ -105,8 +104,6 @@ jobs:
           override: true
       - name: Check publication
         run: bash .github/workflows/scripts/check_publication.sh
-        env:
-          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
   publish:
     environment: Deployment
@@ -126,7 +123,7 @@ jobs:
           profile: minimal
           override: true
       - name: Publish
-        run: bash .github/workflows/scripts/run_publication.sh
+        run: bash .github/workflows/scripts/publish.sh
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
