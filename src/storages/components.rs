@@ -8,7 +8,7 @@ use typed_index_collections::TiVec;
 #[derive(Default)]
 pub(crate) struct ComponentStorage {
     idxs: FxHashMap<TypeId, ComponentTypeIdx>,
-    are_entity_main_components: TiVec<ComponentTypeIdx, bool>,
+    are_entity_types: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     component_count: TiVec<ComponentTypeIdx, usize>,
 }
@@ -22,13 +22,13 @@ impl ComponentStorage {
         component_types.iter().map(|&t| self.type_idx(t)).collect()
     }
 
-    pub(crate) fn is_entity_main_component_type<C>(&self) -> bool
+    pub(crate) fn is_entity_type<C>(&self) -> bool
     where
         C: Any,
     {
         self.idxs
             .get(&TypeId::of::<C>())
-            .map_or(false, |&i| self.are_entity_main_components[i])
+            .map_or(false, |&i| self.are_entity_types[i])
     }
 
     pub(crate) fn count(&self, component_type: TypeId) -> usize {
@@ -75,18 +75,18 @@ impl ComponentStorage {
         C: Any + Sync + Send,
     {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
-            self.are_entity_main_components.push(false);
+            self.are_entity_types.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
             self.archetypes.push_and_get_key(Box::new(archetype_lock))
         })
     }
 
-    pub(super) fn add_entity_main_component_type<C>(&mut self)
+    pub(super) fn add_entity_type<C>(&mut self)
     where
         C: Any + Sync + Send,
     {
         let type_idx = self.type_idx_or_create::<C>();
-        self.are_entity_main_components[type_idx] = true;
+        self.are_entity_types[type_idx] = true;
     }
 
     pub(super) fn add<C>(
@@ -218,19 +218,19 @@ mod component_storage_tests {
     }
 
     #[test]
-    fn add_entity_main_component_types() {
+    fn add_entity_types() {
         let mut storage = ComponentStorage::default();
         storage.type_idx_or_create::<u32>();
         storage.type_idx_or_create::<i8>();
 
-        storage.add_entity_main_component_type::<u32>();
-        storage.add_entity_main_component_type::<i64>();
+        storage.add_entity_type::<u32>();
+        storage.add_entity_type::<i64>();
 
         assert_eq!(storage.type_idx(TypeId::of::<i64>()), Some(2.into()));
-        assert!(storage.is_entity_main_component_type::<u32>());
-        assert!(storage.is_entity_main_component_type::<i64>());
-        assert!(!storage.is_entity_main_component_type::<i8>());
-        assert!(!storage.is_entity_main_component_type::<u8>());
+        assert!(storage.is_entity_type::<u32>());
+        assert!(storage.is_entity_type::<i64>());
+        assert!(!storage.is_entity_type::<i8>());
+        assert!(!storage.is_entity_type::<u8>());
     }
 
     #[test]

@@ -174,8 +174,8 @@ where
     pub fn with_self(self, entity: E) -> Built {
         let builder = self.with(entity);
         let components = builder.core.components();
-        if !components.is_entity_main_component_type::<E>() {
-            builder.core.add_entity_main_component_type::<E>();
+        if !components.is_entity_type::<E>() {
+            builder.core.add_entity_type::<E>();
             E::on_update(&mut EntityRunner {
                 core: builder.core,
                 phantom: PhantomData,
@@ -385,7 +385,7 @@ mod entity_builder_tests {
     }
 
     #[test]
-    fn add_main_component() {
+    fn add_entity_component() {
         let mut core = CoreStorage::default();
         let builder = create_builder(&mut core, None)
             .with(10_i64)
@@ -402,7 +402,7 @@ mod entity_builder_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![ChildEntity(30)]];
         assert_eq!(&*components, &expected_components);
         let components = core.components();
-        assert!(components.is_entity_main_component_type::<ChildEntity>());
+        assert!(components.is_entity_type::<ChildEntity>());
     }
 
     fn create_builder(

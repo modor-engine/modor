@@ -39,11 +39,11 @@ impl CoreStorage {
         self.systems.set_thread_count(count);
     }
 
-    pub(crate) fn add_entity_main_component_type<C>(&mut self)
+    pub(crate) fn add_entity_type<C>(&mut self)
     where
         C: Any + Sync + Send,
     {
-        self.components.add_entity_main_component_type::<C>();
+        self.components.add_entity_type::<C>();
     }
 
     pub(crate) fn add_component_type<C>(
@@ -115,7 +115,7 @@ impl CoreStorage {
     pub(crate) fn add_system(
         &mut self,
         wrapper: SystemWrapper,
-        entity_main_component_type: TypeId,
+        entity_type: TypeId,
         properties: SystemProperties,
     ) {
         let component_types = properties
@@ -130,8 +130,7 @@ impl CoreStorage {
             component_types,
             has_entity_actions: properties.has_entity_actions,
         };
-        self.systems
-            .add(wrapper, entity_main_component_type, properties);
+        self.systems.add(wrapper, entity_type, properties);
     }
 
     pub(crate) fn update(&mut self) {
@@ -243,12 +242,12 @@ mod core_storage_tests {
     }
 
     #[test]
-    fn add_entity_main_component_type() {
+    fn add_entity_type() {
         let mut storage = CoreStorage::default();
 
-        storage.add_entity_main_component_type::<u32>();
+        storage.add_entity_type::<u32>();
 
-        assert!(storage.components.is_entity_main_component_type::<u32>());
+        assert!(storage.components.is_entity_type::<u32>());
     }
 
     #[test]

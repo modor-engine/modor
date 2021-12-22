@@ -12,7 +12,7 @@ pub(crate) struct SystemStorage {
     wrappers: TiVec<SystemIdx, Option<SystemWrapper>>,
     component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
     have_entity_actions: TiVec<SystemIdx, bool>,
-    entity_main_component_types: TiVec<SystemIdx, TypeId>,
+    entity_types: TiVec<SystemIdx, TypeId>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
 }
@@ -33,7 +33,7 @@ impl SystemStorage {
     pub(super) fn add(
         &mut self,
         wrapper: SystemWrapper,
-        entity_main_component_type: TypeId,
+        entity_type: TypeId,
         properties: FullSystemProperties,
     ) -> SystemIdx {
         let states = self
@@ -46,8 +46,7 @@ impl SystemStorage {
         self.wrappers.push(Some(wrapper));
         self.component_types.push(properties.component_types);
         self.have_entity_actions.push(properties.has_entity_actions);
-        self.entity_main_component_types
-            .push_and_get_key(entity_main_component_type)
+        self.entity_types.push_and_get_key(entity_type)
     }
 
     pub(super) fn run(&mut self, data: &SystemData<'_>) {
@@ -61,12 +60,7 @@ impl SystemStorage {
 
     fn run_sequentially(&mut self, data: &SystemData<'_>) {
         for system_idx in Self::all_idxs(&self.wrappers) {
-            Self::run_system(
-                system_idx,
-                &self.entity_main_component_types,
-                &self.wrappers,
-                data,
-            );
+            Self::run_system(system_idx, &self.entity_types, &self.wrappers, data);
         }
     }
 
@@ -87,7 +81,7 @@ impl SystemStorage {
                         data,
                         &self.states,
                         system_properties,
-                        &self.entity_main_component_types,
+                        &self.entity_types,
                         &self.wrappers,
                     );
                 });
@@ -96,7 +90,7 @@ impl SystemStorage {
                 data,
                 &self.states,
                 system_properties,
-                &self.entity_main_component_types,
+                &self.entity_types,
                 &self.wrappers,
             );
         });
@@ -106,7 +100,7 @@ impl SystemStorage {
         data: &SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
         system_properties: SystemProperties<'_>,
-        entity_main_component_types: &TiSlice<SystemIdx, TypeId>,
+        entity_types: &TiSlice<SystemIdx, TypeId>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
     ) {
         let mut previous_system_idx = None;
@@ -114,7 +108,7 @@ impl SystemStorage {
             Self::lock_next_system(states, previous_system_idx, system_properties)
         {
             if let Some(system_idx) = system_idx {
-                Self::run_system(system_idx, entity_main_component_types, wrappers, data);
+                Self::run_system(system_idx, entity_types, wrappers, data);
             }
             previous_system_idx = system_idx;
         }
@@ -133,16 +127,16 @@ impl SystemStorage {
 
     fn run_system(
         system_idx: SystemIdx,
-        entity_main_component_types: &TiSlice<SystemIdx, TypeId>,
+        entity_types: &TiSlice<SystemIdx, TypeId>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
         data: &SystemData<'_>,
     ) {
-        let main_component_type = entity_main_component_types[system_idx];
-        if data.components.count(main_component_type) == 0 {
+        let entity_type = entity_types[system_idx];
+        if data.components.count(entity_type) == 0 {
             return;
         }
         let info = SystemInfo {
-            filtered_component_types: vec![main_component_type],
+            filtered_component_types: vec![entity_type],
         };
         let wrapper = wrappers[system_idx].expect("internal error: call missing system");
         wrapper(data, info);
@@ -229,11 +223,11 @@ mod system_storage_tests {
     fn add_system() {
         let mut storage = SystemStorage::default();
         let wrapper: SystemWrapper = |_, _| ();
-        let entity_main_component_type = TypeId::of::<u32>();
+        let entity_type = TypeId::of::<u32>();
         let component_type_access = create_type_access(1.into(), Access::Read);
         let properties = create_properties(vec![component_type_access], true);
 
-        let system_idx = storage.add(wrapper, entity_main_component_type, properties);
+        let system_idx = storage.add(wrapper, entity_type, properties);
 
         assert_eq!(system_idx, 0.into());
         let component_state = storage.states.get_mut().unwrap();
@@ -243,10 +237,7 @@ mod system_storage_tests {
         assert_eq!(storage.component_types, component_types);
         assert_eq!(storage.have_entity_actions, ti_vec![true]);
         let filtered_component_types = ti_vec![TypeId::of::<u32>()];
-        assert_eq!(
-            storage.entity_main_component_types,
-            filtered_component_types
-        );
+        assert_eq!(storage.entity_types, filtered_component_types);
     }
 
     #[test]
@@ -255,10 +246,10 @@ mod system_storage_tests {
         storage.set_thread_count(1);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.try_lock().unwrap().delete_entity(2.into());
-        let entity_main_component_type = TypeId::of::<u32>();
+        let entity_type = TypeId::of::<u32>();
         let component_type_access = create_type_access(1.into(), Access::Read);
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, entity_type, properties);
         let data = SystemData {
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
@@ -277,16 +268,16 @@ mod system_storage_tests {
         storage.set_thread_count(2);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(2.into());
-        let entity_main_component_type = TypeId::of::<u32>();
+        let entity_type = TypeId::of::<u32>();
         let component_type_access = create_type_access(1.into(), Access::Read);
         let properties = create_properties(vec![component_type_access], false);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, entity_type, properties);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(3.into());
-        let entity_main_component_type = TypeId::of::<i64>();
+        let entity_type = TypeId::of::<i64>();
         let component_type_access = create_type_access(3.into(), Access::Write);
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, entity_type, properties);
         let data = SystemData {
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
@@ -307,10 +298,10 @@ mod system_storage_tests {
             assert_eq!(i.filtered_component_types, [TypeId::of::<u32>()]);
             d.entity_actions.try_lock().unwrap().delete_entity(2.into());
         };
-        let entity_main_component_type = TypeId::of::<u32>();
+        let entity_type = TypeId::of::<u32>();
         let component_type_access = create_type_access(1.into(), Access::Read);
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, entity_type, properties);
         let mut components = ComponentStorage::default();
         let type_idx = components.type_idx_or_create::<u32>();
         let location = EntityLocationInArchetype::new(0.into(), 0.into());
@@ -343,12 +334,12 @@ mod system_storage_tests {
             d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
             thread::sleep(Duration::from_millis(1));
         };
-        let entity_main_component_type1 = TypeId::of::<Component1>();
-        let entity_main_component_type2 = TypeId::of::<Component2>();
+        let entity_type1 = TypeId::of::<Component1>();
+        let entity_type2 = TypeId::of::<Component2>();
         let properties1 = create_properties(vec![], false);
         let properties2 = create_properties(vec![], true);
-        storage.add(wrapper1, entity_main_component_type1, properties1);
-        storage.add(wrapper2, entity_main_component_type2, properties2);
+        storage.add(wrapper1, entity_type1, properties1);
+        storage.add(wrapper2, entity_type2, properties2);
         let mut components = ComponentStorage::default();
         let type1_idx = components.type_idx_or_create::<Component1>();
         let type2_idx = components.type_idx_or_create::<Component2>();
