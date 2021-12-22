@@ -1,0 +1,197 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: 0 2 * * SAT
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION_STABLE: 1.57.0
+  RUST_VERSION_NIGHTLY: nightly-2021-12-07
+  MUTAGEN_COMMIT: b1886fa1a343b95c86a836ceb0fd233980924c2a
+  COV_THRESHOLD: 100.0
+  MUTAGEN_THRESHOLD: 100.0
+  CRATE_PATHS: .
+  CODECOV_UPLOAD: true
+
+jobs:
+
+  test-ubuntu:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          override: true
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  test-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          override: true
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  test-macos:
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          override: true
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  check-coverage:
+    runs-on: ubuntu-18.04
+    needs: test-ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
+          profile: minimal
+          components: llvm-tools-preview
+          override: true
+      - name: Install grcov
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: grcov --debug
+      - name: Run unit tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib
+        env:
+          RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code
+      - name: Generate HTML coverage report
+        run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
+      - name: Upload coverage report on GitHub
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: error
+          retention-days: 7
+      - name: Generate LCOV coverage report
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        run: bash .github/workflows/scripts/generate_coverage.sh lcov ./lcov.info
+      - name: Upload coverage report on Codecov
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        uses: codecov/codecov-action@v2
+        with:
+          files: ./lcov.info
+          fail_ci_if_error: true
+          verbose: true
+      - name: Check coverage threshold
+        run: bash .github/workflows/scripts/check_coverage.sh
+
+  check-mutations:
+    runs-on: ubuntu-18.04
+    needs: test-ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
+          profile: minimal
+          override: true
+      - name: Install mutagen
+        run: bash .github/workflows/scripts/install_mutagen.sh
+      - name: Run mutation tests
+        run: bash .github/workflows/scripts/check_mutations.sh
+
+  lint-rust:
+    runs-on: ubuntu-18.04
+    needs: test-ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          components: rustfmt, clippy
+          override: true
+      - name: List clippy lints
+        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        id: list_lints
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v1
+
+  lint-generic:
+    runs-on: ubuntu-18.04
+    needs: test-ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install other dependencies
+        run: sudo apt-get install moreutils dos2unix
+      - name: Check encoding
+        run: isutf8 **/*
+      - name: Check line endings
+        run: bash .github/workflows/scripts/check_line_endings.sh
+      - name: Check TODOs
+        run: bash .github/workflows/scripts/check_todos.sh

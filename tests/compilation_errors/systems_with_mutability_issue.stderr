@@ -1,0 +1,179 @@
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:4:5
+  |
+4 |     system!(const_and_mut_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:5:5
+  |
+5 |     system!(mut_and_const_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:6:5
+  |
+6 |     system!(mut_and_mut_same_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:7:5
+  |
+7 |     system!(const_and_mut_same_option_component);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:8:5
+  |
+8 |     system!(two_worlds);
+  |     ^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+ --> $DIR/systems_with_mutability_issue.rs:9:5
+  |
+9 |     system!(incompatible_tuples);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+  |
+  = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+  = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+  |
+11|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+  |
+11|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+  |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_mutability_issue.rs:10:5
+   |
+10 |     system!(incompatible_queries);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+   |
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_mutability_issue.rs:11:5
+   |
+11 |     system!(tuple_with_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+   |
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_mutability_issue.rs:12:5
+   |
+12 |     system!(query_with_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+   |
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+error[E0034]: multiple applicable items in scope
+  --> $DIR/systems_with_mutability_issue.rs:13:5
+   |
+13 |     system!(nested_incompatible_params);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ multiple `check_param_mutability` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `modor::SystemWithParams` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: candidate #2 is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue` for the type `SystemParamMutabilityChecker<S, P>`
+   = note: this error originates in the macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: disambiguate the associated function for candidate #1
+   |
+110|                 let mut system = modor::SystemWithParams::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: disambiguate the associated function for candidate #2
+   |
+110|                 let mut system = modor::SystemWithParamMutabilityIssue::check_param_mutability(checker).into_inner();
+   |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
