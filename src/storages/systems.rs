@@ -180,11 +180,20 @@ pub(crate) enum Access {
 #[cfg(test)]
 mod system_storage_tests {
     use super::*;
-    use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
+    use crate::storages::archetypes::{
+        ArchetypeEntityPos, ArchetypeIdx, ArchetypeStorage, EntityLocationInArchetype,
+    };
     use crate::storages::components::ComponentStorage;
     use crate::storages::entity_actions::{EntityActionStorage, EntityState};
     use std::thread;
-    use std::time::{Duration, Instant};
+    use std::thread::ThreadId;
+    use std::time::Duration;
+
+    #[derive(Clone)]
+    struct Component1(ThreadId);
+
+    #[derive(Clone)]
+    struct Component2(ThreadId);
 
     #[test]
     fn set_thread_count_to_0() {
@@ -324,47 +333,42 @@ mod system_storage_tests {
     fn run_system_in_parallel_with_existing_entity() {
         let mut storage = SystemStorage::default();
         storage.set_thread_count(2);
-        let wrapper: SystemWrapper = |d, i| {
-            assert_eq!(i.filtered_component_types, [TypeId::of::<u32>()]);
-            d.entity_actions.lock().unwrap().delete_entity(2.into());
-            thread::sleep(Duration::from_millis(10));
+        let wrapper1: SystemWrapper = |d, _| {
+            let thread_id = Component1(thread::current().id());
+            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
+            thread::sleep(Duration::from_millis(1));
         };
-        let entity_main_component_type = TypeId::of::<u32>();
-        let component_type_access = create_type_access(1.into(), Access::Read);
-        let properties = create_properties(vec![component_type_access], false);
-        storage.add(wrapper, entity_main_component_type, properties);
-        let wrapper: SystemWrapper = |d, i| {
-            thread::sleep(Duration::from_millis(10));
-            assert_eq!(i.filtered_component_types, [TypeId::of::<i64>()]);
-            d.entity_actions.lock().unwrap().delete_entity(3.into());
+        let wrapper2: SystemWrapper = |d, _| {
+            let thread_id = Component2(thread::current().id());
+            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
+            thread::sleep(Duration::from_millis(1));
         };
-        let entity_main_component_type = TypeId::of::<i64>();
-        let component_type_access = create_type_access(3.into(), Access::Write);
-        let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        let entity_main_component_type1 = TypeId::of::<Component1>();
+        let entity_main_component_type2 = TypeId::of::<Component2>();
+        let properties1 = create_properties(vec![], false);
+        let properties2 = create_properties(vec![], true);
+        storage.add(wrapper1, entity_main_component_type1, properties1);
+        storage.add(wrapper2, entity_main_component_type2, properties2);
         let mut components = ComponentStorage::default();
+        let type1_idx = components.type_idx_or_create::<Component1>();
+        let type2_idx = components.type_idx_or_create::<Component2>();
         let location = EntityLocationInArchetype::new(0.into(), 0.into());
-        let type_idx = components.type_idx_or_create::<u32>();
-        components.add(type_idx, location, 10_u32);
-        let type_idx = components.type_idx_or_create::<i64>();
-        components.add(type_idx, location, 20_i64);
+        components.add(type1_idx, location, Component1(thread::current().id()));
+        components.add(type2_idx, location, Component2(thread::current().id()));
         let data = SystemData {
             components: &components,
             archetypes: &ArchetypeStorage::default(),
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        let start_time = Instant::now();
         storage.run(&data);
-        let duration = Instant::now() - start_time;
 
-        let mut entity_actions = data.entity_actions.try_lock().unwrap();
-        let entity_states: Vec<_> = entity_actions.drain_entity_states().collect();
-        assert_eq!(entity_states[0].0, 2.into());
-        assert!(matches!(entity_states[0].1, EntityState::Deleted));
-        assert_eq!(entity_states[1].0, 3.into());
-        assert!(matches!(entity_states[1].1, EntityState::Deleted));
-        assert!(duration < Duration::from_millis(15));
+        let component1_guard = components.read_components::<Component1>().clone();
+        let component2_guard = components.read_components::<Component2>().clone();
+        assert_ne!(
+            component1_guard[ArchetypeIdx(0)][ArchetypeEntityPos(1)].0,
+            component2_guard[ArchetypeIdx(0)][ArchetypeEntityPos(1)].0
+        );
     }
 
     fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {

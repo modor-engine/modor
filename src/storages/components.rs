@@ -33,7 +33,9 @@ impl ComponentStorage {
 
     pub(crate) fn count(&self, component_type: TypeId) -> usize {
         self.type_idx(component_type)
-            .map_or(0, |c| self.component_count[c])
+            .and_then(|c| self.component_count.get(c))
+            .copied()
+            .unwrap_or(0)
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
