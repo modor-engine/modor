@@ -1,5 +1,5 @@
 use crate::storages::components::ComponentTypeIdx;
-use crate::storages::system_states::{LockedSystem, SystemProperties, SystemStateStorage};
+use crate::storages::system_states::{AllSystemProperties, LockedSystem, SystemStateStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::{SystemData, SystemInfo};
 use scoped_threadpool::Pool;
@@ -34,14 +34,14 @@ impl SystemStorage {
         &mut self,
         wrapper: SystemWrapper,
         entity_type: TypeId,
-        properties: FullSystemProperties,
+        properties: SystemProperties,
     ) -> SystemIdx {
         let states = self
             .states
             .get_mut()
             .expect("internal error: cannot access to system states to register component type");
         for component_types in &properties.component_types {
-            states.register_component_type(component_types.idx);
+            states.register_component_type(component_types.type_idx);
         }
         self.wrappers.push(Some(wrapper));
         self.component_types.push(properties.component_types);
@@ -69,7 +69,7 @@ impl SystemStorage {
             .get_mut()
             .expect("internal error: cannot reset states")
             .reset(Self::all_idxs(&self.wrappers));
-        let system_properties = SystemProperties {
+        let system_properties = AllSystemProperties {
             component_types: &self.component_types,
             have_entity_actions: &self.have_entity_actions,
         };
@@ -99,7 +99,7 @@ impl SystemStorage {
     fn run_thread(
         data: &SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
-        system_properties: SystemProperties<'_>,
+        system_properties: AllSystemProperties<'_>,
         entity_types: &TiSlice<SystemIdx, TypeId>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
     ) {
@@ -117,7 +117,7 @@ impl SystemStorage {
     fn lock_next_system(
         states: &Mutex<SystemStateStorage>,
         previous_system_idx: Option<SystemIdx>,
-        system_properties: SystemProperties<'_>,
+        system_properties: AllSystemProperties<'_>,
     ) -> LockedSystem {
         states
             .lock()
@@ -154,15 +154,15 @@ impl SystemStorage {
 
 idx_type!(pub(crate) SystemIdx);
 
-pub(super) struct FullSystemProperties {
-    pub(super) component_types: Vec<ComponentTypeAccess>,
-    pub(super) has_entity_actions: bool,
+pub struct SystemProperties {
+    pub(crate) component_types: Vec<ComponentTypeAccess>,
+    pub(crate) has_entity_actions: bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(super) struct ComponentTypeAccess {
-    pub(super) idx: ComponentTypeIdx,
-    pub(super) access: Access,
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) struct ComponentTypeAccess {
+    pub(crate) access: Access,
+    pub(crate) type_idx: ComponentTypeIdx,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -320,6 +320,7 @@ mod system_storage_tests {
         assert!(matches!(entity_states[0].1, EntityState::Deleted));
     }
 
+    // TODO: fix random failures (wait in one system until other system has added the component)
     #[test]
     fn run_system_in_parallel_with_existing_entity() {
         let mut storage = SystemStorage::default();
@@ -363,17 +364,14 @@ mod system_storage_tests {
     }
 
     fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {
-        ComponentTypeAccess {
-            idx: type_idx,
-            access,
-        }
+        ComponentTypeAccess { type_idx, access }
     }
 
     fn create_properties(
         component_types: Vec<ComponentTypeAccess>,
         has_entity_actions: bool,
-    ) -> FullSystemProperties {
-        FullSystemProperties {
+    ) -> SystemProperties {
+        SystemProperties {
             component_types,
             has_entity_actions,
         }

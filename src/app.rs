@@ -80,7 +80,7 @@ impl App {
 #[cfg(test)]
 mod app_tests {
     use super::*;
-    use crate::storages::core::SystemProperties;
+    use crate::storages::systems::SystemProperties;
     use crate::{Built, EntityRunner, SystemBuilder};
 
     assert_impl_all!(App: Send, Unpin);
@@ -96,13 +96,13 @@ mod app_tests {
         }
 
         fn on_update(runner: &mut EntityRunner<'_, Self>) {
-            runner.run(SystemBuilder::new(
-                SystemProperties {
+            runner.run(SystemBuilder {
+                properties_fn: |_| SystemProperties {
                     component_types: vec![],
                     has_entity_actions: false,
                 },
-                |d, _| d.entity_actions.try_lock().unwrap().delete_entity(0.into()),
-            ));
+                wrapper: |d, _| d.entity_actions.try_lock().unwrap().delete_entity(0.into()),
+            });
         }
     }
 

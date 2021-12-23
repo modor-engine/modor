@@ -1,6 +1,6 @@
-use crate::storages::components::{ComponentArchetypes, ComponentStorage};
-use crate::storages::core::{ComponentTypeIdAccess, SystemProperties};
-use crate::storages::systems::Access;
+use crate::storages::components::ComponentArchetypes;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::ComponentIter;
 use crate::system_params::components_mut::internal::ComponentIterMut;
 use crate::system_params::internal::{
@@ -28,11 +28,11 @@ where
     type Tuple = (Self,);
     type InnerTuple = ();
 
-    fn properties() -> SystemProperties {
+    fn properties(core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
-            component_types: vec![ComponentTypeIdAccess {
+            component_types: vec![ComponentTypeAccess {
                 access: Access::Write,
-                type_idx_or_create_fn: ComponentStorage::type_idx_or_create::<C>,
+                type_idx: core.register_component_type::<C>(),
             }],
             has_entity_actions: false,
         }
@@ -235,10 +235,13 @@ mod component_mut_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = <&mut u32>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <&mut u32>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Write);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.has_entity_actions);
     }
 

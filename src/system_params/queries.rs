@@ -1,4 +1,5 @@
-use crate::storages::core::SystemProperties;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
     QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
@@ -90,8 +91,9 @@ where
     type Tuple = (Self,);
     type InnerTuple = P::Tuple;
 
-    fn properties() -> SystemProperties {
-        P::properties()
+    fn properties(core: &mut CoreStorage) -> SystemProperties {
+        F::register(core);
+        P::properties(core)
     }
 
     fn iter_info(_data: &SystemData<'_>, _info: &SystemInfo) -> SystemParamIterInfo {
@@ -138,6 +140,9 @@ where
 /// A trait implemented for all valid filters that can be applied to a [`Query`](crate::Query).
 pub trait QueryFilter: 'static {
     #[doc(hidden)]
+    fn register(core: &mut CoreStorage);
+
+    #[doc(hidden)]
     fn filtered_component_types() -> Vec<TypeId>;
 }
 
@@ -169,6 +174,10 @@ impl<C> QueryFilter for With<C>
 where
     C: Any + Sync + Send,
 {
+    fn register(core: &mut CoreStorage) {
+        core.register_component_type::<C>();
+    }
+
     #[doc(hidden)]
     fn filtered_component_types() -> Vec<TypeId> {
         vec![TypeId::of::<C>()]
@@ -181,6 +190,11 @@ macro_rules! impl_tuple_query_filter {
         where
             $($params: QueryFilter,)*
         {
+            #[allow(unused_variables)]
+            fn register(core: &mut CoreStorage) {
+                $($params::register(core);)*
+            }
+
             #[allow(unused_mut)]
             fn filtered_component_types() -> Vec<TypeId> {
                 let mut types = Vec::new();
@@ -283,9 +297,41 @@ mod with_tests {
 
     assert_impl_all!(With<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 
-    macro_rules! test_with_tuple {
+    macro_rules! test_tuple_register {
         ($($params:ident),*) => {{
-            let types = <($(With<$params>,)*)>::filtered_component_types();
+            let mut core = CoreStorage::default();
+
+            <($(With<$params>,)*) as QueryFilter>::register(&mut core);
+
+            $(assert!(core.components().type_idx(TypeId::of::<$params>()).is_some());)*
+        }};
+    }
+
+    #[test]
+    fn register_types() {
+        let mut core = CoreStorage::default();
+
+        With::<u32>::register(&mut core);
+
+        assert!(core.components().type_idx(TypeId::of::<u32>()).is_some());
+
+        test_tuple_register!();
+        test_tuple_register!(u8);
+        test_tuple_register!(u8, u16);
+        test_tuple_register!(u8, u16, u32);
+        test_tuple_register!(u8, u16, u32, u64);
+        test_tuple_register!(u8, u16, u32, u64, u128);
+        test_tuple_register!(u8, u16, u32, u64, u128, i8);
+        test_tuple_register!(u8, u16, u32, u64, u128, i8, i16);
+        test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32);
+        test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
+        test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+    }
+
+    macro_rules! test_tuple_filtered_component_types {
+        ($($params:ident),*) => {{
+            let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_types();
+
             assert_eq!(types, vec![$(TypeId::of::<$params>()),*]);
         }};
     }
@@ -293,18 +339,20 @@ mod with_tests {
     #[test]
     fn retrieve_filtered_component_types() {
         let types = With::<u32>::filtered_component_types();
+
         assert_eq!(types, vec![TypeId::of::<u32>()]);
-        test_with_tuple!();
-        test_with_tuple!(u8);
-        test_with_tuple!(u8, u16);
-        test_with_tuple!(u8, u16, u32);
-        test_with_tuple!(u8, u16, u32, u64);
-        test_with_tuple!(u8, u16, u32, u64, u128);
-        test_with_tuple!(u8, u16, u32, u64, u128, i8);
-        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16);
-        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32);
-        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
-        test_with_tuple!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+
+        test_tuple_filtered_component_types!();
+        test_tuple_filtered_component_types!(u8);
+        test_tuple_filtered_component_types!(u8, u16);
+        test_tuple_filtered_component_types!(u8, u16, u32);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
+        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
     }
 }
 
@@ -318,10 +366,13 @@ mod query_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = Query::<&u32, With<i64>>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = Query::<&u32, With<i64>>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 1.into());
         assert!(!properties.has_entity_actions);
     }
 

@@ -218,8 +218,9 @@ where
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
     pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
+        let properties = (system.properties_fn)(self.core);
         self.core
-            .add_system(system.wrapper, TypeId::of::<E>(), system.properties);
+            .add_system(system.wrapper, TypeId::of::<E>(), properties);
         self
     }
 }
@@ -423,7 +424,7 @@ mod entity_builder_tests {
 mod entity_runner_tests {
     use super::*;
     use crate::storages::archetypes::ArchetypeStorage;
-    use crate::storages::core::SystemProperties;
+    use crate::storages::systems::SystemProperties;
 
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
 
@@ -448,16 +449,16 @@ mod entity_runner_tests {
             core: &mut core,
             phantom: PhantomData,
         };
-        let system = SystemBuilder::new(
-            SystemProperties {
+        let system = SystemBuilder {
+            properties_fn: |_| SystemProperties {
                 component_types: vec![],
                 has_entity_actions: false,
             },
-            |d, i| {
+            wrapper: |d, i| {
                 assert_eq!(i.filtered_component_types, [TypeId::of::<TestEntity>()]);
                 d.entity_actions.try_lock().unwrap().delete_entity(0.into());
             },
-        );
+        };
 
         runner.run(system);
 

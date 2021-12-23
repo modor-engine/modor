@@ -2,7 +2,7 @@ use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::entity_actions::{EntityActionStorage, EntityState};
-use crate::storages::systems::{Access, ComponentTypeAccess, FullSystemProperties, SystemStorage};
+use crate::storages::systems::{SystemProperties, SystemStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::SystemData;
 use std::any::{Any, TypeId};
@@ -10,7 +10,7 @@ use std::mem;
 use std::sync::Mutex;
 
 #[derive(Default)]
-pub(crate) struct CoreStorage {
+pub struct CoreStorage {
     archetypes: ArchetypeStorage,
     entities: EntityStorage,
     components: ComponentStorage,
@@ -37,6 +37,13 @@ impl CoreStorage {
 
     pub(crate) fn set_thread_count(&mut self, count: u32) {
         self.systems.set_thread_count(count);
+    }
+
+    pub(crate) fn register_component_type<C>(&mut self) -> ComponentTypeIdx
+    where
+        C: Any + Sync + Send,
+    {
+        self.components.type_idx_or_create::<C>()
     }
 
     pub(crate) fn add_entity_type<C>(&mut self)
@@ -118,18 +125,6 @@ impl CoreStorage {
         entity_type: TypeId,
         properties: SystemProperties,
     ) {
-        let component_types = properties
-            .component_types
-            .into_iter()
-            .map(|a| ComponentTypeAccess {
-                idx: (a.type_idx_or_create_fn)(&mut self.components),
-                access: a.access,
-            })
-            .collect();
-        let properties = FullSystemProperties {
-            component_types,
-            has_entity_actions: properties.has_entity_actions,
-        };
         self.systems.add(wrapper, entity_type, properties);
     }
 
@@ -205,19 +200,10 @@ impl CoreStorage {
     }
 }
 
-pub struct SystemProperties {
-    pub(crate) component_types: Vec<ComponentTypeIdAccess>,
-    pub(crate) has_entity_actions: bool,
-}
-
-pub(crate) struct ComponentTypeIdAccess {
-    pub(crate) access: Access,
-    pub(crate) type_idx_or_create_fn: fn(&mut ComponentStorage) -> ComponentTypeIdx,
-}
-
 #[cfg(test)]
 mod core_storage_tests {
     use super::*;
+    use crate::storages::systems::{Access, ComponentTypeAccess};
     use crate::SystemData;
     use typed_index_collections::TiVec;
 
@@ -239,6 +225,21 @@ mod core_storage_tests {
         storage.set_thread_count(3);
 
         assert_eq!(storage.systems.thread_count(), 3);
+    }
+
+    #[test]
+    fn register_component_types() {
+        let mut storage = CoreStorage::default();
+
+        let type1_idx = storage.register_component_type::<u32>();
+        let type2_idx = storage.register_component_type::<i64>();
+
+        assert_eq!(type1_idx, 0.into());
+        assert_eq!(type2_idx, 1.into());
+        let type_id = TypeId::of::<u32>();
+        assert_eq!(storage.components.type_idx(type_id), Some(0.into()));
+        let type_id = TypeId::of::<i64>();
+        assert_eq!(storage.components.type_idx(type_id), Some(1.into()));
     }
 
     #[test]
@@ -361,9 +362,9 @@ mod core_storage_tests {
             },
             TypeId::of::<u32>(),
             SystemProperties {
-                component_types: vec![ComponentTypeIdAccess {
+                component_types: vec![ComponentTypeAccess {
                     access: Access::Read,
-                    type_idx_or_create_fn: ComponentStorage::type_idx_or_create::<i64>,
+                    type_idx: 0.into(),
                 }],
                 has_entity_actions: true,
             },

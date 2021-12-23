@@ -1,4 +1,5 @@
-use crate::storages::core::SystemProperties;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
     QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
@@ -27,8 +28,8 @@ macro_rules! impl_tuple_system_param {
             type InnerTuple = Self;
 
             #[allow(unused_variables)]
-            fn properties() -> SystemProperties {
-                let properties = ($($params::properties(),)*);
+            fn properties(core: &mut CoreStorage) -> SystemProperties {
+                let properties = ($($params::properties(core),)*);
                 SystemProperties {
                     component_types: iter::empty()
                         $(.chain(properties.$indexes.component_types))*
@@ -313,7 +314,9 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = <()>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <()>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.has_entity_actions);
@@ -415,10 +418,13 @@ mod tuple_with_one_item_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = <(&u32,)>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <(&u32,)>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.has_entity_actions);
     }
 
@@ -496,20 +502,27 @@ mod tuple_with_two_items_system_param_tests {
 
     #[test]
     fn retrieve_properties_with_entity_action() {
-        let properties = <(&u32, World<'_>)>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <(&u32, World<'_>)>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(properties.has_entity_actions);
     }
 
     #[test]
     fn retrieve_properties_without_entity_action() {
-        let properties = <(&u32, &mut i64)>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <(&u32, &mut i64)>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 2);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert_eq!(properties.component_types[1].access, Access::Write);
+        assert_eq!(properties.component_types[1].type_idx, 1.into());
         assert!(!properties.has_entity_actions);
     }
 
@@ -597,12 +610,17 @@ mod tuple_with_more_than_two_items_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = <(&u32, &mut i64, &i16)>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = <(&u32, &mut i64, &i16)>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 3);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert_eq!(properties.component_types[1].access, Access::Write);
+        assert_eq!(properties.component_types[1].type_idx, 1.into());
         assert_eq!(properties.component_types[2].access, Access::Read);
+        assert_eq!(properties.component_types[2].type_idx, 2.into());
         assert!(!properties.has_entity_actions);
     }
 

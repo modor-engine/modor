@@ -1,6 +1,7 @@
 use crate::entity::internal::EntityIter;
-use crate::storages::core::SystemProperties;
+use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
+use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
     EntityIterInfo, QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
@@ -46,7 +47,7 @@ impl SystemParam for Entity<'_> {
     type Tuple = (Self,);
     type InnerTuple = ();
 
-    fn properties() -> SystemProperties {
+    fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             has_entity_actions: false,
@@ -249,7 +250,9 @@ mod entity_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = Entity::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = Entity::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.has_entity_actions);

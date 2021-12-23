@@ -1,13 +1,11 @@
 use crate::storages::archetypes::ArchetypeStorage;
 use crate::storages::components::ComponentStorage;
-use crate::storages::core::SystemProperties;
+use crate::storages::core::CoreStorage;
 use crate::storages::entity_actions::EntityActionStorage;
 use crate::system_params::internal::{SystemParamIterInfo, SystemParamWithLifetime};
 use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
 use std::any::TypeId;
-use std::sync::Mutex;
-
 /// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
 /// The system passed as parameter must be a function or a static closure with no captured
@@ -103,9 +101,9 @@ macro_rules! system {
         use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
 
         #[allow(clippy::semicolon_if_nothing_returned)]
-        ::modor::SystemBuilder::new(
-            ::modor::System::properties(&$system),
-            |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+        ::modor::SystemBuilder {
+            properties_fn: ::modor::System::properties_fn(&$system),
+            wrapper: |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
                 let checker = ::modor::SystemParamMutabilityChecker::new($system);
                 let mut system = checker.check_param_mutability().into_inner();
                 let mut guard = ::modor::System::lock(&system, data);
@@ -116,9 +114,12 @@ macro_rules! system {
                     ::modor::System::apply(&mut system, item);
                 }
             },
-        )
+        }
     }};
 }
+
+use crate::storages::systems::SystemProperties;
+use std::sync::Mutex;
 
 #[doc(hidden)]
 pub struct SystemInfo {
@@ -136,18 +137,8 @@ pub struct SystemData<'a> {
 ///
 /// The [`system!`](crate::system!) macro is used to construct a `SystemBuilder`.
 pub struct SystemBuilder {
-    pub(crate) properties: SystemProperties,
-    pub(crate) wrapper: SystemWrapper,
-}
-
-impl SystemBuilder {
-    #[doc(hidden)]
-    pub fn new(properties: SystemProperties, wrapper: SystemWrapper) -> Self {
-        Self {
-            properties,
-            wrapper,
-        }
-    }
+    pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
+    pub wrapper: SystemWrapper,
 }
 
 /// A trait implemented for any system that can be passed to the [`system!`](crate::system!) macro.
@@ -156,8 +147,8 @@ where
     P: SystemParam,
 {
     #[doc(hidden)]
-    fn properties(&self) -> SystemProperties {
-        P::properties()
+    fn properties_fn(&self) -> fn(&mut CoreStorage) -> SystemProperties {
+        P::properties
     }
 
     #[doc(hidden)]
@@ -275,11 +266,13 @@ mod system_tests {
     use crate::storages::systems::Access;
 
     #[test]
-    fn retrieve_properties() {
+    fn retrieve_properties_fn() {
         let system = |_: &u32, _: &mut i64| ();
 
-        let properties = System::properties(&system);
+        let properties_fn = System::properties_fn(&system);
 
+        let mut core = CoreStorage::default();
+        let properties = properties_fn(&mut core);
         assert_eq!(properties.component_types.len(), 2);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[1].access, Access::Write);

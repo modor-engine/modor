@@ -1,4 +1,5 @@
-use crate::storages::core::SystemProperties;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
     QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
 };
@@ -21,7 +22,7 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     type InnerTuple: SystemParam;
 
     #[doc(hidden)]
-    fn properties() -> SystemProperties;
+    fn properties(core: &mut CoreStorage) -> SystemProperties;
 
     #[doc(hidden)]
     fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo;

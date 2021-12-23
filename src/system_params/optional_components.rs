@@ -1,6 +1,6 @@
-use crate::storages::components::{ComponentArchetypes, ComponentStorage};
-use crate::storages::core::{ComponentTypeIdAccess, SystemProperties};
-use crate::storages::systems::Access;
+use crate::storages::components::ComponentArchetypes;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{
     Const, EntityIterInfo, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamIterInfo,
     SystemParamWithLifetime,
@@ -27,11 +27,11 @@ where
     type Tuple = (Self,);
     type InnerTuple = ();
 
-    fn properties() -> SystemProperties {
+    fn properties(core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
-            component_types: vec![ComponentTypeIdAccess {
+            component_types: vec![ComponentTypeAccess {
                 access: Access::Read,
-                type_idx_or_create_fn: ComponentStorage::type_idx_or_create::<C>,
+                type_idx: core.register_component_type::<C>(),
             }],
             has_entity_actions: false,
         }
@@ -281,10 +281,13 @@ mod component_ref_option_system_param_tests {
 
     #[test]
     fn retrieve_properties() {
-        let properties = <Option<&u32>>::properties();
+        let mut core = CoreStorage::default();
+
+        let properties = Option::<&u32>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.has_entity_actions);
     }
 
@@ -294,7 +297,7 @@ mod component_ref_option_system_param_tests {
         core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let info = SystemInfo::with_one_filtered_type::<i64>();
 
-        let iter_info = <Option<&u32>>::iter_info(&core.system_data(), &info);
+        let iter_info = Option::<&u32>::iter_info(&core.system_data(), &info);
 
         assert_eq!(iter_info, SystemParamIterInfo::new_union(vec![]));
     }
@@ -306,7 +309,7 @@ mod component_ref_option_system_param_tests {
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
         let info = SystemInfo::with_one_filtered_type::<i64>();
 
-        let iter_info = <Option<&u32>>::iter_info(&core.system_data(), &info);
+        let iter_info = Option::<&u32>::iter_info(&core.system_data(), &info);
 
         let expected_iter_info = SystemParamIterInfo::new_union(vec![(archetype2_idx, 0)]);
         assert_eq!(iter_info, expected_iter_info);
@@ -321,8 +324,8 @@ mod component_ref_option_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
 
-        let mut guard = <Option<&u32>>::lock(&data);
-        let guard_borrow = <Option<&u32>>::borrow_guard(&mut guard);
+        let mut guard = Option::<&u32>::lock(&data);
+        let guard_borrow = Option::<&u32>::borrow_guard(&mut guard);
 
         assert_eq!(guard_borrow, &ti_vec![ti_vec![], ti_vec![10_u32]]);
     }
@@ -335,14 +338,14 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let mut stream = <Option<&u32>>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = Option::<&u32>::stream(&mut guard_borrow, &iter_info);
 
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), Some(Some(&20)));
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), Some(None));
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), Some(None));
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), Some(Some(&40)));
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), Some(Some(&50)));
-        assert_eq!(<Option<&u32>>::stream_next(&mut stream), None);
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&20)));
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(None));
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(None));
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&40)));
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&50)));
+        assert_eq!(Option::<&u32>::stream_next(&mut stream), None);
     }
 
     #[test]
@@ -353,7 +356,7 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let mut iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = Option::<&u32>::query_iter(&guard_borrow, &iter_info);
 
         assert_eq!(iter.len(), 5);
         assert_eq!(iter.next(), Some(Some(&20)));
@@ -377,7 +380,7 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let mut iter = <Option<&u32>>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = Option::<&u32>::query_iter(&guard_borrow, &iter_info).rev();
 
         assert_eq!(iter.len(), 5);
         assert_eq!(iter.next(), Some(Some(&50)));
@@ -401,7 +404,7 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let mut iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = Option::<&u32>::query_iter_mut(&mut guard_borrow, &iter_info);
 
         assert_eq!(iter.len(), 5);
         assert_eq!(iter.next(), Some(Some(&20)));
@@ -425,7 +428,7 @@ mod component_ref_option_system_param_tests {
         let iter_info =
             SystemParamIterInfo::new_union(vec![(1.into(), 1), (3.into(), 2), (4.into(), 2)]);
 
-        let mut iter = <Option<&u32>>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = Option::<&u32>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
         assert_eq!(iter.len(), 5);
         assert_eq!(iter.next(), Some(Some(&50)));
