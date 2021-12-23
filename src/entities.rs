@@ -455,7 +455,7 @@ mod entity_runner_tests {
                 has_entity_actions: false,
             },
             wrapper: |d, i| {
-                assert_eq!(i.filtered_component_types, [TypeId::of::<TestEntity>()]);
+                assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 d.entity_actions.try_lock().unwrap().delete_entity(0.into());
             },
         };

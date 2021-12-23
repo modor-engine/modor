@@ -38,13 +38,14 @@ where
     }
 
     fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-        let mut component_types = info.filtered_component_types.clone();
-        component_types.push(TypeId::of::<C>());
+        let mut component_type_idxs = info.filtered_component_type_idxs.clone();
+        component_type_idxs.push(
+            data.components
+                .type_idx(TypeId::of::<C>())
+                .expect("internal error: missing component type when retrieving iter info"),
+        );
         SystemParamIterInfo::ComponentIntersectionEntities(EntityIterInfo {
-            sorted_archetypes: data
-                .components
-                .type_idxs(&component_types)
-                .map_or_else(Vec::new, |i| data.archetypes.sorted_with_all_types(&i)),
+            sorted_archetypes: data.archetypes.sorted_with_all_types(&component_type_idxs),
         })
     }
 
@@ -245,22 +246,11 @@ mod component_ref_system_param_tests {
     }
 
     #[test]
-    fn retrieve_iter_info_from_missing_component_type() {
-        let mut core = CoreStorage::default();
-        core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
-
-        let iter_info = <&u32>::iter_info(&core.system_data(), &info);
-
-        assert_eq!(iter_info, SystemParamIterInfo::new_intersection(vec![]));
-    }
-
-    #[test]
-    fn retrieve_iter_info_from_existing_component_type() {
+    fn retrieve_iter_info() {
         let mut core = CoreStorage::default();
         let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
 
         let iter_info = <&u32>::iter_info(&core.system_data(), &info);
 

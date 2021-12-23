@@ -18,10 +18,6 @@ impl ComponentStorage {
         self.idxs.get(&component_type).copied()
     }
 
-    pub(crate) fn type_idxs(&self, component_types: &[TypeId]) -> Option<Vec<ComponentTypeIdx>> {
-        component_types.iter().map(|&t| self.type_idx(t)).collect()
-    }
-
     pub(crate) fn is_entity_type<C>(&self) -> bool
     where
         C: Any,
@@ -31,11 +27,8 @@ impl ComponentStorage {
             .map_or(false, |&i| self.are_entity_types[i])
     }
 
-    pub(crate) fn count(&self, component_type: TypeId) -> usize {
-        self.type_idx(component_type)
-            .and_then(|c| self.component_count.get(c))
-            .copied()
-            .unwrap_or(0)
+    pub(crate) fn count(&self, type_idx: ComponentTypeIdx) -> usize {
+        self.component_count.get(type_idx).copied().unwrap_or(0)
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
@@ -187,7 +180,7 @@ where
     }
 }
 
-idx_type!(pub(crate) ComponentTypeIdx);
+idx_type!(pub ComponentTypeIdx);
 
 #[cfg(test)]
 mod component_storage_tests {
@@ -210,11 +203,6 @@ mod component_storage_tests {
         assert_eq!(storage.type_idx(type1), Some(type1_idx));
         assert_eq!(storage.type_idx(type2), Some(type2_idx));
         assert_eq!(storage.type_idx(type3), None);
-        assert_eq!(storage.type_idxs(&[]), Some(vec![]));
-        assert_eq!(storage.type_idxs(&[type1]), Some(vec![type1_idx]));
-        let type_idxs = storage.type_idxs(&[type1, type2]);
-        assert_eq!(type_idxs, Some(vec![type1_idx, type2_idx]));
-        assert_eq!(storage.type_idxs(&[type1, type3]), None);
     }
 
     #[test]
@@ -243,7 +231,7 @@ mod component_storage_tests {
         storage.add(type_idx, location1, 10_u32);
         storage.add(type_idx, location2, 20_u32);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 2);
+        assert_eq!(storage.count(type_idx), 2);
         let components = ti_vec![ti_vec![], ti_vec![10_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
@@ -258,7 +246,7 @@ mod component_storage_tests {
 
         storage.add(type_idx, location, 20_u32);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 1);
+        assert_eq!(storage.count(type_idx), 1);
         let components = ti_vec![ti_vec![], ti_vec![20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
@@ -280,7 +268,7 @@ mod component_storage_tests {
         storage.move_(type_idx, location1, 2.into());
         storage.move_(type_idx, location2, 2.into());
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 4);
+        assert_eq!(storage.count(type_idx), 4);
         let components = ti_vec![ti_vec![], ti_vec![40_u32, 30_u32], ti_vec![10_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
     }
@@ -298,7 +286,7 @@ mod component_storage_tests {
 
         storage.delete(type_idx, location1);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 2);
+        assert_eq!(storage.count(type_idx), 2);
         let components = ti_vec![ti_vec![], ti_vec![30_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
     }

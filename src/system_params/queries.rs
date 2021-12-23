@@ -1,3 +1,4 @@
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
@@ -48,7 +49,7 @@ where
             iter_info: P::iter_info(
                 data,
                 &SystemInfo {
-                    filtered_component_types: F::filtered_component_types(),
+                    filtered_component_type_idxs: F::filtered_component_type_idxs(data),
                 },
             ),
             phantom: PhantomData,
@@ -143,7 +144,7 @@ pub trait QueryFilter: 'static {
     fn register(core: &mut CoreStorage);
 
     #[doc(hidden)]
-    fn filtered_component_types() -> Vec<TypeId>;
+    fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx>;
 }
 
 /// A filter for restricting a [`Query`](crate::Query) to entities containing an component
@@ -179,8 +180,11 @@ where
     }
 
     #[doc(hidden)]
-    fn filtered_component_types() -> Vec<TypeId> {
-        vec![TypeId::of::<C>()]
+    fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx> {
+        vec![data
+            .components
+            .type_idx(TypeId::of::<C>())
+            .expect("internal error: missing component type for query filter")]
     }
 }
 
@@ -195,10 +199,10 @@ macro_rules! impl_tuple_query_filter {
                 $($params::register(core);)*
             }
 
-            #[allow(unused_mut)]
-            fn filtered_component_types() -> Vec<TypeId> {
+            #[allow(unused_mut, unused_variables)]
+            fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx> {
                 let mut types = Vec::new();
-                $(types.extend($params::filtered_component_types());)*
+                $(types.extend($params::filtered_component_type_idxs(data));)*
                 types
             }
         }
@@ -293,7 +297,11 @@ mod query_tests {
 #[cfg(test)]
 mod with_tests {
     use super::*;
+    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::components::ComponentStorage;
+    use crate::SystemData;
     use std::panic::{RefUnwindSafe, UnwindSafe};
+    use std::sync::Mutex;
 
     assert_impl_all!(With<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 
@@ -329,30 +337,59 @@ mod with_tests {
     }
 
     macro_rules! test_tuple_filtered_component_types {
-        ($($params:ident),*) => {{
-            let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_types();
+        (($($params:ident),*), ($($indexes:literal),*)) => {{
+            #[allow(unused_mut)]
+            let mut components = ComponentStorage::default();
+            $(components.type_idx_or_create::<$params>();)*
+            let data = SystemData {
+                components: &components,
+                archetypes: &ArchetypeStorage::default(),
+                entity_actions: &Mutex::default(),
+            };
 
-            assert_eq!(types, vec![$(TypeId::of::<$params>()),*]);
+            let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_type_idxs(&data);
+
+            assert_eq!(types, vec![$($indexes.into()),*]);
         }};
     }
 
     #[test]
     fn retrieve_filtered_component_types() {
-        let types = With::<u32>::filtered_component_types();
+        let mut components = ComponentStorage::default();
+        components.type_idx_or_create::<u32>();
+        let data = SystemData {
+            components: &components,
+            archetypes: &ArchetypeStorage::default(),
+            entity_actions: &Mutex::default(),
+        };
 
-        assert_eq!(types, vec![TypeId::of::<u32>()]);
+        let types = With::<u32>::filtered_component_type_idxs(&data);
 
-        test_tuple_filtered_component_types!();
-        test_tuple_filtered_component_types!(u8);
-        test_tuple_filtered_component_types!(u8, u16);
-        test_tuple_filtered_component_types!(u8, u16, u32);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
-        test_tuple_filtered_component_types!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+        assert_eq!(types, vec![0.into()]);
+
+        test_tuple_filtered_component_types!((), ());
+        test_tuple_filtered_component_types!((u8), (0));
+        test_tuple_filtered_component_types!((u8, u16), (0, 1));
+        test_tuple_filtered_component_types!((u8, u16, u32), (0, 1, 2));
+        test_tuple_filtered_component_types!((u8, u16, u32, u64), (0, 1, 2, 3));
+        test_tuple_filtered_component_types!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
+        test_tuple_filtered_component_types!((u8, u16, u32, u64, u128, i8), (0, 1, 2, 3, 4, 5));
+        test_tuple_filtered_component_types!(
+            (u8, u16, u32, u64, u128, i8, i16),
+            (0, 1, 2, 3, 4, 5, 6)
+        );
+        test_tuple_filtered_component_types!(
+            (u8, u16, u32, u64, u128, i8, i16, i32),
+            (0, 1, 2, 3, 4, 5, 6, 7)
+        );
+        test_tuple_filtered_component_types!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8)
+        );
+        test_tuple_filtered_component_types!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        );
     }
 }
 
@@ -380,7 +417,7 @@ mod query_system_param_tests {
     fn retrieve_iter_info() {
         let core = CoreStorage::default();
         let info = SystemInfo {
-            filtered_component_types: vec![],
+            filtered_component_type_idxs: vec![],
         };
 
         let iter_info = Query::<&u32>::iter_info(&core.system_data(), &info);

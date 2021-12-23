@@ -56,12 +56,11 @@ impl SystemParam for Entity<'_> {
 
     fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
         SystemParamIterInfo::ComponentUnionEntities(EntityIterInfo {
-            sorted_archetypes: if info.filtered_component_types.is_empty() {
+            sorted_archetypes: if info.filtered_component_type_idxs.is_empty() {
                 data.archetypes.all_sorted()
             } else {
-                data.components
-                    .type_idxs(&info.filtered_component_types)
-                    .map_or_else(Vec::new, |i| data.archetypes.sorted_with_all_types(&i))
+                data.archetypes
+                    .sorted_with_all_types(&info.filtered_component_type_idxs)
             },
         })
     }
@@ -263,7 +262,7 @@ mod entity_system_param_tests {
         let mut core = CoreStorage::default();
         let (_, archetype_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let info = SystemInfo {
-            filtered_component_types: vec![],
+            filtered_component_type_idxs: vec![],
         };
 
         let iter_info = Entity::iter_info(&core.system_data(), &info);
@@ -276,7 +275,7 @@ mod entity_system_param_tests {
     fn retrieve_iter_info_from_missing_filter_type() {
         let mut core = CoreStorage::default();
         core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(1.into());
 
         let iter_info = Entity::iter_info(&core.system_data(), &info);
 
@@ -288,7 +287,7 @@ mod entity_system_param_tests {
         let mut core = CoreStorage::default();
         let (_, archetype1_idx) = core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(1.into());
 
         let iter_info = Entity::iter_info(&core.system_data(), &info);
 

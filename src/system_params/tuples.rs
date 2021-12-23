@@ -325,7 +325,7 @@ mod empty_tuple_system_param_tests {
     #[test]
     fn retrieve_iter_info() {
         let core = CoreStorage::default();
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
 
         let iter_info = <()>::iter_info(&core.system_data(), &info);
 
@@ -433,7 +433,7 @@ mod tuple_with_one_item_system_param_tests {
         let mut core = CoreStorage::default();
         let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
 
         let iter_info = <(&u32,)>::iter_info(&core.system_data(), &info);
 
@@ -531,7 +531,7 @@ mod tuple_with_two_items_system_param_tests {
         let mut core = CoreStorage::default();
         let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
 
         let iter_info = <(&u32, &mut i64)>::iter_info(&core.system_data(), &info);
 
@@ -630,7 +630,7 @@ mod tuple_with_more_than_two_items_system_param_tests {
         let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
         let (_, archetype3_idx) = core.add_component_type::<i16>(archetype2_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
 
         let iter_info = <(&u32, &mut i64, &i16)>::iter_info(&core.system_data(), &info);
 

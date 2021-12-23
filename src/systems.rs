@@ -1,11 +1,10 @@
 use crate::storages::archetypes::ArchetypeStorage;
-use crate::storages::components::ComponentStorage;
+use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entity_actions::EntityActionStorage;
 use crate::system_params::internal::{SystemParamIterInfo, SystemParamWithLifetime};
 use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
-use std::any::TypeId;
 /// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
 /// The system passed as parameter must be a function or a static closure with no captured
@@ -123,7 +122,7 @@ use std::sync::Mutex;
 
 #[doc(hidden)]
 pub struct SystemInfo {
-    pub(crate) filtered_component_types: Vec<TypeId>,
+    pub(crate) filtered_component_type_idxs: Vec<ComponentTypeIdx>,
 }
 
 #[doc(hidden)]
@@ -237,15 +236,12 @@ pub(crate) mod internal {
 #[cfg(test)]
 mod system_info_tests {
     use super::*;
-    use std::any::Any;
+    use crate::storages::components::ComponentTypeIdx;
 
     impl SystemInfo {
-        pub(crate) fn with_one_filtered_type<C>() -> Self
-        where
-            C: Any,
-        {
+        pub(crate) fn from_one_filtered_type(type_idx: ComponentTypeIdx) -> Self {
             Self {
-                filtered_component_types: vec![TypeId::of::<C>()],
+                filtered_component_type_idxs: vec![type_idx],
             }
         }
     }
@@ -284,7 +280,7 @@ mod system_tests {
         let mut core = CoreStorage::default();
         let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
+        let info = SystemInfo::from_one_filtered_type(0.into());
         let system = |_: &u32, _: &mut i64| ();
 
         let iter_info = System::iter_info(&system, &core.system_data(), &info);

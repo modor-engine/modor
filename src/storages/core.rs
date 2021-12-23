@@ -125,7 +125,11 @@ impl CoreStorage {
         entity_type: TypeId,
         properties: SystemProperties,
     ) {
-        self.systems.add(wrapper, entity_type, properties);
+        let entity_type_idx = self
+            .components
+            .type_idx(entity_type)
+            .expect("internal error: missing entity type when adding system");
+        self.systems.add(wrapper, entity_type_idx, properties);
     }
 
     pub(crate) fn update(&mut self) {
@@ -357,7 +361,7 @@ mod core_storage_tests {
 
         storage.add_system(
             |d, i| {
-                assert_eq!(i.filtered_component_types, [TypeId::of::<u32>()]);
+                assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 d.entity_actions.try_lock().unwrap().delete_entity(0.into());
             },
             TypeId::of::<u32>(),

@@ -272,7 +272,7 @@ mod world_system_param_tests {
     fn retrieve_iter_info() {
         let core = CoreStorage::default();
         let info = SystemInfo {
-            filtered_component_types: vec![],
+            filtered_component_type_idxs: vec![],
         };
 
         let iter_info = World::iter_info(&core.system_data(), &info);
