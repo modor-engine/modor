@@ -11,11 +11,16 @@ pub(crate) struct ComponentStorage {
     are_entity_types: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     component_count: TiVec<ComponentTypeIdx, usize>,
+    sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
 }
 
 impl ComponentStorage {
     pub(crate) fn type_idx(&self, component_type: TypeId) -> Option<ComponentTypeIdx> {
         self.idxs.get(&component_type).copied()
+    }
+
+    pub(crate) fn sorted_archetype_idxs(&self, type_idx: ComponentTypeIdx) -> &[ArchetypeIdx] {
+        &self.sorted_archetype_idxs[type_idx]
     }
 
     pub(crate) fn is_entity_type<C>(&self) -> bool
@@ -70,7 +75,8 @@ impl ComponentStorage {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
             self.are_entity_types.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
-            self.archetypes.push_and_get_key(Box::new(archetype_lock))
+            self.archetypes.push(Box::new(archetype_lock));
+            self.sorted_archetype_idxs.push_and_get_key(vec![])
         })
     }
 
@@ -102,10 +108,17 @@ impl ComponentStorage {
             } else {
                 archetype.push(component);
                 self.component_count[type_idx] += 1;
+                if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&location.idx)
+                {
+                    self.sorted_archetype_idxs[type_idx].insert(pos, location.idx);
+                }
             }
         } else {
             utils::set_value(archetypes, location.idx, ti_vec![component]);
             utils::set_value(&mut self.component_count, type_idx, 1);
+            if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&location.idx) {
+                self.sorted_archetype_idxs[type_idx].insert(pos, location.idx);
+            }
         }
     }
 
@@ -225,16 +238,22 @@ mod component_storage_tests {
     fn add_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location1 = EntityLocationInArchetype::new(1.into(), 0.into());
-        let location2 = EntityLocationInArchetype::new(1.into(), 1.into());
+        let location1 = EntityLocationInArchetype::new(2.into(), 0.into());
+        let location2 = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location3 = EntityLocationInArchetype::new(1.into(), 1.into());
 
         storage.add(type_idx, location1, 10_u32);
         storage.add(type_idx, location2, 20_u32);
+        storage.add(type_idx, location3, 30_u32);
 
-        assert_eq!(storage.count(type_idx), 2);
-        let components = ti_vec![ti_vec![], ti_vec![10_u32, 20_u32]];
+        assert_eq!(storage.count(type_idx), 3);
+        let components = ti_vec![ti_vec![], ti_vec![20_u32, 30_u32], ti_vec![10_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
+        assert_eq!(
+            storage.sorted_archetype_idxs(0.into()),
+            [1.into(), 2.into()]
+        );
     }
 
     #[test]

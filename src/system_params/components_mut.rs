@@ -1,3 +1,4 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::components::ComponentArchetypes;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
@@ -29,12 +30,14 @@ where
     type InnerTuple = ();
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
+        let type_idx = core.register_component_type::<C>();
         SystemProperties {
             component_types: vec![ComponentTypeAccess {
                 access: Access::Write,
-                type_idx: core.register_component_type::<C>(),
+                type_idx,
             }],
             has_entity_actions: false,
+            archetype_filter: ArchetypeFilter::Intersection(ne_vec![type_idx]),
         }
     }
 

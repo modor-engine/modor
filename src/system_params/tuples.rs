@@ -1,3 +1,4 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
@@ -31,12 +32,12 @@ macro_rules! impl_tuple_system_param {
             fn properties(core: &mut CoreStorage) -> SystemProperties {
                 let properties = ($($params::properties(core),)*);
                 SystemProperties {
-                    component_types: iter::empty()
-                        $(.chain(properties.$indexes.component_types))*
-                        .collect(),
-                    has_entity_actions: [
-                        $(properties.$indexes.has_entity_actions),*
-                    ].into_iter().any(|b| b),
+                    component_types:
+                        iter::empty() $(.chain(properties.$indexes.component_types))*.collect(),
+                    has_entity_actions:
+                        [$(properties.$indexes.has_entity_actions),*].into_iter().any(|b| b),
+                    archetype_filter:
+                        ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))*
                 }
             }
 
@@ -372,9 +373,12 @@ mod empty_tuple_system_param_tests {
         let guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
-        let iter = <()>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <()>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(), (), ()]);
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -382,9 +386,12 @@ mod empty_tuple_system_param_tests {
         let guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
-        let iter = <()>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <()>::query_iter(&guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [(), (), ()]);
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -392,9 +399,12 @@ mod empty_tuple_system_param_tests {
         let mut guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
-        let iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(), (), ()]);
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -402,9 +412,12 @@ mod empty_tuple_system_param_tests {
         let mut guard_borrow = ();
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
-        let iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
 
-        assert_iter!(iter, [(), (), ()]);
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.next(), None);
     }
 }
 
@@ -475,9 +488,11 @@ mod tuple_with_one_item_system_param_tests {
         let guard_borrow = (&guard,);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32,)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32,)>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10,), (&20,)]);
+        assert_eq!(iter.next(), Some((&10,)));
+        assert_eq!(iter.next(), Some((&20,)));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -486,9 +501,11 @@ mod tuple_with_one_item_system_param_tests {
         let mut guard_borrow = (&guard,);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32,)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32,)>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10,), (&20,)]);
+        assert_eq!(iter.next(), Some((&10,)));
+        assert_eq!(iter.next(), Some((&20,)));
+        assert_eq!(iter.next(), None);
     }
 }
 
@@ -582,9 +599,11 @@ mod tuple_with_two_items_system_param_tests {
         let guard_borrow = (&guard1, &mut guard2);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32, &mut i64)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64)>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10, &30), (&20, &40)]);
+        assert_eq!(iter.next(), Some((&10, &30)));
+        assert_eq!(iter.next(), Some((&20, &40)));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -594,9 +613,11 @@ mod tuple_with_two_items_system_param_tests {
         let mut guard_borrow = (&guard1, &mut guard2);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10, &mut 30), (&20, &mut 40)]);
+        assert_eq!(iter.next(), Some((&10, &mut 30)));
+        assert_eq!(iter.next(), Some((&20, &mut 40)));
+        assert_eq!(iter.next(), None);
     }
 }
 
@@ -687,9 +708,11 @@ mod tuple_with_more_than_two_items_system_param_tests {
         let guard_borrow = (&guard1, &mut guard2, &guard3);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10, &30, &50), (&20, &40, &60)]);
+        assert_eq!(iter.next(), Some((&10, &30, &50)));
+        assert_eq!(iter.next(), Some((&20, &40, &60)));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -700,8 +723,10 @@ mod tuple_with_more_than_two_items_system_param_tests {
         let mut guard_borrow = (&guard1, &mut guard2, &guard3);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow, &iter_info);
 
-        assert_iter!(iter, [(&10, &mut 30, &50), (&20, &mut 40, &60)]);
+        assert_eq!(iter.next(), Some((&10, &mut 30, &50)));
+        assert_eq!(iter.next(), Some((&20, &mut 40, &60)));
+        assert_eq!(iter.next(), None);
     }
 }

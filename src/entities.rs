@@ -423,7 +423,7 @@ mod entity_builder_tests {
 #[cfg(test)]
 mod entity_runner_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::systems::SystemProperties;
 
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
@@ -453,6 +453,7 @@ mod entity_runner_tests {
             properties_fn: |_| SystemProperties {
                 component_types: vec![],
                 has_entity_actions: false,
+                archetype_filter: ArchetypeFilter::None,
             },
             wrapper: |d, i| {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);

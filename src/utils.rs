@@ -84,12 +84,6 @@ mod test_utils {
             );
         }};
     }
-
-    macro_rules! assert_iter {
-        ($actual_iter:expr, $expected_slice:expr) => {{
-            assert_eq!($actual_iter.collect::<Vec<_>>(), $expected_slice);
-        }};
-    }
 }
 
 #[cfg(test)]

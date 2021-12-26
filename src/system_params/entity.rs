@@ -1,4 +1,5 @@
 use crate::entity::internal::EntityIter;
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
@@ -51,6 +52,7 @@ impl SystemParam for Entity<'_> {
         SystemProperties {
             component_types: vec![],
             has_entity_actions: false,
+            archetype_filter: ArchetypeFilter::All,
         }
     }
 
@@ -263,6 +265,7 @@ mod entity_system_param_tests {
         let (_, archetype_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         let info = SystemInfo {
             filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::None,
         };
 
         let iter_info = Entity::iter_info(&core.system_data(), &info);

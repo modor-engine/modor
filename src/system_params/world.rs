@@ -1,3 +1,4 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
@@ -99,6 +100,7 @@ impl SystemParam for World<'_> {
         SystemProperties {
             component_types: vec![],
             has_entity_actions: true,
+            archetype_filter: ArchetypeFilter::None,
         }
     }
 
@@ -273,6 +275,7 @@ mod world_system_param_tests {
         let core = CoreStorage::default();
         let info = SystemInfo {
             filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::None,
         };
 
         let iter_info = World::iter_info(&core.system_data(), &info);

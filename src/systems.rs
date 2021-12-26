@@ -1,4 +1,6 @@
-use crate::storages::archetypes::ArchetypeStorage;
+use crate::storages::archetypes::{
+    ArchetypeFilter, ArchetypeIdx, ArchetypeStorage, FilteredArchetypeIdxIter,
+};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entity_actions::EntityActionStorage;
@@ -122,7 +124,8 @@ use std::sync::Mutex;
 
 #[doc(hidden)]
 pub struct SystemInfo {
-    pub(crate) filtered_component_type_idxs: Vec<ComponentTypeIdx>,
+    pub(crate) filtered_component_type_idxs: Vec<ComponentTypeIdx>, // TODO: avoid cloning
+    pub(crate) archetype_filter: ArchetypeFilter,                   // TODO: avoid cloning
 }
 
 #[doc(hidden)]
@@ -130,6 +133,33 @@ pub struct SystemData<'a> {
     pub(crate) components: &'a ComponentStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
     pub(crate) entity_actions: &'a Mutex<EntityActionStorage>,
+}
+
+impl SystemData<'_> {
+    pub(crate) fn filter_archetype_idx_iter<'a>(
+        &'a self,
+        system_info: &'a SystemInfo,
+    ) -> FilteredArchetypeIdxIter<'a> {
+        const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
+        let pre_filtered_archetype_idxs = if let Some(&type_idx) =
+            system_info.filtered_component_type_idxs.first()
+        {
+            self.components.sorted_archetype_idxs(type_idx)
+        } else {
+            match &system_info.archetype_filter {
+                ArchetypeFilter::None => EMPTY_ARCHETYPE_IDX_SLICE,
+                ArchetypeFilter::All => self.archetypes.all_sorted_idxs(),
+                ArchetypeFilter::Union(type_idxs) | ArchetypeFilter::Intersection(type_idxs) => {
+                    self.components.sorted_archetype_idxs(*type_idxs.first())
+                }
+            }
+        };
+        self.archetypes.filter_idxs(
+            pre_filtered_archetype_idxs.iter(),
+            &system_info.filtered_component_type_idxs,
+            &system_info.archetype_filter,
+        )
+    }
 }
 
 /// A builder for defining a system.
@@ -226,11 +256,116 @@ impl_system!();
 run_for_tuples_with_idxs!(impl_system);
 
 pub(crate) mod internal {
-    use crate::{SystemData, SystemInfo};
+    use super::*;
 
     pub trait SealedSystem<P> {}
 
     pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo);
+}
+
+#[cfg(test)]
+mod system_data_tests {
+    use super::*;
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_when_some_filtered_types() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![type2_idx],
+            archetype_filter: ArchetypeFilter::All,
+        };
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&info);
+
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_none_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::None,
+        };
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&info);
+
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_all_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::All,
+        };
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&info);
+
+        assert_eq!(iter.next(), Some(0.into()));
+        assert_eq!(iter.next(), Some(archetype1_idx));
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_union_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::Union(ne_vec![type1_idx]),
+        };
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&info);
+
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_intersection_archetype_filter()
+    {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::Intersection(ne_vec![type1_idx]),
+        };
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&info);
+
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
 }
 
 #[cfg(test)]
@@ -242,6 +377,7 @@ mod system_info_tests {
         pub(crate) fn from_one_filtered_type(type_idx: ComponentTypeIdx) -> Self {
             Self {
                 filtered_component_type_idxs: vec![type_idx],
+                archetype_filter: ArchetypeFilter::None,
             }
         }
     }

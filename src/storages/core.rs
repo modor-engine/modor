@@ -210,6 +210,7 @@ mod core_storage_tests {
     use crate::storages::systems::{Access, ComponentTypeAccess};
     use crate::SystemData;
     use typed_index_collections::TiVec;
+    use crate::storages::archetypes::ArchetypeFilter;
 
     #[allow(clippy::multiple_inherent_impl)]
     impl CoreStorage {
@@ -371,6 +372,7 @@ mod core_storage_tests {
                     type_idx: 0.into(),
                 }],
                 has_entity_actions: true,
+                archetype_filter: ArchetypeFilter::None
             },
         );
         storage.update();

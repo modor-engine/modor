@@ -1,3 +1,4 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
@@ -50,6 +51,7 @@ where
                 data,
                 &SystemInfo {
                     filtered_component_type_idxs: F::filtered_component_type_idxs(data),
+                    archetype_filter: ArchetypeFilter::All,
                 },
             ),
             phantom: PhantomData,
@@ -260,9 +262,10 @@ mod query_tests {
         let mut guard = core.components().write_components::<u32>();
         let query = Query::<&mut u32, With<i64>>::new(&data, &mut *guard);
 
-        let iter = query.iter();
+        let mut iter = query.iter();
 
-        assert_iter!(iter, [&20]);
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -275,9 +278,10 @@ mod query_tests {
         let mut guard = core.components().write_components::<u32>();
         let mut query = Query::<&mut u32, With<i64>>::new(&data, &mut *guard);
 
-        let iter = query.iter_mut();
+        let mut iter = query.iter_mut();
 
-        assert_iter!(iter, [&20]);
+        assert_eq!(iter.next(), Some(&mut 20));
+        assert_eq!(iter.next(), None);
     }
 
     fn create_entity<C1, C2>(core: &mut CoreStorage, component1: C1, component2: C2)
@@ -418,6 +422,7 @@ mod query_system_param_tests {
         let core = CoreStorage::default();
         let info = SystemInfo {
             filtered_component_type_idxs: vec![],
+            archetype_filter: ArchetypeFilter::None,
         };
 
         let iter_info = Query::<&u32>::iter_info(&core.system_data(), &info);

@@ -1,3 +1,4 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{AllSystemProperties, LockedSystem, SystemStateStorage};
 use crate::systems::internal::SystemWrapper;
@@ -12,6 +13,7 @@ pub(crate) struct SystemStorage {
     component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
     have_entity_actions: TiVec<SystemIdx, bool>,
     entity_type_idxs: TiVec<SystemIdx, ComponentTypeIdx>,
+    archetype_filters: TiVec<SystemIdx, ArchetypeFilter>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
 }
@@ -45,6 +47,7 @@ impl SystemStorage {
         self.wrappers.push(Some(wrapper));
         self.component_types.push(properties.component_types);
         self.have_entity_actions.push(properties.has_entity_actions);
+        self.archetype_filters.push(properties.archetype_filter);
         self.entity_type_idxs.push_and_get_key(entity_type_idx)
     }
 
@@ -59,7 +62,13 @@ impl SystemStorage {
 
     fn run_sequentially(&mut self, data: &SystemData<'_>) {
         for system_idx in Self::all_idxs(&self.wrappers) {
-            Self::run_system(system_idx, &self.entity_type_idxs, &self.wrappers, data);
+            Self::run_system(
+                system_idx,
+                &self.archetype_filters,
+                &self.entity_type_idxs,
+                &self.wrappers,
+                data,
+            );
         }
     }
 
@@ -80,6 +89,7 @@ impl SystemStorage {
                         data,
                         &self.states,
                         system_properties,
+                        &self.archetype_filters,
                         &self.entity_type_idxs,
                         &self.wrappers,
                     );
@@ -89,6 +99,7 @@ impl SystemStorage {
                 data,
                 &self.states,
                 system_properties,
+                &self.archetype_filters,
                 &self.entity_type_idxs,
                 &self.wrappers,
             );
@@ -99,6 +110,7 @@ impl SystemStorage {
         data: &SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
         system_properties: AllSystemProperties<'_>,
+        archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
         entity_type_idxs: &TiSlice<SystemIdx, ComponentTypeIdx>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
     ) {
@@ -107,7 +119,13 @@ impl SystemStorage {
             Self::lock_next_system(states, previous_system_idx, system_properties)
         {
             if let Some(system_idx) = system_idx {
-                Self::run_system(system_idx, entity_type_idxs, wrappers, data);
+                Self::run_system(
+                    system_idx,
+                    archetype_filters,
+                    entity_type_idxs,
+                    wrappers,
+                    data,
+                );
             }
             previous_system_idx = system_idx;
         }
@@ -126,6 +144,7 @@ impl SystemStorage {
 
     fn run_system(
         system_idx: SystemIdx,
+        archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
         entity_type_idxs: &TiSlice<SystemIdx, ComponentTypeIdx>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
         data: &SystemData<'_>,
@@ -136,6 +155,7 @@ impl SystemStorage {
         }
         let info = SystemInfo {
             filtered_component_type_idxs: vec![entity_type_idx],
+            archetype_filter: archetype_filters[system_idx].clone(),
         };
         let wrapper = wrappers[system_idx].expect("internal error: call missing system");
         wrapper(data, info);
@@ -156,6 +176,7 @@ idx_type!(pub(crate) SystemIdx);
 pub struct SystemProperties {
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) has_entity_actions: bool,
+    pub(crate) archetype_filter: ArchetypeFilter,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -322,12 +343,12 @@ mod system_storage_tests {
         let wrapper1: SystemWrapper = |d, _| {
             let thread_id = Component1(thread::current().id());
             d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(1));
+            thread::sleep(Duration::from_millis(10));
         };
         let wrapper2: SystemWrapper = |d, _| {
             let thread_id = Component2(thread::current().id());
             d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(1));
+            thread::sleep(Duration::from_millis(10));
         };
         let properties1 = create_properties(vec![], false);
         let properties2 = create_properties(vec![], true);
@@ -366,6 +387,7 @@ mod system_storage_tests {
         SystemProperties {
             component_types,
             has_entity_actions,
+            archetype_filter: ArchetypeFilter::None,
         }
     }
 }
