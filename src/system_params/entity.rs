@@ -1,4 +1,4 @@
-use crate::entity::internal::EntityIter;
+use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
 use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
@@ -39,8 +39,8 @@ impl<'a> Entity<'a> {
 
 impl<'a> SystemParamWithLifetime<'a> for Entity<'_> {
     type Param = Entity<'a>;
-    type Guard = &'a SystemData<'a>;
-    type GuardBorrow = &'a SystemData<'a>;
+    type Guard = EntityGuard<'a>;
+    type GuardBorrow = EntityGuardBorrow<'a>;
     type Stream = EntityIter<'a>;
 }
 
@@ -67,8 +67,11 @@ impl SystemParam for Entity<'_> {
         })
     }
 
-    fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-        data
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+        EntityGuard::new(data, info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -77,17 +80,17 @@ impl SystemParam for Entity<'_> {
     where
         'b: 'a,
     {
-        guard
+        guard.borrow()
     }
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
+        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        EntityIter::new(info, guard)
+        EntityIter::new(guard)
     }
 
     #[inline]
@@ -115,7 +118,7 @@ impl QuerySystemParam for Entity<'_> {
     where
         'b: 'a,
     {
-        EntityIter::new(info, guard)
+        EntityIter::new(guard)
     }
 
     fn query_iter_mut<'a, 'b>(
@@ -125,17 +128,41 @@ impl QuerySystemParam for Entity<'_> {
     where
         'b: 'a,
     {
-        EntityIter::new(info, guard)
+        EntityIter::new(guard)
     }
 }
 
 mod internal {
-    use crate::storages::archetypes::ArchetypeInfo;
+    use crate::storages::archetypes::FilteredArchetypeIdxIter;
     use crate::storages::entities::EntityIdx;
-    use crate::system_params::internal::SystemParamIterInfo;
-    use crate::{Entity, SystemData};
+    use crate::{Entity, SystemData, SystemInfo};
     use std::iter::Flatten;
     use std::slice::Iter;
+
+    pub struct EntityGuard<'a> {
+        data: &'a SystemData<'a>,
+        info: &'a SystemInfo,
+    }
+
+    impl<'a> EntityGuard<'a> {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+            Self { data, info }
+        }
+
+        pub(crate) fn borrow(&mut self) -> EntityGuardBorrow<'_> {
+            EntityGuardBorrow {
+                item_count: self.data.item_count(self.info),
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(self.info),
+                data: self.data,
+            }
+        }
+    }
+
+    pub struct EntityGuardBorrow<'a> {
+        pub(crate) item_count: usize,
+        pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
+        pub(crate) data: &'a SystemData<'a>,
+    }
 
     pub struct EntityIter<'a> {
         entity_idxs: Flatten<ArchetypeEntityIdxIter<'a>>,
@@ -144,18 +171,11 @@ mod internal {
     }
 
     impl<'a> EntityIter<'a> {
-        pub fn new(info: &'a SystemParamIterInfo, data: &'a SystemData<'a>) -> Self {
+        pub fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
             Self {
-                entity_idxs: ArchetypeEntityIdxIter {
-                    sorted_archetypes: info
-                        .sorted_archetypes()
-                        .expect("internal error: wrong iter mode for components")
-                        .iter(),
-                    data,
-                }
-                .flatten(),
-                len: info.item_count(),
-                data,
+                entity_idxs: ArchetypeEntityIdxIter::new(guard).flatten(),
+                len: guard.item_count,
+                data: guard.data,
             }
         }
     }
@@ -195,25 +215,34 @@ mod internal {
     impl ExactSizeIterator for EntityIter<'_> {}
 
     struct ArchetypeEntityIdxIter<'a> {
-        sorted_archetypes: Iter<'a, ArchetypeInfo>,
+        sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
         data: &'a SystemData<'a>,
+    }
+
+    impl<'a> ArchetypeEntityIdxIter<'a> {
+        fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
+            Self {
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                data: guard.data,
+            }
+        }
     }
 
     impl<'a> Iterator for ArchetypeEntityIdxIter<'a> {
         type Item = Iter<'a, EntityIdx>;
 
         fn next(&mut self) -> Option<Self::Item> {
-            self.sorted_archetypes
+            self.sorted_archetype_idxs
                 .next()
-                .map(|a| self.data.archetypes.entity_idxs(a.idx).iter())
+                .map(|a| self.data.archetypes.entity_idxs(a).iter())
         }
     }
 
     impl DoubleEndedIterator for ArchetypeEntityIdxIter<'_> {
         fn next_back(&mut self) -> Option<Self::Item> {
-            self.sorted_archetypes
+            self.sorted_archetype_idxs
                 .next_back()
-                .map(|a| self.data.archetypes.entity_idxs(a.idx).iter())
+                .map(|a| self.data.archetypes.entity_idxs(a).iter())
         }
     }
 }
@@ -242,7 +271,7 @@ mod entity_tests {
 #[cfg(test)]
 mod entity_system_param_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
     use crate::storages::core::CoreStorage;
     use crate::system_params::internal::SystemParamIterInfo;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
@@ -257,6 +286,7 @@ mod entity_system_param_tests {
 
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.has_entity_actions);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
     }
 
     #[test]
@@ -300,13 +330,25 @@ mod entity_system_param_tests {
 
     #[test]
     fn lock() {
-        let core = CoreStorage::default();
+        let mut core = CoreStorage::default();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
+        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = Entity::lock(&data);
-        let guard_borrow = Entity::borrow_guard(&mut guard);
+        let mut guard = Entity::lock(&data, &info);
+        let mut guard_borrow = Entity::borrow_guard(&mut guard);
 
-        assert!(ptr::eq(guard_borrow, &data));
+        assert_eq!(guard_borrow.item_count, 1);
+        let archetype_idx = guard_borrow.sorted_archetype_idxs.next();
+        assert_eq!(archetype_idx, Some(archetype2_idx));
+        assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
+        assert!(ptr::eq(guard_borrow.data, &data));
     }
 
     #[test]
@@ -318,7 +360,16 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let mut guard_borrow = &core.system_data();
+        let archetype_idxs = [2.into(), 4.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
+        let mut guard_borrow = EntityGuardBorrow {
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+            data: &core.system_data(),
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
         let mut stream = Entity::stream(&mut guard_borrow, &iter_info);
@@ -338,7 +389,16 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let guard_borrow = &core.system_data();
+        let archetype_idxs = [2.into(), 4.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
+        let guard_borrow = EntityGuardBorrow {
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+            data: &core.system_data(),
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
         let mut iter = Entity::query_iter(&guard_borrow, &iter_info);
@@ -362,7 +422,16 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let guard_borrow = &core.system_data();
+        let archetype_idxs = [2.into(), 4.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
+        let guard_borrow = EntityGuardBorrow {
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+            data: &core.system_data(),
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
         let mut iter = Entity::query_iter(&guard_borrow, &iter_info).rev();
@@ -386,7 +455,16 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let mut guard_borrow = &core.system_data();
+        let archetype_idxs = [2.into(), 4.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
+        let mut guard_borrow = EntityGuardBorrow {
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+            data: &core.system_data(),
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
         let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info);
@@ -410,7 +488,16 @@ mod entity_system_param_tests {
         create_entity(&mut core, 30_u16);
         create_entity(&mut core, 40_u16);
         create_entity(&mut core, 50_i8);
-        let mut guard_borrow = &core.system_data();
+        let archetype_idxs = [2.into(), 4.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
+        let mut guard_borrow = EntityGuardBorrow {
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+            data: &core.system_data(),
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
         let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info).rev();

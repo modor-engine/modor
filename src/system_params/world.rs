@@ -4,7 +4,8 @@ use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{
     LockableSystemParam, Mut, SystemParamIterInfo, SystemParamWithLifetime,
 };
-use crate::system_params::world::internal::WorldStream;
+use crate::system_params::world::internal::{WorldGuard, WorldStream};
+use crate::world::internal::WorldGuardBorrow;
 use crate::{SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
 
@@ -87,8 +88,8 @@ impl<'a> World<'a> {
 
 impl<'a> SystemParamWithLifetime<'a> for World<'_> {
     type Param = World<'a>;
-    type Guard = &'a SystemData<'a>;
-    type GuardBorrow = &'a SystemData<'a>;
+    type Guard = WorldGuard<'a>;
+    type GuardBorrow = WorldGuardBorrow<'a>;
     type Stream = WorldStream<'a>;
 }
 
@@ -108,8 +109,11 @@ impl SystemParam for World<'_> {
         SystemParamIterInfo::None
     }
 
-    fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-        data
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+        WorldGuard::new(data, info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -118,17 +122,17 @@ impl SystemParam for World<'_> {
     where
         'b: 'a,
     {
-        guard
+        guard.borrow()
     }
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
+        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        WorldStream::new(info, guard)
+        WorldStream::new(guard)
     }
 
     #[inline]
@@ -151,9 +155,31 @@ impl LockableSystemParam for World<'_> {
 }
 
 mod internal {
-    use crate::system_params::internal::SystemParamIterInfo;
-    use crate::SystemData;
+    use crate::{SystemData, SystemInfo};
     use std::ops::Range;
+
+    pub struct WorldGuard<'a> {
+        data: &'a SystemData<'a>,
+        info: &'a SystemInfo,
+    }
+
+    impl<'a> WorldGuard<'a> {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+            Self { data, info }
+        }
+
+        pub(crate) fn borrow(&mut self) -> WorldGuardBorrow<'_> {
+            WorldGuardBorrow {
+                item_count: self.data.item_count(self.info),
+                data: self.data,
+            }
+        }
+    }
+
+    pub struct WorldGuardBorrow<'a> {
+        pub(crate) item_count: usize,
+        pub(crate) data: &'a SystemData<'a>,
+    }
 
     pub struct WorldStream<'a> {
         pub(crate) data: &'a SystemData<'a>,
@@ -161,10 +187,10 @@ mod internal {
     }
 
     impl<'a> WorldStream<'a> {
-        pub(crate) fn new(info: &'a SystemParamIterInfo, data: &'a SystemData<'a>) -> Self {
+        pub(crate) fn new(guard: &'a WorldGuardBorrow<'_>) -> Self {
             Self {
-                data,
-                entity_positions: 0..info.item_count(),
+                data: guard.data,
+                entity_positions: 0..guard.item_count,
             }
         }
     }
@@ -257,6 +283,7 @@ mod world_tests {
 #[cfg(test)]
 mod world_system_param_tests {
     use super::*;
+    use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
     use std::ptr;
 
@@ -268,6 +295,7 @@ mod world_system_param_tests {
 
         assert_eq!(properties.component_types.len(), 0);
         assert!(properties.has_entity_actions);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
     #[test]
@@ -285,32 +313,32 @@ mod world_system_param_tests {
 
     #[test]
     fn lock() {
-        let core = CoreStorage::default();
+        let mut core = CoreStorage::default();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
+        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = World::lock(&data);
+        let mut guard = World::lock(&data, &info);
         let guard_borrow = World::borrow_guard(&mut guard);
 
-        assert!(ptr::eq(guard_borrow, &data));
+        assert_eq!(guard_borrow.item_count, 1);
+        assert!(ptr::eq(guard_borrow.data, &data));
     }
 
     #[test]
-    fn retrieve_stream_when_no_iteration() {
+    fn retrieve_stream() {
         let core = CoreStorage::default();
-        let mut guard_borrow = &core.system_data();
         let iter_info = SystemParamIterInfo::None;
-
-        let mut stream = World::stream(&mut guard_borrow, &iter_info);
-
-        assert!(World::stream_next(&mut stream).is_some());
-        assert!(World::stream_next(&mut stream).is_none());
-    }
-
-    #[test]
-    fn retrieve_stream_when_iteration_on_entities() {
-        let core = CoreStorage::default();
-        let mut guard_borrow = &core.system_data();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+        let mut guard_borrow = WorldGuardBorrow {
+            item_count: 3,
+            data: &core.system_data(),
+        };
 
         let mut stream = World::stream(&mut guard_borrow, &iter_info);
 

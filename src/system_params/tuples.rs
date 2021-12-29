@@ -48,8 +48,11 @@ macro_rules! impl_tuple_system_param {
             }
 
             #[allow(unused_variables, clippy::unused_unit)]
-            fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-                ($($params::lock(data),)*)
+            fn lock<'a>(
+                data: &'a SystemData<'_>,
+                info: &'a SystemInfo,
+            ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+                ($($params::lock(data, info),)*)
             }
 
             #[allow(unused_variables, clippy::unused_unit)]
@@ -65,12 +68,12 @@ macro_rules! impl_tuple_system_param {
             #[allow(unused_variables, clippy::unused_unit)]
             fn stream<'a, 'b>(
                 guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-                info: &'a SystemParamIterInfo,
+                iter_info: &'a SystemParamIterInfo,
             ) -> <Self as SystemParamWithLifetime<'a>>::Stream
             where
                 'b: 'a,
             {
-                stream_new!(guard, info $(,($params, $indexes))*)
+                stream_new!(guard, iter_info $(,($params, $indexes))*)
             }
 
             #[allow(unused_variables)]
@@ -321,6 +324,7 @@ mod empty_tuple_system_param_tests {
 
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.has_entity_actions);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
     #[test]
@@ -337,8 +341,12 @@ mod empty_tuple_system_param_tests {
     fn lock() {
         let core = CoreStorage::default();
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = <()>::lock(&data);
+        let mut guard = <()>::lock(&data, &info);
         let guard_borrow = <()>::borrow_guard(&mut guard);
 
         assert!(matches!(guard_borrow, ()));
@@ -424,7 +432,8 @@ mod empty_tuple_system_param_tests {
 #[cfg(test)]
 mod tuple_with_one_item_system_param_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::components::internal::ComponentGuardBorrow;
+    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::SystemInfo;
@@ -439,6 +448,8 @@ mod tuple_with_one_item_system_param_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.has_entity_actions);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
@@ -462,17 +473,31 @@ mod tuple_with_one_item_system_param_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = <(&u32,)>::lock(&data);
+        let mut guard = <(&u32,)>::lock(&data, &info);
         let guard_borrow = <(&u32,)>::borrow_guard(&mut guard);
 
-        assert_eq!(guard_borrow, (&ti_vec![ti_vec![], ti_vec![10_u32]],));
+        let components = guard_borrow.0.components;
+        assert_eq!(components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
     }
 
     #[test]
     fn retrieve_stream() {
-        let guard = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard_borrow = (&guard,);
+        let components = ti_vec![ti_vec![10], ti_vec![20]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let mut guard_borrow = (ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        },);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut stream = <(&u32,)>::stream(&mut guard_borrow, &iter_info);
@@ -484,8 +509,17 @@ mod tuple_with_one_item_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let guard = ti_vec![ti_vec![10], ti_vec![20]];
-        let guard_borrow = (&guard,);
+        let components = ti_vec![ti_vec![10], ti_vec![20]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let guard_borrow = (ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        },);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32,)>::query_iter(&guard_borrow, &iter_info);
@@ -497,8 +531,17 @@ mod tuple_with_one_item_system_param_tests {
 
     #[test]
     fn retrieve_query_iter_mut() {
-        let guard = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard_borrow = (&guard,);
+        let components = ti_vec![ti_vec![10], ti_vec![20]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let mut guard_borrow = (ComponentGuardBorrow {
+            components: &components,
+            item_count: 2,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        },);
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32,)>::query_iter_mut(&mut guard_borrow, &iter_info);
@@ -512,7 +555,9 @@ mod tuple_with_one_item_system_param_tests {
 #[cfg(test)]
 mod tuple_with_two_items_system_param_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::components::internal::ComponentGuardBorrow;
+    use crate::components_mut::internal::ComponentMutGuardBorrow;
+    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::{SystemInfo, World};
@@ -527,6 +572,8 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(properties.has_entity_actions);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
@@ -541,6 +588,8 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert_eq!(properties.component_types[1].type_idx, 1.into());
         assert!(!properties.has_entity_actions);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
@@ -566,21 +615,40 @@ mod tuple_with_two_items_system_param_tests {
         core.add_component(10_i64, type1_idx, location);
         core.add_component(20_u32, type2_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = <(&u32, &mut i64)>::lock(&data);
+        let mut guard = <(&u32, &mut i64)>::lock(&data, &info);
         let guard_borrow = <(&u32, &mut i64)>::borrow_guard(&mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0, &expected_guard);
+        assert_eq!(guard_borrow.0.components, &expected_guard);
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1, &expected_guard);
+        assert_eq!(guard_borrow.1.components, &expected_guard);
     }
 
     #[test]
     fn retrieve_stream() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let mut guard_borrow = (&guard1, &mut guard2);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let mut guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut stream = <(&u32, &mut i64)>::stream(&mut guard_borrow, &iter_info);
@@ -594,9 +662,24 @@ mod tuple_with_two_items_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let guard_borrow = (&guard1, &mut guard2);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32, &mut i64)>::query_iter(&guard_borrow, &iter_info);
@@ -608,9 +691,24 @@ mod tuple_with_two_items_system_param_tests {
 
     #[test]
     fn retrieve_query_iter_mut() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let mut guard_borrow = (&guard1, &mut guard2);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let mut guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow, &iter_info);
@@ -624,7 +722,9 @@ mod tuple_with_two_items_system_param_tests {
 #[cfg(test)]
 mod tuple_with_more_than_two_items_system_param_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::components::internal::ComponentGuardBorrow;
+    use crate::components_mut::internal::ComponentMutGuardBorrow;
+    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::SystemInfo;
@@ -643,6 +743,8 @@ mod tuple_with_more_than_two_items_system_param_tests {
         assert_eq!(properties.component_types[2].access, Access::Read);
         assert_eq!(properties.component_types[2].type_idx, 2.into());
         assert!(!properties.has_entity_actions);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
@@ -671,24 +773,48 @@ mod tuple_with_more_than_two_items_system_param_tests {
         core.add_component(20_u32, type2_idx, location);
         core.add_component(30_i16, type3_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = <(&u32, &mut i64, &i16)>::lock(&data);
+        let mut guard = <(&u32, &mut i64, &i16)>::lock(&data, &info);
         let guard_borrow = <(&u32, &mut i64, &i16)>::borrow_guard(&mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0, &expected_guard);
+        assert_eq!(guard_borrow.0.components, &expected_guard);
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1, &expected_guard);
+        assert_eq!(guard_borrow.1.components, &expected_guard);
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![30_i16]];
-        assert_eq!(guard_borrow.2, &expected_guard);
+        assert_eq!(guard_borrow.2.components, &expected_guard);
     }
 
     #[test]
     fn retrieve_stream() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let guard3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let mut guard_borrow = (&guard1, &mut guard2, &guard3);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let mut guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentGuardBorrow {
+                components: &components3,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut stream = <(&u32, &mut i64, &i16)>::stream(&mut guard_borrow, &iter_info);
@@ -702,10 +828,30 @@ mod tuple_with_more_than_two_items_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let guard3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let guard_borrow = (&guard1, &mut guard2, &guard3);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentGuardBorrow {
+                components: &components3,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow, &iter_info);
@@ -717,10 +863,30 @@ mod tuple_with_more_than_two_items_system_param_tests {
 
     #[test]
     fn retrieve_query_iter_mut() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let guard3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let mut guard_borrow = (&guard1, &mut guard2, &guard3);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let mut guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentGuardBorrow {
+                components: &components3,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
         let mut iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow, &iter_info);

@@ -1,6 +1,5 @@
-use crate::components::internal::ComponentIter;
+use crate::components::internal::{ComponentGuard, ComponentGuardBorrow, ComponentIter};
 use crate::storages::archetypes::ArchetypeFilter;
-use crate::storages::components::ComponentArchetypes;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{
@@ -9,15 +8,14 @@ use crate::system_params::internal::{
 };
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
-use std::sync::RwLockReadGuard;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C
 where
     C: Any + Sync + Send,
 {
     type Param = &'a C;
-    type Guard = RwLockReadGuard<'a, ComponentArchetypes<C>>;
-    type GuardBorrow = &'a ComponentArchetypes<C>;
+    type Guard = ComponentGuard<'a, C>;
+    type GuardBorrow = ComponentGuardBorrow<'a, C>;
     type Stream = ComponentIter<'a, C>;
 }
 
@@ -52,8 +50,11 @@ where
         })
     }
 
-    fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-        data.components.read_components::<C>()
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+        ComponentGuard::new(data, info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -62,17 +63,17 @@ where
     where
         'b: 'a,
     {
-        &*guard
+        guard.borrow()
     }
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
+        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        ComponentIter::new(info, guard)
+        ComponentIter::new(guard)
     }
 
     #[inline]
@@ -106,7 +107,7 @@ where
     where
         'b: 'a,
     {
-        ComponentIter::new(info, guard)
+        ComponentIter::new(guard)
     }
 
     fn query_iter_mut<'a, 'b>(
@@ -116,7 +117,7 @@ where
     where
         'b: 'a,
     {
-        ComponentIter::new(info, guard)
+        ComponentIter::new(guard)
     }
 }
 
@@ -129,12 +130,48 @@ where
 }
 
 pub(crate) mod internal {
-    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, ArchetypeInfo};
+    use crate::components_mut::internal::ComponentMutGuardBorrow;
+    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
     use crate::storages::components::ComponentArchetypes;
-    use crate::system_params::internal::SystemParamIterInfo;
+    use crate::{SystemData, SystemInfo};
+    use std::any::Any;
     use std::iter::Flatten;
     use std::slice::Iter;
+    use std::sync::RwLockReadGuard;
     use typed_index_collections::TiVec;
+
+    pub struct ComponentGuard<'a, C> {
+        components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
+        data: &'a SystemData<'a>,
+        info: &'a SystemInfo,
+    }
+
+    impl<'a, C> ComponentGuard<'a, C>
+    where
+        C: Any,
+    {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+            Self {
+                components: data.components.read_components::<C>(),
+                data,
+                info,
+            }
+        }
+
+        pub(crate) fn borrow(&mut self) -> ComponentGuardBorrow<'_, C> {
+            ComponentGuardBorrow {
+                components: &*self.components,
+                item_count: self.data.item_count(self.info),
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(self.info),
+            }
+        }
+    }
+
+    pub struct ComponentGuardBorrow<'a, C> {
+        pub(crate) components: &'a ComponentArchetypes<C>,
+        pub(crate) item_count: usize,
+        pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
+    }
 
     pub struct ComponentIter<'a, C> {
         components: Flatten<ArchetypeComponentIter<'a, C>>,
@@ -142,18 +179,17 @@ pub(crate) mod internal {
     }
 
     impl<'a, C> ComponentIter<'a, C> {
-        pub(crate) fn new(
-            info: &'a SystemParamIterInfo,
-            component_archetypes: &'a ComponentArchetypes<C>,
-        ) -> Self {
-            let sorted_archetypes = info
-                .sorted_archetypes()
-                .expect("internal error: wrong iter mode for components");
-            let archetype_iter =
-                ArchetypeComponentIter::new(sorted_archetypes, component_archetypes);
+        pub(crate) fn new(guard: &'a ComponentGuardBorrow<'_, C>) -> Self {
             Self {
-                components: archetype_iter.flatten(),
-                len: info.item_count(),
+                components: ArchetypeComponentIter::new(guard).flatten(),
+                len: guard.item_count,
+            }
+        }
+
+        pub(crate) fn new_mut(guard: &'a ComponentMutGuardBorrow<'_, C>) -> Self {
+            Self {
+                components: ArchetypeComponentIter::new_mut(guard).flatten(),
+                len: guard.item_count,
             }
         }
     }
@@ -187,20 +223,25 @@ pub(crate) mod internal {
     impl<'a, C> ExactSizeIterator for ComponentIter<'a, C> {}
 
     struct ArchetypeComponentIter<'a, C> {
-        sorted_archetypes: Iter<'a, ArchetypeInfo>,
         last_archetype_idx: Option<ArchetypeIdx>,
-        component_archetypes: Iter<'a, TiVec<ArchetypeEntityPos, C>>,
+        components: Iter<'a, TiVec<ArchetypeEntityPos, C>>,
+        sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
     }
 
     impl<'a, C> ArchetypeComponentIter<'a, C> {
-        fn new(
-            sorted_archetypes: &'a [ArchetypeInfo],
-            component_archetypes: &'a ComponentArchetypes<C>,
-        ) -> Self {
+        fn new(guard: &'a ComponentGuardBorrow<'_, C>) -> Self {
             Self {
-                sorted_archetypes: sorted_archetypes.iter(),
                 last_archetype_idx: None,
-                component_archetypes: component_archetypes.iter(),
+                components: guard.components.iter(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+            }
+        }
+
+        fn new_mut(guard: &'a ComponentMutGuardBorrow<'_, C>) -> Self {
+            Self {
+                last_archetype_idx: None,
+                components: guard.components.iter(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
             }
         }
     }
@@ -209,28 +250,29 @@ pub(crate) mod internal {
         type Item = Iter<'a, C>;
 
         fn next(&mut self) -> Option<Self::Item> {
-            let archetype = self.sorted_archetypes.next()?;
-            let nth = usize::from(archetype.idx)
+            let archetype_idx = self.sorted_archetype_idxs.next()?;
+            let nth = usize::from(archetype_idx)
                 - self.last_archetype_idx.map_or(0, |i| usize::from(i) + 1);
-            self.last_archetype_idx = Some(archetype.idx);
-            self.component_archetypes.nth(nth).map(|c| c.iter())
+            self.last_archetype_idx = Some(archetype_idx);
+            self.components.nth(nth).map(|c| c.iter())
         }
     }
 
     impl<'a, C> DoubleEndedIterator for ArchetypeComponentIter<'a, C> {
         fn next_back(&mut self) -> Option<Self::Item> {
-            let archetype = self.sorted_archetypes.next_back()?;
-            let nth_back = self.component_archetypes.len() - usize::from(archetype.idx) - 1;
-            self.component_archetypes
-                .nth_back(nth_back)
-                .map(|c| c.iter())
+            let archetype_idx = self.sorted_archetype_idxs.next_back()?;
+            let nth_back = self.components.len() - usize::from(archetype_idx) - 1;
+            self.components.nth_back(nth_back).map(|c| c.iter())
         }
     }
 }
 
 #[cfg(test)]
 mod component_ref_system_param_tests {
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::components::internal::ComponentGuardBorrow;
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::system_params::internal::SystemParamIterInfo;
@@ -246,6 +288,8 @@ mod component_ref_system_param_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.has_entity_actions);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
@@ -269,18 +313,36 @@ mod component_ref_system_param_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = <&u32>::lock(&data);
-        let guard_borrow = <&u32>::borrow_guard(&mut guard);
+        let mut guard = <&u32>::lock(&data, &info);
+        let mut guard_borrow = <&u32>::borrow_guard(&mut guard);
 
-        assert_eq!(guard_borrow, &ti_vec![ti_vec![], ti_vec![10_u32]]);
+        let components = guard_borrow.components;
+        assert_eq!(components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
+        assert_eq!(guard_borrow.item_count, 1);
+        let archetype_idx = guard_borrow.sorted_archetype_idxs.next();
+        assert_eq!(archetype_idx, Some(archetype2_idx));
+        assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
     }
 
     #[test]
     fn retrieve_stream() {
-        let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
-        guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &guard;
+        let mut components = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
+        components.extend(vec![ti_vec![40, 50], ti_vec![60]]);
+        let archetype_idxs = [1.into(), 3.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 5];
+        let mut guard_borrow = ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        };
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
         let mut stream = <&u32>::stream(&mut guard_borrow, &iter_info);
@@ -293,9 +355,18 @@ mod component_ref_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
-        guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let guard_borrow = &guard;
+        let mut components = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
+        components.extend(vec![ti_vec![40, 50], ti_vec![60]]);
+        let archetype_idxs = [1.into(), 3.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 5];
+        let guard_borrow = ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        };
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
         let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info);
@@ -312,9 +383,18 @@ mod component_ref_system_param_tests {
 
     #[test]
     fn retrieve_reversed_query_iter() {
-        let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
-        guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let guard_borrow = &guard;
+        let mut components = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
+        components.extend(vec![ti_vec![40, 50], ti_vec![60]]);
+        let archetype_idxs = [1.into(), 3.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 5];
+        let guard_borrow = ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        };
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
         let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info).rev();
@@ -331,9 +411,18 @@ mod component_ref_system_param_tests {
 
     #[test]
     fn retrieve_query_iter_mut() {
-        let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
-        guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &guard;
+        let mut components = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
+        components.extend(vec![ti_vec![40, 50], ti_vec![60]]);
+        let archetype_idxs = [1.into(), 3.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 5];
+        let mut guard_borrow = ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        };
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
         let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info);
@@ -350,9 +439,18 @@ mod component_ref_system_param_tests {
 
     #[test]
     fn retrieve_reversed_query_iter_mut() {
-        let mut guard = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
-        guard.extend(vec![ti_vec![40, 50], ti_vec![60]]);
-        let mut guard_borrow = &guard;
+        let mut components = ti_vec![ti_vec![10], ti_vec![20], ti_vec![30]];
+        components.extend(vec![ti_vec![40, 50], ti_vec![60]]);
+        let archetype_idxs = [1.into(), 3.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 5];
+        let mut guard_borrow = ComponentGuardBorrow {
+            components: &components,
+            item_count: 3,
+            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
+                &archetype_idxs,
+                &archetype_type_idxs,
+            ),
+        };
         let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
         let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info).rev();

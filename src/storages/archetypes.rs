@@ -167,6 +167,7 @@ impl ArchetypeStorage {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct FilteredArchetypeIdxIter<'a> {
     archetype_type_idxs: &'a TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
     archetype_idxs: Iter<'a, ArchetypeIdx>,
@@ -179,6 +180,33 @@ impl Iterator for FilteredArchetypeIdxIter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(&archetype_idx) = self.archetype_idxs.next() {
+            let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
+            if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
+                match self.archetype_filter {
+                    ArchetypeFilter::None => return None,
+                    ArchetypeFilter::All => return Some(archetype_idx),
+                    ArchetypeFilter::Union(type_idxs) => {
+                        if Self::contains_any_type(archetype_type_idxs, type_idxs) {
+                            return Some(archetype_idx);
+                        }
+                    }
+                    ArchetypeFilter::Intersection(type_idxs) => {
+                        if Self::contains_all_types(archetype_type_idxs, type_idxs) {
+                            return Some(archetype_idx);
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
+    // TODO: refactor to avoid code repetition
+    // TODO: test
+    fn next_back(&mut self) -> Option<Self::Item> {
+        while let Some(&archetype_idx) = self.archetype_idxs.next_back() {
             let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
             if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
                 match self.archetype_filter {
@@ -523,6 +551,20 @@ mod archetype_storage_tests {
 #[cfg(test)]
 mod filtered_archetype_idx_iter_tests {
     use super::*;
+
+    impl<'a> FilteredArchetypeIdxIter<'a> {
+        pub(crate) fn new(
+            archetype_idxs: &'a [ArchetypeIdx],
+            archetype_type_idxs: &'a TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
+        ) -> Self {
+            Self {
+                archetype_type_idxs,
+                archetype_idxs: archetype_idxs.iter(),
+                filtered_type_idxs: &[],
+                archetype_filter: &ArchetypeFilter::All,
+            }
+        }
+    }
 
     #[test]
     fn iter_when_none_archetype_filter() {

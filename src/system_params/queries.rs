@@ -1,3 +1,4 @@
+use crate::queries::internal::{QueryGuard, QueryGuardBorrow};
 use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
@@ -81,8 +82,8 @@ where
     F: QueryFilter,
 {
     type Param = Query<'a, P, F>;
-    type Guard = &'a SystemData<'a>;
-    type GuardBorrow = &'a SystemData<'a>;
+    type Guard = QueryGuard<'a, F>;
+    type GuardBorrow = QueryGuardBorrow<'a>;
     type Stream = QueryStream<'a, P>;
 }
 
@@ -96,15 +97,23 @@ where
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
         F::register(core);
-        P::properties(core)
+        let param_properties = P::properties(core);
+        SystemProperties {
+            component_types: param_properties.component_types,
+            has_entity_actions: param_properties.has_entity_actions,
+            archetype_filter: ArchetypeFilter::None,
+        }
     }
 
     fn iter_info(_data: &SystemData<'_>, _info: &SystemInfo) -> SystemParamIterInfo {
         SystemParamIterInfo::None
     }
 
-    fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-        data
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+        QueryGuard::new(data, info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -113,17 +122,17 @@ where
     where
         'b: 'a,
     {
-        guard
+        guard.borrow()
     }
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
+        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        QueryStream::new(info, guard)
+        QueryStream::new(guard)
     }
 
     #[inline]
@@ -177,6 +186,7 @@ impl<C> QueryFilter for With<C>
 where
     C: Any + Sync + Send,
 {
+    #[doc(hidden)]
     fn register(core: &mut CoreStorage) {
         core.register_component_type::<C>();
     }
@@ -215,10 +225,47 @@ impl_tuple_query_filter!();
 run_for_tuples_with_idxs!(impl_tuple_query_filter);
 
 mod internal {
-    use crate::system_params::internal::SystemParamIterInfo;
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
-    use crate::SystemData;
+    use crate::{QueryFilter, SystemData, SystemInfo};
+    use std::marker::PhantomData;
     use std::ops::Range;
+
+    pub struct QueryGuard<'a, F> {
+        data: &'a SystemData<'a>,
+        info: &'a SystemInfo,
+        phantom: PhantomData<F>,
+    }
+
+    impl<'a, F> QueryGuard<'a, F>
+    where
+        F: QueryFilter,
+    {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+            Self {
+                data,
+                info,
+                phantom: PhantomData,
+            }
+        }
+
+        pub(crate) fn borrow(&mut self) -> QueryGuardBorrow<'_> {
+            QueryGuardBorrow {
+                data: self.data,
+                param_info: SystemInfo {
+                    filtered_component_type_idxs: F::filtered_component_type_idxs(self.data),
+                    archetype_filter: ArchetypeFilter::All,
+                },
+                item_count: self.data.item_count(self.info),
+            }
+        }
+    }
+
+    pub struct QueryGuardBorrow<'a> {
+        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) param_info: SystemInfo,
+        pub(crate) item_count: usize,
+    }
 
     pub struct QueryStream<'a, P>
     where
@@ -233,11 +280,11 @@ mod internal {
     where
         P: SystemParam,
     {
-        pub(crate) fn new(info: &'a SystemParamIterInfo, data: &'a SystemData<'_>) -> Self {
+        pub(crate) fn new(guard: &'a QueryGuardBorrow<'_>) -> Self {
             QueryStream {
-                data,
-                entity_positions: 0..info.item_count(),
-                guard: P::lock(data),
+                data: guard.data,
+                entity_positions: 0..guard.item_count,
+                guard: P::lock(guard.data, &guard.param_info),
             }
         }
     }
@@ -259,8 +306,13 @@ mod query_tests {
         create_entity(&mut core, 20_u32, 21_i64);
         create_entity(&mut core, 30_u8, 31_i8);
         let data = core.system_data();
-        let mut guard = core.components().write_components::<u32>();
-        let query = Query::<&mut u32, With<i64>>::new(&data, &mut *guard);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![2.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
+        let mut guard = <&mut u32>::lock(&data, &info);
+        let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
+        let query = Query::<&mut u32, With<i64>>::new(&data, guard_borrow);
 
         let mut iter = query.iter();
 
@@ -275,8 +327,13 @@ mod query_tests {
         create_entity(&mut core, 20_u32, 21_i64);
         create_entity(&mut core, 30_u8, 31_i8);
         let data = core.system_data();
-        let mut guard = core.components().write_components::<u32>();
-        let mut query = Query::<&mut u32, With<i64>>::new(&data, &mut *guard);
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![2.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
+        let mut guard = <&mut u32>::lock(&data, &info);
+        let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
+        let mut query = Query::<&mut u32, With<i64>>::new(&data, guard_borrow);
 
         let mut iter = query.iter_mut();
 
@@ -415,6 +472,7 @@ mod query_system_param_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 1.into());
         assert!(!properties.has_entity_actions);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
     #[test]
@@ -432,33 +490,41 @@ mod query_system_param_tests {
 
     #[test]
     fn lock() {
-        let core = CoreStorage::default();
+        let mut core = CoreStorage::default();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
+        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
+        core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
+        let info = SystemInfo {
+            filtered_component_type_idxs: vec![0.into()],
+            archetype_filter: ArchetypeFilter::All,
+        };
 
-        let mut guard = Query::<&u32>::lock(&data);
-        let guard_borrow = Query::<&u32>::borrow_guard(&mut guard);
+        let mut guard = Query::<&u32, With<i64>>::lock(&data, &info);
+        let guard_borrow = Query::<&u32, With<i64>>::borrow_guard(&mut guard);
 
-        assert!(ptr::eq(guard_borrow, &data));
+        assert!(ptr::eq(guard_borrow.data, &data));
+        let archetype_filter = guard_borrow.param_info.archetype_filter;
+        assert_eq!(archetype_filter, ArchetypeFilter::All);
+        let filtered_type_idxs = guard_borrow.param_info.filtered_component_type_idxs;
+        assert_eq!(filtered_type_idxs, vec![1.into()]);
+        assert_eq!(guard_borrow.item_count, 1);
     }
 
     #[test]
-    fn retrieve_stream_when_no_iteration() {
+    fn retrieve_stream() {
         let mut core = CoreStorage::default();
         core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let mut guard_borrow = &core.system_data();
-        let iter_info = SystemParamIterInfo::None;
-
-        let mut stream = Query::<&u32>::stream(&mut guard_borrow, &iter_info);
-
-        assert!(Query::<&u32>::stream_next(&mut stream).is_some());
-        assert!(Query::<&u32>::stream_next(&mut stream).is_none());
-    }
-
-    #[test]
-    fn retrieve_stream_when_iteration_on_entities() {
-        let mut core = CoreStorage::default();
-        core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let mut guard_borrow = &core.system_data();
+        let mut guard_borrow = QueryGuardBorrow {
+            data: &core.system_data(),
+            param_info: SystemInfo {
+                filtered_component_type_idxs: vec![],
+                archetype_filter: ArchetypeFilter::All,
+            },
+            item_count: 3,
+        };
         let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
 
         let mut stream = Query::<&u32>::stream(&mut guard_borrow, &iter_info);

@@ -4,6 +4,9 @@ macro_rules! ti_vec {
    () => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![])
     );
+    ($elem:expr; $n:expr) => (
+        ::typed_index_collections::TiVec::<_, _>::from(vec![$elem; $n])
+    );
     ($($x:expr),+ $(,)?) => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![$($x),+])
     );

@@ -28,7 +28,10 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo;
 
     #[doc(hidden)]
-    fn lock<'a>(data: &'a SystemData<'_>) -> <Self as SystemParamWithLifetime<'a>>::Guard;
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard;
 
     #[doc(hidden)]
     fn borrow_guard<'a, 'b>(
@@ -40,7 +43,7 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     #[doc(hidden)]
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
+        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a;
