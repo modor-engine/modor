@@ -108,17 +108,12 @@ impl ComponentStorage {
             } else {
                 archetype.push(component);
                 self.component_count[type_idx] += 1;
-                if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&location.idx)
-                {
-                    self.sorted_archetype_idxs[type_idx].insert(pos, location.idx);
-                }
+                self.add_archetype(type_idx, location.idx);
             }
         } else {
             utils::set_value(archetypes, location.idx, ti_vec![component]);
             utils::set_value(&mut self.component_count, type_idx, 1);
-            if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&location.idx) {
-                self.sorted_archetype_idxs[type_idx].insert(pos, location.idx);
-            }
+            self.add_archetype(type_idx, location.idx);
         }
     }
 
@@ -129,6 +124,7 @@ impl ComponentStorage {
         dst_archetype_idx: ArchetypeIdx,
     ) {
         self.archetypes[type_idx].move_component(src_location, dst_archetype_idx);
+        self.add_archetype(type_idx, dst_archetype_idx);
     }
 
     pub(super) fn delete(
@@ -138,6 +134,12 @@ impl ComponentStorage {
     ) {
         self.archetypes[type_idx].delete_component(location);
         self.component_count[type_idx] -= 1;
+    }
+
+    fn add_archetype(&mut self, type_idx: ComponentTypeIdx, archetype_idx: ArchetypeIdx) {
+        if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&archetype_idx) {
+            self.sorted_archetype_idxs[type_idx].insert(pos, archetype_idx);
+        }
     }
 }
 
@@ -250,10 +252,8 @@ mod component_storage_tests {
         let components = ti_vec![ti_vec![], ti_vec![20_u32, 30_u32], ti_vec![10_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
-        assert_eq!(
-            storage.sorted_archetype_idxs(0.into()),
-            [1.into(), 2.into()]
-        );
+        let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
+        assert_eq!(sorted_archetype_idxs, [1.into(), 2.into()]);
     }
 
     #[test]
@@ -290,6 +290,8 @@ mod component_storage_tests {
         assert_eq!(storage.count(type_idx), 4);
         let components = ti_vec![ti_vec![], ti_vec![40_u32, 30_u32], ti_vec![10_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
+        let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
+        assert_eq!(sorted_archetype_idxs, [1.into(), 2.into()]);
     }
 
     #[test]
