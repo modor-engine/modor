@@ -1,9 +1,7 @@
 use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{
-    LockableSystemParam, Mut, SystemParamIterInfo, SystemParamWithLifetime,
-};
+use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
 use crate::{SystemData, SystemInfo, SystemParam};
@@ -105,10 +103,6 @@ impl SystemParam for World<'_> {
         }
     }
 
-    fn iter_info(_data: &SystemData<'_>, _info: &SystemInfo) -> SystemParamIterInfo {
-        SystemParamIterInfo::None
-    }
-
     fn lock<'a>(
         data: &'a SystemData<'_>,
         info: &'a SystemInfo,
@@ -127,7 +121,6 @@ impl SystemParam for World<'_> {
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
@@ -299,19 +292,6 @@ mod world_system_param_tests {
     }
 
     #[test]
-    fn retrieve_iter_info() {
-        let core = CoreStorage::default();
-        let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::None,
-        };
-
-        let iter_info = World::iter_info(&core.system_data(), &info);
-
-        assert_eq!(iter_info, SystemParamIterInfo::None);
-    }
-
-    #[test]
     fn lock() {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
@@ -334,13 +314,12 @@ mod world_system_param_tests {
     #[test]
     fn retrieve_stream() {
         let core = CoreStorage::default();
-        let iter_info = SystemParamIterInfo::None;
         let mut guard_borrow = WorldGuardBorrow {
             item_count: 3,
             data: &core.system_data(),
         };
 
-        let mut stream = World::stream(&mut guard_borrow, &iter_info);
+        let mut stream = World::stream(&mut guard_borrow);
 
         assert!(World::stream_next(&mut stream).is_some());
         assert!(World::stream_next(&mut stream).is_some());

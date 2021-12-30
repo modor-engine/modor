@@ -243,7 +243,7 @@ mod system_storage_tests {
     fn add_system() {
         let mut storage = SystemStorage::default();
         let wrapper: SystemWrapper = |_, _| ();
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
 
         let system_idx = storage.add(wrapper, 0.into(), properties);
@@ -265,7 +265,7 @@ mod system_storage_tests {
         storage.set_thread_count(1);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.try_lock().unwrap().delete_entity(2.into());
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
         storage.add(wrapper, 0.into(), properties);
         let data = SystemData {
@@ -286,12 +286,12 @@ mod system_storage_tests {
         storage.set_thread_count(2);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(2.into());
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], false);
         storage.add(wrapper, 0.into(), properties);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(3.into());
-        let component_type_access = create_type_access(3.into(), Access::Write);
+        let component_type_access = create_type_access(Access::Write, 3.into());
         let properties = create_properties(vec![component_type_access], true);
         storage.add(wrapper, 1.into(), properties);
         let data = SystemData {
@@ -314,7 +314,7 @@ mod system_storage_tests {
             assert_eq!(i.filtered_component_type_idxs, [0.into()]);
             d.entity_actions.try_lock().unwrap().delete_entity(2.into());
         };
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
         storage.add(wrapper, 0.into(), properties);
         let mut components = ComponentStorage::default();
@@ -376,8 +376,8 @@ mod system_storage_tests {
         );
     }
 
-    fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {
-        ComponentTypeAccess { type_idx, access }
+    fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {
+        ComponentTypeAccess { access, type_idx }
     }
 
     fn create_properties(

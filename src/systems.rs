@@ -4,7 +4,7 @@ use crate::storages::archetypes::{
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entity_actions::EntityActionStorage;
-use crate::system_params::internal::{SystemParamIterInfo, SystemParamWithLifetime};
+use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
 /// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
@@ -109,8 +109,7 @@ macro_rules! system {
                 let mut system = checker.check_param_mutability().into_inner();
                 let mut guard = ::modor::System::lock(&system, data, &info);
                 let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
-                let iter_info = ::modor::System::iter_info(&system, data, &info);
-                let mut stream = ::modor::System::stream(&system, &mut guard_borrow, &iter_info);
+                let mut stream = ::modor::System::stream(&system, &mut guard_borrow);
                 while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
                     ::modor::System::apply(&mut system, item);
                 }
@@ -138,7 +137,7 @@ pub struct SystemData<'a> {
 impl SystemData<'_> {
     // TODO: test
     pub(crate) fn item_count<'a>(&'a self, system_info: &'a SystemInfo) -> usize {
-        if let ArchetypeFilter::None = system_info.archetype_filter {
+        if system_info.archetype_filter == ArchetypeFilter::None {
             1
         } else {
             self.filter_archetype_idx_iter(system_info)
@@ -178,7 +177,9 @@ impl SystemData<'_> {
 ///
 /// The [`system!`](crate::system!) macro is used to construct a `SystemBuilder`.
 pub struct SystemBuilder {
+    #[doc(hidden)]
     pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
+    #[doc(hidden)]
     pub wrapper: SystemWrapper,
 }
 
@@ -190,11 +191,6 @@ where
     #[doc(hidden)]
     fn properties_fn(&self) -> fn(&mut CoreStorage) -> SystemProperties {
         P::properties
-    }
-
-    #[doc(hidden)]
-    fn iter_info(&self, data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-        P::iter_info(data, info)
     }
 
     #[doc(hidden)]
@@ -221,12 +217,11 @@ where
     fn stream<'a, 'b>(
         &self,
         guard: &'a mut <P as SystemParamWithLifetime<'b>>::GuardBorrow,
-        iter_info: &'a SystemParamIterInfo,
     ) -> <P as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        P::stream(guard, iter_info)
+        P::stream(guard)
     }
 
     #[doc(hidden)]
@@ -272,7 +267,7 @@ impl_system!();
 run_for_tuples_with_idxs!(impl_system);
 
 pub(crate) mod internal {
-    use super::*;
+    use crate::{SystemData, SystemInfo};
 
     pub trait SealedSystem<P> {}
 
@@ -387,21 +382,6 @@ mod system_data_tests {
 }
 
 #[cfg(test)]
-mod system_info_tests {
-    use super::*;
-    use crate::storages::components::ComponentTypeIdx;
-
-    impl SystemInfo {
-        pub(crate) fn from_one_filtered_type(type_idx: ComponentTypeIdx) -> Self {
-            Self {
-                filtered_component_type_idxs: vec![type_idx],
-                archetype_filter: ArchetypeFilter::None,
-            }
-        }
-    }
-}
-
-#[cfg(test)]
 mod system_builder_tests {
     use super::*;
     use std::panic::{RefUnwindSafe, UnwindSafe};
@@ -429,20 +409,6 @@ mod system_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert!(!properties.has_entity_actions);
-    }
-
-    #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::from_one_filtered_type(0.into());
-        let system = |_: &u32, _: &mut i64| ();
-
-        let iter_info = System::iter_info(&system, &core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -490,10 +456,9 @@ mod system_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
         let system = |_: &u32, _: &mut i64| ();
 
-        let mut stream = System::stream(&system, &mut guard_borrow, &iter_info);
+        let mut stream = System::stream(&system, &mut guard_borrow);
 
         let next = System::stream_next(&system, &mut stream);
         assert_eq!(next, Some((&10, &mut 30)));

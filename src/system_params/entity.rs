@@ -3,9 +3,7 @@ use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{
-    EntityIterInfo, QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
-};
+use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 
 /// A system parameter for retrieving information about the entity.
@@ -56,17 +54,6 @@ impl SystemParam for Entity<'_> {
         }
     }
 
-    fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-        SystemParamIterInfo::ComponentUnionEntities(EntityIterInfo {
-            sorted_archetypes: if info.filtered_component_type_idxs.is_empty() {
-                data.archetypes.all_sorted()
-            } else {
-                data.archetypes
-                    .sorted_with_all_types(&info.filtered_component_type_idxs)
-            },
-        })
-    }
-
     fn lock<'a>(
         data: &'a SystemData<'_>,
         info: &'a SystemInfo,
@@ -85,7 +72,6 @@ impl SystemParam for Entity<'_> {
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
@@ -113,7 +99,6 @@ impl<'a> QuerySystemParamWithLifetime<'a> for Entity<'_> {
 impl QuerySystemParam for Entity<'_> {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
@@ -123,7 +108,6 @@ impl QuerySystemParam for Entity<'_> {
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
@@ -273,7 +257,6 @@ mod entity_system_param_tests {
     use super::*;
     use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
     use crate::storages::core::CoreStorage;
-    use crate::system_params::internal::SystemParamIterInfo;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::Any;
     use std::ptr;
@@ -287,45 +270,6 @@ mod entity_system_param_tests {
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.has_entity_actions);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
-    }
-
-    #[test]
-    fn retrieve_iter_info_from_no_filter_type() {
-        let mut core = CoreStorage::default();
-        let (_, archetype_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::None,
-        };
-
-        let iter_info = Entity::iter_info(&core.system_data(), &info);
-
-        let archetypes = vec![(ArchetypeStorage::DEFAULT_IDX, 0), (archetype_idx, 0)];
-        assert_eq!(iter_info, SystemParamIterInfo::new_union(archetypes));
-    }
-
-    #[test]
-    fn retrieve_iter_info_from_missing_filter_type() {
-        let mut core = CoreStorage::default();
-        core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let info = SystemInfo::from_one_filtered_type(1.into());
-
-        let iter_info = Entity::iter_info(&core.system_data(), &info);
-
-        assert_eq!(iter_info, SystemParamIterInfo::new_union(vec![]));
-    }
-
-    #[test]
-    fn retrieve_iter_info_from_existing_filter_type() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let info = SystemInfo::from_one_filtered_type(1.into());
-
-        let iter_info = Entity::iter_info(&core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_union(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -345,8 +289,8 @@ mod entity_system_param_tests {
         let mut guard_borrow = Entity::borrow_guard(&mut guard);
 
         assert_eq!(guard_borrow.item_count, 1);
-        let archetype_idx = guard_borrow.sorted_archetype_idxs.next();
-        assert_eq!(archetype_idx, Some(archetype2_idx));
+        let next_archetype_idx = guard_borrow.sorted_archetype_idxs.next();
+        assert_eq!(next_archetype_idx, Some(archetype2_idx));
         assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
         assert!(ptr::eq(guard_borrow.data, &data));
     }
@@ -370,9 +314,8 @@ mod entity_system_param_tests {
             ),
             data: &core.system_data(),
         };
-        let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let mut stream = Entity::stream(&mut guard_borrow, &iter_info);
+        let mut stream = Entity::stream(&mut guard_borrow);
 
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 1);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 3);
@@ -399,9 +342,8 @@ mod entity_system_param_tests {
             ),
             data: &core.system_data(),
         };
-        let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let mut iter = Entity::query_iter(&guard_borrow, &iter_info);
+        let mut iter = Entity::query_iter(&guard_borrow);
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next().unwrap().id(), 1);
@@ -432,9 +374,8 @@ mod entity_system_param_tests {
             ),
             data: &core.system_data(),
         };
-        let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let mut iter = Entity::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = Entity::query_iter(&guard_borrow).rev();
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next().unwrap().id(), 4);
@@ -465,9 +406,8 @@ mod entity_system_param_tests {
             ),
             data: &core.system_data(),
         };
-        let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = Entity::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next().unwrap().id(), 1);
@@ -498,9 +438,8 @@ mod entity_system_param_tests {
             ),
             data: &core.system_data(),
         };
-        let iter_info = SystemParamIterInfo::new_union(vec![(2.into(), 1), (4.into(), 2)]);
 
-        let mut iter = Entity::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = Entity::query_iter_mut(&mut guard_borrow).rev();
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next().unwrap().id(), 4);

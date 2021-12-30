@@ -1,82 +1,149 @@
 use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{
-    QuerySystemParamWithLifetime, SystemParamIterInfo, SystemParamWithLifetime,
-};
-use crate::system_params::tuples::internal::EmptyTupleIter;
+use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
+use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
+use crate::tuples::internal::EmptyTupleGuardBorrow;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::iter;
 use std::iter::{Map, Zip};
 
+impl<'a> SystemParamWithLifetime<'a> for () {
+    type Param = ();
+    type Guard = EmptyTupleGuard;
+    type GuardBorrow = EmptyTupleGuardBorrow;
+    type Stream = EmptyTupleIter;
+}
+
+impl SystemParam for () {
+    type Tuple = Self;
+    type InnerTuple = Self;
+
+    fn properties(_core: &mut CoreStorage) -> SystemProperties {
+        SystemProperties {
+            component_types: vec![],
+            has_entity_actions: false,
+            archetype_filter: ArchetypeFilter::None,
+        }
+    }
+
+    fn lock<'a>(
+        data: &'a SystemData<'_>,
+        info: &'a SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+        EmptyTupleGuard::new(data, info)
+    }
+
+    fn borrow_guard<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::Guard,
+    ) -> <Self as SystemParamWithLifetime<'a>>::GuardBorrow
+    where
+        'b: 'a,
+    {
+        guard.borrow()
+    }
+
+    fn stream<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+    ) -> <Self as SystemParamWithLifetime<'a>>::Stream
+    where
+        'b: 'a,
+    {
+        EmptyTupleIter::new(guard)
+    }
+
+    fn stream_next<'a, 'b>(
+        stream: &'a mut <Self as SystemParamWithLifetime<'b>>::Stream,
+    ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
+    where
+        'b: 'a,
+    {
+        stream.next()
+    }
+}
+
+impl<'a> QuerySystemParamWithLifetime<'a> for () {
+    type ConstParam = ();
+    type Iter = EmptyTupleIter;
+    type IterMut = EmptyTupleIter;
+}
+
+impl QuerySystemParam for () {
+    fn query_iter<'a, 'b>(
+        guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+    ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
+    where
+        'b: 'a,
+    {
+        EmptyTupleIter::new(guard)
+    }
+
+    fn query_iter_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+    ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
+    where
+        'b: 'a,
+    {
+        EmptyTupleIter::new(guard)
+    }
+}
+
 macro_rules! impl_tuple_system_param {
-    ($(($params:ident, $indexes:tt)),*) => {
-        impl<'a $(,$params)*> SystemParamWithLifetime<'a> for ($($params,)*)
+    ($(($params:ident, $indexes:tt)),+) => {
+        impl<'a $(,$params)+> SystemParamWithLifetime<'a> for ($($params,)+)
         where
-            $($params: SystemParamWithLifetime<'a>,)*
+            $($params: SystemParamWithLifetime<'a>,)+
         {
-            type Param = ($($params::Param,)*);
-            type Guard = ($($params::Guard,)*);
-            type GuardBorrow = ($($params::GuardBorrow,)*);
-            stream_type!($(($params, $indexes)),*);
+            type Param = ($($params::Param,)+);
+            type Guard = ($($params::Guard,)+);
+            type GuardBorrow = ($($params::GuardBorrow,)+);
+            type Stream = ($($params::Stream,)+);
         }
 
-        impl<$($params),*> SystemParam for ($($params,)*)
+        impl<$($params),+> SystemParam for ($($params,)+)
         where
-            $($params: SystemParam,)*
+            $($params: SystemParam,)+
         {
             type Tuple = Self;
             type InnerTuple = Self;
 
-            #[allow(unused_variables)]
             fn properties(core: &mut CoreStorage) -> SystemProperties {
-                let properties = ($($params::properties(core),)*);
+                let properties = ($($params::properties(core),)+);
                 SystemProperties {
                     component_types:
-                        iter::empty() $(.chain(properties.$indexes.component_types))*.collect(),
+                        iter::empty() $(.chain(properties.$indexes.component_types))+.collect(),
                     has_entity_actions:
-                        [$(properties.$indexes.has_entity_actions),*].into_iter().any(|b| b),
+                        [$(properties.$indexes.has_entity_actions),+].into_iter().any(|b| b),
                     archetype_filter:
-                        ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))*
+                        ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
                 }
             }
 
-            #[allow(unused_variables)]
-            fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-                let iter_info = ($($params::iter_info(data, info),)*);
-                SystemParamIterInfo::None $(.merge(iter_info.$indexes))*
-            }
-
-            #[allow(unused_variables, clippy::unused_unit)]
             fn lock<'a>(
                 data: &'a SystemData<'_>,
                 info: &'a SystemInfo,
             ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-                ($($params::lock(data, info),)*)
+                ($($params::lock(data, info),)+)
             }
 
-            #[allow(unused_variables, clippy::unused_unit)]
             fn borrow_guard<'a, 'b>(
                 guard: &'a mut <Self as SystemParamWithLifetime<'b>>::Guard,
             ) -> <Self as SystemParamWithLifetime<'a>>::GuardBorrow
             where
                 'b: 'a,
             {
-                ($($params::borrow_guard(&mut guard.$indexes),)*)
+                ($($params::borrow_guard(&mut guard.$indexes),)+)
             }
 
-            #[allow(unused_variables, clippy::unused_unit)]
             fn stream<'a, 'b>(
                 guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-                iter_info: &'a SystemParamIterInfo,
             ) -> <Self as SystemParamWithLifetime<'a>>::Stream
             where
                 'b: 'a,
             {
-                stream_new!(guard, iter_info $(,($params, $indexes))*)
+                ($($params::stream(&mut guard.$indexes),)+)
             }
 
-            #[allow(unused_variables)]
             #[inline]
             fn stream_next<'a, 'b>(
                 stream: &'a mut <Self as SystemParamWithLifetime<'b>>::Stream,
@@ -84,77 +151,47 @@ macro_rules! impl_tuple_system_param {
             where
                 'b: 'a,
             {
-                stream_next!(stream $(,($params, $indexes))*)
+                Some(($($params::stream_next(&mut stream.$indexes)?,)*))
             }
         }
 
-        impl<'a $(,$params)*> QuerySystemParamWithLifetime<'a> for ($($params,)*)
+        impl<'a $(,$params)+> QuerySystemParamWithLifetime<'a> for ($($params,)+)
         where
-            $($params: QuerySystemParamWithLifetime<'a>,)*
+            $($params: QuerySystemParamWithLifetime<'a>,)+
         {
-            type ConstParam = ($($params::ConstParam,)*);
-            iter_type!($($params),*);
-            iter_mut_type!($($params),*);
+            type ConstParam = ($($params::ConstParam,)+);
+            iter_type!($($params),+);
+            iter_mut_type!($($params),+);
         }
 
-        impl<$($params),*> QuerySystemParam for ($($params,)*)
+        impl<$($params),+> QuerySystemParam for ($($params,)+)
         where
-            $($params: QuerySystemParam,)*
+            $($params: QuerySystemParam,)+
         {
-            #[allow(unused_variables, non_snake_case)]
+            #[allow(non_snake_case)]
             fn query_iter<'a, 'b>(
                 guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-                info: &'a SystemParamIterInfo,
             ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
             where
                 'b: 'a,
             {
-                query_iter!(guard, info $(,($params, $indexes))*)
+                query_iter!(guard $(,($params, $indexes))+)
             }
 
-            #[allow(unused_variables, non_snake_case)]
+            #[allow(non_snake_case)]
             fn query_iter_mut<'a, 'b>(
                 guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-                info: &'a SystemParamIterInfo,
             ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
             where
                 'b: 'a,
             {
-                query_iter_mut!(guard, info $(,($params, $indexes))*)
+                query_iter_mut!(guard $(,($params, $indexes))+)
             }
         }
     };
 }
 
-macro_rules! stream_type {
-    () => {
-        type Stream = EmptyTupleIter;
-    };
-    ($(($params:ident, $indexes:tt)),+) => {
-        type Stream = ($($params::Stream,)+);
-    };
-}
-
-macro_rules! stream_new {
-    ($guard:expr, $info:expr) => {
-        EmptyTupleIter::new($info.item_count())
-    };
-    ($guard:expr, $info:expr $(,($params:ident, $indexes:tt))+) => {
-        ($($params::stream(&mut $guard.$indexes, $info),)+)
-    };
-}
-
-macro_rules! stream_next {
-    ($stream:expr) => {
-        $stream.next()
-    };
-    ($stream:expr $(,($params:ident, $indexes:tt))+) => {
-        Some(($($params::stream_next(&mut $stream.$indexes)?,)*))
-    };
-}
-
 macro_rules! iter_type {
-    () => { type Iter = EmptyTupleIter; };
     ($param:ident) => {
         type Iter = Map<
             $param::Iter,
@@ -177,7 +214,6 @@ macro_rules! iter_type {
 }
 
 macro_rules! iter_mut_type {
-    () => { type IterMut = EmptyTupleIter; };
     ($param:ident) => { type IterMut = Map<$param::IterMut, fn($param::Param) -> ($param::Param,)>; };
     ($param1:ident, $param2:ident) => { type IterMut = Zip<$param1::IterMut, $param2::IterMut>; };
     ($($params:ident),*) => {
@@ -222,32 +258,30 @@ macro_rules! nested_tuple_type {
 }
 
 macro_rules! query_iter {
-    ($guard:expr, $info:expr) => { EmptyTupleIter::new($info.item_count()) };
-    ($guard:expr, $info:expr, ($param:ident, $index:tt)) => {
-        $param::query_iter(&$guard.$index, $info).map(|i| (i,))
+    ($guard:expr, ($param:ident, $index:tt)) => {
+        $param::query_iter(&$guard.$index).map(|i| (i,))
     };
-    ($guard:expr, $info:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
-        $param1::query_iter(&$guard.$index1, $info).zip($param2::query_iter(&$guard.$index2, $info))
+    ($guard:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
+        $param1::query_iter(&$guard.$index1).zip($param2::query_iter(&$guard.$index2))
     };
-    ($guard:expr, $info:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
-        $param::query_iter(&$guard.$index, $info)
-            $(.zip($params::query_iter(&$guard.$indexes, $info)))+
+    ($guard:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
+        $param::query_iter(&$guard.$index)
+            $(.zip($params::query_iter(&$guard.$indexes)))+
             .map(|nested_tuple!($param $(, $params)*)| ($param, $($params),*))
     };
 }
 
 macro_rules! query_iter_mut {
-    ($guard:expr, $info:expr) => { EmptyTupleIter::new($info.item_count()) };
-    ($guard:expr, $info:expr, ($param:ident, $index:tt)) => {
-        $param::query_iter_mut(&mut $guard.$index, $info).map(|i| (i,))
+    ($guard:expr, ($param:ident, $index:tt)) => {
+        $param::query_iter_mut(&mut $guard.$index).map(|i| (i,))
     };
-    ($guard:expr, $info:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
-        $param1::query_iter_mut(&mut $guard.$index1, $info)
-            .zip($param2::query_iter_mut(&mut $guard.$index2, $info))
+    ($guard:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
+        $param1::query_iter_mut(&mut $guard.$index1)
+            .zip($param2::query_iter_mut(&mut $guard.$index2))
     };
-    ($guard:expr, $info:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
-        $param::query_iter_mut(&mut $guard.$index, $info)
-            $(.zip($params::query_iter_mut(&mut $guard.$indexes, $info)))+
+    ($guard:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
+        $param::query_iter_mut(&mut $guard.$index)
+            $(.zip($params::query_iter_mut(&mut $guard.$indexes)))+
             .map(|nested_tuple!($param $(, $params)*)| ($param, $($params),*))
     };
 }
@@ -270,20 +304,42 @@ macro_rules! nested_tuple {
     };
 }
 
-impl_tuple_system_param!();
 run_for_tuples_with_idxs!(impl_tuple_system_param);
 
 mod internal {
+    use crate::{SystemData, SystemInfo};
     use std::ops::Range;
+
+    pub struct EmptyTupleGuard {
+        item_count: usize,
+    }
+
+    impl EmptyTupleGuard {
+        pub(crate) fn new(data: &SystemData<'_>, info: &SystemInfo) -> Self {
+            Self {
+                item_count: data.item_count(info),
+            }
+        }
+
+        pub(crate) fn borrow(&mut self) -> EmptyTupleGuardBorrow {
+            EmptyTupleGuardBorrow {
+                item_count: self.item_count,
+            }
+        }
+    }
+
+    pub struct EmptyTupleGuardBorrow {
+        pub(crate) item_count: usize,
+    }
 
     pub struct EmptyTupleIter {
         item_positions: Range<usize>,
     }
 
     impl EmptyTupleIter {
-        pub(crate) fn new(item_count: usize) -> Self {
+        pub(crate) fn new(guard: &EmptyTupleGuardBorrow) -> Self {
             Self {
-                item_positions: 0..item_count,
+                item_positions: 0..guard.item_count,
             }
         }
     }
@@ -315,6 +371,7 @@ mod empty_tuple_system_param_tests {
     use super::*;
     use crate::storages::core::CoreStorage;
     use crate::SystemInfo;
+    use crate::storages::archetypes::ArchetypeStorage;
 
     #[test]
     fn retrieve_properties() {
@@ -328,18 +385,12 @@ mod empty_tuple_system_param_tests {
     }
 
     #[test]
-    fn retrieve_iter_info() {
-        let core = CoreStorage::default();
-        let info = SystemInfo::from_one_filtered_type(0.into());
-
-        let iter_info = <()>::iter_info(&core.system_data(), &info);
-
-        assert_eq!(iter_info, SystemParamIterInfo::None);
-    }
-
-    #[test]
     fn lock() {
-        let core = CoreStorage::default();
+        let mut core = CoreStorage::default();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
+        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
             filtered_component_type_idxs: vec![0.into()],
@@ -349,26 +400,14 @@ mod empty_tuple_system_param_tests {
         let mut guard = <()>::lock(&data, &info);
         let guard_borrow = <()>::borrow_guard(&mut guard);
 
-        assert!(matches!(guard_borrow, ()));
+        assert_eq!(guard_borrow.item_count, 1);
     }
 
     #[test]
-    fn retrieve_stream_when_no_iteration() {
-        let mut guard_borrow = ();
-        let iter_info = SystemParamIterInfo::None;
+    fn retrieve_stream() {
+        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
 
-        let mut stream = <()>::stream(&mut guard_borrow, &iter_info);
-
-        assert_eq!(<()>::stream_next(&mut stream), Some(()));
-        assert_eq!(<()>::stream_next(&mut stream), None);
-    }
-
-    #[test]
-    fn retrieve_stream_when_iteration_on_entities() {
-        let mut guard_borrow = ();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
-
-        let mut stream = <()>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = <()>::stream(&mut guard_borrow);
 
         assert_eq!(<()>::stream_next(&mut stream), Some(()));
         assert_eq!(<()>::stream_next(&mut stream), Some(()));
@@ -378,10 +417,9 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_query_iter() {
-        let guard_borrow = ();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+        let guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
 
-        let mut iter = <()>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <()>::query_iter(&guard_borrow);
 
         assert_eq!(iter.next(), Some(()));
         assert_eq!(iter.next(), Some(()));
@@ -391,10 +429,9 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_reversed_query_iter() {
-        let guard_borrow = ();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+        let guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
 
-        let mut iter = <()>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <()>::query_iter(&guard_borrow).rev();
 
         assert_eq!(iter.next(), Some(()));
         assert_eq!(iter.next(), Some(()));
@@ -404,10 +441,9 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_query_iter_mut() {
-        let mut guard_borrow = ();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
 
-        let mut iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <()>::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.next(), Some(()));
         assert_eq!(iter.next(), Some(()));
@@ -417,10 +453,9 @@ mod empty_tuple_system_param_tests {
 
     #[test]
     fn retrieve_reversed_query_iter_mut() {
-        let mut guard_borrow = ();
-        let iter_info = SystemParamIterInfo::new_union(vec![(0.into(), 1), (2.into(), 2)]);
+        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
 
-        let mut iter = <()>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <()>::query_iter_mut(&mut guard_borrow).rev();
 
         assert_eq!(iter.next(), Some(()));
         assert_eq!(iter.next(), Some(()));
@@ -450,19 +485,6 @@ mod tuple_with_one_item_system_param_tests {
         assert!(!properties.has_entity_actions);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
-    }
-
-    #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::from_one_filtered_type(0.into());
-
-        let iter_info = <(&u32,)>::iter_info(&core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -498,9 +520,8 @@ mod tuple_with_one_item_system_param_tests {
                 &archetype_type_idxs,
             ),
         },);
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut stream = <(&u32,)>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = <(&u32,)>::stream(&mut guard_borrow);
 
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&10,)));
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&20,)));
@@ -520,9 +541,8 @@ mod tuple_with_one_item_system_param_tests {
                 &archetype_type_idxs,
             ),
         },);
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32,)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32,)>::query_iter(&guard_borrow);
 
         assert_eq!(iter.next(), Some((&10,)));
         assert_eq!(iter.next(), Some((&20,)));
@@ -542,9 +562,8 @@ mod tuple_with_one_item_system_param_tests {
                 &archetype_type_idxs,
             ),
         },);
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32,)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32,)>::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.next(), Some((&10,)));
         assert_eq!(iter.next(), Some((&20,)));
@@ -593,19 +612,6 @@ mod tuple_with_two_items_system_param_tests {
     }
 
     #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::from_one_filtered_type(0.into());
-
-        let iter_info = <(&u32, &mut i64)>::iter_info(&core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
-    }
-
-    #[test]
     fn lock() {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
@@ -649,9 +655,8 @@ mod tuple_with_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut stream = <(&u32, &mut i64)>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = <(&u32, &mut i64)>::stream(&mut guard_borrow);
 
         let next = <(&u32, &mut i64)>::stream_next(&mut stream);
         assert_eq!(next, Some((&10, &mut 30)));
@@ -680,9 +685,8 @@ mod tuple_with_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32, &mut i64)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64)>::query_iter(&guard_borrow);
 
         assert_eq!(iter.next(), Some((&10, &30)));
         assert_eq!(iter.next(), Some((&20, &40)));
@@ -709,9 +713,8 @@ mod tuple_with_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.next(), Some((&10, &mut 30)));
         assert_eq!(iter.next(), Some((&20, &mut 40)));
@@ -745,20 +748,6 @@ mod tuple_with_more_than_two_items_system_param_tests {
         assert!(!properties.has_entity_actions);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
-    }
-
-    #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let (_, archetype3_idx) = core.add_component_type::<i16>(archetype2_idx);
-        let info = SystemInfo::from_one_filtered_type(0.into());
-
-        let iter_info = <(&u32, &mut i64, &i16)>::iter_info(&core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype3_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -815,9 +804,8 @@ mod tuple_with_more_than_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut stream = <(&u32, &mut i64, &i16)>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = <(&u32, &mut i64, &i16)>::stream(&mut guard_borrow);
 
         let next = <(&u32, &mut i64, &i16)>::stream_next(&mut stream);
         assert_eq!(next, Some((&10, &mut 30, &50)));
@@ -852,9 +840,8 @@ mod tuple_with_more_than_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow);
 
         assert_eq!(iter.next(), Some((&10, &30, &50)));
         assert_eq!(iter.next(), Some((&20, &40, &60)));
@@ -887,9 +874,8 @@ mod tuple_with_more_than_two_items_system_param_tests {
                 sorted_archetype_idxs,
             },
         );
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
 
-        let mut iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.next(), Some((&10, &mut 30, &50)));
         assert_eq!(iter.next(), Some((&20, &mut 40, &60)));

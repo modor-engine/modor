@@ -61,31 +61,6 @@ impl ArchetypeStorage {
         }
     }
 
-    pub(crate) fn all_sorted(&self) -> Vec<ArchetypeInfo> {
-        self.entity_idxs
-            .iter_enumerated()
-            .map(|(a, e)| ArchetypeInfo {
-                idx: a,
-                entity_count: e.len(),
-            })
-            .collect()
-    }
-
-    pub(crate) fn sorted_with_all_types(
-        &self,
-        type_idxs: &[ComponentTypeIdx],
-    ) -> Vec<ArchetypeInfo> {
-        self.entity_idxs
-            .iter_enumerated()
-            .zip(&self.type_idxs)
-            .filter(move |((_, _), t)| Self::contains_all_types(t, type_idxs))
-            .map(|((a, e), _)| ArchetypeInfo {
-                idx: a,
-                entity_count: e.len(),
-            })
-            .collect()
-    }
-
     pub(super) fn add_component(
         &mut self,
         src_archetype_idx: ArchetypeIdx,
@@ -141,15 +116,6 @@ impl ArchetypeStorage {
         self.entity_idxs[location.idx].swap_remove(location.pos);
     }
 
-    fn contains_all_types(
-        type_idxs: &[ComponentTypeIdx],
-        search_type_idxs: &[ComponentTypeIdx],
-    ) -> bool {
-        search_type_idxs
-            .iter()
-            .all(|t| type_idxs.binary_search(t).is_ok())
-    }
-
     fn search_idx(&self, type_idxs: &[ComponentTypeIdx]) -> Option<ArchetypeIdx> {
         self.type_idxs
             .iter()
@@ -179,7 +145,7 @@ impl Iterator for FilteredArchetypeIdxIter<'_> {
     type Item = ArchetypeIdx;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(&archetype_idx) = self.archetype_idxs.next() {
+        for &archetype_idx in &mut self.archetype_idxs {
             let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
             if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
                 match self.archetype_filter {
@@ -206,7 +172,7 @@ impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
     // TODO: refactor to avoid code repetition
     // TODO: test
     fn next_back(&mut self) -> Option<Self::Item> {
-        while let Some(&archetype_idx) = self.archetype_idxs.next_back() {
+        for &archetype_idx in &mut self.archetype_idxs {
             let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
             if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
                 match self.archetype_filter {
@@ -266,7 +232,7 @@ impl ArchetypeFilter {
             Self::None => other,
             Self::All => match other {
                 Self::None => Self::All,
-                other => other,
+                other @ (Self::All | Self::Union(_) | Self::Intersection(_)) => other,
             },
             Self::Union(mut type_idxs) => match other {
                 Self::None | Self::All => Self::Union(type_idxs),
@@ -291,18 +257,6 @@ impl ArchetypeFilter {
 pub struct EntityLocationInArchetype {
     pub(crate) idx: ArchetypeIdx,
     pub(crate) pos: ArchetypeEntityPos,
-}
-
-#[derive(Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-pub(crate) struct ArchetypeInfo {
-    pub(crate) idx: ArchetypeIdx,
-    pub(crate) entity_count: usize,
-}
-
-impl PartialEq<Self> for ArchetypeInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.idx == other.idx
-    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -495,57 +449,6 @@ mod archetype_storage_tests {
         assert_eq!(entity_idxs, ti_vec![9.into(), 7.into()]);
         assert_eq!(storage.next_entity_pos(archetype_idx), 2.into());
     }
-
-    #[test]
-    fn retrieve_all_sorted_archetypes() {
-        let mut storage = ArchetypeStorage::default();
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-        let archetype3_idx = storage.add_component(archetype1_idx, type2_idx).unwrap();
-
-        let all_archetypes = storage.all_sorted();
-
-        let archetype1 = create_archetype_info(archetype1_idx, 0);
-        let archetype2 = create_archetype_info(archetype2_idx, 0);
-        let archetype3 = create_archetype_info(archetype3_idx, 1);
-        assert_eq!(all_archetypes, [archetype1, archetype2, archetype3]);
-    }
-
-    #[test]
-    fn retrieve_sorted_archetypes_with_one_type() {
-        let mut storage = ArchetypeStorage::default();
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-        let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-
-        let all_archetypes = storage.sorted_with_all_types(&[type1_idx]);
-
-        let archetype1 = create_archetype_info(archetype2_idx, 0);
-        let archetype2 = create_archetype_info(archetype3_idx, 1);
-        assert_eq!(all_archetypes, [archetype1, archetype2]);
-    }
-
-    #[test]
-    fn retrieve_sorted_archetypes_with_multiple_type() {
-        let mut storage = ArchetypeStorage::default();
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-        let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-
-        let archetypes = storage.sorted_with_all_types(&[type1_idx, type2_idx]);
-
-        assert_eq!(archetypes, [create_archetype_info(archetype3_idx, 1)]);
-    }
-
-    fn create_archetype_info(idx: ArchetypeIdx, entity_count: usize) -> ArchetypeInfo {
-        ArchetypeInfo { idx, entity_count }
-    }
 }
 
 #[cfg(test)]
@@ -658,7 +561,7 @@ mod filtered_archetype_idx_iter_tests {
 
 #[cfg(test)]
 mod archetype_filter_tests {
-    use crate::storages::archetypes::ArchetypeFilter::*;
+    use crate::storages::archetypes::ArchetypeFilter::{All, Intersection, None, Union};
 
     #[test]
     fn merge_none() {

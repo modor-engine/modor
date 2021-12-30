@@ -3,11 +3,10 @@ use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{
-    Const, EntityIterInfo, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamIterInfo,
-    SystemParamWithLifetime,
+    Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::any::{Any, TypeId};
+use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C
 where
@@ -38,18 +37,6 @@ where
         }
     }
 
-    fn iter_info(data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-        let mut component_type_idxs = info.filtered_component_type_idxs.clone();
-        component_type_idxs.push(
-            data.components
-                .type_idx(TypeId::of::<C>())
-                .expect("internal error: missing component type when retrieving iter info"),
-        );
-        SystemParamIterInfo::ComponentIntersectionEntities(EntityIterInfo {
-            sorted_archetypes: data.archetypes.sorted_with_all_types(&component_type_idxs),
-        })
-    }
-
     fn lock<'a>(
         data: &'a SystemData<'_>,
         info: &'a SystemInfo,
@@ -68,7 +55,6 @@ where
 
     fn stream<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        iter_info: &'a SystemParamIterInfo,
     ) -> <Self as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
@@ -102,7 +88,6 @@ where
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
@@ -112,7 +97,6 @@ where
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
@@ -275,7 +259,6 @@ mod component_ref_system_param_tests {
     };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::system_params::internal::SystemParamIterInfo;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
@@ -290,19 +273,6 @@ mod component_ref_system_param_tests {
         assert!(!properties.has_entity_actions);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
-    }
-
-    #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::from_one_filtered_type(0.into());
-
-        let iter_info = <&u32>::iter_info(&core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -324,8 +294,8 @@ mod component_ref_system_param_tests {
         let components = guard_borrow.components;
         assert_eq!(components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
         assert_eq!(guard_borrow.item_count, 1);
-        let archetype_idx = guard_borrow.sorted_archetype_idxs.next();
-        assert_eq!(archetype_idx, Some(archetype2_idx));
+        let next_archetype_idx = guard_borrow.sorted_archetype_idxs.next();
+        assert_eq!(next_archetype_idx, Some(archetype2_idx));
         assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
     }
 
@@ -343,9 +313,8 @@ mod component_ref_system_param_tests {
                 &archetype_type_idxs,
             ),
         };
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let mut stream = <&u32>::stream(&mut guard_borrow, &iter_info);
+        let mut stream = <&u32>::stream(&mut guard_borrow);
 
         assert_eq!(<&u32>::stream_next(&mut stream), Some(&20));
         assert_eq!(<&u32>::stream_next(&mut stream), Some(&40));
@@ -367,9 +336,8 @@ mod component_ref_system_param_tests {
                 &archetype_type_idxs,
             ),
         };
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info);
+        let mut iter = <&u32>::query_iter(&guard_borrow);
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(&20));
@@ -395,9 +363,8 @@ mod component_ref_system_param_tests {
                 &archetype_type_idxs,
             ),
         };
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let mut iter = <&u32>::query_iter(&guard_borrow, &iter_info).rev();
+        let mut iter = <&u32>::query_iter(&guard_borrow).rev();
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(&50));
@@ -423,9 +390,8 @@ mod component_ref_system_param_tests {
                 &archetype_type_idxs,
             ),
         };
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info);
+        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow);
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(&20));
@@ -451,9 +417,8 @@ mod component_ref_system_param_tests {
                 &archetype_type_idxs,
             ),
         };
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(1.into(), 1), (3.into(), 2)]);
 
-        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow, &iter_info).rev();
+        let mut iter = <&u32>::query_iter_mut(&mut guard_borrow).rev();
 
         assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(&50));

@@ -225,7 +225,7 @@ mod system_state_storage_tests {
         let mut storage = SystemStateStorage::default();
         storage.reset([0.into(), 1.into()].into_iter());
         storage.register_component_type(1.into());
-        let component_type_access = create_type_access(1.into(), Access::Write);
+        let component_type_access = create_type_access(Access::Write, 1.into());
         let properties = AllSystemProperties {
             component_types: &ti_vec![vec![component_type_access], vec![component_type_access]],
             have_entity_actions: &ti_vec![false, false],
@@ -255,8 +255,8 @@ mod system_state_storage_tests {
         assert_eq!(storage.component_type_state, state);
     }
 
-    fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {
-        ComponentTypeAccess { type_idx, access }
+    fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {
+        ComponentTypeAccess { access, type_idx }
     }
 }
 
