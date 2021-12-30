@@ -145,48 +145,52 @@ impl Iterator for FilteredArchetypeIdxIter<'_> {
     type Item = ArchetypeIdx;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for &archetype_idx in &mut self.archetype_idxs {
-            let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
-            if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
-                match self.archetype_filter {
-                    ArchetypeFilter::None => return None,
-                    ArchetypeFilter::All => return Some(archetype_idx),
-                    ArchetypeFilter::Union(type_idxs) => {
-                        if Self::contains_any_type(archetype_type_idxs, type_idxs) {
-                            return Some(archetype_idx);
-                        }
-                    }
-                    ArchetypeFilter::Intersection(type_idxs) => {
-                        if Self::contains_all_types(archetype_type_idxs, type_idxs) {
-                            return Some(archetype_idx);
-                        }
-                    }
-                }
-            }
-        }
-        None
+        Self::next_idx(
+            &mut self.archetype_idxs,
+            self.archetype_type_idxs,
+            self.filtered_type_idxs,
+            self.archetype_filter,
+        )
     }
 }
 
 impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
-    // TODO: refactor to avoid code repetition
-    // TODO: test
     fn next_back(&mut self) -> Option<Self::Item> {
-        for &archetype_idx in &mut self.archetype_idxs {
-            let archetype_type_idxs = &self.archetype_type_idxs[archetype_idx];
-            if Self::contains_all_types(archetype_type_idxs, self.filtered_type_idxs) {
-                match self.archetype_filter {
-                    ArchetypeFilter::None => return None,
-                    ArchetypeFilter::All => return Some(archetype_idx),
-                    ArchetypeFilter::Union(type_idxs) => {
-                        if Self::contains_any_type(archetype_type_idxs, type_idxs) {
-                            return Some(archetype_idx);
-                        }
+        Self::next_idx(
+            (&mut self.archetype_idxs).rev(),
+            self.archetype_type_idxs,
+            self.filtered_type_idxs,
+            self.archetype_filter,
+        )
+    }
+}
+
+impl FilteredArchetypeIdxIter<'_> {
+    fn next_idx<'a, I>(
+        archetype_idxs: I,
+        archetype_type_idxs: &TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
+        filtered_type_idxs: &[ComponentTypeIdx],
+        archetype_filter: &ArchetypeFilter,
+    ) -> Option<ArchetypeIdx>
+    where
+        I: Iterator<Item = &'a ArchetypeIdx>,
+    {
+        for &archetype_idx in archetype_idxs {
+            let archetype_type_idxs = &archetype_type_idxs[archetype_idx];
+            if !Self::contains_all_types(archetype_type_idxs, filtered_type_idxs) {
+                continue;
+            }
+            match archetype_filter {
+                ArchetypeFilter::None => return None,
+                ArchetypeFilter::All => return Some(archetype_idx),
+                ArchetypeFilter::Union(type_idxs) => {
+                    if Self::contains_any_type(archetype_type_idxs, type_idxs) {
+                        return Some(archetype_idx);
                     }
-                    ArchetypeFilter::Intersection(type_idxs) => {
-                        if Self::contains_all_types(archetype_type_idxs, type_idxs) {
-                            return Some(archetype_idx);
-                        }
+                }
+                ArchetypeFilter::Intersection(type_idxs) => {
+                    if Self::contains_all_types(archetype_type_idxs, type_idxs) {
+                        return Some(archetype_idx);
                     }
                 }
             }
@@ -553,6 +557,105 @@ mod filtered_archetype_idx_iter_tests {
             filtered_type_idxs: &[3.into()],
             archetype_filter: &ArchetypeFilter::Intersection(ne_vec![2.into(), 4.into()]),
         };
+
+        assert_eq!(iter.next(), Some(2.into()));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_reversed_when_none_archetype_filter() {
+        let type_idxs = ti_vec![vec![2.into()]];
+        let archetype_idxs = vec![0.into()];
+
+        let mut iter = FilteredArchetypeIdxIter {
+            archetype_type_idxs: &type_idxs,
+            archetype_idxs: archetype_idxs.iter(),
+            filtered_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::None,
+        }
+        .rev();
+
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_reversed_when_no_filtered_type_and_all_archetype_filter() {
+        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
+        let archetype_idxs = vec![0.into(), 1.into()];
+
+        let mut iter = FilteredArchetypeIdxIter {
+            archetype_type_idxs: &type_idxs,
+            archetype_idxs: archetype_idxs.iter(),
+            filtered_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::All,
+        }
+        .rev();
+
+        assert_eq!(iter.next(), Some(1.into()));
+        assert_eq!(iter.next(), Some(0.into()));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_reversed_when_filtered_types_and_all_archetype_filter() {
+        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
+        let archetype_idxs = vec![0.into(), 1.into()];
+        let filtered_type_idxs = [3.into()];
+
+        let mut iter = FilteredArchetypeIdxIter {
+            archetype_type_idxs: &type_idxs,
+            archetype_idxs: archetype_idxs.iter(),
+            filtered_type_idxs: &filtered_type_idxs,
+            archetype_filter: &ArchetypeFilter::All,
+        }
+        .rev();
+
+        assert_eq!(iter.next(), Some(1.into()));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_reversed_when_filtered_types_and_union_filter() {
+        let type_idxs = ti_vec![
+            vec![2.into()],
+            vec![2.into(), 3.into()],
+            vec![3.into(), 4.into()]
+        ];
+        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
+        let filtered_type_idxs = [3.into()];
+        let archetype_filter = ArchetypeFilter::Union(ne_vec![2.into(), 4.into()]);
+
+        let mut iter = FilteredArchetypeIdxIter {
+            archetype_type_idxs: &type_idxs,
+            archetype_idxs: archetype_idxs.iter(),
+            filtered_type_idxs: &filtered_type_idxs,
+            archetype_filter: &archetype_filter,
+        }
+        .rev();
+
+        assert_eq!(iter.next(), Some(2.into()));
+        assert_eq!(iter.next(), Some(1.into()));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_reversed_when_filtered_types_and_intersection_filter() {
+        let type_idxs = ti_vec![
+            vec![2.into()],
+            vec![2.into(), 3.into()],
+            vec![2.into(), 3.into(), 4.into()]
+        ];
+        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
+        let filtered_type_idxs = [3.into()];
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![2.into(), 4.into()]);
+
+        let mut iter = FilteredArchetypeIdxIter {
+            archetype_type_idxs: &type_idxs,
+            archetype_idxs: archetype_idxs.iter(),
+            filtered_type_idxs: &filtered_type_idxs,
+            archetype_filter: &archetype_filter,
+        }
+        .rev();
 
         assert_eq!(iter.next(), Some(2.into()));
         assert_eq!(iter.next(), None);

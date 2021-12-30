@@ -43,7 +43,7 @@ where
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         ComponentMutOptionGuard::new(data, info)
     }
@@ -132,14 +132,14 @@ pub(crate) mod internal {
     pub struct ComponentMutOptionGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
         data: &'a SystemData<'a>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentMutOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
             Self {
                 components: data.components.write_components::<C>(),
                 data,
@@ -325,8 +325,8 @@ mod component_mut_option_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = Option::<&mut u32>::lock(&data, &info);

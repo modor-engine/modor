@@ -94,7 +94,7 @@ where
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         QueryGuard::new(data, info)
     }
@@ -208,6 +208,7 @@ run_for_tuples_with_idxs!(impl_tuple_query_filter);
 
 mod internal {
     use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::components::ComponentTypeIdx;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
     use crate::{QueryFilter, SystemData, SystemInfo};
     use std::marker::PhantomData;
@@ -215,7 +216,8 @@ mod internal {
 
     pub struct QueryGuard<'a, F> {
         data: &'a SystemData<'a>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'a>,
+        filtered_component_type_idxs: Vec<ComponentTypeIdx>,
         phantom: PhantomData<F>,
     }
 
@@ -223,10 +225,11 @@ mod internal {
     where
         F: QueryFilter,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
             Self {
                 data,
                 info,
+                filtered_component_type_idxs: F::filtered_component_type_idxs(data),
                 phantom: PhantomData,
             }
         }
@@ -235,8 +238,8 @@ mod internal {
             QueryGuardBorrow {
                 data: self.data,
                 param_info: SystemInfo {
-                    filtered_component_type_idxs: F::filtered_component_type_idxs(self.data),
-                    archetype_filter: ArchetypeFilter::All,
+                    filtered_component_type_idxs: &self.filtered_component_type_idxs,
+                    archetype_filter: &ArchetypeFilter::All,
                 },
                 item_count: self.data.item_count(self.info),
             }
@@ -245,7 +248,7 @@ mod internal {
 
     pub struct QueryGuardBorrow<'a> {
         pub(crate) data: &'a SystemData<'a>,
-        pub(crate) param_info: SystemInfo,
+        pub(crate) param_info: SystemInfo<'a>,
         pub(crate) item_count: usize,
     }
 
@@ -287,8 +290,8 @@ mod query_tests {
         create_entity(&mut core, 30_u8, 31_i8);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![2.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[2.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
         let mut guard = <&mut u32>::lock(&data, &info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
@@ -308,8 +311,8 @@ mod query_tests {
         create_entity(&mut core, 30_u8, 31_i8);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![2.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[2.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
         let mut guard = <&mut u32>::lock(&data, &info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
@@ -551,8 +554,8 @@ mod query_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = Query::<&u32, With<i64>>::lock(&data, &info);
@@ -560,7 +563,7 @@ mod query_system_param_tests {
 
         assert!(ptr::eq(guard_borrow.data, &data));
         let archetype_filter = guard_borrow.param_info.archetype_filter;
-        assert_eq!(archetype_filter, ArchetypeFilter::All);
+        assert_eq!(archetype_filter, &ArchetypeFilter::All);
         let filtered_type_idxs = guard_borrow.param_info.filtered_component_type_idxs;
         assert_eq!(filtered_type_idxs, vec![1.into()]);
         assert_eq!(guard_borrow.item_count, 1);
@@ -573,8 +576,8 @@ mod query_system_param_tests {
         let mut guard_borrow = QueryGuardBorrow {
             data: &core.system_data(),
             param_info: SystemInfo {
-                filtered_component_type_idxs: vec![],
-                archetype_filter: ArchetypeFilter::All,
+                filtered_component_type_idxs: &[],
+                archetype_filter: &ArchetypeFilter::All,
             },
             item_count: 3,
         };

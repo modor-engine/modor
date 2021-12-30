@@ -105,7 +105,7 @@ impl SystemParam for World<'_> {
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         WorldGuard::new(data, info)
     }
@@ -153,11 +153,11 @@ mod internal {
 
     pub struct WorldGuard<'a> {
         data: &'a SystemData<'a>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'a>,
     }
 
     impl<'a> WorldGuard<'a> {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
             Self { data, info }
         }
 
@@ -300,8 +300,8 @@ mod world_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = World::lock(&data, &info);

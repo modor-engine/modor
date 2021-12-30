@@ -122,9 +122,9 @@ use crate::storages::systems::SystemProperties;
 use std::sync::Mutex;
 
 #[doc(hidden)]
-pub struct SystemInfo {
-    pub(crate) filtered_component_type_idxs: Vec<ComponentTypeIdx>, // TODO: avoid cloning
-    pub(crate) archetype_filter: ArchetypeFilter,                   // TODO: avoid cloning
+pub struct SystemInfo<'a> {
+    pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
+    pub(crate) archetype_filter: &'a ArchetypeFilter,
 }
 
 #[doc(hidden)]
@@ -136,8 +136,8 @@ pub struct SystemData<'a> {
 
 impl SystemData<'_> {
     // TODO: test
-    pub(crate) fn item_count<'a>(&'a self, system_info: &'a SystemInfo) -> usize {
-        if system_info.archetype_filter == ArchetypeFilter::None {
+    pub(crate) fn item_count<'a>(&'a self, system_info: &'a SystemInfo<'_>) -> usize {
+        if system_info.archetype_filter == &ArchetypeFilter::None {
             1
         } else {
             self.filter_archetype_idx_iter(system_info)
@@ -148,7 +148,7 @@ impl SystemData<'_> {
 
     pub(crate) fn filter_archetype_idx_iter<'a>(
         &'a self,
-        system_info: &'a SystemInfo,
+        system_info: &'a SystemInfo<'_>,
     ) -> FilteredArchetypeIdxIter<'a> {
         const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
         let pre_filtered_archetype_idxs =
@@ -197,7 +197,7 @@ where
     fn lock<'a>(
         &self,
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <P as SystemParamWithLifetime<'a>>::Guard {
         P::lock(data, info)
     }
@@ -271,7 +271,7 @@ pub(crate) mod internal {
 
     pub trait SealedSystem<P> {}
 
-    pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo);
+    pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo<'_>);
 }
 
 #[cfg(test)]
@@ -287,8 +287,8 @@ mod system_data_tests {
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![type2_idx],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[type2_idx],
+            archetype_filter: &ArchetypeFilter::All,
         };
         let data = core.system_data();
 
@@ -307,8 +307,8 @@ mod system_data_tests {
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::None,
         };
         let data = core.system_data();
 
@@ -326,8 +326,8 @@ mod system_data_tests {
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::All,
         };
         let data = core.system_data();
 
@@ -348,8 +348,8 @@ mod system_data_tests {
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::Union(ne_vec![type1_idx]),
+            filtered_component_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::Union(ne_vec![type1_idx]),
         };
         let data = core.system_data();
 
@@ -369,8 +369,8 @@ mod system_data_tests {
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![],
-            archetype_filter: ArchetypeFilter::Intersection(ne_vec![type1_idx]),
+            filtered_component_type_idxs: &[],
+            archetype_filter: &ArchetypeFilter::Intersection(ne_vec![type1_idx]),
         };
         let data = core.system_data();
 
@@ -423,8 +423,8 @@ mod system_tests {
         let data = core.system_data();
         let system = |_: &u32, _: &mut i64| ();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = System::lock(&system, &data, &info);

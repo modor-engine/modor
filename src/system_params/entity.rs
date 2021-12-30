@@ -56,7 +56,7 @@ impl SystemParam for Entity<'_> {
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         EntityGuard::new(data, info)
     }
@@ -125,11 +125,11 @@ mod internal {
 
     pub struct EntityGuard<'a> {
         data: &'a SystemData<'a>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'a>,
     }
 
     impl<'a> EntityGuard<'a> {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
             Self { data, info }
         }
 
@@ -281,8 +281,8 @@ mod entity_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = Entity::lock(&data, &info);

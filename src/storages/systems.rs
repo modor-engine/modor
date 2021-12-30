@@ -154,8 +154,8 @@ impl SystemStorage {
             return;
         }
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![entity_type_idx],
-            archetype_filter: archetype_filters[system_idx].clone(),
+            filtered_component_type_idxs: &[entity_type_idx],
+            archetype_filter: &archetype_filters[system_idx],
         };
         let wrapper = wrappers[system_idx].expect("internal error: call missing system");
         wrapper(data, info);

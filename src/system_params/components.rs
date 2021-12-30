@@ -39,7 +39,7 @@ where
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         ComponentGuard::new(data, info)
     }
@@ -127,14 +127,14 @@ pub(crate) mod internal {
     pub struct ComponentGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
         data: &'a SystemData<'a>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo) -> Self {
+        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
             Self {
                 components: data.components.read_components::<C>(),
                 data,
@@ -284,8 +284,8 @@ mod component_ref_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = <&u32>::lock(&data, &info);

@@ -29,7 +29,7 @@ impl SystemParam for () {
 
     fn lock<'a>(
         data: &'a SystemData<'_>,
-        info: &'a SystemInfo,
+        info: &'a SystemInfo<'_>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         EmptyTupleGuard::new(data, info)
     }
@@ -121,7 +121,7 @@ macro_rules! impl_tuple_system_param {
 
             fn lock<'a>(
                 data: &'a SystemData<'_>,
-                info: &'a SystemInfo,
+                info: &'a SystemInfo<'_>,
             ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
                 ($($params::lock(data, info),)+)
             }
@@ -315,7 +315,7 @@ mod internal {
     }
 
     impl EmptyTupleGuard {
-        pub(crate) fn new(data: &SystemData<'_>, info: &SystemInfo) -> Self {
+        pub(crate) fn new(data: &SystemData<'_>, info: &SystemInfo<'_>) -> Self {
             Self {
                 item_count: data.item_count(info),
             }
@@ -369,9 +369,9 @@ mod internal {
 #[cfg(test)]
 mod empty_tuple_system_param_tests {
     use super::*;
+    use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
     use crate::SystemInfo;
-    use crate::storages::archetypes::ArchetypeStorage;
 
     #[test]
     fn retrieve_properties() {
@@ -393,8 +393,8 @@ mod empty_tuple_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = <()>::lock(&data, &info);
@@ -496,8 +496,8 @@ mod tuple_with_one_item_system_param_tests {
         core.add_component(10_u32, type_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = <(&u32,)>::lock(&data, &info);
@@ -622,8 +622,8 @@ mod tuple_with_two_items_system_param_tests {
         core.add_component(20_u32, type2_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = <(&u32, &mut i64)>::lock(&data, &info);
@@ -763,8 +763,8 @@ mod tuple_with_more_than_two_items_system_param_tests {
         core.add_component(30_i16, type3_idx, location);
         let data = core.system_data();
         let info = SystemInfo {
-            filtered_component_type_idxs: vec![0.into()],
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
         };
 
         let mut guard = <(&u32, &mut i64, &i16)>::lock(&data, &info);
