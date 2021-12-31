@@ -163,7 +163,7 @@ mod internal {
 
         pub(crate) fn borrow(&mut self) -> WorldGuardBorrow<'_> {
             WorldGuardBorrow {
-                item_count: self.data.item_count(self.info),
+                item_count: self.info.item_count,
                 data: self.data,
             }
         }
@@ -301,6 +301,7 @@ mod world_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = World::lock(data, info);

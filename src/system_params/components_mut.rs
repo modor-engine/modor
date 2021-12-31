@@ -146,8 +146,11 @@ pub(crate) mod internal {
         pub(crate) fn borrow(&mut self) -> ComponentMutGuardBorrow<'_, C> {
             ComponentMutGuardBorrow {
                 components: &mut *self.components,
-                item_count: self.data.item_count(self.info),
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(self.info),
+                item_count: self.info.item_count,
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
+                    self.info.filtered_component_type_idxs,
+                    self.info.archetype_filter,
+                ),
             }
         }
     }
@@ -272,6 +275,7 @@ mod component_mut_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = <&mut u32>::lock(data, info);

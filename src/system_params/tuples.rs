@@ -315,9 +315,9 @@ mod internal {
     }
 
     impl EmptyTupleGuard {
-        pub(crate) fn new(data: SystemData<'_>, info: SystemInfo<'_>) -> Self {
+        pub(crate) fn new(_data: SystemData<'_>, info: SystemInfo<'_>) -> Self {
             Self {
-                item_count: data.item_count(info),
+                item_count: info.item_count,
             }
         }
 
@@ -395,6 +395,7 @@ mod empty_tuple_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = <()>::lock(data, info);
@@ -498,6 +499,7 @@ mod tuple_with_one_item_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = <(&u32,)>::lock(data, info);
@@ -624,6 +626,7 @@ mod tuple_with_two_items_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = <(&u32, &mut i64)>::lock(data, info);
@@ -765,6 +768,7 @@ mod tuple_with_more_than_two_items_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = <(&u32, &mut i64, &i16)>::lock(data, info);

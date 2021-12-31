@@ -135,8 +135,11 @@ mod internal {
 
         pub(crate) fn borrow(&mut self) -> EntityGuardBorrow<'_> {
             EntityGuardBorrow {
-                item_count: self.data.item_count(self.info),
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(self.info),
+                item_count: self.info.item_count,
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
+                    self.info.filtered_component_type_idxs,
+                    self.info.archetype_filter,
+                ),
                 data: self.data,
             }
         }
@@ -282,6 +285,7 @@ mod entity_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = Entity::lock(data, info);

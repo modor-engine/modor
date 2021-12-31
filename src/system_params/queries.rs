@@ -240,8 +240,14 @@ mod internal {
                 param_info: SystemInfo {
                     filtered_component_type_idxs: &self.filtered_component_type_idxs,
                     archetype_filter: &ArchetypeFilter::All,
+                    item_count: self
+                        .data
+                        .item_count(&self.filtered_component_type_idxs, &ArchetypeFilter::All),
                 },
-                item_count: self.data.item_count(self.info),
+                item_count: self.data.item_count(
+                    self.info.filtered_component_type_idxs,
+                    self.info.archetype_filter,
+                ),
             }
         }
     }
@@ -292,6 +298,7 @@ mod query_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
         let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
@@ -313,6 +320,7 @@ mod query_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
         let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
@@ -555,6 +563,7 @@ mod query_system_param_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = Query::<&u32, With<i64>>::lock(data, info);
@@ -576,6 +585,7 @@ mod query_system_param_tests {
             param_info: SystemInfo {
                 filtered_component_type_idxs: &[],
                 archetype_filter: &ArchetypeFilter::All,
+                item_count: 0,
             },
             item_count: 3,
         };

@@ -126,6 +126,7 @@ use std::sync::Mutex;
 pub struct SystemInfo<'a> {
     pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     pub(crate) archetype_filter: &'a ArchetypeFilter,
+    pub(crate) item_count: usize,
 }
 
 #[doc(hidden)]
@@ -137,27 +138,17 @@ pub struct SystemData<'a> {
 }
 
 impl SystemData<'_> {
-    // TODO: test
-    pub(crate) fn item_count(&self, system_info: SystemInfo<'_>) -> usize {
-        if system_info.archetype_filter == &ArchetypeFilter::None {
-            1
-        } else {
-            self.filter_archetype_idx_iter(system_info)
-                .map(|a| self.archetypes.entity_idxs(a).len())
-                .sum()
-        }
-    }
-
     pub(crate) fn filter_archetype_idx_iter<'a>(
         &'a self,
-        system_info: SystemInfo<'a>,
+        filtered_component_type_idxs: &'a [ComponentTypeIdx],
+        archetype_filter: &'a ArchetypeFilter,
     ) -> FilteredArchetypeIdxIter<'a> {
         const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
         let pre_filtered_archetype_idxs =
-            if let Some(&type_idx) = system_info.filtered_component_type_idxs.first() {
+            if let Some(&type_idx) = filtered_component_type_idxs.first() {
                 self.components.sorted_archetype_idxs(type_idx)
             } else {
-                match &system_info.archetype_filter {
+                match &archetype_filter {
                     ArchetypeFilter::None => EMPTY_ARCHETYPE_IDX_SLICE,
                     ArchetypeFilter::All | ArchetypeFilter::Union(_) => {
                         self.archetypes.all_sorted_idxs()
@@ -169,9 +160,23 @@ impl SystemData<'_> {
             };
         self.archetypes.filter_idxs(
             pre_filtered_archetype_idxs.iter(),
-            system_info.filtered_component_type_idxs,
-            system_info.archetype_filter,
+            filtered_component_type_idxs,
+            archetype_filter,
         )
+    }
+
+    pub(crate) fn item_count(
+        &self,
+        filtered_component_type_idxs: &[ComponentTypeIdx],
+        archetype_filter: &ArchetypeFilter,
+    ) -> usize {
+        if archetype_filter == &ArchetypeFilter::None {
+            1
+        } else {
+            self.filter_archetype_idx_iter(filtered_component_type_idxs, archetype_filter)
+                .map(|a| self.archetypes.entity_idxs(a).len())
+                .sum()
+        }
     }
 }
 
@@ -288,13 +293,10 @@ mod system_data_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[type2_idx],
-            archetype_filter: &ArchetypeFilter::All,
-        };
         let data = core.system_data();
+        let filtered_type_idxs = &[type2_idx];
 
-        let mut iter = data.filter_archetype_idx_iter(info);
+        let mut iter = data.filter_archetype_idx_iter(filtered_type_idxs, &ArchetypeFilter::All);
 
         assert_eq!(iter.next(), Some(archetype2_idx));
         assert_eq!(iter.next(), None);
@@ -308,13 +310,9 @@ mod system_data_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::None,
-        };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(info);
+        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::None);
 
         assert_eq!(iter.next(), None);
     }
@@ -327,13 +325,9 @@ mod system_data_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::All,
-        };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(info);
+        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::All);
 
         assert_eq!(iter.next(), Some(0.into()));
         assert_eq!(iter.next(), Some(archetype1_idx));
@@ -349,13 +343,10 @@ mod system_data_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::Union(ne_vec![type1_idx]),
-        };
         let data = core.system_data();
+        let archetype_filter = ArchetypeFilter::Union(ne_vec![type1_idx]);
 
-        let mut iter = data.filter_archetype_idx_iter(info);
+        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
 
         assert_eq!(iter.next(), Some(archetype1_idx));
         assert_eq!(iter.next(), Some(archetype2_idx));
@@ -370,16 +361,37 @@ mod system_data_tests {
         let location = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::Intersection(ne_vec![type1_idx]),
-        };
         let data = core.system_data();
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![type1_idx]);
 
-        let mut iter = data.filter_archetype_idx_iter(info);
+        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
 
         assert_eq!(iter.next(), Some(archetype2_idx));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_item_count_with_none_archetype_filter() {
+        let core = CoreStorage::default();
+        let data = core.system_data();
+
+        let item_count = data.item_count(&[], &ArchetypeFilter::None);
+
+        assert_eq!(item_count, 1);
+    }
+
+    #[test]
+    fn retrieve_item_count_with_not_none_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (_, archetype_idx) = core.add_component_type::<u32>(0.into());
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        core.create_entity(archetype_idx);
+        core.create_entity(archetype_idx);
+        let data = core.system_data();
+
+        let item_count = data.item_count(&[], &ArchetypeFilter::All);
+
+        assert_eq!(item_count, 3);
     }
 }
 
@@ -427,6 +439,7 @@ mod system_tests {
         let info = SystemInfo {
             filtered_component_type_idxs: &[0.into()],
             archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
         };
 
         let mut guard = System::lock(&system, data, info);

@@ -153,9 +153,12 @@ impl SystemStorage {
         if data.components.count(entity_type_idx) == 0 {
             return;
         }
+        let filtered_component_type_idxs = &[entity_type_idx];
+        let archetype_filter = &archetype_filters[system_idx];
         let info = SystemInfo {
-            filtered_component_type_idxs: &[entity_type_idx],
-            archetype_filter: &archetype_filters[system_idx],
+            filtered_component_type_idxs,
+            archetype_filter,
+            item_count: data.item_count(filtered_component_type_idxs, archetype_filter),
         };
         let wrapper = wrappers[system_idx].expect("internal error: call missing system");
         wrapper(data, info);
