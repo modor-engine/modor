@@ -8,7 +8,7 @@ use crate::system_params::internal::{
     LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::system_params::optional_components::internal::ComponentOptionIter;
-use crate::system_params::optional_components_mut::internal::ComponentOptionIterMut;
+use crate::system_params::optional_components_mut::internal::ComponentMutOptionIter;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::any::Any;
 
@@ -19,7 +19,7 @@ where
     type Param = Option<&'a mut C>;
     type Guard = ComponentMutOptionGuard<'a, C>;
     type GuardBorrow = ComponentMutOptionGuardBorrow<'a, C>;
-    type Stream = ComponentOptionIterMut<'a, C>;
+    type Stream = ComponentMutOptionIter<'a, C>;
 }
 
 impl<C> SystemParam for Option<&mut C>
@@ -63,7 +63,7 @@ where
     where
         'b: 'a,
     {
-        ComponentOptionIterMut::new(guard)
+        ComponentMutOptionIter::new(guard)
     }
 
     #[inline]
@@ -83,7 +83,7 @@ where
 {
     type ConstParam = Option<&'a C>;
     type Iter = ComponentOptionIter<'a, C>;
-    type IterMut = ComponentOptionIterMut<'a, C>;
+    type IterMut = ComponentMutOptionIter<'a, C>;
 }
 
 impl<C> QuerySystemParam for Option<&mut C>
@@ -105,7 +105,7 @@ where
     where
         'b: 'a,
     {
-        ComponentOptionIterMut::new(guard)
+        ComponentMutOptionIter::new(guard)
     }
 }
 
@@ -117,7 +117,6 @@ where
     type Mutability = Mut;
 }
 
-// TODO: rename iter/guard types ? (position of "Mut")
 pub(crate) mod internal {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
     use crate::storages::components::ComponentArchetypes;
@@ -164,12 +163,12 @@ pub(crate) mod internal {
         pub(crate) data: SystemData<'a>,
     }
 
-    pub struct ComponentOptionIterMut<'a, C> {
+    pub struct ComponentMutOptionIter<'a, C> {
         components: Flatten<ArchetypeComponentIter<'a, C>>,
         len: usize,
     }
 
-    impl<'a, C> ComponentOptionIterMut<'a, C> {
+    impl<'a, C> ComponentMutOptionIter<'a, C> {
         pub(super) fn new(guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>) -> Self {
             Self {
                 len: guard.item_count,
@@ -178,7 +177,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> Iterator for ComponentOptionIterMut<'a, C> {
+    impl<'a, C> Iterator for ComponentMutOptionIter<'a, C> {
         type Item = Option<&'a mut C>;
 
         #[inline]
@@ -194,7 +193,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> DoubleEndedIterator for ComponentOptionIterMut<'a, C> {
+    impl<'a, C> DoubleEndedIterator for ComponentMutOptionIter<'a, C> {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
             self.components.next_back().map(|c| {
@@ -204,7 +203,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> ExactSizeIterator for ComponentOptionIterMut<'a, C> {}
+    impl<'a, C> ExactSizeIterator for ComponentMutOptionIter<'a, C> {}
 
     struct ArchetypeComponentIter<'a, C> {
         last_archetype_idx: Option<ArchetypeIdx>,

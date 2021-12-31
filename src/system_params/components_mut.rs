@@ -3,7 +3,7 @@ use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::ComponentIter;
-use crate::system_params::components_mut::internal::ComponentIterMut;
+use crate::system_params::components_mut::internal::ComponentMutIter;
 use crate::system_params::internal::{
     LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
@@ -17,7 +17,7 @@ where
     type Param = &'a mut C;
     type Guard = ComponentMutGuard<'a, C>;
     type GuardBorrow = ComponentMutGuardBorrow<'a, C>;
-    type Stream = ComponentIterMut<'a, C>;
+    type Stream = ComponentMutIter<'a, C>;
 }
 
 impl<C> SystemParam for &mut C
@@ -61,7 +61,7 @@ where
     where
         'b: 'a,
     {
-        ComponentIterMut::new(guard)
+        ComponentMutIter::new(guard)
     }
 
     #[inline]
@@ -81,7 +81,7 @@ where
 {
     type ConstParam = &'a C;
     type Iter = ComponentIter<'a, C>;
-    type IterMut = ComponentIterMut<'a, C>;
+    type IterMut = ComponentMutIter<'a, C>;
 }
 
 impl<C> QuerySystemParam for &mut C
@@ -103,7 +103,7 @@ where
     where
         'b: 'a,
     {
-        ComponentIterMut::new(guard)
+        ComponentMutIter::new(guard)
     }
 }
 
@@ -158,12 +158,12 @@ pub(crate) mod internal {
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
     }
 
-    pub struct ComponentIterMut<'a, C> {
+    pub struct ComponentMutIter<'a, C> {
         components: Flatten<ArchetypeComponentIter<'a, C>>,
         len: usize,
     }
 
-    impl<'a, C> ComponentIterMut<'a, C> {
+    impl<'a, C> ComponentMutIter<'a, C> {
         pub(super) fn new(guard: &'a mut ComponentMutGuardBorrow<'_, C>) -> Self {
             Self {
                 len: guard.item_count,
@@ -172,7 +172,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> Iterator for ComponentIterMut<'a, C> {
+    impl<'a, C> Iterator for ComponentMutIter<'a, C> {
         type Item = &'a mut C;
 
         #[inline]
@@ -188,7 +188,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> DoubleEndedIterator for ComponentIterMut<'a, C> {
+    impl<'a, C> DoubleEndedIterator for ComponentMutIter<'a, C> {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
             self.components.next_back().map(|c| {
@@ -198,7 +198,7 @@ pub(crate) mod internal {
         }
     }
 
-    impl<'a, C> ExactSizeIterator for ComponentIterMut<'a, C> {}
+    impl<'a, C> ExactSizeIterator for ComponentMutIter<'a, C> {}
 
     struct ArchetypeComponentIter<'a, C> {
         last_archetype_idx: Option<ArchetypeIdx>,
