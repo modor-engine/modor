@@ -40,8 +40,8 @@ where
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         ComponentMutGuard::new(data, info)
     }
@@ -127,15 +127,15 @@ pub(crate) mod internal {
 
     pub struct ComponentMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        data: &'a SystemData<'a>,
-        info: &'a SystemInfo<'a>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {
                 components: data.components.write_components::<C>(),
                 data,
@@ -274,7 +274,7 @@ mod component_mut_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = <&mut u32>::lock(&data, &info);
+        let mut guard = <&mut u32>::lock(data, info);
         let mut guard_borrow = <&mut u32>::borrow_guard(&mut guard);
 
         let components = guard_borrow.components;

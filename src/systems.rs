@@ -104,10 +104,10 @@ macro_rules! system {
         #[allow(clippy::semicolon_if_nothing_returned)]
         ::modor::SystemBuilder {
             properties_fn: ::modor::System::properties_fn(&$system),
-            wrapper: |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+            wrapper: |data: ::modor::SystemData<'_>, info: ::modor::SystemInfo<'_>| {
                 let checker = ::modor::SystemParamMutabilityChecker::new($system);
                 let mut system = checker.check_param_mutability().into_inner();
-                let mut guard = ::modor::System::lock(&system, data, &info);
+                let mut guard = ::modor::System::lock(&system, data, info);
                 let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
                 let mut stream = ::modor::System::stream(&system, &mut guard_borrow);
                 while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
@@ -122,12 +122,14 @@ use crate::storages::systems::SystemProperties;
 use std::sync::Mutex;
 
 #[doc(hidden)]
+#[derive(Clone, Copy)]
 pub struct SystemInfo<'a> {
     pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     pub(crate) archetype_filter: &'a ArchetypeFilter,
 }
 
 #[doc(hidden)]
+#[derive(Clone, Copy)]
 pub struct SystemData<'a> {
     pub(crate) components: &'a ComponentStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
@@ -136,7 +138,7 @@ pub struct SystemData<'a> {
 
 impl SystemData<'_> {
     // TODO: test
-    pub(crate) fn item_count<'a>(&'a self, system_info: &'a SystemInfo<'_>) -> usize {
+    pub(crate) fn item_count(&self, system_info: SystemInfo<'_>) -> usize {
         if system_info.archetype_filter == &ArchetypeFilter::None {
             1
         } else {
@@ -148,7 +150,7 @@ impl SystemData<'_> {
 
     pub(crate) fn filter_archetype_idx_iter<'a>(
         &'a self,
-        system_info: &'a SystemInfo<'_>,
+        system_info: SystemInfo<'a>,
     ) -> FilteredArchetypeIdxIter<'a> {
         const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
         let pre_filtered_archetype_idxs =
@@ -167,8 +169,8 @@ impl SystemData<'_> {
             };
         self.archetypes.filter_idxs(
             pre_filtered_archetype_idxs.iter(),
-            &system_info.filtered_component_type_idxs,
-            &system_info.archetype_filter,
+            system_info.filtered_component_type_idxs,
+            system_info.archetype_filter,
         )
     }
 }
@@ -196,8 +198,8 @@ where
     #[doc(hidden)]
     fn lock<'a>(
         &self,
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <P as SystemParamWithLifetime<'a>>::Guard {
         P::lock(data, info)
     }
@@ -271,7 +273,7 @@ pub(crate) mod internal {
 
     pub trait SealedSystem<P> {}
 
-    pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo<'_>);
+    pub(crate) type SystemWrapper = fn(SystemData<'_>, SystemInfo<'_>);
 }
 
 #[cfg(test)]
@@ -292,7 +294,7 @@ mod system_data_tests {
         };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(&info);
+        let mut iter = data.filter_archetype_idx_iter(info);
 
         assert_eq!(iter.next(), Some(archetype2_idx));
         assert_eq!(iter.next(), None);
@@ -312,7 +314,7 @@ mod system_data_tests {
         };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(&info);
+        let mut iter = data.filter_archetype_idx_iter(info);
 
         assert_eq!(iter.next(), None);
     }
@@ -331,7 +333,7 @@ mod system_data_tests {
         };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(&info);
+        let mut iter = data.filter_archetype_idx_iter(info);
 
         assert_eq!(iter.next(), Some(0.into()));
         assert_eq!(iter.next(), Some(archetype1_idx));
@@ -353,7 +355,7 @@ mod system_data_tests {
         };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(&info);
+        let mut iter = data.filter_archetype_idx_iter(info);
 
         assert_eq!(iter.next(), Some(archetype1_idx));
         assert_eq!(iter.next(), Some(archetype2_idx));
@@ -374,7 +376,7 @@ mod system_data_tests {
         };
         let data = core.system_data();
 
-        let mut iter = data.filter_archetype_idx_iter(&info);
+        let mut iter = data.filter_archetype_idx_iter(info);
 
         assert_eq!(iter.next(), Some(archetype2_idx));
         assert_eq!(iter.next(), None);
@@ -427,7 +429,7 @@ mod system_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = System::lock(&system, &data, &info);
+        let mut guard = System::lock(&system, data, info);
         let guard_borrow = System::borrow_guard(&system, &mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];

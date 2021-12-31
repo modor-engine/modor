@@ -24,8 +24,8 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
 
     #[doc(hidden)]
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard;
 
     #[doc(hidden)]

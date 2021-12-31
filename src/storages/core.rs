@@ -138,7 +138,7 @@ impl CoreStorage {
             archetypes: &self.archetypes,
             entity_actions: &self.entity_actions,
         };
-        self.systems.run(&data);
+        self.systems.run(data);
     }
 
     pub(crate) fn apply_system_actions(&mut self) {

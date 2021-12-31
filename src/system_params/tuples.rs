@@ -28,8 +28,8 @@ impl SystemParam for () {
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         EmptyTupleGuard::new(data, info)
     }
@@ -120,8 +120,8 @@ macro_rules! impl_tuple_system_param {
             }
 
             fn lock<'a>(
-                data: &'a SystemData<'_>,
-                info: &'a SystemInfo<'_>,
+                data: SystemData<'a>,
+                info: SystemInfo<'a>,
             ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
                 ($($params::lock(data, info),)+)
             }
@@ -315,7 +315,7 @@ mod internal {
     }
 
     impl EmptyTupleGuard {
-        pub(crate) fn new(data: &SystemData<'_>, info: &SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'_>, info: SystemInfo<'_>) -> Self {
             Self {
                 item_count: data.item_count(info),
             }
@@ -397,7 +397,7 @@ mod empty_tuple_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = <()>::lock(&data, &info);
+        let mut guard = <()>::lock(data, info);
         let guard_borrow = <()>::borrow_guard(&mut guard);
 
         assert_eq!(guard_borrow.item_count, 1);
@@ -500,7 +500,7 @@ mod tuple_with_one_item_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = <(&u32,)>::lock(&data, &info);
+        let mut guard = <(&u32,)>::lock(data, info);
         let guard_borrow = <(&u32,)>::borrow_guard(&mut guard);
 
         let components = guard_borrow.0.components;
@@ -626,7 +626,7 @@ mod tuple_with_two_items_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = <(&u32, &mut i64)>::lock(&data, &info);
+        let mut guard = <(&u32, &mut i64)>::lock(data, info);
         let guard_borrow = <(&u32, &mut i64)>::borrow_guard(&mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];
@@ -767,7 +767,7 @@ mod tuple_with_more_than_two_items_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = <(&u32, &mut i64, &i16)>::lock(&data, &info);
+        let mut guard = <(&u32, &mut i64, &i16)>::lock(data, info);
         let guard_borrow = <(&u32, &mut i64, &i16)>::borrow_guard(&mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![20_u32]];

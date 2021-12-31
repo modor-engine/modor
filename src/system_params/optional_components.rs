@@ -39,8 +39,8 @@ where
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         ComponentOptionGuard::new(data, info)
     }
@@ -128,15 +128,15 @@ pub(crate) mod internal {
 
     pub struct ComponentOptionGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
-        data: &'a SystemData<'a>,
-        info: &'a SystemInfo<'a>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {
                 components: data.components.read_components::<C>(),
                 data,
@@ -158,7 +158,7 @@ pub(crate) mod internal {
         pub(crate) components: &'a ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) data: SystemData<'a>,
     }
 
     pub struct ComponentOptionIter<'a, C> {
@@ -214,7 +214,7 @@ pub(crate) mod internal {
         last_archetype_idx: Option<ArchetypeIdx>,
         components: Iter<'a, TiVec<ArchetypeEntityPos, C>>,
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: &'a SystemData<'a>,
+        data: SystemData<'a>,
     }
 
     impl<'a, C> ArchetypeComponentIter<'a, C> {
@@ -313,7 +313,6 @@ mod component_ref_option_system_param_tests {
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
-    use std::ptr;
 
     #[test]
     fn retrieve_properties() {
@@ -342,7 +341,7 @@ mod component_ref_option_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = Option::<&u32>::lock(&data, &info);
+        let mut guard = Option::<&u32>::lock(data, info);
         let mut guard_borrow = Option::<&u32>::borrow_guard(&mut guard);
 
         let components = guard_borrow.components;
@@ -351,7 +350,6 @@ mod component_ref_option_system_param_tests {
         let next_archetype_idx = guard_borrow.sorted_archetype_idxs.next();
         assert_eq!(next_archetype_idx, Some(archetype2_idx));
         assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
-        assert!(ptr::eq(guard_borrow.data, &data));
     }
 
     #[test]
@@ -375,7 +373,7 @@ mod component_ref_option_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut stream = Option::<&u32>::stream(&mut guard_borrow);
@@ -409,7 +407,7 @@ mod component_ref_option_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Option::<&u32>::query_iter(&guard_borrow);
@@ -449,7 +447,7 @@ mod component_ref_option_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Option::<&u32>::query_iter(&guard_borrow).rev();
@@ -489,7 +487,7 @@ mod component_ref_option_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Option::<&u32>::query_iter_mut(&mut guard_borrow);
@@ -529,7 +527,7 @@ mod component_ref_option_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Option::<&u32>::query_iter_mut(&mut guard_borrow).rev();

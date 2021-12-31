@@ -23,7 +23,7 @@ use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 pub struct Entity<'a> {
     entity_idx: EntityIdx,
     #[allow(dead_code)] // will be used in the future
-    data: &'a SystemData<'a>,
+    data: SystemData<'a>,
 }
 
 impl<'a> Entity<'a> {
@@ -55,8 +55,8 @@ impl SystemParam for Entity<'_> {
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         EntityGuard::new(data, info)
     }
@@ -124,12 +124,12 @@ mod internal {
     use std::slice::Iter;
 
     pub struct EntityGuard<'a> {
-        data: &'a SystemData<'a>,
-        info: &'a SystemInfo<'a>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a> EntityGuard<'a> {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self { data, info }
         }
 
@@ -145,13 +145,13 @@ mod internal {
     pub struct EntityGuardBorrow<'a> {
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) data: SystemData<'a>,
     }
 
     pub struct EntityIter<'a> {
         entity_idxs: Flatten<ArchetypeEntityIdxIter<'a>>,
         len: usize,
-        data: &'a SystemData<'a>,
+        data: SystemData<'a>,
     }
 
     impl<'a> EntityIter<'a> {
@@ -200,7 +200,7 @@ mod internal {
 
     struct ArchetypeEntityIdxIter<'a> {
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: &'a SystemData<'a>,
+        data: SystemData<'a>,
     }
 
     impl<'a> ArchetypeEntityIdxIter<'a> {
@@ -243,7 +243,7 @@ mod entity_tests {
         let core = CoreStorage::default();
         let entity = Entity {
             entity_idx: 2.into(),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let id = entity.id();
@@ -259,7 +259,6 @@ mod entity_system_param_tests {
     use crate::storages::core::CoreStorage;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::Any;
-    use std::ptr;
 
     #[test]
     fn retrieve_properties() {
@@ -285,14 +284,13 @@ mod entity_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = Entity::lock(&data, &info);
+        let mut guard = Entity::lock(data, info);
         let mut guard_borrow = Entity::borrow_guard(&mut guard);
 
         assert_eq!(guard_borrow.item_count, 1);
         let next_archetype_idx = guard_borrow.sorted_archetype_idxs.next();
         assert_eq!(next_archetype_idx, Some(archetype2_idx));
         assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
-        assert!(ptr::eq(guard_borrow.data, &data));
     }
 
     #[test]
@@ -312,7 +310,7 @@ mod entity_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut stream = Entity::stream(&mut guard_borrow);
@@ -340,7 +338,7 @@ mod entity_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Entity::query_iter(&guard_borrow);
@@ -372,7 +370,7 @@ mod entity_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Entity::query_iter(&guard_borrow).rev();
@@ -404,7 +402,7 @@ mod entity_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Entity::query_iter_mut(&mut guard_borrow);
@@ -436,7 +434,7 @@ mod entity_system_param_tests {
                 &archetype_idxs,
                 &archetype_type_idxs,
             ),
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut iter = Entity::query_iter_mut(&mut guard_borrow).rev();

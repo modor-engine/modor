@@ -20,7 +20,7 @@ use std::any::{Any, TypeId};
 /// }
 /// ```
 pub struct World<'a> {
-    data: &'a SystemData<'a>,
+    data: SystemData<'a>,
 }
 
 impl<'a> World<'a> {
@@ -104,8 +104,8 @@ impl SystemParam for World<'_> {
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         WorldGuard::new(data, info)
     }
@@ -152,12 +152,12 @@ mod internal {
     use std::ops::Range;
 
     pub struct WorldGuard<'a> {
-        data: &'a SystemData<'a>,
-        info: &'a SystemInfo<'a>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a> WorldGuard<'a> {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self { data, info }
         }
 
@@ -171,11 +171,11 @@ mod internal {
 
     pub struct WorldGuardBorrow<'a> {
         pub(crate) item_count: usize,
-        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) data: SystemData<'a>,
     }
 
     pub struct WorldStream<'a> {
-        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) data: SystemData<'a>,
         pub(crate) entity_positions: Range<usize>,
     }
 
@@ -203,7 +203,7 @@ mod world_tests {
     fn delete_entity() {
         let core = CoreStorage::default();
         let data = core.system_data();
-        let mut world = World { data: &data };
+        let mut world = World { data };
 
         world.delete_entity(2);
 
@@ -217,7 +217,7 @@ mod world_tests {
     fn add_component() {
         let mut core = CoreStorage::default();
         let data = core.system_data();
-        let mut world = World { data: &data };
+        let mut world = World { data };
 
         world.add_component(0, 10_u32);
 
@@ -255,7 +255,7 @@ mod world_tests {
         core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
         core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
         let data = core.system_data();
-        let mut world = World { data: &data };
+        let mut world = World { data };
 
         world.delete_component::<u32>(2);
 
@@ -278,7 +278,6 @@ mod world_system_param_tests {
     use super::*;
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
-    use std::ptr;
 
     #[test]
     fn retrieve_properties() {
@@ -304,11 +303,10 @@ mod world_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = World::lock(&data, &info);
+        let mut guard = World::lock(data, info);
         let guard_borrow = World::borrow_guard(&mut guard);
 
         assert_eq!(guard_borrow.item_count, 1);
-        assert!(ptr::eq(guard_borrow.data, &data));
     }
 
     #[test]
@@ -316,7 +314,7 @@ mod world_system_param_tests {
         let core = CoreStorage::default();
         let mut guard_borrow = WorldGuardBorrow {
             item_count: 3,
-            data: &core.system_data(),
+            data: core.system_data(),
         };
 
         let mut stream = World::stream(&mut guard_borrow);

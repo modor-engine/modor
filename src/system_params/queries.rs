@@ -93,8 +93,8 @@ where
     }
 
     fn lock<'a>(
-        data: &'a SystemData<'_>,
-        info: &'a SystemInfo<'_>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
         QueryGuard::new(data, info)
     }
@@ -137,7 +137,7 @@ pub trait QueryFilter: 'static {
     fn register(core: &mut CoreStorage);
 
     #[doc(hidden)]
-    fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx>;
+    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx>;
 }
 
 /// A filter for restricting a [`Query`](crate::Query) to entities containing an component
@@ -174,7 +174,7 @@ where
     }
 
     #[doc(hidden)]
-    fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx> {
+    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
         vec![data
             .components
             .type_idx(TypeId::of::<C>())
@@ -194,7 +194,7 @@ macro_rules! impl_tuple_query_filter {
             }
 
             #[allow(unused_mut, unused_variables)]
-            fn filtered_component_type_idxs(data: &SystemData<'_>) -> Vec<ComponentTypeIdx> {
+            fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
                 let mut types = Vec::new();
                 $(types.extend($params::filtered_component_type_idxs(data));)*
                 types
@@ -215,8 +215,8 @@ mod internal {
     use std::ops::Range;
 
     pub struct QueryGuard<'a, F> {
-        data: &'a SystemData<'a>,
-        info: &'a SystemInfo<'a>,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
         filtered_component_type_idxs: Vec<ComponentTypeIdx>,
         phantom: PhantomData<F>,
     }
@@ -225,7 +225,7 @@ mod internal {
     where
         F: QueryFilter,
     {
-        pub(crate) fn new(data: &'a SystemData<'_>, info: &'a SystemInfo<'_>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {
                 data,
                 info,
@@ -247,7 +247,7 @@ mod internal {
     }
 
     pub struct QueryGuardBorrow<'a> {
-        pub(crate) data: &'a SystemData<'a>,
+        pub(crate) data: SystemData<'a>,
         pub(crate) param_info: SystemInfo<'a>,
         pub(crate) item_count: usize,
     }
@@ -267,7 +267,7 @@ mod internal {
         pub(crate) fn new(guard: &'a QueryGuardBorrow<'_>) -> Self {
             QueryStream {
                 entity_positions: 0..guard.item_count,
-                guard: P::lock(guard.data, &guard.param_info),
+                guard: P::lock(guard.data, guard.param_info),
             }
         }
     }
@@ -293,7 +293,7 @@ mod query_tests {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
         };
-        let mut guard = <&mut u32>::lock(&data, &info);
+        let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
         let query = Query::<&mut u32, With<i64>>::new(guard_borrow);
 
@@ -314,7 +314,7 @@ mod query_tests {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
         };
-        let mut guard = <&mut u32>::lock(&data, &info);
+        let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
         let mut query = Query::<&mut u32, With<i64>>::new(guard_borrow);
 
@@ -434,7 +434,7 @@ mod with_tests {
                 entity_actions: &Mutex::default(),
             };
 
-            let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_type_idxs(&data);
+            let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_type_idxs(data);
 
             assert_eq!(types, vec![$($indexes.into()),*]);
         }};
@@ -450,7 +450,7 @@ mod with_tests {
             entity_actions: &Mutex::default(),
         };
 
-        let types = With::<u32>::filtered_component_type_idxs(&data);
+        let types = With::<u32>::filtered_component_type_idxs(data);
 
         assert_eq!(types, vec![0.into()]);
     }
@@ -529,7 +529,6 @@ mod query_system_param_tests {
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use std::ptr;
 
     #[test]
     fn retrieve_properties() {
@@ -558,10 +557,9 @@ mod query_system_param_tests {
             archetype_filter: &ArchetypeFilter::All,
         };
 
-        let mut guard = Query::<&u32, With<i64>>::lock(&data, &info);
+        let mut guard = Query::<&u32, With<i64>>::lock(data, info);
         let guard_borrow = Query::<&u32, With<i64>>::borrow_guard(&mut guard);
 
-        assert!(ptr::eq(guard_borrow.data, &data));
         let archetype_filter = guard_borrow.param_info.archetype_filter;
         assert_eq!(archetype_filter, &ArchetypeFilter::All);
         let filtered_type_idxs = guard_borrow.param_info.filtered_component_type_idxs;
@@ -574,7 +572,7 @@ mod query_system_param_tests {
         let mut core = CoreStorage::default();
         core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
         let mut guard_borrow = QueryGuardBorrow {
-            data: &core.system_data(),
+            data: core.system_data(),
             param_info: SystemInfo {
                 filtered_component_type_idxs: &[],
                 archetype_filter: &ArchetypeFilter::All,

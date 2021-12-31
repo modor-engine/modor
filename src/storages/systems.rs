@@ -51,7 +51,7 @@ impl SystemStorage {
         self.entity_type_idxs.push_and_get_key(entity_type_idx)
     }
 
-    pub(super) fn run(&mut self, data: &SystemData<'_>) {
+    pub(super) fn run(&mut self, data: SystemData<'_>) {
         if let Some(mut pool) = self.pool.take() {
             self.run_in_parallel(&mut pool, data);
             self.pool = Some(pool);
@@ -60,7 +60,7 @@ impl SystemStorage {
         }
     }
 
-    fn run_sequentially(&mut self, data: &SystemData<'_>) {
+    fn run_sequentially(&mut self, data: SystemData<'_>) {
         for system_idx in Self::all_idxs(&self.wrappers) {
             Self::run_system(
                 system_idx,
@@ -72,7 +72,7 @@ impl SystemStorage {
         }
     }
 
-    fn run_in_parallel(&mut self, pool: &mut Pool, data: &SystemData<'_>) {
+    fn run_in_parallel(&mut self, pool: &mut Pool, data: SystemData<'_>) {
         self.states
             .get_mut()
             .expect("internal error: cannot reset states")
@@ -107,7 +107,7 @@ impl SystemStorage {
     }
 
     fn run_thread(
-        data: &SystemData<'_>,
+        data: SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
         system_properties: AllSystemProperties<'_>,
         archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
@@ -147,7 +147,7 @@ impl SystemStorage {
         archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
         entity_type_idxs: &TiSlice<SystemIdx, ComponentTypeIdx>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
-        data: &SystemData<'_>,
+        data: SystemData<'_>,
     ) {
         let entity_type_idx = entity_type_idxs[system_idx];
         if data.components.count(entity_type_idx) == 0 {
@@ -274,7 +274,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         assert_eq!(entity_actions.drain_entity_states().count(), 0);
@@ -300,7 +300,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         assert_eq!(entity_actions.drain_entity_states().count(), 0);
@@ -327,7 +327,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         let entity_states: Vec<_> = entity_actions.drain_entity_states().collect();
@@ -366,7 +366,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let component1_guard = components.read_components::<Component1>().clone();
         let component2_guard = components.read_components::<Component2>().clone();
