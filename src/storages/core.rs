@@ -207,10 +207,10 @@ impl CoreStorage {
 #[cfg(test)]
 mod core_storage_tests {
     use super::*;
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::{Access, ComponentTypeAccess};
     use crate::SystemData;
     use typed_index_collections::TiVec;
-    use crate::storages::archetypes::ArchetypeFilter;
 
     impl CoreStorage {
         pub(crate) fn system_data(&self) -> SystemData<'_> {
@@ -371,7 +371,7 @@ mod core_storage_tests {
                     type_idx: 0.into(),
                 }],
                 has_entity_actions: true,
-                archetype_filter: ArchetypeFilter::None
+                archetype_filter: ArchetypeFilter::None,
             },
         );
         storage.update();
