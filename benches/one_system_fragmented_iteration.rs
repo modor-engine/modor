@@ -1,9 +1,27 @@
-//! Tests performance of archetype iteration in systems.
+//! Tests performance of archetype iteration in systems with one system for all archetypes.
 
 use criterion::{criterion_main, Criterion};
 use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
 
 struct Data(f32);
+
+impl EntityMainComponent for Data {
+    type Data = ();
+
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+        builder.with_self(Self(1.0))
+    }
+
+    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+        runner.run(system!(Self::update));
+    }
+}
+
+impl Data {
+    fn update(&mut self) {
+        self.0 *= 2.0;
+    }
+}
 
 macro_rules! create_entities {
     ($app:ident; $( $variants:ident ),*) => {
@@ -14,17 +32,9 @@ macro_rules! create_entities {
                 type Data = ();
 
                 fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
-                    builder.with(Data(1.0)).with_self(Self(0.0))
-                }
-
-                fn on_update(runner: &mut EntityRunner<'_, Self>) {
-                    runner.run(system!(Self::update));
-                }
-            }
-
-            impl $variants {
-                fn update(data: &mut Data) {
-                    data.0 *= 2.0;
+                    builder
+                        .inherit_from::<Data>(())
+                        .with_self(Self(0.0))
                 }
             }
 
@@ -39,7 +49,9 @@ macro_rules! create_entities {
 fn run(c: &mut Criterion) {
     let mut app = App::new();
     create_entities!(app; A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
-    c.bench_function("fragmented_system_iteration", |b| b.iter(|| app.update()));
+    c.bench_function("one_system_fragmented_iteration", |b| {
+        b.iter(|| app.update())
+    });
 }
 
 mod group {

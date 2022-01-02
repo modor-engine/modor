@@ -33,7 +33,11 @@ name = "simple_system_iteration"
 harness = false
 
 [[bench]]
-name = "fragmented_system_iteration"
+name = "one_system_fragmented_iteration"
+harness = false
+
+[[bench]]
+name = "multiple_systems_fragmented_iteration"
 harness = false
 
 [[bench]]
