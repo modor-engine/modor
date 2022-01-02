@@ -212,7 +212,6 @@ mod core_storage_tests {
     use typed_index_collections::TiVec;
     use crate::storages::archetypes::ArchetypeFilter;
 
-    #[allow(clippy::multiple_inherent_impl)]
     impl CoreStorage {
         pub(crate) fn system_data(&self) -> SystemData<'_> {
             SystemData {

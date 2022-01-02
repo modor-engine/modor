@@ -204,7 +204,6 @@ mod system_storage_tests {
     use crate::storages::entity_actions::{EntityActionStorage, EntityState};
     use std::thread;
     use std::thread::ThreadId;
-    use std::time::Duration;
 
     #[derive(Clone)]
     struct Component1(ThreadId);

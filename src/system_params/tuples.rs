@@ -422,9 +422,13 @@ mod empty_tuple_system_param_tests {
 
         let mut iter = <()>::query_iter(&guard_borrow);
 
+        assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 2);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 1);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next(), None);
     }
 
@@ -434,9 +438,13 @@ mod empty_tuple_system_param_tests {
 
         let mut iter = <()>::query_iter(&guard_borrow).rev();
 
+        assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 2);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 1);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next(), None);
     }
 
@@ -446,9 +454,13 @@ mod empty_tuple_system_param_tests {
 
         let mut iter = <()>::query_iter_mut(&mut guard_borrow);
 
+        assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 2);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 1);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next(), None);
     }
 
@@ -458,9 +470,13 @@ mod empty_tuple_system_param_tests {
 
         let mut iter = <()>::query_iter_mut(&mut guard_borrow).rev();
 
+        assert_eq!(iter.len(), 3);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 2);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 1);
         assert_eq!(iter.next(), Some(()));
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next(), None);
     }
 }

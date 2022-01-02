@@ -50,7 +50,7 @@ fn run(c: &mut Criterion) {
     let mut app = App::new();
     create_entities!(app; A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
     c.bench_function("one_system_fragmented_iteration", |b| {
-        b.iter(|| app.update())
+        b.iter(|| app.update());
     });
 }
 

@@ -143,7 +143,6 @@ pub(super) enum LockedSystem {
 mod system_state_storage_tests {
     use super::*;
 
-    #[allow(clippy::multiple_inherent_impl)]
     impl SystemStateStorage {
         pub(in super::super) fn last_component_type_idx(&self) -> Option<ComponentTypeIdx> {
             self.component_type_state.last_key()

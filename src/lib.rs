@@ -59,7 +59,14 @@
 //! }
 //! ```
 
-#![cfg_attr(test, allow(clippy::unwrap_used, clippy::wildcard_imports))]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::wildcard_imports,
+        clippy::multiple_inherent_impl
+    )
+)]
 
 #[macro_use]
 extern crate non_empty_vec;
