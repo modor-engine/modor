@@ -1,4 +1,4 @@
-//! Tests performance of archetype iteration in systems.
+//! Tests performance of archetype iteration in systems with one system per archetype.
 
 use criterion::{criterion_main, Criterion};
 use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
@@ -39,7 +39,9 @@ macro_rules! create_entities {
 fn run(c: &mut Criterion) {
     let mut app = App::new();
     create_entities!(app; A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
-    c.bench_function("fragmented_system_iteration", |b| b.iter(|| app.update()));
+    c.bench_function("multiple_systems_fragmented_iteration", |b| {
+        b.iter(|| app.update());
+    });
 }
 
 mod group {

@@ -1,9 +1,9 @@
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::components::ComponentTypeIdx;
-use crate::storages::system_states::{LockedSystem, SystemProperties, SystemStateStorage};
+use crate::storages::system_states::{AllSystemProperties, LockedSystem, SystemStateStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::{SystemData, SystemInfo};
 use scoped_threadpool::Pool;
-use std::any::TypeId;
 use std::sync::Mutex;
 use typed_index_collections::{TiSlice, TiVec};
 
@@ -12,7 +12,8 @@ pub(crate) struct SystemStorage {
     wrappers: TiVec<SystemIdx, Option<SystemWrapper>>,
     component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
     have_entity_actions: TiVec<SystemIdx, bool>,
-    entity_main_component_types: TiVec<SystemIdx, TypeId>,
+    entity_type_idxs: TiVec<SystemIdx, ComponentTypeIdx>,
+    archetype_filters: TiVec<SystemIdx, ArchetypeFilter>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
 }
@@ -33,24 +34,24 @@ impl SystemStorage {
     pub(super) fn add(
         &mut self,
         wrapper: SystemWrapper,
-        entity_main_component_type: TypeId,
-        properties: FullSystemProperties,
+        entity_type_idx: ComponentTypeIdx,
+        properties: SystemProperties,
     ) -> SystemIdx {
         let states = self
             .states
             .get_mut()
             .expect("internal error: cannot access to system states to register component type");
         for component_types in &properties.component_types {
-            states.register_component_type(component_types.idx);
+            states.register_component_type(component_types.type_idx);
         }
         self.wrappers.push(Some(wrapper));
         self.component_types.push(properties.component_types);
         self.have_entity_actions.push(properties.has_entity_actions);
-        self.entity_main_component_types
-            .push_and_get_key(entity_main_component_type)
+        self.archetype_filters.push(properties.archetype_filter);
+        self.entity_type_idxs.push_and_get_key(entity_type_idx)
     }
 
-    pub(super) fn run(&mut self, data: &SystemData<'_>) {
+    pub(super) fn run(&mut self, data: SystemData<'_>) {
         if let Some(mut pool) = self.pool.take() {
             self.run_in_parallel(&mut pool, data);
             self.pool = Some(pool);
@@ -59,23 +60,24 @@ impl SystemStorage {
         }
     }
 
-    fn run_sequentially(&mut self, data: &SystemData<'_>) {
+    fn run_sequentially(&mut self, data: SystemData<'_>) {
         for system_idx in Self::all_idxs(&self.wrappers) {
             Self::run_system(
                 system_idx,
-                &self.entity_main_component_types,
+                &self.archetype_filters,
+                &self.entity_type_idxs,
                 &self.wrappers,
                 data,
             );
         }
     }
 
-    fn run_in_parallel(&mut self, pool: &mut Pool, data: &SystemData<'_>) {
+    fn run_in_parallel(&mut self, pool: &mut Pool, data: SystemData<'_>) {
         self.states
             .get_mut()
             .expect("internal error: cannot reset states")
             .reset(Self::all_idxs(&self.wrappers));
-        let system_properties = SystemProperties {
+        let system_properties = AllSystemProperties {
             component_types: &self.component_types,
             have_entity_actions: &self.have_entity_actions,
         };
@@ -87,7 +89,8 @@ impl SystemStorage {
                         data,
                         &self.states,
                         system_properties,
-                        &self.entity_main_component_types,
+                        &self.archetype_filters,
+                        &self.entity_type_idxs,
                         &self.wrappers,
                     );
                 });
@@ -96,17 +99,19 @@ impl SystemStorage {
                 data,
                 &self.states,
                 system_properties,
-                &self.entity_main_component_types,
+                &self.archetype_filters,
+                &self.entity_type_idxs,
                 &self.wrappers,
             );
         });
     }
 
     fn run_thread(
-        data: &SystemData<'_>,
+        data: SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
-        system_properties: SystemProperties<'_>,
-        entity_main_component_types: &TiSlice<SystemIdx, TypeId>,
+        system_properties: AllSystemProperties<'_>,
+        archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
+        entity_type_idxs: &TiSlice<SystemIdx, ComponentTypeIdx>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
     ) {
         let mut previous_system_idx = None;
@@ -114,7 +119,13 @@ impl SystemStorage {
             Self::lock_next_system(states, previous_system_idx, system_properties)
         {
             if let Some(system_idx) = system_idx {
-                Self::run_system(system_idx, entity_main_component_types, wrappers, data);
+                Self::run_system(
+                    system_idx,
+                    archetype_filters,
+                    entity_type_idxs,
+                    wrappers,
+                    data,
+                );
             }
             previous_system_idx = system_idx;
         }
@@ -123,7 +134,7 @@ impl SystemStorage {
     fn lock_next_system(
         states: &Mutex<SystemStateStorage>,
         previous_system_idx: Option<SystemIdx>,
-        system_properties: SystemProperties<'_>,
+        system_properties: AllSystemProperties<'_>,
     ) -> LockedSystem {
         states
             .lock()
@@ -133,16 +144,21 @@ impl SystemStorage {
 
     fn run_system(
         system_idx: SystemIdx,
-        entity_main_component_types: &TiSlice<SystemIdx, TypeId>,
+        archetype_filters: &TiSlice<SystemIdx, ArchetypeFilter>,
+        entity_type_idxs: &TiSlice<SystemIdx, ComponentTypeIdx>,
         wrappers: &TiSlice<SystemIdx, Option<SystemWrapper>>,
-        data: &SystemData<'_>,
+        data: SystemData<'_>,
     ) {
-        let main_component_type = entity_main_component_types[system_idx];
-        if data.components.count(main_component_type) == 0 {
+        let entity_type_idx = entity_type_idxs[system_idx];
+        if data.components.count(entity_type_idx) == 0 {
             return;
         }
+        let filtered_component_type_idxs = &[entity_type_idx];
+        let archetype_filter = &archetype_filters[system_idx];
         let info = SystemInfo {
-            filtered_component_types: vec![main_component_type],
+            filtered_component_type_idxs,
+            archetype_filter,
+            item_count: data.item_count(filtered_component_type_idxs, archetype_filter),
         };
         let wrapper = wrappers[system_idx].expect("internal error: call missing system");
         wrapper(data, info);
@@ -160,15 +176,16 @@ impl SystemStorage {
 
 idx_type!(pub(crate) SystemIdx);
 
-pub(super) struct FullSystemProperties {
-    pub(super) component_types: Vec<ComponentTypeAccess>,
-    pub(super) has_entity_actions: bool,
+pub struct SystemProperties {
+    pub(crate) component_types: Vec<ComponentTypeAccess>,
+    pub(crate) has_entity_actions: bool,
+    pub(crate) archetype_filter: ArchetypeFilter,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(super) struct ComponentTypeAccess {
-    pub(super) idx: ComponentTypeIdx,
-    pub(super) access: Access,
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) struct ComponentTypeAccess {
+    pub(crate) access: Access,
+    pub(crate) type_idx: ComponentTypeIdx,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -187,7 +204,6 @@ mod system_storage_tests {
     use crate::storages::entity_actions::{EntityActionStorage, EntityState};
     use std::thread;
     use std::thread::ThreadId;
-    use std::time::Duration;
 
     #[derive(Clone)]
     struct Component1(ThreadId);
@@ -229,11 +245,10 @@ mod system_storage_tests {
     fn add_system() {
         let mut storage = SystemStorage::default();
         let wrapper: SystemWrapper = |_, _| ();
-        let entity_main_component_type = TypeId::of::<u32>();
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
 
-        let system_idx = storage.add(wrapper, entity_main_component_type, properties);
+        let system_idx = storage.add(wrapper, 0.into(), properties);
 
         assert_eq!(system_idx, 0.into());
         let component_state = storage.states.get_mut().unwrap();
@@ -242,11 +257,8 @@ mod system_storage_tests {
         let component_types = ti_vec![vec![component_type_access]];
         assert_eq!(storage.component_types, component_types);
         assert_eq!(storage.have_entity_actions, ti_vec![true]);
-        let filtered_component_types = ti_vec![TypeId::of::<u32>()];
-        assert_eq!(
-            storage.entity_main_component_types,
-            filtered_component_types
-        );
+        let filtered_component_types = ti_vec![0.into()];
+        assert_eq!(storage.entity_type_idxs, filtered_component_types);
     }
 
     #[test]
@@ -255,17 +267,16 @@ mod system_storage_tests {
         storage.set_thread_count(1);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.try_lock().unwrap().delete_entity(2.into());
-        let entity_main_component_type = TypeId::of::<u32>();
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, 0.into(), properties);
         let data = SystemData {
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         assert_eq!(entity_actions.drain_entity_states().count(), 0);
@@ -277,23 +288,21 @@ mod system_storage_tests {
         storage.set_thread_count(2);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(2.into());
-        let entity_main_component_type = TypeId::of::<u32>();
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], false);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, 0.into(), properties);
         let wrapper: SystemWrapper =
             |d, _| d.entity_actions.lock().unwrap().delete_entity(3.into());
-        let entity_main_component_type = TypeId::of::<i64>();
-        let component_type_access = create_type_access(3.into(), Access::Write);
+        let component_type_access = create_type_access(Access::Write, 3.into());
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, 1.into(), properties);
         let data = SystemData {
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         assert_eq!(entity_actions.drain_entity_states().count(), 0);
@@ -304,13 +313,12 @@ mod system_storage_tests {
         let mut storage = SystemStorage::default();
         storage.set_thread_count(1);
         let wrapper: SystemWrapper = |d, i| {
-            assert_eq!(i.filtered_component_types, [TypeId::of::<u32>()]);
+            assert_eq!(i.filtered_component_type_idxs, [0.into()]);
             d.entity_actions.try_lock().unwrap().delete_entity(2.into());
         };
-        let entity_main_component_type = TypeId::of::<u32>();
-        let component_type_access = create_type_access(1.into(), Access::Read);
+        let component_type_access = create_type_access(Access::Read, 1.into());
         let properties = create_properties(vec![component_type_access], true);
-        storage.add(wrapper, entity_main_component_type, properties);
+        storage.add(wrapper, 0.into(), properties);
         let mut components = ComponentStorage::default();
         let type_idx = components.type_idx_or_create::<u32>();
         let location = EntityLocationInArchetype::new(0.into(), 0.into());
@@ -321,7 +329,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let mut entity_actions = data.entity_actions.try_lock().unwrap();
         let entity_states: Vec<_> = entity_actions.drain_entity_states().collect();
@@ -334,21 +342,41 @@ mod system_storage_tests {
         let mut storage = SystemStorage::default();
         storage.set_thread_count(2);
         let wrapper1: SystemWrapper = |d, _| {
-            let thread_id = Component1(thread::current().id());
-            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(1));
+            loop {
+                if let Some(mut components) = d.components.try_write_components() {
+                    let thread_id = Component1(thread::current().id());
+                    components[ArchetypeIdx(0)].push(thread_id);
+                    break;
+                }
+            }
+            loop {
+                if let Some(components) = d.components.try_write_components::<Component2>() {
+                    if components[ArchetypeIdx(0)].len() > 1 {
+                        break;
+                    }
+                }
+            }
         };
         let wrapper2: SystemWrapper = |d, _| {
-            let thread_id = Component2(thread::current().id());
-            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(1));
+            loop {
+                if let Some(mut components) = d.components.try_write_components() {
+                    let thread_id = Component2(thread::current().id());
+                    components[ArchetypeIdx(0)].push(thread_id);
+                    break;
+                }
+            }
+            loop {
+                if let Some(components) = d.components.try_write_components::<Component1>() {
+                    if components[ArchetypeIdx(0)].len() > 1 {
+                        break;
+                    }
+                }
+            }
         };
-        let entity_main_component_type1 = TypeId::of::<Component1>();
-        let entity_main_component_type2 = TypeId::of::<Component2>();
         let properties1 = create_properties(vec![], false);
         let properties2 = create_properties(vec![], true);
-        storage.add(wrapper1, entity_main_component_type1, properties1);
-        storage.add(wrapper2, entity_main_component_type2, properties2);
+        storage.add(wrapper1, 0.into(), properties1);
+        storage.add(wrapper2, 1.into(), properties2);
         let mut components = ComponentStorage::default();
         let type1_idx = components.type_idx_or_create::<Component1>();
         let type2_idx = components.type_idx_or_create::<Component2>();
@@ -361,7 +389,7 @@ mod system_storage_tests {
             entity_actions: &Mutex::new(EntityActionStorage::default()),
         };
 
-        storage.run(&data);
+        storage.run(data);
 
         let component1_guard = components.read_components::<Component1>().clone();
         let component2_guard = components.read_components::<Component2>().clone();
@@ -371,20 +399,18 @@ mod system_storage_tests {
         );
     }
 
-    fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {
-        ComponentTypeAccess {
-            idx: type_idx,
-            access,
-        }
+    fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {
+        ComponentTypeAccess { access, type_idx }
     }
 
     fn create_properties(
         component_types: Vec<ComponentTypeAccess>,
         has_entity_actions: bool,
-    ) -> FullSystemProperties {
-        FullSystemProperties {
+    ) -> SystemProperties {
+        SystemProperties {
             component_types,
             has_entity_actions,
+            archetype_filter: ArchetypeFilter::None,
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::entity_actions::{EntityActionStorage, EntityState};
-use crate::storages::systems::{Access, ComponentTypeAccess, FullSystemProperties, SystemStorage};
+use crate::storages::systems::{SystemProperties, SystemStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::SystemData;
 use std::any::{Any, TypeId};
@@ -10,7 +10,7 @@ use std::mem;
 use std::sync::Mutex;
 
 #[derive(Default)]
-pub(crate) struct CoreStorage {
+pub struct CoreStorage {
     archetypes: ArchetypeStorage,
     entities: EntityStorage,
     components: ComponentStorage,
@@ -39,11 +39,18 @@ impl CoreStorage {
         self.systems.set_thread_count(count);
     }
 
-    pub(crate) fn add_entity_main_component_type<C>(&mut self)
+    pub(crate) fn register_component_type<C>(&mut self) -> ComponentTypeIdx
     where
         C: Any + Sync + Send,
     {
-        self.components.add_entity_main_component_type::<C>();
+        self.components.type_idx_or_create::<C>()
+    }
+
+    pub(crate) fn add_entity_type<C>(&mut self)
+    where
+        C: Any + Sync + Send,
+    {
+        self.components.add_entity_type::<C>();
     }
 
     pub(crate) fn add_component_type<C>(
@@ -115,23 +122,14 @@ impl CoreStorage {
     pub(crate) fn add_system(
         &mut self,
         wrapper: SystemWrapper,
-        entity_main_component_type: TypeId,
+        entity_type: TypeId,
         properties: SystemProperties,
     ) {
-        let component_types = properties
-            .component_types
-            .into_iter()
-            .map(|a| ComponentTypeAccess {
-                idx: (a.type_idx_or_create_fn)(&mut self.components),
-                access: a.access,
-            })
-            .collect();
-        let properties = FullSystemProperties {
-            component_types,
-            has_entity_actions: properties.has_entity_actions,
-        };
-        self.systems
-            .add(wrapper, entity_main_component_type, properties);
+        let entity_type_idx = self
+            .components
+            .type_idx(entity_type)
+            .expect("internal error: missing entity type when adding system");
+        self.systems.add(wrapper, entity_type_idx, properties);
     }
 
     pub(crate) fn update(&mut self) {
@@ -140,7 +138,7 @@ impl CoreStorage {
             archetypes: &self.archetypes,
             entity_actions: &self.entity_actions,
         };
-        self.systems.run(&data);
+        self.systems.run(data);
     }
 
     pub(crate) fn apply_system_actions(&mut self) {
@@ -206,23 +204,14 @@ impl CoreStorage {
     }
 }
 
-pub struct SystemProperties {
-    pub(crate) component_types: Vec<ComponentTypeIdAccess>,
-    pub(crate) has_entity_actions: bool,
-}
-
-pub(crate) struct ComponentTypeIdAccess {
-    pub(crate) access: Access,
-    pub(crate) type_idx_or_create_fn: fn(&mut ComponentStorage) -> ComponentTypeIdx,
-}
-
 #[cfg(test)]
 mod core_storage_tests {
     use super::*;
+    use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::systems::{Access, ComponentTypeAccess};
     use crate::SystemData;
     use typed_index_collections::TiVec;
 
-    #[allow(clippy::multiple_inherent_impl)]
     impl CoreStorage {
         pub(crate) fn system_data(&self) -> SystemData<'_> {
             SystemData {
@@ -243,12 +232,27 @@ mod core_storage_tests {
     }
 
     #[test]
-    fn add_entity_main_component_type() {
+    fn register_component_types() {
         let mut storage = CoreStorage::default();
 
-        storage.add_entity_main_component_type::<u32>();
+        let type1_idx = storage.register_component_type::<u32>();
+        let type2_idx = storage.register_component_type::<i64>();
 
-        assert!(storage.components.is_entity_main_component_type::<u32>());
+        assert_eq!(type1_idx, 0.into());
+        assert_eq!(type2_idx, 1.into());
+        let type_id = TypeId::of::<u32>();
+        assert_eq!(storage.components.type_idx(type_id), Some(0.into()));
+        let type_id = TypeId::of::<i64>();
+        assert_eq!(storage.components.type_idx(type_id), Some(1.into()));
+    }
+
+    #[test]
+    fn add_entity_type() {
+        let mut storage = CoreStorage::default();
+
+        storage.add_entity_type::<u32>();
+
+        assert!(storage.components.is_entity_type::<u32>());
     }
 
     #[test]
@@ -357,16 +361,17 @@ mod core_storage_tests {
 
         storage.add_system(
             |d, i| {
-                assert_eq!(i.filtered_component_types, [TypeId::of::<u32>()]);
+                assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 d.entity_actions.try_lock().unwrap().delete_entity(0.into());
             },
             TypeId::of::<u32>(),
             SystemProperties {
-                component_types: vec![ComponentTypeIdAccess {
+                component_types: vec![ComponentTypeAccess {
                     access: Access::Read,
-                    type_idx_or_create_fn: ComponentStorage::type_idx_or_create::<i64>,
+                    type_idx: 0.into(),
                 }],
                 has_entity_actions: true,
+                archetype_filter: ArchetypeFilter::None,
             },
         );
         storage.update();

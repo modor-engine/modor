@@ -4,6 +4,9 @@ macro_rules! ti_vec {
    () => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![])
     );
+    ($elem:expr; $n:expr) => (
+        ::typed_index_collections::TiVec::<_, _>::from(vec![$elem; $n])
+    );
     ($($x:expr),+ $(,)?) => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![$($x),+])
     );
@@ -82,12 +85,6 @@ mod test_utils {
                 "assertion failed: expression `{}` has not panicked",
                 stringify!($expression),
             );
-        }};
-    }
-
-    macro_rules! assert_iter {
-        ($actual_iter:expr, $expected_slice:expr) => {{
-            assert_eq!($actual_iter.collect::<Vec<_>>(), $expected_slice);
         }};
     }
 }

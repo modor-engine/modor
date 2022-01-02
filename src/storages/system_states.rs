@@ -28,7 +28,7 @@ impl SystemStateStorage {
     pub(super) fn lock_next_system(
         &mut self,
         previous_system_idx: Option<SystemIdx>,
-        system_properties: SystemProperties<'_>,
+        system_properties: AllSystemProperties<'_>,
     ) -> LockedSystem {
         if let Some(system_idx) = previous_system_idx {
             self.unlock(system_idx, system_properties);
@@ -45,7 +45,7 @@ impl SystemStateStorage {
 
     fn extract_lockable_system_idx(
         &mut self,
-        system_properties: SystemProperties<'_>,
+        system_properties: AllSystemProperties<'_>,
     ) -> Option<SystemIdx> {
         self.runnable_idxs
             .iter()
@@ -55,7 +55,7 @@ impl SystemStateStorage {
                     || self.entity_action_state.is_lockable(Access::Write))
                     && system_properties.component_types[s]
                         .iter()
-                        .all(|a| self.component_type_state[a.idx].is_lockable(a.access))
+                        .all(|a| self.component_type_state[a.type_idx].is_lockable(a.access))
             })
             .map(|(p, i)| {
                 self.runnable_idxs.swap_remove(p);
@@ -63,18 +63,18 @@ impl SystemStateStorage {
             })
     }
 
-    fn unlock(&mut self, system_idx: SystemIdx, system_properties: SystemProperties<'_>) {
+    fn unlock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
         for type_access in &system_properties.component_types[system_idx] {
-            self.component_type_state[type_access.idx].unlock();
+            self.component_type_state[type_access.type_idx].unlock();
         }
         if system_properties.have_entity_actions[system_idx] {
             self.entity_action_state.unlock();
         }
     }
 
-    fn lock(&mut self, system_idx: SystemIdx, system_properties: SystemProperties<'_>) {
+    fn lock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
         for type_access in &system_properties.component_types[system_idx] {
-            self.component_type_state[type_access.idx].lock(type_access.access);
+            self.component_type_state[type_access.type_idx].lock(type_access.access);
         }
         if system_properties.have_entity_actions[system_idx] {
             self.entity_action_state.lock(Access::Write);
@@ -128,7 +128,7 @@ impl LockState {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct SystemProperties<'a> {
+pub(super) struct AllSystemProperties<'a> {
     pub(super) component_types: &'a TiSlice<SystemIdx, Vec<ComponentTypeAccess>>,
     pub(super) have_entity_actions: &'a TiSlice<SystemIdx, bool>,
 }
@@ -143,7 +143,6 @@ pub(super) enum LockedSystem {
 mod system_state_storage_tests {
     use super::*;
 
-    #[allow(clippy::multiple_inherent_impl)]
     impl SystemStateStorage {
         pub(in super::super) fn last_component_type_idx(&self) -> Option<ComponentTypeIdx> {
             self.component_type_state.last_key()
@@ -195,7 +194,7 @@ mod system_state_storage_tests {
     fn lock_systems_with_entity_action() {
         let mut storage = SystemStateStorage::default();
         storage.reset([0.into(), 1.into()].into_iter());
-        let properties = SystemProperties {
+        let properties = AllSystemProperties {
             component_types: &ti_vec![vec![], vec![]],
             have_entity_actions: &ti_vec![true, true],
         };
@@ -225,8 +224,8 @@ mod system_state_storage_tests {
         let mut storage = SystemStateStorage::default();
         storage.reset([0.into(), 1.into()].into_iter());
         storage.register_component_type(1.into());
-        let component_type_access = create_type_access(1.into(), Access::Write);
-        let properties = SystemProperties {
+        let component_type_access = create_type_access(Access::Write, 1.into());
+        let properties = AllSystemProperties {
             component_types: &ti_vec![vec![component_type_access], vec![component_type_access]],
             have_entity_actions: &ti_vec![false, false],
         };
@@ -255,11 +254,8 @@ mod system_state_storage_tests {
         assert_eq!(storage.component_type_state, state);
     }
 
-    fn create_type_access(type_idx: ComponentTypeIdx, access: Access) -> ComponentTypeAccess {
-        ComponentTypeAccess {
-            idx: type_idx,
-            access,
-        }
+    fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {
+        ComponentTypeAccess { access, type_idx }
     }
 }
 

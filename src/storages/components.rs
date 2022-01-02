@@ -8,9 +8,10 @@ use typed_index_collections::TiVec;
 #[derive(Default)]
 pub(crate) struct ComponentStorage {
     idxs: FxHashMap<TypeId, ComponentTypeIdx>,
-    are_entity_main_components: TiVec<ComponentTypeIdx, bool>,
+    are_entity_types: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     component_count: TiVec<ComponentTypeIdx, usize>,
+    sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
 }
 
 impl ComponentStorage {
@@ -18,24 +19,21 @@ impl ComponentStorage {
         self.idxs.get(&component_type).copied()
     }
 
-    pub(crate) fn type_idxs(&self, component_types: &[TypeId]) -> Option<Vec<ComponentTypeIdx>> {
-        component_types.iter().map(|&t| self.type_idx(t)).collect()
+    pub(crate) fn sorted_archetype_idxs(&self, type_idx: ComponentTypeIdx) -> &[ArchetypeIdx] {
+        &self.sorted_archetype_idxs[type_idx]
     }
 
-    pub(crate) fn is_entity_main_component_type<C>(&self) -> bool
+    pub(crate) fn is_entity_type<C>(&self) -> bool
     where
         C: Any,
     {
         self.idxs
             .get(&TypeId::of::<C>())
-            .map_or(false, |&i| self.are_entity_main_components[i])
+            .map_or(false, |&i| self.are_entity_types[i])
     }
 
-    pub(crate) fn count(&self, component_type: TypeId) -> usize {
-        self.type_idx(component_type)
-            .and_then(|c| self.component_count.get(c))
-            .copied()
-            .unwrap_or(0)
+    pub(crate) fn count(&self, type_idx: ComponentTypeIdx) -> usize {
+        self.component_count.get(type_idx).copied().unwrap_or(0)
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
@@ -75,18 +73,19 @@ impl ComponentStorage {
         C: Any + Sync + Send,
     {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
-            self.are_entity_main_components.push(false);
+            self.are_entity_types.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
-            self.archetypes.push_and_get_key(Box::new(archetype_lock))
+            self.archetypes.push(Box::new(archetype_lock));
+            self.sorted_archetype_idxs.push_and_get_key(vec![])
         })
     }
 
-    pub(super) fn add_entity_main_component_type<C>(&mut self)
+    pub(super) fn add_entity_type<C>(&mut self)
     where
         C: Any + Sync + Send,
     {
         let type_idx = self.type_idx_or_create::<C>();
-        self.are_entity_main_components[type_idx] = true;
+        self.are_entity_types[type_idx] = true;
     }
 
     pub(super) fn add<C>(
@@ -109,10 +108,12 @@ impl ComponentStorage {
             } else {
                 archetype.push(component);
                 self.component_count[type_idx] += 1;
+                self.add_archetype(type_idx, location.idx);
             }
         } else {
             utils::set_value(archetypes, location.idx, ti_vec![component]);
             utils::set_value(&mut self.component_count, type_idx, 1);
+            self.add_archetype(type_idx, location.idx);
         }
     }
 
@@ -123,6 +124,7 @@ impl ComponentStorage {
         dst_archetype_idx: ArchetypeIdx,
     ) {
         self.archetypes[type_idx].move_component(src_location, dst_archetype_idx);
+        self.add_archetype(type_idx, dst_archetype_idx);
     }
 
     pub(super) fn delete(
@@ -132,6 +134,12 @@ impl ComponentStorage {
     ) {
         self.archetypes[type_idx].delete_component(location);
         self.component_count[type_idx] -= 1;
+    }
+
+    fn add_archetype(&mut self, type_idx: ComponentTypeIdx, archetype_idx: ArchetypeIdx) {
+        if let Err(pos) = self.sorted_archetype_idxs[type_idx].binary_search(&archetype_idx) {
+            self.sorted_archetype_idxs[type_idx].insert(pos, archetype_idx);
+        }
     }
 }
 
@@ -187,11 +195,31 @@ where
     }
 }
 
-idx_type!(pub(crate) ComponentTypeIdx);
+idx_type!(pub ComponentTypeIdx);
 
 #[cfg(test)]
 mod component_storage_tests {
     use super::*;
+
+    impl ComponentStorage {
+        pub(crate) fn try_write_components<C>(
+            &self,
+        ) -> Option<RwLockWriteGuard<'_, ComponentArchetypes<C>>>
+        where
+            C: Any,
+        {
+            let &type_idx = self
+                .idxs
+                .get(&TypeId::of::<C>())
+                .expect("internal error: cannot write missing component type");
+            self.archetypes[type_idx]
+                .as_any()
+                .downcast_ref::<RwLock<ComponentArchetypes<C>>>()
+                .expect("internal error: wrong component type when writing components")
+                .try_write()
+                .ok()
+        }
+    }
 
     #[test]
     fn create_type_idxs() {
@@ -210,43 +238,42 @@ mod component_storage_tests {
         assert_eq!(storage.type_idx(type1), Some(type1_idx));
         assert_eq!(storage.type_idx(type2), Some(type2_idx));
         assert_eq!(storage.type_idx(type3), None);
-        assert_eq!(storage.type_idxs(&[]), Some(vec![]));
-        assert_eq!(storage.type_idxs(&[type1]), Some(vec![type1_idx]));
-        let type_idxs = storage.type_idxs(&[type1, type2]);
-        assert_eq!(type_idxs, Some(vec![type1_idx, type2_idx]));
-        assert_eq!(storage.type_idxs(&[type1, type3]), None);
     }
 
     #[test]
-    fn add_entity_main_component_types() {
+    fn add_entity_types() {
         let mut storage = ComponentStorage::default();
         storage.type_idx_or_create::<u32>();
         storage.type_idx_or_create::<i8>();
 
-        storage.add_entity_main_component_type::<u32>();
-        storage.add_entity_main_component_type::<i64>();
+        storage.add_entity_type::<u32>();
+        storage.add_entity_type::<i64>();
 
         assert_eq!(storage.type_idx(TypeId::of::<i64>()), Some(2.into()));
-        assert!(storage.is_entity_main_component_type::<u32>());
-        assert!(storage.is_entity_main_component_type::<i64>());
-        assert!(!storage.is_entity_main_component_type::<i8>());
-        assert!(!storage.is_entity_main_component_type::<u8>());
+        assert!(storage.is_entity_type::<u32>());
+        assert!(storage.is_entity_type::<i64>());
+        assert!(!storage.is_entity_type::<i8>());
+        assert!(!storage.is_entity_type::<u8>());
     }
 
     #[test]
     fn add_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location1 = EntityLocationInArchetype::new(1.into(), 0.into());
-        let location2 = EntityLocationInArchetype::new(1.into(), 1.into());
+        let location1 = EntityLocationInArchetype::new(2.into(), 0.into());
+        let location2 = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location3 = EntityLocationInArchetype::new(1.into(), 1.into());
 
         storage.add(type_idx, location1, 10_u32);
         storage.add(type_idx, location2, 20_u32);
+        storage.add(type_idx, location3, 30_u32);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 2);
-        let components = ti_vec![ti_vec![], ti_vec![10_u32, 20_u32]];
+        assert_eq!(storage.count(type_idx), 3);
+        let components = ti_vec![ti_vec![], ti_vec![20_u32, 30_u32], ti_vec![10_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
+        let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
+        assert_eq!(sorted_archetype_idxs, [1.into(), 2.into()]);
     }
 
     #[test]
@@ -258,7 +285,7 @@ mod component_storage_tests {
 
         storage.add(type_idx, location, 20_u32);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 1);
+        assert_eq!(storage.count(type_idx), 1);
         let components = ti_vec![ti_vec![], ti_vec![20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
@@ -280,9 +307,11 @@ mod component_storage_tests {
         storage.move_(type_idx, location1, 2.into());
         storage.move_(type_idx, location2, 2.into());
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 4);
+        assert_eq!(storage.count(type_idx), 4);
         let components = ti_vec![ti_vec![], ti_vec![40_u32, 30_u32], ti_vec![10_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
+        let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
+        assert_eq!(sorted_archetype_idxs, [1.into(), 2.into()]);
     }
 
     #[test]
@@ -298,7 +327,7 @@ mod component_storage_tests {
 
         storage.delete(type_idx, location1);
 
-        assert_eq!(storage.count(TypeId::of::<u32>()), 2);
+        assert_eq!(storage.count(type_idx), 2);
         let components = ti_vec![ti_vec![], ti_vec![30_u32, 20_u32]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
     }

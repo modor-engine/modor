@@ -174,8 +174,8 @@ where
     pub fn with_self(self, entity: E) -> Built {
         let builder = self.with(entity);
         let components = builder.core.components();
-        if !components.is_entity_main_component_type::<E>() {
-            builder.core.add_entity_main_component_type::<E>();
+        if !components.is_entity_type::<E>() {
+            builder.core.add_entity_type::<E>();
             E::on_update(&mut EntityRunner {
                 core: builder.core,
                 phantom: PhantomData,
@@ -218,8 +218,9 @@ where
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
     pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
+        let properties = (system.properties_fn)(self.core);
         self.core
-            .add_system(system.wrapper, TypeId::of::<E>(), system.properties);
+            .add_system(system.wrapper, TypeId::of::<E>(), properties);
         self
     }
 }
@@ -385,7 +386,7 @@ mod entity_builder_tests {
     }
 
     #[test]
-    fn add_main_component() {
+    fn add_entity_component() {
         let mut core = CoreStorage::default();
         let builder = create_builder(&mut core, None)
             .with(10_i64)
@@ -402,7 +403,7 @@ mod entity_builder_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![ChildEntity(30)]];
         assert_eq!(&*components, &expected_components);
         let components = core.components();
-        assert!(components.is_entity_main_component_type::<ChildEntity>());
+        assert!(components.is_entity_type::<ChildEntity>());
     }
 
     fn create_builder(
@@ -422,8 +423,8 @@ mod entity_builder_tests {
 #[cfg(test)]
 mod entity_runner_tests {
     use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
-    use crate::storages::core::SystemProperties;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::systems::SystemProperties;
 
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
 
@@ -448,16 +449,17 @@ mod entity_runner_tests {
             core: &mut core,
             phantom: PhantomData,
         };
-        let system = SystemBuilder::new(
-            SystemProperties {
+        let system = SystemBuilder {
+            properties_fn: |_| SystemProperties {
                 component_types: vec![],
                 has_entity_actions: false,
+                archetype_filter: ArchetypeFilter::None,
             },
-            |d, i| {
-                assert_eq!(i.filtered_component_types, [TypeId::of::<TestEntity>()]);
+            wrapper: |d, i| {
+                assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 d.entity_actions.try_lock().unwrap().delete_entity(0.into());
             },
-        );
+        };
 
         runner.run(system);
 

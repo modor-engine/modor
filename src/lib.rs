@@ -59,14 +59,23 @@
 //! }
 //! ```
 
-#![cfg_attr(test, allow(clippy::unwrap_used, clippy::wildcard_imports))]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::wildcard_imports,
+        clippy::multiple_inherent_impl
+    )
+)]
 
-#[cfg(doctest)]
 #[macro_use]
-extern crate doc_comment;
+extern crate non_empty_vec;
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
+#[cfg(doctest)]
+#[macro_use]
+extern crate doc_comment;
 
 #[macro_use]
 mod utils;

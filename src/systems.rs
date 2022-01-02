@@ -1,13 +1,12 @@
-use crate::storages::archetypes::ArchetypeStorage;
-use crate::storages::components::ComponentStorage;
-use crate::storages::core::SystemProperties;
+use crate::storages::archetypes::{
+    ArchetypeFilter, ArchetypeIdx, ArchetypeStorage, FilteredArchetypeIdxIter,
+};
+use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
+use crate::storages::core::CoreStorage;
 use crate::storages::entity_actions::EntityActionStorage;
-use crate::system_params::internal::{SystemParamIterInfo, SystemParamWithLifetime};
+use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
-use std::any::TypeId;
-use std::sync::Mutex;
-
 /// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
 /// The system passed as parameter must be a function or a static closure with no captured
@@ -103,51 +102,92 @@ macro_rules! system {
         use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
 
         #[allow(clippy::semicolon_if_nothing_returned)]
-        ::modor::SystemBuilder::new(
-            ::modor::System::properties(&$system),
-            |data: &::modor::SystemData<'_>, info: ::modor::SystemInfo| {
+        ::modor::SystemBuilder {
+            properties_fn: ::modor::System::properties_fn(&$system),
+            wrapper: |data: ::modor::SystemData<'_>, info: ::modor::SystemInfo<'_>| {
                 let checker = ::modor::SystemParamMutabilityChecker::new($system);
                 let mut system = checker.check_param_mutability().into_inner();
-                let mut guard = ::modor::System::lock(&system, data);
+                let mut guard = ::modor::System::lock(&system, data, info);
                 let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
-                let iter_info = ::modor::System::iter_info(&system, data, &info);
-                let mut stream = ::modor::System::stream(&system, &mut guard_borrow, &iter_info);
+                let mut stream = ::modor::System::stream(&system, &mut guard_borrow);
                 while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
                     ::modor::System::apply(&mut system, item);
                 }
             },
-        )
+        }
     }};
 }
 
+use crate::storages::systems::SystemProperties;
+use std::sync::Mutex;
+
 #[doc(hidden)]
-pub struct SystemInfo {
-    pub(crate) filtered_component_types: Vec<TypeId>,
+#[derive(Clone, Copy)]
+pub struct SystemInfo<'a> {
+    pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
+    pub(crate) archetype_filter: &'a ArchetypeFilter,
+    pub(crate) item_count: usize,
 }
 
 #[doc(hidden)]
+#[derive(Clone, Copy)]
 pub struct SystemData<'a> {
     pub(crate) components: &'a ComponentStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
     pub(crate) entity_actions: &'a Mutex<EntityActionStorage>,
 }
 
+impl SystemData<'_> {
+    pub(crate) fn filter_archetype_idx_iter<'a>(
+        &'a self,
+        filtered_component_type_idxs: &'a [ComponentTypeIdx],
+        archetype_filter: &'a ArchetypeFilter,
+    ) -> FilteredArchetypeIdxIter<'a> {
+        const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
+        let pre_filtered_archetype_idxs =
+            if let Some(&type_idx) = filtered_component_type_idxs.first() {
+                self.components.sorted_archetype_idxs(type_idx)
+            } else {
+                match &archetype_filter {
+                    ArchetypeFilter::None => EMPTY_ARCHETYPE_IDX_SLICE,
+                    ArchetypeFilter::All | ArchetypeFilter::Union(_) => {
+                        self.archetypes.all_sorted_idxs()
+                    }
+                    ArchetypeFilter::Intersection(type_idxs) => {
+                        self.components.sorted_archetype_idxs(*type_idxs.first())
+                    }
+                }
+            };
+        self.archetypes.filter_idxs(
+            pre_filtered_archetype_idxs.iter(),
+            filtered_component_type_idxs,
+            archetype_filter,
+        )
+    }
+
+    pub(crate) fn item_count(
+        &self,
+        filtered_component_type_idxs: &[ComponentTypeIdx],
+        archetype_filter: &ArchetypeFilter,
+    ) -> usize {
+        if archetype_filter == &ArchetypeFilter::None {
+            1
+        } else {
+            self.filter_archetype_idx_iter(filtered_component_type_idxs, archetype_filter)
+                .map(|a| self.archetypes.entity_idxs(a).len())
+                .sum()
+        }
+    }
+}
+
 /// A builder for defining a system.
 ///
 /// The [`system!`](crate::system!) macro is used to construct a `SystemBuilder`.
 pub struct SystemBuilder {
-    pub(crate) properties: SystemProperties,
-    pub(crate) wrapper: SystemWrapper,
-}
-
-impl SystemBuilder {
     #[doc(hidden)]
-    pub fn new(properties: SystemProperties, wrapper: SystemWrapper) -> Self {
-        Self {
-            properties,
-            wrapper,
-        }
-    }
+    pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
+    #[doc(hidden)]
+    pub wrapper: SystemWrapper,
 }
 
 /// A trait implemented for any system that can be passed to the [`system!`](crate::system!) macro.
@@ -156,18 +196,17 @@ where
     P: SystemParam,
 {
     #[doc(hidden)]
-    fn properties(&self) -> SystemProperties {
-        P::properties()
+    fn properties_fn(&self) -> fn(&mut CoreStorage) -> SystemProperties {
+        P::properties
     }
 
     #[doc(hidden)]
-    fn iter_info(&self, data: &SystemData<'_>, info: &SystemInfo) -> SystemParamIterInfo {
-        P::iter_info(data, info)
-    }
-
-    #[doc(hidden)]
-    fn lock<'a>(&self, data: &'a SystemData<'_>) -> <P as SystemParamWithLifetime<'a>>::Guard {
-        P::lock(data)
+    fn lock<'a>(
+        &self,
+        data: SystemData<'a>,
+        info: SystemInfo<'a>,
+    ) -> <P as SystemParamWithLifetime<'a>>::Guard {
+        P::lock(data, info)
     }
 
     #[doc(hidden)]
@@ -185,12 +224,11 @@ where
     fn stream<'a, 'b>(
         &self,
         guard: &'a mut <P as SystemParamWithLifetime<'b>>::GuardBorrow,
-        info: &'a SystemParamIterInfo,
     ) -> <P as SystemParamWithLifetime<'a>>::Stream
     where
         'b: 'a,
     {
-        P::stream(guard, info)
+        P::stream(guard)
     }
 
     #[doc(hidden)]
@@ -240,23 +278,120 @@ pub(crate) mod internal {
 
     pub trait SealedSystem<P> {}
 
-    pub(crate) type SystemWrapper = fn(&SystemData<'_>, SystemInfo);
+    pub(crate) type SystemWrapper = fn(SystemData<'_>, SystemInfo<'_>);
 }
 
 #[cfg(test)]
-mod system_info_tests {
+mod system_data_tests {
     use super::*;
-    use std::any::Any;
 
-    impl SystemInfo {
-        pub(crate) fn with_one_filtered_type<C>() -> Self
-        where
-            C: Any,
-        {
-            Self {
-                filtered_component_types: vec![TypeId::of::<C>()],
-            }
-        }
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_when_some_filtered_types() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let data = core.system_data();
+        let filtered_type_idxs = &[type2_idx];
+
+        let mut iter = data.filter_archetype_idx_iter(filtered_type_idxs, &ArchetypeFilter::All);
+
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_none_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::None);
+
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_with_all_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let data = core.system_data();
+
+        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::All);
+
+        assert_eq!(iter.next(), Some(0.into()));
+        assert_eq!(iter.next(), Some(archetype1_idx));
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_with_union_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let data = core.system_data();
+        let archetype_filter = ArchetypeFilter::Union(ne_vec![type1_idx]);
+
+        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
+
+        assert_eq!(iter.next(), Some(archetype1_idx));
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_filter_archetype_idx_iter_with_intersection_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
+        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
+        let location = core.create_entity(archetype2_idx);
+        core.add_component(10_u32, type1_idx, location);
+        core.add_component(20_i64, type2_idx, location);
+        let data = core.system_data();
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![type1_idx]);
+
+        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
+
+        assert_eq!(iter.next(), Some(archetype2_idx));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn retrieve_item_count_with_none_archetype_filter() {
+        let core = CoreStorage::default();
+        let data = core.system_data();
+
+        let item_count = data.item_count(&[], &ArchetypeFilter::None);
+
+        assert_eq!(item_count, 1);
+    }
+
+    #[test]
+    fn retrieve_item_count_with_not_none_archetype_filter() {
+        let mut core = CoreStorage::default();
+        let (_, archetype_idx) = core.add_component_type::<u32>(0.into());
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        core.create_entity(archetype_idx);
+        core.create_entity(archetype_idx);
+        let data = core.system_data();
+
+        let item_count = data.item_count(&[], &ArchetypeFilter::All);
+
+        assert_eq!(item_count, 3);
     }
 }
 
@@ -271,33 +406,23 @@ mod system_builder_tests {
 #[cfg(test)]
 mod system_tests {
     use super::*;
+    use crate::components::internal::ComponentGuardBorrow;
+    use crate::components_mut::internal::ComponentMutGuardBorrow;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
 
     #[test]
-    fn retrieve_properties() {
+    fn retrieve_properties_fn() {
         let system = |_: &u32, _: &mut i64| ();
 
-        let properties = System::properties(&system);
+        let properties_fn = System::properties_fn(&system);
 
+        let mut core = CoreStorage::default();
+        let properties = properties_fn(&mut core);
         assert_eq!(properties.component_types.len(), 2);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert!(!properties.has_entity_actions);
-    }
-
-    #[test]
-    fn retrieve_iter_info() {
-        let mut core = CoreStorage::default();
-        let (_, archetype1_idx) = core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        let (_, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let info = SystemInfo::with_one_filtered_type::<i64>();
-        let system = |_: &u32, _: &mut i64| ();
-
-        let iter_info = System::iter_info(&system, &core.system_data(), &info);
-
-        let expected_iter_info = SystemParamIterInfo::new_intersection(vec![(archetype2_idx, 0)]);
-        assert_eq!(iter_info, expected_iter_info);
     }
 
     #[test]
@@ -311,25 +436,44 @@ mod system_tests {
         core.add_component(20_u32, type2_idx, location);
         let data = core.system_data();
         let system = |_: &u32, _: &mut i64| ();
+        let info = SystemInfo {
+            filtered_component_type_idxs: &[0.into()],
+            archetype_filter: &ArchetypeFilter::All,
+            item_count: 1,
+        };
 
-        let mut guard = System::lock(&system, &data);
+        let mut guard = System::lock(&system, data, info);
         let guard_borrow = System::borrow_guard(&system, &mut guard);
 
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0, &expected_guard);
+        assert_eq!(guard_borrow.0.components, &expected_guard);
         let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1, &expected_guard);
+        assert_eq!(guard_borrow.1.components, &expected_guard);
     }
 
     #[test]
     fn retrieve_stream() {
-        let guard1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut guard2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let mut guard_borrow = (&guard1, &mut guard2);
-        let iter_info = SystemParamIterInfo::new_intersection(vec![(0.into(), 1), (1.into(), 1)]);
+        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
+        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
+        let archetype_idxs = [0.into(), 1.into()];
+        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
+        let sorted_archetype_idxs =
+            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
+        let mut guard_borrow = (
+            ComponentGuardBorrow {
+                components: &components1,
+                item_count: 2,
+                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
+            },
+            ComponentMutGuardBorrow {
+                components: &mut components2,
+                item_count: 2,
+                sorted_archetype_idxs,
+            },
+        );
         let system = |_: &u32, _: &mut i64| ();
 
-        let mut stream = System::stream(&system, &mut guard_borrow, &iter_info);
+        let mut stream = System::stream(&system, &mut guard_borrow);
 
         let next = System::stream_next(&system, &mut stream);
         assert_eq!(next, Some((&10, &mut 30)));
