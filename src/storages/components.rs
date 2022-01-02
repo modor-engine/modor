@@ -201,6 +201,26 @@ idx_type!(pub ComponentTypeIdx);
 mod component_storage_tests {
     use super::*;
 
+    impl ComponentStorage {
+        pub(crate) fn try_write_components<C>(
+            &self,
+        ) -> Option<RwLockWriteGuard<'_, ComponentArchetypes<C>>>
+        where
+            C: Any,
+        {
+            let &type_idx = self
+                .idxs
+                .get(&TypeId::of::<C>())
+                .expect("internal error: cannot write missing component type");
+            self.archetypes[type_idx]
+                .as_any()
+                .downcast_ref::<RwLock<ComponentArchetypes<C>>>()
+                .expect("internal error: wrong component type when writing components")
+                .try_write()
+                .ok()
+        }
+    }
+
     #[test]
     fn create_type_idxs() {
         let mut storage = ComponentStorage::default();

@@ -338,20 +338,41 @@ mod system_storage_tests {
         assert!(matches!(entity_states[0].1, EntityState::Deleted));
     }
 
-    // TODO: fix random failures (wait in one system until other system has added the component)
     #[test]
     fn run_system_in_parallel_with_existing_entity() {
         let mut storage = SystemStorage::default();
         storage.set_thread_count(2);
         let wrapper1: SystemWrapper = |d, _| {
-            let thread_id = Component1(thread::current().id());
-            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(10));
+            loop {
+                if let Some(mut components) = d.components.try_write_components() {
+                    let thread_id = Component1(thread::current().id());
+                    components[ArchetypeIdx(0)].push(thread_id);
+                    break;
+                }
+            }
+            loop {
+                if let Some(components) = d.components.try_write_components::<Component2>() {
+                    if components[ArchetypeIdx(0)].len() > 1 {
+                        break;
+                    }
+                }
+            }
         };
         let wrapper2: SystemWrapper = |d, _| {
-            let thread_id = Component2(thread::current().id());
-            d.components.write_components()[ArchetypeIdx(0)].push(thread_id);
-            thread::sleep(Duration::from_millis(10));
+            loop {
+                if let Some(mut components) = d.components.try_write_components() {
+                    let thread_id = Component2(thread::current().id());
+                    components[ArchetypeIdx(0)].push(thread_id);
+                    break;
+                }
+            }
+            loop {
+                if let Some(components) = d.components.try_write_components::<Component1>() {
+                    if components[ArchetypeIdx(0)].len() > 1 {
+                        break;
+                    }
+                }
+            }
         };
         let properties1 = create_properties(vec![], false);
         let properties2 = create_properties(vec![], true);
