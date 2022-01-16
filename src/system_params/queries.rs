@@ -549,11 +549,11 @@ mod with_tuple_tests {
 
 #[cfg(test)]
 mod query_system_param_tests {
-    use crate::{Query, SystemInfo, SystemParam, With};
     use crate::queries::internal::QueryGuardBorrow;
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::{Query, SystemInfo, SystemParam, With};
 
     #[test]
     fn retrieve_properties() {

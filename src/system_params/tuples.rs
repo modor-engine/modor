@@ -753,22 +753,68 @@ mod tuple_with_more_than_two_items_system_param_tests {
     use crate::storages::systems::Access;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
+    macro_rules! test_tuple_retrieve_properties {
+        (($($types:ident),*), ($($indexes:tt),*)) => {{
+            let mut core = CoreStorage::default();
+
+            let properties = <($(&$types,)*)>::properties(&mut core);
+
+            assert_eq!(properties.component_types.len(), [$($indexes),*].len());
+            $(assert_eq!(properties.component_types[$indexes].access, Access::Read);)*
+            $(assert_eq!(properties.component_types[$indexes].type_idx, $indexes.into());)*
+            assert!(!properties.can_update);
+            let archetype_filter = ArchetypeFilter::Intersection(ne_vec![$($indexes.into()),*]);
+            assert_eq!(properties.archetype_filter, archetype_filter);
+        }};
+    }
+
     #[test]
-    fn retrieve_properties() {
-        let mut core = CoreStorage::default();
+    fn retrieve_properties_for_3_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32), (0, 1, 2));
+    }
 
-        let properties = <(&u32, &mut i64, &i16)>::properties(&mut core);
+    #[test]
+    fn retrieve_properties_for_4_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
+    }
 
-        assert_eq!(properties.component_types.len(), 3);
-        assert_eq!(properties.component_types[0].access, Access::Read);
-        assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert_eq!(properties.component_types[1].access, Access::Write);
-        assert_eq!(properties.component_types[1].type_idx, 1.into());
-        assert_eq!(properties.component_types[2].access, Access::Read);
-        assert_eq!(properties.component_types[2].type_idx, 2.into());
-        assert!(!properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+    #[test]
+    fn retrieve_properties_for_5_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
+    }
+
+    #[test]
+    fn retrieve_properties_for_6_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8), (0, 1, 2, 3, 4, 5));
+    }
+
+    #[test]
+    fn retrieve_properties_for_7_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8, i16), (0, 1, 2, 3, 4, 5, 6));
+    }
+
+    #[test]
+    fn retrieve_properties_for_8_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32),
+            (0, 1, 2, 3, 4, 5, 6, 7)
+        );
+    }
+
+    #[test]
+    fn retrieve_properties_for_9_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8)
+        );
+    }
+
+    #[test]
+    fn retrieve_properties_for_10_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        );
     }
 
     #[test]

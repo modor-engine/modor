@@ -91,8 +91,8 @@ mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use typed_index_collections::TiVec;
     use crate::utils;
+    use typed_index_collections::TiVec;
 
     #[test]
     fn set_missing_value_in_ti_vec() {
