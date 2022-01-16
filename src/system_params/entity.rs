@@ -236,8 +236,8 @@ mod internal {
 
 #[cfg(test)]
 mod entity_tests {
-    use super::*;
     use crate::storages::core::CoreStorage;
+    use crate::Entity;
 
     assert_impl_all!(Entity<'_>: Sync, Send, Unpin);
 
@@ -257,10 +257,12 @@ mod entity_tests {
 
 #[cfg(test)]
 mod entity_system_param_tests {
-    use super::*;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::entity::internal::EntityGuardBorrow;
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
-    use crate::{QuerySystemParam, SystemInfo, SystemParam};
+    use crate::{Entity, QuerySystemParam, SystemInfo, SystemParam};
     use std::any::Any;
 
     #[test]

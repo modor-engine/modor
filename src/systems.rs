@@ -285,7 +285,8 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod system_data_tests {
-    use super::*;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::core::CoreStorage;
 
     #[test]
     fn retrieve_filter_archetype_idx_iter_when_some_filtered_types() {
@@ -399,7 +400,7 @@ mod system_data_tests {
 
 #[cfg(test)]
 mod system_builder_tests {
-    use super::*;
+    use crate::SystemBuilder;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     assert_impl_all!(SystemBuilder: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
@@ -407,11 +408,14 @@ mod system_builder_tests {
 
 #[cfg(test)]
 mod system_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::{System, SystemInfo};
 
     #[test]
     fn retrieve_properties_fn() {

@@ -367,10 +367,10 @@ mod internal {
 #[allow(clippy::let_unit_value)]
 #[cfg(test)]
 mod empty_tuple_system_param_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::SystemInfo;
+    use crate::tuples::internal::EmptyTupleGuardBorrow;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
     fn retrieve_properties() {
@@ -482,12 +482,13 @@ mod empty_tuple_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_one_item_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::SystemInfo;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
     fn retrieve_properties() {
@@ -590,13 +591,14 @@ mod tuple_with_one_item_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_two_items_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::{SystemInfo, World};
+    use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
 
     #[test]
     fn retrieve_properties_when_can_update() {
@@ -742,13 +744,14 @@ mod tuple_with_two_items_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_more_than_two_items_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::SystemInfo;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
     fn retrieve_properties() {

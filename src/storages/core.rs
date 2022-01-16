@@ -214,11 +214,15 @@ impl CoreStorage {
 
 #[cfg(test)]
 mod core_storage_tests {
-    use super::*;
-    use crate::storages::actions::ActionDependencies;
-    use crate::storages::archetypes::ArchetypeFilter;
-    use crate::storages::systems::{Access, ComponentTypeAccess};
+    use crate::storages::actions::{ActionDefinition, ActionDependencies};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, EntityLocationInArchetype,
+    };
+    use crate::storages::core::CoreStorage;
+    use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+    use crate::storages::updates::EntityUpdate;
     use crate::SystemData;
+    use std::any::TypeId;
     use typed_index_collections::TiVec;
 
     impl CoreStorage {

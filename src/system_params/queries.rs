@@ -281,9 +281,10 @@ mod internal {
 
 #[cfg(test)]
 mod query_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
+    use crate::{Query, SystemInfo, SystemParam, With};
+    use std::any::Any;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     assert_impl_all!(Query<'_, ()>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
@@ -348,11 +349,12 @@ mod query_tests {
 
 #[cfg(test)]
 mod with_tests {
-    use super::*;
     use crate::storages::actions::ActionStorage;
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::components::ComponentStorage;
-    use crate::SystemData;
+    use crate::storages::core::CoreStorage;
+    use crate::{QueryFilter, SystemData, With};
+    use std::any::TypeId;
     use std::panic::{RefUnwindSafe, UnwindSafe};
     use std::sync::Mutex;
 
@@ -386,11 +388,12 @@ mod with_tests {
 
 #[cfg(test)]
 mod with_tuple_tests {
-    use super::*;
     use crate::storages::actions::ActionStorage;
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::components::ComponentStorage;
-    use crate::SystemData;
+    use crate::storages::core::CoreStorage;
+    use crate::{QueryFilter, SystemData, With};
+    use std::any::TypeId;
     use std::sync::Mutex;
 
     macro_rules! test_tuple_register {
@@ -546,8 +549,9 @@ mod with_tuple_tests {
 
 #[cfg(test)]
 mod query_system_param_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::{Query, SystemInfo, SystemParam, With};
+    use crate::queries::internal::QueryGuardBorrow;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
 

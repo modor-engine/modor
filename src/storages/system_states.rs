@@ -158,8 +158,12 @@ pub(super) enum LockedSystem {
 
 #[cfg(test)]
 mod system_state_storage_tests {
-    use super::*;
-    use crate::storages::actions::{ActionDefinition, ActionDependencies};
+    use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
+    use crate::storages::components::ComponentTypeIdx;
+    use crate::storages::system_states::{
+        AllSystemProperties, LockState, LockedSystem, SystemStateStorage,
+    };
+    use crate::storages::systems::{Access, ComponentTypeAccess};
     use std::any::TypeId;
 
     impl SystemStateStorage {
@@ -309,7 +313,8 @@ mod system_state_storage_tests {
 
 #[cfg(test)]
 mod lock_state_tests {
-    use super::*;
+    use crate::storages::system_states::LockState;
+    use crate::storages::systems::Access;
 
     #[test]
     fn retrieve_whether_is_lockable() {

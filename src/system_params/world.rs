@@ -191,11 +191,12 @@ mod internal {
 
 #[cfg(test)]
 mod world_tests {
-    use super::*;
     use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
     use crate::storages::updates::EntityUpdate;
+    use crate::World;
+    use std::any::TypeId;
 
     assert_impl_all!(World<'_>: Sync, Send, Unpin);
 
@@ -278,9 +279,10 @@ mod world_tests {
 
 #[cfg(test)]
 mod world_system_param_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
+    use crate::world::internal::WorldGuardBorrow;
+    use crate::{SystemInfo, SystemParam, World};
 
     #[test]
     fn retrieve_properties() {

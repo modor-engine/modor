@@ -456,7 +456,7 @@ mod internal {
 
 #[cfg(test)]
 mod built_tests {
-    use super::*;
+    use crate::Built;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     assert_impl_all!(Built: Sync, Send, Unpin, UnwindSafe, RefUnwindSafe);
@@ -464,8 +464,10 @@ mod built_tests {
 
 #[cfg(test)]
 mod entity_builder_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
+    use crate::storages::core::CoreStorage;
+    use crate::{Built, EntityBuilder, EntityMainComponent};
+    use std::marker::PhantomData;
 
     assert_impl_all!(EntityBuilder<'_, ParentEntity>: Send, Unpin);
 
@@ -612,10 +614,13 @@ mod entity_builder_tests {
 
 #[cfg(test)]
 mod entity_runner_tests {
-    use super::*;
     use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
-    use crate::DependsOn;
+    use crate::{
+        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
+    };
+    use std::marker::PhantomData;
 
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
 
@@ -705,10 +710,14 @@ mod entity_runner_tests {
 
 #[cfg(test)]
 mod used_entity_runner_tests {
-    use super::*;
     use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
-    use crate::DependsOn;
+    use crate::{
+        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
+        UsedEntityRunner,
+    };
+    use std::marker::PhantomData;
 
     assert_impl_all!(UsedEntityRunner<'_, TestEntity>: Send, Unpin);
 

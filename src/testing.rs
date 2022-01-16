@@ -210,8 +210,8 @@ impl EntityAssertion<'_> {
 
 #[cfg(test)]
 mod test_app_tests {
-    use super::*;
-    use crate::Built;
+    use crate::testing::TestApp;
+    use crate::{App, Built, EntityBuilder, EntityMainComponent};
     use std::ptr;
 
     assert_impl_all!(TestApp: Send, Unpin);
@@ -280,9 +280,11 @@ mod test_app_tests {
 
 #[cfg(test)]
 mod entity_assertion_tests {
-    use super::*;
+    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::core::CoreStorage;
+    use crate::testing::EntityAssertion;
 
-    assert_impl_all!(TestApp: Unpin);
+    assert_impl_all!(EntityAssertion<'_>: Unpin);
 
     #[test]
     #[should_panic(expected = "assertion failed: assert_entity(0).exists()")]

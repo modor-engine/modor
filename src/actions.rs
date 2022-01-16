@@ -52,7 +52,8 @@ where
 
 #[cfg(test)]
 mod depends_on_tests {
-    use super::*;
+    use crate::{Action, ActionConstraint, DependsOn};
+    use std::any::TypeId;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     struct TestAction;
@@ -73,7 +74,8 @@ mod depends_on_tests {
 
 #[cfg(test)]
 mod tuple_action_constraint_tests {
-    use super::*;
+    use crate::{Action, ActionConstraint, DependsOn};
+    use std::any::TypeId;
 
     struct A1;
     struct A2;

@@ -199,7 +199,10 @@ idx_type!(pub ComponentTypeIdx);
 
 #[cfg(test)]
 mod component_storage_tests {
-    use super::*;
+    use crate::storages::archetypes::EntityLocationInArchetype;
+    use crate::storages::components::{ComponentArchetypes, ComponentStorage};
+    use std::any::{Any, TypeId};
+    use std::sync::{RwLock, RwLockWriteGuard};
 
     impl ComponentStorage {
         pub(crate) fn try_write_components<C>(

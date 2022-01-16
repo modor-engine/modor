@@ -79,10 +79,9 @@ impl App {
 
 #[cfg(test)]
 mod app_tests {
-    use super::*;
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::SystemProperties;
-    use crate::{Built, EntityRunner, SystemBuilder};
+    use crate::{App, Built, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder};
 
     assert_impl_all!(App: Send, Unpin);
 

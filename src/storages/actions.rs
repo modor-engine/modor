@@ -81,7 +81,8 @@ pub(crate) enum ActionDependencies {
 
 #[cfg(test)]
 mod action_storage_tests {
-    use super::*; // TODO: remove wildcard imports in tests
+    use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
+    use std::any::TypeId;
 
     #[test]
     fn create_action_without_type_and_without_dependency() {

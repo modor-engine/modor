@@ -90,7 +90,7 @@ impl Default for EntityUpdate {
 
 #[cfg(test)]
 mod update_storage_tests {
-    use super::*;
+    use crate::storages::updates::{EntityUpdate, UpdateStorage};
 
     #[test]
     fn delete_entities() {

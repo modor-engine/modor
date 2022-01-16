@@ -170,7 +170,7 @@ mod internal {
 
 #[cfg(test)]
 mod system_param_mutability_checker_tests {
-    use super::*;
+    use crate::{SystemParamMutabilityChecker, SystemWithParamMutabilityIssue, SystemWithParams};
 
     #[test]
     fn convert_into_inner() {
