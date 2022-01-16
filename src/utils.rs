@@ -91,13 +91,14 @@ mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::utils;
+    use typed_index_collections::TiVec;
 
     #[test]
     fn set_missing_value_in_ti_vec() {
         let mut vec = TiVec::<usize, usize>::new();
 
-        set_value(&mut vec, 2, 10);
+        utils::set_value(&mut vec, 2, 10);
 
         assert_eq!(vec, ti_vec![0, 0, 10]);
     }
@@ -106,7 +107,7 @@ mod tests {
     fn set_existing_value_in_ti_vec() {
         let mut vec: TiVec<usize, usize> = ti_vec![0, 0, 10];
 
-        set_value(&mut vec, 1, 20);
+        utils::set_value(&mut vec, 1, 20);
 
         assert_eq!(vec, ti_vec![0, 20, 10]);
     }

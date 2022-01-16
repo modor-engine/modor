@@ -25,7 +25,7 @@ impl EntityMainComponent for Button {
         builder.with(label).with_self(Self { is_pressed: false })
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(Self::update));
     }
 }
@@ -54,7 +54,7 @@ impl EntityMainComponent for ExitButton {
             .with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner
             .run(system!(Self::update_state))
             .run(system!(Self::update_label));

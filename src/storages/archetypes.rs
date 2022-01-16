@@ -270,14 +270,23 @@ pub(super) struct MissingComponentError;
 pub(super) struct ExistingComponentError;
 
 #[cfg(test)]
-mod archetype_storage_tests {
-    use super::*;
+mod entity_location_in_archetype_tests {
+    use crate::storages::archetypes::{
+        ArchetypeEntityPos, ArchetypeIdx, EntityLocationInArchetype,
+    };
 
     impl EntityLocationInArchetype {
         pub(crate) fn new(idx: ArchetypeIdx, pos: ArchetypeEntityPos) -> Self {
             Self { idx, pos }
         }
     }
+}
+
+#[cfg(test)]
+mod archetype_storage_tests {
+    use crate::storages::archetypes::{
+        ArchetypeStorage, EntityLocationInArchetype, ExistingComponentError, MissingComponentError,
+    };
 
     #[test]
     fn retrieve_default_archetype() {
@@ -457,7 +466,9 @@ mod archetype_storage_tests {
 
 #[cfg(test)]
 mod filtered_archetype_idx_iter_tests {
-    use super::*;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeIdx, FilteredArchetypeIdxIter};
+    use crate::storages::components::ComponentTypeIdx;
+    use typed_index_collections::TiVec;
 
     impl<'a> FilteredArchetypeIdxIter<'a> {
         pub(crate) fn new(

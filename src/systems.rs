@@ -1,12 +1,16 @@
+use crate::storages::actions::ActionStorage;
 use crate::storages::archetypes::{
     ArchetypeFilter, ArchetypeIdx, ArchetypeStorage, FilteredArchetypeIdxIter,
 };
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
-use crate::storages::entity_actions::EntityActionStorage;
+use crate::storages::systems::SystemProperties;
+use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
+use std::sync::Mutex;
+
 /// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
 ///
 /// The system passed as parameter must be a function or a static closure with no captured
@@ -118,9 +122,6 @@ macro_rules! system {
     }};
 }
 
-use crate::storages::systems::SystemProperties;
-use std::sync::Mutex;
-
 #[doc(hidden)]
 #[derive(Clone, Copy)]
 pub struct SystemInfo<'a> {
@@ -134,7 +135,8 @@ pub struct SystemInfo<'a> {
 pub struct SystemData<'a> {
     pub(crate) components: &'a ComponentStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
-    pub(crate) entity_actions: &'a Mutex<EntityActionStorage>,
+    pub(crate) actions: &'a ActionStorage,
+    pub(crate) updates: &'a Mutex<UpdateStorage>,
 }
 
 impl SystemData<'_> {
@@ -283,7 +285,8 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod system_data_tests {
-    use super::*;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::core::CoreStorage;
 
     #[test]
     fn retrieve_filter_archetype_idx_iter_when_some_filtered_types() {
@@ -397,7 +400,7 @@ mod system_data_tests {
 
 #[cfg(test)]
 mod system_builder_tests {
-    use super::*;
+    use crate::SystemBuilder;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     assert_impl_all!(SystemBuilder: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
@@ -405,11 +408,14 @@ mod system_builder_tests {
 
 #[cfg(test)]
 mod system_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::{System, SystemInfo};
 
     #[test]
     fn retrieve_properties_fn() {
@@ -422,7 +428,7 @@ mod system_tests {
         assert_eq!(properties.component_types.len(), 2);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[1].access, Access::Write);
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
     }
 
     #[test]

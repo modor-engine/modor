@@ -40,7 +40,8 @@ idx_type!(pub EntityIdx);
 
 #[cfg(test)]
 mod entity_storage_tests {
-    use super::*;
+    use crate::storages::archetypes::EntityLocationInArchetype;
+    use crate::storages::entities::EntityStorage;
 
     #[test]
     fn create_entities() {

@@ -1,7 +1,9 @@
 #![allow(clippy::trivially_copy_pass_by_ref)]
 
+use compiletest_rs::common::Mode;
+use compiletest_rs::Config;
 use modor::{system, Query, World};
-use trybuild::TestCases;
+use std::path::PathBuf;
 
 fn no_param() {}
 
@@ -45,6 +47,12 @@ fn create_valid_systems() {
 
 #[test]
 fn create_invalid_systems() {
-    let t = TestCases::new();
-    t.compile_fail("tests/compilation_errors/*.rs");
+    let config = Config {
+        mode: Mode::CompileFail,
+        src_base: PathBuf::from("tests/system_static_check"),
+        target_rustcflags: Some("-L target/debug -L target/debug/deps".to_string()),
+        ..Config::default()
+    };
+    config.clean_rmeta();
+    compiletest_rs::run_tests(&config);
 }

@@ -1,7 +1,8 @@
 use crate::entities::internal::{AddedComponents, ComponentAdd, StorageWrapper};
+use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionIdx};
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocationInArchetype};
 use crate::storages::core::CoreStorage;
-use crate::SystemBuilder;
+use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
@@ -32,7 +33,7 @@ pub struct Built(EntityLocationInArchetype);
 ///             .with_self(Self { name })
 ///     }
 ///
-///     fn on_update(runner: &mut EntityRunner<'_, Self>) {
+///     fn on_update(runner: EntityRunner<'_, Self>) {
 ///         runner
 ///             .run(system!(Self::update_position))
 ///             .run(system!(Self::update_state));
@@ -65,7 +66,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     ///
     /// The systems are only run when a component of type `Self` exists in at least one entity.
     #[allow(unused_variables)]
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {}
+    fn on_update(runner: EntityRunner<'_, Self>) {}
 }
 
 /// A builder for defining the components of an entity.
@@ -176,7 +177,7 @@ where
         let components = builder.core.components();
         if !components.is_entity_type::<E>() {
             builder.core.add_entity_type::<E>();
-            E::on_update(&mut EntityRunner {
+            E::on_update(EntityRunner {
                 core: builder.core,
                 phantom: PhantomData,
             });
@@ -197,11 +198,62 @@ where
     }
 }
 
-/// A type for defining the systems of an entity.
+/// A type for defining the first system of an entity.
+///
+/// Cyclic dependencies between systems are detected at compile time.
+///
+/// The definition order of the systems can be different than their execution order if systems
+/// are defined without constraint.
 ///
 /// # Examples
 ///
-/// See [`EntityMainComponent`](crate::EntityMainComponent).
+/// ```rust
+/// # use modor::{
+/// #     Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, system
+/// # };
+/// #
+/// # fn system1() {}
+/// # fn system2() {}
+/// # fn system3() {}
+/// # fn system4() {}
+/// # fn system5() {}
+/// #
+/// struct MyEntity;
+///
+/// impl EntityMainComponent for MyEntity {
+///     type Data = ();
+///
+///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+///         builder.with_self(Self)
+///     }
+///
+///     fn on_update(runner: EntityRunner<'_, Self>) {
+///         runner
+///             // `system1` has no constraint
+///             .run(system!(system1))
+///             // `system2` will be run after `system3` because of `Action2::Constraint`
+///             .run_as::<Action2>(system!(system2))
+///             // `system3` has no constraint because of `Action1::Constraint`
+///             .run_as::<Action1>(system!(system3))
+///             // `system4` will be run after `system2` and `system3`
+///             .run_constrained::<(DependsOn<Action1>, DependsOn<Action2>)>(system!(system4))
+///             // `system5` will be run after `system4`
+///             .and_then(system!(system5));
+///     }
+/// }
+///
+/// struct Action1 {}
+///
+/// impl Action for Action1 {
+///     type Constraint = ();
+/// }
+///
+/// struct Action2 {}
+///
+/// impl Action for Action2 {
+///     type Constraint = DependsOn<Action1>;
+/// }
+/// ```
 pub struct EntityRunner<'a, E> {
     core: &'a mut CoreStorage,
     phantom: PhantomData<E>,
@@ -217,11 +269,149 @@ where
     ///
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
-    pub fn run(&mut self, system: SystemBuilder) -> &mut Self {
+    pub fn run(self, system: SystemBuilder) -> UsedEntityRunner<'a, E> {
+        self.run_with_action(
+            system,
+            ActionDefinition {
+                type_: None,
+                dependency_types: ActionDependencies::Types(vec![]),
+            },
+        )
+    }
+
+    /// Adds a system to run during each [`App`](crate::App) update that is associated to an action.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    ///
+    /// The constraints of the system are defined by `<A as Action>::Constraint`.
+    pub fn run_as<A>(self, system: SystemBuilder) -> UsedEntityRunner<'a, E>
+    where
+        A: Action,
+    {
+        self.run_with_action(
+            system,
+            ActionDefinition {
+                type_: Some(TypeId::of::<A>()),
+                dependency_types: ActionDependencies::Types(A::Constraint::dependency_types()),
+            },
+        )
+    }
+
+    /// Adds a system with constraints to run during each [`App`](crate::App) update.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    ///
+    /// The constraints of the system are defined by `C`.
+    pub fn run_constrained<C>(self, system: SystemBuilder) -> UsedEntityRunner<'a, E>
+    where
+        C: ActionConstraint,
+    {
+        self.run_with_action(
+            system,
+            ActionDefinition {
+                type_: None,
+                dependency_types: ActionDependencies::Types(C::dependency_types()),
+            },
+        )
+    }
+
+    fn run_with_action(
+        self,
+        system: SystemBuilder,
+        definition: ActionDefinition,
+    ) -> UsedEntityRunner<'a, E> {
         let properties = (system.properties_fn)(self.core);
-        self.core
-            .add_system(system.wrapper, TypeId::of::<E>(), properties);
-        self
+        UsedEntityRunner {
+            latest_action_idx: self.core.add_system(
+                system.wrapper,
+                TypeId::of::<E>(),
+                properties,
+                definition,
+            ),
+            runner: self,
+        }
+    }
+}
+
+/// A type for defining the other systems of an entity.
+///
+/// Cyclic dependencies between systems are detected at compile time.
+///
+/// The definition order of the systems can be different than their execution order if systems
+/// are defined without constraint.
+///
+/// # Examples
+///
+/// See [`EntityRunner`](crate::EntityRunner).
+pub struct UsedEntityRunner<'a, E> {
+    runner: EntityRunner<'a, E>,
+    latest_action_idx: ActionIdx,
+}
+
+impl<'a, E> UsedEntityRunner<'a, E>
+where
+    E: EntityMainComponent,
+{
+    /// Adds a system to run during each [`App`](crate::App) update.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    pub fn run(self, system: SystemBuilder) -> Self {
+        self.runner.run(system)
+    }
+
+    /// Adds a system to run during each [`App`](crate::App) update that is associated to an action.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    ///
+    /// The constraints of the system are defined by `<A as Action>::Constraint`.
+    pub fn run_as<A>(self, system: SystemBuilder) -> Self
+    where
+        A: Action,
+    {
+        self.runner.run_as::<A>(system)
+    }
+
+    /// Adds a system with constraints to run during each [`App`](crate::App) update.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    ///
+    /// The constraints of the system are defined by `C`.
+    pub fn run_constrained<C>(self, system: SystemBuilder) -> Self
+    where
+        C: ActionConstraint,
+    {
+        self.runner.run_constrained::<C>(system)
+    }
+
+    /// Adds a system to run after the previous defined one during each [`App`](crate::App) update.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    ///
+    /// If the system is iterative (see [`system!`](crate::system!) for more information),
+    /// the system iterates only on entities containing a component of type `E`.
+    pub fn and_then(self, system: SystemBuilder) -> Self {
+        self.runner.run_with_action(
+            system,
+            ActionDefinition {
+                type_: None,
+                dependency_types: ActionDependencies::Action(self.latest_action_idx),
+            },
+        )
     }
 }
 
@@ -266,7 +456,7 @@ mod internal {
 
 #[cfg(test)]
 mod built_tests {
-    use super::*;
+    use crate::Built;
     use std::panic::{RefUnwindSafe, UnwindSafe};
 
     assert_impl_all!(Built: Sync, Send, Unpin, UnwindSafe, RefUnwindSafe);
@@ -274,8 +464,10 @@ mod built_tests {
 
 #[cfg(test)]
 mod entity_builder_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
+    use crate::storages::core::CoreStorage;
+    use crate::{Built, EntityBuilder, EntityMainComponent};
+    use std::marker::PhantomData;
 
     assert_impl_all!(EntityBuilder<'_, ParentEntity>: Send, Unpin);
 
@@ -422,11 +614,27 @@ mod entity_builder_tests {
 
 #[cfg(test)]
 mod entity_runner_tests {
-    use super::*;
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
+    use crate::{
+        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
+    };
+    use std::marker::PhantomData;
 
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
+
+    struct TestActionDependency;
+
+    impl Action for TestActionDependency {
+        type Constraint = ();
+    }
+
+    struct TestAction;
+
+    impl Action for TestAction {
+        type Constraint = DependsOn<TestActionDependency>;
+    }
 
     struct TestEntity(u32);
 
@@ -441,30 +649,174 @@ mod entity_runner_tests {
     #[test]
     fn run_system() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<TestEntity>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(TestEntity(10), type_idx, location);
-        let mut runner = EntityRunner::<TestEntity> {
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
             core: &mut core,
             phantom: PhantomData,
         };
-        let system = SystemBuilder {
-            properties_fn: |_| SystemProperties {
-                component_types: vec![],
-                has_entity_actions: false,
-                archetype_filter: ArchetypeFilter::None,
-            },
-            wrapper: |d, i| {
-                assert_eq!(i.filtered_component_type_idxs, [0.into()]);
-                d.entity_actions.try_lock().unwrap().delete_entity(0.into());
-            },
+
+        let runner = runner.run(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 0.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1]);
+        assert_eq!(core.system_data().actions.dependency_idxs(0.into()), []);
+    }
+
+    #[test]
+    fn run_system_as_action() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
         };
 
-        runner.run(system);
+        let runner = runner.run_as::<TestAction>(create_system_builder());
 
-        core.update();
-        core.apply_system_actions();
-        assert_eq!(core.entities().location(0.into()), None);
+        assert_eq!(runner.latest_action_idx, 1.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 1]);
+        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
+        assert_eq!(dependency_idxs, [0.into()]);
+    }
+
+    #[test]
+    fn run_system_constrained() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
+        };
+
+        let runner = runner.run_constrained::<DependsOn<TestAction>>(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 1.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 1]);
+        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
+        assert_eq!(dependency_idxs, [0.into()]);
+    }
+
+    fn create_system_builder() -> SystemBuilder {
+        SystemBuilder {
+            properties_fn: |_| SystemProperties {
+                component_types: vec![],
+                can_update: false,
+                archetype_filter: ArchetypeFilter::None,
+            },
+            wrapper: |_, _| (),
+        }
+    }
+}
+
+#[cfg(test)]
+mod used_entity_runner_tests {
+    use crate::storages::archetypes::ArchetypeFilter;
+    use crate::storages::core::CoreStorage;
+    use crate::storages::systems::SystemProperties;
+    use crate::{
+        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
+        UsedEntityRunner,
+    };
+    use std::marker::PhantomData;
+
+    assert_impl_all!(UsedEntityRunner<'_, TestEntity>: Send, Unpin);
+
+    struct TestActionDependency;
+
+    impl Action for TestActionDependency {
+        type Constraint = ();
+    }
+
+    struct TestAction;
+
+    impl Action for TestAction {
+        type Constraint = DependsOn<TestActionDependency>;
+    }
+
+    struct TestEntity(u32);
+
+    impl EntityMainComponent for TestEntity {
+        type Data = u32;
+
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
+        }
+    }
+
+    #[test]
+    fn run_system() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
+        };
+        let runner = runner.run(create_system_builder());
+
+        let runner = runner.run(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 1.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 1]);
+    }
+
+    #[test]
+    fn run_system_as_action() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
+        };
+        let runner = runner.run_as::<TestAction>(create_system_builder());
+
+        let runner = runner.run_as::<TestAction>(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 1.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 2]);
+    }
+
+    #[test]
+    fn run_system_constrained() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
+        };
+        let runner = runner.run(create_system_builder());
+
+        let runner = runner.run_constrained::<DependsOn<TestAction>>(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 2.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 0, 1]);
+    }
+
+    #[test]
+    fn run_system_after_previous() {
+        let mut core = CoreStorage::default();
+        core.add_entity_type::<TestEntity>();
+        let runner = EntityRunner::<TestEntity> {
+            core: &mut core,
+            phantom: PhantomData,
+        };
+        let runner = runner.run(create_system_builder());
+
+        let runner = runner.and_then(create_system_builder());
+
+        assert_eq!(runner.latest_action_idx, 1.into());
+        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 1]);
+        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
+        assert_eq!(dependency_idxs, [0.into()]);
+    }
+
+    fn create_system_builder() -> SystemBuilder {
+        SystemBuilder {
+            properties_fn: |_| SystemProperties {
+                component_types: vec![],
+                can_update: false,
+                archetype_filter: ArchetypeFilter::None,
+            },
+            wrapper: |_, _| (),
+        }
     }
 }

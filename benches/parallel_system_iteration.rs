@@ -18,7 +18,7 @@ impl EntityMainComponent for Item1 {
         builder.with(A(0.0)).with(B(0.0)).with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -36,7 +36,7 @@ impl EntityMainComponent for Item2 {
             .with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -55,7 +55,7 @@ impl EntityMainComponent for Item3 {
             .with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -74,7 +74,7 @@ impl EntityMainComponent for Item4 {
             .with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }

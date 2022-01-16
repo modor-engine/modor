@@ -5,7 +5,6 @@ use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWi
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::tuples::internal::EmptyTupleGuardBorrow;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::iter;
 use std::iter::{Map, Zip};
 
 impl<'a> SystemParamWithLifetime<'a> for () {
@@ -22,7 +21,7 @@ impl SystemParam for () {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            has_entity_actions: false,
+            can_update: false,
             archetype_filter: ArchetypeFilter::None,
         }
     }
@@ -109,11 +108,11 @@ macro_rules! impl_tuple_system_param {
 
             fn properties(core: &mut CoreStorage) -> SystemProperties {
                 let properties = ($($params::properties(core),)+);
+                let mut component_types = Vec::new();
+                $(component_types.extend(properties.$indexes.component_types);)+
                 SystemProperties {
-                    component_types:
-                        iter::empty() $(.chain(properties.$indexes.component_types))+.collect(),
-                    has_entity_actions:
-                        [$(properties.$indexes.has_entity_actions),+].into_iter().any(|b| b),
+                    component_types,
+                    can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
                     archetype_filter:
                         ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
                 }
@@ -368,10 +367,10 @@ mod internal {
 #[allow(clippy::let_unit_value)]
 #[cfg(test)]
 mod empty_tuple_system_param_tests {
-    use super::*;
-    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::SystemInfo;
+    use crate::tuples::internal::EmptyTupleGuardBorrow;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
     fn retrieve_properties() {
@@ -380,7 +379,7 @@ mod empty_tuple_system_param_tests {
         let properties = <()>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
@@ -483,12 +482,13 @@ mod empty_tuple_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_one_item_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::SystemInfo;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
 
     #[test]
     fn retrieve_properties() {
@@ -499,7 +499,7 @@ mod tuple_with_one_item_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
@@ -591,16 +591,17 @@ mod tuple_with_one_item_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_two_items_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::{SystemInfo, World};
+    use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
 
     #[test]
-    fn retrieve_properties_with_entity_action() {
+    fn retrieve_properties_when_can_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, World<'_>)>::properties(&mut core);
@@ -608,13 +609,13 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert!(properties.has_entity_actions);
+        assert!(properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
-    fn retrieve_properties_without_entity_action() {
+    fn retrieve_properties_when_cannot_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, &mut i64)>::properties(&mut core);
@@ -624,7 +625,7 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert_eq!(properties.component_types[1].type_idx, 1.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
@@ -743,30 +744,77 @@ mod tuple_with_two_items_system_param_tests {
 
 #[cfg(test)]
 mod tuple_with_more_than_two_items_system_param_tests {
-    use super::*;
     use crate::components::internal::ComponentGuardBorrow;
     use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{
+        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
+    };
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::SystemInfo;
+    use crate::{QuerySystemParam, SystemInfo, SystemParam};
+
+    macro_rules! test_tuple_retrieve_properties {
+        (($($types:ident),*), ($($indexes:tt),*)) => {{
+            let mut core = CoreStorage::default();
+
+            let properties = <($(&$types,)*)>::properties(&mut core);
+
+            assert_eq!(properties.component_types.len(), [$($indexes),*].len());
+            $(assert_eq!(properties.component_types[$indexes].access, Access::Read);)*
+            $(assert_eq!(properties.component_types[$indexes].type_idx, $indexes.into());)*
+            assert!(!properties.can_update);
+            let archetype_filter = ArchetypeFilter::Intersection(ne_vec![$($indexes.into()),*]);
+            assert_eq!(properties.archetype_filter, archetype_filter);
+        }};
+    }
 
     #[test]
-    fn retrieve_properties() {
-        let mut core = CoreStorage::default();
+    fn retrieve_properties_for_3_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32), (0, 1, 2));
+    }
 
-        let properties = <(&u32, &mut i64, &i16)>::properties(&mut core);
+    #[test]
+    fn retrieve_properties_for_4_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
+    }
 
-        assert_eq!(properties.component_types.len(), 3);
-        assert_eq!(properties.component_types[0].access, Access::Read);
-        assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert_eq!(properties.component_types[1].access, Access::Write);
-        assert_eq!(properties.component_types[1].type_idx, 1.into());
-        assert_eq!(properties.component_types[2].access, Access::Read);
-        assert_eq!(properties.component_types[2].type_idx, 2.into());
-        assert!(!properties.has_entity_actions);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+    #[test]
+    fn retrieve_properties_for_5_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
+    }
+
+    #[test]
+    fn retrieve_properties_for_6_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8), (0, 1, 2, 3, 4, 5));
+    }
+
+    #[test]
+    fn retrieve_properties_for_7_item_tuple() {
+        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8, i16), (0, 1, 2, 3, 4, 5, 6));
+    }
+
+    #[test]
+    fn retrieve_properties_for_8_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32),
+            (0, 1, 2, 3, 4, 5, 6, 7)
+        );
+    }
+
+    #[test]
+    fn retrieve_properties_for_9_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8)
+        );
+    }
+
+    #[test]
+    fn retrieve_properties_for_10_item_tuple() {
+        test_tuple_retrieve_properties!(
+            (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
+            (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        );
     }
 
     #[test]

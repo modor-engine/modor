@@ -32,7 +32,7 @@ where
                 access: Access::Read,
                 type_idx,
             }],
-            has_entity_actions: false,
+            can_update: false,
             archetype_filter: ArchetypeFilter::Intersection(ne_vec![type_idx]),
         }
     }
@@ -273,7 +273,7 @@ mod component_ref_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
