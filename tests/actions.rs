@@ -1,0 +1,148 @@
+use modor::testing::TestApp;
+use modor::{
+    system, Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, Query, With,
+};
+
+#[derive(Debug, PartialEq)]
+struct Position(usize, usize);
+
+struct PositionDisplayAction;
+
+impl Action for PositionDisplayAction {
+    type Constraint = ();
+}
+
+struct EnemyPositionUpdateAction;
+
+impl Action for EnemyPositionUpdateAction {
+    type Constraint = DependsOn<PositionDisplayAction>;
+}
+
+struct Enemy;
+
+impl EntityMainComponent for Enemy {
+    type Data = Position;
+
+    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built {
+        builder.with(position).with_self(Self)
+    }
+
+    fn on_update(runner: EntityRunner<'_, Self>) {
+        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update));
+    }
+}
+
+impl Enemy {
+    fn update(position: &mut Position) {
+        position.0 += 1;
+        position.1 += 2;
+    }
+}
+
+struct Selection(Position);
+
+impl EntityMainComponent for Selection {
+    type Data = Position;
+
+    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built {
+        builder.with_self(Self(position))
+    }
+
+    fn on_update(runner: EntityRunner<'_, Self>) {
+        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update));
+    }
+}
+
+impl Selection {
+    fn update(&mut self, enemy_positions: Query<'_, &Position, With<Enemy>>) {
+        if let Some(enemy_positions) = enemy_positions.iter().next() {
+            self.0 .0 = enemy_positions.0;
+            self.0 .1 = enemy_positions.1;
+        }
+    }
+}
+
+struct DisplayManager(usize, Vec<String>);
+
+impl EntityMainComponent for DisplayManager {
+    type Data = ();
+
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+        builder.with_self(Self(0, vec![]))
+    }
+
+    fn on_update(runner: EntityRunner<'_, Self>) {
+        runner
+            .run_as::<PositionDisplayAction>(system!(Self::print_frame_index))
+            .and_then(system!(Self::print_positions))
+            .and_then(system!(Self::increment_frame_index));
+    }
+}
+
+impl DisplayManager {
+    fn print_frame_index(&mut self) {
+        self.1.push(format!("Frame {}", self.0));
+    }
+
+    fn print_positions(
+        &mut self,
+        enemy_positions: Query<'_, &Position, With<Enemy>>,
+        selection_positions: Query<'_, &Selection>,
+    ) {
+        for enemy_position in enemy_positions.iter() {
+            self.1.push(format!("Enemy {:?}", enemy_position));
+        }
+        if let Some(selection) = selection_positions.iter().next() {
+            self.1.push(format!("Selection {:?}", selection.0));
+        }
+    }
+
+    fn increment_frame_index(&mut self) {
+        self.0 += 1;
+    }
+}
+
+#[test]
+fn init() {
+    let mut app = TestApp::new();
+    let enemy_id = app.create_entity::<Enemy>(Position(0, 0));
+    let display_manager_id = app.create_entity::<DisplayManager>(());
+    let selection_id = app.create_entity::<Selection>(Position(0, 0));
+
+    app.assert_entity(enemy_id)
+        .has::<Position, _>(|c| assert_eq!(c, &Position(0, 0)))
+        .has::<Enemy, _>(|_| ());
+    app.assert_entity(display_manager_id)
+        .has::<DisplayManager, _>(|c| assert_eq!(c.0, 0))
+        .has::<DisplayManager, _>(|c| assert!(c.1.is_empty()));
+    app.assert_entity(selection_id)
+        .has::<Selection, _>(|c| assert_eq!(c.0, Position(0, 0)));
+}
+
+#[test]
+fn update() {
+    let mut app = TestApp::new();
+    let enemy_id = app.create_entity::<Enemy>(Position(0, 0));
+    let display_manager_id = app.create_entity::<DisplayManager>(());
+    let selection_id = app.create_entity::<Selection>(Position(0, 0));
+
+    app.update();
+
+    app.assert_entity(enemy_id)
+        .has::<Position, _>(|c| assert_eq!(c, &Position(1, 2)))
+        .has::<Enemy, _>(|_| ());
+    app.assert_entity(display_manager_id)
+        .has::<DisplayManager, _>(|c| assert_eq!(c.0, 1))
+        .has::<DisplayManager, _>(|c| {
+            assert_eq!(
+                c.1,
+                vec![
+                    "Frame 0",
+                    "Enemy Position(1, 2)",
+                    "Selection Position(1, 2)"
+                ]
+            );
+        });
+    app.assert_entity(selection_id)
+        .has::<Selection, _>(|c| assert_eq!(c.0, Position(1, 2)));
+}

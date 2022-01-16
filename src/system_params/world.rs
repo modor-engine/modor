@@ -29,7 +29,7 @@ impl<'a> World<'a> {
     /// The entity is actually deleted once all registered systems have been run.
     pub fn delete_entity(&mut self, entity_id: usize) {
         self.data
-            .entity_actions
+            .updates
             .try_lock()
             .expect("internal error: cannot lock entity actions to delete entity")
             .delete_entity(entity_id.into());
@@ -47,7 +47,7 @@ impl<'a> World<'a> {
         C: Any + Sync + Send,
     {
         self.data
-            .entity_actions
+            .updates
             .try_lock()
             .expect("internal error: cannot lock entity actions to add component")
             .add_component(
@@ -76,7 +76,7 @@ impl<'a> World<'a> {
     {
         if let Some(type_idx) = self.data.components.type_idx(TypeId::of::<C>()) {
             self.data
-                .entity_actions
+                .updates
                 .try_lock()
                 .expect("internal error: cannot lock entity actions to delete component")
                 .delete_component(entity_id.into(), type_idx);
@@ -98,7 +98,7 @@ impl SystemParam for World<'_> {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            has_entity_actions: true,
+            can_update: true,
             archetype_filter: ArchetypeFilter::None,
         }
     }
@@ -195,7 +195,7 @@ mod world_tests {
     use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::storages::entity_actions::EntityState;
+    use crate::storages::updates::EntityUpdate;
 
     assert_impl_all!(World<'_>: Sync, Send, Unpin);
 
@@ -207,10 +207,13 @@ mod world_tests {
 
         world.delete_entity(2);
 
-        let mut entity_actions = data.entity_actions.try_lock().unwrap();
-        let states: Vec<_> = entity_actions.drain_entity_states().collect();
-        assert_eq!(states.len(), 1);
-        assert!(matches!(states[0], (EntityIdx(2), EntityState::Deleted)));
+        let mut updates = data.updates.try_lock().unwrap();
+        let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
+        assert_eq!(entity_updates.len(), 1);
+        assert!(matches!(
+            entity_updates[0],
+            (EntityIdx(2), EntityUpdate::Deleted)
+        ));
     }
 
     #[test]
@@ -221,14 +224,14 @@ mod world_tests {
 
         world.add_component(0, 10_u32);
 
-        let mut states: Vec<_> = {
-            let mut entity_actions = data.entity_actions.try_lock().unwrap();
-            entity_actions.drain_entity_states().collect()
+        let mut entity_updates: Vec<_> = {
+            let mut updates = data.updates.try_lock().unwrap();
+            updates.drain_entity_updates().collect()
         };
-        assert_eq!(states.len(), 1);
-        let state = states.pop().unwrap();
+        assert_eq!(entity_updates.len(), 1);
+        let state = entity_updates.pop().unwrap();
         assert_eq!(state.0, 0.into());
-        if let EntityState::Unchanged(mut add_fns, deleted_type_idxs) = state.1 {
+        if let EntityUpdate::Updated(mut add_fns, deleted_type_idxs) = state.1 {
             assert_eq!(add_fns.len(), 1);
             assert_eq!(core.components().type_idx(TypeId::of::<u32>()), None);
             (add_fns[0].add_type_fn)(&mut core, ArchetypeStorage::DEFAULT_IDX);
@@ -259,12 +262,12 @@ mod world_tests {
 
         world.delete_component::<u32>(2);
 
-        let mut entity_actions = data.entity_actions.try_lock().unwrap();
-        let mut states: Vec<_> = entity_actions.drain_entity_states().collect();
-        assert_eq!(states.len(), 1);
-        let state = states.pop().unwrap();
+        let mut updates = data.updates.try_lock().unwrap();
+        let mut entity_updates: Vec<_> = updates.drain_entity_updates().collect();
+        assert_eq!(entity_updates.len(), 1);
+        let state = entity_updates.pop().unwrap();
         assert_eq!(state.0, 2.into());
-        if let EntityState::Unchanged(add_fns, deleted_type_idxs) = state.1 {
+        if let EntityUpdate::Updated(add_fns, deleted_type_idxs) = state.1 {
             assert_eq!(add_fns.len(), 0);
             assert_eq!(deleted_type_idxs, &[1.into()]);
         } else {
@@ -286,7 +289,7 @@ mod world_system_param_tests {
         let properties = World::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
-        assert!(properties.has_entity_actions);
+        assert!(properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 

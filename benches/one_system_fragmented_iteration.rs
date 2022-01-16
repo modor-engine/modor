@@ -12,7 +12,7 @@ impl EntityMainComponent for Data {
         builder.with_self(Self(1.0))
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(Self::update));
     }
 }

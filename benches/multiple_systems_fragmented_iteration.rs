@@ -17,7 +17,7 @@ macro_rules! create_entities {
                     builder.with(Data(1.0)).with_self(Self(0.0))
                 }
 
-                fn on_update(runner: &mut EntityRunner<'_, Self>) {
+                fn on_update(runner: EntityRunner<'_, Self>) {
                     runner.run(system!(Self::update));
                 }
             }

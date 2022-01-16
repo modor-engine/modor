@@ -87,7 +87,7 @@ where
         let param_properties = P::properties(core);
         SystemProperties {
             component_types: param_properties.component_types,
-            has_entity_actions: param_properties.has_entity_actions,
+            can_update: param_properties.can_update,
             archetype_filter: ArchetypeFilter::None,
         }
     }
@@ -349,6 +349,7 @@ mod query_tests {
 #[cfg(test)]
 mod with_tests {
     use super::*;
+    use crate::storages::actions::ActionStorage;
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::components::ComponentStorage;
     use crate::SystemData;
@@ -356,6 +357,41 @@ mod with_tests {
     use std::sync::Mutex;
 
     assert_impl_all!(With<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
+
+    #[test]
+    fn register_single_type() {
+        let mut core = CoreStorage::default();
+
+        With::<u32>::register(&mut core);
+
+        assert!(core.components().type_idx(TypeId::of::<u32>()).is_some());
+    }
+
+    #[test]
+    fn retrieve_filtered_component_types_for_single_type() {
+        let mut components = ComponentStorage::default();
+        components.type_idx_or_create::<u32>();
+        let data = SystemData {
+            components: &components,
+            archetypes: &ArchetypeStorage::default(),
+            actions: &ActionStorage::default(),
+            updates: &Mutex::default(),
+        };
+
+        let types = With::<u32>::filtered_component_type_idxs(data);
+
+        assert_eq!(types, vec![0.into()]);
+    }
+}
+
+#[cfg(test)]
+mod with_tuple_tests {
+    use super::*;
+    use crate::storages::actions::ActionStorage;
+    use crate::storages::archetypes::ArchetypeStorage;
+    use crate::storages::components::ComponentStorage;
+    use crate::SystemData;
+    use std::sync::Mutex;
 
     macro_rules! test_tuple_register {
         ($($params:ident),*) => {{
@@ -365,15 +401,6 @@ mod with_tests {
 
             $(assert!(core.components().type_idx(TypeId::of::<$params>()).is_some());)*
         }};
-    }
-
-    #[test]
-    fn register_single_type() {
-        let mut core = CoreStorage::default();
-
-        With::<u32>::register(&mut core);
-
-        assert!(core.components().type_idx(TypeId::of::<u32>()).is_some());
     }
 
     #[test]
@@ -439,28 +466,14 @@ mod with_tests {
             let data = SystemData {
                 components: &components,
                 archetypes: &ArchetypeStorage::default(),
-                entity_actions: &Mutex::default(),
+                actions: &ActionStorage::default(),
+                updates: &Mutex::default(),
             };
 
             let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_type_idxs(data);
 
             assert_eq!(types, vec![$($indexes.into()),*]);
         }};
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_single_type() {
-        let mut components = ComponentStorage::default();
-        components.type_idx_or_create::<u32>();
-        let data = SystemData {
-            components: &components,
-            archetypes: &ArchetypeStorage::default(),
-            entity_actions: &Mutex::default(),
-        };
-
-        let types = With::<u32>::filtered_component_type_idxs(data);
-
-        assert_eq!(types, vec![0.into()]);
     }
 
     #[test]
@@ -547,7 +560,7 @@ mod query_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 1.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 

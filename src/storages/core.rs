@@ -1,8 +1,9 @@
+use crate::storages::actions::{ActionDefinition, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocationInArchetype};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
-use crate::storages::entity_actions::{EntityActionStorage, EntityState};
 use crate::storages::systems::{SystemProperties, SystemStorage};
+use crate::storages::updates::{EntityUpdate, UpdateStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::SystemData;
 use std::any::{Any, TypeId};
@@ -14,8 +15,9 @@ pub struct CoreStorage {
     archetypes: ArchetypeStorage,
     entities: EntityStorage,
     components: ComponentStorage,
+    actions: ActionStorage,
     systems: SystemStorage,
-    entity_actions: Mutex<EntityActionStorage>,
+    updates: Mutex<UpdateStorage>,
 }
 
 impl CoreStorage {
@@ -124,37 +126,43 @@ impl CoreStorage {
         wrapper: SystemWrapper,
         entity_type: TypeId,
         properties: SystemProperties,
-    ) {
+        action: ActionDefinition,
+    ) -> ActionIdx {
         let entity_type_idx = self
             .components
             .type_idx(entity_type)
             .expect("internal error: missing entity type when adding system");
-        self.systems.add(wrapper, entity_type_idx, properties);
+        let action_idx = self.actions.idx_or_create(action);
+        self.actions.add_system(action_idx);
+        self.systems
+            .add(wrapper, entity_type_idx, properties, action_idx);
+        action_idx
     }
 
     pub(crate) fn update(&mut self) {
         let data = SystemData {
             components: &self.components,
             archetypes: &self.archetypes,
-            entity_actions: &self.entity_actions,
+            actions: &self.actions,
+            updates: &self.updates,
         };
         self.systems.run(data);
     }
 
     pub(crate) fn apply_system_actions(&mut self) {
-        let mut entity_actions = mem::take(
-            self.entity_actions
+        let mut updates = mem::take(
+            self.updates
                 .get_mut()
                 .expect("internal error: cannot access to entity actions"),
         );
-        for (entity_idx, entity_state) in entity_actions.drain_entity_states() {
+        for (entity_idx, entity_update) in updates.drain_entity_updates() {
             let location = if let Some(location) = self.entities.location(entity_idx) {
                 location
             } else {
                 continue;
             };
-            match entity_state {
-                EntityState::Unchanged(add_component_fns, deleted_component_type_idxs) => {
+            match entity_update {
+                EntityUpdate::Updated(add_component_fns, deleted_component_type_idxs) => {
                     let mut dst_archetype_idx = location.idx;
                     for add_fns in &add_component_fns {
                         dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
@@ -167,7 +175,7 @@ impl CoreStorage {
                         (add_fns.add_fn)(self, dst_location);
                     }
                 }
-                EntityState::Deleted => self.delete_entity(entity_idx, location),
+                EntityUpdate::Deleted => self.delete_entity(entity_idx, location),
             }
         }
     }
@@ -207,6 +215,7 @@ impl CoreStorage {
 #[cfg(test)]
 mod core_storage_tests {
     use super::*;
+    use crate::storages::actions::ActionDependencies;
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::{Access, ComponentTypeAccess};
     use crate::SystemData;
@@ -217,7 +226,8 @@ mod core_storage_tests {
             SystemData {
                 components: &self.components,
                 archetypes: &self.archetypes,
-                entity_actions: &self.entity_actions,
+                actions: &self.actions,
+                updates: &self.updates,
             }
         }
     }
@@ -362,7 +372,7 @@ mod core_storage_tests {
         storage.add_system(
             |d, i| {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);
-                d.entity_actions.try_lock().unwrap().delete_entity(0.into());
+                d.updates.try_lock().unwrap().delete_entity(0.into());
             },
             TypeId::of::<u32>(),
             SystemProperties {
@@ -370,26 +380,27 @@ mod core_storage_tests {
                     access: Access::Read,
                     type_idx: 0.into(),
                 }],
-                has_entity_actions: true,
+                can_update: true,
                 archetype_filter: ArchetypeFilter::None,
+            },
+            ActionDefinition {
+                type_: None,
+                dependency_types: ActionDependencies::Types(vec![]),
             },
         );
         storage.update();
 
-        let mut entity_actions = storage.entity_actions.try_lock().unwrap();
-        let entity_states: Vec<_> = entity_actions.drain_entity_states().collect();
-        assert_eq!(entity_states[0].0, 0.into());
-        assert!(matches!(entity_states[0].1, EntityState::Deleted));
+        let mut updates = storage.updates.try_lock().unwrap();
+        let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
+        assert_eq!(entity_updates[0].0, 0.into());
+        assert!(matches!(entity_updates[0].1, EntityUpdate::Deleted));
+        assert_eq!(storage.actions.system_counts(), ti_vec![1]);
     }
 
     #[test]
     fn apply_system_actions_on_missing_entity() {
         let mut storage = CoreStorage::default();
-        storage
-            .entity_actions
-            .try_lock()
-            .unwrap()
-            .delete_entity(0.into());
+        storage.updates.try_lock().unwrap().delete_entity(0.into());
 
         storage.apply_system_actions();
 
@@ -405,11 +416,7 @@ mod core_storage_tests {
         storage.add_component(10_u32, type_idx, location1);
         let location2 = storage.create_entity(archetype2_idx);
         storage.add_component(20_u32, type_idx, location2);
-        storage
-            .entity_actions
-            .try_lock()
-            .unwrap()
-            .delete_entity(0.into());
+        storage.updates.try_lock().unwrap().delete_entity(0.into());
 
         storage.apply_system_actions();
 
@@ -427,7 +434,7 @@ mod core_storage_tests {
     fn apply_system_actions_with_added_component() {
         let mut storage = CoreStorage::default();
         storage.create_entity(ArchetypeStorage::DEFAULT_IDX);
-        storage.entity_actions.try_lock().unwrap().add_component(
+        storage.updates.try_lock().unwrap().add_component(
             0.into(),
             |c, a| c.add_component_type::<u32>(a).1,
             Box::new(move |c, l| c.add_component(10_u32, 0.into(), l)),
@@ -454,7 +461,7 @@ mod core_storage_tests {
         storage.add_component(10_u32, type1_idx, location);
         storage.add_component(20_i64, type2_idx, location);
         storage
-            .entity_actions
+            .updates
             .try_lock()
             .unwrap()
             .delete_component(0.into(), 1.into());
@@ -480,7 +487,7 @@ mod core_storage_tests {
         let location = storage.create_entity(archetype2_idx);
         storage.add_component(10_u32, type1_idx, location);
         storage
-            .entity_actions
+            .updates
             .try_lock()
             .unwrap()
             .delete_component(0.into(), 1.into());

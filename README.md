@@ -69,7 +69,7 @@ impl EntityMainComponent for Character {
             .with_self(Self { ammunition: 10 })
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner.run(system!(Self::fire_when_enemy));
     }
 }

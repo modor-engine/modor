@@ -44,7 +44,7 @@
 //!             .with_self(Self { ammunition: 10 })
 //!     }
 //!
-//!     fn on_update(runner: &mut EntityRunner<'_, Self>) {
+//!     fn on_update(runner: EntityRunner<'_, Self>) {
 //!         runner.run(system!(Self::fire_when_enemy));
 //!     }
 //! }
@@ -79,6 +79,7 @@ extern crate doc_comment;
 
 #[macro_use]
 mod utils;
+mod actions;
 mod app;
 mod entities;
 mod storages;
@@ -88,6 +89,7 @@ mod systems;
 
 pub mod testing;
 
+pub use actions::*;
 pub use app::*;
 pub use entities::*;
 pub use system_checks::*;

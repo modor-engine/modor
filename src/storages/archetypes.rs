@@ -270,7 +270,7 @@ pub(super) struct MissingComponentError;
 pub(super) struct ExistingComponentError;
 
 #[cfg(test)]
-mod archetype_storage_tests {
+mod entity_location_in_archetype_tests {
     use super::*;
 
     impl EntityLocationInArchetype {
@@ -278,6 +278,11 @@ mod archetype_storage_tests {
             Self { idx, pos }
         }
     }
+}
+
+#[cfg(test)]
+mod archetype_storage_tests {
+    use super::*;
 
     #[test]
     fn retrieve_default_archetype() {

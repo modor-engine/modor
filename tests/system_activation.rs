@@ -22,7 +22,7 @@ impl EntityMainComponent for Action {
         builder.with_self(Self)
     }
 
-    fn on_update(runner: &mut EntityRunner<'_, Self>) {
+    fn on_update(runner: EntityRunner<'_, Self>) {
         runner
             .run(system!(Self::update_counters))
             .run(system!(Self::destroy));

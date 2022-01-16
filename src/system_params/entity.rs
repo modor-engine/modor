@@ -49,7 +49,7 @@ impl SystemParam for Entity<'_> {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            has_entity_actions: false,
+            can_update: false,
             archetype_filter: ArchetypeFilter::All,
         }
     }
@@ -270,7 +270,7 @@ mod entity_system_param_tests {
         let properties = Entity::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
     }
 

@@ -5,7 +5,6 @@ use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWi
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::tuples::internal::EmptyTupleGuardBorrow;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::iter;
 use std::iter::{Map, Zip};
 
 impl<'a> SystemParamWithLifetime<'a> for () {
@@ -22,7 +21,7 @@ impl SystemParam for () {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            has_entity_actions: false,
+            can_update: false,
             archetype_filter: ArchetypeFilter::None,
         }
     }
@@ -109,11 +108,11 @@ macro_rules! impl_tuple_system_param {
 
             fn properties(core: &mut CoreStorage) -> SystemProperties {
                 let properties = ($($params::properties(core),)+);
+                let mut component_types = Vec::new();
+                $(component_types.extend(properties.$indexes.component_types);)+
                 SystemProperties {
-                    component_types:
-                        iter::empty() $(.chain(properties.$indexes.component_types))+.collect(),
-                    has_entity_actions:
-                        [$(properties.$indexes.has_entity_actions),+].into_iter().any(|b| b),
+                    component_types,
+                    can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
                     archetype_filter:
                         ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
                 }
@@ -380,7 +379,7 @@ mod empty_tuple_system_param_tests {
         let properties = <()>::properties(&mut core);
 
         assert_eq!(properties.component_types.len(), 0);
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
@@ -499,7 +498,7 @@ mod tuple_with_one_item_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
@@ -600,7 +599,7 @@ mod tuple_with_two_items_system_param_tests {
     use crate::{SystemInfo, World};
 
     #[test]
-    fn retrieve_properties_with_entity_action() {
+    fn retrieve_properties_when_can_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, World<'_>)>::properties(&mut core);
@@ -608,13 +607,13 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert!(properties.has_entity_actions);
+        assert!(properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]
-    fn retrieve_properties_without_entity_action() {
+    fn retrieve_properties_when_cannot_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, &mut i64)>::properties(&mut core);
@@ -624,7 +623,7 @@ mod tuple_with_two_items_system_param_tests {
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert_eq!(properties.component_types[1].type_idx, 1.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }
@@ -764,7 +763,7 @@ mod tuple_with_more_than_two_items_system_param_tests {
         assert_eq!(properties.component_types[1].type_idx, 1.into());
         assert_eq!(properties.component_types[2].access, Access::Read);
         assert_eq!(properties.component_types[2].type_idx, 2.into());
-        assert!(!properties.has_entity_actions);
+        assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
     }

@@ -96,14 +96,14 @@ mod app_tests {
             builder.with_self(Self(data))
         }
 
-        fn on_update(runner: &mut EntityRunner<'_, Self>) {
+        fn on_update(runner: EntityRunner<'_, Self>) {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
-                    has_entity_actions: false,
+                    can_update: false,
                     archetype_filter: ArchetypeFilter::None,
                 },
-                wrapper: |d, _| d.entity_actions.try_lock().unwrap().delete_entity(0.into()),
+                wrapper: |d, _| d.updates.try_lock().unwrap().delete_entity(0.into()),
             });
         }
     }

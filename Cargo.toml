@@ -19,10 +19,10 @@ scoped_threadpool = "0.1"
 typed-index-collections = "3.0"
 
 [dev-dependencies]
+compiletest_rs = "0.7"
 criterion = "0.3"
 doc-comment = "0.3"
 static_assertions = "1.1"
-trybuild = "1.0"
 
 [[bench]]
 name = "entity_creation"
