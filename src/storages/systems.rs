@@ -199,9 +199,10 @@ mod system_storage_tests {
     use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
     use crate::storages::archetypes::{
         ArchetypeEntityPos, ArchetypeFilter, ArchetypeIdx, ArchetypeStorage,
-        EntityLocationInArchetype,
+        EntityLocation,
     };
     use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
+    use crate::storages::entities::EntityStorage;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties, SystemStorage};
     use crate::storages::updates::{EntityUpdate, UpdateStorage};
     use crate::systems::internal::SystemWrapper;
@@ -282,6 +283,7 @@ mod system_storage_tests {
         });
         actions.add_system(action_idx);
         let data = SystemData {
+            entities: &EntityStorage::default(),
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
             actions: &actions,
@@ -314,6 +316,7 @@ mod system_storage_tests {
         actions.add_system(action_idx);
         actions.add_system(action_idx);
         let data = SystemData {
+            entities: &EntityStorage::default(),
             components: &ComponentStorage::default(),
             archetypes: &ArchetypeStorage::default(),
             actions: &actions,
@@ -339,7 +342,7 @@ mod system_storage_tests {
         storage.add(wrapper, 0.into(), properties, 0.into());
         let mut components = ComponentStorage::default();
         let type_idx = components.type_idx_or_create::<u32>();
-        let location = EntityLocationInArchetype::new(0.into(), 0.into());
+        let location = EntityLocation::new(0.into(), 0.into());
         components.add(type_idx, location, 10_u32);
         let mut actions = ActionStorage::default();
         let action_idx = actions.idx_or_create(ActionDefinition {
@@ -348,6 +351,7 @@ mod system_storage_tests {
         });
         actions.add_system(action_idx);
         let data = SystemData {
+            entities: &EntityStorage::default(),
             components: &components,
             archetypes: &ArchetypeStorage::default(),
             actions: &actions,
@@ -405,7 +409,7 @@ mod system_storage_tests {
         let mut components = ComponentStorage::default();
         let type1_idx = components.type_idx_or_create::<Component1>();
         let type2_idx = components.type_idx_or_create::<Component2>();
-        let location = EntityLocationInArchetype::new(0.into(), 0.into());
+        let location = EntityLocation::new(0.into(), 0.into());
         components.add(type1_idx, location, Component1(thread::current().id()));
         components.add(type2_idx, location, Component2(thread::current().id()));
         let mut actions = ActionStorage::default();
@@ -416,6 +420,7 @@ mod system_storage_tests {
         actions.add_system(action_idx);
         actions.add_system(action_idx);
         let data = SystemData {
+            entities: &EntityStorage::default(),
             components: &components,
             archetypes: &ArchetypeStorage::default(),
             actions: &actions,

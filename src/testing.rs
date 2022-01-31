@@ -1,6 +1,6 @@
 //! Testing utilities.
 
-use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
+use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::{App, EntityBuilder, EntityMainComponent};
@@ -63,7 +63,7 @@ impl TestApp {
     where
         E: EntityMainComponent,
     {
-        let location = self.0 .0.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        let location = self.0 .0.create_entity(ArchetypeStorage::DEFAULT_IDX).1;
         let entity_idx = self.0 .0.archetypes().entity_idxs(location.idx)[location.pos];
         let entity_builder = EntityBuilder {
             core: &mut self.0 .0,
@@ -187,13 +187,13 @@ impl EntityAssertion<'_> {
         self
     }
 
-    fn location(&self) -> Option<EntityLocationInArchetype> {
+    fn location(&self) -> Option<EntityLocation> {
         self.core.entities().location(self.entity_idx)
     }
 
     fn test_component_exists<C, F>(
         &self,
-        location: EntityLocationInArchetype,
+        location: EntityLocation,
         mut f: F,
     ) -> Option<()>
     where
@@ -368,7 +368,7 @@ mod entity_assertion_tests {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type_idx, location);
         let assertion = EntityAssertion {
             core: &core,
@@ -383,7 +383,7 @@ mod entity_assertion_tests {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type_idx, location);
         let assertion = EntityAssertion {
             core: &core,
@@ -415,7 +415,7 @@ mod entity_assertion_tests {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type_idx, location);
         let assertion = EntityAssertion {
             core: &core,

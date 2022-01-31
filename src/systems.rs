@@ -4,6 +4,7 @@ use crate::storages::archetypes::{
 };
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
+use crate::storages::entities::EntityStorage;
 use crate::storages::systems::SystemProperties;
 use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
@@ -133,6 +134,7 @@ pub struct SystemInfo<'a> {
 #[doc(hidden)]
 #[derive(Clone, Copy)]
 pub struct SystemData<'a> {
+    pub(crate) entities: &'a EntityStorage,
     pub(crate) components: &'a ComponentStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
     pub(crate) actions: &'a ActionStorage,
@@ -293,7 +295,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -310,7 +312,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -325,7 +327,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -343,7 +345,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -361,7 +363,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -408,17 +410,14 @@ mod system_builder_tests {
 
 #[cfg(test)]
 mod system_tests {
-    use crate::components::internal::ComponentGuardBorrow;
-    use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
-    };
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::{System, SystemInfo};
+    use std::any::TypeId;
 
     #[test]
-    fn retrieve_properties_fn() {
+    fn retrieve_system_properties_fn() {
         let system = |_: &u32, _: &mut i64| ();
 
         let properties_fn = System::properties_fn(&system);
@@ -432,59 +431,26 @@ mod system_tests {
     }
 
     #[test]
-    fn lock() {
+    fn use_system() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type1_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (type2_idx, archetype3_idx) = core.add_component_type::<u32>(archetype2_idx);
-        let location = core.create_entity(archetype3_idx);
-        core.add_component(10_i64, type1_idx, location);
-        core.add_component(20_u32, type2_idx, location);
-        let data = core.system_data();
-        let system = |_: &u32, _: &mut i64| ();
+        core.create_entity_with_2_components(10_u32, 100_i16);
+        core.create_entity_with_2_components(20_u32, 200_i16);
+        core.create_entity_with_1_component(30_u32);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
+        let system = |_: &u32, _: &mut i16| ();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 2,
         };
+        let mut guard = System::lock(&system, core.system_data(), info);
+        let mut borrow = System::borrow_guard(&system, &mut guard);
 
-        let mut guard = System::lock(&system, data, info);
-        let guard_borrow = System::borrow_guard(&system, &mut guard);
-
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0.components, &expected_guard);
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1.components, &expected_guard);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let mut guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-        let system = |_: &u32, _: &mut i64| ();
-
-        let mut stream = System::stream(&system, &mut guard_borrow);
-
-        let next = System::stream_next(&system, &mut stream);
-        assert_eq!(next, Some((&10, &mut 30)));
-        let next = System::stream_next(&system, &mut stream);
-        assert_eq!(next, Some((&20, &mut 40)));
+        let mut stream = System::stream(&system, &mut borrow);
+        let item = System::stream_next(&system, &mut stream);
+        assert_eq!(item, Some((&10, &mut 100)));
+        let item = System::stream_next(&system, &mut stream);
+        assert_eq!(item, Some((&20, &mut 200)));
         assert_eq!(System::stream_next(&system, &mut stream), None);
     }
 
@@ -500,33 +466,73 @@ mod system_tests {
     }
 
     #[test]
-    fn apply_params() {
+    fn apply_empty_tuple_param() {
         test_apply!([], [], []);
+    }
+
+    #[test]
+    fn apply_1_item_tuple_param() {
         test_apply!([a], [u8], [0]);
+    }
+
+    #[test]
+    fn apply_2_items_tuple_param() {
         test_apply!([a, b], [u8, u16], [0, 1]);
+    }
+
+    #[test]
+    fn apply_3_items_tuple_param() {
         test_apply!([a, b, c], [u8, u16, u32], [0, 1, 2]);
+    }
+
+    #[test]
+    fn apply_4_items_tuple_param() {
         test_apply!([a, b, c, d], [u8, u16, u32, u64], [0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn apply_5_items_tuple_param() {
         test_apply!([a, b, c, d, e], [u8, u16, u32, u64, u128], [0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn apply_6_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f],
             [u8, u16, u32, u64, u128, i8],
             [0, 1, 2, 3, 4, 5]
         );
+    }
+
+    #[test]
+    fn apply_7_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g],
             [u8, u16, u32, u64, u128, i8, i16],
             [0, 1, 2, 3, 4, 5, 6]
         );
+    }
+
+    #[test]
+    fn apply_8_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h],
             [u8, u16, u32, u64, u128, i8, i16, i32],
             [0, 1, 2, 3, 4, 5, 6, 7]
         );
+    }
+
+    #[test]
+    fn apply_9_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h, i],
             [u8, u16, u32, u64, u128, i8, i16, i32, i64],
             [0, 1, 2, 3, 4, 5, 6, 7, 8]
         );
+    }
+
+    #[test]
+    fn apply_10_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h, i, j],
             [u8, u16, u32, u64, u128, i8, i16, i32, i64, i128],

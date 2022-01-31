@@ -1,4 +1,4 @@
-use crate::storages::archetypes::{ArchetypeIdx, EntityLocationInArchetype};
+use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
@@ -8,7 +8,7 @@ use typed_index_collections::TiVec;
 
 pub(crate) type AddComponentTypeFn = fn(&mut CoreStorage, ArchetypeIdx) -> ArchetypeIdx;
 pub(crate) type AddComponentFn =
-    Box<dyn FnOnce(&mut CoreStorage, EntityLocationInArchetype) + Sync + Send>;
+    Box<dyn FnOnce(&mut CoreStorage, EntityLocation) + Sync + Send>;
 
 #[derive(Default)]
 pub(crate) struct UpdateStorage {

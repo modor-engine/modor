@@ -1,3 +1,4 @@
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -63,6 +64,22 @@ pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
+    where
+        'b: 'a;
+
+    #[doc(hidden)]
+    fn get<'a, 'b>(
+        guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location: EntityLocation,
+    ) -> Option<<Self as QuerySystemParamWithLifetime<'a>>::ConstParam>
+    where
+        'b: 'a;
+
+    #[doc(hidden)]
+    fn get_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location: EntityLocation,
+    ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
     where
         'b: 'a;
 }

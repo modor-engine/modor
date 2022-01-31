@@ -1,19 +1,19 @@
-use crate::storages::archetypes::EntityLocationInArchetype;
+use crate::storages::archetypes::EntityLocation;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(crate) struct EntityStorage {
     deleted_idxs: Vec<EntityIdx>,
-    locations: TiVec<EntityIdx, Option<EntityLocationInArchetype>>,
+    locations: TiVec<EntityIdx, Option<EntityLocation>>,
 }
 
 impl EntityStorage {
-    pub(crate) fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocationInArchetype> {
+    pub(crate) fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
         self.locations.get(entity_idx).copied().flatten()
     }
 
     #[allow(clippy::option_if_let_else)]
-    pub(super) fn create(&mut self, location: EntityLocationInArchetype) -> EntityIdx {
+    pub(super) fn create(&mut self, location: EntityLocation) -> EntityIdx {
         if let Some(entity_idx) = self.deleted_idxs.pop() {
             self.locations[entity_idx] = Some(location);
             entity_idx
@@ -25,7 +25,7 @@ impl EntityStorage {
     pub(super) fn set_location(
         &mut self,
         entity_idx: EntityIdx,
-        location: EntityLocationInArchetype,
+        location: EntityLocation,
     ) {
         self.locations[entity_idx] = Some(location);
     }
@@ -40,14 +40,14 @@ idx_type!(pub EntityIdx);
 
 #[cfg(test)]
 mod entity_storage_tests {
-    use crate::storages::archetypes::EntityLocationInArchetype;
+    use crate::storages::archetypes::EntityLocation;
     use crate::storages::entities::EntityStorage;
 
     #[test]
     fn create_entities() {
         let mut storage = EntityStorage::default();
-        let location1 = EntityLocationInArchetype::new(2.into(), 3.into());
-        let location2 = EntityLocationInArchetype::new(4.into(), 5.into());
+        let location1 = EntityLocation::new(2.into(), 3.into());
+        let location2 = EntityLocation::new(4.into(), 5.into());
 
         let entity1_idx = storage.create(location1);
         let entity2_idx = storage.create(location2);
@@ -61,8 +61,8 @@ mod entity_storage_tests {
     #[test]
     fn set_location() {
         let mut storage = EntityStorage::default();
-        let entity_idx = storage.create(EntityLocationInArchetype::new(2.into(), 3.into()));
-        let new_location = EntityLocationInArchetype::new(4.into(), 5.into());
+        let entity_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
+        let new_location = EntityLocation::new(4.into(), 5.into());
 
         storage.set_location(entity_idx, new_location);
 
@@ -72,8 +72,8 @@ mod entity_storage_tests {
     #[test]
     fn delete_entity() {
         let mut storage = EntityStorage::default();
-        let entity1_idx = storage.create(EntityLocationInArchetype::new(2.into(), 3.into()));
-        let location2 = EntityLocationInArchetype::new(4.into(), 5.into());
+        let entity1_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
+        let location2 = EntityLocation::new(4.into(), 5.into());
         let entity2_idx = storage.create(location2);
 
         storage.delete(entity1_idx);
@@ -85,16 +85,16 @@ mod entity_storage_tests {
     #[test]
     fn create_entities_after_deletion() {
         let mut storage = EntityStorage::default();
-        let entity1_idx = storage.create(EntityLocationInArchetype::new(2.into(), 3.into()));
-        storage.create(EntityLocationInArchetype::new(4.into(), 5.into()));
+        let entity1_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
+        storage.create(EntityLocation::new(4.into(), 5.into()));
         storage.delete(entity1_idx);
-        let location3 = EntityLocationInArchetype::new(6.into(), 7.into());
+        let location3 = EntityLocation::new(6.into(), 7.into());
 
         let entity3_idx = storage.create(location3);
 
         assert_eq!(entity3_idx, entity1_idx);
         assert_eq!(storage.location(entity1_idx), Some(location3));
-        let entity4_idx = storage.create(EntityLocationInArchetype::new(4.into(), 5.into()));
+        let entity4_idx = storage.create(EntityLocation::new(4.into(), 5.into()));
         assert_eq!(entity4_idx, 2.into());
     }
 }

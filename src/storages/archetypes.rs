@@ -61,6 +61,19 @@ impl ArchetypeStorage {
         }
     }
 
+    // TODO: test
+    #[inline]
+    pub(crate) fn has_types(
+        &self,
+        archetype_idx: ArchetypeIdx,
+        type_idxs: &[ComponentTypeIdx],
+    ) -> bool {
+        let archetype_type_idxs = &self.type_idxs[archetype_idx];
+        type_idxs
+            .iter()
+            .all(|t| archetype_type_idxs.binary_search(t).is_ok())
+    }
+
     pub(super) fn add_component(
         &mut self,
         src_archetype_idx: ArchetypeIdx,
@@ -112,7 +125,7 @@ impl ArchetypeStorage {
         self.entity_idxs[archetype_idx].push_and_get_key(entity_idx)
     }
 
-    pub(super) fn delete_entity(&mut self, location: EntityLocationInArchetype) {
+    pub(super) fn delete_entity(&mut self, location: EntityLocation) {
         self.entity_idxs[location.idx].swap_remove(location.pos);
     }
 
@@ -258,7 +271,7 @@ impl ArchetypeFilter {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct EntityLocationInArchetype {
+pub struct EntityLocation {
     pub(crate) idx: ArchetypeIdx,
     pub(crate) pos: ArchetypeEntityPos,
 }
@@ -271,11 +284,9 @@ pub(super) struct ExistingComponentError;
 
 #[cfg(test)]
 mod entity_location_in_archetype_tests {
-    use crate::storages::archetypes::{
-        ArchetypeEntityPos, ArchetypeIdx, EntityLocationInArchetype,
-    };
+    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
 
-    impl EntityLocationInArchetype {
+    impl EntityLocation {
         pub(crate) fn new(idx: ArchetypeIdx, pos: ArchetypeEntityPos) -> Self {
             Self { idx, pos }
         }
@@ -285,8 +296,10 @@ mod entity_location_in_archetype_tests {
 #[cfg(test)]
 mod archetype_storage_tests {
     use crate::storages::archetypes::{
-        ArchetypeStorage, EntityLocationInArchetype, ExistingComponentError, MissingComponentError,
+        ArchetypeFilter, ArchetypeStorage, EntityLocation, ExistingComponentError,
+        MissingComponentError,
     };
+    use crate::utils::test_utils::assert_iter;
 
     #[test]
     fn retrieve_default_archetype() {
@@ -454,7 +467,7 @@ mod archetype_storage_tests {
         storage.add_entity(5.into(), archetype_idx);
         storage.add_entity(7.into(), archetype_idx);
         storage.add_entity(9.into(), archetype_idx);
-        let deleted_location = EntityLocationInArchetype::new(archetype_idx, 0.into());
+        let deleted_location = EntityLocation::new(archetype_idx, 0.into());
 
         storage.delete_entity(deleted_location);
 
@@ -464,25 +477,10 @@ mod archetype_storage_tests {
     }
 }
 
+// TODO: use ArchetypeStorage::filter_idxs to init a FilteredArchetypeIdxIter
 #[cfg(test)]
 mod filtered_archetype_idx_iter_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeIdx, FilteredArchetypeIdxIter};
-    use crate::storages::components::ComponentTypeIdx;
-    use typed_index_collections::TiVec;
-
-    impl<'a> FilteredArchetypeIdxIter<'a> {
-        pub(crate) fn new(
-            archetype_idxs: &'a [ArchetypeIdx],
-            archetype_type_idxs: &'a TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
-        ) -> Self {
-            Self {
-                archetype_type_idxs,
-                archetype_idxs: archetype_idxs.iter(),
-                filtered_type_idxs: &[],
-                archetype_filter: &ArchetypeFilter::All,
-            }
-        }
-    }
+    use crate::storages::archetypes::{ArchetypeFilter, FilteredArchetypeIdxIter};
 
     #[test]
     fn iter_when_none_archetype_filter() {

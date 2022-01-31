@@ -1,13 +1,13 @@
 use crate::entities::internal::{AddedComponents, ComponentAdd, StorageWrapper};
 use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionIdx};
-use crate::storages::archetypes::{ArchetypeIdx, EntityLocationInArchetype};
+use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
 /// A type that indicates the entity has been built.
-pub struct Built(EntityLocationInArchetype);
+pub struct Built(EntityLocation);
 
 /// A trait for defining the main component of an entity type.
 ///
@@ -76,7 +76,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
 /// See [`EntityMainComponent`](crate::EntityMainComponent).
 pub struct EntityBuilder<'a, E, A = ()> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) src_location: Option<EntityLocationInArchetype>,
+    pub(crate) src_location: Option<EntityLocation>,
     pub(crate) dst_archetype_idx: ArchetypeIdx,
     pub(crate) added_components: A,
     pub(crate) phantom: PhantomData<E>,
@@ -186,11 +186,11 @@ where
         Built(location)
     }
 
-    fn build(self) -> (&'a mut CoreStorage, EntityLocationInArchetype) {
+    fn build(self) -> (&'a mut CoreStorage, EntityLocation) {
         let location = if let Some(src_location) = self.src_location {
             self.core.move_entity(src_location, self.dst_archetype_idx)
         } else {
-            self.core.create_entity(self.dst_archetype_idx)
+            self.core.create_entity(self.dst_archetype_idx).1
         };
         let mut storage = StorageWrapper(self.core);
         self.added_components.add(&mut storage, location);
@@ -416,7 +416,7 @@ where
 }
 
 mod internal {
-    use crate::storages::archetypes::EntityLocationInArchetype;
+    use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use std::any::Any;
@@ -424,7 +424,7 @@ mod internal {
     pub struct StorageWrapper<'a>(pub(super) &'a mut CoreStorage);
 
     pub trait ComponentAdd {
-        fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocationInArchetype);
+        fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation);
     }
 
     pub struct AddedComponents<C, A> {
@@ -439,7 +439,7 @@ mod internal {
         C: Any + Sync + Send,
         A: ComponentAdd,
     {
-        fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocationInArchetype) {
+        fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation) {
             self.other_components.add(storage, location);
             if self.is_added {
                 storage
@@ -450,7 +450,7 @@ mod internal {
     }
 
     impl ComponentAdd for () {
-        fn add(self, _storage: &mut StorageWrapper<'_>, _location: EntityLocationInArchetype) {}
+        fn add(self, _storage: &mut StorageWrapper<'_>, _location: EntityLocation) {}
     }
 }
 
@@ -464,7 +464,7 @@ mod built_tests {
 
 #[cfg(test)]
 mod entity_builder_tests {
-    use crate::storages::archetypes::{ArchetypeStorage, EntityLocationInArchetype};
+    use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
     use crate::{Built, EntityBuilder, EntityMainComponent};
     use std::marker::PhantomData;
@@ -500,7 +500,7 @@ mod entity_builder_tests {
 
         let new_builder = builder.inherit_from::<ParentEntity>(10);
 
-        let location = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location = EntityLocation::new(1.into(), 0.into());
         assert_eq!(new_builder.src_location, Some(location));
         assert!(matches!(new_builder.added_components, ()));
         let components = core.components().read_components::<ParentEntity>();
@@ -512,13 +512,13 @@ mod entity_builder_tests {
         let mut core = CoreStorage::default();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx);
         core.add_component(20_i64, type_idx, location);
         let builder = create_builder(&mut core, Some(location));
 
         let new_builder = builder.inherit_from::<ParentEntity>(10);
 
-        let location = EntityLocationInArchetype::new(2.into(), 0.into());
+        let location = EntityLocation::new(2.into(), 0.into());
         assert_eq!(new_builder.src_location, Some(location));
         assert_eq!(new_builder.dst_archetype_idx, 2.into());
         assert!(matches!(new_builder.added_components, ()));
@@ -600,7 +600,7 @@ mod entity_builder_tests {
 
     fn create_builder(
         core: &mut CoreStorage,
-        location: Option<EntityLocationInArchetype>,
+        location: Option<EntityLocation>,
     ) -> EntityBuilder<'_, ChildEntity> {
         EntityBuilder {
             core,

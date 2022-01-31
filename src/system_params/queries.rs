@@ -31,6 +31,8 @@ where
     F: QueryFilter,
 {
     guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
+    filtered_component_type_idxs: &'a [ComponentTypeIdx],
+    data: SystemData<'a>,
     phantom: PhantomData<F>,
 }
 
@@ -39,9 +41,15 @@ where
     P: 'static + QuerySystemParam,
     F: QueryFilter,
 {
-    fn new(guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow) -> Self {
+    fn new(
+        guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
+        filtered_component_type_idxs: &'a [ComponentTypeIdx],
+        data: SystemData<'a>,
+    ) -> Self {
         Self {
             guard,
+            filtered_component_type_idxs,
+            data,
             phantom: PhantomData,
         }
     }
@@ -60,6 +68,36 @@ where
     /// Returns an iterator on query results.
     pub fn iter_mut(&mut self) -> <P as QuerySystemParamWithLifetime<'_>>::IterMut {
         P::query_iter_mut(&mut self.guard)
+    }
+
+    /// Returns the query result for the entity with ID `entity_id`.
+    #[inline]
+    pub fn get(
+        &self,
+        entity_id: usize,
+    ) -> Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam> {
+        self.data.entities.location(entity_id.into()).and_then(|l| {
+            self.data
+                .archetypes
+                .has_types(l.idx, self.filtered_component_type_idxs)
+                .then(|| P::get(&self.guard, l))
+                .flatten()
+        })
+    }
+
+    /// Returns the query result for the entity with ID `entity_id`.
+    #[inline]
+    pub fn get_mut(
+        &mut self,
+        entity_id: usize,
+    ) -> Option<<P as SystemParamWithLifetime<'_>>::Param> {
+        self.data.entities.location(entity_id.into()).and_then(|l| {
+            self.data
+                .archetypes
+                .has_types(l.idx, self.filtered_component_type_idxs)
+                .then(|| P::get_mut(&mut self.guard, l))
+                .flatten()
+        })
     }
 }
 
@@ -124,10 +162,13 @@ where
     where
         'b: 'a,
     {
-        stream
-            .entity_positions
-            .next()
-            .map(|_| Query::new(P::borrow_guard(&mut stream.guard)))
+        stream.entity_positions.next().map(|_| {
+            Query::new(
+                P::borrow_guard(&mut stream.guard),
+                stream.filtered_component_type_idxs,
+                stream.data,
+            )
+        })
     }
 }
 
@@ -216,7 +257,7 @@ mod internal {
 
     pub struct QueryGuard<'a, F> {
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        item_count: usize,
         filtered_component_type_idxs: Vec<ComponentTypeIdx>,
         phantom: PhantomData<F>,
     }
@@ -228,7 +269,7 @@ mod internal {
         pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {
                 data,
-                info,
+                item_count: info.item_count,
                 filtered_component_type_idxs: F::filtered_component_type_idxs(data),
                 phantom: PhantomData,
             }
@@ -244,10 +285,8 @@ mod internal {
                         .data
                         .item_count(&self.filtered_component_type_idxs, &ArchetypeFilter::All),
                 },
-                item_count: self.data.item_count(
-                    self.info.filtered_component_type_idxs,
-                    self.info.archetype_filter,
-                ),
+                item_count: self.item_count,
+                filtered_component_type_idxs: &self.filtered_component_type_idxs,
             }
         }
     }
@@ -256,6 +295,7 @@ mod internal {
         pub(crate) data: SystemData<'a>,
         pub(crate) param_info: SystemInfo<'a>,
         pub(crate) item_count: usize,
+        pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     }
 
     pub struct QueryStream<'a, P>
@@ -263,7 +303,9 @@ mod internal {
         P: SystemParam,
     {
         pub(crate) entity_positions: Range<usize>,
+        pub(crate) data: SystemData<'a>,
         pub(crate) guard: <P as SystemParamWithLifetime<'a>>::Guard,
+        pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     }
 
     impl<'a, P> QueryStream<'a, P>
@@ -273,7 +315,9 @@ mod internal {
         pub(crate) fn new(guard: &'a QueryGuardBorrow<'_>) -> Self {
             QueryStream {
                 entity_positions: 0..guard.item_count,
+                data: guard.data,
                 guard: P::lock(guard.data, guard.param_info),
+                filtered_component_type_idxs: guard.filtered_component_type_idxs,
             }
         }
     }
@@ -281,69 +325,67 @@ mod internal {
 
 #[cfg(test)]
 mod query_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
+    use crate::storages::systems::Access;
     use crate::{Query, SystemInfo, SystemParam, With};
-    use std::any::Any;
-    use std::panic::{RefUnwindSafe, UnwindSafe};
+    use std::any::TypeId;
+    use crate::utils::test_utils::assert_iter;
 
-    assert_impl_all!(Query<'_, ()>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
+    assert_impl_all!(Query<'_, ()>: Sync, Send, Unpin);
 
     #[test]
-    fn iter() {
+    fn use_query() {
         let mut core = CoreStorage::default();
-        create_entity(&mut core, 10_u32, 11_i8);
-        create_entity(&mut core, 20_u32, 21_i64);
-        create_entity(&mut core, 30_u8, 31_i8);
+        core.create_entity_with_2_components(10_u32, 11_i8);
+        core.create_entity_with_2_components(20_u32, 21_i64);
+        core.create_entity_with_2_components(30_u8, 31_i8);
         let data = core.system_data();
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
             item_count: 1,
         };
+        let filtered_type_idxs = vec![2.into()];
         let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
-        let query = Query::<&mut u32, With<i64>>::new(guard_borrow);
+        let mut query = Query::<&mut u32, With<i64>>::new(guard_borrow, &filtered_type_idxs, data);
 
-        let mut iter = query.iter();
-
-        assert_eq!(iter.next(), Some(&20));
-        assert_eq!(iter.next(), None);
+        assert_iter(query.iter(), [&20]);
+        assert_iter(query.iter_mut(), [&mut 20]);
     }
 
     #[test]
-    fn iter_mut() {
+    fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-        create_entity(&mut core, 10_u32, 11_i8);
-        create_entity(&mut core, 20_u32, 21_i64);
-        create_entity(&mut core, 30_u8, 31_i8);
-        let data = core.system_data();
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[2.into()],
-            archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
-        };
-        let mut guard = <&mut u32>::lock(data, info);
-        let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
-        let mut query = Query::<&mut u32, With<i64>>::new(guard_borrow);
 
-        let mut iter = query.iter_mut();
+        let properties = Query::<&u32, With<i64>>::properties(&mut core);
 
-        assert_eq!(iter.next(), Some(&mut 20));
-        assert_eq!(iter.next(), None);
+        assert_eq!(properties.component_types.len(), 1);
+        assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 1.into());
+        assert!(!properties.can_update);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
-    fn create_entity<C1, C2>(core: &mut CoreStorage, component1: C1, component2: C2)
-    where
-        C1: Any + Sync + Send,
-        C2: Any + Sync + Send,
-    {
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type1_idx, archetype2_idx) = core.add_component_type::<C1>(archetype1_idx);
-        let (type2_idx, archetype3_idx) = core.add_component_type::<C2>(archetype2_idx);
-        let location = core.create_entity(archetype3_idx);
-        core.add_component(component1, type1_idx, location);
-        core.add_component(component2, type2_idx, location);
+    #[test]
+    fn use_system_param() {
+        let mut core = CoreStorage::default();
+        core.create_entity_with_2_components(0_u32, 0_i64);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
+        let info = SystemInfo {
+            filtered_component_type_idxs: &[filtered_type_idx],
+            archetype_filter: &ArchetypeFilter::All,
+            item_count: 3,
+        };
+        let mut guard = Query::<&u32, With<i64>>::lock(core.system_data(), info);
+        let mut borrow = Query::<&u32, With<i64>>::borrow_guard(&mut guard);
+
+        let mut stream = Query::<&u32, With<i64>>::stream(&mut borrow);
+        assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_some());
+        assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_some());
+        assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_some());
+        assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_none());
     }
 }
 
@@ -353,6 +395,7 @@ mod with_tests {
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::components::ComponentStorage;
     use crate::storages::core::CoreStorage;
+    use crate::storages::entities::EntityStorage;
     use crate::{QueryFilter, SystemData, With};
     use std::any::TypeId;
     use std::panic::{RefUnwindSafe, UnwindSafe};
@@ -374,6 +417,7 @@ mod with_tests {
         let mut components = ComponentStorage::default();
         components.type_idx_or_create::<u32>();
         let data = SystemData {
+            entities: &EntityStorage::default(),
             components: &components,
             archetypes: &ArchetypeStorage::default(),
             actions: &ActionStorage::default(),
@@ -392,6 +436,7 @@ mod with_tuple_tests {
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::components::ComponentStorage;
     use crate::storages::core::CoreStorage;
+    use crate::storages::entities::EntityStorage;
     use crate::{QueryFilter, SystemData, With};
     use std::any::TypeId;
     use std::sync::Mutex;
@@ -467,6 +512,7 @@ mod with_tuple_tests {
             let mut components = ComponentStorage::default();
             $(components.type_idx_or_create::<$params>();)*
             let data = SystemData {
+                entities: &EntityStorage::default(),
                 components: &components,
                 archetypes: &ArchetypeStorage::default(),
                 actions: &ActionStorage::default(),
@@ -544,74 +590,5 @@ mod with_tuple_tests {
             (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
             (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
         );
-    }
-}
-
-#[cfg(test)]
-mod query_system_param_tests {
-    use crate::queries::internal::QueryGuardBorrow;
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
-    use crate::storages::core::CoreStorage;
-    use crate::storages::systems::Access;
-    use crate::{Query, SystemInfo, SystemParam, With};
-
-    #[test]
-    fn retrieve_properties() {
-        let mut core = CoreStorage::default();
-
-        let properties = Query::<&u32, With<i64>>::properties(&mut core);
-
-        assert_eq!(properties.component_types.len(), 1);
-        assert_eq!(properties.component_types[0].access, Access::Read);
-        assert_eq!(properties.component_types[0].type_idx, 1.into());
-        assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
-    }
-
-    #[test]
-    fn lock() {
-        let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        core.add_component_type::<i64>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(10_u32, type_idx, location);
-        let data = core.system_data();
-        let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
-            archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
-        };
-
-        let mut guard = Query::<&u32, With<i64>>::lock(data, info);
-        let guard_borrow = Query::<&u32, With<i64>>::borrow_guard(&mut guard);
-
-        let archetype_filter = guard_borrow.param_info.archetype_filter;
-        assert_eq!(archetype_filter, &ArchetypeFilter::All);
-        let filtered_type_idxs = guard_borrow.param_info.filtered_component_type_idxs;
-        assert_eq!(filtered_type_idxs, vec![1.into()]);
-        assert_eq!(guard_borrow.item_count, 1);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let mut core = CoreStorage::default();
-        core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let mut guard_borrow = QueryGuardBorrow {
-            data: core.system_data(),
-            param_info: SystemInfo {
-                filtered_component_type_idxs: &[],
-                archetype_filter: &ArchetypeFilter::All,
-                item_count: 0,
-            },
-            item_count: 3,
-        };
-
-        let mut stream = Query::<&u32>::stream(&mut guard_borrow);
-
-        assert!(Query::<&u32>::stream_next(&mut stream).is_some());
-        assert!(Query::<&u32>::stream_next(&mut stream).is_some());
-        assert!(Query::<&u32>::stream_next(&mut stream).is_some());
-        assert!(Query::<&u32>::stream_next(&mut stream).is_none());
     }
 }

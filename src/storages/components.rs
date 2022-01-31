@@ -1,4 +1,4 @@
-use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocationInArchetype};
+use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
 use crate::utils;
 use fxhash::FxHashMap;
 use std::any::{Any, TypeId};
@@ -91,7 +91,7 @@ impl ComponentStorage {
     pub(super) fn add<C>(
         &mut self,
         type_idx: ComponentTypeIdx,
-        location: EntityLocationInArchetype,
+        location: EntityLocation,
         component: C,
     ) where
         C: Any + Send + Sync,
@@ -120,7 +120,7 @@ impl ComponentStorage {
     pub(super) fn move_(
         &mut self,
         type_idx: ComponentTypeIdx,
-        src_location: EntityLocationInArchetype,
+        src_location: EntityLocation,
         dst_archetype_idx: ArchetypeIdx,
     ) {
         self.archetypes[type_idx].move_component(src_location, dst_archetype_idx);
@@ -130,7 +130,7 @@ impl ComponentStorage {
     pub(super) fn delete(
         &mut self,
         type_idx: ComponentTypeIdx,
-        location: EntityLocationInArchetype,
+        location: EntityLocation,
     ) {
         self.archetypes[type_idx].delete_component(location);
         self.component_count[type_idx] -= 1;
@@ -150,11 +150,11 @@ trait ComponentArchetypeLock: Any + Sync + Send {
 
     fn move_component(
         &mut self,
-        src_location: EntityLocationInArchetype,
+        src_location: EntityLocation,
         dst_archetype_idx: ArchetypeIdx,
     );
 
-    fn delete_component(&mut self, location: EntityLocationInArchetype);
+    fn delete_component(&mut self, location: EntityLocation);
 }
 
 pub(crate) type ComponentArchetypes<C> = TiVec<ArchetypeIdx, TiVec<ArchetypeEntityPos, C>>;
@@ -173,7 +173,7 @@ where
 
     fn move_component(
         &mut self,
-        src_location: EntityLocationInArchetype,
+        src_location: EntityLocation,
         dst_archetype_idx: ArchetypeIdx,
     ) {
         let archetypes = self
@@ -187,7 +187,7 @@ where
         }
     }
 
-    fn delete_component(&mut self, location: EntityLocationInArchetype) {
+    fn delete_component(&mut self, location: EntityLocation) {
         let archetypes = self
             .get_mut()
             .expect("internal error: cannot write archetypes when deleting component");
@@ -199,7 +199,7 @@ idx_type!(pub ComponentTypeIdx);
 
 #[cfg(test)]
 mod component_storage_tests {
-    use crate::storages::archetypes::EntityLocationInArchetype;
+    use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::{ComponentArchetypes, ComponentStorage};
     use std::any::{Any, TypeId};
     use std::sync::{RwLock, RwLockWriteGuard};
@@ -263,9 +263,9 @@ mod component_storage_tests {
     fn add_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location1 = EntityLocationInArchetype::new(2.into(), 0.into());
-        let location2 = EntityLocationInArchetype::new(1.into(), 0.into());
-        let location3 = EntityLocationInArchetype::new(1.into(), 1.into());
+        let location1 = EntityLocation::new(2.into(), 0.into());
+        let location2 = EntityLocation::new(1.into(), 0.into());
+        let location3 = EntityLocation::new(1.into(), 1.into());
 
         storage.add(type_idx, location1, 10_u32);
         storage.add(type_idx, location2, 20_u32);
@@ -283,7 +283,7 @@ mod component_storage_tests {
     fn replace_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location = EntityLocation::new(1.into(), 0.into());
         storage.add(type_idx, location, 10_u32);
 
         storage.add(type_idx, location, 20_u32);
@@ -298,13 +298,13 @@ mod component_storage_tests {
     fn move_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location1 = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location1 = EntityLocation::new(1.into(), 0.into());
         storage.add(type_idx, location1, 10_u32);
-        let location2 = EntityLocationInArchetype::new(1.into(), 1.into());
+        let location2 = EntityLocation::new(1.into(), 1.into());
         storage.add(type_idx, location2, 20_u32);
-        let location3 = EntityLocationInArchetype::new(1.into(), 2.into());
+        let location3 = EntityLocation::new(1.into(), 2.into());
         storage.add(type_idx, location3, 30_u32);
-        let location4 = EntityLocationInArchetype::new(1.into(), 3.into());
+        let location4 = EntityLocation::new(1.into(), 3.into());
         storage.add(type_idx, location4, 40_u32);
 
         storage.move_(type_idx, location1, 2.into());
@@ -321,11 +321,11 @@ mod component_storage_tests {
     fn delete_component() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
-        let location1 = EntityLocationInArchetype::new(1.into(), 0.into());
+        let location1 = EntityLocation::new(1.into(), 0.into());
         storage.add(type_idx, location1, 10_u32);
-        let location2 = EntityLocationInArchetype::new(1.into(), 1.into());
+        let location2 = EntityLocation::new(1.into(), 1.into());
         storage.add(type_idx, location2, 20_u32);
-        let location3 = EntityLocationInArchetype::new(1.into(), 2.into());
+        let location3 = EntityLocation::new(1.into(), 2.into());
         storage.add(type_idx, location3, 30_u32);
 
         storage.delete(type_idx, location1);

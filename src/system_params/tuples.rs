@@ -1,4 +1,4 @@
-use crate::storages::archetypes::ArchetypeFilter;
+use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -84,6 +84,26 @@ impl QuerySystemParam for () {
         'b: 'a,
     {
         EmptyTupleIter::new(guard)
+    }
+
+    fn get<'a, 'b>(
+        _guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        _location: EntityLocation,
+    ) -> Option<<Self as QuerySystemParamWithLifetime<'a>>::ConstParam>
+    where
+        'b: 'a,
+    {
+        Some(())
+    }
+
+    fn get_mut<'a, 'b>(
+        _guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        _location: EntityLocation,
+    ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
+    where
+        'b: 'a,
+    {
+        Some(())
     }
 }
 
@@ -185,6 +205,28 @@ macro_rules! impl_tuple_system_param {
                 'b: 'a,
             {
                 query_iter_mut!(guard $(,($params, $indexes))+)
+            }
+
+            #[inline]
+            fn get<'a, 'b>(
+                guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+                location: EntityLocation,
+            ) -> Option<<Self as QuerySystemParamWithLifetime<'a>>::ConstParam>
+            where
+                'b: 'a,
+            {
+                Some(($($params::get(&guard.$indexes, location)?,)+))
+            }
+
+            #[inline]
+            fn get_mut<'a, 'b>(
+                guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+                location: EntityLocation,
+            ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
+            where
+                'b: 'a,
+            {
+                Some(($($params::get_mut(&mut guard.$indexes, location)?,)+))
             }
         }
     };
@@ -366,14 +408,15 @@ mod internal {
 
 #[allow(clippy::let_unit_value)]
 #[cfg(test)]
-mod empty_tuple_system_param_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+mod empty_tuple_tests {
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
-    use crate::tuples::internal::EmptyTupleGuardBorrow;
+    use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
+    use std::any::TypeId;
 
     #[test]
-    fn retrieve_properties() {
+    fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
 
         let properties = <()>::properties(&mut core);
@@ -384,114 +427,44 @@ mod empty_tuple_system_param_tests {
     }
 
     #[test]
-    fn lock() {
+    fn use_system_param() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(10_u32, type_idx, location);
-        let data = core.system_data();
+        let location = core.create_entity_with_1_component(0_u32);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 3,
         };
+        let mut guard = <()>::lock(core.system_data(), info);
+        let mut borrow = <()>::borrow_guard(&mut guard);
 
-        let mut guard = <()>::lock(data, info);
-        let guard_borrow = <()>::borrow_guard(&mut guard);
+        let mut stream = <()>::stream(&mut borrow);
+        assert!(<()>::stream_next(&mut stream).is_some());
+        assert!(<()>::stream_next(&mut stream).is_some());
+        assert!(<()>::stream_next(&mut stream).is_some());
+        assert!(<()>::stream_next(&mut stream).is_none());
 
-        assert_eq!(guard_borrow.item_count, 1);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
-
-        let mut stream = <()>::stream(&mut guard_borrow);
-
-        assert_eq!(<()>::stream_next(&mut stream), Some(()));
-        assert_eq!(<()>::stream_next(&mut stream), Some(()));
-        assert_eq!(<()>::stream_next(&mut stream), Some(()));
-        assert_eq!(<()>::stream_next(&mut stream), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter() {
-        let guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
-
-        let mut iter = <()>::query_iter(&guard_borrow);
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 0);
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_reversed_query_iter() {
-        let guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
-
-        let mut iter = <()>::query_iter(&guard_borrow).rev();
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 0);
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter_mut() {
-        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
-
-        let mut iter = <()>::query_iter_mut(&mut guard_borrow);
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 0);
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_reversed_query_iter_mut() {
-        let mut guard_borrow = EmptyTupleGuardBorrow { item_count: 3 };
-
-        let mut iter = <()>::query_iter_mut(&mut guard_borrow).rev();
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next(), Some(()));
-        assert_eq!(iter.len(), 0);
-        assert_eq!(iter.next(), None);
+        assert_iter(<()>::query_iter(&borrow), [(), (), ()]);
+        assert_iter(<()>::query_iter(&borrow).rev(), [(), (), ()]);
+        assert_iter(<()>::query_iter_mut(&mut borrow), [(), (), ()]);
+        assert_iter(<()>::query_iter_mut(&mut borrow).rev(), [(), (), ()]);
+        assert_eq!(<()>::get(&borrow, location), Some(()));
+        assert_eq!(<()>::get_mut(&mut borrow, location), Some(()));
     }
 }
 
 #[cfg(test)]
-mod tuple_with_one_item_system_param_tests {
-    use crate::components::internal::ComponentGuardBorrow;
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
-    };
+mod tuple_with_one_item_tests {
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
+    use std::any::TypeId;
 
     #[test]
-    fn retrieve_properties() {
+    fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32,)>::properties(&mut core);
@@ -505,103 +478,51 @@ mod tuple_with_one_item_system_param_tests {
     }
 
     #[test]
-    fn lock() {
+    fn use_system_param() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(10_u32, type_idx, location);
-        let data = core.system_data();
+        let location1 = core.create_entity_with_2_components(10_u32, 0_i16);
+        core.create_entity_with_2_components(20_u32, 0_i16);
+        let location2 = core.create_entity_with_1_component(30_u32);
+        let location3 = core.create_entity_with_1_component(40_i64);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 2,
         };
+        let mut guard = <(&u32,)>::lock(core.system_data(), info);
+        let mut borrow = <(&u32,)>::borrow_guard(&mut guard);
 
-        let mut guard = <(&u32,)>::lock(data, info);
-        let guard_borrow = <(&u32,)>::borrow_guard(&mut guard);
-
-        let components = guard_borrow.0.components;
-        assert_eq!(components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let components = ti_vec![ti_vec![10], ti_vec![20]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let mut guard_borrow = (ComponentGuardBorrow {
-            components: &components,
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-        },);
-
-        let mut stream = <(&u32,)>::stream(&mut guard_borrow);
-
+        let mut stream = <(&u32,)>::stream(&mut borrow);
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&10,)));
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&20,)));
         assert_eq!(<(&u32,)>::stream_next(&mut stream), None);
-    }
 
-    #[test]
-    fn retrieve_query_iter() {
-        let components = ti_vec![ti_vec![10], ti_vec![20]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let guard_borrow = (ComponentGuardBorrow {
-            components: &components,
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-        },);
-
-        let mut iter = <(&u32,)>::query_iter(&guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10,)));
-        assert_eq!(iter.next(), Some((&20,)));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter_mut() {
-        let components = ti_vec![ti_vec![10], ti_vec![20]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let mut guard_borrow = (ComponentGuardBorrow {
-            components: &components,
-            item_count: 2,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-        },);
-
-        let mut iter = <(&u32,)>::query_iter_mut(&mut guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10,)));
-        assert_eq!(iter.next(), Some((&20,)));
-        assert_eq!(iter.next(), None);
+        assert_iter(<(&u32,)>::query_iter(&borrow), [(&10,), (&20,)]);
+        assert_iter(<(&u32,)>::query_iter(&borrow).rev(), [(&20,), (&10,)]);
+        assert_iter(<(&u32,)>::query_iter_mut(&mut borrow), [(&10,), (&20,)]);
+        let iter = <(&u32,)>::query_iter_mut(&mut borrow).rev();
+        assert_iter(iter, [(&20,), (&10,)]);
+        assert_eq!(<(&u32,)>::get(&borrow, location1), Some((&10,)));
+        assert_eq!(<(&u32,)>::get_mut(&mut borrow, location1), Some((&10,)));
+        assert_eq!(<(&u32,)>::get(&borrow, location2), Some((&30,)));
+        assert_eq!(<(&u32,)>::get_mut(&mut borrow, location2), Some((&30,)));
+        assert_eq!(<(&u32,)>::get(&borrow, location3), None);
+        assert_eq!(<(&u32,)>::get_mut(&mut borrow, location3), None);
     }
 }
 
 #[cfg(test)]
-mod tuple_with_two_items_system_param_tests {
-    use crate::components::internal::ComponentGuardBorrow;
-    use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
-    };
+mod tuple_with_two_items_tests {
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
+    use std::any::TypeId;
 
     #[test]
-    fn retrieve_properties_when_can_update() {
+    fn retrieve_system_param_properties_when_can_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, World<'_>)>::properties(&mut core);
@@ -615,7 +536,7 @@ mod tuple_with_two_items_system_param_tests {
     }
 
     #[test]
-    fn retrieve_properties_when_cannot_update() {
+    fn retrieve_system_param_properties_when_cannot_update() {
         let mut core = CoreStorage::default();
 
         let properties = <(&u32, &mut i64)>::properties(&mut core);
@@ -631,129 +552,57 @@ mod tuple_with_two_items_system_param_tests {
     }
 
     #[test]
-    fn lock() {
+    fn use_system_param() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type1_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (type2_idx, archetype3_idx) = core.add_component_type::<u32>(archetype2_idx);
-        let location = core.create_entity(archetype3_idx);
-        core.add_component(10_i64, type1_idx, location);
-        core.add_component(20_u32, type2_idx, location);
-        let data = core.system_data();
+        let location1 = core.create_entity_with_2_components(10_u32, 100_i16);
+        core.create_entity_with_2_components(20_u32, 200_i16);
+        let location2 = core.create_entity_with_1_component(30_u32);
+        let location3 = core.create_entity_with_1_component(40_i64);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 2,
         };
+        let mut guard = <(&u32, &mut i16)>::lock(core.system_data(), info);
+        let mut borrow = <(&u32, &mut i16)>::borrow_guard(&mut guard);
 
-        let mut guard = <(&u32, &mut i64)>::lock(data, info);
-        let guard_borrow = <(&u32, &mut i64)>::borrow_guard(&mut guard);
+        let mut stream = <(&u32, &mut i16)>::stream(&mut borrow);
+        let item = <(&u32, &mut i16)>::stream_next(&mut stream);
+        assert_eq!(item, Some((&10, &mut 100)));
+        let item = <(&u32, &mut i16)>::stream_next(&mut stream);
+        assert_eq!(item, Some((&20, &mut 200)));
+        assert_eq!(<(&u32, &mut i16)>::stream_next(&mut stream), None);
 
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0.components, &expected_guard);
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1.components, &expected_guard);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let mut guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut stream = <(&u32, &mut i64)>::stream(&mut guard_borrow);
-
-        let next = <(&u32, &mut i64)>::stream_next(&mut stream);
-        assert_eq!(next, Some((&10, &mut 30)));
-        let next = <(&u32, &mut i64)>::stream_next(&mut stream);
-        assert_eq!(next, Some((&20, &mut 40)));
-        assert_eq!(<(&u32, &mut i64)>::stream_next(&mut stream), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut iter = <(&u32, &mut i64)>::query_iter(&guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10, &30)));
-        assert_eq!(iter.next(), Some((&20, &40)));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter_mut() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let mut guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut iter = <(&u32, &mut i64)>::query_iter_mut(&mut guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10, &mut 30)));
-        assert_eq!(iter.next(), Some((&20, &mut 40)));
-        assert_eq!(iter.next(), None);
+        let iter = <(&u32, &mut i16)>::query_iter(&borrow);
+        assert_iter(iter, [(&10, &100), (&20, &200)]);
+        let iter = <(&u32, &mut i16)>::query_iter(&borrow).rev();
+        assert_iter(iter, [(&20, &200), (&10, &100)]);
+        let iter = <(&u32, &mut i16)>::query_iter_mut(&mut borrow);
+        assert_iter(iter, [(&10, &mut 100), (&20, &mut 200)]);
+        let iter = <(&u32, &mut i16)>::query_iter_mut(&mut borrow).rev();
+        assert_iter(iter, [(&20, &mut 200), (&10, &mut 100)]);
+        let item = <(&u32, &mut i16)>::get(&borrow, location1);
+        assert_eq!(item, Some((&10, &100)));
+        let item = <(&u32, &mut i16)>::get_mut(&mut borrow, location1);
+        assert_eq!(item, Some((&10, &mut 100)));
+        assert_eq!(<(&u32, &mut i16)>::get(&borrow, location2), None);
+        assert_eq!(<(&u32, &mut i16)>::get_mut(&mut borrow, location2), None);
+        assert_eq!(<(&u32, &mut i16)>::get(&borrow, location3), None);
+        assert_eq!(<(&u32, &mut i16)>::get_mut(&mut borrow, location3), None);
     }
 }
 
 #[cfg(test)]
-mod tuple_with_more_than_two_items_system_param_tests {
-    use crate::components::internal::ComponentGuardBorrow;
-    use crate::components_mut::internal::ComponentMutGuardBorrow;
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
-    };
+mod tuple_with_more_than_two_items_tests {
+    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
+    use std::any::TypeId;
 
-    macro_rules! test_tuple_retrieve_properties {
+    macro_rules! test_tuple_retrieve_system_param_properties {
         (($($types:ident),*), ($($indexes:tt),*)) => {{
             let mut core = CoreStorage::default();
 
@@ -769,184 +618,92 @@ mod tuple_with_more_than_two_items_system_param_tests {
     }
 
     #[test]
-    fn retrieve_properties_for_3_item_tuple() {
-        test_tuple_retrieve_properties!((u8, u16, u32), (0, 1, 2));
+    fn retrieve_system_param_properties_for_3_item_tuple() {
+        test_tuple_retrieve_system_param_properties!((u8, u16, u32), (0, 1, 2));
     }
 
     #[test]
-    fn retrieve_properties_for_4_item_tuple() {
-        test_tuple_retrieve_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
+    fn retrieve_system_param_properties_for_4_item_tuple() {
+        test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
     }
 
     #[test]
-    fn retrieve_properties_for_5_item_tuple() {
-        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
+    fn retrieve_system_param_properties_for_5_item_tuple() {
+        test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
     }
 
     #[test]
-    fn retrieve_properties_for_6_item_tuple() {
-        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8), (0, 1, 2, 3, 4, 5));
+    fn retrieve_system_param_properties_for_6_item_tuple() {
+        test_tuple_retrieve_system_param_properties!(
+            (u8, u16, u32, u64, u128, i8),
+            (0, 1, 2, 3, 4, 5)
+        );
     }
 
     #[test]
-    fn retrieve_properties_for_7_item_tuple() {
-        test_tuple_retrieve_properties!((u8, u16, u32, u64, u128, i8, i16), (0, 1, 2, 3, 4, 5, 6));
+    fn retrieve_system_param_properties_for_7_item_tuple() {
+        test_tuple_retrieve_system_param_properties!(
+            (u8, u16, u32, u64, u128, i8, i16),
+            (0, 1, 2, 3, 4, 5, 6)
+        );
     }
 
     #[test]
-    fn retrieve_properties_for_8_item_tuple() {
-        test_tuple_retrieve_properties!(
+    fn retrieve_system_param_properties_for_8_item_tuple() {
+        test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32),
             (0, 1, 2, 3, 4, 5, 6, 7)
         );
     }
 
     #[test]
-    fn retrieve_properties_for_9_item_tuple() {
-        test_tuple_retrieve_properties!(
+    fn retrieve_system_param_properties_for_9_item_tuple() {
+        test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64),
             (0, 1, 2, 3, 4, 5, 6, 7, 8)
         );
     }
 
     #[test]
-    fn retrieve_properties_for_10_item_tuple() {
-        test_tuple_retrieve_properties!(
+    fn retrieve_system_param_properties_for_10_item_tuple() {
+        test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
             (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
         );
     }
 
     #[test]
-    fn lock() {
+    fn use_system_param() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type1_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (type2_idx, archetype3_idx) = core.add_component_type::<u32>(archetype2_idx);
-        let (type3_idx, archetype4_idx) = core.add_component_type::<i16>(archetype3_idx);
-        let location = core.create_entity(archetype4_idx);
-        core.add_component(10_i64, type1_idx, location);
-        core.add_component(20_u32, type2_idx, location);
-        core.add_component(30_i16, type3_idx, location);
-        let data = core.system_data();
+        let location = core.create_entity_with_3_components(10_u32, 100_i16, 1000_i64);
+        core.create_entity_with_3_components(20_u32, 200_i16, 2000_i64);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 2,
         };
+        let mut guard = <(&u32, &mut i16, &i64)>::lock(core.system_data(), info);
+        let mut borrow = <(&u32, &mut i16, &i64)>::borrow_guard(&mut guard);
 
-        let mut guard = <(&u32, &mut i64, &i16)>::lock(data, info);
-        let guard_borrow = <(&u32, &mut i64, &i16)>::borrow_guard(&mut guard);
+        let mut stream = <(&u32, &mut i16, &i64)>::stream(&mut borrow);
+        let item = <(&u32, &mut i16, &i64)>::stream_next(&mut stream);
+        assert_eq!(item, Some((&10, &mut 100, &1000)));
+        let item = <(&u32, &mut i16, &i64)>::stream_next(&mut stream);
+        assert_eq!(item, Some((&20, &mut 200, &2000)));
+        assert_eq!(<(&u32, &mut i16, &i64)>::stream_next(&mut stream), None);
 
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![20_u32]];
-        assert_eq!(guard_borrow.0.components, &expected_guard);
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![10_i64]];
-        assert_eq!(guard_borrow.1.components, &expected_guard);
-        let expected_guard = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![30_i16]];
-        assert_eq!(guard_borrow.2.components, &expected_guard);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let mut guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentGuardBorrow {
-                components: &components3,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut stream = <(&u32, &mut i64, &i16)>::stream(&mut guard_borrow);
-
-        let next = <(&u32, &mut i64, &i16)>::stream_next(&mut stream);
-        assert_eq!(next, Some((&10, &mut 30, &50)));
-        let next = <(&u32, &mut i64, &i16)>::stream_next(&mut stream);
-        assert_eq!(next, Some((&20, &mut 40, &60)));
-        assert_eq!(<(&u32, &mut i64, &i16)>::stream_next(&mut stream), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentGuardBorrow {
-                components: &components3,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut iter = <(&u32, &mut i64, &i16)>::query_iter(&guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10, &30, &50)));
-        assert_eq!(iter.next(), Some((&20, &40, &60)));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_query_iter_mut() {
-        let components1 = ti_vec![ti_vec![10], ti_vec![20]];
-        let mut components2 = ti_vec![ti_vec![30], ti_vec![40]];
-        let components3 = ti_vec![ti_vec![50], ti_vec![60]];
-        let archetype_idxs = [0.into(), 1.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 2];
-        let sorted_archetype_idxs =
-            FilteredArchetypeIdxIter::new(&archetype_idxs, &archetype_type_idxs);
-        let mut guard_borrow = (
-            ComponentGuardBorrow {
-                components: &components1,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentMutGuardBorrow {
-                components: &mut components2,
-                item_count: 2,
-                sorted_archetype_idxs: sorted_archetype_idxs.clone(),
-            },
-            ComponentGuardBorrow {
-                components: &components3,
-                item_count: 2,
-                sorted_archetype_idxs,
-            },
-        );
-
-        let mut iter = <(&u32, &mut i64, &i16)>::query_iter_mut(&mut guard_borrow);
-
-        assert_eq!(iter.next(), Some((&10, &mut 30, &50)));
-        assert_eq!(iter.next(), Some((&20, &mut 40, &60)));
-        assert_eq!(iter.next(), None);
+        let iter = <(&u32, &mut i16, &i64)>::query_iter(&borrow);
+        assert_iter(iter, [(&10, &100, &1000), (&20, &200, &2000)]);
+        let iter = <(&u32, &mut i16, &i64)>::query_iter(&borrow).rev();
+        assert_iter(iter, [(&20, &200, &2000), (&10, &100, &1000)]);
+        let iter = <(&u32, &mut i16, &i64)>::query_iter_mut(&mut borrow);
+        assert_iter(iter, [(&10, &mut 100, &1000), (&20, &mut 200, &2000)]);
+        let iter = <(&u32, &mut i16, &i64)>::query_iter_mut(&mut borrow).rev();
+        assert_iter(iter, [(&20, &mut 200, &2000), (&10, &mut 100, &1000)]);
+        let item = <(&u32, &mut i16, &i64)>::get(&borrow, location);
+        assert_eq!(item, Some((&10, &100, &1000)));
+        let item = <(&u32, &mut i16, &i64)>::get_mut(&mut borrow, location);
+        assert_eq!(item, Some((&10, &mut 100, &1000)));
     }
 }

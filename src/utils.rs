@@ -74,7 +74,8 @@ macro_rules! run_for_tuples_with_idxs {
 
 #[cfg(test)]
 #[macro_use]
-mod test_utils {
+pub(crate) mod test_utils {
+    use std::fmt::Debug;
     macro_rules! assert_panics {
         ($expression:expr) => {{
             assert!(
@@ -86,6 +87,23 @@ mod test_utils {
                 stringify!($expression),
             );
         }};
+    }
+
+    pub(crate) fn assert_iter<T, E, I1, I2, const N: usize>(mut actual: I1, expected: E)
+    where
+        T: PartialEq + Debug,
+        I1: Iterator<Item = T> + ExactSizeIterator,
+        I2: ExactSizeIterator + Iterator<Item = T>,
+        E: IntoIterator<Item = T, IntoIter = I2>,
+    {
+        let expected_iter = expected.into_iter();
+        let expected_len = expected_iter.len();
+        for (pos, expected_item) in expected_iter.enumerate() {
+            assert_eq!(actual.len(), expected_len - pos);
+            assert_eq!(actual.next(), Some(expected_item));
+        }
+        assert_eq!(actual.len(), 0);
+        assert_eq!(actual.next(), None);
     }
 }
 
