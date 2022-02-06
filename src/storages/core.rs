@@ -1,4 +1,4 @@
-use crate::storages::actions::{ActionDefinition, ActionIdx, ActionStorage};
+use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
@@ -127,13 +127,14 @@ impl CoreStorage {
         wrapper: SystemWrapper,
         entity_type: TypeId,
         properties: SystemProperties,
-        action: ActionDefinition,
+        action_type: Option<TypeId>,
+        action_dependencies: ActionDependencies,
     ) -> ActionIdx {
         let entity_type_idx = self
             .components
             .type_idx(entity_type)
             .expect("internal error: missing entity type when adding system");
-        let action_idx = self.actions.idx_or_create(action);
+        let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
         self.actions.add_system(action_idx);
         self.systems
             .add(wrapper, entity_type_idx, properties, action_idx);
@@ -216,7 +217,7 @@ impl CoreStorage {
 
 #[cfg(test)]
 mod core_storage_tests {
-    use crate::storages::actions::{ActionDefinition, ActionDependencies};
+    use crate::storages::actions::ActionDependencies;
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
@@ -440,10 +441,8 @@ mod core_storage_tests {
                 can_update: true,
                 archetype_filter: ArchetypeFilter::None,
             },
-            ActionDefinition {
-                type_: None,
-                dependency_types: ActionDependencies::Types(vec![]),
-            },
+            None,
+            ActionDependencies::Types(vec![]),
         );
         storage.update();
 

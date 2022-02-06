@@ -1,5 +1,5 @@
 use crate::entities::internal::{AddedComponents, ComponentAdd, StorageWrapper};
-use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionIdx};
+use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::{Action, ActionConstraint, SystemBuilder};
@@ -270,13 +270,7 @@ where
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
     pub fn run(self, system: SystemBuilder) -> UsedEntityRunner<'a, E> {
-        self.run_with_action(
-            system,
-            ActionDefinition {
-                type_: None,
-                dependency_types: ActionDependencies::Types(vec![]),
-            },
-        )
+        self.run_with_action(system, None, ActionDependencies::Types(vec![]))
     }
 
     /// Adds a system to run during each [`App`](crate::App) update that is associated to an action.
@@ -293,10 +287,8 @@ where
     {
         self.run_with_action(
             system,
-            ActionDefinition {
-                type_: Some(TypeId::of::<A>()),
-                dependency_types: ActionDependencies::Types(A::Constraint::dependency_types()),
-            },
+            Some(TypeId::of::<A>()),
+            ActionDependencies::Types(A::Constraint::dependency_types()),
         )
     }
 
@@ -314,17 +306,16 @@ where
     {
         self.run_with_action(
             system,
-            ActionDefinition {
-                type_: None,
-                dependency_types: ActionDependencies::Types(C::dependency_types()),
-            },
+            None,
+            ActionDependencies::Types(C::dependency_types()),
         )
     }
 
     fn run_with_action(
         self,
         system: SystemBuilder,
-        definition: ActionDefinition,
+        action_type: Option<TypeId>,
+        action_dependencies: ActionDependencies,
     ) -> UsedEntityRunner<'a, E> {
         let properties = (system.properties_fn)(self.core);
         UsedEntityRunner {
@@ -332,7 +323,8 @@ where
                 system.wrapper,
                 TypeId::of::<E>(),
                 properties,
-                definition,
+                action_type,
+                action_dependencies,
             ),
             runner: self,
         }
@@ -407,10 +399,8 @@ where
     pub fn and_then(self, system: SystemBuilder) -> Self {
         self.runner.run_with_action(
             system,
-            ActionDefinition {
-                type_: None,
-                dependency_types: ActionDependencies::Action(self.latest_action_idx),
-            },
+            None,
+            ActionDependencies::Action(self.latest_action_idx),
         )
     }
 }

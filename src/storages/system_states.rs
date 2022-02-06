@@ -3,7 +3,7 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemIdx};
 use crate::utils;
 use itertools::Itertools;
-use typed_index_collections::{TiSlice, TiVec};
+use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(super) struct SystemStateStorage {
@@ -11,11 +11,28 @@ pub(super) struct SystemStateStorage {
     updater_state: LockState,
     runnable_idxs: Vec<SystemIdx>,
     remaining_action_count: TiVec<ActionIdx, usize>,
+    component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
+    can_update: TiVec<SystemIdx, bool>,
+    action_idxs: TiVec<SystemIdx, ActionIdx>,
 }
 
 impl SystemStateStorage {
-    pub(super) fn register_component_type(&mut self, type_idx: ComponentTypeIdx) {
-        utils::set_value(&mut self.component_type_state, type_idx, LockState::Free);
+    pub(super) fn add_system(
+        &mut self,
+        component_types: Vec<ComponentTypeAccess>,
+        can_update: bool,
+        action_idx: ActionIdx,
+    ) {
+        for component_types in &component_types {
+            utils::set_value(
+                &mut self.component_type_state,
+                component_types.type_idx,
+                LockState::Free,
+            );
+        }
+        self.component_types.push(component_types);
+        self.can_update.push(can_update);
+        self.action_idxs.push(action_idx);
     }
 
     pub(super) fn reset(
@@ -35,39 +52,32 @@ impl SystemStateStorage {
     pub(super) fn lock_next_system(
         &mut self,
         previous_system_idx: Option<SystemIdx>,
-        system_properties: AllSystemProperties<'_>,
         actions: &ActionStorage,
     ) -> LockedSystem {
         if let Some(system_idx) = previous_system_idx {
-            self.unlock(system_idx, system_properties);
+            self.unlock(system_idx);
         }
         if self.runnable_idxs.is_empty() {
             LockedSystem::Done
-        } else if let Some(system_idx) =
-            self.extract_lockable_system_idx(system_properties, actions)
-        {
-            self.lock(system_idx, system_properties);
+        } else if let Some(system_idx) = self.extract_lockable_system_idx(actions) {
+            self.lock(system_idx);
             LockedSystem::Remaining(Some(system_idx))
         } else {
             LockedSystem::Remaining(None)
         }
     }
 
-    fn extract_lockable_system_idx(
-        &mut self,
-        system_properties: AllSystemProperties<'_>,
-        actions: &ActionStorage,
-    ) -> Option<SystemIdx> {
+    fn extract_lockable_system_idx(&mut self, actions: &ActionStorage) -> Option<SystemIdx> {
         self.runnable_idxs
             .iter()
             .copied()
             .find_position(|&s| {
-                (!system_properties.can_update[s] || self.updater_state.is_lockable(Access::Write))
+                (!self.can_update[s] || self.updater_state.is_lockable(Access::Write))
                     && actions
-                        .dependency_idxs(system_properties.action_idxs[s])
+                        .dependency_idxs(self.action_idxs[s])
                         .iter()
                         .all(|&a| self.remaining_action_count[a] == 0)
-                    && system_properties.component_types[s]
+                    && self.component_types[s]
                         .iter()
                         .all(|a| self.component_type_state[a.type_idx].is_lockable(a.access))
             })
@@ -77,24 +87,24 @@ impl SystemStateStorage {
             })
     }
 
-    fn unlock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
-        for type_access in &system_properties.component_types[system_idx] {
+    fn unlock(&mut self, system_idx: SystemIdx) {
+        for type_access in &self.component_types[system_idx] {
             let state = self.component_type_state[type_access.type_idx].unlock();
             self.component_type_state[type_access.type_idx] = state;
         }
-        if system_properties.can_update[system_idx] {
+        if self.can_update[system_idx] {
             self.updater_state = self.updater_state.unlock();
         }
-        let action_idx = system_properties.action_idxs[system_idx];
+        let action_idx = self.action_idxs[system_idx];
         self.remaining_action_count[action_idx] -= 1;
     }
 
-    fn lock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
-        for type_access in &system_properties.component_types[system_idx] {
+    fn lock(&mut self, system_idx: SystemIdx) {
+        for type_access in &self.component_types[system_idx] {
             let state = self.component_type_state[type_access.type_idx].lock(type_access.access);
             self.component_type_state[type_access.type_idx] = state;
         }
-        if system_properties.can_update[system_idx] {
+        if self.can_update[system_idx] {
             self.updater_state = self.updater_state.lock(Access::Write);
         }
     }
@@ -145,13 +155,6 @@ impl LockState {
     }
 }
 
-#[derive(Clone, Copy)]
-pub(super) struct AllSystemProperties<'a> {
-    pub(super) component_types: &'a TiSlice<SystemIdx, Vec<ComponentTypeAccess>>,
-    pub(super) can_update: &'a TiSlice<SystemIdx, bool>,
-    pub(super) action_idxs: &'a TiSlice<SystemIdx, ActionIdx>,
-}
-
 #[derive(PartialEq, Eq, Debug)]
 pub(super) enum LockedSystem {
     Remaining(Option<SystemIdx>),
@@ -160,105 +163,78 @@ pub(super) enum LockedSystem {
 
 #[cfg(test)]
 mod system_state_storage_tests {
-    use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
-    use crate::storages::components::ComponentTypeIdx;
-    use crate::storages::system_states::{AllSystemProperties, LockedSystem, SystemStateStorage};
+    use crate::storages::actions::{ActionDependencies, ActionStorage};
+    use crate::storages::system_states::{LockedSystem, SystemStateStorage};
     use crate::storages::systems::{Access, ComponentTypeAccess};
     use std::any::TypeId;
 
-    impl SystemStateStorage {
-        pub(in super::super) fn last_component_type_idx(&self) -> Option<ComponentTypeIdx> {
-            self.component_type_state.last_key()
-        }
-    }
-
     #[test]
     fn lock_systems_that_can_update() {
-        let mut storage = SystemStateStorage::default();
         let mut actions = ActionStorage::default();
-        let actions_idx = actions.idx_or_create(ActionDefinition {
-            type_: None,
-            dependency_types: ActionDependencies::Types(vec![]),
-        });
-        let properties = AllSystemProperties {
-            component_types: &ti_vec![vec![], vec![]],
-            can_update: &ti_vec![true, true],
-            action_idxs: &ti_vec![actions_idx, actions_idx],
-        };
+        let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
+        let mut storage = SystemStateStorage::default();
+        storage.add_system(vec![], true, action_idx);
+        storage.add_system(vec![], true, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Done);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 
     #[test]
     fn lock_systems_with_components() {
-        let mut storage = SystemStateStorage::default();
+        let mut actions = ActionStorage::default();
+        let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
         let component_type_access = ComponentTypeAccess {
             access: Access::Write,
             type_idx: 10.into(),
         };
-        let mut actions = ActionStorage::default();
-        let action_idx = actions.idx_or_create(ActionDefinition {
-            type_: None,
-            dependency_types: ActionDependencies::Types(vec![]),
-        });
-        let properties = AllSystemProperties {
-            component_types: &ti_vec![vec![component_type_access], vec![component_type_access]],
-            can_update: &ti_vec![false, false],
-            action_idxs: &ti_vec![action_idx, action_idx],
-        };
-        storage.register_component_type(10.into());
+        let mut storage = SystemStateStorage::default();
+        storage.add_system(vec![component_type_access], false, action_idx);
+        storage.add_system(vec![component_type_access], false, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Done);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 
     #[test]
     fn lock_systems_with_action_dependencies() {
-        let mut storage = SystemStateStorage::default();
         let mut actions = ActionStorage::default();
-        let action1_idx = actions.idx_or_create(ActionDefinition {
-            type_: Some(TypeId::of::<u32>()),
-            dependency_types: ActionDependencies::Types(vec![]),
-        });
-        let action2_idx = actions.idx_or_create(ActionDefinition {
-            type_: None,
-            dependency_types: ActionDependencies::Types(vec![TypeId::of::<u32>()]),
-        });
-        let properties = AllSystemProperties {
-            component_types: &ti_vec![vec![], vec![]],
-            can_update: &ti_vec![false, false],
-            action_idxs: &ti_vec![action1_idx, action2_idx],
-        };
+        let action1_idx =
+            actions.idx_or_create(Some(TypeId::of::<u32>()), ActionDependencies::Types(vec![]));
+        let action2_idx =
+            actions.idx_or_create(None, ActionDependencies::Types(vec![TypeId::of::<u32>()]));
+        let mut storage = SystemStateStorage::default();
+        storage.add_system(vec![], false, action1_idx);
+        storage.add_system(vec![], false, action2_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
+        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
         assert_eq!(locked_system, LockedSystem::Done);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        let locked_system = storage.lock_next_system(None, properties, &actions);
+        let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 }
