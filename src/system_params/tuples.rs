@@ -51,6 +51,7 @@ impl SystemParam for () {
         EmptyTupleIter::new(guard)
     }
 
+    #[inline]
     fn stream_next<'a, 'b>(
         stream: &'a mut <Self as SystemParamWithLifetime<'b>>::Stream,
     ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
@@ -86,6 +87,7 @@ impl QuerySystemParam for () {
         EmptyTupleIter::new(guard)
     }
 
+    #[inline]
     fn get<'a, 'b>(
         _guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
         _location: EntityLocation,
@@ -96,6 +98,7 @@ impl QuerySystemParam for () {
         Some(())
     }
 
+    #[inline]
     fn get_mut<'a, 'b>(
         _guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
         _location: EntityLocation,

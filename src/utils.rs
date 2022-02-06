@@ -89,7 +89,7 @@ pub(crate) mod test_utils {
         }};
     }
 
-    pub(crate) fn assert_iter<T, E, I1, I2, const N: usize>(mut actual: I1, expected: E)
+    pub(crate) fn assert_iter<T, E, I1, I2>(mut actual: I1, expected: E)
     where
         T: PartialEq + Debug,
         I1: Iterator<Item = T> + ExactSizeIterator,
@@ -103,6 +103,18 @@ pub(crate) mod test_utils {
             assert_eq!(actual.next(), Some(expected_item));
         }
         assert_eq!(actual.len(), 0);
+        assert_eq!(actual.next(), None);
+    }
+
+    pub(crate) fn assert_dyn_iter<T, E, I1>(mut actual: I1, expected: E)
+    where
+        T: PartialEq + Debug,
+        I1: Iterator<Item = T>,
+        E: IntoIterator<Item = T>,
+    {
+        for expected_item in expected {
+            assert_eq!(actual.next(), Some(expected_item));
+        }
         assert_eq!(actual.next(), None);
     }
 }

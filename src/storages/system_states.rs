@@ -79,10 +79,11 @@ impl SystemStateStorage {
 
     fn unlock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
         for type_access in &system_properties.component_types[system_idx] {
-            self.component_type_state[type_access.type_idx].unlock();
+            let state = self.component_type_state[type_access.type_idx].unlock();
+            self.component_type_state[type_access.type_idx] = state;
         }
         if system_properties.can_update[system_idx] {
-            self.updater_state.unlock();
+            self.updater_state = self.updater_state.unlock();
         }
         let action_idx = system_properties.action_idxs[system_idx];
         self.remaining_action_count[action_idx] -= 1;
@@ -90,15 +91,16 @@ impl SystemStateStorage {
 
     fn lock(&mut self, system_idx: SystemIdx, system_properties: AllSystemProperties<'_>) {
         for type_access in &system_properties.component_types[system_idx] {
-            self.component_type_state[type_access.type_idx].lock(type_access.access);
+            let state = self.component_type_state[type_access.type_idx].lock(type_access.access);
+            self.component_type_state[type_access.type_idx] = state;
         }
         if system_properties.can_update[system_idx] {
-            self.updater_state.lock(Access::Write);
+            self.updater_state = self.updater_state.lock(Access::Write);
         }
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum LockState {
     Free,
     Read(usize),
@@ -112,33 +114,33 @@ impl Default for LockState {
 }
 
 impl LockState {
-    fn is_lockable(&self, access: Access) -> bool {
+    fn is_lockable(self, access: Access) -> bool {
         match access {
             Access::Read => matches!(self, Self::Free | Self::Read(_)),
             Access::Write => matches!(self, Self::Free),
         }
     }
 
-    fn lock(&mut self, access: Access) {
+    fn lock(self, access: Access) -> Self {
         match access {
             Access::Read => match self {
-                Self::Free => *self = Self::Read(0),
-                Self::Read(count) => *count += 1,
+                Self::Free => Self::Read(0),
+                Self::Read(count) => Self::Read(count + 1),
                 Self::Written => panic!("internal error: cannot read written component"),
             },
             Access::Write => match self {
-                Self::Free => *self = Self::Written,
+                Self::Free => Self::Written,
                 Self::Read(_) => panic!("internal error: cannot write read component"),
                 Self::Written => panic!("internal error: cannot write written component"),
             },
         }
     }
 
-    fn unlock(&mut self) {
+    fn unlock(self) -> Self {
         match self {
             Self::Free => panic!("internal error: cannot free already freed component"),
-            Self::Read(0) | Self::Written => *self = Self::Free,
-            Self::Read(count) => *count -= 1,
+            Self::Read(0) | Self::Written => Self::Free,
+            Self::Read(count) => Self::Read(count - 1),
         }
     }
 }
@@ -160,9 +162,7 @@ pub(super) enum LockedSystem {
 mod system_state_storage_tests {
     use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
     use crate::storages::components::ComponentTypeIdx;
-    use crate::storages::system_states::{
-        AllSystemProperties, LockState, LockedSystem, SystemStateStorage,
-    };
+    use crate::storages::system_states::{AllSystemProperties, LockedSystem, SystemStateStorage};
     use crate::storages::systems::{Access, ComponentTypeAccess};
     use std::any::TypeId;
 
@@ -173,52 +173,8 @@ mod system_state_storage_tests {
     }
 
     #[test]
-    fn register_missing_component_type() {
-        let mut storage = SystemStateStorage {
-            component_type_state: ti_vec![LockState::Written],
-            ..SystemStateStorage::default()
-        };
-
-        storage.register_component_type(2.into());
-
-        let state = ti_vec![LockState::Written, LockState::Free, LockState::Free];
-        assert_eq!(storage.component_type_state, state);
-    }
-
-    #[test]
-    fn register_existing_component_type() {
-        let mut storage = SystemStateStorage {
-            component_type_state: ti_vec![LockState::Written],
-            ..SystemStateStorage::default()
-        };
-
-        storage.register_component_type(0.into());
-
-        assert_eq!(storage.component_type_state, ti_vec![LockState::Free]);
-    }
-
-    #[test]
-    fn reset() {
-        let mut storage = SystemStateStorage {
-            component_type_state: ti_vec![LockState::Written, LockState::Read(0)],
-            updater_state: LockState::Read(0),
-            runnable_idxs: vec![2.into(), 3.into()],
-            remaining_action_count: ti_vec![0, 0],
-        };
-
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 2]);
-
-        let state = ti_vec![LockState::Free, LockState::Free];
-        assert_eq!(storage.component_type_state, state);
-        assert_eq!(storage.updater_state, LockState::Free);
-        assert_eq!(storage.runnable_idxs, [0.into(), 1.into()]);
-        assert_eq!(storage.remaining_action_count, ti_vec![1, 2]);
-    }
-
-    #[test]
     fn lock_systems_that_can_update() {
         let mut storage = SystemStateStorage::default();
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let mut actions = ActionStorage::default();
         let actions_idx = actions.idx_or_create(ActionDefinition {
             type_: None,
@@ -229,26 +185,27 @@ mod system_state_storage_tests {
             can_update: &ti_vec![true, true],
             action_idxs: &ti_vec![actions_idx, actions_idx],
         };
-
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-
         let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-
         let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Done);
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
+        let locked_system = storage.lock_next_system(None, properties, &actions);
+        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 
     #[test]
     fn lock_systems_with_components() {
         let mut storage = SystemStateStorage::default();
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        storage.register_component_type(1.into());
-        let component_type_access = create_type_access(Access::Write, 1.into());
+        let component_type_access = ComponentTypeAccess {
+            access: Access::Write,
+            type_idx: 10.into(),
+        };
         let mut actions = ActionStorage::default();
         let action_idx = actions.idx_or_create(ActionDefinition {
             type_: None,
@@ -259,25 +216,24 @@ mod system_state_storage_tests {
             can_update: &ti_vec![false, false],
             action_idxs: &ti_vec![action_idx, action_idx],
         };
-
+        storage.register_component_type(10.into());
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-
         let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-
         let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Done);
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
+        let locked_system = storage.lock_next_system(None, properties, &actions);
+        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 
     #[test]
     fn lock_systems_with_action_dependencies() {
         let mut storage = SystemStateStorage::default();
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        storage.register_component_type(1.into());
         let mut actions = ActionStorage::default();
         let action1_idx = actions.idx_or_create(ActionDefinition {
             type_: Some(TypeId::of::<u32>()),
@@ -292,22 +248,18 @@ mod system_state_storage_tests {
             can_update: &ti_vec![false, false],
             action_idxs: &ti_vec![action1_idx, action2_idx],
         };
-
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-
         let locked_system = storage.lock_next_system(None, properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(None));
-
         let locked_system = storage.lock_next_system(Some(0.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-
         let locked_system = storage.lock_next_system(Some(1.into()), properties, &actions);
         assert_eq!(locked_system, LockedSystem::Done);
-    }
-
-    fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {
-        ComponentTypeAccess { access, type_idx }
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
+        let locked_system = storage.lock_next_system(None, properties, &actions);
+        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
     }
 }
 
@@ -327,63 +279,21 @@ mod lock_state_tests {
     }
 
     #[test]
-    fn lock_read_once() {
-        let mut state = LockState::Free;
-
-        state.lock(Access::Read);
-
-        assert_eq!(state, LockState::Read(0));
-        assert_panics!(state.lock(Access::Write));
+    fn lock() {
+        assert_eq!(LockState::Free.lock(Access::Read), LockState::Read(0));
+        assert_eq!(LockState::Free.lock(Access::Write), LockState::Written);
+        assert_eq!(LockState::Read(0).lock(Access::Read), LockState::Read(1));
+        assert_eq!(LockState::Read(1).lock(Access::Read), LockState::Read(2));
+        assert_panics!(LockState::Read(0).lock(Access::Write));
+        assert_panics!(LockState::Written.lock(Access::Read));
+        assert_panics!(LockState::Written.lock(Access::Write));
     }
 
     #[test]
-    fn lock_read_multiple_times() {
-        let mut state = LockState::Free;
-
-        state.lock(Access::Read);
-        state.lock(Access::Read);
-        state.lock(Access::Read);
-
-        assert_eq!(state, LockState::Read(2));
-        assert_panics!(state.lock(Access::Write));
-    }
-
-    #[test]
-    fn lock_write() {
-        let mut state = LockState::Free;
-
-        state.lock(Access::Write);
-
-        assert_eq!(state, LockState::Written);
-        assert_panics!(state.lock(Access::Read));
-        assert_panics!(state.lock(Access::Write));
-    }
-
-    #[test]
-    fn unlock_read_once() {
-        let mut state = LockState::Read(0);
-
-        state.unlock();
-
-        assert_eq!(state, LockState::Free);
-        assert_panics!(state.unlock());
-    }
-
-    #[test]
-    fn unlock_read_multiple_time() {
-        let mut state = LockState::Read(2);
-
-        state.unlock();
-
-        assert_eq!(state, LockState::Read(1));
-    }
-
-    #[test]
-    fn unlock_written() {
-        let mut state = LockState::Written;
-
-        state.unlock();
-
-        assert_eq!(state, LockState::Free);
+    fn unlock() {
+        assert_panics!(LockState::Free.unlock());
+        assert_eq!(LockState::Read(0).unlock(), LockState::Free);
+        assert_eq!(LockState::Read(1).unlock(), LockState::Read(0));
+        assert_eq!(LockState::Written.unlock(), LockState::Free);
     }
 }

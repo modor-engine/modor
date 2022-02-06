@@ -22,11 +22,7 @@ impl EntityStorage {
         }
     }
 
-    pub(super) fn set_location(
-        &mut self,
-        entity_idx: EntityIdx,
-        location: EntityLocation,
-    ) {
+    pub(super) fn set_location(&mut self, entity_idx: EntityIdx, location: EntityLocation) {
         self.locations[entity_idx] = Some(location);
     }
 
@@ -44,57 +40,30 @@ mod entity_storage_tests {
     use crate::storages::entities::EntityStorage;
 
     #[test]
-    fn create_entities() {
+    fn configure_entities() {
         let mut storage = EntityStorage::default();
         let location1 = EntityLocation::new(2.into(), 3.into());
         let location2 = EntityLocation::new(4.into(), 5.into());
-
-        let entity1_idx = storage.create(location1);
-        let entity2_idx = storage.create(location2);
-
-        assert_eq!(entity1_idx, 0.into());
-        assert_eq!(entity2_idx, 1.into());
-        assert_eq!(storage.location(entity1_idx), Some(location1));
-        assert_eq!(storage.location(entity2_idx), Some(location2));
-    }
-
-    #[test]
-    fn set_location() {
-        let mut storage = EntityStorage::default();
-        let entity_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
-        let new_location = EntityLocation::new(4.into(), 5.into());
-
-        storage.set_location(entity_idx, new_location);
-
-        assert_eq!(storage.location(entity_idx), Some(new_location));
-    }
-
-    #[test]
-    fn delete_entity() {
-        let mut storage = EntityStorage::default();
-        let entity1_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
-        let location2 = EntityLocation::new(4.into(), 5.into());
-        let entity2_idx = storage.create(location2);
-
-        storage.delete(entity1_idx);
-
-        assert_eq!(storage.location(entity1_idx), None);
-        assert_eq!(storage.location(entity2_idx), Some(location2));
-    }
-
-    #[test]
-    fn create_entities_after_deletion() {
-        let mut storage = EntityStorage::default();
-        let entity1_idx = storage.create(EntityLocation::new(2.into(), 3.into()));
-        storage.create(EntityLocation::new(4.into(), 5.into()));
-        storage.delete(entity1_idx);
         let location3 = EntityLocation::new(6.into(), 7.into());
+        let unchanged_entity_idx = storage.create(location1);
+        let moved_entity_idx = storage.create(location2);
+        storage.set_location(moved_entity_idx, location3);
+        assert_eq!(unchanged_entity_idx, 0.into());
+        assert_eq!(moved_entity_idx, 1.into());
+        assert_eq!(storage.location(unchanged_entity_idx), Some(location1));
+        assert_eq!(storage.location(moved_entity_idx), Some(location3));
+    }
 
-        let entity3_idx = storage.create(location3);
-
-        assert_eq!(entity3_idx, entity1_idx);
-        assert_eq!(storage.location(entity1_idx), Some(location3));
-        let entity4_idx = storage.create(EntityLocation::new(4.into(), 5.into()));
-        assert_eq!(entity4_idx, 2.into());
+    #[test]
+    fn delete_entities() {
+        let mut storage = EntityStorage::default();
+        let location1 = EntityLocation::new(2.into(), 3.into());
+        let location2 = EntityLocation::new(4.into(), 5.into());
+        let deleted_entity_idx = storage.create(location1);
+        storage.delete(deleted_entity_idx);
+        assert_eq!(storage.location(deleted_entity_idx), None);
+        let new_entity_idx = storage.create(location2);
+        assert_eq!(new_entity_idx, deleted_entity_idx);
+        assert_eq!(storage.location(new_entity_idx), Some(location2));
     }
 }

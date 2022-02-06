@@ -8,8 +8,8 @@ use typed_index_collections::{TiSlice, TiVec};
 pub(crate) struct ArchetypeStorage {
     type_idxs: TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
     entity_idxs: TiVec<ArchetypeIdx, TiVec<ArchetypeEntityPos, EntityIdx>>,
-    next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, ArchetypeIdx>>,
-    previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, ArchetypeIdx>>,
+    next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
+    previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
     all_sorted_idxs: Vec<ArchetypeIdx>,
 }
 
@@ -28,6 +28,7 @@ impl Default for ArchetypeStorage {
 impl ArchetypeStorage {
     pub(crate) const DEFAULT_IDX: ArchetypeIdx = ArchetypeIdx(0);
 
+    #[inline]
     pub(crate) fn entity_idxs(
         &self,
         archetype_idx: ArchetypeIdx,
@@ -61,7 +62,6 @@ impl ArchetypeStorage {
         }
     }
 
-    // TODO: test
     #[inline]
     pub(crate) fn has_types(
         &self,
@@ -79,7 +79,7 @@ impl ArchetypeStorage {
         src_archetype_idx: ArchetypeIdx,
         type_idx: ComponentTypeIdx,
     ) -> Result<ArchetypeIdx, ExistingComponentError> {
-        if let Some(&archetype_idx) = self.next_idxs[src_archetype_idx].get(type_idx) {
+        if let Some(&Some(archetype_idx)) = self.next_idxs[src_archetype_idx].get(type_idx) {
             return Ok(archetype_idx);
         }
         let type_pos = self.type_idxs[src_archetype_idx]
@@ -92,7 +92,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let next_idxs = &mut self.next_idxs[src_archetype_idx];
-        utils::set_value(next_idxs, type_idx, dst_archetype_idx);
+        utils::set_value(next_idxs, type_idx, Some(dst_archetype_idx));
         Ok(dst_archetype_idx)
     }
 
@@ -101,7 +101,7 @@ impl ArchetypeStorage {
         src_archetype_idx: ArchetypeIdx,
         type_idx: ComponentTypeIdx,
     ) -> Result<ArchetypeIdx, MissingComponentError> {
-        if let Some(&archetype_idx) = self.previous_idxs[src_archetype_idx].get(type_idx) {
+        if let Some(&Some(archetype_idx)) = self.previous_idxs[src_archetype_idx].get(type_idx) {
             return Ok(archetype_idx);
         }
         let type_pos = self.type_idxs[src_archetype_idx]
@@ -113,7 +113,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let previous_idxs = &mut self.previous_idxs[src_archetype_idx];
-        utils::set_value(previous_idxs, type_idx, dst_archetype_idx);
+        utils::set_value(previous_idxs, type_idx, Some(dst_archetype_idx));
         Ok(dst_archetype_idx)
     }
 
@@ -248,16 +248,16 @@ impl ArchetypeFilter {
         match self {
             Self::None => other,
             Self::All => match other {
-                Self::None => Self::All,
-                other @ (Self::All | Self::Union(_) | Self::Intersection(_)) => other,
+                Self::None | Self::All | Self::Union(_) => Self::All,
+                other @ Self::Intersection(_) => other,
             },
             Self::Union(mut type_idxs) => match other {
-                Self::None | Self::All => Self::Union(type_idxs),
+                Self::None => Self::Union(type_idxs),
                 Self::Union(other_type_idxs) => {
                     other_type_idxs.into_iter().for_each(|t| type_idxs.push(t));
                     Self::Union(type_idxs)
                 }
-                Self::Intersection(other_type_idxs) => Self::Intersection(other_type_idxs),
+                other @ (Self::Intersection(_) | Self::All) => other,
             },
             Self::Intersection(mut type_idxs) => match other {
                 Self::None | Self::All | Self::Union(_) => Self::Intersection(type_idxs),
@@ -299,375 +299,125 @@ mod archetype_storage_tests {
         ArchetypeFilter, ArchetypeStorage, EntityLocation, ExistingComponentError,
         MissingComponentError,
     };
-    use crate::utils::test_utils::assert_iter;
+    use crate::utils::test_utils::assert_dyn_iter;
 
     #[test]
-    fn retrieve_default_archetype() {
-        let storage = ArchetypeStorage::default();
-
-        let archetype_idx = ArchetypeStorage::DEFAULT_IDX;
-
-        assert_eq!(archetype_idx, 0.into());
-        assert_eq!(storage.entity_idxs(archetype_idx).to_vec(), ti_vec![]);
-        assert_eq!(storage.sorted_type_idxs(archetype_idx), []);
-        assert_eq!(storage.next_entity_pos(archetype_idx), 0.into());
+    fn add_components() {
+        let mut storage = ArchetypeStorage::default();
+        let type1_idx = 10.into();
+        let type2_idx = 20.into();
+        let default_idx = ArchetypeStorage::DEFAULT_IDX;
+        let first_idx = storage.add_component(default_idx, type1_idx).unwrap();
+        let second_idx = storage.add_component(first_idx, type2_idx).unwrap();
+        let direct_second_idx = storage.add_component(first_idx, type2_idx).unwrap();
+        let third_idx = storage.add_component(default_idx, type2_idx).unwrap();
+        let indirect_second_idx = storage.add_component(third_idx, type1_idx).unwrap();
+        let existing_component_error = storage.add_component(first_idx, type1_idx);
+        assert_eq!(existing_component_error, Err(ExistingComponentError));
+        assert_eq!(default_idx, 0.into());
+        assert_eq!(first_idx, 1.into());
+        let second_idxs = [second_idx, direct_second_idx, indirect_second_idx];
+        assert_eq!(second_idxs, [2.into(); 3]);
+        assert_eq!(third_idx, 3.into());
+        assert_eq!(storage.sorted_type_idxs(default_idx), []);
+        assert_eq!(storage.sorted_type_idxs(first_idx), [type1_idx]);
+        assert_eq!(storage.sorted_type_idxs(second_idx), [type1_idx, type2_idx]);
+        assert_eq!(storage.sorted_type_idxs(third_idx), [type2_idx]);
+        assert_eq!(storage.next_idxs[third_idx][type1_idx], Some(second_idx));
     }
 
     #[test]
-    fn add_component_to_missing_archetype() {
+    fn delete_components() {
         let mut storage = ArchetypeStorage::default();
-        let archetype_idx = ArchetypeStorage::DEFAULT_IDX;
+        let type1_idx = 10.into();
+        let type2_idx = 20.into();
+        let default_idx = ArchetypeStorage::DEFAULT_IDX;
+        let first_idx = storage.add_component(default_idx, type1_idx).unwrap();
+        let second_idx = storage.add_component(first_idx, type2_idx).unwrap();
+        let direct_idx = storage.delete_component(first_idx, type1_idx).unwrap();
+        let new_idx = storage.delete_component(second_idx, type1_idx).unwrap();
+        let indirect_idx = storage.delete_component(new_idx, type2_idx).unwrap();
+        let missing_component_error = storage.delete_component(direct_idx, type2_idx);
+        assert_eq!(missing_component_error, Err(MissingComponentError));
+        assert_eq!(default_idx, direct_idx);
+        assert_eq!(default_idx, indirect_idx);
+        assert_eq!(new_idx, 3.into());
+        assert_eq!(storage.sorted_type_idxs(new_idx), [type2_idx]);
+        assert_eq!(storage.previous_idxs[new_idx][type2_idx], Some(default_idx));
+    }
+
+    #[test]
+    fn configure_entities() {
+        let mut storage = ArchetypeStorage::default();
         let type_idx = 10.into();
-
-        let new_archetype_idx = storage.add_component(archetype_idx, type_idx).unwrap();
-
-        assert_eq!(new_archetype_idx, 1.into());
-        assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type_idx]);
-        assert_eq!(storage.all_sorted_idxs(), [0.into(), 1.into()]);
-        let next_idx = storage.next_idxs[archetype_idx][type_idx];
-        assert_eq!(next_idx, new_archetype_idx);
+        let default_idx = ArchetypeStorage::DEFAULT_IDX;
+        let other_idx = storage.add_component(default_idx, type_idx).unwrap();
+        storage.add_entity(10.into(), other_idx);
+        storage.add_entity(20.into(), other_idx);
+        storage.add_entity(30.into(), other_idx);
+        storage.delete_entity(EntityLocation::new(other_idx, 0.into()));
+        assert_eq!(storage.entity_idxs(default_idx).to_vec(), ti_vec![]);
+        let entity_idxs = ti_vec![30.into(), 20.into()];
+        assert_eq!(storage.entity_idxs(other_idx).to_vec(), entity_idxs);
+        assert_eq!(storage.next_entity_pos(default_idx), 0.into());
+        assert_eq!(storage.next_entity_pos(other_idx), 2.into());
     }
 
     #[test]
-    fn add_component_to_direct_existing_archetype() {
+    fn filter_archetype_idxs() {
         let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let type_idx = 10.into();
-        let archetype2_idx = storage.add_component(archetype1_idx, type_idx).unwrap();
-
-        let new_archetype_idx = storage.add_component(archetype1_idx, type_idx).unwrap();
-
-        assert_eq!(new_archetype_idx, archetype2_idx);
-        assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type_idx]);
-        assert_eq!(storage.all_sorted_idxs(), [0.into(), 1.into()]);
-        let next_idx = storage.next_idxs[archetype1_idx][type_idx];
-        assert_eq!(next_idx, new_archetype_idx);
-    }
-
-    #[test]
-    fn add_component_to_indirect_existing_archetype() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let type1_idx = 10.into();
-        let type2_idx = 11.into();
+        let type2_idx = 20.into();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
         let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-        let archetype4_idx = storage.add_component(archetype1_idx, type2_idx).unwrap();
+        let archetype_idxs = storage.all_sorted_idxs();
 
-        let new_archetype_idx = storage.add_component(archetype4_idx, type1_idx).unwrap();
+        let none = ArchetypeFilter::None;
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &none);
+        assert_dyn_iter(iter, []);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &none);
+        assert_dyn_iter(iter.rev(), []);
 
-        assert_eq!(new_archetype_idx, archetype3_idx);
-        let type_idxs = storage.sorted_type_idxs(new_archetype_idx);
-        assert_eq!(type_idxs, [type1_idx, type2_idx]);
-        let all_sorted_idxs = [0.into(), 1.into(), 2.into(), 3.into()];
-        assert_eq!(storage.all_sorted_idxs(), all_sorted_idxs);
-        let next_idx = storage.next_idxs[archetype4_idx][type1_idx];
-        assert_eq!(next_idx, new_archetype_idx);
+        let all = ArchetypeFilter::All;
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &all);
+        assert_dyn_iter(iter, [archetype1_idx, archetype2_idx, archetype3_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &all);
+        assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx, archetype1_idx]);
+
+        let union = ArchetypeFilter::Union(ne_vec![type1_idx, type2_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &union);
+        assert_dyn_iter(iter, [archetype2_idx, archetype3_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &union);
+        assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx]);
+
+        let inter = ArchetypeFilter::Intersection(ne_vec![type1_idx, type2_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &inter);
+        assert_dyn_iter(iter, [archetype3_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &inter);
+        assert_dyn_iter(iter.rev(), [archetype3_idx]);
+
+        let type_idxs = [type1_idx];
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs, &all);
+        assert_dyn_iter(iter, [archetype2_idx, archetype3_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs, &all);
+        assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx]);
     }
 
     #[test]
-    fn add_component_with_existing_type() {
+    fn check_whether_archetype_has_types() {
         let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let type_idx = 10.into();
-        let archetype2_idx = storage.add_component(archetype1_idx, type_idx).unwrap();
-
-        let new_archetype_idx = storage.add_component(archetype2_idx, type_idx);
-
-        assert_eq!(new_archetype_idx, Err(ExistingComponentError));
-        assert!(storage.next_idxs[archetype2_idx].is_empty());
-    }
-
-    #[test]
-    fn delete_component_to_missing_archetype() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let type1_idx = 10.into();
-        let type2_idx = 11.into();
+        let type2_idx = 20.into();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
         let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-
-        let new_archetype_idx = storage.delete_component(archetype3_idx, type1_idx).unwrap();
-
-        assert_eq!(new_archetype_idx, 3.into());
-        assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type2_idx]);
-        let previous_idx = storage.previous_idxs[archetype3_idx][type1_idx];
-        assert_eq!(previous_idx, new_archetype_idx);
-    }
-
-    #[test]
-    fn delete_component_to_direct_existing_archetype() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-        let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-        let archetype4_idx = storage.delete_component(archetype3_idx, type1_idx).unwrap();
-
-        let new_archetype_idx = storage.delete_component(archetype3_idx, type1_idx).unwrap();
-
-        assert_eq!(new_archetype_idx, archetype4_idx);
-        assert_eq!(storage.sorted_type_idxs(new_archetype_idx), [type2_idx]);
-        let previous_idx = storage.previous_idxs[archetype3_idx][type1_idx];
-        assert_eq!(previous_idx, new_archetype_idx);
-    }
-
-    #[test]
-    fn delete_component_to_indirect_existing_archetype() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-        let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
-        let archetype4_idx = storage.delete_component(archetype3_idx, type1_idx).unwrap();
-
-        let new_archetype_idx = storage.delete_component(archetype4_idx, type2_idx).unwrap();
-
-        assert_eq!(new_archetype_idx, archetype1_idx);
-        assert_eq!(storage.sorted_type_idxs(new_archetype_idx), []);
-        let previous_idx = storage.previous_idxs[archetype4_idx][type2_idx];
-        assert_eq!(previous_idx, new_archetype_idx);
-    }
-
-    #[test]
-    fn delete_component_with_missing_type() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let type1_idx = 10.into();
-        let type2_idx = 11.into();
-        let archetype2_idx = storage.add_component(archetype1_idx, type1_idx).unwrap();
-
-        let new_archetype_idx = storage.delete_component(archetype2_idx, type2_idx);
-
-        assert_eq!(new_archetype_idx, Err(MissingComponentError));
-        assert!(storage.previous_idxs[archetype2_idx].is_empty());
-    }
-
-    #[test]
-    fn add_entities() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype_idx = ArchetypeStorage::DEFAULT_IDX;
-
-        let entity1_pos = storage.add_entity(5.into(), archetype_idx);
-        let entity2_pos = storage.add_entity(7.into(), archetype_idx);
-
-        assert_eq!(entity1_pos, 0.into());
-        assert_eq!(entity2_pos, 1.into());
-        let entity_idxs = storage.entity_idxs(archetype_idx).to_vec();
-        assert_eq!(entity_idxs, ti_vec![5.into(), 7.into()]);
-        assert_eq!(storage.next_entity_pos(archetype_idx), 2.into());
-    }
-
-    #[test]
-    fn delete_entity() {
-        let mut storage = ArchetypeStorage::default();
-        let archetype_idx = ArchetypeStorage::DEFAULT_IDX;
-        storage.add_entity(5.into(), archetype_idx);
-        storage.add_entity(7.into(), archetype_idx);
-        storage.add_entity(9.into(), archetype_idx);
-        let deleted_location = EntityLocation::new(archetype_idx, 0.into());
-
-        storage.delete_entity(deleted_location);
-
-        let entity_idxs = storage.entity_idxs(archetype_idx).to_vec();
-        assert_eq!(entity_idxs, ti_vec![9.into(), 7.into()]);
-        assert_eq!(storage.next_entity_pos(archetype_idx), 2.into());
-    }
-}
-
-// TODO: use ArchetypeStorage::filter_idxs to init a FilteredArchetypeIdxIter
-#[cfg(test)]
-mod filtered_archetype_idx_iter_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, FilteredArchetypeIdxIter};
-
-    #[test]
-    fn iter_when_none_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()]];
-        let archetype_idxs = vec![0.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::None,
-        };
-
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_when_no_filtered_type_and_all_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
-        let archetype_idxs = vec![0.into(), 1.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::All,
-        };
-
-        assert_eq!(iter.next(), Some(0.into()));
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_when_filtered_types_and_all_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
-        let archetype_idxs = vec![0.into(), 1.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[3.into()],
-            archetype_filter: &ArchetypeFilter::All,
-        };
-
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_when_filtered_types_and_union_filter() {
-        let type_idxs = ti_vec![
-            vec![2.into()],
-            vec![2.into(), 3.into()],
-            vec![3.into(), 4.into()]
-        ];
-        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[3.into()],
-            archetype_filter: &ArchetypeFilter::Union(ne_vec![2.into(), 4.into()]),
-        };
-
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), Some(2.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_when_filtered_types_and_intersection_filter() {
-        let type_idxs = ti_vec![
-            vec![2.into()],
-            vec![2.into(), 3.into()],
-            vec![2.into(), 3.into(), 4.into()]
-        ];
-        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[3.into()],
-            archetype_filter: &ArchetypeFilter::Intersection(ne_vec![2.into(), 4.into()]),
-        };
-
-        assert_eq!(iter.next(), Some(2.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_reversed_when_none_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()]];
-        let archetype_idxs = vec![0.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::None,
-        }
-        .rev();
-
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_reversed_when_no_filtered_type_and_all_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
-        let archetype_idxs = vec![0.into(), 1.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &[],
-            archetype_filter: &ArchetypeFilter::All,
-        }
-        .rev();
-
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), Some(0.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_reversed_when_filtered_types_and_all_archetype_filter() {
-        let type_idxs = ti_vec![vec![2.into()], vec![3.into()]];
-        let archetype_idxs = vec![0.into(), 1.into()];
-        let filtered_type_idxs = [3.into()];
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &filtered_type_idxs,
-            archetype_filter: &ArchetypeFilter::All,
-        }
-        .rev();
-
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_reversed_when_filtered_types_and_union_filter() {
-        let type_idxs = ti_vec![
-            vec![2.into()],
-            vec![2.into(), 3.into()],
-            vec![3.into(), 4.into()]
-        ];
-        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
-        let filtered_type_idxs = [3.into()];
-        let archetype_filter = ArchetypeFilter::Union(ne_vec![2.into(), 4.into()]);
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &filtered_type_idxs,
-            archetype_filter: &archetype_filter,
-        }
-        .rev();
-
-        assert_eq!(iter.next(), Some(2.into()));
-        assert_eq!(iter.next(), Some(1.into()));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn iter_reversed_when_filtered_types_and_intersection_filter() {
-        let type_idxs = ti_vec![
-            vec![2.into()],
-            vec![2.into(), 3.into()],
-            vec![2.into(), 3.into(), 4.into()]
-        ];
-        let archetype_idxs = vec![0.into(), 1.into(), 2.into()];
-        let filtered_type_idxs = [3.into()];
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![2.into(), 4.into()]);
-
-        let mut iter = FilteredArchetypeIdxIter {
-            archetype_type_idxs: &type_idxs,
-            archetype_idxs: archetype_idxs.iter(),
-            filtered_type_idxs: &filtered_type_idxs,
-            archetype_filter: &archetype_filter,
-        }
-        .rev();
-
-        assert_eq!(iter.next(), Some(2.into()));
-        assert_eq!(iter.next(), None);
+        assert!(storage.has_types(archetype3_idx, &[]));
+        assert!(storage.has_types(archetype3_idx, &[type1_idx]));
+        assert!(storage.has_types(archetype3_idx, &[type2_idx]));
+        assert!(storage.has_types(archetype3_idx, &[type1_idx, type2_idx]));
+        assert!(!storage.has_types(archetype3_idx, &[30.into()]));
+        assert!(!storage.has_types(archetype3_idx, &[type1_idx, 30.into()]));
     }
 }
 
@@ -689,8 +439,7 @@ mod archetype_filter_tests {
     fn merge_all() {
         assert_eq!(All.merge(None), All);
         assert_eq!(All.merge(All), All);
-        let merged = All.merge(Union(ne_vec![0.into()]));
-        assert_eq!(merged, Union(ne_vec![0.into()]));
+        assert_eq!(All.merge(Union(ne_vec![0.into()])), All);
         let merged = All.merge(Intersection(ne_vec![0.into()]));
         assert_eq!(merged, Intersection(ne_vec![0.into()]));
     }
@@ -699,8 +448,7 @@ mod archetype_filter_tests {
     fn merge_union() {
         let merged = Union(ne_vec![1.into()]).merge(None);
         assert_eq!(merged, Union(ne_vec![1.into()]));
-        let merged = Union(ne_vec![1.into()]).merge(All);
-        assert_eq!(merged, Union(ne_vec![1.into()]));
+        assert_eq!(Union(ne_vec![1.into()]).merge(All), All);
         let merged = Union(ne_vec![1.into()]).merge(Union(ne_vec![0.into()]));
         assert_eq!(merged, Union(ne_vec![1.into(), 0.into()]));
         let merged = Union(ne_vec![1.into()]).merge(Intersection(ne_vec![0.into()]));

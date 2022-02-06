@@ -164,7 +164,7 @@ impl CoreStorage {
                 continue;
             };
             match entity_update {
-                EntityUpdate::Updated(add_component_fns, deleted_component_type_idxs) => {
+                EntityUpdate::Change(add_component_fns, deleted_component_type_idxs) => {
                     let mut dst_archetype_idx = location.idx;
                     for add_fns in &add_component_fns {
                         dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
@@ -177,7 +177,7 @@ impl CoreStorage {
                         (add_fns.add_fn)(self, dst_location);
                     }
                 }
-                EntityUpdate::Deleted => self.delete_entity(entity_idx, location),
+                EntityUpdate::Deletion => self.delete_entity(entity_idx, location),
             }
         }
     }
@@ -217,9 +217,7 @@ impl CoreStorage {
 #[cfg(test)]
 mod core_storage_tests {
     use crate::storages::actions::{ActionDefinition, ActionDependencies};
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, EntityLocation,
-    };
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
     use crate::storages::updates::EntityUpdate;
@@ -238,10 +236,7 @@ mod core_storage_tests {
             }
         }
 
-        pub(crate) fn create_entity_with_1_component<C>(
-            &mut self,
-            component: C,
-        ) -> EntityLocation
+        pub(crate) fn create_entity_with_1_component<C>(&mut self, component: C) -> EntityLocation
         where
             C: Any + Sync + Send,
         {
@@ -455,7 +450,7 @@ mod core_storage_tests {
         let mut updates = storage.updates.try_lock().unwrap();
         let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
         assert_eq!(entity_updates[0].0, 0.into());
-        assert!(matches!(entity_updates[0].1, EntityUpdate::Deleted));
+        assert!(matches!(entity_updates[0].1, EntityUpdate::Deletion));
         assert_eq!(storage.actions.system_counts(), ti_vec![1]);
     }
 

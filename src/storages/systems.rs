@@ -198,8 +198,7 @@ pub(crate) enum Access {
 mod system_storage_tests {
     use crate::storages::actions::{ActionDefinition, ActionDependencies, ActionStorage};
     use crate::storages::archetypes::{
-        ArchetypeEntityPos, ArchetypeFilter, ArchetypeIdx, ArchetypeStorage,
-        EntityLocation,
+        ArchetypeEntityPos, ArchetypeFilter, ArchetypeIdx, ArchetypeStorage, EntityLocation,
     };
     use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
     use crate::storages::entities::EntityStorage;
@@ -218,33 +217,14 @@ mod system_storage_tests {
     struct Component2(ThreadId);
 
     #[test]
-    fn set_thread_count_to_0() {
+    fn configure_thread_count() {
         let mut storage = SystemStorage::default();
-
         storage.set_thread_count(0);
-
         assert_eq!(storage.thread_count(), 1);
-        assert_eq!(storage.pool.map(|p| p.thread_count()), None);
-    }
-
-    #[test]
-    fn set_thread_count_to_1() {
-        let mut storage = SystemStorage::default();
-
         storage.set_thread_count(1);
-
         assert_eq!(storage.thread_count(), 1);
-        assert_eq!(storage.pool.map(|p| p.thread_count()), None);
-    }
-
-    #[test]
-    fn set_thread_count_to_more_than_1() {
-        let mut storage = SystemStorage::default();
-
         storage.set_thread_count(3);
-
         assert_eq!(storage.thread_count(), 3);
-        assert_eq!(storage.pool.map(|p| p.thread_count()), Some(2));
     }
 
     #[test]
@@ -363,7 +343,7 @@ mod system_storage_tests {
         let mut updates = data.updates.try_lock().unwrap();
         let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
         assert_eq!(entity_updates[0].0, 2.into());
-        assert!(matches!(entity_updates[0].1, EntityUpdate::Deleted));
+        assert!(matches!(entity_updates[0].1, EntityUpdate::Deletion));
     }
 
     #[test]

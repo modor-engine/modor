@@ -215,7 +215,7 @@ mod world_tests {
         assert_eq!(entity_updates.len(), 1);
         assert!(matches!(
             entity_updates[0],
-            (EntityIdx(2), EntityUpdate::Deleted)
+            (EntityIdx(2), EntityUpdate::Deletion)
         ));
     }
 
@@ -234,7 +234,7 @@ mod world_tests {
         assert_eq!(entity_updates.len(), 1);
         let state = entity_updates.pop().unwrap();
         assert_eq!(state.0, 0.into());
-        if let EntityUpdate::Updated(mut add_fns, deleted_type_idxs) = state.1 {
+        if let EntityUpdate::Change(mut add_fns, deleted_type_idxs) = state.1 {
             assert_eq!(add_fns.len(), 1);
             assert_eq!(core.components().type_idx(TypeId::of::<u32>()), None);
             (add_fns[0].add_type_fn)(&mut core, ArchetypeStorage::DEFAULT_IDX);
@@ -270,7 +270,7 @@ mod world_tests {
         assert_eq!(entity_updates.len(), 1);
         let state = entity_updates.pop().unwrap();
         assert_eq!(state.0, 2.into());
-        if let EntityUpdate::Updated(add_fns, deleted_type_idxs) = state.1 {
+        if let EntityUpdate::Change(add_fns, deleted_type_idxs) = state.1 {
             assert_eq!(add_fns.len(), 0);
             assert_eq!(deleted_type_idxs, &[1.into()]);
         } else {
