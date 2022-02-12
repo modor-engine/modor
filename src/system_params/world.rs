@@ -212,7 +212,7 @@ mod world_tests {
         core.update();
         assert_eq!(core.entities().location(0.into()), None);
         let components = core.components().read_components::<i8>().clone();
-        assert_eq!(components, ti_vec![ti_vec![], ti_vec![], ti_vec![30_i8]])
+        assert_eq!(components, ti_vec![ti_vec![], ti_vec![], ti_vec![30_i8]]);
     }
 
     #[test]

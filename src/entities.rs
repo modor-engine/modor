@@ -84,7 +84,7 @@ pub struct EntityBuilder<'a, E, A = ()> {
 
 impl<'a, E, A> EntityBuilder<'a, E, A>
 where
-    E: EntityMainComponent, // TODO: delete to simplify tests if not necessary
+    E: EntityMainComponent,
     A: ComponentAdd,
 {
     /// Inherits from an entity with main component type `P` and building data `data`.
