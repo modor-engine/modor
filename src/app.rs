@@ -73,7 +73,6 @@ impl App {
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
         self.0.update();
-        self.0.apply_system_actions();
     }
 }
 
@@ -85,7 +84,7 @@ mod app_tests {
 
     assert_impl_all!(App: Send, Unpin);
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(String);
 
     impl EntityMainComponent for TestEntity {
@@ -108,32 +107,17 @@ mod app_tests {
     }
 
     #[test]
-    fn set_thread_count() {
-        let app = App::new();
-
-        let new_app = app.with_thread_count(2);
-
-        assert_eq!(new_app.thread_count(), 2);
-    }
-
-    #[test]
-    fn create_entity() {
-        let app = App::new();
-
-        let new_app = app.with_entity::<TestEntity>("string".into());
-
-        let components = new_app.0.components().read_components::<TestEntity>();
+    fn configure_app() {
+        let mut app = App::new()
+            .with_thread_count(2)
+            .with_entity::<TestEntity>("string".into());
+        assert_eq!(app.thread_count(), 2);
+        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity("string".into())]];
-        assert_eq!(&*components, &expected_components);
-    }
-
-    #[test]
-    fn update() {
-        let mut app = App::new().with_entity::<TestEntity>("string".into());
-
+        assert_eq!(components, expected_components);
         app.update();
-
-        let components = app.0.components().read_components::<TestEntity>();
-        assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![]]);
+        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
+        let expected_components = ti_vec![ti_vec![], ti_vec![]];
+        assert_eq!(components, expected_components);
     }
 }

@@ -328,9 +328,9 @@ mod query_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
+    use crate::utils::test_utils::assert_iter;
     use crate::{Query, SystemInfo, SystemParam, With};
     use std::any::TypeId;
-    use crate::utils::test_utils::assert_iter;
 
     assert_impl_all!(Query<'_, ()>: Sync, Send, Unpin);
 
@@ -350,17 +350,22 @@ mod query_tests {
         let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
         let mut query = Query::<&mut u32, With<i64>>::new(guard_borrow, &filtered_type_idxs, data);
-
         assert_iter(query.iter(), [&20]);
         assert_iter(query.iter_mut(), [&mut 20]);
+        assert_eq!(query.get(0), None);
+        assert_eq!(query.get(1), Some(&20_u32));
+        assert_eq!(query.get(2), None);
+        assert_eq!(query.get(3), None);
+        assert_eq!(query.get_mut(0), None);
+        assert_eq!(query.get_mut(1), Some(&mut 20_u32));
+        assert_eq!(query.get_mut(2), None);
+        assert_eq!(query.get_mut(3), None);
     }
 
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = Query::<&u32, With<i64>>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 1.into());
@@ -380,7 +385,6 @@ mod query_tests {
         };
         let mut guard = Query::<&u32, With<i64>>::lock(core.system_data(), info);
         let mut borrow = Query::<&u32, With<i64>>::borrow_guard(&mut guard);
-
         let mut stream = Query::<&u32, With<i64>>::stream(&mut borrow);
         assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_some());
         assert!(Query::<&u32, With<i64>>::stream_next(&mut stream).is_some());
@@ -404,16 +408,14 @@ mod with_tests {
     assert_impl_all!(With<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 
     #[test]
-    fn register_single_type() {
+    fn register_type() {
         let mut core = CoreStorage::default();
-
         With::<u32>::register(&mut core);
-
         assert!(core.components().type_idx(TypeId::of::<u32>()).is_some());
     }
 
     #[test]
-    fn retrieve_filtered_component_types_for_single_type() {
+    fn retrieve_filtered_component_types() {
         let mut components = ComponentStorage::default();
         components.type_idx_or_create::<u32>();
         let data = SystemData {
@@ -423,9 +425,7 @@ mod with_tests {
             actions: &ActionStorage::default(),
             updates: &Mutex::default(),
         };
-
         let types = With::<u32>::filtered_component_type_idxs(data);
-
         assert_eq!(types, vec![0.into()]);
     }
 }
@@ -442,72 +442,31 @@ mod with_tuple_tests {
     use std::sync::Mutex;
 
     macro_rules! test_tuple_register {
-        ($($params:ident),*) => {{
+        ($($params:ident),*) => {
             let mut core = CoreStorage::default();
-
             <($(With<$params>,)*) as QueryFilter>::register(&mut core);
-
             $(assert!(core.components().type_idx(TypeId::of::<$params>()).is_some());)*
-        }};
+        };
     }
 
     #[test]
-    fn register_empty_tuple() {
+    #[allow(clippy::cognitive_complexity)]
+    fn register() {
         test_tuple_register!();
-    }
-
-    #[test]
-    fn register_1_item_tuple() {
         test_tuple_register!(u8);
-    }
-
-    #[test]
-    fn register_2_items_tuple() {
         test_tuple_register!(u8, u16);
-    }
-
-    #[test]
-    fn register_3_items_tuple() {
         test_tuple_register!(u8, u16, u32);
-    }
-
-    #[test]
-    fn register_4_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64);
-    }
-
-    #[test]
-    fn register_5_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128);
-    }
-
-    #[test]
-    fn register_6_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128, i8);
-    }
-
-    #[test]
-    fn register_7_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128, i8, i16);
-    }
-
-    #[test]
-    fn register_8_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32);
-    }
-
-    #[test]
-    fn register_9_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32, i64);
-    }
-
-    #[test]
-    fn register_10_items_tuple() {
         test_tuple_register!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
     }
 
     macro_rules! test_tuple_filtered_component_types {
-        (($($params:ident),*), ($($indexes:literal),*)) => {{
+        (($($params:ident),*), ($($indexes:literal),*)) => {
             #[allow(unused_mut)]
             let mut components = ComponentStorage::default();
             $(components.type_idx_or_create::<$params>();)*
@@ -518,74 +477,32 @@ mod with_tuple_tests {
                 actions: &ActionStorage::default(),
                 updates: &Mutex::default(),
             };
-
             let types = <($(With<$params>,)*) as QueryFilter>::filtered_component_type_idxs(data);
-
             assert_eq!(types, vec![$($indexes.into()),*]);
-        }};
+        };
     }
 
     #[test]
-    fn retrieve_filtered_component_types_for_empty_tuple() {
+    fn retrieve_filtered_component_types() {
         test_tuple_filtered_component_types!((), ());
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_1_item_tuple() {
         test_tuple_filtered_component_types!((u8), (0));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_2_items_tuple() {
         test_tuple_filtered_component_types!((u8, u16), (0, 1));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_3_items_tuple() {
         test_tuple_filtered_component_types!((u8, u16, u32), (0, 1, 2));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_4_items_tuple() {
         test_tuple_filtered_component_types!((u8, u16, u32, u64), (0, 1, 2, 3));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_5_items_tuple() {
         test_tuple_filtered_component_types!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_6_items_tuple() {
         test_tuple_filtered_component_types!((u8, u16, u32, u64, u128, i8), (0, 1, 2, 3, 4, 5));
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_7_items_tuple() {
         test_tuple_filtered_component_types!(
             (u8, u16, u32, u64, u128, i8, i16),
             (0, 1, 2, 3, 4, 5, 6)
         );
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_8_items_tuple() {
         test_tuple_filtered_component_types!(
             (u8, u16, u32, u64, u128, i8, i16, i32),
             (0, 1, 2, 3, 4, 5, 6, 7)
         );
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_9_items_tuple() {
         test_tuple_filtered_component_types!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64),
             (0, 1, 2, 3, 4, 5, 6, 7, 8)
         );
-    }
-
-    #[test]
-    fn retrieve_filtered_component_types_for_10_items_tuple() {
         test_tuple_filtered_component_types!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
             (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)

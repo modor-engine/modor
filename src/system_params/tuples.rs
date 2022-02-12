@@ -421,9 +421,7 @@ mod empty_tuple_tests {
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = <()>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
@@ -441,13 +439,11 @@ mod empty_tuple_tests {
         };
         let mut guard = <()>::lock(core.system_data(), info);
         let mut borrow = <()>::borrow_guard(&mut guard);
-
         let mut stream = <()>::stream(&mut borrow);
         assert!(<()>::stream_next(&mut stream).is_some());
         assert!(<()>::stream_next(&mut stream).is_some());
         assert!(<()>::stream_next(&mut stream).is_some());
         assert!(<()>::stream_next(&mut stream).is_none());
-
         assert_iter(<()>::query_iter(&borrow), [(), (), ()]);
         assert_iter(<()>::query_iter(&borrow).rev(), [(), (), ()]);
         assert_iter(<()>::query_iter_mut(&mut borrow), [(), (), ()]);
@@ -469,9 +465,7 @@ mod tuple_with_one_item_tests {
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = <(&u32,)>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -495,12 +489,10 @@ mod tuple_with_one_item_tests {
         };
         let mut guard = <(&u32,)>::lock(core.system_data(), info);
         let mut borrow = <(&u32,)>::borrow_guard(&mut guard);
-
         let mut stream = <(&u32,)>::stream(&mut borrow);
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&10,)));
         assert_eq!(<(&u32,)>::stream_next(&mut stream), Some((&20,)));
         assert_eq!(<(&u32,)>::stream_next(&mut stream), None);
-
         assert_iter(<(&u32,)>::query_iter(&borrow), [(&10,), (&20,)]);
         assert_iter(<(&u32,)>::query_iter(&borrow).rev(), [(&20,), (&10,)]);
         assert_iter(<(&u32,)>::query_iter_mut(&mut borrow), [(&10,), (&20,)]);
@@ -527,9 +519,7 @@ mod tuple_with_two_items_tests {
     #[test]
     fn retrieve_system_param_properties_when_can_update() {
         let mut core = CoreStorage::default();
-
         let properties = <(&u32, World<'_>)>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -541,9 +531,7 @@ mod tuple_with_two_items_tests {
     #[test]
     fn retrieve_system_param_properties_when_cannot_update() {
         let mut core = CoreStorage::default();
-
         let properties = <(&u32, &mut i64)>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 2);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -569,14 +557,12 @@ mod tuple_with_two_items_tests {
         };
         let mut guard = <(&u32, &mut i16)>::lock(core.system_data(), info);
         let mut borrow = <(&u32, &mut i16)>::borrow_guard(&mut guard);
-
         let mut stream = <(&u32, &mut i16)>::stream(&mut borrow);
         let item = <(&u32, &mut i16)>::stream_next(&mut stream);
         assert_eq!(item, Some((&10, &mut 100)));
         let item = <(&u32, &mut i16)>::stream_next(&mut stream);
         assert_eq!(item, Some((&20, &mut 200)));
         assert_eq!(<(&u32, &mut i16)>::stream_next(&mut stream), None);
-
         let iter = <(&u32, &mut i16)>::query_iter(&borrow);
         assert_iter(iter, [(&10, &100), (&20, &200)]);
         let iter = <(&u32, &mut i16)>::query_iter(&borrow).rev();
@@ -606,69 +592,40 @@ mod tuple_with_more_than_two_items_tests {
     use std::any::TypeId;
 
     macro_rules! test_tuple_retrieve_system_param_properties {
-        (($($types:ident),*), ($($indexes:tt),*)) => {{
+        (($($types:ident),*), ($($indexes:tt),*)) => {
             let mut core = CoreStorage::default();
-
             let properties = <($(&$types,)*)>::properties(&mut core);
-
             assert_eq!(properties.component_types.len(), [$($indexes),*].len());
             $(assert_eq!(properties.component_types[$indexes].access, Access::Read);)*
             $(assert_eq!(properties.component_types[$indexes].type_idx, $indexes.into());)*
             assert!(!properties.can_update);
             let archetype_filter = ArchetypeFilter::Intersection(ne_vec![$($indexes.into()),*]);
             assert_eq!(properties.archetype_filter, archetype_filter);
-        }};
+        };
     }
 
     #[test]
-    fn retrieve_system_param_properties_for_3_item_tuple() {
+    #[allow(clippy::cognitive_complexity)]
+    fn retrieve_system_param_properties() {
         test_tuple_retrieve_system_param_properties!((u8, u16, u32), (0, 1, 2));
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_4_item_tuple() {
         test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_5_item_tuple() {
         test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_6_item_tuple() {
         test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8),
             (0, 1, 2, 3, 4, 5)
         );
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_7_item_tuple() {
         test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16),
             (0, 1, 2, 3, 4, 5, 6)
         );
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_8_item_tuple() {
         test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32),
             (0, 1, 2, 3, 4, 5, 6, 7)
         );
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_9_item_tuple() {
         test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64),
             (0, 1, 2, 3, 4, 5, 6, 7, 8)
         );
-    }
-
-    #[test]
-    fn retrieve_system_param_properties_for_10_item_tuple() {
         test_tuple_retrieve_system_param_properties!(
             (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
             (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
@@ -688,14 +645,12 @@ mod tuple_with_more_than_two_items_tests {
         };
         let mut guard = <(&u32, &mut i16, &i64)>::lock(core.system_data(), info);
         let mut borrow = <(&u32, &mut i16, &i64)>::borrow_guard(&mut guard);
-
         let mut stream = <(&u32, &mut i16, &i64)>::stream(&mut borrow);
         let item = <(&u32, &mut i16, &i64)>::stream_next(&mut stream);
         assert_eq!(item, Some((&10, &mut 100, &1000)));
         let item = <(&u32, &mut i16, &i64)>::stream_next(&mut stream);
         assert_eq!(item, Some((&20, &mut 200, &2000)));
         assert_eq!(<(&u32, &mut i16, &i64)>::stream_next(&mut stream), None);
-
         let iter = <(&u32, &mut i16, &i64)>::query_iter(&borrow);
         assert_iter(iter, [(&10, &100, &1000), (&20, &200, &2000)]);
         let iter = <(&u32, &mut i16, &i64)>::query_iter(&borrow).rev();

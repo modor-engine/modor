@@ -191,99 +191,34 @@ mod internal {
 
 #[cfg(test)]
 mod world_tests {
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, EntityLocation,
-    };
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::storages::entities::EntityIdx;
-    use crate::storages::updates::EntityUpdate;
     use crate::{SystemInfo, SystemParam, World};
     use std::any::TypeId;
 
     assert_impl_all!(World<'_>: Sync, Send, Unpin);
 
     #[test]
-    fn delete_entity() {
-        let core = CoreStorage::default();
-        let data = core.system_data();
-        let mut world = World { data };
-
-        world.delete_entity(2);
-
-        let mut updates = data.updates.try_lock().unwrap();
-        let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
-        assert_eq!(entity_updates.len(), 1);
-        assert!(matches!(
-            entity_updates[0],
-            (EntityIdx(2), EntityUpdate::Deletion)
-        ));
-    }
-
-    #[test]
-    fn add_component() {
+    fn use_world() {
         let mut core = CoreStorage::default();
+        core.create_entity_with_1_component(10_u32);
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        core.create_entity_with_1_component(20_i8);
         let data = core.system_data();
         let mut world = World { data };
-
-        world.add_component(0, 10_u32);
-
-        let mut entity_updates: Vec<_> = {
-            let mut updates = data.updates.try_lock().unwrap();
-            updates.drain_entity_updates().collect()
-        };
-        assert_eq!(entity_updates.len(), 1);
-        let state = entity_updates.pop().unwrap();
-        assert_eq!(state.0, 0.into());
-        if let EntityUpdate::Change(mut add_fns, deleted_type_idxs) = state.1 {
-            assert_eq!(add_fns.len(), 1);
-            assert_eq!(core.components().type_idx(TypeId::of::<u32>()), None);
-            (add_fns[0].add_type_fn)(&mut core, ArchetypeStorage::DEFAULT_IDX);
-            let component_type_idx = core.components().type_idx(TypeId::of::<u32>());
-            assert_eq!(component_type_idx, Some(0.into()));
-            let src_location = EntityLocation {
-                idx: ArchetypeStorage::DEFAULT_IDX,
-                pos: 0.into(),
-            };
-            let (_, dst_archetype_idx) = core.add_component_type::<u32>(src_location.idx);
-            let (_, dst_location) = core.create_entity(dst_archetype_idx);
-            (add_fns.pop().unwrap().add_fn)(&mut core, dst_location);
-            let components = core.components().read_components::<u32>();
-            assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![10_u32]]);
-            assert_eq!(deleted_type_idxs, &[]);
-        } else {
-            panic!("assertion failed: `state.1` matches `EntityState::Unchanged(_, _, _)`");
-        }
-    }
-
-    #[test]
-    fn delete_component() {
-        let mut core = CoreStorage::default();
-        core.add_component_type::<i64>(ArchetypeStorage::DEFAULT_IDX);
-        core.add_component_type::<u32>(ArchetypeStorage::DEFAULT_IDX);
-        let data = core.system_data();
-        let mut world = World { data };
-
-        world.delete_component::<u32>(2);
-
-        let mut updates = data.updates.try_lock().unwrap();
-        let mut entity_updates: Vec<_> = updates.drain_entity_updates().collect();
-        assert_eq!(entity_updates.len(), 1);
-        let state = entity_updates.pop().unwrap();
-        assert_eq!(state.0, 2.into());
-        if let EntityUpdate::Change(add_fns, deleted_type_idxs) = state.1 {
-            assert_eq!(add_fns.len(), 0);
-            assert_eq!(deleted_type_idxs, &[1.into()]);
-        } else {
-            panic!("assertion failed: `states[0].1` matches `EntityState::Unchanged(_, _, _)`");
-        }
+        world.delete_entity(0);
+        world.add_component(1, 30_i8);
+        world.delete_component::<i8>(2);
+        core.update();
+        assert_eq!(core.entities().location(0.into()), None);
+        let components = core.components().read_components::<i8>().clone();
+        assert_eq!(components, ti_vec![ti_vec![], ti_vec![], ti_vec![30_i8]])
     }
 
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = World::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 0);
         assert!(properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
@@ -301,7 +236,6 @@ mod world_tests {
         };
         let mut guard = World::lock(core.system_data(), info);
         let mut borrow = World::borrow_guard(&mut guard);
-
         let mut stream = World::stream(&mut borrow);
         assert!(World::stream_next(&mut stream).is_some());
         assert!(World::stream_next(&mut stream).is_some());

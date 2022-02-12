@@ -455,84 +455,42 @@ mod system_tests {
     }
 
     macro_rules! test_apply {
-        ([$($names:ident),*], [$($params:ident),*], [$($values:literal),*]) => {{
+        ([$($names:ident),*], [$($params:ident),*], [$($values:literal),*]) => {
             let mut collector = Vec::new();
             let mut system = |$($names: &$params),*| collector.push(($(*$names,)*));
-
             System::apply(&mut system, ($(&$values,)*));
-
             assert_eq!(collector, vec![($($values,)*)]);
-        }};
+        };
     }
 
     #[test]
-    fn apply_empty_tuple_param() {
+    fn apply_params() {
         test_apply!([], [], []);
-    }
-
-    #[test]
-    fn apply_1_item_tuple_param() {
         test_apply!([a], [u8], [0]);
-    }
-
-    #[test]
-    fn apply_2_items_tuple_param() {
         test_apply!([a, b], [u8, u16], [0, 1]);
-    }
-
-    #[test]
-    fn apply_3_items_tuple_param() {
         test_apply!([a, b, c], [u8, u16, u32], [0, 1, 2]);
-    }
-
-    #[test]
-    fn apply_4_items_tuple_param() {
         test_apply!([a, b, c, d], [u8, u16, u32, u64], [0, 1, 2, 3]);
-    }
-
-    #[test]
-    fn apply_5_items_tuple_param() {
         test_apply!([a, b, c, d, e], [u8, u16, u32, u64, u128], [0, 1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn apply_6_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f],
             [u8, u16, u32, u64, u128, i8],
             [0, 1, 2, 3, 4, 5]
         );
-    }
-
-    #[test]
-    fn apply_7_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g],
             [u8, u16, u32, u64, u128, i8, i16],
             [0, 1, 2, 3, 4, 5, 6]
         );
-    }
-
-    #[test]
-    fn apply_8_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h],
             [u8, u16, u32, u64, u128, i8, i16, i32],
             [0, 1, 2, 3, 4, 5, 6, 7]
         );
-    }
-
-    #[test]
-    fn apply_9_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h, i],
             [u8, u16, u32, u64, u128, i8, i16, i32, i64],
             [0, 1, 2, 3, 4, 5, 6, 7, 8]
         );
-    }
-
-    #[test]
-    fn apply_10_items_tuple_param() {
         test_apply!(
             [a, b, c, d, e, f, g, h, i, j],
             [u8, u16, u32, u64, u128, i8, i16, i32, i64, i128],

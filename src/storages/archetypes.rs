@@ -391,10 +391,10 @@ mod archetype_storage_tests {
         let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &union);
         assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx]);
 
-        let inter = ArchetypeFilter::Intersection(ne_vec![type1_idx, type2_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &inter);
+        let intersection = ArchetypeFilter::Intersection(ne_vec![type1_idx, type2_idx]);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &intersection);
         assert_dyn_iter(iter, [archetype3_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &inter);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &intersection);
         assert_dyn_iter(iter.rev(), [archetype3_idx]);
 
         let type_idxs = [type1_idx];

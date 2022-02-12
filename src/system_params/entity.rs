@@ -289,14 +289,13 @@ mod entity_tests {
         let (entity1_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
         let (entity2_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
         let entity1 = Entity {
-            entity_idx: entity1_idx.into(),
+            entity_idx: entity1_idx,
             data: core.system_data(),
         };
         let entity2 = Entity {
-            entity_idx: entity2_idx.into(),
+            entity_idx: entity2_idx,
             data: core.system_data(),
         };
-
         assert_eq!(entity1.id(), 0);
         assert_eq!(entity2.id(), 1);
     }
@@ -304,9 +303,7 @@ mod entity_tests {
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = Entity::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
@@ -329,13 +326,11 @@ mod entity_tests {
         };
         let mut guard = Entity::lock(core.system_data(), info);
         let mut borrow = Entity::borrow_guard(&mut guard);
-
         let mut stream = Entity::stream(&mut borrow);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 1);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 3);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 4);
         assert!(Entity::stream_next(&mut stream).is_none());
-
         assert_iter(Entity::query_iter(&borrow).map(Entity::id), [1, 3, 4]);
         assert_iter(Entity::query_iter(&borrow).rev().map(Entity::id), [4, 3, 1]);
         let iter = Entity::query_iter_mut(&mut borrow).map(Entity::id);

@@ -84,7 +84,7 @@ pub struct EntityBuilder<'a, E, A = ()> {
 
 impl<'a, E, A> EntityBuilder<'a, E, A>
 where
-    E: EntityMainComponent,
+    E: EntityMainComponent, // TODO: delete to simplify tests if not necessary
     A: ComponentAdd,
 {
     /// Inherits from an entity with main component type `P` and building data `data`.
@@ -454,9 +454,11 @@ mod built_tests {
 
 #[cfg(test)]
 mod entity_builder_tests {
-    use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
+    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
     use crate::{Built, EntityBuilder, EntityMainComponent};
+    use std::any::Any;
+    use std::fmt::Debug;
     use std::marker::PhantomData;
 
     assert_impl_all!(EntityBuilder<'_, ParentEntity>: Send, Unpin);
@@ -484,121 +486,46 @@ mod entity_builder_tests {
     }
 
     #[test]
-    fn inherit_from_other_entity_when_no_component() {
+    fn build_entity() {
         let mut core = CoreStorage::default();
-        let builder = create_builder(&mut core, None);
-
-        let new_builder = builder.inherit_from::<ParentEntity>(10);
-
-        let location = EntityLocation::new(1.into(), 0.into());
-        assert_eq!(new_builder.src_location, Some(location));
-        assert!(matches!(new_builder.added_components, ()));
-        let components = core.components().read_components::<ParentEntity>();
-        assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![ParentEntity(10)]]);
-    }
-
-    #[test]
-    fn inherit_from_other_entity_when_component() {
-        let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
-        core.add_component(20_i64, type_idx, location);
-        let builder = create_builder(&mut core, Some(location));
-
-        let new_builder = builder.inherit_from::<ParentEntity>(10);
-
-        let location = EntityLocation::new(2.into(), 0.into());
-        assert_eq!(new_builder.src_location, Some(location));
-        assert_eq!(new_builder.dst_archetype_idx, 2.into());
-        assert!(matches!(new_builder.added_components, ()));
-        let components = core.components().read_components::<ParentEntity>();
-        let expected_components = ti_vec![ti_vec![], ti_vec![], ti_vec![ParentEntity(10)]];
-        assert_eq!(&*components, &expected_components);
-        let components = core.components().read_components::<i64>();
-        assert_eq!(&*components, &ti_vec![ti_vec![], ti_vec![], ti_vec![20]]);
-    }
-
-    #[test]
-    fn add_component() {
-        let mut core = CoreStorage::default();
-        let builder = create_builder(&mut core, None);
-
-        let new_builder = builder.with(20_i64);
-
-        assert_eq!(new_builder.src_location, None);
-        assert_eq!(new_builder.dst_archetype_idx, 1.into());
-        assert_eq!(new_builder.added_components.component, 20_i64);
-        assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert!(new_builder.added_components.is_added);
-        assert!(matches!(new_builder.added_components.other_components, ()));
-        assert!(core.components().read_components::<i64>().is_empty());
-    }
-
-    #[test]
-    fn add_component_with_true_condition() {
-        let mut core = CoreStorage::default();
-        let builder = create_builder(&mut core, None);
-
-        let new_builder = builder.with_if(20_i64, true);
-
-        assert_eq!(new_builder.src_location, None);
-        assert_eq!(new_builder.dst_archetype_idx, 1.into());
-        assert_eq!(new_builder.added_components.component, 20_i64);
-        assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert!(new_builder.added_components.is_added);
-        assert!(matches!(new_builder.added_components.other_components, ()));
-        assert!(core.components().read_components::<i64>().is_empty());
-    }
-
-    #[test]
-    fn add_component_with_false_condition() {
-        let mut core = CoreStorage::default();
-        let builder = create_builder(&mut core, None);
-
-        let new_builder = builder.with_if(20_i64, false);
-
-        assert_eq!(new_builder.src_location, None);
-        assert_eq!(new_builder.dst_archetype_idx, ArchetypeStorage::DEFAULT_IDX);
-        assert_eq!(new_builder.added_components.component, 20_i64);
-        assert_eq!(new_builder.added_components.type_idx, 0.into());
-        assert!(!new_builder.added_components.is_added);
-        assert!(matches!(new_builder.added_components.other_components, ()));
-        assert!(core.components().read_components::<i64>().is_empty());
-    }
-
-    #[test]
-    fn add_entity_component() {
-        let mut core = CoreStorage::default();
-        let builder = create_builder(&mut core, None)
-            .with(10_i64)
-            .with_if(20_u32, false);
-
-        builder.with_self(ChildEntity(30));
-
-        assert!(core.components().read_components::<u32>().is_empty());
-        let components = core.components().read_components::<i64>();
-        let expected_components = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![10]];
-        assert_eq!(&*components, &expected_components);
-        let components = core.components().read_components::<ChildEntity>();
-        let expected_components =
-            ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![ChildEntity(30)]];
-        assert_eq!(&*components, &expected_components);
-        let components = core.components();
-        assert!(components.is_entity_type::<ChildEntity>());
-    }
-
-    fn create_builder(
-        core: &mut CoreStorage,
-        location: Option<EntityLocation>,
-    ) -> EntityBuilder<'_, ChildEntity> {
-        EntityBuilder {
-            core,
-            src_location: location,
-            dst_archetype_idx: location.map_or(ArchetypeStorage::DEFAULT_IDX, |l| l.idx),
+        let builder = EntityBuilder::<ChildEntity> {
+            core: &mut core,
+            src_location: None,
+            dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
             added_components: (),
             phantom: PhantomData,
-        }
+        };
+        builder
+            .with(10_u32)
+            .with_if(0_i64, true)
+            .with_if(20_i64, true)
+            .with_if(30_i8, false)
+            .inherit_from::<ParentEntity>(40)
+            .with_self(ChildEntity(50));
+        let archetype_idx = ArchetypeIdx::from(5);
+        let archetype_pos = ArchetypeEntityPos::from(0);
+        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&10_u32));
+        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&20_i64));
+        assert_component_eq::<i8>(&core, archetype_idx, archetype_pos, None);
+        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ParentEntity(40)));
+        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ChildEntity(50)));
+    }
+
+    fn assert_component_eq<C>(
+        core: &CoreStorage,
+        archetype_idx: ArchetypeIdx,
+        archetype_pos: ArchetypeEntityPos,
+        expected_component: Option<&C>,
+    ) where
+        C: Any + PartialEq + Debug,
+    {
+        assert_eq!(
+            core.components()
+                .read_components::<C>()
+                .get(archetype_idx)
+                .and_then(|c| c.get(archetype_pos)),
+            expected_component
+        );
     }
 }
 
@@ -611,7 +538,6 @@ mod entity_runner_tests {
         Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
     };
     use std::marker::PhantomData;
-
     assert_impl_all!(EntityRunner<'_, TestEntity>: Send, Unpin);
 
     struct TestActionDependency;
@@ -637,166 +563,28 @@ mod entity_runner_tests {
     }
 
     #[test]
-    fn run_system() {
+    fn run_systems() {
         let mut core = CoreStorage::default();
         core.add_entity_type::<TestEntity>();
         let runner = EntityRunner::<TestEntity> {
             core: &mut core,
             phantom: PhantomData,
         };
-
-        let runner = runner.run(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 0.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1]);
-        assert_eq!(core.system_data().actions.dependency_idxs(0.into()), []);
-    }
-
-    #[test]
-    fn run_system_as_action() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-
-        let runner = runner.run_as::<TestAction>(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 1.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 1]);
-        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
-        assert_eq!(dependency_idxs, [0.into()]);
-    }
-
-    #[test]
-    fn run_system_constrained() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-
-        let runner = runner.run_constrained::<DependsOn<TestAction>>(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 1.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 1]);
-        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
-        assert_eq!(dependency_idxs, [0.into()]);
-    }
-
-    fn create_system_builder() -> SystemBuilder {
-        SystemBuilder {
-            properties_fn: |_| SystemProperties {
-                component_types: vec![],
-                can_update: false,
-                archetype_filter: ArchetypeFilter::None,
-            },
-            wrapper: |_, _| (),
-        }
-    }
-}
-
-#[cfg(test)]
-mod used_entity_runner_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
-    use crate::storages::core::CoreStorage;
-    use crate::storages::systems::SystemProperties;
-    use crate::{
-        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, EntityRunner, SystemBuilder,
-        UsedEntityRunner,
-    };
-    use std::marker::PhantomData;
-
-    assert_impl_all!(UsedEntityRunner<'_, TestEntity>: Send, Unpin);
-
-    struct TestActionDependency;
-
-    impl Action for TestActionDependency {
-        type Constraint = ();
-    }
-
-    struct TestAction;
-
-    impl Action for TestAction {
-        type Constraint = DependsOn<TestActionDependency>;
-    }
-
-    struct TestEntity(u32);
-
-    impl EntityMainComponent for TestEntity {
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[test]
-    fn run_system() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-        let runner = runner.run(create_system_builder());
-
-        let runner = runner.run(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 1.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 1]);
-    }
-
-    #[test]
-    fn run_system_as_action() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-        let runner = runner.run_as::<TestAction>(create_system_builder());
-
-        let runner = runner.run_as::<TestAction>(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 1.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![0, 2]);
-    }
-
-    #[test]
-    fn run_system_constrained() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-        let runner = runner.run(create_system_builder());
-
-        let runner = runner.run_constrained::<DependsOn<TestAction>>(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 2.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 0, 1]);
-    }
-
-    #[test]
-    fn run_system_after_previous() {
-        let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
-        let runner = EntityRunner::<TestEntity> {
-            core: &mut core,
-            phantom: PhantomData,
-        };
-        let runner = runner.run(create_system_builder());
-
-        let runner = runner.and_then(create_system_builder());
-
-        assert_eq!(runner.latest_action_idx, 1.into());
-        assert_eq!(core.system_data().actions.system_counts(), ti_vec![1, 1]);
-        let dependency_idxs = core.system_data().actions.dependency_idxs(1.into());
-        assert_eq!(dependency_idxs, [0.into()]);
+        runner
+            .run(create_system_builder())
+            .run(create_system_builder())
+            .and_then(create_system_builder())
+            .run_as::<TestAction>(create_system_builder())
+            .run_as::<TestActionDependency>(create_system_builder())
+            .run_constrained::<DependsOn<TestActionDependency>>(create_system_builder());
+        let actions = &core.system_data().actions;
+        assert_eq!(actions.system_counts(), ti_vec![1; 6]);
+        assert_eq!(actions.dependency_idxs(0.into()), []);
+        assert_eq!(actions.dependency_idxs(1.into()), []);
+        assert_eq!(actions.dependency_idxs(2.into()), [1.into()]);
+        assert_eq!(actions.dependency_idxs(3.into()), []);
+        assert_eq!(actions.dependency_idxs(4.into()), [3.into()]);
+        assert_eq!(actions.dependency_idxs(5.into()), [3.into()]);
     }
 
     fn create_system_builder() -> SystemBuilder {

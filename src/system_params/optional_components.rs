@@ -351,9 +351,7 @@ mod component_ref_option_tests {
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = Option::<&u32>::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -379,14 +377,12 @@ mod component_ref_option_tests {
         };
         let mut guard = Option::<&u32>::lock(core.system_data(), info);
         let mut borrow = Option::<&u32>::borrow_guard(&mut guard);
-
         let mut stream = Option::<&u32>::stream(&mut borrow);
         assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&20)));
         assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(None));
         assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&40)));
         assert_eq!(Option::<&u32>::stream_next(&mut stream), Some(Some(&50)));
         assert_eq!(Option::<&u32>::stream_next(&mut stream), None);
-
         let iter = Option::<&u32>::query_iter(&borrow);
         assert_iter(iter, [Some(&20), None, Some(&40), Some(&50)]);
         let iter = Option::<&u32>::query_iter(&borrow).rev();

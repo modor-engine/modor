@@ -176,19 +176,14 @@ mod system_param_mutability_checker_tests {
     fn convert_into_inner() {
         let system = || ();
         let checker = SystemParamMutabilityChecker::new(system);
-
-        let inner = checker.into_inner();
-
-        assert_eq!(system as fn(), inner as fn());
+        assert_eq!(checker.into_inner() as fn(), system as fn());
     }
 
     #[test]
     fn check_param_mutability_of_system_with_params() {
         let system = || ();
         let checker = SystemParamMutabilityChecker::new(system);
-
         let checker = SystemWithParams::check_param_mutability(checker);
-
         assert_eq!(system as fn(), checker.into_inner() as fn());
     }
 
@@ -196,9 +191,7 @@ mod system_param_mutability_checker_tests {
     fn check_param_mutability_of_system_with_mutability_issue() {
         let system = |_: &u32, _: &mut u32| ();
         let checker = SystemParamMutabilityChecker::new(system);
-
         let checker = SystemWithParamMutabilityIssue::check_param_mutability(checker);
-
         let inner_system = checker.into_inner() as fn(&'static u32, &'static mut u32);
         assert_eq!(system as fn(&'static u32, &'static mut u32), inner_system);
     }

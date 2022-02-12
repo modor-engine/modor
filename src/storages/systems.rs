@@ -209,7 +209,7 @@ mod system_storage_tests {
         }
     }
 
-    fn system_wrapper<C1, C2>(data: SystemData, _info: SystemInfo)
+    fn system_wrapper<C1, C2>(data: SystemData<'_>, _info: SystemInfo<'_>)
     where
         C1: From<ThreadId> + Any,
         C2: Any,
@@ -273,10 +273,10 @@ mod system_storage_tests {
         let mut storage = SystemStorage::default();
         storage.set_thread_count(2);
         let wrapper1: SystemWrapper = system_wrapper::<Component1, Component2>;
-        let wrapper2: SystemWrapper = system_wrapper::<Component2, Component1>;
         let properties1 = create_properties(vec![]);
-        let properties2 = create_properties(vec![]);
         storage.add(wrapper1, 0.into(), properties1, 0.into());
+        let wrapper2: SystemWrapper = system_wrapper::<Component2, Component1>;
+        let properties2 = create_properties(vec![]);
         storage.add(wrapper2, 1.into(), properties2, 0.into());
         use_data(false, |d| {
             storage.run(d);
@@ -296,7 +296,7 @@ mod system_storage_tests {
 
     fn use_data<F>(create_components: bool, mut f: F)
     where
-        F: FnMut(SystemData),
+        F: FnMut(SystemData<'_>),
     {
         let mut components = ComponentStorage::default();
         let type1_idx = components.type_idx_or_create::<Component1>();
@@ -317,7 +317,7 @@ mod system_storage_tests {
             actions: &actions,
             updates: &Mutex::new(UpdateStorage::default()),
         };
-        f(data)
+        f(data);
     }
 
     fn create_type_access(access: Access, type_idx: ComponentTypeIdx) -> ComponentTypeAccess {

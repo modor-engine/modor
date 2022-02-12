@@ -100,7 +100,7 @@ mod action_storage_tests {
         let first_idx = storage.idx_or_create(None, no_dep.clone());
         let first_dep = ActionDependencies::Action(first_idx);
         let typed_idx = storage.idx_or_create(type_, no_dep);
-        let updated_idx = storage.idx_or_create(type_, first_dep.clone());
+        let updated_idx = storage.idx_or_create(type_, first_dep);
         storage.add_system(typed_idx);
         assert_eq!([typed_idx, updated_idx], [1.into(); 2]);
         assert_eq!(storage.dependency_idxs(typed_idx), &[first_idx]);
