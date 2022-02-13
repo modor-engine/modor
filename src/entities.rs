@@ -429,9 +429,7 @@ mod internal {
         fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation) {
             self.other_components.add(storage, location);
             if let Some(component) = self.component {
-                storage
-                    .0
-                    .add_component(component, self.type_idx, location);
+                storage.0.add_component(component, self.type_idx, location);
             }
         }
     }
