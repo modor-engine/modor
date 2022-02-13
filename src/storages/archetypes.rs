@@ -335,11 +335,12 @@ mod archetype_storage_tests {
         let first_idx = storage.add_component(default_idx, type1_idx).unwrap();
         let second_idx = storage.add_component(first_idx, type2_idx).unwrap();
         let direct_idx = storage.delete_component(first_idx, type1_idx).unwrap();
+        let same_direct_idx = storage.delete_component(first_idx, type1_idx).unwrap();
         let new_idx = storage.delete_component(second_idx, type1_idx).unwrap();
         let indirect_idx = storage.delete_component(new_idx, type2_idx).unwrap();
         let missing_component_error = storage.delete_component(direct_idx, type2_idx);
         assert_eq!(missing_component_error, Err(MissingComponentError));
-        assert_eq!(default_idx, direct_idx);
+        assert_eq!([direct_idx, same_direct_idx], [default_idx; 2]);
         assert_eq!(default_idx, indirect_idx);
         assert_eq!(new_idx, 3.into());
         assert_eq!(storage.sorted_type_idxs(new_idx), [type2_idx]);

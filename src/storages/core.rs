@@ -216,6 +216,7 @@ impl CoreStorage {
 #[cfg(test)]
 mod core_storage_tests {
     use std::any::{Any, TypeId};
+    use typed_index_collections::TiVec;
 
     use crate::storages::actions::ActionDependencies;
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
@@ -364,7 +365,7 @@ mod core_storage_tests {
             ActionDependencies::Types(vec![]),
         );
         storage.update();
-        let components = ti_vec![ti_vec![], ti_vec![]];
+        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(&*storage.components.read_components::<u32>(), &components);
         assert!(storage.components.read_components::<i64>().is_empty());
         let components = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![30_i8]];
