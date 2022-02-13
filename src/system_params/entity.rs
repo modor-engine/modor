@@ -1,5 +1,5 @@
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
-use crate::storages::archetypes::ArchetypeFilter;
+use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
@@ -20,6 +20,7 @@ use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 ///     println!("Entity with ID {} has position {:?}", entity.id(), position)
 /// }
 /// ```
+#[derive(Clone, Copy)]
 pub struct Entity<'a> {
     entity_idx: EntityIdx,
     #[allow(dead_code)] // will be used in the future
@@ -30,7 +31,7 @@ impl<'a> Entity<'a> {
     /// Returns the entity ID.
     ///
     /// Entity IDs are unique and can be recycled in case the entity is deleted.
-    pub fn id(&self) -> usize {
+    pub fn id(self) -> usize {
         self.entity_idx.into()
     }
 }
@@ -113,6 +114,51 @@ impl QuerySystemParam for Entity<'_> {
         'b: 'a,
     {
         EntityIter::new(guard)
+    }
+
+    #[inline]
+    fn get<'a, 'b>(
+        guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location: EntityLocation,
+    ) -> Option<<Self as QuerySystemParamWithLifetime<'a>>::ConstParam>
+    where
+        'b: 'a,
+    {
+        guard
+            .data
+            .archetypes
+            .entity_idxs(location.idx)
+            .get(location.pos)
+            .map(|&e| Entity {
+                entity_idx: e,
+                data: guard.data,
+            })
+    }
+
+    #[inline]
+    fn get_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location: EntityLocation,
+    ) -> Option<<Self as SystemParamWithLifetime<'a>>::Param>
+    where
+        'b: 'a,
+    {
+        Self::get(guard, location)
+    }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        (Self::get(guard, location1), Self::get(guard, location2))
     }
 }
 
@@ -236,232 +282,73 @@ mod internal {
 
 #[cfg(test)]
 mod entity_tests {
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::Entity;
+    use crate::utils::test_utils::assert_iter;
+    use crate::{Entity, QuerySystemParam, SystemInfo, SystemParam};
+    use std::any::TypeId;
 
     assert_impl_all!(Entity<'_>: Sync, Send, Unpin);
 
     #[test]
-    fn retrieve_id() {
-        let core = CoreStorage::default();
-        let entity = Entity {
-            entity_idx: 2.into(),
+    fn retrieve_entity_info() {
+        let mut core = CoreStorage::default();
+        let (entity1_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        let (entity2_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        let entity1 = Entity {
+            entity_idx: entity1_idx,
             data: core.system_data(),
         };
-
-        let id = entity.id();
-
-        assert_eq!(id, 2);
+        let entity2 = Entity {
+            entity_idx: entity2_idx,
+            data: core.system_data(),
+        };
+        assert_eq!(entity1.id(), 0);
+        assert_eq!(entity2.id(), 1);
     }
-}
-
-#[cfg(test)]
-mod entity_system_param_tests {
-    use crate::entity::internal::EntityGuardBorrow;
-    use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, FilteredArchetypeIdxIter,
-    };
-    use crate::storages::core::CoreStorage;
-    use crate::{Entity, QuerySystemParam, SystemInfo, SystemParam};
-    use std::any::Any;
 
     #[test]
-    fn retrieve_properties() {
+    fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-
         let properties = Entity::properties(&mut core);
-
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
     }
 
     #[test]
-    fn lock() {
+    fn use_system_param() {
         let mut core = CoreStorage::default();
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<u32>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(10_u32, type_idx, location);
-        let data = core.system_data();
+        core.create_entity_with_1_component(0_i8);
+        let location1 = core.create_entity_with_2_components(20_u32, 0_i16);
+        let location2 = core.create_entity_with_2_components(30_u32, 0_i32);
+        core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
+        core.create_entity_with_3_components(50_u32, 0_i16, 0_i64);
+        core.create_entity_with_2_components(60_u32, 0_i128);
+        let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
-            filtered_component_type_idxs: &[0.into()],
+            filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
-        };
-
-        let mut guard = Entity::lock(data, info);
-        let mut guard_borrow = Entity::borrow_guard(&mut guard);
-
-        assert_eq!(guard_borrow.item_count, 1);
-        let next_archetype_idx = guard_borrow.sorted_archetype_idxs.next();
-        assert_eq!(next_archetype_idx, Some(archetype2_idx));
-        assert_eq!(guard_borrow.sorted_archetype_idxs.next(), None);
-    }
-
-    #[test]
-    fn retrieve_stream() {
-        let mut core = CoreStorage::default();
-        create_entity(&mut core, 0_i16);
-        create_entity(&mut core, 10_i64);
-        create_entity(&mut core, 20_u32);
-        create_entity(&mut core, 30_u16);
-        create_entity(&mut core, 40_u16);
-        create_entity(&mut core, 50_i8);
-        let archetype_idxs = [2.into(), 4.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
-        let mut guard_borrow = EntityGuardBorrow {
             item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-            data: core.system_data(),
         };
-
-        let mut stream = Entity::stream(&mut guard_borrow);
-
+        let mut guard = Entity::lock(core.system_data(), info);
+        let mut borrow = Entity::borrow_guard(&mut guard);
+        let mut stream = Entity::stream(&mut borrow);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 1);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 3);
         assert_eq!(Entity::stream_next(&mut stream).unwrap().id(), 4);
         assert!(Entity::stream_next(&mut stream).is_none());
-    }
-
-    #[test]
-    fn retrieve_query_iter() {
-        let mut core = CoreStorage::default();
-        create_entity(&mut core, 0_i16);
-        create_entity(&mut core, 10_i64);
-        create_entity(&mut core, 20_u32);
-        create_entity(&mut core, 30_u16);
-        create_entity(&mut core, 40_u16);
-        create_entity(&mut core, 50_i8);
-        let archetype_idxs = [2.into(), 4.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
-        let guard_borrow = EntityGuardBorrow {
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-            data: core.system_data(),
-        };
-
-        let mut iter = Entity::query_iter(&guard_borrow);
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next().unwrap().id(), 1);
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next().unwrap().id(), 3);
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next().unwrap().id(), 4);
-        assert_eq!(iter.len(), 0);
-        assert!(iter.next().is_none());
-    }
-
-    #[test]
-    fn retrieve_reversed_query_iter() {
-        let mut core = CoreStorage::default();
-        create_entity(&mut core, 0_i16);
-        create_entity(&mut core, 10_i64);
-        create_entity(&mut core, 20_u32);
-        create_entity(&mut core, 30_u16);
-        create_entity(&mut core, 40_u16);
-        create_entity(&mut core, 50_i8);
-        let archetype_idxs = [2.into(), 4.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
-        let guard_borrow = EntityGuardBorrow {
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-            data: core.system_data(),
-        };
-
-        let mut iter = Entity::query_iter(&guard_borrow).rev();
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next().unwrap().id(), 4);
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next().unwrap().id(), 3);
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next().unwrap().id(), 1);
-        assert_eq!(iter.len(), 0);
-        assert!(iter.next().is_none());
-    }
-
-    #[test]
-    fn retrieve_query_iter_mut() {
-        let mut core = CoreStorage::default();
-        create_entity(&mut core, 0_i16);
-        create_entity(&mut core, 10_i64);
-        create_entity(&mut core, 20_u32);
-        create_entity(&mut core, 30_u16);
-        create_entity(&mut core, 40_u16);
-        create_entity(&mut core, 50_i8);
-        let archetype_idxs = [2.into(), 4.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
-        let mut guard_borrow = EntityGuardBorrow {
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-            data: core.system_data(),
-        };
-
-        let mut iter = Entity::query_iter_mut(&mut guard_borrow);
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next().unwrap().id(), 1);
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next().unwrap().id(), 3);
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next().unwrap().id(), 4);
-        assert_eq!(iter.len(), 0);
-        assert!(iter.next().is_none());
-    }
-
-    #[test]
-    fn retrieve_reversed_query_iter_mut() {
-        let mut core = CoreStorage::default();
-        create_entity(&mut core, 0_i16);
-        create_entity(&mut core, 10_i64);
-        create_entity(&mut core, 20_u32);
-        create_entity(&mut core, 30_u16);
-        create_entity(&mut core, 40_u16);
-        create_entity(&mut core, 50_i8);
-        let archetype_idxs = [2.into(), 4.into()];
-        let archetype_type_idxs = ti_vec![vec![0.into()]; 6];
-        let mut guard_borrow = EntityGuardBorrow {
-            item_count: 3,
-            sorted_archetype_idxs: FilteredArchetypeIdxIter::new(
-                &archetype_idxs,
-                &archetype_type_idxs,
-            ),
-            data: core.system_data(),
-        };
-
-        let mut iter = Entity::query_iter_mut(&mut guard_borrow).rev();
-
-        assert_eq!(iter.len(), 3);
-        assert_eq!(iter.next().unwrap().id(), 4);
-        assert_eq!(iter.len(), 2);
-        assert_eq!(iter.next().unwrap().id(), 3);
-        assert_eq!(iter.len(), 1);
-        assert_eq!(iter.next().unwrap().id(), 1);
-        assert_eq!(iter.len(), 0);
-        assert!(iter.next().is_none());
-    }
-
-    fn create_entity<C>(core: &mut CoreStorage, component: C)
-    where
-        C: Any + Sync + Send,
-    {
-        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
-        let (type_idx, archetype2_idx) = core.add_component_type::<C>(archetype1_idx);
-        let location = core.create_entity(archetype2_idx);
-        core.add_component(component, type_idx, location);
+        assert_iter(Entity::query_iter(&borrow).map(Entity::id), [1, 3, 4]);
+        assert_iter(Entity::query_iter(&borrow).rev().map(Entity::id), [4, 3, 1]);
+        let iter = Entity::query_iter_mut(&mut borrow).map(Entity::id);
+        assert_iter(iter, [1, 3, 4]);
+        let iter = Entity::query_iter_mut(&mut borrow).rev().map(Entity::id);
+        assert_iter(iter, [4, 3, 1]);
+        assert_eq!(Entity::get(&borrow, location2).map(Entity::id), Some(2));
+        let entity_id = Entity::get_mut(&mut borrow, location2).map(Entity::id);
+        assert_eq!(entity_id, Some(2));
+        let (item1, item2) = Entity::get_both_mut(&mut borrow, location1, location2);
+        assert_eq!(item1.map(Entity::id), Some(1));
+        assert_eq!(item2.map(Entity::id), Some(2));
     }
 }

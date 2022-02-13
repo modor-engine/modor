@@ -67,7 +67,6 @@ mod depends_on_tests {
     #[test]
     fn retrieve_dependency_types() {
         let dependency_types = DependsOn::<TestAction>::dependency_types();
-
         assert_eq!(dependency_types, vec![TypeId::of::<TestAction>()]);
     }
 }
@@ -77,87 +76,30 @@ mod tuple_action_constraint_tests {
     use crate::{Action, ActionConstraint, DependsOn};
     use std::any::TypeId;
 
-    struct A1;
-    struct A2;
-    struct A3;
-    struct A4;
-    struct A5;
-    struct A6;
-    struct A7;
-    struct A8;
-    struct A9;
-    struct A10;
+    macro_rules! define_actions {
+        ($($types:ident),*) => {
+            $(
+                struct $types;
 
-    macro_rules! impl_actions {
-        ($($types:ty),*) => {
-            $(impl Action for $types {
-                type Constraint = ();
-            })*
+                impl Action for $types {
+                    type Constraint = ();
+                }
+            )*
         };
     }
 
-    impl_actions!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10);
+    define_actions!(A, B, C, D, E, F, G, H, I, J);
 
     macro_rules! test_tuple_dependency_types {
-        ($($params:ident),*) => {{
+        ($(($params:ident, $indexes:tt)),*) => {{
             let dependency_types = <($(DependsOn<$params>,)*)>::dependency_types();
-
             assert_eq!(dependency_types, vec![$(TypeId::of::<$params>()),*]);
         }};
     }
 
     #[test]
-    fn retrieve_dependency_types_for_empty_tuple() {
+    fn retrieve_dependency_types() {
         test_tuple_dependency_types!();
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_1_item_tuple() {
-        test_tuple_dependency_types!(A1);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_2_item_tuple() {
-        test_tuple_dependency_types!(A1, A2);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_3_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_4_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_5_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_6_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5, A6);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_7_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5, A6, A7);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_8_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5, A6, A7, A8);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_9_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5, A6, A7, A8, A9);
-    }
-
-    #[test]
-    fn retrieve_dependency_types_for_10_item_tuple() {
-        test_tuple_dependency_types!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10);
+        run_for_tuples_with_idxs!(test_tuple_dependency_types);
     }
 }
