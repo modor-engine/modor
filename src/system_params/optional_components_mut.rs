@@ -409,6 +409,6 @@ mod component_mut_option_tests {
         let item = Option::<&mut u32>::get_mut(&mut borrow, location3);
         assert_eq!(item, Some(None));
         let items = Option::<&mut u32>::get_both_mut(&mut borrow, location2, location3);
-        assert_eq!(items, (Some(Some(&mut 20)), Some(None)))
+        assert_eq!(items, (Some(Some(&mut 20)), Some(None)));
     }
 }

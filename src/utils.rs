@@ -57,14 +57,12 @@ where
         (data.get_mut(key1), None)
     } else if key1 >= data.next_key() {
         (None, data.get_mut(key2))
+    } else if key1 < key2 {
+        let (left, right) = data.split_at_mut(key2);
+        (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
     } else {
-        if key1 < key2 {
-            let (left, right) = data.split_at_mut(key2);
-            (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
-        } else {
-            let (left, right) = data.split_at_mut(key1);
-            (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
-        }
+        let (left, right) = data.split_at_mut(key1);
+        (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
     }
 }
 
