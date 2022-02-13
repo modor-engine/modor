@@ -108,6 +108,21 @@ impl QuerySystemParam for () {
     {
         Some(())
     }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        _guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        _location1: EntityLocation,
+        _location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        (Some(()), Some(()))
+    }
 }
 
 macro_rules! impl_tuple_system_param {
@@ -230,6 +245,25 @@ macro_rules! impl_tuple_system_param {
                 'b: 'a,
             {
                 Some(($($params::get_mut(&mut guard.$indexes, location)?,)+))
+            }
+
+            #[inline]
+            fn get_both_mut<'a, 'b>(
+                guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+                location1: EntityLocation,
+                location2: EntityLocation,
+            ) -> (
+                Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+                Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+            )
+            where
+                'b: 'a,
+            {
+                let items = ($($params::get_both_mut(&mut guard.$indexes, location1, location2),)+);
+                (
+                    (move || {Some(($(items.$indexes.0?,)+))})(),
+                    (move || {Some(($(items.$indexes.1?,)+))})(),
+                )
             }
         }
     };
@@ -450,6 +484,9 @@ mod empty_tuple_tests {
         assert_iter(<()>::query_iter_mut(&mut borrow).rev(), [(), (), ()]);
         assert_eq!(<()>::get(&borrow, location), Some(()));
         assert_eq!(<()>::get_mut(&mut borrow, location), Some(()));
+        assert_eq!(<()>::get_mut(&mut borrow, location), Some(()));
+        let items = <()>::get_both_mut(&mut borrow, location, location);
+        assert_eq!(items, (Some(()), Some(())));
     }
 }
 
@@ -504,6 +541,8 @@ mod tuple_with_one_item_tests {
         assert_eq!(<(&u32,)>::get_mut(&mut borrow, location2), Some((&30,)));
         assert_eq!(<(&u32,)>::get(&borrow, location3), None);
         assert_eq!(<(&u32,)>::get_mut(&mut borrow, location3), None);
+        let items = <(&u32,)>::get_both_mut(&mut borrow, location2, location3);
+        assert_eq!(items, (Some((&30,)), None));
     }
 }
 
@@ -579,6 +618,8 @@ mod tuple_with_two_items_tests {
         assert_eq!(<(&u32, &mut i16)>::get_mut(&mut borrow, location2), None);
         assert_eq!(<(&u32, &mut i16)>::get(&borrow, location3), None);
         assert_eq!(<(&u32, &mut i16)>::get_mut(&mut borrow, location3), None);
+        let items = <(&u32, &mut i16)>::get_both_mut(&mut borrow, location1, location2);
+        assert_eq!(items, (Some((&10, &mut 100)), None));
     }
 }
 
@@ -635,8 +676,8 @@ mod tuple_with_more_than_two_items_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location = core.create_entity_with_3_components(10_u32, 100_i16, 1000_i64);
-        core.create_entity_with_3_components(20_u32, 200_i16, 2000_i64);
+        let location1 = core.create_entity_with_3_components(10_u32, 100_i16, 1000_i64);
+        let location2 = core.create_entity_with_3_components(20_u32, 200_i16, 2000_i64);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
@@ -659,9 +700,14 @@ mod tuple_with_more_than_two_items_tests {
         assert_iter(iter, [(&10, &mut 100, &1000), (&20, &mut 200, &2000)]);
         let iter = <(&u32, &mut i16, &i64)>::query_iter_mut(&mut borrow).rev();
         assert_iter(iter, [(&20, &mut 200, &2000), (&10, &mut 100, &1000)]);
-        let item = <(&u32, &mut i16, &i64)>::get(&borrow, location);
+        let item = <(&u32, &mut i16, &i64)>::get(&borrow, location1);
         assert_eq!(item, Some((&10, &100, &1000)));
-        let item = <(&u32, &mut i16, &i64)>::get_mut(&mut borrow, location);
+        let item = <(&u32, &mut i16, &i64)>::get_mut(&mut borrow, location1);
         assert_eq!(item, Some((&10, &mut 100, &1000)));
+        let items = <(&u32, &mut i16, &i64)>::get_both_mut(&mut borrow, location1, location2);
+        assert_eq!(
+            items,
+            (Some((&10, &mut 100, &1000)), Some((&20, &mut 200, &2000)))
+        );
     }
 }

@@ -44,6 +44,30 @@ where
     vec[K::from(idx)] = value;
 }
 
+pub(crate) fn get_both_mut<K, T>(
+    data: &mut TiVec<K, T>,
+    key1: K,
+    key2: K,
+) -> (Option<&mut T>, Option<&mut T>)
+where
+    K: PartialOrd + From<usize> + Copy,
+    usize: From<K>,
+{
+    if key1 == key2 || key2 >= data.next_key() {
+        (data.get_mut(key1), None)
+    } else if key1 >= data.next_key() {
+        (None, data.get_mut(key2))
+    } else {
+        if key1 < key2 {
+            let (left, right) = data.split_at_mut(key2);
+            (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
+        } else {
+            let (left, right) = data.split_at_mut(key1);
+            (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
+        }
+    }
+}
+
 macro_rules! run_for_tuples_with_idxs {
     ($macro:ident) => {
         run_for_tuples_with_idxs!(
@@ -121,14 +145,27 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils;
+    use crate::utils::{get_both_mut, set_value};
     use typed_index_collections::TiVec;
 
     #[test]
     fn set_values() {
         let mut vec = TiVec::<usize, usize>::new();
-        utils::set_value(&mut vec, 2, 10);
-        utils::set_value(&mut vec, 1, 20);
+        set_value(&mut vec, 2, 10);
+        set_value(&mut vec, 1, 20);
         assert_eq!(vec, ti_vec![0, 20, 10]);
+    }
+
+    #[test]
+    fn retrieve_both_mut() {
+        let mut vec: TiVec<usize, u32> = ti_vec![10, 20, 30, 40];
+        assert_eq!(get_both_mut(&mut vec, 0, 1), (Some(&mut 10), Some(&mut 20)));
+        assert_eq!(get_both_mut(&mut vec, 1, 0), (Some(&mut 20), Some(&mut 10)));
+        assert_eq!(get_both_mut(&mut vec, 1, 3), (Some(&mut 20), Some(&mut 40)));
+        assert_eq!(get_both_mut(&mut vec, 3, 1), (Some(&mut 40), Some(&mut 20)));
+        assert_eq!(get_both_mut(&mut vec, 4, 1), (None, Some(&mut 20)));
+        assert_eq!(get_both_mut(&mut vec, 0, 4), (Some(&mut 10), None));
+        assert_eq!(get_both_mut(&mut vec, 4, 5), (None, None));
+        assert_eq!(get_both_mut(&mut vec, 1, 1), (Some(&mut 20), None));
     }
 }

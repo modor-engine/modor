@@ -7,6 +7,7 @@ use crate::system_params::components_mut::internal::ComponentMutIter;
 use crate::system_params::internal::{
     LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
+use crate::system_params::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::any::Any;
 
@@ -132,6 +133,21 @@ where
             .components
             .get_mut(location.idx)
             .and_then(|a| a.get_mut(location.pos))
+    }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        utils::get_both_mut(guard.components, location1, location2)
     }
 }
 
@@ -295,7 +311,7 @@ mod component_mut_tests {
         let location1 = core.create_entity_with_1_component(0_i8);
         core.create_entity_with_2_components(20_u32, 0_i16);
         let location2 = core.create_entity_with_2_components(30_u32, 0_i32);
-        core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
+        let location3 = core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
         core.create_entity_with_3_components(50_u32, 0_i16, 0_i64);
         core.create_entity_with_2_components(60_u32, 0_i128);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
@@ -321,5 +337,7 @@ mod component_mut_tests {
         assert_eq!(<&mut u32>::get_mut(&mut borrow, location1), None);
         assert_eq!(<&mut u32>::get(&borrow, location2), Some(&30));
         assert_eq!(<&mut u32>::get_mut(&mut borrow, location2), Some(&mut 30));
+        let items = <&mut u32>::get_both_mut(&mut borrow, location2, location3);
+        assert_eq!(items, (Some(&mut 30), Some(&mut 40)));
     }
 }

@@ -143,15 +143,22 @@ impl QuerySystemParam for Entity<'_> {
     where
         'b: 'a,
     {
-        guard
-            .data
-            .archetypes
-            .entity_idxs(location.idx)
-            .get(location.pos)
-            .map(|&e| Entity {
-                entity_idx: e,
-                data: guard.data,
-            })
+        Self::get(guard, location)
+    }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        (Self::get(guard, location1), Self::get(guard, location2))
     }
 }
 
@@ -313,8 +320,8 @@ mod entity_tests {
     fn use_system_param() {
         let mut core = CoreStorage::default();
         core.create_entity_with_1_component(0_i8);
-        core.create_entity_with_2_components(20_u32, 0_i16);
-        let location = core.create_entity_with_2_components(30_u32, 0_i32);
+        let location1 = core.create_entity_with_2_components(20_u32, 0_i16);
+        let location2 = core.create_entity_with_2_components(30_u32, 0_i32);
         core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
         core.create_entity_with_3_components(50_u32, 0_i16, 0_i64);
         core.create_entity_with_2_components(60_u32, 0_i128);
@@ -337,8 +344,11 @@ mod entity_tests {
         assert_iter(iter, [1, 3, 4]);
         let iter = Entity::query_iter_mut(&mut borrow).rev().map(Entity::id);
         assert_iter(iter, [4, 3, 1]);
-        assert_eq!(Entity::get(&borrow, location).map(Entity::id), Some(2));
-        let entity_id = Entity::get_mut(&mut borrow, location).map(Entity::id);
+        assert_eq!(Entity::get(&borrow, location2).map(Entity::id), Some(2));
+        let entity_id = Entity::get_mut(&mut borrow, location2).map(Entity::id);
         assert_eq!(entity_id, Some(2));
+        let (item1, item2) = Entity::get_both_mut(&mut borrow, location1, location2);
+        assert_eq!(item1.map(Entity::id), Some(1));
+        assert_eq!(item2.map(Entity::id), Some(2));
     }
 }

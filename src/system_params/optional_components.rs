@@ -136,6 +136,21 @@ where
                 .and_then(|a| a.get(location.pos)),
         )
     }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        (Self::get(guard, location1), Self::get(guard, location2))
+    }
 }
 
 impl<C> LockableSystemParam for Option<&C>
@@ -398,5 +413,7 @@ mod component_ref_option_tests {
         assert_eq!(item, Some(Some(&20)));
         assert_eq!(Option::<&u32>::get(&borrow, location3), Some(None));
         assert_eq!(Option::<&u32>::get_mut(&mut borrow, location3), Some(None));
+        let items = Option::<&u32>::get_both_mut(&mut borrow, location2, location3);
+        assert_eq!(items, (Some(Some(&20)), Some(None)));
     }
 }

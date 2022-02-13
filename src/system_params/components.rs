@@ -131,6 +131,21 @@ where
             .get(location.idx)
             .and_then(|a| a.get(location.pos))
     }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        (Self::get(guard, location1), Self::get(guard, location2))
+    }
 }
 
 impl<C> LockableSystemParam for &C
@@ -309,7 +324,7 @@ mod component_ref_tests {
         let location1 = core.create_entity_with_1_component(0_i8);
         core.create_entity_with_2_components(20_u32, 0_i16);
         let location2 = core.create_entity_with_2_components(30_u32, 0_i32);
-        core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
+        let location3 = core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
         core.create_entity_with_3_components(50_u32, 0_i16, 0_i64);
         core.create_entity_with_2_components(60_u32, 0_i128);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
@@ -333,5 +348,7 @@ mod component_ref_tests {
         assert_eq!(<&u32>::get_mut(&mut borrow, location1), None);
         assert_eq!(<&u32>::get(&borrow, location2), Some(&30));
         assert_eq!(<&u32>::get_mut(&mut borrow, location2), Some(&30));
+        let items = <&u32>::get_both_mut(&mut borrow, location2, location3);
+        assert_eq!(items, (Some(&30), Some(&40)));
     }
 }

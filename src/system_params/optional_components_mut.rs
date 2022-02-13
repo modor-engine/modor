@@ -9,6 +9,7 @@ use crate::system_params::internal::{
 };
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::system_params::optional_components_mut::internal::ComponentMutOptionIter;
+use crate::system_params::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::any::Any;
 
@@ -138,6 +139,22 @@ where
                 .get_mut(location.idx)
                 .and_then(|a| a.get_mut(location.pos)),
         )
+    }
+
+    #[inline]
+    fn get_both_mut<'a, 'b>(
+        guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        location1: EntityLocation,
+        location2: EntityLocation,
+    ) -> (
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+        Option<<Self as SystemParamWithLifetime<'a>>::Param>,
+    )
+    where
+        'b: 'a,
+    {
+        let (item1, item2) = utils::get_both_mut(guard.components, location1, location2);
+        (Some(item1), Some(item2))
     }
 }
 
@@ -391,5 +408,7 @@ mod component_mut_option_tests {
         assert_eq!(Option::<&mut u32>::get(&borrow, location3), Some(None));
         let item = Option::<&mut u32>::get_mut(&mut borrow, location3);
         assert_eq!(item, Some(None));
+        let items = Option::<&mut u32>::get_both_mut(&mut borrow, location2, location3);
+        assert_eq!(items, (Some(Some(&mut 20)), Some(None)))
     }
 }

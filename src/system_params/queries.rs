@@ -1,7 +1,8 @@
 use crate::queries::internal::{QueryGuard, QueryGuardBorrow};
-use crate::storages::archetypes::ArchetypeFilter;
+use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
+use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::queries::internal::QueryStream;
@@ -70,33 +71,65 @@ where
         P::query_iter_mut(&mut self.guard)
     }
 
-    /// Returns the query result for the entity with ID `entity_id`.
+    /// Returns the constant query result for the entity with ID `entity_id`.
+    ///
+    /// `None` is returned if `entity_id` does not exist or does not match the query.
     #[inline]
     pub fn get(
         &self,
         entity_id: usize,
     ) -> Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam> {
-        self.data.entities.location(entity_id.into()).and_then(|l| {
-            self.data
-                .archetypes
-                .has_types(l.idx, self.filtered_component_type_idxs)
-                .then(|| P::get(&self.guard, l))
-                .flatten()
-        })
+        self.location(entity_id.into())
+            .and_then(|l| P::get(&self.guard, l))
     }
 
     /// Returns the query result for the entity with ID `entity_id`.
+    ///
+    /// `None` is returned if `entity_id` does not exist or does not match the query.
     #[inline]
     pub fn get_mut(
         &mut self,
         entity_id: usize,
     ) -> Option<<P as SystemParamWithLifetime<'_>>::Param> {
-        self.data.entities.location(entity_id.into()).and_then(|l| {
+        self.location(entity_id.into())
+            .and_then(|l| P::get_mut(&mut self.guard, l))
+    }
+
+    /// Returns the query results for entities with IDs `entity1_id` and `entity2_id`.
+    ///
+    /// `None` is returned for each entity that does not exist or does not match the query.
+    ///
+    /// If `entity1_id` and `entity2_id` are equal, the result is returned only in the first part
+    /// of the returned tuple, and the second part contains `None`.
+    #[inline]
+    pub fn get_both_mut(
+        &mut self,
+        entity1_id: usize,
+        entity2_id: usize,
+    ) -> (
+        Option<<P as SystemParamWithLifetime<'_>>::Param>,
+        Option<<P as SystemParamWithLifetime<'_>>::Param>,
+    ) {
+        if entity1_id == entity2_id {
+            (self.get_mut(entity1_id), None)
+        } else {
+            let location1 = self.location(entity1_id.into());
+            let location2 = self.location(entity2_id.into());
+            match (location1, location2) {
+                (Some(l1), Some(l2)) => P::get_both_mut(&mut self.guard, l1, l2),
+                (Some(l1), None) => (P::get_mut(&mut self.guard, l1), None),
+                (None, Some(l2)) => (None, P::get_mut(&mut self.guard, l2)),
+                (None, None) => (None, None),
+            }
+        }
+    }
+
+    fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
+        self.data.entities.location(entity_idx).and_then(|l| {
             self.data
                 .archetypes
                 .has_types(l.idx, self.filtered_component_type_idxs)
-                .then(|| P::get_mut(&mut self.guard, l))
-                .flatten()
+                .then(|| l)
         })
     }
 }
@@ -340,26 +373,32 @@ mod query_tests {
         core.create_entity_with_2_components(10_u32, 11_i8);
         core.create_entity_with_2_components(20_u32, 21_i64);
         core.create_entity_with_2_components(30_u8, 31_i8);
+        core.create_entity_with_2_components(40_u32, 40_i64);
         let data = core.system_data();
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
             archetype_filter: &ArchetypeFilter::All,
-            item_count: 1,
+            item_count: 2,
         };
         let filtered_type_idxs = vec![2.into()];
         let mut guard = <&mut u32>::lock(data, info);
         let guard_borrow = <&mut u32>::borrow_guard(&mut guard);
         let mut query = Query::<&mut u32, With<i64>>::new(guard_borrow, &filtered_type_idxs, data);
-        assert_iter(query.iter(), [&20]);
-        assert_iter(query.iter_mut(), [&mut 20]);
+        assert_iter(query.iter(), [&20, &40]);
+        assert_iter(query.iter_mut(), [&mut 20, &mut 40]);
         assert_eq!(query.get(0), None);
-        assert_eq!(query.get(1), Some(&20_u32));
+        assert_eq!(query.get(1), Some(&20));
         assert_eq!(query.get(2), None);
-        assert_eq!(query.get(3), None);
+        assert_eq!(query.get(4), None);
         assert_eq!(query.get_mut(0), None);
-        assert_eq!(query.get_mut(1), Some(&mut 20_u32));
+        assert_eq!(query.get_mut(1), Some(&mut 20));
         assert_eq!(query.get_mut(2), None);
-        assert_eq!(query.get_mut(3), None);
+        assert_eq!(query.get_mut(4), None);
+        assert_eq!(query.get_both_mut(1, 3), (Some(&mut 20), Some(&mut 40)));
+        assert_eq!(query.get_both_mut(1, 2), (Some(&mut 20), None));
+        assert_eq!(query.get_both_mut(2, 3), (None, Some(&mut 40)));
+        assert_eq!(query.get_both_mut(0, 2), (None, None));
+        assert_eq!(query.get_both_mut(1, 1), (Some(&mut 20), None));
     }
 
     #[test]
