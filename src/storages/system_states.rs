@@ -176,6 +176,7 @@ mod system_state_storage_tests {
         storage.add_system(vec![], true, action_idx);
         storage.add_system(vec![], true, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
         let locked_system = storage.lock_next_system(None, &actions);
@@ -201,6 +202,7 @@ mod system_state_storage_tests {
         storage.add_system(vec![component_type_access], false, action_idx);
         storage.add_system(vec![component_type_access], false, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
         let locked_system = storage.lock_next_system(None, &actions);
@@ -224,6 +226,7 @@ mod system_state_storage_tests {
         let mut storage = SystemStateStorage::default();
         storage.add_system(vec![], false, action1_idx);
         storage.add_system(vec![], false, action2_idx);
+        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
         let locked_system = storage.lock_next_system(None, &actions);
         assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));

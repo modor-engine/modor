@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
 macro_rules! ti_vec {
@@ -50,19 +51,25 @@ pub(crate) fn get_both_mut<K, T>(
     key2: K,
 ) -> (Option<&mut T>, Option<&mut T>)
 where
-    K: PartialOrd + From<usize> + Copy,
+    K: Ord + From<usize> + Copy,
     usize: From<K>,
 {
-    if key1 == key2 || key2 >= data.next_key() {
+    if key2 >= data.next_key() {
         (data.get_mut(key1), None)
     } else if key1 >= data.next_key() {
         (None, data.get_mut(key2))
-    } else if key1 < key2 {
-        let (left, right) = data.split_at_mut(key2);
-        (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
     } else {
-        let (left, right) = data.split_at_mut(key1);
-        (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
+        match key1.cmp(&key2) {
+            Ordering::Equal => (data.get_mut(key1), None),
+            Ordering::Less => {
+                let (left, right) = data.split_at_mut(key2);
+                (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
+            }
+            Ordering::Greater => {
+                let (left, right) = data.split_at_mut(key1);
+                (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
+            }
+        }
     }
 }
 

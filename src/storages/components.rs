@@ -229,6 +229,7 @@ mod component_storage_tests {
         assert!(storage.is_entity_type::<u32>());
         assert!(!storage.is_entity_type::<i64>());
         assert!(storage.is_entity_type::<u16>());
+        assert!(!storage.is_entity_type::<String>());
     }
 
     #[test]
@@ -237,22 +238,26 @@ mod component_storage_tests {
         let type_idx = storage.type_idx_or_create::<u32>();
         let archetype1_idx = 1.into();
         let archetype2_idx = 2.into();
-        let location1 = EntityLocation::new(archetype1_idx, 0.into());
+        let archetype3_idx = 3.into();
+        let location1 = EntityLocation::new(archetype2_idx, 0.into());
         storage.add(type_idx, location1, 10_u32);
-        storage.add(type_idx, location1, 20_u32);
-        let location2 = EntityLocation::new(archetype1_idx, 1.into());
+        let location2 = EntityLocation::new(archetype1_idx, 0.into());
+        storage.add(type_idx, location2, 20_u32);
         storage.add(type_idx, location2, 30_u32);
-        let location3 = EntityLocation::new(archetype1_idx, 2.into());
+        let location3 = EntityLocation::new(archetype1_idx, 1.into());
         storage.add(type_idx, location3, 40_u32);
-        let location4 = EntityLocation::new(archetype1_idx, 3.into());
+        let location4 = EntityLocation::new(archetype1_idx, 2.into());
         storage.add(type_idx, location4, 50_u32);
-        storage.move_(type_idx, location1, archetype2_idx);
-        storage.delete(type_idx, location1);
-        let components = ti_vec![ti_vec![], ti_vec![40_u32, 30], ti_vec![20]];
+        let location5 = EntityLocation::new(archetype1_idx, 3.into());
+        storage.add(type_idx, location5, 60_u32);
+        storage.move_(type_idx, location2, archetype3_idx);
+        storage.delete(type_idx, location2);
+        let components = ti_vec![ti_vec![], ti_vec![50_u32, 40], ti_vec![10], ti_vec![30]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
         assert_eq!(&*storage.write_components::<u32>(), &components);
         let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
-        assert_eq!(sorted_archetype_idxs, [archetype1_idx, archetype2_idx]);
-        assert_eq!(storage.count(type_idx), 3);
+        let expected_sorted_archetypes = [archetype1_idx, archetype2_idx, archetype3_idx];
+        assert_eq!(sorted_archetype_idxs, expected_sorted_archetypes);
+        assert_eq!(storage.count(type_idx), 4);
     }
 }

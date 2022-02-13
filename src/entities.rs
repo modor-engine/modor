@@ -132,9 +132,8 @@ where
             src_location: self.src_location,
             dst_archetype_idx: archetype_idx,
             added_components: AddedComponents {
-                component,
+                component: Some(component),
                 type_idx,
-                is_added: true,
                 other_components: self.added_components,
             },
             phantom: PhantomData,
@@ -161,9 +160,8 @@ where
                 src_location: self.src_location,
                 dst_archetype_idx: self.dst_archetype_idx,
                 added_components: AddedComponents {
-                    component,
+                    component: None,
                     type_idx,
-                    is_added: false,
                     other_components: self.added_components,
                 },
                 phantom: PhantomData,
@@ -418,9 +416,8 @@ mod internal {
     }
 
     pub struct AddedComponents<C, A> {
-        pub(super) component: C,
+        pub(super) component: Option<C>,
         pub(super) type_idx: ComponentTypeIdx,
-        pub(super) is_added: bool,
         pub(super) other_components: A,
     }
 
@@ -431,10 +428,10 @@ mod internal {
     {
         fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation) {
             self.other_components.add(storage, location);
-            if self.is_added {
+            if let Some(component) = self.component {
                 storage
                     .0
-                    .add_component(self.component, self.type_idx, location);
+                    .add_component(component, self.type_idx, location);
             }
         }
     }
@@ -509,6 +506,7 @@ mod entity_builder_tests {
         assert_component_eq::<i8>(&core, archetype_idx, archetype_pos, None);
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ParentEntity(40)));
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ChildEntity(50)));
+        assert!(core.components().is_entity_type::<ChildEntity>());
     }
 
     fn assert_component_eq<C>(

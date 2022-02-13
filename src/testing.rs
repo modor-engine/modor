@@ -239,6 +239,9 @@ mod test_app_tests {
         app.assert_entity(1).does_not_exist();
         assert_panics!(app.assert_entity(entity_id).does_not_exist());
         assert_panics!(app.assert_entity(entity_id).has::<String, _>(|_| ()));
+        assert_panics!(app
+            .assert_entity(entity_id)
+            .has::<TestEntity, _>(|_| panic!()));
         assert_panics!(app.assert_entity(entity_id).has_not::<TestEntity>());
         assert_panics!(app.assert_entity(1).exists());
         assert_panics!(app.assert_entity(1).has::<String, _>(|_| ()));
