@@ -295,7 +295,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx, None);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -312,7 +312,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx, None);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -327,7 +327,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx, None);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -345,7 +345,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx, None);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -363,7 +363,7 @@ mod system_data_tests {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx);
+        let (_, location) = core.create_entity(archetype2_idx, None);
         core.add_component(10_u32, type1_idx, location);
         core.add_component(20_i64, type2_idx, location);
         let data = core.system_data();
@@ -389,9 +389,9 @@ mod system_data_tests {
     fn retrieve_item_count_with_not_none_archetype_filter() {
         let mut core = CoreStorage::default();
         let (_, archetype_idx) = core.add_component_type::<u32>(0.into());
-        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
-        core.create_entity(archetype_idx);
-        core.create_entity(archetype_idx);
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
+        core.create_entity(archetype_idx, None);
+        core.create_entity(archetype_idx, None);
         let data = core.system_data();
 
         let item_count = data.item_count(&[], &ArchetypeFilter::All);

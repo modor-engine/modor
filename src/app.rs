@@ -56,8 +56,10 @@ impl App {
     {
         let entity_builder = EntityBuilder {
             core: &mut self.0,
+            entity_idx: None,
             src_location: None,
             dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+            parent_idx: None,
             added_components: (),
             phantom: PhantomData,
         };

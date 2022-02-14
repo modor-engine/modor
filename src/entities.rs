@@ -1,7 +1,8 @@
 use crate::entities::internal::{AddedComponents, ComponentAdd, StorageWrapper};
 use crate::storages::actions::{ActionDependencies, ActionIdx};
-use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
+use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
+use crate::storages::entities::EntityIdx;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
@@ -76,8 +77,10 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
 /// See [`EntityMainComponent`](crate::EntityMainComponent).
 pub struct EntityBuilder<'a, E, A = ()> {
     pub(crate) core: &'a mut CoreStorage,
+    pub(crate) entity_idx: Option<EntityIdx>,
     pub(crate) src_location: Option<EntityLocation>,
     pub(crate) dst_archetype_idx: ArchetypeIdx,
+    pub(crate) parent_idx: Option<EntityIdx>,
     pub(crate) added_components: A,
     pub(crate) phantom: PhantomData<E>,
 }
@@ -87,6 +90,36 @@ where
     E: EntityMainComponent,
     A: ComponentAdd,
 {
+    /// Create a child entity with main component of type `C` and building data `data`.
+    pub fn with_child<C>(self, data: C::Data) -> EntityBuilder<'a, E, ()>
+    where
+        C: EntityMainComponent,
+    {
+        let parent_idx = self.parent_idx;
+        let (core, entity_idx, location) = self.build();
+        C::build(
+            EntityBuilder {
+                core,
+                entity_idx: None,
+                src_location: None,
+                dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+                parent_idx: Some(entity_idx),
+                added_components: (),
+                phantom: PhantomData,
+            },
+            data,
+        );
+        EntityBuilder {
+            core,
+            entity_idx: Some(entity_idx),
+            src_location: Some(location),
+            dst_archetype_idx: location.idx,
+            parent_idx,
+            added_components: (),
+            phantom: PhantomData,
+        }
+    }
+
     /// Inherits from an entity with main component type `P` and building data `data`.
     ///
     /// Components and systems of the parent entity are added to the built entity.
@@ -99,12 +132,15 @@ where
     where
         P: EntityMainComponent,
     {
-        let (core, location) = self.build();
+        let parent_idx = self.parent_idx;
+        let (core, entity_idx, location) = self.build();
         let built = P::build(
             EntityBuilder {
                 core,
+                entity_idx: Some(entity_idx),
                 src_location: Some(location),
                 dst_archetype_idx: location.idx,
+                parent_idx,
                 added_components: (),
                 phantom: PhantomData,
             },
@@ -112,8 +148,10 @@ where
         );
         EntityBuilder {
             core,
+            entity_idx: Some(entity_idx),
             src_location: Some(built.0),
             dst_archetype_idx: built.0.idx,
+            parent_idx,
             added_components: (),
             phantom: PhantomData,
         }
@@ -129,8 +167,10 @@ where
         let (type_idx, archetype_idx) = self.core.add_component_type::<C>(self.dst_archetype_idx);
         EntityBuilder {
             core: self.core,
+            entity_idx: self.entity_idx,
             src_location: self.src_location,
             dst_archetype_idx: archetype_idx,
+            parent_idx: self.parent_idx,
             added_components: AddedComponents {
                 component: Some(component),
                 type_idx,
@@ -157,8 +197,10 @@ where
             let (type_idx, _) = self.core.add_component_type::<C>(self.dst_archetype_idx);
             EntityBuilder {
                 core: self.core,
+                entity_idx: self.entity_idx,
                 src_location: self.src_location,
                 dst_archetype_idx: self.dst_archetype_idx,
+                parent_idx: self.parent_idx,
                 added_components: AddedComponents {
                     component: None,
                     type_idx,
@@ -180,19 +222,24 @@ where
                 phantom: PhantomData,
             });
         }
-        let (_, location) = builder.build();
+        let (_, _, location) = builder.build();
         Built(location)
     }
 
-    fn build(self) -> (&'a mut CoreStorage, EntityLocation) {
-        let location = if let Some(src_location) = self.src_location {
-            self.core.move_entity(src_location, self.dst_archetype_idx)
+    fn build(self) -> (&'a mut CoreStorage, EntityIdx, EntityLocation) {
+        let (entity_idx, location) = if let Some(src_location) = self.src_location {
+            let entity_idx = self
+                .entity_idx
+                .expect("internal error: missing index of modified entity");
+            let location = self.core.move_entity(src_location, self.dst_archetype_idx);
+            (entity_idx, location)
         } else {
-            self.core.create_entity(self.dst_archetype_idx).1
+            self.core
+                .create_entity(self.dst_archetype_idx, self.parent_idx)
         };
         let mut storage = StorageWrapper(self.core);
         self.added_components.add(&mut storage, location);
-        (self.core, location)
+        (self.core, entity_idx, location)
     }
 }
 
@@ -470,6 +517,17 @@ mod entity_builder_tests {
     }
 
     #[derive(Debug, PartialEq)]
+    struct TestEntity(u32);
+
+    impl EntityMainComponent for TestEntity {
+        type Data = u32;
+
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
+        }
+    }
+
+    #[derive(Debug, PartialEq)]
     struct ChildEntity(u32);
 
     impl EntityMainComponent for ChildEntity {
@@ -483,10 +541,12 @@ mod entity_builder_tests {
     #[test]
     fn build_entity() {
         let mut core = CoreStorage::default();
-        let builder = EntityBuilder::<ChildEntity> {
+        let builder = EntityBuilder::<TestEntity> {
             core: &mut core,
             src_location: None,
             dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+            entity_idx: None,
+            parent_idx: None,
             added_components: (),
             phantom: PhantomData,
         };
@@ -494,17 +554,20 @@ mod entity_builder_tests {
             .with(10_u32)
             .with_if(0_i64, true)
             .with_if(20_i64, true)
+            .with_child::<ChildEntity>(60)
             .with_if(30_i8, false)
             .inherit_from::<ParentEntity>(40)
-            .with_self(ChildEntity(50));
-        let archetype_idx = ArchetypeIdx::from(5);
+            .with_self(TestEntity(50));
+        let archetype_idx = ArchetypeIdx::from(6);
         let archetype_pos = ArchetypeEntityPos::from(0);
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&10_u32));
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&20_i64));
         assert_component_eq::<i8>(&core, archetype_idx, archetype_pos, None);
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ParentEntity(40)));
-        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&ChildEntity(50)));
-        assert!(core.components().is_entity_type::<ChildEntity>());
+        assert_component_eq(&core, archetype_idx, archetype_pos, Some(&TestEntity(50)));
+        assert_component_eq(&core, 3.into(), 0.into(), Some(&ChildEntity(60)));
+        assert!(core.components().is_entity_type::<TestEntity>());
+        assert_eq!(core.entities().parent_idx(1.into()), Some(0.into()));
     }
 
     fn assert_component_eq<C>(

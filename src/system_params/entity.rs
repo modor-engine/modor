@@ -5,6 +5,7 @@ use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use std::iter::FusedIterator;
 
 /// A system parameter for retrieving information about the entity.
 ///
@@ -23,7 +24,6 @@ use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 #[derive(Clone, Copy)]
 pub struct Entity<'a> {
     entity_idx: EntityIdx,
-    #[allow(dead_code)] // will be used in the future
     data: SystemData<'a>,
 }
 
@@ -33,6 +33,39 @@ impl<'a> Entity<'a> {
     /// Entity IDs are unique and can be recycled in case the entity is deleted.
     pub fn id(self) -> usize {
         self.entity_idx.into()
+    }
+
+    /// Returns the entity parent.
+    pub fn parent(self) -> Option<Self> {
+        self.data
+            .entities
+            .parent_idx(self.entity_idx)
+            .map(|p| Self {
+                entity_idx: p,
+                data: self.data,
+            })
+    }
+
+    /// Returns an iterator on entity children.
+    pub fn children(
+        &self,
+    ) -> impl Iterator<Item = Entity<'_>> + DoubleEndedIterator + ExactSizeIterator + FusedIterator
+    {
+        self.data
+            .entities
+            .child_idxs(self.entity_idx)
+            .iter()
+            .map(|&c| Self {
+                entity_idx: c,
+                data: self.data,
+            })
+    }
+
+    /// Returns the entity depth in the entity hierarchy.
+    ///
+    /// Root entities have a depth of `0`.
+    pub fn depth(self) -> usize {
+        self.data.entities.depth(self.entity_idx)
     }
 }
 
@@ -293,8 +326,8 @@ mod entity_tests {
     #[test]
     fn retrieve_entity_info() {
         let mut core = CoreStorage::default();
-        let (entity1_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
-        let (entity2_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        let (entity1_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
+        let (entity2_idx, _) = core.create_entity(ArchetypeStorage::DEFAULT_IDX, Some(entity1_idx));
         let entity1 = Entity {
             entity_idx: entity1_idx,
             data: core.system_data(),
@@ -305,6 +338,12 @@ mod entity_tests {
         };
         assert_eq!(entity1.id(), 0);
         assert_eq!(entity2.id(), 1);
+        assert_eq!(entity1.depth(), 0);
+        assert_eq!(entity2.depth(), 1);
+        assert_eq!(entity1.parent().map(Entity::id), None);
+        assert_eq!(entity2.parent().map(Entity::id), Some(entity1_idx.into()));
+        assert_iter(entity1.children().map(Entity::id), [entity2_idx.into()]);
+        assert_iter(entity2.children().map(Entity::id), []);
     }
 
     #[test]

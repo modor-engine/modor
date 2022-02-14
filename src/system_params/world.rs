@@ -202,7 +202,7 @@ mod world_tests {
     fn use_world() {
         let mut core = CoreStorage::default();
         core.create_entity_with_1_component(10_u32);
-        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
         core.create_entity_with_1_component(20_i8);
         let data = core.system_data();
         let mut world = World { data };
