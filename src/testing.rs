@@ -208,7 +208,7 @@ impl EntityAssertion<'_> {
         let child_ids = self
             .core
             .entities()
-            .child_idxs(self.entity_idx.into())
+            .child_idxs(self.entity_idx)
             .iter()
             .copied()
             .map(usize::from)

@@ -77,7 +77,7 @@ impl EntityStorage {
     ) where
         F: FnMut(&mut Self, EntityLocation),
     {
-        for child_idx in mem::replace(&mut self.child_idxs[entity_idx], vec![]) {
+        for child_idx in mem::take(&mut self.child_idxs[entity_idx]) {
             self.delete_internal(child_idx, for_each_deleted_entity_fn);
         }
         self.deleted_idxs.push(entity_idx);

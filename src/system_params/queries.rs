@@ -124,12 +124,71 @@ where
         }
     }
 
+    /// Returns the constant query results for entity with ID `entity_id` and its first parent that
+    /// matches the query.
+    ///
+    /// For example, the entity has a direct parent that does not match the query,
+    /// but has a grand parent that matches. It means the second part of the returned value
+    /// is the query result corresponding to the grand parent.
+    ///
+    /// `None` is returned for the entity if it does not exist or does not match the query.<br>
+    /// `None` is returned for the first matching parent if it is not found.
+    #[inline]
+    pub fn get_with_first_parent(
+        &self,
+        entity_id: usize,
+    ) -> (
+        Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam>,
+        Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam>,
+    ) {
+        (
+            self.get(entity_id),
+            self.first_parent(entity_id.into())
+                .and_then(|p| self.get(p.into())),
+        )
+    }
+
+    /// Returns the query results for entity with ID `entity_id` and its first parent that
+    /// matches the query.
+    ///
+    /// For example, the entity has a direct parent that does not match the query,
+    /// but has a grand parent that matches. It means the second part of the returned value
+    /// is the query result corresponding to the grand parent.
+    ///
+    /// `None` is returned for the entity if it does not exist or does not match the query.<br>
+    /// `None` is returned for the first matching parent if it is not found.
+    #[inline]
+    pub fn get_with_first_parent_mut(
+        &mut self,
+        entity_id: usize,
+    ) -> (
+        Option<<P as SystemParamWithLifetime<'_>>::Param>,
+        Option<<P as SystemParamWithLifetime<'_>>::Param>,
+    ) {
+        if let Some(first_parent_idx) = self.first_parent(entity_id.into()) {
+            self.get_both_mut(entity_id, first_parent_idx.into())
+        } else {
+            (self.get_mut(entity_id), None)
+        }
+    }
+
     fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
         self.data.entities.location(entity_idx).and_then(|l| {
             self.data
                 .archetypes
                 .has_types(l.idx, self.filtered_component_type_idxs)
                 .then(|| l)
+        })
+    }
+
+    fn first_parent(&self, entity_idx: EntityIdx) -> Option<EntityIdx> {
+        let parent_idx = self.data.entities.parent_idx(entity_idx);
+        parent_idx.and_then(|p| {
+            if self.get(p.into()).is_some() {
+                Some(p)
+            } else {
+                self.first_parent(p)
+            }
         })
     }
 }
@@ -364,16 +423,17 @@ mod query_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{Query, SystemInfo, SystemParam, With};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     assert_impl_all!(Query<'_, ()>: Sync, Send, Unpin);
 
     #[test]
     fn use_query() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_2_components(10_u32, 11_i8);
-        core.create_entity_with_2_components(20_u32, 21_i64);
-        core.create_entity_with_2_components(30_u8, 31_i8);
-        core.create_entity_with_2_components(40_u32, 40_i64);
+        core.create_entity_with_2_components(10_u32, 11_i8, None);
+        core.create_entity_with_2_components(20_u32, 21_i64, Some(0.into()));
+        core.create_entity_with_2_components(30_u8, 31_i8, Some(1.into()));
+        core.create_entity_with_2_components(40_u32, 40_i64, Some(2.into()));
         let data = core.system_data();
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
@@ -399,6 +459,15 @@ mod query_tests {
         assert_eq!(query.get_both_mut(2, 3), (None, Some(&mut 40)));
         assert_eq!(query.get_both_mut(0, 2), (None, None));
         assert_eq!(query.get_both_mut(1, 1), (Some(&mut 20), None));
+        assert_eq!(query.get_with_first_parent(0), (None, None));
+        assert_eq!(query.get_with_first_parent(1), (Some(&20), None));
+        assert_eq!(query.get_with_first_parent(2), (None, Some(&20)));
+        assert_eq!(query.get_with_first_parent(3), (Some(&40), Some(&20)));
+        assert_eq!(query.get_with_first_parent_mut(0), (None, None));
+        assert_eq!(query.get_with_first_parent_mut(1), (Some(&mut 20), None));
+        assert_eq!(query.get_with_first_parent_mut(2), (None, Some(&mut 20)));
+        let results = query.get_with_first_parent_mut(3);
+        assert_eq!(results, (Some(&mut 40), Some(&mut 20)));
     }
 
     #[test]
@@ -415,7 +484,7 @@ mod query_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_2_components(0_u32, 0_i64);
+        core.create_entity_with_2_components(0_u32, 0_i64, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],

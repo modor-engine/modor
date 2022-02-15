@@ -451,6 +451,7 @@ mod empty_tuple_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties() {
@@ -464,7 +465,7 @@ mod empty_tuple_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location = core.create_entity_with_1_component(0_u32);
+        let location = core.create_entity_with_1_component(0_u32, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
@@ -498,6 +499,7 @@ mod tuple_with_one_item_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties() {
@@ -514,10 +516,10 @@ mod tuple_with_one_item_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location1 = core.create_entity_with_2_components(10_u32, 0_i16);
-        core.create_entity_with_2_components(20_u32, 0_i16);
-        let location2 = core.create_entity_with_1_component(30_u32);
-        let location3 = core.create_entity_with_1_component(40_i64);
+        let location1 = core.create_entity_with_2_components(10_u32, 0_i16, None);
+        core.create_entity_with_2_components(20_u32, 0_i16, None);
+        let location2 = core.create_entity_with_1_component(30_u32, None);
+        let location3 = core.create_entity_with_1_component(40_i64, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
@@ -554,6 +556,7 @@ mod tuple_with_two_items_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties_when_can_update() {
@@ -584,10 +587,10 @@ mod tuple_with_two_items_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location1 = core.create_entity_with_2_components(10_u32, 100_i16);
-        core.create_entity_with_2_components(20_u32, 200_i16);
-        let location2 = core.create_entity_with_1_component(30_u32);
-        let location3 = core.create_entity_with_1_component(40_i64);
+        let location1 = core.create_entity_with_2_components(10_u32, 100_i16, None);
+        core.create_entity_with_2_components(20_u32, 200_i16, None);
+        let location2 = core.create_entity_with_1_component(30_u32, None);
+        let location3 = core.create_entity_with_1_component(40_i64, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
@@ -631,6 +634,7 @@ mod tuple_with_more_than_two_items_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     macro_rules! test_tuple_retrieve_system_param_properties {
         (($($types:ident),*), ($($indexes:tt),*)) => {
@@ -676,8 +680,8 @@ mod tuple_with_more_than_two_items_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location1 = core.create_entity_with_3_components(10_u32, 100_i16, 1000_i64);
-        let location2 = core.create_entity_with_3_components(20_u32, 200_i16, 2000_i64);
+        let location1 = core.create_entity_with_3_components(10_u32, 100_i16, 1000_i64, None);
+        let location2 = core.create_entity_with_3_components(20_u32, 200_i16, 2000_i64, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],

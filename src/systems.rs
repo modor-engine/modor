@@ -415,6 +415,7 @@ mod system_tests {
     use crate::storages::systems::Access;
     use crate::{System, SystemInfo};
     use std::any::TypeId;
+    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_properties_fn() {
@@ -433,9 +434,9 @@ mod system_tests {
     #[test]
     fn use_system() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_2_components(10_u32, 100_i16);
-        core.create_entity_with_2_components(20_u32, 200_i16);
-        core.create_entity_with_1_component(30_u32);
+        core.create_entity_with_2_components(10_u32, 100_i16, None);
+        core.create_entity_with_2_components(20_u32, 200_i16, None);
+        core.create_entity_with_1_component(30_u32, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let system = |_: &u32, _: &mut i16| ();
         let info = SystemInfo {

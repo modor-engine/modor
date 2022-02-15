@@ -103,31 +103,12 @@ impl DisplayManager {
 }
 
 #[test]
-fn init() {
+fn run_ordered_systems() {
     let mut app = TestApp::new();
     let enemy_id = app.create_entity::<Enemy>(Position(0, 0));
     let display_manager_id = app.create_entity::<DisplayManager>(());
     let selection_id = app.create_entity::<Selection>(Position(0, 0));
-
-    app.assert_entity(enemy_id)
-        .has::<Position, _>(|c| assert_eq!(c, &Position(0, 0)))
-        .has::<Enemy, _>(|_| ());
-    app.assert_entity(display_manager_id)
-        .has::<DisplayManager, _>(|c| assert_eq!(c.0, 0))
-        .has::<DisplayManager, _>(|c| assert!(c.1.is_empty()));
-    app.assert_entity(selection_id)
-        .has::<Selection, _>(|c| assert_eq!(c.0, Position(0, 0)));
-}
-
-#[test]
-fn update() {
-    let mut app = TestApp::new();
-    let enemy_id = app.create_entity::<Enemy>(Position(0, 0));
-    let display_manager_id = app.create_entity::<DisplayManager>(());
-    let selection_id = app.create_entity::<Selection>(Position(0, 0));
-
     app.update();
-
     app.assert_entity(enemy_id)
         .has::<Position, _>(|c| assert_eq!(c, &Position(1, 2)))
         .has::<Enemy, _>(|_| ());

@@ -227,6 +227,7 @@ mod core_storage_tests {
     use crate::storages::actions::ActionDependencies;
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
+    use crate::storages::entities::EntityIdx;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
     use crate::SystemData;
 
@@ -241,13 +242,17 @@ mod core_storage_tests {
             }
         }
 
-        pub(crate) fn create_entity_with_1_component<C>(&mut self, component: C) -> EntityLocation
+        pub(crate) fn create_entity_with_1_component<C>(
+            &mut self,
+            component: C,
+            parent_idx: Option<EntityIdx>,
+        ) -> EntityLocation
         where
             C: Any + Sync + Send,
         {
             let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
             let (type_idx, archetype2_idx) = self.add_component_type::<C>(archetype1_idx);
-            let (_, location) = self.create_entity(archetype2_idx, None);
+            let (_, location) = self.create_entity(archetype2_idx, parent_idx);
             self.add_component(component, type_idx, location);
             location
         }
@@ -256,6 +261,7 @@ mod core_storage_tests {
             &mut self,
             component1: C1,
             component2: C2,
+            parent_idx: Option<EntityIdx>,
         ) -> EntityLocation
         where
             C1: Any + Sync + Send,
@@ -264,7 +270,7 @@ mod core_storage_tests {
             let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
             let (type1_idx, archetype2_idx) = self.add_component_type::<C1>(archetype1_idx);
             let (type2_idx, archetype3_idx) = self.add_component_type::<C2>(archetype2_idx);
-            let (_, location) = self.create_entity(archetype3_idx, None);
+            let (_, location) = self.create_entity(archetype3_idx, parent_idx);
             self.add_component(component1, type1_idx, location);
             self.add_component(component2, type2_idx, location);
             location
@@ -275,6 +281,7 @@ mod core_storage_tests {
             component1: C1,
             component2: C2,
             component3: C3,
+            parent_idx: Option<EntityIdx>,
         ) -> EntityLocation
         where
             C1: Any + Sync + Send,
@@ -285,7 +292,7 @@ mod core_storage_tests {
             let (type1_idx, archetype2_idx) = self.add_component_type::<C1>(archetype1_idx);
             let (type2_idx, archetype3_idx) = self.add_component_type::<C2>(archetype2_idx);
             let (type3_idx, archetype4_idx) = self.add_component_type::<C3>(archetype3_idx);
-            let (_, location) = self.create_entity(archetype4_idx, None);
+            let (_, location) = self.create_entity(archetype4_idx, parent_idx);
             self.add_component(component1, type1_idx, location);
             self.add_component(component2, type2_idx, location);
             self.add_component(component3, type3_idx, location);
