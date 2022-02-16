@@ -17,8 +17,8 @@ impl EntityMainComponent for Node {
             builder = builder.with_child::<Self>(levels - 1);
         }
         builder
-            .with_if(RelPosition(levels), levels % 2 == 1)
-            .with_if(AbsPosition(levels), levels % 2 == 1)
+            .with_option((levels % 2 == 1).then(|| RelPosition(levels)))
+            .with_option((levels % 2 == 1).then(|| AbsPosition(levels)))
             .with_self(Self)
     }
 

@@ -180,18 +180,14 @@ where
         }
     }
 
-    /// Adds a component of type `C` only if `condition` equals `true`.
+    /// Adds a component of type `C` only if `component` is not `None`.
     ///
-    /// If `condition` equals `true` and a component of type `C` already exists, it is overwritten.
-    pub fn with_if<C>(
-        self,
-        component: C,
-        condition: bool,
-    ) -> EntityBuilder<'a, E, AddedComponents<C, A>>
+    /// If `component` is not `None` and a component of type `C` already exists, it is overwritten.
+    pub fn with_option<C>(self, component: Option<C>) -> EntityBuilder<'a, E, AddedComponents<C, A>>
     where
         C: Any + Sync + Send,
     {
-        if condition {
+        if let Some(component) = component {
             self.with(component)
         } else {
             let (type_idx, _) = self.core.add_component_type::<C>(self.dst_archetype_idx);
@@ -552,10 +548,10 @@ mod entity_builder_tests {
         };
         builder
             .with(10_u32)
-            .with_if(0_i64, true)
-            .with_if(20_i64, true)
+            .with_option(Some(0_i64))
+            .with_option(Some(20_i64))
             .with_child::<ChildEntity>(60)
-            .with_if(30_i8, false)
+            .with_option::<i8>(None)
             .inherit_from::<ParentEntity>(40)
             .with_self(TestEntity(50));
         let archetype_idx = ArchetypeIdx::from(6);

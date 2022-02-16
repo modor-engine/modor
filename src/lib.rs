@@ -39,7 +39,7 @@
 //!
 //!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
 //!         builder
-//!             .with_if(Enemy, matches!(type_, CharacterType::Enemy))
+//!             .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
 //!             .with(position)
 //!             .with_self(Self { ammunition: 10 })
 //!     }
