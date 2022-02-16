@@ -24,29 +24,18 @@ impl EntityMainComponent for Text {
 }
 
 #[test]
-fn init() {
+fn configure_app() {
     let app = App::new()
         .with_thread_count(2)
         .with_entity::<Number>(10)
         .with_entity::<Text>("text".into());
-
-    let app = TestApp::from(app);
+    let mut app = TestApp::from(app);
     app.assert_entity(0)
         .has::<Number, _>(|c| assert_eq!(c, &Number(10)));
     app.assert_entity(1)
         .has::<Text, _>(|c| assert_eq!(c, &Text("text".into())));
-}
-
-#[test]
-fn update() {
-    let mut app = App::new()
-        .with_thread_count(2)
-        .with_entity::<Number>(10)
-        .with_entity::<Text>("text".into());
 
     app.update();
-
-    let app = TestApp::from(app);
     app.assert_entity(0)
         .has::<Number, _>(|c| assert_eq!(c, &Number(10)));
     app.assert_entity(1)

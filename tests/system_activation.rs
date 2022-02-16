@@ -45,9 +45,7 @@ impl Action {
 fn keep_system_disabled() {
     let mut app = TestApp::new();
     let counter_id = app.create_entity::<SignalCounter>(());
-
     app.update();
-
     app.assert_entity(counter_id)
         .has::<SignalCounter, _>(|c| assert_eq!(c.0, 0));
 }
@@ -58,9 +56,7 @@ fn activate_system() {
     let counter_id = app.create_entity::<SignalCounter>(());
     app.create_entity::<Action>(());
     app.create_entity::<Action>(());
-
     app.update();
-
     app.assert_entity(counter_id)
         .has::<SignalCounter, _>(|c| assert_eq!(c.0, 1));
 }
@@ -71,10 +67,8 @@ fn deactivate_system() {
     let counter_id = app.create_entity::<SignalCounter>(());
     app.create_entity::<Action>(());
     app.create_entity::<Action>(());
-
     app.update();
     app.update();
-
     app.assert_entity(counter_id)
         .has::<SignalCounter, _>(|c| assert_eq!(c.0, 1));
 }
@@ -85,13 +79,11 @@ fn reactivate_system() {
     let counter_id = app.create_entity::<SignalCounter>(());
     app.create_entity::<Action>(());
     app.create_entity::<Action>(());
-
     app.update();
     app.update();
     app.create_entity::<Action>(());
     app.create_entity::<Action>(());
     app.update();
-
     app.assert_entity(counter_id)
         .has::<SignalCounter, _>(|c| assert_eq!(c.0, 2));
 }

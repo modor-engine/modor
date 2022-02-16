@@ -201,9 +201,9 @@ mod world_tests {
     #[test]
     fn use_world() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_1_component(10_u32);
-        core.create_entity(ArchetypeStorage::DEFAULT_IDX);
-        core.create_entity_with_1_component(20_i8);
+        core.create_entity_with_1_component(10_u32, None);
+        core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
+        core.create_entity_with_1_component(20_i8, None);
         let data = core.system_data();
         let mut world = World { data };
         world.delete_entity(0);
@@ -227,7 +227,7 @@ mod world_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_1_component(0_u32);
+        core.create_entity_with_1_component(0_u32, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],

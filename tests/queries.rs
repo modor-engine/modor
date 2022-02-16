@@ -111,34 +111,13 @@ impl Object {
 }
 
 #[test]
-fn init() {
+fn run_queries() {
     let mut app = TestApp::new();
     let object1_id = app.create_entity::<Object>((Position::new(0, 0), Size::new(1, 1)));
     let _ = app.create_entity::<Point>(Position::new(0, 0));
     let object2_id = app.create_entity::<Object>((Position::new(5, 4), Size::new(2, 1)));
     let object3_id = app.create_entity::<Object>((Position::new(-1, -2), Size::new(3, 4)));
-
-    app.assert_entity(object1_id)
-        .has::<Object, _>(|c| assert!(!c.is_collided_1))
-        .has::<Object, _>(|c| assert!(!c.is_collided_2));
-    app.assert_entity(object2_id)
-        .has::<Object, _>(|c| assert!(!c.is_collided_1))
-        .has::<Object, _>(|c| assert!(!c.is_collided_2));
-    app.assert_entity(object3_id)
-        .has::<Object, _>(|c| assert!(!c.is_collided_1))
-        .has::<Object, _>(|c| assert!(!c.is_collided_2));
-}
-
-#[test]
-fn update() {
-    let mut app = TestApp::new();
-    let object1_id = app.create_entity::<Object>((Position::new(0, 0), Size::new(1, 1)));
-    let _ = app.create_entity::<Point>(Position::new(0, 0));
-    let object2_id = app.create_entity::<Object>((Position::new(5, 4), Size::new(2, 1)));
-    let object3_id = app.create_entity::<Object>((Position::new(-1, -2), Size::new(3, 4)));
-
     app.update();
-
     app.assert_entity(object1_id)
         .has::<Object, _>(|c| assert!(c.is_collided_1))
         .has::<Object, _>(|c| assert!(c.is_collided_2));

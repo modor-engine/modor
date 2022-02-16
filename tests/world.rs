@@ -116,14 +116,13 @@ impl EntityWithNotRegisteredComponentTypeDeleted {
 }
 
 #[test]
-fn init() {
+fn use_world() {
     let mut app = TestApp::new();
     let entity1_id = app.create_entity::<EntityToDelete>(10);
     let entity2_id = app.create_entity::<EntityWithAddedComponent>(20);
     let entity3_id = app.create_entity::<EntityWithExistingComponentDeleted>(30);
     let entity4_id = app.create_entity::<EntityWithMissingComponentDeleted>(40);
     let entity5_id = app.create_entity::<EntityWithNotRegisteredComponentTypeDeleted>(50);
-
     app.assert_entity(entity1_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(10)))
         .has_not::<String>();
@@ -139,19 +138,8 @@ fn init() {
     app.assert_entity(entity5_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(50)))
         .has_not::<String>();
-}
-
-#[test]
-fn update() {
-    let mut app = TestApp::new();
-    let entity1_id = app.create_entity::<EntityToDelete>(10);
-    let entity2_id = app.create_entity::<EntityWithAddedComponent>(20);
-    let entity3_id = app.create_entity::<EntityWithExistingComponentDeleted>(30);
-    let entity4_id = app.create_entity::<EntityWithMissingComponentDeleted>(40);
-    let entity5_id = app.create_entity::<EntityWithNotRegisteredComponentTypeDeleted>(50);
 
     app.update();
-
     app.assert_entity(entity1_id).does_not_exist();
     app.assert_entity(entity2_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(20)))

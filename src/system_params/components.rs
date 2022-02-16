@@ -321,12 +321,12 @@ mod component_ref_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        let location1 = core.create_entity_with_1_component(0_i8);
-        core.create_entity_with_2_components(20_u32, 0_i16);
-        let location2 = core.create_entity_with_2_components(30_u32, 0_i32);
-        let location3 = core.create_entity_with_3_components(40_u32, 0_i16, 0_i64);
-        core.create_entity_with_3_components(50_u32, 0_i16, 0_i64);
-        core.create_entity_with_2_components(60_u32, 0_i128);
+        let location1 = core.create_entity_with_1_component(0_i8, None);
+        core.create_entity_with_2_components(20_u32, 0_i16, None);
+        let location2 = core.create_entity_with_2_components(30_u32, 0_i32, None);
+        let location3 = core.create_entity_with_3_components(40_u32, 0_i16, 0_i64, None);
+        core.create_entity_with_3_components(50_u32, 0_i16, 0_i64, None);
+        core.create_entity_with_2_components(60_u32, 0_i128, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],

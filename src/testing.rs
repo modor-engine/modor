@@ -25,7 +25,8 @@ use std::ops::{Deref, DerefMut};
 ///     .exists()
 ///     .has::<String, _>(|name| assert_eq!(name, "name"))
 ///     .has::<Button, _>(|_| ())
-///     .has_not::<usize>();
+///     .has_not::<usize>()
+///     .has_children(|c| assert!(c.is_empty()));
 ///
 /// struct Button;
 ///
@@ -63,12 +64,15 @@ impl TestApp {
     where
         E: EntityMainComponent,
     {
-        let location = self.0 .0.create_entity(ArchetypeStorage::DEFAULT_IDX).1;
-        let entity_idx = self.0 .0.archetypes().entity_idxs(location.idx)[location.pos];
+        let core = &mut self.0 .0;
+        let location = core.create_entity(ArchetypeStorage::DEFAULT_IDX, None).1;
+        let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
         let entity_builder = EntityBuilder {
-            core: &mut self.0 .0,
+            core,
+            entity_idx: Some(entity_idx),
             src_location: Some(location),
             dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+            parent_idx: None,
             added_components: (),
             phantom: PhantomData,
         };
@@ -139,7 +143,7 @@ impl EntityAssertion<'_> {
     ///
     /// # Panics
     ///
-    /// This will panic if the entity does not exists or has not a component of type `C`.
+    /// This will panic if the entity does not exist or has not a component of type `C`.
     pub fn has<C, F>(self, f: F) -> Self
     where
         C: Any,
@@ -165,7 +169,7 @@ impl EntityAssertion<'_> {
     ///
     /// # Panics
     ///
-    /// This will panic if the entity does not exists or has a component of type `C`.
+    /// This will panic if the entity does not exist or has a component of type `C`.
     pub fn has_not<C>(self) -> Self
     where
         C: Any,
@@ -184,6 +188,32 @@ impl EntityAssertion<'_> {
             usize::from(self.entity_idx),
             any::type_name::<C>()
         );
+        self
+    }
+
+    /// Runs `f` that takes as parameter the list of child IDs of the entity.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity does not exist.
+    pub fn has_children<F>(self, mut f: F) -> Self
+    where
+        F: FnMut(Vec<usize>),
+    {
+        assert!(
+            self.location().is_some(),
+            "assertion failed: assert_entity({}).has_children<_>() (entity does not exist)",
+            usize::from(self.entity_idx)
+        );
+        let child_ids = self
+            .core
+            .entities()
+            .child_idxs(self.entity_idx)
+            .iter()
+            .copied()
+            .map(usize::from)
+            .collect();
+        f(child_ids);
         self
     }
 
@@ -217,6 +247,20 @@ mod test_app_tests {
         type Data = String;
 
         fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder
+                .with_child::<ChildEntity>(10)
+                .with_child::<ChildEntity>(20)
+                .with_self(Self(data))
+        }
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct ChildEntity(u32);
+
+    impl EntityMainComponent for ChildEntity {
+        type Data = u32;
+
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
             builder.with_self(Self(data))
         }
     }
@@ -235,17 +279,21 @@ mod test_app_tests {
         app.assert_entity(entity_id)
             .exists()
             .has::<TestEntity, _>(|c| assert_eq!(c.0, "string"))
-            .has_not::<String>();
-        app.assert_entity(1).does_not_exist();
+            .has_not::<String>()
+            .has_children(|c| assert_eq!(c, [1, 2]));
         assert_panics!(app.assert_entity(entity_id).does_not_exist());
         assert_panics!(app.assert_entity(entity_id).has::<String, _>(|_| ()));
         assert_panics!(app
             .assert_entity(entity_id)
             .has::<TestEntity, _>(|_| panic!()));
+        assert_panics!(app.assert_entity(entity_id).has_children(|_| panic!()));
+        let missing_id = 10;
+        app.assert_entity(missing_id).does_not_exist();
         assert_panics!(app.assert_entity(entity_id).has_not::<TestEntity>());
-        assert_panics!(app.assert_entity(1).exists());
-        assert_panics!(app.assert_entity(1).has::<String, _>(|_| ()));
-        assert_panics!(app.assert_entity(1).has_not::<String>());
+        assert_panics!(app.assert_entity(missing_id).exists());
+        assert_panics!(app.assert_entity(missing_id).has::<String, _>(|_| ()));
+        assert_panics!(app.assert_entity(missing_id).has_not::<String>());
+        assert_panics!(app.assert_entity(missing_id).has_children(|_| ()));
     }
 
     #[test]

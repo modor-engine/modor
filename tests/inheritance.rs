@@ -76,33 +76,12 @@ impl ExitButton {
 struct ExitState(bool);
 
 #[test]
-fn exit_button_selected() {
-    let mut app = TestApp::new();
-    let other_button_id = app.create_entity::<Button>("New game".into());
-    let exit_button_id = app.create_entity::<ExitButton>("Exit".into());
-    app.create_entity::<ButtonSelection>("Exit".into());
-
-    app.update();
-
-    app.assert_entity(other_button_id)
-        .has::<Button, _>(|c| assert!(!c.is_pressed))
-        .has::<String, _>(|c| assert_eq!(c, "New game"));
-    app.assert_entity(exit_button_id)
-        .has::<ExitButton, _>(|_| ())
-        .has::<ExitState, _>(|c| assert!(c.0))
-        .has::<Button, _>(|c| assert!(c.is_pressed))
-        .has::<String, _>(|c| assert_eq!(c, "Exit (selected)"));
-}
-
-#[test]
-fn other_button_selected() {
+fn run_entity_systems() {
     let mut app = TestApp::new();
     let other_button_id = app.create_entity::<Button>("New game".into());
     let exit_button_id = app.create_entity::<ExitButton>("Exit".into());
     app.create_entity::<ButtonSelection>("New game".into());
-
     app.update();
-
     app.assert_entity(other_button_id)
         .has::<Button, _>(|c| assert!(c.is_pressed))
         .has::<String, _>(|c| assert_eq!(c, "New game"));
@@ -111,4 +90,21 @@ fn other_button_selected() {
         .has::<ExitState, _>(|c| assert!(!c.0))
         .has::<Button, _>(|c| assert!(!c.is_pressed))
         .has::<String, _>(|c| assert_eq!(c, "Exit"));
+}
+
+#[test]
+fn run_inherited_systems() {
+    let mut app = TestApp::new();
+    let other_button_id = app.create_entity::<Button>("New game".into());
+    let exit_button_id = app.create_entity::<ExitButton>("Exit".into());
+    app.create_entity::<ButtonSelection>("Exit".into());
+    app.update();
+    app.assert_entity(other_button_id)
+        .has::<Button, _>(|c| assert!(!c.is_pressed))
+        .has::<String, _>(|c| assert_eq!(c, "New game"));
+    app.assert_entity(exit_button_id)
+        .has::<ExitButton, _>(|_| ())
+        .has::<ExitState, _>(|c| assert!(c.0))
+        .has::<Button, _>(|c| assert!(c.is_pressed))
+        .has::<String, _>(|c| assert_eq!(c, "Exit (selected)"));
 }
