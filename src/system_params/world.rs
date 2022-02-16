@@ -195,7 +195,6 @@ mod world_tests {
     use crate::storages::core::CoreStorage;
     use crate::{SystemInfo, SystemParam, World};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     assert_impl_all!(World<'_>: Sync, Send, Unpin);
 

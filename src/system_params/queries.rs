@@ -423,7 +423,6 @@ mod query_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{Query, SystemInfo, SystemParam, With};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     assert_impl_all!(Query<'_, ()>: Sync, Send, Unpin);
 

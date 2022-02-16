@@ -451,7 +451,6 @@ mod empty_tuple_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties() {
@@ -499,7 +498,6 @@ mod tuple_with_one_item_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties() {
@@ -556,7 +554,6 @@ mod tuple_with_two_items_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties_when_can_update() {
@@ -634,7 +631,6 @@ mod tuple_with_more_than_two_items_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     macro_rules! test_tuple_retrieve_system_param_properties {
         (($($types:ident),*), ($($indexes:tt),*)) => {

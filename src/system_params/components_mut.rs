@@ -292,7 +292,6 @@ mod component_mut_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_param_properties() {

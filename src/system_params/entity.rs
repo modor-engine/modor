@@ -320,7 +320,6 @@ mod entity_tests {
     use crate::utils::test_utils::assert_iter;
     use crate::{Entity, QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     assert_impl_all!(Entity<'_>: Sync, Send, Unpin);
 

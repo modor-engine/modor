@@ -415,7 +415,6 @@ mod system_tests {
     use crate::storages::systems::Access;
     use crate::{System, SystemInfo};
     use std::any::TypeId;
-    use std::option::Option::None;
 
     #[test]
     fn retrieve_system_properties_fn() {
