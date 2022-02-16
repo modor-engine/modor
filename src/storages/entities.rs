@@ -81,8 +81,6 @@ impl EntityStorage {
             self.delete_internal(child_idx, for_each_deleted_entity_fn);
         }
         self.deleted_idxs.push(entity_idx);
-        self.parent_idxs[entity_idx] = None;
-        self.depths[entity_idx] = 0;
         let location = self.locations[entity_idx]
             .take()
             .expect("internal error: cannot delete entity with no location");
