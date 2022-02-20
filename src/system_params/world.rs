@@ -98,6 +98,7 @@ impl SystemParam for World<'_> {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
+            globals: vec![],
             can_update: true,
             archetype_filter: ArchetypeFilter::None,
         }
@@ -136,7 +137,7 @@ impl SystemParam for World<'_> {
         'b: 'a,
     {
         stream
-            .entity_positions
+            .item_positions
             .next()
             .map(move |_| World { data: stream.data })
     }
@@ -176,14 +177,14 @@ mod internal {
 
     pub struct WorldStream<'a> {
         pub(crate) data: SystemData<'a>,
-        pub(crate) entity_positions: Range<usize>,
+        pub(crate) item_positions: Range<usize>,
     }
 
     impl<'a> WorldStream<'a> {
         pub(crate) fn new(guard: &'a WorldGuardBorrow<'_>) -> Self {
             Self {
                 data: guard.data,
-                entity_positions: 0..guard.item_count,
+                item_positions: 0..guard.item_count,
             }
         }
     }
@@ -220,6 +221,7 @@ mod world_tests {
         let mut core = CoreStorage::default();
         let properties = World::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
+        assert_eq!(properties.globals, vec![]);
         assert!(properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
@@ -227,7 +229,9 @@ mod world_tests {
     #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
-        core.create_entity_with_1_component(0_u32, None);
+        core.create_entity_with_1_component(10_u32, None);
+        core.create_entity_with_1_component(20_u32, None);
+        core.create_entity_with_1_component(30_u32, None);
         let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],

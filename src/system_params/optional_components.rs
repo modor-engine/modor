@@ -33,6 +33,7 @@ where
                 access: Access::Read,
                 type_idx,
             }],
+            globals: vec![],
             can_update: false,
             archetype_filter: ArchetypeFilter::Union(ne_vec![type_idx]),
         }
@@ -315,14 +316,14 @@ pub(crate) mod internal {
 
     struct ComponentIter<'a, C> {
         components: Option<Iter<'a, C>>,
-        entity_positions: Range<usize>,
+        item_positions: Range<usize>,
     }
 
     impl<'a, C> ComponentIter<'a, C> {
         fn new(components: Option<Iter<'a, C>>, entity_count: usize) -> Self {
             Self {
                 components,
-                entity_positions: 0..entity_count,
+                item_positions: 0..entity_count,
             }
         }
     }
@@ -332,7 +333,7 @@ pub(crate) mod internal {
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            self.entity_positions.next().map(|_| {
+            self.item_positions.next().map(|_| {
                 self.components
                     .as_mut()
                     .expect("internal error: missing component during iteration")
@@ -344,7 +345,7 @@ pub(crate) mod internal {
     impl<'a, C> DoubleEndedIterator for ComponentIter<'a, C> {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
-            self.entity_positions.next().map(|_| {
+            self.item_positions.next().map(|_| {
                 self.components
                     .as_mut()
                     .expect("internal error: missing component during reversed iteration")
@@ -370,6 +371,7 @@ mod component_ref_option_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Union(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);

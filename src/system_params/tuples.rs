@@ -4,6 +4,7 @@ use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::tuples::internal::EmptyTupleGuardBorrow;
+use crate::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::iter::{Map, Zip};
 
@@ -21,6 +22,7 @@ impl SystemParam for () {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
+            globals: vec![],
             can_update: false,
             archetype_filter: ArchetypeFilter::None,
         }
@@ -146,10 +148,9 @@ macro_rules! impl_tuple_system_param {
 
             fn properties(core: &mut CoreStorage) -> SystemProperties {
                 let properties = ($($params::properties(core),)+);
-                let mut component_types = Vec::new();
-                $(component_types.extend(properties.$indexes.component_types);)+
                 SystemProperties {
-                    component_types,
+                    component_types: utils::merge([$(properties.$indexes.component_types),+]),
+                    globals: utils::merge([$(properties.$indexes.globals),+]),
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
                     archetype_filter:
                         ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
@@ -457,6 +458,7 @@ mod empty_tuple_tests {
         let mut core = CoreStorage::default();
         let properties = <()>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
@@ -506,6 +508,7 @@ mod tuple_with_one_item_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
@@ -552,8 +555,16 @@ mod tuple_with_two_items_tests {
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
-    use crate::{QuerySystemParam, SystemInfo, SystemParam, World};
+    use crate::{Glob, GlobMut, Global, QuerySystemParam, SystemInfo, SystemParam, World};
     use std::any::TypeId;
+
+    struct TestGlobal1;
+
+    impl Global for TestGlobal1 {}
+
+    struct TestGlobal2;
+
+    impl Global for TestGlobal2 {}
 
     #[test]
     fn retrieve_system_param_properties_when_can_update() {
@@ -562,6 +573,7 @@ mod tuple_with_two_items_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
@@ -576,9 +588,24 @@ mod tuple_with_two_items_tests {
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert_eq!(properties.component_types[1].type_idx, 1.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
+    }
+
+    #[test]
+    fn retrieve_system_param_properties_with_globals() {
+        let mut core = CoreStorage::default();
+        let properties = <(Glob<'_, TestGlobal1>, GlobMut<'_, TestGlobal2>)>::properties(&mut core);
+        assert_eq!(properties.component_types, vec![]);
+        assert_eq!(properties.globals.len(), 2);
+        assert_eq!(properties.globals[0].access, Access::Read);
+        assert_eq!(properties.globals[0].idx, 0.into());
+        assert_eq!(properties.globals[1].access, Access::Write);
+        assert_eq!(properties.globals[1].idx, 1.into());
+        assert!(!properties.can_update);
+        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
 
     #[test]
@@ -632,45 +659,21 @@ mod tuple_with_more_than_two_items_tests {
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
     use std::any::TypeId;
 
-    macro_rules! test_tuple_retrieve_system_param_properties {
-        (($($types:ident),*), ($($indexes:tt),*)) => {
-            let mut core = CoreStorage::default();
-            let properties = <($(&$types,)*)>::properties(&mut core);
-            assert_eq!(properties.component_types.len(), [$($indexes),*].len());
-            $(assert_eq!(properties.component_types[$indexes].access, Access::Read);)*
-            $(assert_eq!(properties.component_types[$indexes].type_idx, $indexes.into());)*
-            assert!(!properties.can_update);
-            let archetype_filter = ArchetypeFilter::Intersection(ne_vec![$($indexes.into()),*]);
-            assert_eq!(properties.archetype_filter, archetype_filter);
-        };
-    }
-
     #[test]
-    #[allow(clippy::cognitive_complexity)]
     fn retrieve_system_param_properties() {
-        test_tuple_retrieve_system_param_properties!((u8, u16, u32), (0, 1, 2));
-        test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64), (0, 1, 2, 3));
-        test_tuple_retrieve_system_param_properties!((u8, u16, u32, u64, u128), (0, 1, 2, 3, 4));
-        test_tuple_retrieve_system_param_properties!(
-            (u8, u16, u32, u64, u128, i8),
-            (0, 1, 2, 3, 4, 5)
-        );
-        test_tuple_retrieve_system_param_properties!(
-            (u8, u16, u32, u64, u128, i8, i16),
-            (0, 1, 2, 3, 4, 5, 6)
-        );
-        test_tuple_retrieve_system_param_properties!(
-            (u8, u16, u32, u64, u128, i8, i16, i32),
-            (0, 1, 2, 3, 4, 5, 6, 7)
-        );
-        test_tuple_retrieve_system_param_properties!(
-            (u8, u16, u32, u64, u128, i8, i16, i32, i64),
-            (0, 1, 2, 3, 4, 5, 6, 7, 8)
-        );
-        test_tuple_retrieve_system_param_properties!(
-            (u8, u16, u32, u64, u128, i8, i16, i32, i64, i128),
-            (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-        );
+        let mut core = CoreStorage::default();
+        let properties = <(&u32, &mut i16, &i64)>::properties(&mut core);
+        assert_eq!(properties.component_types.len(), 3);
+        assert_eq!(properties.component_types[0].access, Access::Read);
+        assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.component_types[1].access, Access::Write);
+        assert_eq!(properties.component_types[1].type_idx, 1.into());
+        assert_eq!(properties.component_types[2].access, Access::Read);
+        assert_eq!(properties.component_types[2].type_idx, 2.into());
+        assert_eq!(properties.globals, vec![]);
+        assert!(!properties.can_update);
+        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
+        assert_eq!(properties.archetype_filter, archetype_filter);
     }
 
     #[test]

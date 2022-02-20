@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, EntityRunner, Query, With};
+use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, Query, SystemRunner, With};
 
 #[derive(PartialEq)]
 struct Position {
@@ -56,7 +56,7 @@ impl EntityMainComponent for Object {
         })
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner
             .run(system!(Self::detect_collisions_v1))
             .run(system!(Self::detect_collisions_v2));

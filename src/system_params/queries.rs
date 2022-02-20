@@ -217,6 +217,7 @@ where
         let param_properties = P::properties(core);
         SystemProperties {
             component_types: param_properties.component_types,
+            globals: vec![],
             can_update: param_properties.can_update,
             archetype_filter: ArchetypeFilter::None,
         }
@@ -254,7 +255,7 @@ where
     where
         'b: 'a,
     {
-        stream.entity_positions.next().map(|_| {
+        stream.item_positions.next().map(|_| {
             Query::new(
                 P::borrow_guard(&mut stream.guard),
                 stream.filtered_component_type_idxs,
@@ -394,7 +395,7 @@ mod internal {
     where
         P: SystemParam,
     {
-        pub(crate) entity_positions: Range<usize>,
+        pub(crate) item_positions: Range<usize>,
         pub(crate) data: SystemData<'a>,
         pub(crate) guard: <P as SystemParamWithLifetime<'a>>::Guard,
         pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
@@ -406,7 +407,7 @@ mod internal {
     {
         pub(crate) fn new(guard: &'a QueryGuardBorrow<'_>) -> Self {
             QueryStream {
-                entity_positions: 0..guard.item_count,
+                item_positions: 0..guard.item_count,
                 data: guard.data,
                 guard: P::lock(guard.data, guard.param_info),
                 filtered_component_type_idxs: guard.filtered_component_type_idxs,
@@ -476,6 +477,7 @@ mod query_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 1.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
@@ -507,6 +509,7 @@ mod with_tests {
     use crate::storages::components::ComponentStorage;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityStorage;
+    use crate::storages::globals::GlobalStorage;
     use crate::{QueryFilter, SystemData, With};
     use std::any::TypeId;
     use std::panic::{RefUnwindSafe, UnwindSafe};
@@ -528,6 +531,7 @@ mod with_tests {
         let data = SystemData {
             entities: &EntityStorage::default(),
             components: &components,
+            globals: &GlobalStorage::default(),
             archetypes: &ArchetypeStorage::default(),
             actions: &ActionStorage::default(),
             updates: &Mutex::default(),
@@ -544,6 +548,7 @@ mod with_tuple_tests {
     use crate::storages::components::ComponentStorage;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityStorage;
+    use crate::storages::globals::GlobalStorage;
     use crate::{QueryFilter, SystemData, With};
     use std::any::TypeId;
     use std::sync::Mutex;
@@ -580,6 +585,7 @@ mod with_tuple_tests {
             let data = SystemData {
                 entities: &EntityStorage::default(),
                 components: &components,
+                globals: &GlobalStorage::default(),
                 archetypes: &ArchetypeStorage::default(),
                 actions: &ActionStorage::default(),
                 updates: &Mutex::default(),

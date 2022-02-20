@@ -13,7 +13,6 @@ exclude = [".github"]
 
 [dependencies]
 fxhash = "0.2"
-itertools = "0.10"
 non-empty-vec = "0.2"
 scoped_threadpool = "0.1"
 typed-index-collections = "3.0"

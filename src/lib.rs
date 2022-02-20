@@ -44,7 +44,7 @@
 //!             .with_self(Self { ammunition: 10 })
 //!     }
 //!
-//!     fn on_update(runner: EntityRunner<'_, Self>) {
+//!     fn on_update(runner: SystemRunner<'_>) {
 //!         runner.run(system!(Self::fire_when_enemy));
 //!     }
 //! }
@@ -75,9 +75,11 @@ mod utils;
 mod actions;
 mod app;
 mod entities;
+mod globals;
 mod storages;
 mod system_checks;
 mod system_params;
+mod system_runner;
 mod systems;
 
 pub mod testing;
@@ -85,11 +87,15 @@ pub mod testing;
 pub use actions::*;
 pub use app::*;
 pub use entities::*;
+pub use globals::*;
 pub use system_checks::*;
 pub use system_params::entity::*;
+pub use system_params::globals::*;
+pub use system_params::globals_mut::*;
 pub use system_params::queries::*;
 pub use system_params::world::*;
 pub use system_params::*;
+pub use system_runner::*;
 pub use systems::*;
 
 #[cfg(doctest)]

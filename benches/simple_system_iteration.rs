@@ -1,7 +1,7 @@
 //! Tests performance of direct component iteration in systems.
 
 use criterion::{criterion_main, Criterion};
-use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner};
 
 struct Vec3(f32, f32, f32);
 
@@ -33,7 +33,7 @@ impl EntityMainComponent for Object {
             )))
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(Self::update));
     }
 }

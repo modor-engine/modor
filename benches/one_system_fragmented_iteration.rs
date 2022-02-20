@@ -1,7 +1,7 @@
 //! Tests performance of archetype iteration in systems with one system for all archetypes.
 
 use criterion::{criterion_main, Criterion};
-use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner};
 
 struct Data(f32);
 
@@ -12,7 +12,7 @@ impl EntityMainComponent for Data {
         builder.with_self(Self(1.0))
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(Self::update));
     }
 }
