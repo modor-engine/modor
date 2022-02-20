@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{
-    system, Built, Entity, EntityBuilder, EntityMainComponent, EntityRunner, Query, World,
+    system, Built, Entity, EntityBuilder, EntityMainComponent, Query, SystemRunner, World,
 };
 
 struct SignalCounter(usize);
@@ -22,7 +22,7 @@ impl EntityMainComponent for Action {
         builder.with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner
             .run(system!(Self::update_counters))
             .run(system!(Self::destroy));

@@ -6,7 +6,8 @@ use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
-use crate::storages::systems::{SystemProperties, SystemStorage};
+use crate::storages::globals::{GlobalIdx, GlobalStorage};
+use crate::storages::systems::{SystemCaller, SystemProperties, SystemStorage};
 use crate::storages::updates::{EntityUpdate, UpdateStorage};
 use crate::systems::internal::SystemWrapper;
 use crate::SystemData;
@@ -16,6 +17,7 @@ pub struct CoreStorage {
     archetypes: ArchetypeStorage,
     entities: EntityStorage,
     components: ComponentStorage,
+    globals: GlobalStorage,
     actions: ActionStorage,
     systems: SystemStorage,
     updates: Mutex<UpdateStorage>,
@@ -34,6 +36,10 @@ impl CoreStorage {
         &self.components
     }
 
+    pub(crate) fn globals(&self) -> &GlobalStorage {
+        &self.globals
+    }
+
     pub(crate) fn systems(&self) -> &SystemStorage {
         &self.systems
     }
@@ -47,6 +53,13 @@ impl CoreStorage {
         C: Any + Sync + Send,
     {
         self.components.type_idx_or_create::<C>()
+    }
+
+    pub(crate) fn register_global<G>(&mut self) -> GlobalIdx
+    where
+        G: Any + Sync + Send,
+    {
+        self.globals.idx_or_register(TypeId::of::<G>())
     }
 
     pub(crate) fn add_entity_type<C>(&mut self)
@@ -124,22 +137,34 @@ impl CoreStorage {
         dst_location
     }
 
+    pub(crate) fn replace_or_add_global<G>(&mut self, global: G)
+    where
+        G: Any + Sync + Send,
+    {
+        self.globals.replace_or_add(global);
+    }
+
     pub(crate) fn add_system(
         &mut self,
         wrapper: SystemWrapper,
-        entity_type: TypeId,
+        caller_type: SystemCallerType,
         properties: SystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> ActionIdx {
-        let entity_type_idx = self
-            .components
-            .type_idx(entity_type)
-            .expect("internal error: missing entity type when adding system");
+        let caller = match caller_type {
+            SystemCallerType::Entity(type_) => SystemCaller::Entity(
+                self.components
+                    .type_idx(type_)
+                    .expect("internal error: missing entity type when adding system"),
+            ),
+            SystemCallerType::Global(type_) => {
+                SystemCaller::Global(self.globals.idx_or_register(type_))
+            }
+        };
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
         self.actions.add_system(action_idx);
-        self.systems
-            .add(wrapper, entity_type_idx, properties, action_idx);
+        self.systems.add(wrapper, caller, properties, action_idx);
         action_idx
     }
 
@@ -147,6 +172,7 @@ impl CoreStorage {
         let data = SystemData {
             entities: &self.entities,
             components: &self.components,
+            globals: &self.globals,
             archetypes: &self.archetypes,
             actions: &self.actions,
             updates: &self.updates,
@@ -219,6 +245,12 @@ impl CoreStorage {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum SystemCallerType {
+    Entity(TypeId),
+    Global(TypeId),
+}
+
 #[cfg(test)]
 mod core_storage_tests {
     use std::any::{Any, TypeId};
@@ -226,7 +258,7 @@ mod core_storage_tests {
 
     use crate::storages::actions::ActionDependencies;
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
-    use crate::storages::core::CoreStorage;
+    use crate::storages::core::{CoreStorage, SystemCallerType};
     use crate::storages::entities::EntityIdx;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
     use crate::SystemData;
@@ -236,6 +268,7 @@ mod core_storage_tests {
             SystemData {
                 entities: &self.entities,
                 components: &self.components,
+                globals: &self.globals,
                 archetypes: &self.archetypes,
                 actions: &self.actions,
                 updates: &self.updates,
@@ -326,19 +359,29 @@ mod core_storage_tests {
         assert_eq!(type1_idx, type2_idx);
         assert_eq!(type3_idx, type4_idx);
         assert_eq!(archetype3_idx, archetype4_idx);
-        assert_eq!(storage.entities.location(entity1_idx), Some(location3));
-        assert_eq!(storage.entities.location(entity2_idx), Some(location1));
-        assert_eq!(storage.entities.parent_idx(entity2_idx), Some(entity1_idx));
-        let entity_idxs = storage.archetypes.entity_idxs(archetype2_idx).to_vec();
+        assert_eq!(storage.entities().location(entity1_idx), Some(location3));
+        assert_eq!(storage.entities().location(entity2_idx), Some(location1));
+        let parent_idx = storage.entities().parent_idx(entity2_idx);
+        assert_eq!(parent_idx, Some(entity1_idx));
+        let entity_idxs = storage.archetypes().entity_idxs(archetype2_idx).to_vec();
         assert_eq!(entity_idxs, ti_vec![entity1_idx]);
-        let entity_idxs = storage.archetypes.entity_idxs(archetype3_idx).to_vec();
+        let entity_idxs = storage.archetypes().entity_idxs(archetype3_idx).to_vec();
         assert_eq!(entity_idxs, ti_vec![entity2_idx]);
-        let type_idxs = storage.archetypes.sorted_type_idxs(archetype3_idx);
+        let type_idxs = storage.archetypes().sorted_type_idxs(archetype3_idx);
         assert_eq!(type_idxs, [type1_idx, type3_idx]);
         let components = ti_vec![ti_vec![], ti_vec![10_u32], ti_vec![30_u32]];
-        assert_eq!(&*storage.components.read_components::<u32>(), &components);
+        assert_eq!(&*storage.components().read_components::<u32>(), &components);
         let components = ti_vec![ti_vec![], ti_vec![], ti_vec![40_i8]];
         assert_eq!(&*storage.components.read_components::<i8>(), &components);
+    }
+
+    #[test]
+    fn configure_globals() {
+        let mut storage = CoreStorage::default();
+        let global_idx = storage.register_global::<i64>();
+        storage.replace_or_add_global(10_i64);
+        assert_eq!(global_idx, 0.into());
+        assert_eq!(storage.globals().read::<i64>().as_deref(), Some(&10_i64));
     }
 
     #[test]
@@ -369,12 +412,13 @@ mod core_storage_tests {
                     Box::new(move |c, l| c.add_component(40_i8, 2.into(), l)),
                 );
             },
-            TypeId::of::<u32>(),
+            SystemCallerType::Entity(TypeId::of::<u32>()),
             SystemProperties {
                 component_types: vec![ComponentTypeAccess {
                     access: Access::Read,
                     type_idx: 0.into(),
                 }],
+                globals: vec![],
                 can_update: true,
                 archetype_filter: ArchetypeFilter::None,
             },
@@ -383,12 +427,12 @@ mod core_storage_tests {
         );
         storage.update();
         let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![]];
-        assert_eq!(&*storage.components.read_components::<u32>(), &components);
-        assert!(storage.components.read_components::<i64>().is_empty());
+        assert_eq!(&*storage.components().read_components::<u32>(), &components);
+        assert!(storage.components().read_components::<i64>().is_empty());
         let components = ti_vec![ti_vec![], ti_vec![], ti_vec![], ti_vec![40_i8]];
-        assert_eq!(&*storage.components.read_components::<i8>(), &components);
-        assert_eq!(storage.entities.location(entity1_idx), None);
+        assert_eq!(&*storage.components().read_components::<i8>(), &components);
+        assert_eq!(storage.entities().location(entity1_idx), None);
         let location = EntityLocation::new(3.into(), 0.into());
-        assert_eq!(storage.entities.location(entity2_idx), Some(location));
+        assert_eq!(storage.entities().location(entity2_idx), Some(location));
     }
 }

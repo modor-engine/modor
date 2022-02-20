@@ -6,7 +6,7 @@ use std::any::{Any, TypeId};
 ///
 /// ## Examples
 ///
-/// See [`EntityRunner`](crate::EntityRunner).
+/// See [`SystemRunner`](crate::SystemRunner).
 pub trait Action: Any {
     /// The constraint definition of the action.
     type Constraint: ActionConstraint;

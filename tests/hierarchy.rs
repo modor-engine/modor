@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, EntityRunner, Query, With};
+use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, Query, SystemRunner, With};
 
 #[derive(Clone, Copy)]
 struct AbsPosition(u16);
@@ -22,7 +22,7 @@ impl EntityMainComponent for Node {
             .with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(Self::update_absolute_positions));
     }
 }

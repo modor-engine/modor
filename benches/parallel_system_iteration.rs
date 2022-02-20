@@ -1,7 +1,7 @@
 //! Tests performance of parallel execution of systems.
 
 use criterion::{criterion_main, Criterion};
-use modor::{system, App, Built, EntityBuilder, EntityMainComponent, EntityRunner};
+use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner};
 
 struct A(f32);
 struct B(f32);
@@ -18,7 +18,7 @@ impl EntityMainComponent for Item1 {
         builder.with(A(0.0)).with(B(0.0)).with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -36,7 +36,7 @@ impl EntityMainComponent for Item2 {
             .with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -55,7 +55,7 @@ impl EntityMainComponent for Item3 {
             .with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }
@@ -74,7 +74,7 @@ impl EntityMainComponent for Item4 {
             .with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce));
     }
 }

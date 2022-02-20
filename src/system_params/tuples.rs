@@ -21,6 +21,7 @@ impl SystemParam for () {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
+            globals: vec![],
             can_update: false,
             archetype_filter: ArchetypeFilter::None,
         }
@@ -148,8 +149,11 @@ macro_rules! impl_tuple_system_param {
                 let properties = ($($params::properties(core),)+);
                 let mut component_types = Vec::new();
                 $(component_types.extend(properties.$indexes.component_types);)+
+                let mut globals = Vec::new();
+                $(globals.extend(properties.$indexes.globals);)+
                 SystemProperties {
                     component_types,
+                    globals,
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
                     archetype_filter:
                         ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
@@ -457,6 +461,7 @@ mod empty_tuple_tests {
         let mut core = CoreStorage::default();
         let properties = <()>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }
@@ -506,6 +511,7 @@ mod tuple_with_one_item_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
@@ -562,6 +568,7 @@ mod tuple_with_two_items_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
+        assert_eq!(properties.globals, vec![]);
         assert!(properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);
@@ -639,6 +646,7 @@ mod tuple_with_more_than_two_items_tests {
             assert_eq!(properties.component_types.len(), [$($indexes),*].len());
             $(assert_eq!(properties.component_types[$indexes].access, Access::Read);)*
             $(assert_eq!(properties.component_types[$indexes].type_idx, $indexes.into());)*
+            assert_eq!(properties.globals, vec![]);
             assert!(!properties.can_update);
             let archetype_filter = ArchetypeFilter::Intersection(ne_vec![$($indexes.into()),*]);
             assert_eq!(properties.archetype_filter, archetype_filter);

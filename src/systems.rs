@@ -5,6 +5,7 @@ use crate::storages::archetypes::{
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityStorage;
+use crate::storages::globals::GlobalStorage;
 use crate::storages::systems::SystemProperties;
 use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
@@ -52,7 +53,7 @@ use std::sync::Mutex;
 /// # Limitation on the number of parameters
 ///
 /// A system supports up to 10 parameters.<br>
-/// If more parameters are needed, tuples can be used to group parameters and count as one.
+/// If more parameters are needed, tuples can be used to group parameters and count them as one.
 ///
 /// # Examples
 ///
@@ -136,6 +137,7 @@ pub struct SystemInfo<'a> {
 pub struct SystemData<'a> {
     pub(crate) entities: &'a EntityStorage,
     pub(crate) components: &'a ComponentStorage,
+    pub(crate) globals: &'a GlobalStorage,
     pub(crate) archetypes: &'a ArchetypeStorage,
     pub(crate) actions: &'a ActionStorage,
     pub(crate) updates: &'a Mutex<UpdateStorage>,

@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{system, Built, EntityBuilder, EntityMainComponent, EntityRunner, Query};
+use modor::{system, Built, EntityBuilder, EntityMainComponent, Query, SystemRunner};
 
 struct ButtonSelection {
     label: String,
@@ -25,7 +25,7 @@ impl EntityMainComponent for Button {
         builder.with(label).with_self(Self { is_pressed: false })
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner.run(system!(Self::update));
     }
 }
@@ -54,7 +54,7 @@ impl EntityMainComponent for ExitButton {
             .with_self(Self)
     }
 
-    fn on_update(runner: EntityRunner<'_, Self>) {
+    fn on_update(runner: SystemRunner<'_>) {
         runner
             .run(system!(Self::update_state))
             .run(system!(Self::update_label));
