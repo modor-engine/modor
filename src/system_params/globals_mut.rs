@@ -192,7 +192,7 @@ mod glob_mut_tests {
 
     impl Global for TestGlobal {}
 
-    assert_impl_all!(Glob<TestGlobal>: Sync, Send, Unpin, RefUnwindSafe);
+    assert_impl_all!(GlobMut<'_, TestGlobal>: Sync, Send, Unpin, RefUnwindSafe);
 
     #[test]
     fn use_glob_mut() {

@@ -190,7 +190,7 @@ mod glob_tests {
 
     impl Global for TestGlobal {}
 
-    assert_impl_all!(Glob<TestGlobal>: Sync, Send, Unpin, UnwindSafe, RefUnwindSafe);
+    assert_impl_all!(Glob<'_, TestGlobal>: Sync, Send, Unpin, UnwindSafe, RefUnwindSafe);
 
     #[test]
     fn use_glob() {
