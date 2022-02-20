@@ -17,8 +17,8 @@ macro_rules! create_entities {
                     builder.with(Data(1.0)).with_self(Self(0.0))
                 }
 
-                fn on_update(runner: SystemRunner<'_>) {
-                    runner.run(system!(Self::update));
+                fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+                    runner.run(system!(Self::update))
                 }
             }
 

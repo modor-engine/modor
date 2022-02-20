@@ -56,10 +56,10 @@ impl EntityMainComponent for Object {
         })
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner
             .run(system!(Self::detect_collisions_v1))
-            .run(system!(Self::detect_collisions_v2));
+            .run(system!(Self::detect_collisions_v2))
     }
 }
 

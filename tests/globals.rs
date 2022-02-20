@@ -6,19 +6,19 @@ use modor::{
 struct MainModule;
 
 impl Global for MainModule {
-    fn build(builder: GlobalBuilder<'_>) {
+    fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
         builder
             .with_dependency(Total(0))
             .with_entity::<Incrementer>(2)
-            .with_entity::<Incrementer>(1);
+            .with_entity::<Incrementer>(1)
     }
 }
 
 struct Total(u32);
 
 impl Global for Total {
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::update));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update))
     }
 }
 

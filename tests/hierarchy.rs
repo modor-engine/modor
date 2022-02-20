@@ -22,8 +22,8 @@ impl EntityMainComponent for Node {
             .with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::update_absolute_positions));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update_absolute_positions))
     }
 }
 

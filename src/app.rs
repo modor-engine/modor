@@ -100,7 +100,6 @@ impl App {
                 core: &mut self.0,
                 caller_type: SystemCallerType::Global(TypeId::of::<G>()),
                 latest_action_idx: None,
-                phantom: PhantomData,
             });
         }
         self.0.replace_or_add_global(global);
@@ -128,7 +127,7 @@ mod app_tests {
             builder.with_self(Self(data))
         }
 
-        fn on_update(runner: SystemRunner<'_>) {
+        fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
@@ -137,7 +136,7 @@ mod app_tests {
                     archetype_filter: ArchetypeFilter::None,
                 },
                 wrapper: |d, _| d.updates.try_lock().unwrap().delete_entity(0.into()),
-            });
+            })
         }
     }
 
@@ -145,11 +144,11 @@ mod app_tests {
     struct TestGlobal(u32);
 
     impl Global for TestGlobal {
-        fn build(builder: GlobalBuilder<'_>) {
-            builder.with_entity::<TestEntity>(20);
+        fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
+            builder.with_entity::<TestEntity>(20)
         }
 
-        fn on_update(runner: SystemRunner<'_>) {
+        fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
@@ -158,7 +157,7 @@ mod app_tests {
                     archetype_filter: ArchetypeFilter::None,
                 },
                 wrapper: |d, _| d.globals.write::<Self>().unwrap().0 = 40,
-            });
+            })
         }
     }
 

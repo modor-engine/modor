@@ -27,8 +27,8 @@ impl EntityMainComponent for Enemy {
         builder.with(position).with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update))
     }
 }
 
@@ -48,8 +48,8 @@ impl EntityMainComponent for Selection {
         builder.with_self(Self(position))
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update))
     }
 }
 
@@ -71,11 +71,11 @@ impl EntityMainComponent for DisplayManager {
         builder.with_self(Self(0, vec![]))
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner
             .run_as::<PositionDisplayAction>(system!(Self::print_frame_index))
             .and_then(system!(Self::print_positions))
-            .and_then(system!(Self::increment_frame_index));
+            .and_then(system!(Self::increment_frame_index))
     }
 }
 

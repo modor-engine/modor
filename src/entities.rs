@@ -33,10 +33,10 @@ pub struct Built(EntityLocation);
 ///             .with_self(Self { name })
 ///     }
 ///
-///     fn on_update(runner: SystemRunner<'_>) {
+///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
 ///         runner
 ///             .run(system!(Self::update_position))
-///             .run(system!(Self::update_state));
+///             .run(system!(Self::update_state))
 ///     }
 /// }
 ///
@@ -65,8 +65,9 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     /// Defines systems to run during update.
     ///
     /// The systems are only run when a component of type `Self` exists in at least one entity.
-    #[allow(unused_variables)]
-    fn on_update(runner: SystemRunner<'_>) {}
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner
+    }
 }
 
 /// A builder for defining the components of an entity.
@@ -216,7 +217,6 @@ where
                 core: builder.core,
                 caller_type: SystemCallerType::Entity(TypeId::of::<E>()),
                 latest_action_idx: None,
-                phantom: PhantomData,
             });
         }
         let (_, _, location) = builder.build();

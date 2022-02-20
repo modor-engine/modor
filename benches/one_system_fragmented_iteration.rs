@@ -12,8 +12,8 @@ impl EntityMainComponent for Data {
         builder.with_self(Self(1.0))
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::update));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update))
     }
 }
 
