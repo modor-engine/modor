@@ -5,4 +5,5 @@
 ### Added
 
 - Entity type definition
+- Global definition
 - Sequential and parallel system execution

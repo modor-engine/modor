@@ -185,11 +185,14 @@ mod glob_mut_tests {
     use crate::storages::systems::Access;
     use crate::{GlobMut, Global, SystemInfo, SystemParam};
     use std::any::TypeId;
+    use std::panic::RefUnwindSafe;
 
     #[derive(Debug, PartialEq)]
     struct TestGlobal(u32);
 
     impl Global for TestGlobal {}
+
+    assert_impl_all!(Glob<TestGlobal>: Sync, Send, Unpin, RefUnwindSafe);
 
     #[test]
     fn use_glob_mut() {

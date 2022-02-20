@@ -5,7 +5,7 @@ use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 use std::marker::PhantomData;
 
-/// A type for defining system to run during update.
+/// A type for defining systems to run during update.
 ///
 /// Cyclic dependencies between systems are detected at compile time.
 ///
@@ -171,8 +171,6 @@ mod entity_runner_tests {
     use std::any::TypeId;
     use std::marker::PhantomData;
 
-    assert_impl_all!(SystemRunner<'_>: Send, Unpin);
-
     struct TestActionDependency;
 
     impl Action for TestActionDependency {
@@ -194,6 +192,8 @@ mod entity_runner_tests {
             builder.with_self(Self(data))
         }
     }
+
+    assert_impl_all!(SystemRunner<'_>: Send, Unpin);
 
     #[test]
     fn run_systems() {

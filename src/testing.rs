@@ -90,11 +90,11 @@ impl TestApp {
         }
     }
 
-    /// Asserts the global of type `G` exist and runs `f` on this global.
+    /// Asserts the global of type `G` exists and runs `f` on this global.
     ///
     /// # Panics
     ///
-    /// This will panic if the entity does not exist.
+    /// This will panic if the global does not exist.
     pub fn assert_global_exists<G, F>(&self, mut f: F)
     where
         G: Global,
@@ -114,7 +114,7 @@ impl TestApp {
     ///
     /// # Panics
     ///
-    /// This will panic if the entity exists.
+    /// This will panic if the global exists.
     pub fn assert_global_does_not_exist<G>(&self)
     where
         G: Global,

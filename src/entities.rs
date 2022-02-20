@@ -89,7 +89,7 @@ where
     E: EntityMainComponent,
     A: ComponentAdd,
 {
-    /// Create a child entity with main component of type `C` and building data `data`.
+    /// Creates a child entity with main component of type `C` and building data `data`.
     pub fn with_child<C>(self, data: C::Data) -> EntityBuilder<'a, E, ()>
     where
         C: EntityMainComponent,

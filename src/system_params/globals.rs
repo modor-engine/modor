@@ -183,11 +183,14 @@ mod glob_tests {
     use crate::storages::systems::Access;
     use crate::{Glob, Global, SystemInfo, SystemParam};
     use std::any::TypeId;
+    use std::panic::{RefUnwindSafe, UnwindSafe};
 
     #[derive(Debug, PartialEq)]
     struct TestGlobal(u32);
 
     impl Global for TestGlobal {}
+
+    assert_impl_all!(Glob<TestGlobal>: Sync, Send, Unpin, UnwindSafe, RefUnwindSafe);
 
     #[test]
     fn use_glob() {

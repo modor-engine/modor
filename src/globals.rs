@@ -64,13 +64,13 @@ pub trait Global: Any + Sync + Send {
 ///
 /// # Examples
 ///
-/// See [Global](crate::Global).
+/// See [`Global`](crate::Global).
 pub struct GlobalBuilder<'a> {
     pub(crate) core: &'a mut CoreStorage,
 }
 
 impl GlobalBuilder<'_> {
-    /// Create a new global of type `G` if no global of this type already exists.
+    /// Creates a new global of type `G` if no global of this type already exists.
     pub fn with_dependency<G>(self, global: G) -> Self
     where
         G: Global,
@@ -161,6 +161,8 @@ mod global_builder_tests {
             builder.with_self(Self(data))
         }
     }
+
+    assert_impl_all!(GlobalBuilder<'_>: Send, Unpin);
 
     #[test]
     fn build_global() {
