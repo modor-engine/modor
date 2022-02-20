@@ -3,7 +3,6 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::globals::GlobalIdx;
 use crate::storages::systems::{Access, ComponentTypeAccess, GlobalAccess, SystemIdx};
 use crate::utils;
-use itertools::Itertools;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
@@ -82,7 +81,7 @@ impl SystemStateStorage {
         self.runnable_idxs
             .iter()
             .copied()
-            .find_position(|&s| {
+            .position(|s| {
                 (!self.can_update[s] || self.updater_state.is_lockable(Access::Write))
                     && actions
                         .dependency_idxs(self.action_idxs[s])
@@ -95,10 +94,7 @@ impl SystemStateStorage {
                         .iter()
                         .all(|a| self.global_states[a.idx].is_lockable(a.access))
             })
-            .map(|(p, i)| {
-                self.runnable_idxs.swap_remove(p);
-                i
-            })
+            .map(|p| self.runnable_idxs.swap_remove(p))
     }
 
     fn unlock(&mut self, system_idx: SystemIdx) {
