@@ -73,6 +73,14 @@ where
     }
 }
 
+pub(crate) fn merge<T, const N: usize>(vectors: [Vec<T>; N]) -> Vec<T> {
+    let mut merged_vec = Vec::new();
+    for vec in vectors {
+        merged_vec.extend(vec);
+    }
+    merged_vec
+}
+
 macro_rules! run_for_tuples_with_idxs {
     ($macro:ident) => {
         run_for_tuples_with_idxs!(
@@ -150,7 +158,7 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{get_both_mut, set_value};
+    use crate::utils::{get_both_mut, merge, set_value};
     use typed_index_collections::TiVec;
 
     #[test]
@@ -172,5 +180,12 @@ mod tests {
         assert_eq!(get_both_mut(&mut vec, 0, 4), (Some(&mut 10), None));
         assert_eq!(get_both_mut(&mut vec, 4, 5), (None, None));
         assert_eq!(get_both_mut(&mut vec, 1, 1), (Some(&mut 20), None));
+    }
+
+    #[test]
+    fn merge_vectors() {
+        assert_eq!(merge::<i32, 0>([]), vec![]);
+        assert_eq!(merge([vec![1, 2, 3]]), vec![1, 2, 3]);
+        assert_eq!(merge([vec![1, 2], vec![3, 4]]), vec![1, 2, 3, 4]);
     }
 }

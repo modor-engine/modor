@@ -146,6 +146,11 @@ mod global_builder_tests {
         }
     }
 
+    #[derive(Debug, PartialEq)]
+    struct TestGlobal3(u32);
+
+    impl Global for TestGlobal3 {}
+
     #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(u32);
 
@@ -165,12 +170,15 @@ mod global_builder_tests {
         builder
             .with_dependency(TestGlobal1(20))
             .with_dependency(TestGlobal2(30))
+            .with_dependency(TestGlobal3(70))
             .with_entity::<TestEntity>(40);
         core.update();
         let global = Some(&TestGlobal1(10));
         assert_eq!(core.globals().read::<TestGlobal1>().as_deref(), global);
         let global = Some(&TestGlobal2(60));
         assert_eq!(core.globals().read::<TestGlobal2>().as_deref(), global);
+        let global = Some(&TestGlobal3(70));
+        assert_eq!(core.globals().read::<TestGlobal3>().as_deref(), global);
         let components = (&*core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(50), TestEntity(40)]];
         assert_eq!(components, expected_components);

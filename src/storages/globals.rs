@@ -17,7 +17,7 @@ impl GlobalStorage {
     }
 
     pub(crate) fn exists(&self, idx: GlobalIdx) -> bool {
-        self.globals.get(idx).map_or(false, Option::is_some)
+        self.globals[idx].is_some()
     }
 
     pub(crate) fn read<G>(&self) -> Option<RwLockReadGuard<'_, G>>
