@@ -21,8 +21,8 @@ impl EntityMainComponent for EntityToDelete {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::delete));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::delete))
     }
 }
 
@@ -41,8 +41,8 @@ impl EntityMainComponent for EntityWithAddedComponent {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::add_component));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::add_component))
     }
 }
 
@@ -64,8 +64,8 @@ impl EntityMainComponent for EntityWithExistingComponentDeleted {
             .with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::delete_component));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::delete_component))
     }
 }
 
@@ -84,8 +84,8 @@ impl EntityMainComponent for EntityWithMissingComponentDeleted {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::delete_component));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::delete_component))
     }
 }
 
@@ -104,8 +104,8 @@ impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::delete_component));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::delete_component))
     }
 }
 

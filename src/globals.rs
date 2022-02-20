@@ -19,12 +19,12 @@ use std::marker::PhantomData;
 /// struct GraphicsModule;
 ///
 /// impl Global for GraphicsModule {
-///     fn build(builder: GlobalBuilder<'_>) {
-///         builder.with_dependency(PhysicsModule);
+///     fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
+///         builder.with_dependency(PhysicsModule)
 ///     }
 ///
-///     fn on_update(runner: SystemRunner<'_>) {
-///         runner.run(system!(Self::update));
+///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+///         runner.run(system!(Self::update))
 ///     }
 /// }
 ///
@@ -37,8 +37,8 @@ use std::marker::PhantomData;
 /// struct PhysicsModule;
 ///
 /// impl Global for PhysicsModule {
-///     fn on_update(runner: SystemRunner<'_>) {
-///         runner.run(system!(Self::update));
+///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+///         runner.run(system!(Self::update))
 ///     }
 /// }
 ///
@@ -50,14 +50,16 @@ use std::marker::PhantomData;
 /// ```
 pub trait Global: Any + Sync + Send {
     /// Defines actions run at the creation of the global.
-    #[allow(unused_variables)]
-    fn build(builder: GlobalBuilder<'_>) {}
+    fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
+        builder
+    }
 
     /// Defines systems to run during update.
     ///
     /// The systems are only run when a global of type `Self` exists.
-    #[allow(unused_variables)]
-    fn on_update(runner: SystemRunner<'_>) {}
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner
+    }
 }
 
 /// A builder for defining a global.
@@ -83,7 +85,6 @@ impl GlobalBuilder<'_> {
                     core: self.core,
                     caller_type: SystemCallerType::Global(TypeId::of::<G>()),
                     latest_action_idx: None,
-                    phantom: PhantomData,
                 });
             }
             self.core.replace_or_add_global(global);
@@ -129,11 +130,11 @@ mod global_builder_tests {
     struct TestGlobal2(u32);
 
     impl Global for TestGlobal2 {
-        fn build(builder: GlobalBuilder<'_>) {
-            builder.with_entity::<TestEntity>(50);
+        fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
+            builder.with_entity::<TestEntity>(50)
         }
 
-        fn on_update(runner: SystemRunner<'_>) {
+        fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
@@ -142,7 +143,7 @@ mod global_builder_tests {
                     archetype_filter: ArchetypeFilter::None,
                 },
                 wrapper: |d, _| d.globals.write::<Self>().unwrap().0 = 60,
-            });
+            })
         }
     }
 

@@ -1,9 +1,7 @@
 use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::core::{CoreStorage, SystemCallerType};
-use crate::system_runner::internal::{FirstSystem, OtherSystems};
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
-use std::marker::PhantomData;
 
 /// A type for defining systems to run during update.
 ///
@@ -34,7 +32,7 @@ use std::marker::PhantomData;
 ///         builder.with_self(Self)
 ///     }
 ///
-///     fn on_update(runner: SystemRunner<'_>) {
+///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
 ///         runner
 ///             // `system1` has no constraint
 ///             .run(system!(system1))
@@ -45,7 +43,7 @@ use std::marker::PhantomData;
 ///             // `system4` will be run after `system2` and `system3`
 ///             .run_constrained::<(DependsOn<Action1>, DependsOn<Action2>)>(system!(system4))
 ///             // `system5` will be run after `system4`
-///             .and_then(system!(system5));
+///             .and_then(system!(system5))
 ///     }
 /// }
 ///
@@ -61,21 +59,20 @@ use std::marker::PhantomData;
 ///     type Constraint = DependsOn<Action1>;
 /// }
 /// ```
-pub struct SystemRunner<'a, T = FirstSystem> {
+pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
     pub(crate) caller_type: SystemCallerType,
     pub(crate) latest_action_idx: Option<ActionIdx>,
-    pub(crate) phantom: PhantomData<T>,
 }
 
-impl<'a, T> SystemRunner<'a, T> {
+impl<'a> SystemRunner<'a> {
     /// Adds a system to run during each [`App`](crate::App) update.
     ///
     /// The [`system!`](crate::system!) macro must be used to define the `system`.
     ///
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
-    pub fn run(self, system: SystemBuilder) -> SystemRunner<'a, OtherSystems> {
+    pub fn run(self, system: SystemBuilder) -> SystemRunner<'a> {
         self.run_with_action(system, None, ActionDependencies::Types(vec![]))
     }
 
@@ -87,7 +84,7 @@ impl<'a, T> SystemRunner<'a, T> {
     /// the system iterates only on entities containing a component of type `E`.
     ///
     /// The constraints of the system are defined by `<A as Action>::Constraint`.
-    pub fn run_as<A>(self, system: SystemBuilder) -> SystemRunner<'a, OtherSystems>
+    pub fn run_as<A>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         A: Action,
     {
@@ -106,7 +103,7 @@ impl<'a, T> SystemRunner<'a, T> {
     /// the system iterates only on entities containing a component of type `E`.
     ///
     /// The constraints of the system are defined by `C`.
-    pub fn run_constrained<C>(self, system: SystemBuilder) -> SystemRunner<'a, OtherSystems>
+    pub fn run_constrained<C>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         C: ActionConstraint,
     {
@@ -122,7 +119,7 @@ impl<'a, T> SystemRunner<'a, T> {
         system: SystemBuilder,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
-    ) -> SystemRunner<'a, OtherSystems> {
+    ) -> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
         SystemRunner {
             latest_action_idx: Some(self.core.add_system(
@@ -134,30 +131,25 @@ impl<'a, T> SystemRunner<'a, T> {
             )),
             core: self.core,
             caller_type: self.caller_type,
-            phantom: PhantomData,
         }
     }
-}
 
-impl<'a> SystemRunner<'a, OtherSystems> {
     /// Adds a system to run after the previous defined one during each [`App`](crate::App) update.
+    ///
+    /// If no system has been previously defined, this method has the same effect as
+    /// [`SystemRunner::run`](crate::SystemRunner::run).
     ///
     /// The [`system!`](crate::system!) macro must be used to define the `system`.
     ///
     /// If the system is iterative (see [`system!`](crate::system!) for more information),
     /// the system iterates only on entities containing a component of type `E`.
-    pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a, OtherSystems> {
-        let latest_action_idx = self
-            .latest_action_idx
-            .expect("internal error: no previous system defined");
-        self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
+    pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a> {
+        if let Some(latest_action_idx) = self.latest_action_idx {
+            self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
+        } else {
+            self.run(system)
+        }
     }
-}
-
-mod internal {
-    pub struct FirstSystem;
-
-    pub struct OtherSystems;
 }
 
 #[cfg(test)]
@@ -169,7 +161,6 @@ mod entity_runner_tests {
         Action, Built, DependsOn, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner,
     };
     use std::any::TypeId;
-    use std::marker::PhantomData;
 
     struct TestActionDependency;
 
@@ -199,14 +190,13 @@ mod entity_runner_tests {
     fn run_systems() {
         let mut core = CoreStorage::default();
         core.add_entity_type::<TestEntity>();
-        let runner: SystemRunner<'_> = SystemRunner {
+        let runner = SystemRunner {
             core: &mut core,
             caller_type: SystemCallerType::Entity(TypeId::of::<TestEntity>()),
             latest_action_idx: None,
-            phantom: PhantomData,
         };
         runner
-            .run(create_system_builder())
+            .and_then(create_system_builder())
             .run(create_system_builder())
             .and_then(create_system_builder())
             .run_as::<TestAction>(create_system_builder())

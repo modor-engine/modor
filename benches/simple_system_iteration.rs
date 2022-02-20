@@ -33,8 +33,8 @@ impl EntityMainComponent for Object {
             )))
     }
 
-    fn on_update(runner: SystemRunner<'_>) {
-        runner.run(system!(Self::update));
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update))
     }
 }
 
