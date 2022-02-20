@@ -3,7 +3,7 @@
 use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{App, EntityBuilder, EntityMainComponent};
+use crate::{App, EntityBuilder, EntityMainComponent, Global};
 use std::any;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
@@ -49,15 +49,7 @@ impl TestApp {
         Self::default()
     }
 
-    /// Starts assertions on an entity.
-    pub fn assert_entity(&self, entity_id: usize) -> EntityAssertion<'_> {
-        EntityAssertion {
-            core: &self.0 .0,
-            entity_idx: entity_id.into(),
-        }
-    }
-
-    /// Creates an entity and returns its ID.
+    /// Creates a new entity and returns its ID.
     ///
     /// Entity IDs are unique and can be recycled in case the entity is deleted.
     pub fn create_entity<E>(&mut self, data: E::Data) -> usize
@@ -78,6 +70,60 @@ impl TestApp {
         };
         E::build(entity_builder, data);
         entity_idx.into()
+    }
+
+    /// Creates a new global of type `G`.
+    ///
+    /// If a global of type `G` already exists, it is overwritten.
+    pub fn create_global<G>(&mut self, global: G)
+    where
+        G: Global,
+    {
+        self.0.create_global(global);
+    }
+
+    /// Starts assertions on an entity.
+    pub fn assert_entity(&self, entity_id: usize) -> EntityAssertion<'_> {
+        EntityAssertion {
+            core: &self.0 .0,
+            entity_idx: entity_id.into(),
+        }
+    }
+
+    /// Asserts the global of type `G` exist and runs `f` on this global.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity does not exist.
+    pub fn assert_global_exists<G, F>(&self, mut f: F)
+    where
+        G: Global,
+        F: FnMut(&G),
+    {
+        if let Some(global) = self.0 .0.globals().read::<G>() {
+            f(&*global);
+        } else {
+            panic!(
+                "assertion failed: assert_global_exists<{}, _>(...)",
+                any::type_name::<G>()
+            )
+        }
+    }
+
+    /// Asserts the global of type `G` does not exist.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity exists.
+    pub fn assert_global_does_not_exist<G>(&self)
+    where
+        G: Global,
+    {
+        assert!(
+            self.0 .0.globals().read::<G>().is_none(),
+            "assertion failed: assert_global_does_not_exist<{}>()",
+            any::type_name::<G>()
+        );
     }
 }
 
@@ -237,7 +283,7 @@ impl EntityAssertion<'_> {
 #[cfg(test)]
 mod test_app_tests {
     use crate::testing::TestApp;
-    use crate::{App, Built, EntityBuilder, EntityMainComponent};
+    use crate::{App, Built, EntityBuilder, EntityMainComponent, Global};
     use std::ptr;
 
     #[derive(Debug, PartialEq)]
@@ -265,6 +311,14 @@ mod test_app_tests {
         }
     }
 
+    struct TestGlobal1(u32);
+
+    impl Global for TestGlobal1 {}
+
+    struct TestGlobal2(u32);
+
+    impl Global for TestGlobal2 {}
+
     #[test]
     fn deref() {
         let mut app = TestApp::from(App::new());
@@ -273,7 +327,7 @@ mod test_app_tests {
     }
 
     #[test]
-    fn assert_from_new_app() {
+    fn assert_on_entities_from_new_app() {
         let mut app = TestApp::new();
         let entity_id = app.create_entity::<TestEntity>("string".into());
         app.assert_entity(entity_id)
@@ -294,6 +348,17 @@ mod test_app_tests {
         assert_panics!(app.assert_entity(missing_id).has::<String, _>(|_| ()));
         assert_panics!(app.assert_entity(missing_id).has_not::<String>());
         assert_panics!(app.assert_entity(missing_id).has_children(|_| ()));
+    }
+
+    #[test]
+    fn assert_on_globals_from_new_app() {
+        let mut app = TestApp::new();
+        app.create_global(TestGlobal1(10));
+        app.assert_global_does_not_exist::<TestGlobal2>();
+        app.assert_global_exists::<TestGlobal1, _>(|g| assert_eq!(g.0, 10));
+        assert_panics!(app.assert_global_does_not_exist::<TestGlobal1>());
+        assert_panics!(app.assert_global_exists::<TestGlobal1, _>(|_| panic!()));
+        assert_panics!(app.assert_global_exists::<TestGlobal2, _>(|_| ()));
     }
 
     #[test]

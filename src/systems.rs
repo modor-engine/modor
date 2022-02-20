@@ -93,8 +93,8 @@ use std::sync::Mutex;
 ///
 /// Invalid systems:
 /// ```compile_fail
-/// use modor::{system, Entity, World, Query};
-///
+/// # use modor::{system, Entity, World, Query};
+/// #
 /// system!(invalid_system);
 ///
 /// fn invalid_system(name: &String, name_mut: &mut String) {

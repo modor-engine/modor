@@ -75,17 +75,7 @@ impl App {
     where
         G: Global,
     {
-        let global_idx = self.0.register_global::<G>();
-        G::build(GlobalBuilder { core: &mut self.0 });
-        if !self.0.globals().has_been_created(global_idx) {
-            G::on_update(SystemRunner {
-                core: &mut self.0,
-                caller_type: SystemCallerType::Global(TypeId::of::<G>()),
-                latest_action_idx: None,
-                phantom: PhantomData,
-            });
-        }
-        self.0.replace_or_add_global(global);
+        self.create_global(global);
         self
     }
 
@@ -97,6 +87,23 @@ impl App {
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
         self.0.update();
+    }
+
+    pub(crate) fn create_global<G>(&mut self, global: G)
+    where
+        G: Global,
+    {
+        let global_idx = self.0.register_global::<G>();
+        G::build(GlobalBuilder { core: &mut self.0 });
+        if !self.0.globals().has_been_created(global_idx) {
+            G::on_update(SystemRunner {
+                core: &mut self.0,
+                caller_type: SystemCallerType::Global(TypeId::of::<G>()),
+                latest_action_idx: None,
+                phantom: PhantomData,
+            });
+        }
+        self.0.replace_or_add_global(global);
     }
 }
 

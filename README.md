@@ -11,9 +11,16 @@
 
 Core library of Modor
 
-Modor is a modular and kind of object-oriented game engine.
-It is based on the [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern,
-but provides an API that represents entities like strongly typed objects.
+Modor is a modular and kind of object-oriented game engine. It is based on
+the [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but provides an API that
+represents entities like strongly typed objects.
+
+It also makes extensive use of compile-time checks. For example:
+
+- system parameters are checked to avoid mutability issues at runtime, e.g. if the same component type is mutably
+  queried twice by the same system
+- system execution order is checked to avoid dependency cycles
+- the engine API is designed to avoid runtime panics as much as possible
 
 ## Supported platforms
 
@@ -95,6 +102,5 @@ at your option.
 
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
-additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as
+defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
