@@ -112,6 +112,28 @@ impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
 impl EntityWithNotRegisteredComponentTypeDeleted {
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<i64>(entity.id());
+        world.create_root_entity::<NewRootEntity>(10);
+        world.create_child_entity::<NewChildEntity>(entity.id(), 20);
+    }
+}
+
+struct NewRootEntity(u32);
+
+impl EntityMainComponent for NewRootEntity {
+    type Data = u32;
+
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        builder.with_self(Self(data))
+    }
+}
+
+struct NewChildEntity(u32);
+
+impl EntityMainComponent for NewChildEntity {
+    type Data = u32;
+
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        builder.with_self(Self(data))
     }
 }
 
@@ -137,10 +159,13 @@ fn use_world() {
         .has_not::<String>();
     app.assert_entity(entity5_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(50)))
-        .has_not::<String>();
+        .has_not::<String>()
+        .has_children(|c| assert_eq!(c.len(), 0));
+    app.assert_entity(entity5_id + 1).does_not_exist();
 
     app.update();
-    app.assert_entity(entity1_id).does_not_exist();
+    app.assert_entity(entity1_id)
+        .has::<NewChildEntity, _>(|e| assert_eq!(e.0, 20));
     app.assert_entity(entity2_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(20)))
         .has::<String, _>(|c| assert_eq!(c, "id: 20"));
@@ -152,5 +177,12 @@ fn use_world() {
         .has_not::<String>();
     app.assert_entity(entity5_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(50)))
-        .has_not::<String>();
+        .has_not::<String>()
+        .has_children(|c| {
+            assert_eq!(c.len(), 1);
+            app.assert_entity(c[0])
+                .has::<NewChildEntity, _>(|e| assert_eq!(e.0, 20));
+        });
+    app.assert_entity(entity5_id + 1)
+        .has::<NewRootEntity, _>(|e| assert_eq!(e.0, 10));
 }

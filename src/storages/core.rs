@@ -8,7 +8,7 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::globals::{GlobalIdx, GlobalStorage};
 use crate::storages::systems::{SystemCaller, SystemProperties, SystemStorage};
-use crate::storages::updates::{EntityUpdate, UpdateStorage};
+use crate::storages::updates::UpdateStorage;
 use crate::systems::internal::SystemWrapper;
 use crate::SystemData;
 
@@ -183,28 +183,36 @@ impl CoreStorage {
                 .get_mut()
                 .expect("internal error: cannot access to entity actions"),
         );
-        for (entity_idx, entity_update) in updates.drain_entity_updates() {
-            let location = if let Some(location) = self.entities.location(entity_idx) {
-                location
-            } else {
-                continue;
-            };
-            match entity_update {
-                EntityUpdate::Change(add_component_fns, deleted_component_type_idxs) => {
-                    let mut dst_archetype_idx = location.idx;
-                    for type_idx in deleted_component_type_idxs {
-                        dst_archetype_idx = self.delete_component_type(type_idx, dst_archetype_idx);
-                    }
-                    for add_fns in &add_component_fns {
-                        dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
-                    }
-                    let dst_location = self.move_entity(location, dst_archetype_idx);
-                    for add_fns in add_component_fns {
-                        (add_fns.add_fn)(self, dst_location);
-                    }
-                }
-                EntityUpdate::Deletion => self.delete_entity(entity_idx),
+        // Each type of update is executed in an order that avoids entity index conflicts
+        for entity_idx in updates.deleted_entity_drain() {
+            if self.entities.location(entity_idx).is_some() {
+                self.delete_entity(entity_idx);
             }
+        }
+        for (entity_idx, add_component_fns, deleted_component_type_idxs) in
+            updates.changed_entity_drain()
+        {
+            if let Some(location) = self.entities.location(entity_idx) {
+                let mut dst_archetype_idx = location.idx;
+                for type_idx in deleted_component_type_idxs {
+                    dst_archetype_idx = self.delete_component_type(type_idx, dst_archetype_idx);
+                }
+                for add_fns in &add_component_fns {
+                    dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
+                }
+                let dst_location = self.move_entity(location, dst_archetype_idx);
+                for add_fns in add_component_fns {
+                    (add_fns.add_fn)(self, dst_location);
+                }
+            }
+        }
+        for (create_fn, parent_idx) in updates.created_child_entity_drain() {
+            if self.entities.location(parent_idx).is_some() {
+                create_fn(self);
+            }
+        }
+        for create_fn in updates.created_root_entity_drain() {
+            create_fn(self);
         }
     }
 
@@ -411,6 +419,11 @@ mod core_storage_tests {
                     |c, a| c.add_component_type::<i8>(a).1,
                     Box::new(move |c, l| c.add_component(40_i8, 2.into(), l)),
                 );
+                updates.create_entity(None, Box::new(|c| c.replace_or_add_global(50_usize)));
+                updates.create_entity(
+                    Some(1.into()),
+                    Box::new(|c| c.replace_or_add_global(60_i64)),
+                );
             },
             SystemCallerType::Entity(TypeId::of::<u32>()),
             SystemProperties {
@@ -434,5 +447,7 @@ mod core_storage_tests {
         assert_eq!(storage.entities().location(entity1_idx), None);
         let location = EntityLocation::new(3.into(), 0.into());
         assert_eq!(storage.entities().location(entity2_idx), Some(location));
+        assert_eq!(*storage.globals.read::<usize>().unwrap(), 50);
+        assert_eq!(*storage.globals.read::<i64>().unwrap(), 60);
     }
 }
