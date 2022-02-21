@@ -116,10 +116,8 @@ impl Iterator for DeletedEntityDrain<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for pos in &mut self.modified_entity_positions {
-            if matches!(
-                self.entity_updates[self.modified_entity_idxs[pos]],
-                EntityUpdate::Deletion,
-            ) {
+            let update = &self.entity_updates[self.modified_entity_idxs[pos]];
+            if matches!(update, EntityUpdate::Deletion) {
                 let entity_idx = self.modified_entity_idxs.swap_remove(pos);
                 self.entity_updates[entity_idx] = EntityUpdate::default();
                 return Some(entity_idx);
@@ -144,17 +142,13 @@ impl Iterator for ChangedEntityDrain<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for pos in &mut self.modified_entity_positions {
-            if matches!(
-                self.entity_updates[self.modified_entity_idxs[pos]],
-                EntityUpdate::Change(_, _),
-            ) {
+            let update = &self.entity_updates[self.modified_entity_idxs[pos]];
+            if matches!(update, EntityUpdate::Change(_, _)) {
                 let entity_idx = self.modified_entity_idxs.swap_remove(pos);
-                return if let EntityUpdate::Change(add_fns, delete_fns) =
+                if let EntityUpdate::Change(add_fns, delete_fns) =
                     mem::take(&mut self.entity_updates[entity_idx])
                 {
-                    Some((entity_idx, add_fns, delete_fns))
-                } else {
-                    panic!();
+                    return Some((entity_idx, add_fns, delete_fns));
                 };
             }
         }
