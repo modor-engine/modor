@@ -142,14 +142,11 @@ impl Iterator for ChangedEntityDrain<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for pos in &mut self.modified_entity_positions {
-            let update = &self.entity_updates[self.modified_entity_idxs[pos]];
-            if matches!(update, EntityUpdate::Change(_, _)) {
-                let entity_idx = self.modified_entity_idxs.swap_remove(pos);
-                if let EntityUpdate::Change(add_fns, delete_fns) =
-                    mem::take(&mut self.entity_updates[entity_idx])
-                {
-                    return Some((entity_idx, add_fns, delete_fns));
-                };
+            let entity_idx = self.modified_entity_idxs[pos];
+            if let EntityUpdate::Change(add_fns, delete_fns) = &mut self.entity_updates[entity_idx]
+            {
+                self.modified_entity_idxs.swap_remove(pos);
+                return Some((entity_idx, mem::take(add_fns), mem::take(delete_fns)));
             }
         }
         None
@@ -182,25 +179,25 @@ mod update_storage_tests {
     #[test]
     fn update_entities() {
         let mut storage = UpdateStorage::default();
-        storage.delete_entity(5.into());
-        storage.add_component(5.into(), |_, a| a, Box::new(|_, _| ()));
         storage.add_component(3.into(), |_, a| a, Box::new(|_, _| ()));
+        storage.add_component(5.into(), |_, a| a, Box::new(|_, _| ()));
+        storage.delete_entity(5.into());
         storage.delete_component(5.into(), 10.into());
         storage.delete_component(3.into(), 20.into());
         storage.delete_component(1.into(), 30.into());
         storage.create_entity(None, Box::new(|_| ()));
         storage.create_entity(Some(40.into()), Box::new(|_| ()));
-        let deleted_entity_idxs: Vec<_> = storage.deleted_entity_drain().collect();
-        assert_eq!(deleted_entity_idxs, [5.into()]);
         let changed_entities: Vec<_> = storage.changed_entity_drain().collect();
         assert_eq!(changed_entities.len(), 2);
-        assert_eq!(changed_entities[0].0, 3.into());
-        assert_eq!(changed_entities[0].1.len(), 1);
-        assert_eq!(changed_entities[0].2, [20.into()]);
-        assert_eq!(changed_entities[1].0, 1.into());
-        assert_eq!(changed_entities[1].1.len(), 0);
-        assert_eq!(changed_entities[1].2, [30.into()]);
+        assert_eq!(changed_entities[0].0, 1.into());
+        assert_eq!(changed_entities[0].1.len(), 0);
+        assert_eq!(changed_entities[0].2, [30.into()]);
+        assert_eq!(changed_entities[1].0, 3.into());
+        assert_eq!(changed_entities[1].1.len(), 1);
+        assert_eq!(changed_entities[1].2, [20.into()]);
         assert_eq!(storage.created_root_entity_drain().count(), 1);
+        let deleted_entity_idxs: Vec<_> = storage.deleted_entity_drain().collect();
+        assert_eq!(deleted_entity_idxs, [5.into()]);
         let created_entities: Vec<_> = storage.created_child_entity_drain().collect();
         assert_eq!(created_entities.len(), 1);
         assert_eq!(created_entities[0].1, 40.into());

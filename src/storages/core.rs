@@ -412,6 +412,7 @@ mod core_storage_tests {
                 let missing_idx = 10.into();
                 updates.delete_entity(missing_idx);
                 updates.delete_entity(0.into());
+                updates.delete_component(missing_idx, 0.into());
                 updates.delete_component(1.into(), 0.into());
                 updates.delete_component(1.into(), 1.into());
                 updates.add_component(
