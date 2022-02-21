@@ -209,7 +209,7 @@ mod system_storage_tests {
     use crate::storages::systems::{
         Access, ComponentTypeAccess, SystemCaller, SystemProperties, SystemStorage,
     };
-    use crate::storages::updates::{EntityUpdate, UpdateStorage};
+    use crate::storages::updates::UpdateStorage;
     use crate::systems::internal::SystemWrapper;
     use crate::{SystemData, SystemInfo};
     use std::any::{Any, TypeId};
@@ -284,14 +284,13 @@ mod system_storage_tests {
         use_data(true, |d| {
             storage.run(d);
             let mut updates = d.updates.try_lock().unwrap();
-            assert_eq!(updates.drain_entity_updates().count(), 0);
+            assert_eq!(updates.deleted_entity_drain().count(), 0);
         });
         use_data(false, |d| {
             storage.run(d);
             let mut updates = d.updates.try_lock().unwrap();
-            let entity_updates: Vec<_> = updates.drain_entity_updates().collect();
-            assert_eq!(entity_updates[0].0, 2.into());
-            assert!(matches!(entity_updates[0].1, EntityUpdate::Deletion));
+            let deleted_entity_idxs: Vec<_> = updates.deleted_entity_drain().collect();
+            assert_eq!(deleted_entity_idxs, [2.into()]);
         });
     }
 

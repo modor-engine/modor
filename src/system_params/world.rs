@@ -1,11 +1,12 @@
-use crate::storages::archetypes::ArchetypeFilter;
+use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
-use crate::{SystemData, SystemInfo, SystemParam};
+use crate::{EntityBuilder, EntityMainComponent, SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 
 /// A system parameter for applying actions on entities.
 ///
@@ -24,6 +25,63 @@ pub struct World<'a> {
 }
 
 impl<'a> World<'a> {
+    /// Creates a new root entity of type `E` with building data `data`.
+    ///
+    /// The entity is actually created once all registered systems have been run.
+    pub fn create_root_entity<E>(&mut self, data: E::Data)
+    where
+        E: EntityMainComponent,
+    {
+        self.data
+            .updates
+            .try_lock()
+            .expect("internal error: cannot lock updates to create root entity")
+            .create_entity(
+                None,
+                Box::new(|c| {
+                    let entity_builder = EntityBuilder {
+                        core: c,
+                        entity_idx: None,
+                        src_location: None,
+                        dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+                        parent_idx: None,
+                        added_components: (),
+                        phantom: PhantomData,
+                    };
+                    E::build(entity_builder, data);
+                }),
+            );
+    }
+
+    /// Creates a new entity of type `E` with building data `data` and parent entity with ID
+    /// `parent_id`.
+    ///
+    /// The entity is actually created once all registered systems have been run.
+    pub fn create_child_entity<E>(&mut self, parent_id: usize, data: E::Data)
+    where
+        E: EntityMainComponent,
+    {
+        self.data
+            .updates
+            .try_lock()
+            .expect("internal error: cannot lock updates to create child entity")
+            .create_entity(
+                Some(parent_id.into()),
+                Box::new(move |c| {
+                    let entity_builder = EntityBuilder {
+                        core: c,
+                        entity_idx: None,
+                        src_location: None,
+                        dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
+                        parent_idx: Some(parent_id.into()),
+                        added_components: (),
+                        phantom: PhantomData,
+                    };
+                    E::build(entity_builder, data);
+                }),
+            );
+    }
+
     /// Deletes an entity.
     ///
     /// The entity is actually deleted once all registered systems have been run.
@@ -31,7 +89,7 @@ impl<'a> World<'a> {
         self.data
             .updates
             .try_lock()
-            .expect("internal error: cannot lock entity actions to delete entity")
+            .expect("internal error: cannot lock updates to delete entity")
             .delete_entity(entity_id.into());
     }
 
@@ -49,7 +107,7 @@ impl<'a> World<'a> {
         self.data
             .updates
             .try_lock()
-            .expect("internal error: cannot lock entity actions to add component")
+            .expect("internal error: cannot lock updates to add component")
             .add_component(
                 entity_id.into(),
                 |c, a| c.add_component_type::<C>(a).1,
@@ -78,7 +136,7 @@ impl<'a> World<'a> {
             self.data
                 .updates
                 .try_lock()
-                .expect("internal error: cannot lock entity actions to delete component")
+                .expect("internal error: cannot lock updates to delete component")
                 .delete_component(entity_id.into(), type_idx);
         }
     }
@@ -192,10 +250,21 @@ mod internal {
 
 #[cfg(test)]
 mod world_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
-    use crate::{SystemInfo, SystemParam, World};
+    use crate::{Built, EntityBuilder, EntityMainComponent, SystemInfo, SystemParam, World};
     use std::any::TypeId;
+
+    #[derive(Debug, PartialEq, Clone)]
+    struct TestEntity(u32);
+
+    impl EntityMainComponent for TestEntity {
+        type Data = u32;
+
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+            builder.with_self(Self(data))
+        }
+    }
 
     assert_impl_all!(World<'_>: Sync, Send, Unpin);
 
@@ -210,10 +279,20 @@ mod world_tests {
         world.delete_entity(0);
         world.add_component(1, 30_i8);
         world.delete_component::<i8>(2);
+        world.create_root_entity::<TestEntity>(40);
+        world.create_child_entity::<TestEntity>(1, 50);
         core.update();
-        assert_eq!(core.entities().location(0.into()), None);
+        let new_entity_location = Some(EntityLocation::new(3.into(), 0.into()));
+        assert_eq!(core.entities().location(0.into()), new_entity_location);
         let components = core.components().read_components::<i8>().clone();
         assert_eq!(components, ti_vec![ti_vec![], ti_vec![], ti_vec![30_i8]]);
+        let components = core.components().read_components::<TestEntity>().clone();
+        let new_entities = ti_vec![TestEntity(50), TestEntity(40)];
+        assert_eq!(
+            components,
+            ti_vec![ti_vec![], ti_vec![], ti_vec![], new_entities]
+        );
+        assert_eq!(core.entities().parent_idx(0.into()), Some(1.into()));
     }
 
     #[test]

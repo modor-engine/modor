@@ -65,7 +65,7 @@ impl EntityStorage {
                 .iter()
                 .position(|&c| c == entity_idx)
                 .expect("internal error: child not registered in parent entity");
-            self.child_idxs[parent_idx].remove(entity_pos);
+            self.child_idxs[parent_idx].swap_remove(entity_pos);
         }
         self.delete_internal(entity_idx, &mut for_each_deleted_entity_fn);
     }
