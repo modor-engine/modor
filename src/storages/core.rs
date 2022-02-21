@@ -410,9 +410,10 @@ mod core_storage_tests {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 let mut updates = d.updates.try_lock().unwrap();
                 let missing_idx = 10.into();
+                let other_missing_idx = 11.into();
                 updates.delete_entity(missing_idx);
                 updates.delete_entity(0.into());
-                updates.delete_component(missing_idx, 0.into());
+                updates.delete_component(other_missing_idx, 0.into());
                 updates.delete_component(1.into(), 0.into());
                 updates.delete_component(1.into(), 1.into());
                 updates.add_component(
