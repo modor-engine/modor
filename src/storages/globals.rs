@@ -68,6 +68,12 @@ impl GlobalStorage {
         utils::set_value(&mut self.globals, idx, Some(boxed_global));
         self.has_been_created[idx] = true;
     }
+
+    pub(super) fn delete(&mut self, global_type: TypeId) {
+        if let Some(&global_idx) = self.idxs.get(&global_type) {
+            self.globals[global_idx] = None;
+        }
+    }
 }
 
 idx_type!(pub(crate) GlobalIdx);
@@ -102,5 +108,11 @@ mod global_storage_tests {
         assert_eq!(storage.write::<i64>().as_deref_mut(), None);
         assert_eq!(storage.write::<i8>().as_deref_mut(), Some(&mut 30_i8));
         assert_eq!(storage.write::<u16>().as_deref_mut(), None);
+        storage.delete(TypeId::of::<u32>());
+        storage.delete(TypeId::of::<String>());
+        assert!(storage.has_been_created(2.into()));
+        assert!(!storage.exists(global1_idx));
+        assert_eq!(storage.read::<u32>().as_deref(), None);
+        assert_eq!(storage.write::<u32>().as_deref_mut(), None);
     }
 }

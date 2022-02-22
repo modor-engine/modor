@@ -1,5 +1,7 @@
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, SystemRunner, World};
+use modor::{
+    system, Built, Entity, EntityBuilder, EntityMainComponent, Global, SystemRunner, World,
+};
 
 #[derive(PartialEq, Debug)]
 struct Parent(u32);
@@ -114,6 +116,8 @@ impl EntityWithNotRegisteredComponentTypeDeleted {
         world.delete_component::<i64>(entity.id());
         world.create_root_entity::<NewRootEntity>(10);
         world.create_child_entity::<NewChildEntity>(entity.id(), 20);
+        world.delete_global::<DeletedGlobal>();
+        world.create_global(CreatedGlobal(70));
     }
 }
 
@@ -137,6 +141,14 @@ impl EntityMainComponent for NewChildEntity {
     }
 }
 
+struct CreatedGlobal(u32);
+
+impl Global for CreatedGlobal {}
+
+struct DeletedGlobal(u32);
+
+impl Global for DeletedGlobal {}
+
 #[test]
 fn use_world() {
     let mut app = TestApp::new();
@@ -145,6 +157,7 @@ fn use_world() {
     let entity3_id = app.create_entity::<EntityWithExistingComponentDeleted>(30);
     let entity4_id = app.create_entity::<EntityWithMissingComponentDeleted>(40);
     let entity5_id = app.create_entity::<EntityWithNotRegisteredComponentTypeDeleted>(50);
+    app.create_global(DeletedGlobal(60));
     app.assert_entity(entity1_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(10)))
         .has_not::<String>();
@@ -162,6 +175,7 @@ fn use_world() {
         .has_not::<String>()
         .has_children(|c| assert_eq!(c.len(), 0));
     app.assert_entity(entity5_id + 1).does_not_exist();
+    app.assert_global_exists::<DeletedGlobal, _>(|g| assert_eq!(g.0, 60));
 
     app.update();
     app.assert_entity(entity1_id)
@@ -185,4 +199,6 @@ fn use_world() {
         });
     app.assert_entity(entity5_id + 1)
         .has::<NewRootEntity, _>(|e| assert_eq!(e.0, 10));
+    app.assert_global_does_not_exist::<DeletedGlobal>();
+    app.assert_global_exists::<CreatedGlobal, _>(|g| assert_eq!(g.0, 70));
 }
