@@ -3,12 +3,15 @@ use crate::storages::core::{CoreStorage, SystemCallerType};
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 
-/// A type for defining systems to run during update.
+/// A type for defining systems to run during each [`App`](crate::App) update.
 ///
 /// Cyclic dependencies between systems are detected at compile time.
 ///
 /// The definition order of the systems can be different than their execution order if systems
 /// are defined without constraint.
+///
+/// Iterative systems (see [`system!`](crate::system!) for more information) defined for an entity
+/// main component of type `E` iterates only on entities containing a component of type `E`.
 ///
 /// # Examples
 ///
@@ -66,24 +69,18 @@ pub struct SystemRunner<'a> {
 }
 
 impl<'a> SystemRunner<'a> {
-    /// Adds a system to run during each [`App`](crate::App) update.
+    /// Adds a system.
     ///
     /// The [`system!`](crate::system!) macro must be used to define the `system`.
-    ///
-    /// If the system is iterative (see [`system!`](crate::system!) for more information),
-    /// the system iterates only on entities containing a component of type `E`.
     pub fn run(self, system: SystemBuilder) -> SystemRunner<'a> {
         self.run_with_action(system, None, ActionDependencies::Types(vec![]))
     }
 
-    /// Adds a system to run during each [`App`](crate::App) update that is associated to an action.
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
-    ///
-    /// If the system is iterative (see [`system!`](crate::system!) for more information),
-    /// the system iterates only on entities containing a component of type `E`.
+    /// Adds a system associated to an action.
     ///
     /// The constraints of the system are defined by `<A as Action>::Constraint`.
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
     pub fn run_as<A>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         A: Action,
@@ -95,14 +92,9 @@ impl<'a> SystemRunner<'a> {
         )
     }
 
-    /// Adds a system with constraints to run during each [`App`](crate::App) update.
+    /// Adds a system with constraints `C`.
     ///
     /// The [`system!`](crate::system!) macro must be used to define the `system`.
-    ///
-    /// If the system is iterative (see [`system!`](crate::system!) for more information),
-    /// the system iterates only on entities containing a component of type `E`.
-    ///
-    /// The constraints of the system are defined by `C`.
     pub fn run_constrained<C>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         C: ActionConstraint,
@@ -112,6 +104,22 @@ impl<'a> SystemRunner<'a> {
             None,
             ActionDependencies::Types(C::dependency_types()),
         )
+    }
+
+    /// Adds a system to run after the previous defined one.
+    ///
+    /// The added system does not have an associated action, and the action of the previous
+    /// defined system is not inherited.<br>
+    /// If no system has been previously defined, this method has the same effect as
+    /// [`SystemRunner::run`](crate::SystemRunner::run).
+    ///
+    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a> {
+        if let Some(latest_action_idx) = self.latest_action_idx {
+            self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
+        } else {
+            self.run(system)
+        }
     }
 
     fn run_with_action(
@@ -131,23 +139,6 @@ impl<'a> SystemRunner<'a> {
             )),
             core: self.core,
             caller_type: self.caller_type,
-        }
-    }
-
-    /// Adds a system to run after the previous defined one during each [`App`](crate::App) update.
-    ///
-    /// If no system has been previously defined, this method has the same effect as
-    /// [`SystemRunner::run`](crate::SystemRunner::run).
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
-    ///
-    /// If the system is iterative (see [`system!`](crate::system!) for more information),
-    /// the system iterates only on entities containing a component of type `E`.
-    pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a> {
-        if let Some(latest_action_idx) = self.latest_action_idx {
-            self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
-        } else {
-            self.run(system)
         }
     }
 }
