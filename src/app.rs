@@ -75,7 +75,7 @@ impl App {
     where
         G: Global,
     {
-        self.create_global(global);
+        Self::create_global(&mut self.0, global);
         self
     }
 
@@ -89,20 +89,20 @@ impl App {
         self.0.update();
     }
 
-    pub(crate) fn create_global<G>(&mut self, global: G)
+    pub(crate) fn create_global<G>(core: &mut CoreStorage, global: G)
     where
         G: Global,
     {
-        let global_idx = self.0.register_global::<G>();
-        G::build(GlobalBuilder { core: &mut self.0 });
-        if !self.0.globals().has_been_created(global_idx) {
+        let global_idx = core.register_global::<G>();
+        G::build(GlobalBuilder { core });
+        if !core.globals().has_been_created(global_idx) {
             G::on_update(SystemRunner {
-                core: &mut self.0,
+                core,
                 caller_type: SystemCallerType::Global(TypeId::of::<G>()),
                 latest_action_idx: None,
             });
         }
-        self.0.replace_or_add_global(global);
+        core.replace_or_add_global(global);
     }
 }
 

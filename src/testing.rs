@@ -79,7 +79,7 @@ impl TestApp {
     where
         G: Global,
     {
-        self.0.create_global(global);
+        App::create_global(&mut self.0 .0, global);
     }
 
     /// Starts assertions on an entity.

@@ -214,6 +214,12 @@ impl CoreStorage {
         for create_fn in updates.created_root_entity_drain() {
             create_fn(self);
         }
+        for global_type in updates.deleted_global_drain() {
+            self.globals.delete(global_type);
+        }
+        for create_fn in updates.created_global_drain() {
+            create_fn(self);
+        }
     }
 
     fn delete_entity(&mut self, entity_idx: EntityIdx) {
@@ -405,6 +411,7 @@ mod core_storage_tests {
         storage.add_component(10_u32, type_idx, location1);
         storage.add_component(20_u32, type_idx, location2);
         storage.add_component(30_u32, type_idx, location3);
+        storage.replace_or_add_global(70_u16);
         storage.add_system(
             |d, i| {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);
@@ -426,6 +433,9 @@ mod core_storage_tests {
                     Some(1.into()),
                     Box::new(|c| c.replace_or_add_global(60_i64)),
                 );
+                updates.delete_global(TypeId::of::<u16>());
+                updates.delete_global(TypeId::of::<u8>());
+                updates.create_global(Box::new(|c| c.replace_or_add_global(80_u8)));
             },
             SystemCallerType::Entity(TypeId::of::<u32>()),
             SystemProperties {
@@ -451,5 +461,7 @@ mod core_storage_tests {
         assert_eq!(storage.entities().location(entity2_idx), Some(location));
         assert_eq!(*storage.globals.read::<usize>().unwrap(), 50);
         assert_eq!(*storage.globals.read::<i64>().unwrap(), 60);
+        assert_eq!(*storage.globals.read::<u8>().unwrap(), 80);
+        assert!(storage.globals.read::<u16>().is_none());
     }
 }
