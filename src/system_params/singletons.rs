@@ -3,8 +3,7 @@ use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
-use crate::{Entity, SystemData, SystemInfo, SystemParam};
-use std::any::Any;
+use crate::{Entity, EntityMainComponent, Singleton, SystemData, SystemInfo, SystemParam};
 use std::ops::Deref;
 
 /// A system parameter for immutably accessing the singleton of type `C`.
@@ -16,12 +15,12 @@ use std::ops::Deref;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Single, EntityMainComponent, Built, EntityBuilder};
+/// # use modor::{Single, EntityMainComponent, Built, EntityBuilder, Singleton};
 /// #
 /// struct GameScore(u32);
 ///
 /// impl EntityMainComponent for GameScore {
-///     type Type = ();
+///     type Type = Singleton;
 ///     type Data = u32;
 ///
 ///     fn build(builder: EntityBuilder<'_, Self>, score: Self::Data) -> Built<'_> {
@@ -35,7 +34,7 @@ use std::ops::Deref;
 /// ```
 pub struct Single<'a, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     pub(crate) component: &'a C,
     pub(crate) entity: Entity<'a>,
@@ -43,7 +42,7 @@ where
 
 impl<C> Single<'_, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     /// Returns entity information.
     pub fn entity(&self) -> Entity<'_> {
@@ -53,7 +52,7 @@ where
 
 impl<C> Deref for Single<'_, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Target = C;
 
@@ -64,7 +63,7 @@ where
 
 impl<'a, C> SystemParamWithLifetime<'a> for Single<'_, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Param = Single<'a, C>;
     type Guard = SingletonGuard<'a, C>;
@@ -74,7 +73,7 @@ where
 
 impl<C> SystemParam for Single<'_, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Tuple = (Self,);
     type InnerTuple = ();
@@ -128,7 +127,7 @@ where
 
 impl<C> LockableSystemParam for Single<'_, C>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type LockedType = C;
     type Mutability = Const;
@@ -138,7 +137,7 @@ pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, Single, SystemData, SystemInfo};
+    use crate::{Entity, EntityMainComponent, Single, Singleton, SystemData, SystemInfo};
     use std::any::{Any, TypeId};
     use std::ops::Range;
     use std::sync::RwLockReadGuard;
@@ -193,7 +192,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonStream<'a, C>
     where
-        C: Any + Sync + Send,
+        C: EntityMainComponent<Type = Singleton>,
     {
         pub(super) fn new(guard: &mut SingletonGuardBorrow<'a, C>) -> Self {
             Self {
@@ -225,29 +224,31 @@ mod single_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::{Entity, Single, SystemInfo, SystemParam};
+    use crate::{Entity, Single, Singleton, SystemInfo, SystemParam};
     use std::any::TypeId;
 
-    assert_impl_all!(Single<'_, u32>: Sync, Send, Unpin);
+    create_entity_type!(SingletonEntity, Singleton);
+
+    assert_impl_all!(Single<'_, SingletonEntity>: Sync, Send, Unpin);
 
     #[test]
     fn use_single() {
         let core = CoreStorage::default();
         let single = Single {
-            component: &10_u32,
+            component: &SingletonEntity(10),
             entity: Entity {
                 entity_idx: 0.into(),
                 data: core.system_data(),
             },
         };
-        assert_eq!(&*single, &10_u32);
+        assert_eq!(&*single, &SingletonEntity(10));
         assert_eq!(single.entity().id(), 0);
     }
 
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-        let properties = Single::<u32>::properties(&mut core);
+        let properties = Single::<SingletonEntity>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -261,22 +262,22 @@ mod single_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.create_singleton(40_u32);
+        core.create_singleton(SingletonEntity(40));
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Single::<u32>::lock(core.system_data(), info);
-        let mut borrow = Single::<u32>::borrow_guard(&mut guard);
-        let mut stream = Single::<u32>::stream(&mut borrow);
+        let mut guard = Single::<SingletonEntity>::lock(core.system_data(), info);
+        let mut borrow = Single::<SingletonEntity>::borrow_guard(&mut guard);
+        let mut stream = Single::<SingletonEntity>::stream(&mut borrow);
         let item = Single::stream_next(&mut stream);
-        assert_eq!(item.as_deref(), Some(&40));
+        assert_eq!(item.as_deref(), Some(&SingletonEntity(40)));
         let item = Single::stream_next(&mut stream);
-        assert_eq!(item.as_deref(), Some(&40));
+        assert_eq!(item.as_deref(), Some(&SingletonEntity(40)));
         let item = Single::stream_next(&mut stream);
-        assert_eq!(item.as_deref(), Some(&40));
+        assert_eq!(item.as_deref(), Some(&SingletonEntity(40)));
         assert_eq!(Single::stream_next(&mut stream).as_deref(), None);
     }
 
@@ -286,16 +287,16 @@ mod single_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.register_component_type::<u32>();
+        core.register_component_type::<SingletonEntity>();
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Single::<u32>::lock(core.system_data(), info);
-        let mut borrow = Single::<u32>::borrow_guard(&mut guard);
-        let mut stream = Single::<u32>::stream(&mut borrow);
+        let mut guard = Single::<SingletonEntity>::lock(core.system_data(), info);
+        let mut borrow = Single::<SingletonEntity>::borrow_guard(&mut guard);
+        let mut stream = Single::<SingletonEntity>::stream(&mut borrow);
         assert_eq!(Single::stream_next(&mut stream).as_deref(), None);
     }
 }

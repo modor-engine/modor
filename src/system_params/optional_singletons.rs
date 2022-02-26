@@ -4,13 +4,12 @@ use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
-use crate::{Single, SystemData, SystemInfo, SystemParam};
-use std::any::Any;
+use crate::{EntityMainComponent, Single, Singleton, SystemData, SystemInfo, SystemParam};
 
 #[allow(clippy::use_self)]
 impl<'a, C> SystemParamWithLifetime<'a> for Option<Single<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Param = Option<Single<'a, C>>;
     type Guard = SingletonGuard<'a, C>;
@@ -20,7 +19,7 @@ where
 
 impl<C> SystemParam for Option<Single<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Tuple = (Self,);
     type InnerTuple = ();
@@ -74,7 +73,7 @@ where
 
 impl<C> LockableSystemParam for Option<Single<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type LockedType = C;
     type Mutability = Const;
@@ -83,8 +82,7 @@ where
 pub(crate) mod internal {
     use crate::singletons::internal::SingletonGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, Single, SystemData};
-    use std::any::Any;
+    use crate::{Entity, EntityMainComponent, Single, Singleton, SystemData};
     use std::ops::Range;
 
     pub struct SingletonOptionStream<'a, C> {
@@ -95,7 +93,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonOptionStream<'a, C>
     where
-        C: Any + Sync + Send,
+        C: EntityMainComponent<Type = Singleton>,
     {
         pub(super) fn new(guard: &'a mut SingletonGuardBorrow<'_, C>) -> Self {
             Self {
@@ -127,13 +125,15 @@ mod single_option_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::{Single, SystemInfo, SystemParam};
+    use crate::{Single, Singleton, SystemInfo, SystemParam};
     use std::any::TypeId;
+
+    create_entity_type!(SingletonEntity, Singleton);
 
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-        let properties = Option::<Single<'_, u32>>::properties(&mut core);
+        let properties = Option::<Single<'_, SingletonEntity>>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
@@ -147,23 +147,24 @@ mod single_option_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.create_singleton(40_u32);
+        core.create_singleton(SingletonEntity(40));
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Option::<Single<'_, u32>>::lock(core.system_data(), info);
-        let mut borrow = Option::<Single<'_, u32>>::borrow_guard(&mut guard);
-        let mut stream = Option::<Single<'_, u32>>::stream(&mut borrow);
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
+        let mut guard = Option::<Single<'_, SingletonEntity>>::lock(core.system_data(), info);
+        let mut borrow = Option::<Single<'_, SingletonEntity>>::borrow_guard(&mut guard);
+        let mut stream = Option::<Single<'_, SingletonEntity>>::stream(&mut borrow);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
+        let component = Some(Some(&SingletonEntity(40)));
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), None);
     }
 
@@ -173,23 +174,23 @@ mod single_option_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.register_component_type::<u32>();
+        core.register_component_type::<SingletonEntity>();
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
             archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Option::<Single<'_, u32>>::lock(core.system_data(), info);
-        let mut borrow = Option::<Single<'_, u32>>::borrow_guard(&mut guard);
-        let mut stream = Option::<Single<'_, u32>>::stream(&mut borrow);
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
+        let mut guard = Option::<Single<'_, SingletonEntity>>::lock(core.system_data(), info);
+        let mut borrow = Option::<Single<'_, SingletonEntity>>::borrow_guard(&mut guard);
+        let mut stream = Option::<Single<'_, SingletonEntity>>::stream(&mut borrow);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<Single<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<Single<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), None);
     }
 }

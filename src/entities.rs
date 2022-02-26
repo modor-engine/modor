@@ -314,12 +314,13 @@ impl Built<'_> {
         E: EntityMainComponent<Type = Singleton>,
     {
         // Method of `Build` and not of `EntityBuilder` to avoid stack overflow
-        let singleton_count = self
+        let singleton_exists = self
             .core
             .components()
             .type_idx(TypeId::of::<E>())
-            .map_or(0, |c| self.core.components().count(c));
-        if singleton_count == 0 {
+            .and_then(|c| self.core.components().singleton_locations(c))
+            .is_none();
+        if singleton_exists {
             E::build(EntityBuilder::<_, ()>::new(self.core, None), data);
         }
         self
