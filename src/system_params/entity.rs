@@ -23,8 +23,8 @@ use std::iter::FusedIterator;
 /// ```
 #[derive(Clone, Copy)]
 pub struct Entity<'a> {
-    entity_idx: EntityIdx,
-    data: SystemData<'a>,
+    pub(crate) entity_idx: EntityIdx,
+    pub(crate) data: SystemData<'a>,
 }
 
 impl<'a> Entity<'a> {
@@ -83,7 +83,6 @@ impl SystemParam for Entity<'_> {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            globals: vec![],
             can_update: false,
             archetype_filter: ArchetypeFilter::All,
         }
@@ -352,7 +351,6 @@ mod entity_tests {
         let mut core = CoreStorage::default();
         let properties = Entity::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
-        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
     }

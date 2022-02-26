@@ -1,19 +1,16 @@
 use crate::storages::actions::{ActionIdx, ActionStorage};
 use crate::storages::components::ComponentTypeIdx;
-use crate::storages::globals::GlobalIdx;
-use crate::storages::systems::{Access, ComponentTypeAccess, GlobalAccess, SystemIdx};
+use crate::storages::systems::{Access, ComponentTypeAccess, SystemIdx};
 use crate::utils;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(super) struct SystemStateStorage {
     component_type_states: TiVec<ComponentTypeIdx, LockState>,
-    global_states: TiVec<GlobalIdx, LockState>,
     updater_state: LockState,
     runnable_idxs: Vec<SystemIdx>,
     remaining_action_count: TiVec<ActionIdx, usize>,
     component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
-    globals: TiVec<SystemIdx, Vec<GlobalAccess>>,
     can_update: TiVec<SystemIdx, bool>,
     action_idxs: TiVec<SystemIdx, ActionIdx>,
 }
@@ -22,7 +19,6 @@ impl SystemStateStorage {
     pub(super) fn add_system(
         &mut self,
         component_types: Vec<ComponentTypeAccess>,
-        globals: Vec<GlobalAccess>,
         can_update: bool,
         action_idx: ActionIdx,
     ) {
@@ -33,11 +29,7 @@ impl SystemStateStorage {
                 LockState::Free,
             );
         }
-        for global in &globals {
-            utils::set_value(&mut self.global_states, global.idx, LockState::Free);
-        }
         self.component_types.push(component_types);
-        self.globals.push(globals);
         self.can_update.push(can_update);
         self.action_idxs.push(action_idx);
     }
@@ -48,9 +40,6 @@ impl SystemStateStorage {
         action_count: TiVec<ActionIdx, usize>,
     ) {
         for state in &mut self.component_type_states {
-            *state = LockState::Free;
-        }
-        for state in &mut self.global_states {
             *state = LockState::Free;
         }
         self.updater_state = LockState::Free;
@@ -90,9 +79,6 @@ impl SystemStateStorage {
                     && self.component_types[s]
                         .iter()
                         .all(|a| self.component_type_states[a.type_idx].is_lockable(a.access))
-                    && self.globals[s]
-                        .iter()
-                        .all(|a| self.global_states[a.idx].is_lockable(a.access))
             })
             .map(|p| self.runnable_idxs.swap_remove(p))
     }
@@ -101,10 +87,6 @@ impl SystemStateStorage {
         for access in &self.component_types[system_idx] {
             let state = self.component_type_states[access.type_idx].unlock();
             self.component_type_states[access.type_idx] = state;
-        }
-        for access in &self.globals[system_idx] {
-            let state = self.global_states[access.idx].unlock();
-            self.global_states[access.idx] = state;
         }
         if self.can_update[system_idx] {
             self.updater_state = self.updater_state.unlock();
@@ -117,10 +99,6 @@ impl SystemStateStorage {
         for access in &self.component_types[system_idx] {
             let state = self.component_type_states[access.type_idx].lock(access.access);
             self.component_type_states[access.type_idx] = state;
-        }
-        for access in &self.globals[system_idx] {
-            let state = self.global_states[access.idx].lock(access.access);
-            self.global_states[access.idx] = state;
         }
         if self.can_update[system_idx] {
             self.updater_state = self.updater_state.lock(Access::Write);
@@ -183,7 +161,7 @@ pub(super) enum LockedSystem {
 mod system_state_storage_tests {
     use crate::storages::actions::{ActionDependencies, ActionStorage};
     use crate::storages::system_states::{LockedSystem, SystemStateStorage};
-    use crate::storages::systems::{Access, ComponentTypeAccess, GlobalAccess};
+    use crate::storages::systems::{Access, ComponentTypeAccess};
     use std::any::TypeId;
 
     #[test]
@@ -191,8 +169,8 @@ mod system_state_storage_tests {
         let mut actions = ActionStorage::default();
         let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
         let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![], vec![], true, action_idx);
-        storage.add_system(vec![], vec![], true, action_idx);
+        storage.add_system(vec![], true, action_idx);
+        storage.add_system(vec![], true, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, &actions);
@@ -217,34 +195,8 @@ mod system_state_storage_tests {
             type_idx: 10.into(),
         };
         let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![access], vec![], false, action_idx);
-        storage.add_system(vec![access], vec![], false, action_idx);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Done);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-    }
-
-    #[test]
-    fn lock_systems_with_globals() {
-        let mut actions = ActionStorage::default();
-        let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
-        let access = GlobalAccess {
-            access: Access::Write,
-            idx: 10.into(),
-        };
-        let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![], vec![access], false, action_idx);
-        storage.add_system(vec![], vec![access], false, action_idx);
+        storage.add_system(vec![access], false, action_idx);
+        storage.add_system(vec![access], false, action_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
         let locked_system = storage.lock_next_system(None, &actions);
@@ -268,8 +220,8 @@ mod system_state_storage_tests {
         let action2_idx =
             actions.idx_or_create(None, ActionDependencies::Types(vec![TypeId::of::<u32>()]));
         let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![], vec![], false, action1_idx);
-        storage.add_system(vec![], vec![], false, action2_idx);
+        storage.add_system(vec![], false, action1_idx);
+        storage.add_system(vec![], false, action2_idx);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
         storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
         let locked_system = storage.lock_next_system(None, &actions);

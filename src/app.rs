@@ -1,6 +1,5 @@
-use crate::storages::core::{CoreStorage, SystemCallerType};
-use crate::{EntityBuilder, EntityMainComponent, Global, GlobalBuilder, SystemRunner};
-use std::any::TypeId;
+use crate::storages::core::CoreStorage;
+use crate::{EntityBuilder, EntityMainComponent};
 
 /// The entrypoint of the engine.
 ///
@@ -58,17 +57,6 @@ impl App {
         self
     }
 
-    /// Creates a new global of type `G`.
-    ///
-    /// If a global of type `G` already exists, it is overwritten.
-    pub fn with_global<G>(mut self, global: G) -> Self
-    where
-        G: Global,
-    {
-        Self::create_global(&mut self.0, global);
-        self
-    }
-
     /// Returns the number of threads used by the `App` during update.
     pub fn thread_count(&self) -> u32 {
         self.0.systems().thread_count()
@@ -78,32 +66,13 @@ impl App {
     pub fn update(&mut self) {
         self.0.update();
     }
-
-    pub(crate) fn create_global<G>(core: &mut CoreStorage, global: G)
-    where
-        G: Global,
-    {
-        let global_idx = core.register_global::<G>();
-        G::build(GlobalBuilder { core });
-        if !core.globals().has_been_created(global_idx) {
-            G::on_update(SystemRunner {
-                core,
-                caller_type: SystemCallerType::Global(TypeId::of::<G>()),
-                latest_action_idx: None,
-            });
-        }
-        core.replace_or_add_global(global);
-    }
 }
 
 #[cfg(test)]
 mod app_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::SystemProperties;
-    use crate::{
-        App, Built, EntityBuilder, EntityMainComponent, Global, GlobalBuilder, SystemBuilder,
-        SystemRunner,
-    };
+    use crate::{App, Built, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
 
     assert_impl_all!(App: Send, Unpin);
 
@@ -122,7 +91,6 @@ mod app_tests {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
-                    globals: vec![],
                     can_update: false,
                     archetype_filter: ArchetypeFilter::None,
                 },
@@ -131,44 +99,18 @@ mod app_tests {
         }
     }
 
-    #[derive(Debug, PartialEq)]
-    struct TestGlobal(u32);
-
-    impl Global for TestGlobal {
-        fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
-            builder.with_entity::<TestEntity>(20)
-        }
-
-        fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-            runner.run(SystemBuilder {
-                properties_fn: |_| SystemProperties {
-                    component_types: vec![],
-                    globals: vec![],
-                    can_update: false,
-                    archetype_filter: ArchetypeFilter::None,
-                },
-                wrapper: |d, _| d.globals.write::<Self>().unwrap().0 = 40,
-            })
-        }
-    }
-
     #[test]
     fn configure_app() {
         let mut app = App::new()
             .with_thread_count(2)
-            .with_entity::<TestEntity>(10)
-            .with_global(TestGlobal(30));
+            .with_entity::<TestEntity>(10);
         assert_eq!(app.thread_count(), 2);
         let components = (&*app.0.components().read_components::<TestEntity>()).clone();
-        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10), TestEntity(20)]];
+        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10)]];
         assert_eq!(components, expected_components);
-        let global = Some(&TestGlobal(30));
-        assert_eq!(app.0.globals().read::<TestGlobal>().as_deref(), global);
         app.update();
         let components = (&*app.0.components().read_components::<TestEntity>()).clone();
-        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(20)]];
+        let expected_components = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(components, expected_components);
-        let global = Some(&TestGlobal(40));
-        assert_eq!(app.0.globals().read::<TestGlobal>().as_deref(), global);
     }
 }

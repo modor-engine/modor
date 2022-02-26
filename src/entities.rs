@@ -1,6 +1,6 @@
 use crate::entities::internal::{AddedComponents, ComponentAdd, SealedEntityType, StorageWrapper};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage};
-use crate::storages::core::{CoreStorage, SystemCallerType};
+use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::SystemRunner;
 use std::any::{Any, TypeId};
@@ -204,7 +204,7 @@ where
             builder.core.add_entity_type::<E>();
             E::on_update(SystemRunner {
                 core: builder.core,
-                caller_type: SystemCallerType::Entity(TypeId::of::<E>()),
+                entity_type: TypeId::of::<E>(),
                 latest_action_idx: None,
             });
         }

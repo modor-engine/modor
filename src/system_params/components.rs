@@ -32,7 +32,6 @@ where
                 access: Access::Read,
                 type_idx,
             }],
-            globals: vec![],
             can_update: false,
             archetype_filter: ArchetypeFilter::Intersection(ne_vec![type_idx]),
         }
@@ -314,7 +313,6 @@ mod component_ref_tests {
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
-        assert_eq!(properties.globals, vec![]);
         assert!(!properties.can_update);
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
         assert_eq!(properties.archetype_filter, archetype_filter);

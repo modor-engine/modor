@@ -7,13 +7,13 @@ use crate::{SystemData, SystemInfo};
 pub(crate) mod components;
 pub(crate) mod components_mut;
 pub(crate) mod entity;
-pub(crate) mod globals;
-pub(crate) mod globals_mut;
 pub(crate) mod optional_components;
 pub(crate) mod optional_components_mut;
-pub(crate) mod optional_globals;
-pub(crate) mod optional_globals_mut;
+pub(crate) mod optional_singletons;
+pub(crate) mod optional_singletons_mut;
 pub(crate) mod queries;
+pub(crate) mod singletons;
+pub(crate) mod singletons_mut;
 pub(crate) mod tuples;
 pub(crate) mod world;
 

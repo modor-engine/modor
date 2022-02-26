@@ -4,7 +4,7 @@ use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
-use crate::{App, EntityBuilder, EntityMainComponent, Global, SystemData, SystemInfo, SystemParam};
+use crate::{EntityBuilder, EntityMainComponent, SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -121,38 +121,6 @@ impl<'a> World<'a> {
                 .delete_component(entity_id.into(), type_idx);
         }
     }
-
-    /// Creates a new global of type `G`.
-    ///
-    /// The global is actually created once all registered systems have been run.
-    ///
-    /// If a global of type `G` already exists, it is overwritten.
-    pub fn create_global<G>(&mut self, global: G)
-    where
-        G: Global,
-    {
-        self.data
-            .updates
-            .try_lock()
-            .expect("internal error: cannot lock updates to create global")
-            .create_global(Box::new(|c| App::create_global(c, global)));
-    }
-
-    /// Deletes the global of type `G`.
-    ///
-    /// The global is actually deleted once all registered systems have been run.
-    ///
-    /// If no global of type `G` exist, nothing is done.
-    pub fn delete_global<G>(&mut self)
-    where
-        G: Global,
-    {
-        self.data
-            .updates
-            .try_lock()
-            .expect("internal error: cannot lock updates to delete global")
-            .delete_global(TypeId::of::<G>());
-    }
 }
 
 impl<'a> SystemParamWithLifetime<'a> for World<'_> {
@@ -169,7 +137,6 @@ impl SystemParam for World<'_> {
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
-            globals: vec![],
             can_update: true,
             archetype_filter: ArchetypeFilter::None,
         }
@@ -265,9 +232,7 @@ mod internal {
 mod world_tests {
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::{
-        Built, EntityBuilder, EntityMainComponent, Global, SystemInfo, SystemParam, World,
-    };
+    use crate::{Built, EntityBuilder, EntityMainComponent, SystemInfo, SystemParam, World};
     use std::any::TypeId;
 
     #[derive(Debug, PartialEq, Clone)]
@@ -282,24 +247,12 @@ mod world_tests {
         }
     }
 
-    struct TestGlobal1(u32);
-
-    impl Global for TestGlobal1 {}
-
-    #[derive(Debug, PartialEq, Clone)]
-    struct TestGlobal2(u32);
-
-    impl Global for TestGlobal2 {}
-
-    assert_impl_all!(World<'_>: Sync, Send, Unpin);
-
     #[test]
     fn use_world() {
         let mut core = CoreStorage::default();
         core.create_entity_with_1_component(10_u32, None);
         core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
         core.create_entity_with_1_component(20_i8, None);
-        core.replace_or_add_global(TestGlobal1(60));
         let data = core.system_data();
         let mut world = World { data };
         world.delete_entity(0);
@@ -307,8 +260,6 @@ mod world_tests {
         world.delete_component::<i8>(2);
         world.create_root_entity::<TestEntity>(40);
         world.create_child_entity::<TestEntity>(1, 50);
-        world.create_global(TestGlobal2(70));
-        world.delete_global::<TestGlobal1>();
         core.update();
         assert_eq!(core.entities().location(0.into()), None);
         let components = core.components().read_components::<i8>().clone();
@@ -320,9 +271,6 @@ mod world_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], new_entities]
         );
         assert_eq!(core.entities().parent_idx(3.into()), Some(1.into()));
-        let global = core.globals().read::<TestGlobal2>().unwrap().clone();
-        assert_eq!(global, TestGlobal2(70));
-        assert!(core.globals().read::<TestGlobal1>().is_none());
     }
 
     #[test]
@@ -330,7 +278,6 @@ mod world_tests {
         let mut core = CoreStorage::default();
         let properties = World::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
-        assert_eq!(properties.globals, vec![]);
         assert!(properties.can_update);
         assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
     }

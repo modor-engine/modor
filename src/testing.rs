@@ -2,9 +2,7 @@
 
 use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
-use crate::storages::entities::EntityIdx;
-use crate::{App, EntityBuilder, EntityMainComponent, Global};
-use std::any;
+use crate::{App, EntityBuilder, EntityMainComponent, Singleton};
 use std::any::{Any, TypeId};
 use std::ops::{Deref, DerefMut};
 
@@ -66,58 +64,29 @@ impl TestApp {
         entity_idx.into()
     }
 
-    /// Creates a new global of type `G`.
-    ///
-    /// If a global of type `G` already exists, it is overwritten.
-    pub fn create_global<G>(&mut self, global: G)
-    where
-        G: Global,
-    {
-        App::create_global(&mut self.0 .0, global);
-    }
-
     /// Starts assertions on an entity.
     pub fn assert_entity(&self, entity_id: usize) -> EntityAssertion<'_> {
+        // TODO: avoid `.0`
         EntityAssertion {
             core: &self.0 .0,
-            entity_idx: entity_id.into(),
+            location: self.0 .0.entities().location(entity_id.into()),
         }
     }
 
-    /// Asserts the global of type `G` exists and runs `f` on this global.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the global does not exist.
-    pub fn assert_global_exists<G, F>(&self, mut f: F)
+    /// Starts assertions on a singleton of type `C`.
+    pub fn assert_singleton<C>(&self) -> EntityAssertion<'_>
     where
-        G: Global,
-        F: FnMut(&G),
+        C: EntityMainComponent<Type = Singleton>,
     {
-        if let Some(global) = self.0 .0.globals().read::<G>() {
-            f(&*global);
-        } else {
-            panic!(
-                "assertion failed: assert_global_exists<{}, _>(...)",
-                any::type_name::<G>()
-            )
+        EntityAssertion {
+            core: &self.0 .0,
+            location: self
+                .0
+                 .0
+                .components()
+                .type_idx(TypeId::of::<C>())
+                .and_then(|c| self.0 .0.components().singleton_locations(c)),
         }
-    }
-
-    /// Asserts the global of type `G` does not exist.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the global exists.
-    pub fn assert_global_does_not_exist<G>(&self)
-    where
-        G: Global,
-    {
-        assert!(
-            self.0 .0.globals().read::<G>().is_none(),
-            "assertion failed: assert_global_does_not_exist<{}>()",
-            any::type_name::<G>()
-        );
     }
 }
 
@@ -148,7 +117,7 @@ impl DerefMut for TestApp {
 /// See [`TestApp`](crate::testing::TestApp).
 pub struct EntityAssertion<'a> {
     core: &'a CoreStorage,
-    entity_idx: EntityIdx,
+    location: Option<EntityLocation>,
 }
 
 impl EntityAssertion<'_> {
@@ -159,9 +128,8 @@ impl EntityAssertion<'_> {
     /// This will panic if the entity does not exist.
     pub fn exists(self) -> Self {
         assert!(
-            self.location().is_some(),
-            "assertion failed: assert_entity({}).exists()",
-            usize::from(self.entity_idx)
+            self.location.is_some(),
+            "assertion failed: entity expected to exist",
         );
         self
     }
@@ -173,9 +141,8 @@ impl EntityAssertion<'_> {
     /// This will panic if the entity exists.
     pub fn does_not_exist(self) {
         assert!(
-            self.location().is_none(),
-            "assertion failed: assert_entity({}).does_not_exist()",
-            usize::from(self.entity_idx)
+            self.location.is_none(),
+            "assertion failed: entity expected to not exist",
         );
     }
 
@@ -189,18 +156,12 @@ impl EntityAssertion<'_> {
         C: Any,
         F: FnMut(&C),
     {
-        let location = self.location().unwrap_or_else(|| {
-            panic!(
-                "assertion failed: assert_entity({}).has<{}, _>(...) (entity does not exist)",
-                usize::from(self.entity_idx),
-                any::type_name::<C>()
-            )
-        });
+        let location = self
+            .location
+            .unwrap_or_else(|| panic!("assertion failed: entity expected to exist",));
         assert!(
             self.test_component_exists::<C, F>(location, f).is_some(),
-            "assertion failed: assert_entity({}).has<{}, _>(...) (missing component in entity)",
-            usize::from(self.entity_idx),
-            any::type_name::<C>()
+            "assertion failed: component expected to exist in entity)",
         );
         self
     }
@@ -214,19 +175,13 @@ impl EntityAssertion<'_> {
     where
         C: Any,
     {
-        let location = self.location().unwrap_or_else(|| {
-            panic!(
-                "assertion failed: assert_entity({}).has_not<{}>() (entity does not exist)",
-                usize::from(self.entity_idx),
-                any::type_name::<C>()
-            )
-        });
+        let location = self
+            .location
+            .unwrap_or_else(|| panic!("assertion failed: entity expected to exist",));
         assert!(
             self.test_component_exists::<C, _>(location, |_| ())
                 .is_none(),
-            "assertion failed: assert_entity({}).has_not<{}>() (existing component in entity)",
-            usize::from(self.entity_idx),
-            any::type_name::<C>()
+            "assertion failed: component expected to exist in entity",
         );
         self
     }
@@ -240,25 +195,19 @@ impl EntityAssertion<'_> {
     where
         F: FnMut(Vec<usize>),
     {
-        assert!(
-            self.location().is_some(),
-            "assertion failed: assert_entity({}).has_children<_>() (entity does not exist)",
-            usize::from(self.entity_idx)
-        );
+        let location = self
+            .location
+            .expect("assertion failed: entity expected to exist");
         let child_ids = self
             .core
             .entities()
-            .child_idxs(self.entity_idx)
+            .child_idxs(self.core.archetypes().entity_idxs(location.idx)[location.pos])
             .iter()
             .copied()
             .map(usize::from)
             .collect();
         f(child_ids);
         self
-    }
-
-    fn location(&self) -> Option<EntityLocation> {
-        self.core.entities().location(self.entity_idx)
     }
 
     fn test_component_exists<C, F>(&self, location: EntityLocation, mut f: F) -> Option<()>
@@ -277,7 +226,7 @@ impl EntityAssertion<'_> {
 #[cfg(test)]
 mod test_app_tests {
     use crate::testing::TestApp;
-    use crate::{App, Built, EntityBuilder, EntityMainComponent, Global};
+    use crate::{App, Built, EntityBuilder, EntityMainComponent, Singleton};
     use std::ptr;
 
     #[derive(Debug, PartialEq)]
@@ -307,13 +256,30 @@ mod test_app_tests {
         }
     }
 
-    struct TestGlobal1(u32);
+    #[derive(Debug, PartialEq)]
+    struct SingletonEntity1(u32);
 
-    impl Global for TestGlobal1 {}
+    impl EntityMainComponent for SingletonEntity1 {
+        type Type = Singleton;
+        type Data = u32;
 
-    struct TestGlobal2(u32);
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
+            builder.with_self(Self(data))
+        }
+    }
 
-    impl Global for TestGlobal2 {}
+    // TODO: use macro to generate test entities
+    #[derive(Debug, PartialEq)]
+    struct SingletonEntity2(u32);
+
+    impl EntityMainComponent for SingletonEntity2 {
+        type Type = Singleton;
+        type Data = u32;
+
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
+            builder.with_self(Self(data))
+        }
+    }
 
     #[test]
     fn deref() {
@@ -347,14 +313,13 @@ mod test_app_tests {
     }
 
     #[test]
-    fn assert_on_globals_from_new_app() {
+    fn assert_on_singleton_from_new_app() {
         let mut app = TestApp::new();
-        app.create_global(TestGlobal1(10));
-        app.assert_global_does_not_exist::<TestGlobal2>();
-        app.assert_global_exists::<TestGlobal1, _>(|g| assert_eq!(g.0, 10));
-        assert_panics!(app.assert_global_does_not_exist::<TestGlobal1>());
-        assert_panics!(app.assert_global_exists::<TestGlobal1, _>(|_| panic!()));
-        assert_panics!(app.assert_global_exists::<TestGlobal2, _>(|_| ()));
+        app.create_entity::<SingletonEntity1>(10);
+        app.assert_singleton::<SingletonEntity2>().does_not_exist();
+        app.assert_singleton::<SingletonEntity1>().exists();
+        assert_panics!(app.assert_singleton::<SingletonEntity1>().does_not_exist());
+        assert_panics!(app.assert_singleton::<SingletonEntity2>().exists());
     }
 
     #[test]

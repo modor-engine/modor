@@ -28,27 +28,52 @@ fn main() {
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 
-    system!(const_and_mut_same_global);
+    system!(const_and_mut_same_singleton);
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 
-    system!(mut_and_const_same_global);
+    system!(const_and_mut_same_singleton_and_component);
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 
-    system!(mut_and_mut_same_global);
+    system!(mut_and_const_same_singleton);
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 
-    system!(const_and_mut_same_option_global);
+    system!(mut_and_const_same_singleton_and_component);
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 
-    system!(const_and_mut_option_same_global);
+    system!(mut_and_mut_same_singleton);
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+
+    system!(mut_and_mut_same_singleton_and_component);
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+
+    system!(const_and_mut_same_option_singleton);
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+
+    system!(const_and_mut_same_option_singleton_and_component);
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+
+    system!(const_and_mut_option_same_singleton);
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+
+    system!(const_and_mut_option_same_singleton_and_component);
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
@@ -84,10 +109,6 @@ fn main() {
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
 }
 
-struct TestGlobal {}
-
-impl Global for TestGlobal {}
-
 fn const_and_mut_same_component(_: &u32, _: &String, _: &mut u32) {}
 
 fn mut_and_const_same_component(_: &String, _: &mut u32, _: &u32) {}
@@ -98,22 +119,37 @@ fn const_and_mut_same_option_component(_: Option<&u32>, _: &String, _: Option<&m
 
 fn const_and_mut_option_same_component(_: &u32, _: &String, _: Option<&mut u32>) {}
 
-fn const_and_mut_same_global(_: Glob<'_, TestGlobal>, _: GlobMut<'_, TestGlobal>) {}
+fn const_and_mut_same_singleton(_: Single<'_, u32>, _: SingleMut<'_, u32>) {}
 
-fn mut_and_const_same_global(_: GlobMut<'_, TestGlobal>, _: Glob<'_, TestGlobal>) {}
+fn const_and_mut_same_singleton_and_component(_: Single<'_, u32>, _: &mut u32) {}
 
-fn mut_and_mut_same_global(_: GlobMut<'_, TestGlobal>, _: GlobMut<'_, TestGlobal>) {}
+fn mut_and_const_same_singleton(_: SingleMut<'_, u32>, _: Single<'_, u32>) {}
 
-fn const_and_mut_same_option_global(
-    _: Option<Glob<'_, TestGlobal>>,
-    _: Option<GlobMut<'_, TestGlobal>>,
+fn mut_and_const_same_singleton_and_component(_: SingleMut<'_, u32>, _: &u32) {}
+
+fn mut_and_mut_same_singleton(_: SingleMut<'_, u32>, _: SingleMut<'_, u32>) {}
+
+fn mut_and_mut_same_singleton_and_component(_: SingleMut<'_, u32>, _: &mut u32) {}
+
+fn const_and_mut_same_option_singleton(_: Option<Single<'_, u32>>, _: Option<SingleMut<'_, u32>>) {}
+
+fn const_and_mut_same_option_singleton_and_component(
+    _: Option<Single<'_, u32>>,
+    _: Option<&mut u32>,
 ) {
 }
 
-fn const_and_mut_option_same_global(
-    _: Glob<'_, TestGlobal>,
+fn const_and_mut_option_same_singleton(
+    _: Single<'_, u32>,
     _: &String,
-    _: Option<GlobMut<'_, TestGlobal>>,
+    _: Option<SingleMut<'_, u32>>,
+) {
+}
+
+fn const_and_mut_option_same_singleton_and_component(
+    _: Single<'_, u32>,
+    _: &String,
+    _: Option<&mut u32>,
 ) {
 }
 

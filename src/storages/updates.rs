@@ -3,7 +3,6 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::utils;
-use std::any::TypeId;
 use std::iter::Rev;
 use std::mem;
 use std::ops::Range;
@@ -11,7 +10,6 @@ use std::vec::Drain;
 use typed_index_collections::TiVec;
 
 pub(crate) type CreateEntityFn = Box<dyn FnOnce(&mut CoreStorage) + Sync + Send>;
-pub(crate) type CreateGlobalFn = Box<dyn FnOnce(&mut CoreStorage) + Sync + Send>;
 pub(crate) type AddComponentTypeFn = fn(&mut CoreStorage, ArchetypeIdx) -> ArchetypeIdx;
 pub(crate) type AddComponentFn = Box<dyn FnOnce(&mut CoreStorage, EntityLocation) + Sync + Send>;
 
@@ -21,8 +19,6 @@ pub(crate) struct UpdateStorage {
     modified_entity_idxs: Vec<EntityIdx>,
     created_root_entities: Vec<CreateEntityFn>,
     created_child_entities: Vec<(CreateEntityFn, ParentEntityIdx)>,
-    created_globals: Vec<CreateGlobalFn>,
-    deleted_globals: Vec<TypeId>,
 }
 
 impl UpdateStorage {
@@ -50,14 +46,6 @@ impl UpdateStorage {
         &mut self,
     ) -> Drain<'_, (CreateEntityFn, ParentEntityIdx)> {
         self.created_child_entities.drain(..)
-    }
-
-    pub(crate) fn created_global_drain(&mut self) -> Drain<'_, CreateGlobalFn> {
-        self.created_globals.drain(..)
-    }
-
-    pub(crate) fn deleted_global_drain(&mut self) -> Drain<'_, TypeId> {
-        self.deleted_globals.drain(..)
     }
 
     pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {
@@ -98,14 +86,6 @@ impl UpdateStorage {
         if let Some(EntityUpdate::Change(_, deleted_types)) = update {
             deleted_types.push(type_idx);
         }
-    }
-
-    pub(crate) fn create_global(&mut self, create_fn: CreateGlobalFn) {
-        self.created_globals.push(create_fn);
-    }
-
-    pub(crate) fn delete_global(&mut self, global_type: TypeId) {
-        self.deleted_globals.push(global_type);
     }
 
     fn add_modified_entity(&mut self, entity_idx: EntityIdx) {
@@ -195,7 +175,6 @@ impl Default for EntityUpdate {
 #[cfg(test)]
 mod update_storage_tests {
     use crate::storages::updates::UpdateStorage;
-    use std::any::TypeId;
 
     #[test]
     fn update_entities() {
@@ -208,6 +187,8 @@ mod update_storage_tests {
         storage.delete_component(1.into(), 30.into());
         storage.create_entity(None, Box::new(|_| ()));
         storage.create_entity(Some(40.into()), Box::new(|_| ()));
+        let deleted_entity_idxs: Vec<_> = storage.deleted_entity_drain().collect();
+        assert_eq!(deleted_entity_idxs, [5.into()]);
         let changed_entities: Vec<_> = storage.changed_entity_drain().collect();
         assert_eq!(changed_entities.len(), 2);
         assert_eq!(changed_entities[0].0, 1.into());
@@ -217,8 +198,6 @@ mod update_storage_tests {
         assert_eq!(changed_entities[1].1.len(), 1);
         assert_eq!(changed_entities[1].2, [20.into()]);
         assert_eq!(storage.created_root_entity_drain().count(), 1);
-        let deleted_entity_idxs: Vec<_> = storage.deleted_entity_drain().collect();
-        assert_eq!(deleted_entity_idxs, [5.into()]);
         let created_entities: Vec<_> = storage.created_child_entity_drain().collect();
         assert_eq!(created_entities.len(), 1);
         assert_eq!(created_entities[0].1, 40.into());
@@ -226,19 +205,5 @@ mod update_storage_tests {
         assert!(storage.changed_entity_drain().next().is_none());
         assert!(storage.created_root_entity_drain().next().is_none());
         assert!(storage.created_child_entity_drain().next().is_none());
-    }
-
-    #[test]
-    fn update_globals() {
-        let mut storage = UpdateStorage::default();
-        let type1 = TypeId::of::<u32>();
-        let type2 = TypeId::of::<i64>();
-        storage.create_global(Box::new(|_| ()));
-        storage.create_global(Box::new(|_| ()));
-        storage.delete_global(type1);
-        storage.delete_global(type2);
-        assert_eq!(storage.created_global_drain().len(), 2);
-        let deleted_global_types: Vec<_> = storage.deleted_global_drain().collect();
-        assert_eq!(deleted_global_types, [type1, type2]);
     }
 }
