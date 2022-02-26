@@ -320,24 +320,18 @@ pub(crate) mod internal {
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            self.item_positions.next().map(|_| {
-                self.components
-                    .as_mut()
-                    .expect("internal error: missing component mut during iteration")
-                    .next()
-            })
+            self.item_positions
+                .next()
+                .map(|_| self.components.as_mut().and_then(IterMut::next))
         }
     }
 
     impl<'a, C> DoubleEndedIterator for ComponentIter<'a, C> {
         #[inline]
         fn next_back(&mut self) -> Option<Self::Item> {
-            self.item_positions.next().map(|_| {
-                self.components
-                    .as_mut()
-                    .expect("internal error: missing component mut during reversed iteration")
-                    .next_back()
-            })
+            self.item_positions
+                .next()
+                .map(|_| self.components.as_mut().and_then(IterMut::next_back))
         }
     }
 }
