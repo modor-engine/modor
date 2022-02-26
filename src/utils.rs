@@ -154,6 +154,29 @@ pub(crate) mod test_utils {
         }
         assert_eq!(actual.next(), None);
     }
+
+    macro_rules! create_entity_type {
+        ($name:ident) => {
+            create_entity_type!($name, ());
+        };
+        ($name:ident, $type:ty) => {
+            #[derive(Debug, PartialEq, Clone)]
+            struct $name(u32);
+
+            #[allow(unused_qualifications)]
+            impl crate::EntityMainComponent for $name {
+                type Type = $type;
+                type Data = u32;
+
+                fn build(
+                    builder: crate::EntityBuilder<'_, Self>,
+                    data: Self::Data,
+                ) -> crate::Built<'_> {
+                    builder.with_self(Self(data))
+                }
+            }
+        };
+    }
 }
 
 #[cfg(test)]

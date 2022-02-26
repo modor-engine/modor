@@ -35,9 +35,10 @@
 //! }
 //!
 //! impl EntityMainComponent for Character {
+//!     type Type = ();
 //!     type Data = (Position, CharacterType);
 //!
-//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
+//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built<'_> {
 //!         builder
 //!             .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
 //!             .with(position)
@@ -75,7 +76,6 @@ mod utils;
 mod actions;
 mod app;
 mod entities;
-mod globals;
 mod storages;
 mod system_checks;
 mod system_params;
@@ -87,12 +87,11 @@ pub mod testing;
 pub use actions::*;
 pub use app::*;
 pub use entities::*;
-pub use globals::*;
 pub use system_checks::*;
 pub use system_params::entity::*;
-pub use system_params::globals::*;
-pub use system_params::globals_mut::*;
 pub use system_params::queries::*;
+pub use system_params::singletons::*;
+pub use system_params::singletons_mut::*;
 pub use system_params::world::*;
 pub use system_params::*;
 pub use system_runner::*;

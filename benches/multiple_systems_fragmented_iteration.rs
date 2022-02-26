@@ -11,9 +11,10 @@ macro_rules! create_entities {
             struct $variants(f32);
 
             impl EntityMainComponent for $variants {
+                type Type = ();
                 type Data = ();
 
-                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
                     builder.with(Data(1.0)).with_self(Self(0.0))
                 }
 

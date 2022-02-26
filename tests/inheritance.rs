@@ -6,9 +6,10 @@ struct ButtonSelection {
 }
 
 impl EntityMainComponent for ButtonSelection {
+    type Type = ();
     type Data = String;
 
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
         builder.with_self(Self { label })
     }
 }
@@ -19,9 +20,10 @@ struct Button {
 }
 
 impl EntityMainComponent for Button {
+    type Type = ();
     type Data = String;
 
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
         builder.with(label).with_self(Self { is_pressed: false })
     }
 
@@ -45,9 +47,10 @@ impl Button {
 struct ExitButton;
 
 impl EntityMainComponent for ExitButton {
+    type Type = ();
     type Data = String;
 
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
         builder
             .inherit_from::<Button>(label)
             .with(ExitState(false))

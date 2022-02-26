@@ -67,6 +67,7 @@ struct Character {
 }
 
 impl EntityMainComponent for Character {
+    type Type = ();
     type Data = (Position, CharacterType);
 
     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {

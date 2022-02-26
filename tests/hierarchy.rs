@@ -10,9 +10,10 @@ struct RelPosition(u16);
 struct Node;
 
 impl EntityMainComponent for Node {
+    type Type = ();
     type Data = u16;
 
-    fn build(mut builder: EntityBuilder<'_, Self>, levels: Self::Data) -> Built {
+    fn build(mut builder: EntityBuilder<'_, Self>, levels: Self::Data) -> Built<'_> {
         if levels > 0 {
             builder = builder.with_child::<Self>(levels - 1);
         }

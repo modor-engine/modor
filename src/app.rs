@@ -1,8 +1,5 @@
-use crate::storages::archetypes::ArchetypeStorage;
-use crate::storages::core::{CoreStorage, SystemCallerType};
-use crate::{EntityBuilder, EntityMainComponent, Global, GlobalBuilder, SystemRunner};
-use std::any::TypeId;
-use std::marker::PhantomData;
+use crate::storages::core::CoreStorage;
+use crate::{EntityBuilder, EntityMainComponent};
 
 /// The entrypoint of the engine.
 ///
@@ -23,9 +20,10 @@ use std::marker::PhantomData;
 /// struct Button;
 ///
 /// impl EntityMainComponent for Button {
+///     type Type = ();
 ///     type Data = String;
 ///
-///     fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built {
+///     fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
 ///         builder
 ///             .with(label)
 ///             .with_self(Self)
@@ -33,7 +31,9 @@ use std::marker::PhantomData;
 /// }
 /// ```
 #[derive(Default)]
-pub struct App(pub(crate) CoreStorage);
+pub struct App {
+    pub(crate) core: CoreStorage,
+}
 
 impl App {
     /// Creates a new empty `App`.
@@ -46,7 +46,7 @@ impl App {
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
     pub fn with_thread_count(mut self, count: u32) -> Self {
-        self.0.set_thread_count(count);
+        self.core.set_thread_count(count);
         self
     }
 
@@ -55,54 +55,18 @@ impl App {
     where
         E: EntityMainComponent,
     {
-        let entity_builder = EntityBuilder {
-            core: &mut self.0,
-            entity_idx: None,
-            src_location: None,
-            dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-            parent_idx: None,
-            added_components: (),
-            phantom: PhantomData,
-        };
-        E::build(entity_builder, data);
-        self
-    }
-
-    /// Creates a new global of type `G`.
-    ///
-    /// If a global of type `G` already exists, it is overwritten.
-    pub fn with_global<G>(mut self, global: G) -> Self
-    where
-        G: Global,
-    {
-        Self::create_global(&mut self.0, global);
+        E::build(EntityBuilder::<_, ()>::new(&mut self.core, None), data);
         self
     }
 
     /// Returns the number of threads used by the `App` during update.
     pub fn thread_count(&self) -> u32 {
-        self.0.systems().thread_count()
+        self.core.systems().thread_count()
     }
 
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
-        self.0.update();
-    }
-
-    pub(crate) fn create_global<G>(core: &mut CoreStorage, global: G)
-    where
-        G: Global,
-    {
-        let global_idx = core.register_global::<G>();
-        G::build(GlobalBuilder { core });
-        if !core.globals().has_been_created(global_idx) {
-            G::on_update(SystemRunner {
-                core,
-                caller_type: SystemCallerType::Global(TypeId::of::<G>()),
-                latest_action_idx: None,
-            });
-        }
-        core.replace_or_add_global(global);
+        self.core.update();
     }
 }
 
@@ -110,20 +74,16 @@ impl App {
 mod app_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::SystemProperties;
-    use crate::{
-        App, Built, EntityBuilder, EntityMainComponent, Global, GlobalBuilder, SystemBuilder,
-        SystemRunner,
-    };
-
-    assert_impl_all!(App: Send, Unpin);
+    use crate::{App, Built, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
 
     #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
 
@@ -131,7 +91,6 @@ mod app_tests {
             runner.run(SystemBuilder {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
-                    globals: vec![],
                     can_update: false,
                     archetype_filter: ArchetypeFilter::None,
                 },
@@ -140,44 +99,20 @@ mod app_tests {
         }
     }
 
-    #[derive(Debug, PartialEq)]
-    struct TestGlobal(u32);
-
-    impl Global for TestGlobal {
-        fn build(builder: GlobalBuilder<'_>) -> GlobalBuilder<'_> {
-            builder.with_entity::<TestEntity>(20)
-        }
-
-        fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-            runner.run(SystemBuilder {
-                properties_fn: |_| SystemProperties {
-                    component_types: vec![],
-                    globals: vec![],
-                    can_update: false,
-                    archetype_filter: ArchetypeFilter::None,
-                },
-                wrapper: |d, _| d.globals.write::<Self>().unwrap().0 = 40,
-            })
-        }
-    }
+    assert_impl_all!(App: Send, Unpin);
 
     #[test]
     fn configure_app() {
         let mut app = App::new()
             .with_thread_count(2)
-            .with_entity::<TestEntity>(10)
-            .with_global(TestGlobal(30));
+            .with_entity::<TestEntity>(10);
         assert_eq!(app.thread_count(), 2);
-        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
-        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10), TestEntity(20)]];
+        let components = (&*app.core.components().read_components::<TestEntity>()).clone();
+        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10)]];
         assert_eq!(components, expected_components);
-        let global = Some(&TestGlobal(30));
-        assert_eq!(app.0.globals().read::<TestGlobal>().as_deref(), global);
         app.update();
-        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
-        let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(20)]];
+        let components = (&*app.core.components().read_components::<TestEntity>()).clone();
+        let expected_components = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(components, expected_components);
-        let global = Some(&TestGlobal(40));
-        assert_eq!(app.0.globals().read::<TestGlobal>().as_deref(), global);
     }
 }

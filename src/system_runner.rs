@@ -1,5 +1,5 @@
 use crate::storages::actions::{ActionDependencies, ActionIdx};
-use crate::storages::core::{CoreStorage, SystemCallerType};
+use crate::storages::core::CoreStorage;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 
@@ -29,9 +29,10 @@ use std::any::TypeId;
 /// struct MyEntity;
 ///
 /// impl EntityMainComponent for MyEntity {
+///     type Type = ();
 ///     type Data = ();
 ///
-///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
 ///         builder.with_self(Self)
 ///     }
 ///
@@ -64,7 +65,7 @@ use std::any::TypeId;
 /// ```
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) caller_type: SystemCallerType,
+    pub(crate) entity_type: TypeId,
     pub(crate) latest_action_idx: Option<ActionIdx>,
 }
 
@@ -132,13 +133,13 @@ impl<'a> SystemRunner<'a> {
         SystemRunner {
             latest_action_idx: Some(self.core.add_system(
                 system.wrapper,
-                self.caller_type,
+                self.entity_type,
                 properties,
                 action_type,
                 action_dependencies,
             )),
             core: self.core,
-            caller_type: self.caller_type,
+            entity_type: self.entity_type,
         }
     }
 }
@@ -146,11 +147,9 @@ impl<'a> SystemRunner<'a> {
 #[cfg(test)]
 mod entity_runner_tests {
     use crate::storages::archetypes::ArchetypeFilter;
-    use crate::storages::core::{CoreStorage, SystemCallerType};
+    use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
-    use crate::{
-        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner,
-    };
+    use crate::{Action, DependsOn, SystemBuilder, SystemRunner};
     use std::any::TypeId;
 
     struct TestActionDependency;
@@ -165,15 +164,7 @@ mod entity_runner_tests {
         type Constraint = DependsOn<TestActionDependency>;
     }
 
-    struct TestEntity(u32);
-
-    impl EntityMainComponent for TestEntity {
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
-            builder.with_self(Self(data))
-        }
-    }
+    create_entity_type!(TestEntity);
 
     assert_impl_all!(SystemRunner<'_>: Send, Unpin);
 
@@ -183,7 +174,7 @@ mod entity_runner_tests {
         core.add_entity_type::<TestEntity>();
         let runner = SystemRunner {
             core: &mut core,
-            caller_type: SystemCallerType::Entity(TypeId::of::<TestEntity>()),
+            entity_type: TypeId::of::<TestEntity>(),
             latest_action_idx: None,
         };
         runner
@@ -207,7 +198,6 @@ mod entity_runner_tests {
         SystemBuilder {
             properties_fn: |_| SystemProperties {
                 component_types: vec![],
-                globals: vec![],
                 can_update: false,
                 archetype_filter: ArchetypeFilter::None,
             },
