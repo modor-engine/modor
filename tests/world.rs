@@ -186,8 +186,7 @@ fn use_world() {
     app.assert_global_exists::<DeletedGlobal, _>(|g| assert_eq!(g.0, 60));
 
     app.update();
-    app.assert_entity(entity1_id)
-        .has::<NewChildEntity, _>(|e| assert_eq!(e.0, 20));
+    app.assert_entity(entity1_id).does_not_exist();
     app.assert_entity(entity2_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(20)))
         .has::<String, _>(|c| assert_eq!(c, "id: 20"));
@@ -206,6 +205,8 @@ fn use_world() {
                 .has::<NewChildEntity, _>(|e| assert_eq!(e.0, 20));
         });
     app.assert_entity(entity5_id + 1)
+        .has::<NewChildEntity, _>(|e| assert_eq!(e.0, 20));
+    app.assert_entity(entity5_id + 2)
         .has::<NewRootEntity, _>(|e| assert_eq!(e.0, 10));
     app.assert_global_does_not_exist::<DeletedGlobal>();
     app.assert_global_exists::<CreatedGlobal, _>(|g| assert_eq!(g.0, 70));
