@@ -170,7 +170,6 @@ impl CoreStorage {
                 .expect("internal error: cannot access to entity actions"),
         );
         // Each type of update is executed in an order that avoids entity index conflicts
-        // and make sure index of deleted entities are not used during one update
         for (entity_idx, add_component_fns, deleted_component_type_idxs) in
             updates.changed_entity_drain()
         {
