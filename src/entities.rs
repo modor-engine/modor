@@ -270,6 +270,36 @@ where
 }
 
 /// A type that indicates the entity has been built.
+///
+/// This type is also used to perform operations once an entity is created.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::{Built, EntityBuilder, EntityMainComponent, Singleton};
+/// #
+/// struct PhysicsModule;
+///
+/// impl EntityMainComponent for PhysicsModule {
+///     type Type = Singleton;
+///     type Data = ();
+///
+///     fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
+///         builder.with_self(Self)
+///     }
+/// }
+///
+/// struct GraphicsModule;
+///
+/// impl EntityMainComponent for GraphicsModule {
+///     type Type = Singleton;
+///     type Data = ();
+///
+///     fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
+///         builder.with_self(Self).with_dependency::<PhysicsModule>(())
+///     }
+/// }
+/// ```
 pub struct Built<'a> {
     core: &'a mut CoreStorage,
 }
@@ -279,34 +309,6 @@ impl Built<'_> {
     /// the singleton does not already exist.
     ///
     /// The created entity has no parent.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use modor::{Built, EntityBuilder, EntityMainComponent, Singleton};
-    /// #
-    /// struct PhysicsModule;
-    ///
-    /// impl EntityMainComponent for PhysicsModule {
-    ///     type Type = Singleton;
-    ///     type Data = ();
-    ///
-    ///     fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-    ///         builder.with_self(Self)
-    ///     }
-    /// }
-    ///
-    /// struct GraphicsModule;
-    ///
-    /// impl EntityMainComponent for GraphicsModule {
-    ///     type Type = Singleton;
-    ///     type Data = ();
-    ///
-    ///     fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-    ///         builder.with_self(Self).with_dependency::<PhysicsModule>(())
-    ///     }
-    /// }
-    /// ```
     pub fn with_dependency<E>(self, data: E::Data) -> Self
     where
         E: EntityMainComponent<Type = Singleton>,
