@@ -1,4 +1,6 @@
-use crate::entities::internal::{AddedComponents, ComponentAdd, ComponentInfo, SealedEntityType, StorageWrapper};
+use crate::entities::internal::{
+    AddedComponents, ComponentAdd, ComponentInfo, SealedEntityType, StorageWrapper,
+};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
@@ -159,7 +161,9 @@ where
             dst_archetype_idx: archetype_idx,
             parent_idx: self.parent_idx,
             added_components: AddedComponents {
-                component: Some(ComponentInfo {component, type_idx,
+                component: Some(ComponentInfo {
+                    component,
+                    type_idx,
                     is_singleton: TypeId::of::<C>() == TypeId::of::<E>()
                         && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
                 }),
