@@ -106,10 +106,12 @@ impl CoreStorage {
         component: C,
         type_idx: ComponentTypeIdx,
         location: EntityLocation,
+        is_singleton: bool,
     ) where
         C: Any + Sync + Send,
     {
-        self.components.add(type_idx, location, component);
+        self.components
+            .add(type_idx, location, component, is_singleton);
     }
 
     pub(crate) fn move_entity(
@@ -135,6 +137,16 @@ impl CoreStorage {
         self.entities.set_location(entity_idx, dst_location);
         Self::update_moved_entity_location(src_location, &self.archetypes, &mut self.entities);
         dst_location
+    }
+
+    pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {
+        self.entities.delete(entity_idx, |e, l| {
+            for &type_idx in self.archetypes.sorted_type_idxs(l.idx) {
+                self.components.delete(type_idx, l);
+            }
+            self.archetypes.delete_entity(l);
+            Self::update_moved_entity_location(l, &self.archetypes, e);
+        });
     }
 
     pub(crate) fn replace_or_add_global<G>(&mut self, global: G)
@@ -184,11 +196,7 @@ impl CoreStorage {
                 .expect("internal error: cannot access to entity actions"),
         );
         // Each type of update is executed in an order that avoids entity index conflicts
-        for entity_idx in updates.deleted_entity_drain() {
-            if self.entities.location(entity_idx).is_some() {
-                self.delete_entity(entity_idx);
-            }
-        }
+        // and make sure index of deleted entities are not used during one update
         for (entity_idx, add_component_fns, deleted_component_type_idxs) in
             updates.changed_entity_drain()
         {
@@ -214,22 +222,17 @@ impl CoreStorage {
         for create_fn in updates.created_root_entity_drain() {
             create_fn(self);
         }
+        for entity_idx in updates.deleted_entity_drain() {
+            if self.entities.location(entity_idx).is_some() {
+                self.delete_entity(entity_idx);
+            }
+        }
         for global_type in updates.deleted_global_drain() {
             self.globals.delete(global_type);
         }
         for create_fn in updates.created_global_drain() {
             create_fn(self);
         }
-    }
-
-    fn delete_entity(&mut self, entity_idx: EntityIdx) {
-        self.entities.delete(entity_idx, |e, l| {
-            for &type_idx in self.archetypes.sorted_type_idxs(l.idx) {
-                self.components.delete(type_idx, l);
-            }
-            self.archetypes.delete_entity(l);
-            Self::update_moved_entity_location(l, &self.archetypes, e);
-        });
     }
 
     fn delete_component_type(
@@ -300,7 +303,7 @@ mod core_storage_tests {
             let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
             let (type_idx, archetype2_idx) = self.add_component_type::<C>(archetype1_idx);
             let (_, location) = self.create_entity(archetype2_idx, parent_idx);
-            self.add_component(component, type_idx, location);
+            self.add_component(component, type_idx, location, false);
             location
         }
 
@@ -318,8 +321,8 @@ mod core_storage_tests {
             let (type1_idx, archetype2_idx) = self.add_component_type::<C1>(archetype1_idx);
             let (type2_idx, archetype3_idx) = self.add_component_type::<C2>(archetype2_idx);
             let (_, location) = self.create_entity(archetype3_idx, parent_idx);
-            self.add_component(component1, type1_idx, location);
-            self.add_component(component2, type2_idx, location);
+            self.add_component(component1, type1_idx, location, false);
+            self.add_component(component2, type2_idx, location, false);
             location
         }
 
@@ -340,9 +343,9 @@ mod core_storage_tests {
             let (type2_idx, archetype3_idx) = self.add_component_type::<C2>(archetype2_idx);
             let (type3_idx, archetype4_idx) = self.add_component_type::<C3>(archetype3_idx);
             let (_, location) = self.create_entity(archetype4_idx, parent_idx);
-            self.add_component(component1, type1_idx, location);
-            self.add_component(component2, type2_idx, location);
-            self.add_component(component3, type3_idx, location);
+            self.add_component(component1, type1_idx, location, false);
+            self.add_component(component2, type2_idx, location, false);
+            self.add_component(component3, type3_idx, location, false);
             location
         }
     }
@@ -364,11 +367,11 @@ mod core_storage_tests {
         let (type3_idx, archetype3_idx) = storage.add_component_type::<i8>(archetype2_idx);
         let (type4_idx, archetype4_idx) = storage.add_component_type::<i8>(archetype3_idx);
         let (entity1_idx, location1) = storage.create_entity(archetype4_idx, None);
-        storage.add_component(10_u32, type2_idx, location1);
-        storage.add_component(20_i8, type3_idx, location1);
+        storage.add_component(10_u32, type2_idx, location1, false);
+        storage.add_component(20_i8, type3_idx, location1, false);
         let (entity2_idx, location2) = storage.create_entity(archetype4_idx, Some(entity1_idx));
-        storage.add_component(30_u32, type2_idx, location2);
-        storage.add_component(40_i8, type3_idx, location2);
+        storage.add_component(30_u32, type2_idx, location2, false);
+        storage.add_component(40_i8, type3_idx, location2, false);
         let location3 = storage.move_entity(location1, archetype2_idx);
         assert_eq!(type1_idx, type2_idx);
         assert_eq!(type3_idx, type4_idx);
@@ -387,6 +390,18 @@ mod core_storage_tests {
         assert_eq!(&*storage.components().read_components::<u32>(), &components);
         let components = ti_vec![ti_vec![], ti_vec![], ti_vec![40_i8]];
         assert_eq!(&*storage.components.read_components::<i8>(), &components);
+        assert_eq!(storage.components().singleton_locations(type1_idx), None);
+    }
+
+    #[test]
+    fn configure_singleton_entity() {
+        let mut storage = CoreStorage::default();
+        let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
+        let (type_idx, archetype2_idx) = storage.add_component_type::<u32>(archetype1_idx);
+        let (_, location) = storage.create_entity(archetype2_idx, None);
+        storage.add_component(10_u32, type_idx, location, true);
+        let singleton_location = storage.components().singleton_locations(type_idx);
+        assert_eq!(singleton_location, Some(location));
     }
 
     #[test]
@@ -408,9 +423,9 @@ mod core_storage_tests {
         let (entity1_idx, location1) = storage.create_entity(archetype2_idx, None);
         let (entity2_idx, location2) = storage.create_entity(archetype2_idx, None);
         let (_, location3) = storage.create_entity(archetype2_idx, Some(entity1_idx));
-        storage.add_component(10_u32, type_idx, location1);
-        storage.add_component(20_u32, type_idx, location2);
-        storage.add_component(30_u32, type_idx, location3);
+        storage.add_component(10_u32, type_idx, location1, false);
+        storage.add_component(20_u32, type_idx, location2, false);
+        storage.add_component(30_u32, type_idx, location3, false);
         storage.replace_or_add_global(70_u16);
         storage.add_system(
             |d, i| {
@@ -426,7 +441,7 @@ mod core_storage_tests {
                 updates.add_component(
                     1.into(),
                     |c, a| c.add_component_type::<i8>(a).1,
-                    Box::new(move |c, l| c.add_component(40_i8, 2.into(), l)),
+                    Box::new(move |c, l| c.add_component(40_i8, 2.into(), l, false)),
                 );
                 updates.create_entity(None, Box::new(|c| c.replace_or_add_global(50_usize)));
                 updates.create_entity(

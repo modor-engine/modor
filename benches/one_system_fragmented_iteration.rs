@@ -6,9 +6,10 @@ use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner
 struct Data(f32);
 
 impl EntityMainComponent for Data {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder.with_self(Self(1.0))
     }
 
@@ -29,9 +30,10 @@ macro_rules! create_entities {
             struct $variants(f32);
 
             impl EntityMainComponent for $variants {
+                type Type = ();
                 type Data = ();
 
-                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
                     builder
                         .inherit_from::<Data>(())
                         .with_self(Self(0.0))

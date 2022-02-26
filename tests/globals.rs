@@ -31,9 +31,10 @@ impl Total {
 struct Incrementer(u32);
 
 impl EntityMainComponent for Incrementer {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, increment: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, increment: Self::Data) -> Built<'_> {
         builder.with_self(Self(increment))
     }
 }

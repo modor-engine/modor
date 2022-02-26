@@ -298,8 +298,8 @@ mod system_data_tests {
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
         let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location);
-        core.add_component(20_i64, type2_idx, location);
+        core.add_component(10_u32, type1_idx, location, false);
+        core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
         let filtered_type_idxs = &[type2_idx];
 
@@ -315,8 +315,8 @@ mod system_data_tests {
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
         let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location);
-        core.add_component(20_i64, type2_idx, location);
+        core.add_component(10_u32, type1_idx, location, false);
+        core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
 
         let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::None);
@@ -330,8 +330,8 @@ mod system_data_tests {
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
         let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location);
-        core.add_component(20_i64, type2_idx, location);
+        core.add_component(10_u32, type1_idx, location, false);
+        core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
 
         let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::All);
@@ -348,8 +348,8 @@ mod system_data_tests {
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
         let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location);
-        core.add_component(20_i64, type2_idx, location);
+        core.add_component(10_u32, type1_idx, location, false);
+        core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
         let archetype_filter = ArchetypeFilter::Union(ne_vec![type1_idx]);
 
@@ -366,8 +366,8 @@ mod system_data_tests {
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
         let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location);
-        core.add_component(20_i64, type2_idx, location);
+        core.add_component(10_u32, type1_idx, location, false);
+        core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
         let archetype_filter = ArchetypeFilter::Intersection(ne_vec![type1_idx]);
 

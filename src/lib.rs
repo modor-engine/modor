@@ -35,9 +35,10 @@
 //! }
 //!
 //! impl EntityMainComponent for Character {
+//!     type Type = ();
 //!     type Data = (Position, CharacterType);
 //!
-//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built {
+//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built<'_> {
 //!         builder
 //!             .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
 //!             .with(position)

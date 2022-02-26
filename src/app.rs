@@ -1,8 +1,6 @@
-use crate::storages::archetypes::ArchetypeStorage;
 use crate::storages::core::{CoreStorage, SystemCallerType};
 use crate::{EntityBuilder, EntityMainComponent, Global, GlobalBuilder, SystemRunner};
 use std::any::TypeId;
-use std::marker::PhantomData;
 
 /// The entrypoint of the engine.
 ///
@@ -23,9 +21,10 @@ use std::marker::PhantomData;
 /// struct Button;
 ///
 /// impl EntityMainComponent for Button {
+///     type Type = ();
 ///     type Data = String;
 ///
-///     fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built {
+///     fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
 ///         builder
 ///             .with(label)
 ///             .with_self(Self)
@@ -55,16 +54,7 @@ impl App {
     where
         E: EntityMainComponent,
     {
-        let entity_builder = EntityBuilder {
-            core: &mut self.0,
-            entity_idx: None,
-            src_location: None,
-            dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-            parent_idx: None,
-            added_components: (),
-            phantom: PhantomData,
-        };
-        E::build(entity_builder, data);
+        E::build(EntityBuilder::<_, ()>::new(&mut self.0, None), data);
         self
     }
 
@@ -121,9 +111,10 @@ mod app_tests {
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
 

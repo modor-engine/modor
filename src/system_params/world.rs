@@ -1,4 +1,4 @@
-use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
@@ -6,7 +6,6 @@ use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
 use crate::{App, EntityBuilder, EntityMainComponent, Global, SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 
 /// A system parameter for applying actions on entities.
 ///
@@ -39,16 +38,7 @@ impl<'a> World<'a> {
             .create_entity(
                 None,
                 Box::new(|c| {
-                    let entity_builder = EntityBuilder {
-                        core: c,
-                        entity_idx: None,
-                        src_location: None,
-                        dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-                        parent_idx: None,
-                        added_components: (),
-                        phantom: PhantomData,
-                    };
-                    E::build(entity_builder, data);
+                    E::build(EntityBuilder::<_, ()>::new(c, None), data);
                 }),
             );
     }
@@ -68,16 +58,7 @@ impl<'a> World<'a> {
             .create_entity(
                 Some(parent_id.into()),
                 Box::new(move |c| {
-                    let entity_builder = EntityBuilder {
-                        core: c,
-                        entity_idx: None,
-                        src_location: None,
-                        dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-                        parent_idx: Some(parent_id.into()),
-                        added_components: (),
-                        phantom: PhantomData,
-                    };
-                    E::build(entity_builder, data);
+                    E::build(EntityBuilder::<_, ()>::new(c, Some(parent_id.into())), data);
                 }),
             );
     }
@@ -116,7 +97,7 @@ impl<'a> World<'a> {
                         .components()
                         .type_idx(TypeId::of::<C>())
                         .expect("internal error: add component with not registered type");
-                    c.add_component::<C>(component, type_idx, l);
+                    c.add_component::<C>(component, type_idx, l, false);
                 }),
             );
     }
@@ -282,7 +263,7 @@ mod internal {
 
 #[cfg(test)]
 mod world_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
+    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
     use crate::{
         Built, EntityBuilder, EntityMainComponent, Global, SystemInfo, SystemParam, World,
@@ -293,9 +274,10 @@ mod world_tests {
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
     }
@@ -328,8 +310,7 @@ mod world_tests {
         world.create_global(TestGlobal2(70));
         world.delete_global::<TestGlobal1>();
         core.update();
-        let new_entity_location = Some(EntityLocation::new(3.into(), 0.into()));
-        assert_eq!(core.entities().location(0.into()), new_entity_location);
+        assert_eq!(core.entities().location(0.into()), None);
         let components = core.components().read_components::<i8>().clone();
         assert_eq!(components, ti_vec![ti_vec![], ti_vec![], ti_vec![30_i8]]);
         let components = core.components().read_components::<TestEntity>().clone();
@@ -338,7 +319,7 @@ mod world_tests {
             components,
             ti_vec![ti_vec![], ti_vec![], ti_vec![], new_entities]
         );
-        assert_eq!(core.entities().parent_idx(0.into()), Some(1.into()));
+        assert_eq!(core.entities().parent_idx(3.into()), Some(1.into()));
         let global = core.globals().read::<TestGlobal2>().unwrap().clone();
         assert_eq!(global, TestGlobal2(70));
         assert!(core.globals().read::<TestGlobal1>().is_none());

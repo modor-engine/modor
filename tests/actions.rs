@@ -21,9 +21,10 @@ impl Action for EnemyPositionUpdateAction {
 struct Enemy;
 
 impl EntityMainComponent for Enemy {
+    type Type = ();
     type Data = Position;
 
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
         builder.with(position).with_self(Self)
     }
 
@@ -42,9 +43,10 @@ impl Enemy {
 struct Selection(Position);
 
 impl EntityMainComponent for Selection {
+    type Type = ();
     type Data = Position;
 
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
         builder.with_self(Self(position))
     }
 
@@ -65,9 +67,10 @@ impl Selection {
 struct DisplayManager(usize, Vec<String>);
 
 impl EntityMainComponent for DisplayManager {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder.with_self(Self(0, vec![]))
     }
 

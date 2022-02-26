@@ -28,9 +28,10 @@ impl Size {
 struct Point;
 
 impl EntityMainComponent for Point {
+    type Type = ();
     type Data = Position;
 
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
         builder
             .with(position)
             .with(Size {
@@ -47,9 +48,10 @@ struct Object {
 }
 
 impl EntityMainComponent for Object {
+    type Type = ();
     type Data = (Position, Size);
 
-    fn build(builder: EntityBuilder<'_, Self>, (position, size): Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, (position, size): Self::Data) -> Built<'_> {
         builder.with(position).with(size).with_self(Self {
             is_collided_1: false,
             is_collided_2: false,

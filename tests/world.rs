@@ -7,9 +7,10 @@ use modor::{
 struct Parent(u32);
 
 impl EntityMainComponent for Parent {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder.with_self(Self(id))
     }
 }
@@ -17,9 +18,10 @@ impl EntityMainComponent for Parent {
 struct EntityToDelete;
 
 impl EntityMainComponent for EntityToDelete {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
@@ -37,9 +39,10 @@ impl EntityToDelete {
 struct EntityWithAddedComponent;
 
 impl EntityMainComponent for EntityWithAddedComponent {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
@@ -57,9 +60,10 @@ impl EntityWithAddedComponent {
 struct EntityWithExistingComponentDeleted;
 
 impl EntityMainComponent for EntityWithExistingComponentDeleted {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder
             .inherit_from::<Parent>(id)
             .with(String::from("existing"))
@@ -80,9 +84,10 @@ impl EntityWithExistingComponentDeleted {
 struct EntityWithMissingComponentDeleted;
 
 impl EntityMainComponent for EntityWithMissingComponentDeleted {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
@@ -100,9 +105,10 @@ impl EntityWithMissingComponentDeleted {
 struct EntityWithNotRegisteredComponentTypeDeleted;
 
 impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
         builder.inherit_from::<Parent>(id).with_self(Self)
     }
 
@@ -124,9 +130,10 @@ impl EntityWithNotRegisteredComponentTypeDeleted {
 struct NewRootEntity(u32);
 
 impl EntityMainComponent for NewRootEntity {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
         builder.with_self(Self(data))
     }
 }
@@ -134,9 +141,10 @@ impl EntityMainComponent for NewRootEntity {
 struct NewChildEntity(u32);
 
 impl EntityMainComponent for NewChildEntity {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
         builder.with_self(Self(data))
     }
 }

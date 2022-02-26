@@ -29,9 +29,10 @@ use std::any::TypeId;
 /// struct MyEntity;
 ///
 /// impl EntityMainComponent for MyEntity {
+///     type Type = ();
 ///     type Data = ();
 ///
-///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
 ///         builder.with_self(Self)
 ///     }
 ///
@@ -168,9 +169,10 @@ mod entity_runner_tests {
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
     }

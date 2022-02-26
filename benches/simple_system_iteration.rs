@@ -18,9 +18,10 @@ struct Velocity(Vec3);
 struct Object(Mat4);
 
 impl EntityMainComponent for Object {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder
             .with(Position(Vec3(1., 0., 0.)))
             .with(Rotation(Vec3(1., 0., 0.)))

@@ -12,6 +12,7 @@ pub(crate) struct ComponentStorage {
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     component_count: TiVec<ComponentTypeIdx, usize>,
     sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
+    singleton_locations: TiVec<ComponentTypeIdx, Option<EntityLocation>>,
 }
 
 impl ComponentStorage {
@@ -21,6 +22,10 @@ impl ComponentStorage {
 
     pub(crate) fn sorted_archetype_idxs(&self, type_idx: ComponentTypeIdx) -> &[ArchetypeIdx] {
         &self.sorted_archetype_idxs[type_idx]
+    }
+
+    pub(crate) fn singleton_locations(&self, type_idx: ComponentTypeIdx) -> Option<EntityLocation> {
+        self.singleton_locations[type_idx]
     }
 
     pub(crate) fn is_entity_type<C>(&self) -> bool
@@ -76,7 +81,8 @@ impl ComponentStorage {
             self.are_entity_types.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
             self.archetypes.push(Box::new(archetype_lock));
-            self.sorted_archetype_idxs.push_and_get_key(vec![])
+            self.sorted_archetype_idxs.push(vec![]);
+            self.singleton_locations.push_and_get_key(None)
         })
     }
 
@@ -93,6 +99,7 @@ impl ComponentStorage {
         type_idx: ComponentTypeIdx,
         location: EntityLocation,
         component: C,
+        is_singleton: bool,
     ) where
         C: Any + Send + Sync,
     {
@@ -115,6 +122,9 @@ impl ComponentStorage {
             utils::set_value(&mut self.component_count, type_idx, 1);
             self.add_archetype(type_idx, location.idx);
         }
+        if is_singleton {
+            self.singleton_locations[type_idx] = Some(location);
+        }
     }
 
     pub(super) fn move_(
@@ -125,11 +135,25 @@ impl ComponentStorage {
     ) {
         self.archetypes[type_idx].move_component(src_location, dst_archetype_idx);
         self.add_archetype(type_idx, dst_archetype_idx);
+        if let Some(singleton_location) = self.singleton_locations[type_idx] {
+            if singleton_location == src_location {
+                let location = EntityLocation {
+                    idx: dst_archetype_idx,
+                    pos: ArchetypeEntityPos::default(),
+                };
+                self.singleton_locations[type_idx] = Some(location);
+            }
+        }
     }
 
     pub(super) fn delete(&mut self, type_idx: ComponentTypeIdx, location: EntityLocation) {
         self.archetypes[type_idx].delete_component(location);
         self.component_count[type_idx] -= 1;
+        if let Some(singleton_location) = self.singleton_locations[type_idx] {
+            if singleton_location == location {
+                self.singleton_locations[type_idx] = None;
+            }
+        }
     }
 
     fn add_archetype(&mut self, type_idx: ComponentTypeIdx, archetype_idx: ArchetypeIdx) {
@@ -233,24 +257,26 @@ mod component_storage_tests {
     }
 
     #[test]
-    fn manage_components() {
+    fn manage_not_singleton_components() {
         let mut storage = ComponentStorage::default();
         let type_idx = storage.type_idx_or_create::<u32>();
+        storage.add_entity_type::<u32>();
         let archetype1_idx = 1.into();
         let archetype2_idx = 2.into();
         let archetype3_idx = 3.into();
         let location1 = EntityLocation::new(archetype2_idx, 0.into());
-        storage.add(type_idx, location1, 10_u32);
+        storage.add(type_idx, location1, 10_u32, false);
         let location2 = EntityLocation::new(archetype1_idx, 0.into());
-        storage.add(type_idx, location2, 20_u32);
-        storage.add(type_idx, location2, 30_u32);
+        storage.add(type_idx, location2, 20_u32, false);
+        storage.add(type_idx, location2, 30_u32, false);
         let location3 = EntityLocation::new(archetype1_idx, 1.into());
-        storage.add(type_idx, location3, 40_u32);
+        storage.add(type_idx, location3, 40_u32, false);
         let location4 = EntityLocation::new(archetype1_idx, 2.into());
-        storage.add(type_idx, location4, 50_u32);
+        storage.add(type_idx, location4, 50_u32, false);
         let location5 = EntityLocation::new(archetype1_idx, 3.into());
-        storage.add(type_idx, location5, 60_u32);
+        storage.add(type_idx, location5, 60_u32, false);
         storage.move_(type_idx, location2, archetype3_idx);
+        assert_eq!(storage.singleton_locations(type_idx), None);
         storage.delete(type_idx, location2);
         let components = ti_vec![ti_vec![], ti_vec![50_u32, 40], ti_vec![10], ti_vec![30]];
         assert_eq!(&*storage.read_components::<u32>(), &components);
@@ -259,5 +285,32 @@ mod component_storage_tests {
         let expected_sorted_archetypes = [archetype1_idx, archetype2_idx, archetype3_idx];
         assert_eq!(sorted_archetype_idxs, expected_sorted_archetypes);
         assert_eq!(storage.count(type_idx), 4);
+        assert_eq!(storage.singleton_locations(type_idx), None);
+    }
+
+    #[test]
+    fn manage_singleton_component() {
+        let mut storage = ComponentStorage::default();
+        let type_idx = storage.type_idx_or_create::<u32>();
+        storage.add_entity_type::<u32>();
+        let archetype1_idx = 1.into();
+        let archetype2_idx = 2.into();
+        let location1 = EntityLocation::new(archetype1_idx, 0.into());
+        storage.add(type_idx, location1, 10_u32, true);
+        assert_eq!(storage.singleton_locations(type_idx), Some(location1));
+        storage.move_(type_idx, location1, archetype2_idx);
+        let location2 = EntityLocation::new(archetype2_idx, 0.into());
+        assert_eq!(storage.singleton_locations(type_idx), Some(location2));
+
+        storage.add(type_idx, location1, 20_u32, false);
+        assert_eq!(storage.singleton_locations(type_idx), Some(location2));
+        storage.move_(type_idx, location1, archetype2_idx);
+        assert_eq!(storage.singleton_locations(type_idx), Some(location2));
+        let location3 = EntityLocation::new(archetype2_idx, 1.into());
+        storage.delete(type_idx, location3);
+        assert_eq!(storage.singleton_locations(type_idx), Some(location2));
+
+        storage.delete(type_idx, location2);
+        assert_eq!(storage.singleton_locations(type_idx), None);
     }
 }

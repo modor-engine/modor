@@ -12,9 +12,10 @@ struct E(f32);
 struct Item1;
 
 impl EntityMainComponent for Item1 {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder.with(A(0.0)).with(B(0.0)).with_self(Self)
     }
 
@@ -26,9 +27,10 @@ impl EntityMainComponent for Item1 {
 struct Item2;
 
 impl EntityMainComponent for Item2 {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder
             .with(A(0.0))
             .with(B(0.0))
@@ -44,9 +46,10 @@ impl EntityMainComponent for Item2 {
 struct Item3;
 
 impl EntityMainComponent for Item3 {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder
             .with(A(0.0))
             .with(B(0.0))
@@ -63,9 +66,10 @@ impl EntityMainComponent for Item3 {
 struct Item4;
 
 impl EntityMainComponent for Item4 {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder
             .with(A(0.0))
             .with(B(0.0))

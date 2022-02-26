@@ -333,8 +333,9 @@ mod system_storage_tests {
         let type2_idx = components.type_idx_or_create::<Component2>();
         if !empty_storage {
             let location = EntityLocation::new(0.into(), 0.into());
-            components.add(type1_idx, location, Component1(thread::current().id()));
-            components.add(type2_idx, location, Component2(thread::current().id()));
+            let thread_id = thread::current().id();
+            components.add(type1_idx, location, Component1(thread_id), false);
+            components.add(type2_idx, location, Component2(thread_id), false);
             globals.replace_or_add(10_u32);
         }
         let mut actions = ActionStorage::default();

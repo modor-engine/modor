@@ -1,8 +1,6 @@
-use crate::storages::archetypes::ArchetypeStorage;
 use crate::storages::core::{CoreStorage, SystemCallerType};
 use crate::{EntityBuilder, EntityMainComponent, SystemRunner};
 use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 
 /// A trait for defining a global type.
 ///
@@ -97,16 +95,7 @@ impl GlobalBuilder<'_> {
     where
         E: EntityMainComponent,
     {
-        let entity_builder = EntityBuilder {
-            core: self.core,
-            entity_idx: None,
-            src_location: None,
-            dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-            parent_idx: None,
-            added_components: (),
-            phantom: PhantomData,
-        };
-        E::build(entity_builder, data);
+        E::build(EntityBuilder::<_, ()>::new(self.core, None), data);
         self
     }
 }
@@ -156,9 +145,10 @@ mod global_builder_tests {
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
     }

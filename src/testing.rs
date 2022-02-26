@@ -6,7 +6,6 @@ use crate::storages::entities::EntityIdx;
 use crate::{App, EntityBuilder, EntityMainComponent, Global};
 use std::any;
 use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 /// A utility to facilitate entity testing.
@@ -31,9 +30,10 @@ use std::ops::{Deref, DerefMut};
 /// struct Button;
 ///
 /// impl EntityMainComponent for Button {
+///     type Type = ();
 ///     type Data = String;
 ///
-///     fn build(builder: EntityBuilder<'_, Self>, name: Self::Data) -> Built {
+///     fn build(builder: EntityBuilder<'_, Self>, name: Self::Data) -> Built<'_> {
 ///         builder
 ///             .with(name)
 ///             .with_self(Self)
@@ -59,16 +59,10 @@ impl TestApp {
         let core = &mut self.0 .0;
         let location = core.create_entity(ArchetypeStorage::DEFAULT_IDX, None).1;
         let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-        let entity_builder = EntityBuilder {
-            core,
-            entity_idx: Some(entity_idx),
-            src_location: Some(location),
-            dst_archetype_idx: ArchetypeStorage::DEFAULT_IDX,
-            parent_idx: None,
-            added_components: (),
-            phantom: PhantomData,
-        };
-        E::build(entity_builder, data);
+        E::build(
+            EntityBuilder::<_, ()>::from_existing(core, entity_idx),
+            data,
+        );
         entity_idx.into()
     }
 
@@ -290,9 +284,10 @@ mod test_app_tests {
     struct TestEntity(String);
 
     impl EntityMainComponent for TestEntity {
+        type Type = ();
         type Data = String;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder
                 .with_child::<ChildEntity>(10)
                 .with_child::<ChildEntity>(20)
@@ -304,9 +299,10 @@ mod test_app_tests {
     struct ChildEntity(u32);
 
     impl EntityMainComponent for ChildEntity {
+        type Type = ();
         type Data = u32;
 
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
             builder.with_self(Self(data))
         }
     }

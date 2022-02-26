@@ -5,9 +5,10 @@ use modor::{App, Built, EntityBuilder, EntityMainComponent, Global};
 struct Integer(u32);
 
 impl EntityMainComponent for Integer {
+    type Type = ();
     type Data = u32;
 
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
         builder.with_self(Self(data))
     }
 }
@@ -16,9 +17,10 @@ impl EntityMainComponent for Integer {
 struct Text(String);
 
 impl EntityMainComponent for Text {
+    type Type = ();
     type Data = String;
 
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
         builder.with_self(Self(data))
     }
 }

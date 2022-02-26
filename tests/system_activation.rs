@@ -6,9 +6,10 @@ use modor::{
 struct SignalCounter(usize);
 
 impl EntityMainComponent for SignalCounter {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder.with_self(Self(0))
     }
 }
@@ -16,9 +17,10 @@ impl EntityMainComponent for SignalCounter {
 struct Action;
 
 impl EntityMainComponent for Action {
+    type Type = ();
     type Data = ();
 
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built {
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
         builder.with_self(Self)
     }
 
