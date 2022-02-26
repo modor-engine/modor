@@ -149,9 +149,7 @@ mod entity_runner_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
-    use crate::{
-        Action, Built, DependsOn, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner,
-    };
+    use crate::{Action, DependsOn, SystemBuilder, SystemRunner};
     use std::any::TypeId;
 
     struct TestActionDependency;
@@ -166,16 +164,7 @@ mod entity_runner_tests {
         type Constraint = DependsOn<TestActionDependency>;
     }
 
-    struct TestEntity(u32);
-
-    impl EntityMainComponent for TestEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
+    create_entity_type!(TestEntity);
 
     assert_impl_all!(SystemRunner<'_>: Send, Unpin);
 

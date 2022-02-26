@@ -379,8 +379,9 @@ mod core_storage_tests {
     fn run_system_that_deletes_entities() {
         let mut storage = CoreStorage::default();
         storage.create_entity_with_1_component(10_u32, None);
-        storage.create_entity_with_1_component(20_u32, None);
+        let location = storage.create_entity_with_1_component(20_u32, None);
         storage.create_entity_with_1_component(30_u32, Some(1.into()));
+        storage.create_entity_with_1_component(40_u32, None);
         storage.add_system(
             |d, i| {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);
@@ -395,9 +396,10 @@ mod core_storage_tests {
             ActionDependencies::Types(vec![]),
         );
         storage.update();
-        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![10]];
+        let components: TiVec<_, TiVec<_, u32>> = ti_vec![ti_vec![], ti_vec![10, 40]];
         assert_eq!(&*storage.components().read_components::<u32>(), &components);
         assert_eq!(storage.entities().location(1.into()), None);
+        assert_eq!(storage.entities().location(3.into()), Some(location));
     }
 
     #[test]
@@ -410,7 +412,10 @@ mod core_storage_tests {
                 assert_eq!(i.filtered_component_type_idxs, [0.into()]);
                 let mut updates = d.updates.try_lock().unwrap();
                 let entity_idx = 0.into();
+                let missing_idx = 10.into();
                 updates.delete_component(entity_idx, 0.into());
+                updates.delete_component(entity_idx, 0.into());
+                updates.delete_component(missing_idx, 0.into());
                 updates.add_component(
                     entity_idx,
                     |c, a| c.add_component_type::<i64>(a).1,

@@ -31,7 +31,9 @@ use crate::{EntityBuilder, EntityMainComponent};
 /// }
 /// ```
 #[derive(Default)]
-pub struct App(pub(crate) CoreStorage);
+pub struct App {
+    pub(crate) core: CoreStorage,
+}
 
 impl App {
     /// Creates a new empty `App`.
@@ -44,7 +46,7 @@ impl App {
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
     pub fn with_thread_count(mut self, count: u32) -> Self {
-        self.0.set_thread_count(count);
+        self.core.set_thread_count(count);
         self
     }
 
@@ -53,18 +55,18 @@ impl App {
     where
         E: EntityMainComponent,
     {
-        E::build(EntityBuilder::<_, ()>::new(&mut self.0, None), data);
+        E::build(EntityBuilder::<_, ()>::new(&mut self.core, None), data);
         self
     }
 
     /// Returns the number of threads used by the `App` during update.
     pub fn thread_count(&self) -> u32 {
-        self.0.systems().thread_count()
+        self.core.systems().thread_count()
     }
 
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
-        self.0.update();
+        self.core.update();
     }
 }
 
@@ -73,8 +75,6 @@ mod app_tests {
     use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::SystemProperties;
     use crate::{App, Built, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
-
-    assert_impl_all!(App: Send, Unpin);
 
     #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(u32);
@@ -99,17 +99,19 @@ mod app_tests {
         }
     }
 
+    assert_impl_all!(App: Send, Unpin);
+
     #[test]
     fn configure_app() {
         let mut app = App::new()
             .with_thread_count(2)
             .with_entity::<TestEntity>(10);
         assert_eq!(app.thread_count(), 2);
-        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
+        let components = (&*app.core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10)]];
         assert_eq!(components, expected_components);
         app.update();
-        let components = (&*app.0.components().read_components::<TestEntity>()).clone();
+        let components = (&*app.core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(components, expected_components);
     }

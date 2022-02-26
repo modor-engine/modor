@@ -1,4 +1,4 @@
-use crate::entities::internal::{AddedComponents, ComponentAdd, SealedEntityType, StorageWrapper};
+use crate::entities::internal::{AddedComponents, ComponentAdd, ComponentInfo, SealedEntityType, StorageWrapper};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
@@ -159,10 +159,10 @@ where
             dst_archetype_idx: archetype_idx,
             parent_idx: self.parent_idx,
             added_components: AddedComponents {
-                component: Some(component),
-                type_idx,
-                is_singleton: TypeId::of::<C>() == TypeId::of::<E>()
-                    && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
+                component: Some(ComponentInfo {component, type_idx,
+                    is_singleton: TypeId::of::<C>() == TypeId::of::<E>()
+                        && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
+                }),
                 other_components: self.added_components,
             },
             phantom: PhantomData,
@@ -179,7 +179,6 @@ where
         if let Some(component) = component {
             self.with(component)
         } else {
-            let (type_idx, _) = self.core.add_component_type::<C>(self.dst_archetype_idx);
             EntityBuilder {
                 core: self.core,
                 entity_idx: self.entity_idx,
@@ -187,8 +186,6 @@ where
                 parent_idx: self.parent_idx,
                 added_components: AddedComponents {
                     component: None,
-                    type_idx,
-                    is_singleton: false,
                     other_components: self.added_components,
                 },
                 phantom: PhantomData,
@@ -262,7 +259,7 @@ where
             self.core
                 .create_entity(self.dst_archetype_idx, self.parent_idx)
         };
-        let mut storage = StorageWrapper(self.core);
+        let mut storage = StorageWrapper { core: self.core };
         self.added_components.add(&mut storage, location);
         (self.core, entity_idx)
     }
@@ -334,16 +331,16 @@ mod internal {
 
     pub trait SealedEntityType {}
 
-    pub struct StorageWrapper<'a>(pub(super) &'a mut CoreStorage);
+    pub struct StorageWrapper<'a> {
+        pub(super) core: &'a mut CoreStorage,
+    }
 
     pub trait ComponentAdd {
         fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation);
     }
 
     pub struct AddedComponents<C, A> {
-        pub(super) component: Option<C>,
-        pub(super) type_idx: ComponentTypeIdx,
-        pub(super) is_singleton: bool,
+        pub(super) component: Option<ComponentInfo<C>>,
         pub(super) other_components: A,
     }
 
@@ -355,15 +352,24 @@ mod internal {
         fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation) {
             self.other_components.add(storage, location);
             if let Some(component) = self.component {
-                storage
-                    .0
-                    .add_component(component, self.type_idx, location, self.is_singleton);
+                storage.core.add_component(
+                    component.component,
+                    component.type_idx,
+                    location,
+                    component.is_singleton,
+                );
             }
         }
     }
 
     impl ComponentAdd for () {
         fn add(self, _storage: &mut StorageWrapper<'_>, _location: EntityLocation) {}
+    }
+
+    pub(super) struct ComponentInfo<C> {
+        pub(super) component: C,
+        pub(super) type_idx: ComponentTypeIdx,
+        pub(super) is_singleton: bool,
     }
 }
 
@@ -378,71 +384,17 @@ mod built_tests {
 mod entity_builder_tests {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
     use crate::storages::core::CoreStorage;
-    use crate::{Built, EntityBuilder, EntityMainComponent, Singleton};
+    use crate::{EntityBuilder, Singleton};
     use std::any::Any;
     use std::fmt::Debug;
 
+    create_entity_type!(ParentEntity);
+    create_entity_type!(TestEntity);
+    create_entity_type!(ChildEntity);
+    create_entity_type!(Singleton1, Singleton);
+    create_entity_type!(Singleton2, Singleton);
+
     assert_impl_all!(EntityBuilder<'_, ParentEntity>: Send, Unpin);
-
-    #[derive(Debug, PartialEq)]
-    struct ParentEntity(u32);
-
-    impl EntityMainComponent for ParentEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct TestEntity(u32);
-
-    impl EntityMainComponent for TestEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct ChildEntity(u32);
-
-    impl EntityMainComponent for ChildEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct Singleton1(u32);
-
-    impl EntityMainComponent for Singleton1 {
-        type Type = Singleton;
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct Singleton2(u32);
-
-    impl EntityMainComponent for Singleton2 {
-        type Type = Singleton;
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
 
     #[test]
     fn build_entity() {
@@ -458,7 +410,8 @@ mod entity_builder_tests {
             .with_self(TestEntity(50))
             .with_dependency::<Singleton1>(80)
             .with_dependency::<Singleton2>(90);
-        let archetype_idx = ArchetypeIdx::from(7);
+        core.register_component_type::<i8>();
+        let archetype_idx = ArchetypeIdx::from(6);
         let archetype_pos = ArchetypeEntityPos::from(0);
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&10_u32));
         assert_component_eq(&core, archetype_idx, archetype_pos, Some(&20_i64));
@@ -469,7 +422,7 @@ mod entity_builder_tests {
         assert!(core.components().is_entity_type::<TestEntity>());
         assert_eq!(core.entities().parent_idx(2.into()), Some(1.into()));
         assert_component_eq(&core, 1.into(), 0.into(), Some(&Singleton1(70)));
-        assert_component_eq(&core, 8.into(), 0.into(), Some(&Singleton2(90)));
+        assert_component_eq(&core, 7.into(), 0.into(), Some(&Singleton2(90)));
     }
 
     #[test]

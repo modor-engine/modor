@@ -232,20 +232,10 @@ mod internal {
 mod world_tests {
     use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
-    use crate::{Built, EntityBuilder, EntityMainComponent, SystemInfo, SystemParam, World};
+    use crate::{SystemInfo, SystemParam, World};
     use std::any::TypeId;
 
-    #[derive(Debug, PartialEq, Clone)]
-    struct TestEntity(u32);
-
-    impl EntityMainComponent for TestEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
+    create_entity_type!(TestEntity);
 
     #[test]
     fn use_world() {
@@ -271,6 +261,7 @@ mod world_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], new_entities]
         );
         assert_eq!(core.entities().parent_idx(3.into()), Some(1.into()));
+        assert_eq!(core.components().singleton_locations(1.into()), None);
     }
 
     #[test]

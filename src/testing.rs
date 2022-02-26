@@ -39,7 +39,9 @@ use std::ops::{Deref, DerefMut};
 /// }
 /// ```
 #[derive(Default)]
-pub struct TestApp(App);
+pub struct TestApp {
+    app: App,
+}
 
 impl TestApp {
     /// Creates a new empty `TestApp`.
@@ -54,7 +56,7 @@ impl TestApp {
     where
         E: EntityMainComponent,
     {
-        let core = &mut self.0 .0;
+        let core = &mut self.app.core;
         let location = core.create_entity(ArchetypeStorage::DEFAULT_IDX, None).1;
         let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
         E::build(
@@ -66,10 +68,9 @@ impl TestApp {
 
     /// Starts assertions on an entity.
     pub fn assert_entity(&self, entity_id: usize) -> EntityAssertion<'_> {
-        // TODO: avoid `.0`
         EntityAssertion {
-            core: &self.0 .0,
-            location: self.0 .0.entities().location(entity_id.into()),
+            core: &self.app.core,
+            location: self.app.core.entities().location(entity_id.into()),
         }
     }
 
@@ -78,21 +79,20 @@ impl TestApp {
     where
         C: EntityMainComponent<Type = Singleton>,
     {
+        let core = &self.app.core;
         EntityAssertion {
-            core: &self.0 .0,
-            location: self
-                .0
-                 .0
+            core,
+            location: core
                 .components()
                 .type_idx(TypeId::of::<C>())
-                .and_then(|c| self.0 .0.components().singleton_locations(c)),
+                .and_then(|c| core.components().singleton_locations(c)),
         }
     }
 }
 
 impl From<App> for TestApp {
     fn from(app: App) -> Self {
-        Self(app)
+        Self { app }
     }
 }
 
@@ -100,13 +100,13 @@ impl Deref for TestApp {
     type Target = App;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.app
     }
 }
 
 impl DerefMut for TestApp {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.app
     }
 }
 
@@ -244,48 +244,15 @@ mod test_app_tests {
         }
     }
 
-    #[derive(Debug, PartialEq)]
-    struct ChildEntity(u32);
-
-    impl EntityMainComponent for ChildEntity {
-        type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct SingletonEntity1(u32);
-
-    impl EntityMainComponent for SingletonEntity1 {
-        type Type = Singleton;
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
-
-    // TODO: use macro to generate test entities
-    #[derive(Debug, PartialEq)]
-    struct SingletonEntity2(u32);
-
-    impl EntityMainComponent for SingletonEntity2 {
-        type Type = Singleton;
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
-    }
+    create_entity_type!(ChildEntity);
+    create_entity_type!(SingletonEntity1, Singleton);
+    create_entity_type!(SingletonEntity2, Singleton);
 
     #[test]
     fn deref() {
         let mut app = TestApp::from(App::new());
-        assert!(ptr::eq(&*app, &app.0));
-        assert!(ptr::eq(&mut *app as *const App, &app.0));
+        assert!(ptr::eq(&*app, &app.app));
+        assert!(ptr::eq(&mut *app as *const App, &app.app));
     }
 
     #[test]
@@ -327,7 +294,7 @@ mod test_app_tests {
         let existing_app = App::new().with_entity::<TestEntity>("string".into());
         let mut app = TestApp::from(existing_app);
         app.assert_entity(0).exists();
-        assert!(ptr::eq(&*app, &app.0));
-        assert!(ptr::eq(&mut *app as *const App, &app.0));
+        assert!(ptr::eq(&*app, &app.app));
+        assert!(ptr::eq(&mut *app as *const App, &app.app));
     }
 }
