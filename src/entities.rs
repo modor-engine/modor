@@ -275,13 +275,10 @@ pub struct Built<'a> {
 }
 
 impl Built<'_> {
-    /// Creates a singleton entity with main component of type `D` and building data `data` if
+    /// Creates a singleton entity with main component of type `E` and building data `data` if
     /// the singleton does not already exist.
     ///
     /// The created entity has no parent.
-    ///
-    /// It has to be noted that if any component type created by `D` is a singleton, the
-    /// singleton entities are deleted first.
     ///
     /// # Examples
     ///
@@ -310,18 +307,18 @@ impl Built<'_> {
     ///     }
     /// }
     /// ```
-    pub fn with_dependency<D>(self, data: D::Data) -> Self
+    pub fn with_dependency<E>(self, data: E::Data) -> Self
     where
-        D: EntityMainComponent<Type = Singleton>,
+        E: EntityMainComponent<Type = Singleton>,
     {
         // Method of `Build` and not of `EntityBuilder` to avoid stack overflow
         let singleton_count = self
             .core
             .components()
-            .type_idx(TypeId::of::<D>())
+            .type_idx(TypeId::of::<E>())
             .map_or(0, |c| self.core.components().count(c));
         if singleton_count == 0 {
-            D::build(EntityBuilder::<_, ()>::new(self.core, None), data);
+            E::build(EntityBuilder::<_, ()>::new(self.core, None), data);
         }
         self
     }
