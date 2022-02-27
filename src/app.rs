@@ -72,7 +72,6 @@ impl App {
 
 #[cfg(test)]
 mod app_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::systems::SystemProperties;
     use crate::{App, Built, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
 
@@ -92,7 +91,7 @@ mod app_tests {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
                     can_update: false,
-                    archetype_filter: ArchetypeFilter::None,
+                    filtered_component_type_idxs: vec![],
                 },
                 wrapper: |d, _| d.updates.try_lock().unwrap().delete_entity(0.into()),
             })

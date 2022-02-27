@@ -1,7 +1,6 @@
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::entities::EntityIdx;
 use crate::utils;
-use non_empty_vec::NonEmpty;
 use std::slice::Iter;
 use typed_index_collections::{TiSlice, TiVec};
 
@@ -52,13 +51,11 @@ impl ArchetypeStorage {
         &'a self,
         archetype_idxs: Iter<'a, ArchetypeIdx>,
         filtered_type_idxs: &'a [ComponentTypeIdx],
-        archetype_filter: &'a ArchetypeFilter,
     ) -> FilteredArchetypeIdxIter<'a> {
         FilteredArchetypeIdxIter {
             archetype_type_idxs: &self.type_idxs,
             archetype_idxs,
             filtered_type_idxs,
-            archetype_filter,
         }
     }
 
@@ -151,7 +148,6 @@ pub(crate) struct FilteredArchetypeIdxIter<'a> {
     archetype_type_idxs: &'a TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
     archetype_idxs: Iter<'a, ArchetypeIdx>,
     filtered_type_idxs: &'a [ComponentTypeIdx],
-    archetype_filter: &'a ArchetypeFilter,
 }
 
 impl Iterator for FilteredArchetypeIdxIter<'_> {
@@ -162,7 +158,6 @@ impl Iterator for FilteredArchetypeIdxIter<'_> {
             &mut self.archetype_idxs,
             self.archetype_type_idxs,
             self.filtered_type_idxs,
-            self.archetype_filter,
         )
     }
 }
@@ -173,7 +168,6 @@ impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
             (&mut self.archetype_idxs).rev(),
             self.archetype_type_idxs,
             self.filtered_type_idxs,
-            self.archetype_filter,
         )
     }
 }
@@ -183,92 +177,25 @@ impl FilteredArchetypeIdxIter<'_> {
         archetype_idxs: I,
         archetype_type_idxs: &TiVec<ArchetypeIdx, Vec<ComponentTypeIdx>>,
         filtered_type_idxs: &[ComponentTypeIdx],
-        archetype_filter: &ArchetypeFilter,
     ) -> Option<ArchetypeIdx>
     where
         I: Iterator<Item = &'a ArchetypeIdx>,
     {
         for &archetype_idx in archetype_idxs {
             let archetype_type_idxs = &archetype_type_idxs[archetype_idx];
-            if !Self::contains_all_types(archetype_type_idxs, filtered_type_idxs) {
-                continue;
-            }
-            match archetype_filter {
-                ArchetypeFilter::None => return None,
-                ArchetypeFilter::All => return Some(archetype_idx),
-                ArchetypeFilter::Union(type_idxs) => {
-                    if Self::contains_any_type(archetype_type_idxs, type_idxs) {
-                        return Some(archetype_idx);
-                    }
-                }
-                ArchetypeFilter::Intersection(type_idxs) => {
-                    if Self::contains_all_types(archetype_type_idxs, type_idxs) {
-                        return Some(archetype_idx);
-                    }
-                }
+            if filtered_type_idxs
+                .iter()
+                .all(|t| archetype_type_idxs.binary_search(t).is_ok())
+            {
+                return Some(archetype_idx);
             }
         }
         None
     }
 }
 
-impl FilteredArchetypeIdxIter<'_> {
-    fn contains_all_types(
-        type_idxs: &[ComponentTypeIdx],
-        contained_type_idxs: &[ComponentTypeIdx],
-    ) -> bool {
-        contained_type_idxs
-            .iter()
-            .all(|t| type_idxs.binary_search(t).is_ok())
-    }
-
-    fn contains_any_type(
-        type_idxs: &[ComponentTypeIdx],
-        contained_type_idxs: &[ComponentTypeIdx],
-    ) -> bool {
-        contained_type_idxs
-            .iter()
-            .any(|t| type_idxs.binary_search(t).is_ok())
-    }
-}
-
 idx_type!(pub ArchetypeIdx);
 idx_type!(pub ArchetypeEntityPos);
-
-#[derive(Clone, PartialEq, Debug)]
-pub(crate) enum ArchetypeFilter {
-    None,
-    All,
-    Union(NonEmpty<ComponentTypeIdx>),
-    Intersection(NonEmpty<ComponentTypeIdx>),
-}
-
-impl ArchetypeFilter {
-    pub(crate) fn merge(self, other: Self) -> Self {
-        match self {
-            Self::None => other,
-            Self::All => match other {
-                Self::None | Self::All | Self::Union(_) => Self::All,
-                other @ Self::Intersection(_) => other,
-            },
-            Self::Union(mut type_idxs) => match other {
-                Self::None => Self::Union(type_idxs),
-                Self::Union(other_type_idxs) => {
-                    other_type_idxs.into_iter().for_each(|t| type_idxs.push(t));
-                    Self::Union(type_idxs)
-                }
-                other @ (Self::Intersection(_) | Self::All) => other,
-            },
-            Self::Intersection(mut type_idxs) => match other {
-                Self::None | Self::All | Self::Union(_) => Self::Intersection(type_idxs),
-                Self::Intersection(other_type_idxs) => {
-                    other_type_idxs.into_iter().for_each(|t| type_idxs.push(t));
-                    Self::Intersection(type_idxs)
-                }
-            },
-        }
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EntityLocation {
@@ -296,8 +223,7 @@ mod entity_location_in_archetype_tests {
 #[cfg(test)]
 mod archetype_storage_tests {
     use crate::storages::archetypes::{
-        ArchetypeFilter, ArchetypeStorage, EntityLocation, ExistingComponentError,
-        MissingComponentError,
+        ArchetypeStorage, EntityLocation, ExistingComponentError, MissingComponentError,
     };
     use crate::utils::test_utils::assert_dyn_iter;
 
@@ -374,34 +300,16 @@ mod archetype_storage_tests {
         let archetype3_idx = storage.add_component(archetype2_idx, type2_idx).unwrap();
         let archetype_idxs = storage.all_sorted_idxs();
 
-        let none = ArchetypeFilter::None;
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &none);
-        assert_dyn_iter(iter, []);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &none);
-        assert_dyn_iter(iter.rev(), []);
-
-        let all = ArchetypeFilter::All;
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &all);
+        let type_idxs = [];
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs);
         assert_dyn_iter(iter, [archetype1_idx, archetype2_idx, archetype3_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &all);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs);
         assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx, archetype1_idx]);
 
-        let union = ArchetypeFilter::Union(ne_vec![type1_idx, type2_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &union);
-        assert_dyn_iter(iter, [archetype2_idx, archetype3_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &union);
-        assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx]);
-
-        let intersection = ArchetypeFilter::Intersection(ne_vec![type1_idx, type2_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &intersection);
-        assert_dyn_iter(iter, [archetype3_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &[], &intersection);
-        assert_dyn_iter(iter.rev(), [archetype3_idx]);
-
         let type_idxs = [type1_idx];
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs, &all);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs);
         assert_dyn_iter(iter, [archetype2_idx, archetype3_idx]);
-        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs, &all);
+        let iter = storage.filter_idxs(archetype_idxs.iter(), &type_idxs);
         assert_dyn_iter(iter.rev(), [archetype3_idx, archetype2_idx]);
     }
 
@@ -419,52 +327,5 @@ mod archetype_storage_tests {
         assert!(storage.has_types(archetype3_idx, &[type1_idx, type2_idx]));
         assert!(!storage.has_types(archetype3_idx, &[30.into()]));
         assert!(!storage.has_types(archetype3_idx, &[type1_idx, 30.into()]));
-    }
-}
-
-#[cfg(test)]
-mod archetype_filter_tests {
-    use crate::storages::archetypes::ArchetypeFilter::{All, Intersection, None, Union};
-
-    #[test]
-    fn merge_none() {
-        assert_eq!(None.merge(None), None);
-        assert_eq!(None.merge(All), All);
-        let merged = None.merge(Union(ne_vec![0.into()]));
-        assert_eq!(merged, Union(ne_vec![0.into()]));
-        let merged = None.merge(Intersection(ne_vec![0.into()]));
-        assert_eq!(merged, Intersection(ne_vec![0.into()]));
-    }
-
-    #[test]
-    fn merge_all() {
-        assert_eq!(All.merge(None), All);
-        assert_eq!(All.merge(All), All);
-        assert_eq!(All.merge(Union(ne_vec![0.into()])), All);
-        let merged = All.merge(Intersection(ne_vec![0.into()]));
-        assert_eq!(merged, Intersection(ne_vec![0.into()]));
-    }
-
-    #[test]
-    fn merge_union() {
-        let merged = Union(ne_vec![1.into()]).merge(None);
-        assert_eq!(merged, Union(ne_vec![1.into()]));
-        assert_eq!(Union(ne_vec![1.into()]).merge(All), All);
-        let merged = Union(ne_vec![1.into()]).merge(Union(ne_vec![0.into()]));
-        assert_eq!(merged, Union(ne_vec![1.into(), 0.into()]));
-        let merged = Union(ne_vec![1.into()]).merge(Intersection(ne_vec![0.into()]));
-        assert_eq!(merged, Intersection(ne_vec![0.into()]));
-    }
-
-    #[test]
-    fn merge_intersection() {
-        let merged = Intersection(ne_vec![1.into()]).merge(None);
-        assert_eq!(merged, Intersection(ne_vec![1.into()]));
-        let merged = Intersection(ne_vec![1.into()]).merge(All);
-        assert_eq!(merged, Intersection(ne_vec![1.into()]));
-        let merged = Intersection(ne_vec![1.into()]).merge(Union(ne_vec![0.into()]));
-        assert_eq!(merged, Intersection(ne_vec![1.into()]));
-        let merged = Intersection(ne_vec![1.into()]).merge(Intersection(ne_vec![0.into()]));
-        assert_eq!(merged, Intersection(ne_vec![1.into(), 0.into()]));
     }
 }

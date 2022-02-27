@@ -10,7 +10,6 @@ pub(crate) struct ComponentStorage {
     idxs: FxHashMap<TypeId, ComponentTypeIdx>,
     are_entity_types: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
-    component_count: TiVec<ComponentTypeIdx, usize>,
     sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
     singleton_locations: TiVec<ComponentTypeIdx, Option<EntityLocation>>,
 }
@@ -35,10 +34,6 @@ impl ComponentStorage {
         self.idxs
             .get(&TypeId::of::<C>())
             .map_or(false, |&i| self.are_entity_types[i])
-    }
-
-    pub(crate) fn count(&self, type_idx: ComponentTypeIdx) -> usize {
-        self.component_count.get(type_idx).copied().unwrap_or(0)
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
@@ -86,12 +81,13 @@ impl ComponentStorage {
         })
     }
 
-    pub(super) fn add_entity_type<C>(&mut self)
+    pub(super) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
     where
         C: Any + Sync + Send,
     {
         let type_idx = self.type_idx_or_create::<C>();
         self.are_entity_types[type_idx] = true;
+        type_idx
     }
 
     pub(super) fn add<C>(
@@ -114,12 +110,10 @@ impl ComponentStorage {
                 *existing_component = component;
             } else {
                 archetype.push(component);
-                self.component_count[type_idx] += 1;
                 self.add_archetype(type_idx, location.idx);
             }
         } else {
             utils::set_value(archetypes, location.idx, ti_vec![component]);
-            utils::set_value(&mut self.component_count, type_idx, 1);
             self.add_archetype(type_idx, location.idx);
         }
         if is_singleton {
@@ -148,7 +142,6 @@ impl ComponentStorage {
 
     pub(super) fn delete(&mut self, type_idx: ComponentTypeIdx, location: EntityLocation) {
         self.archetypes[type_idx].delete_component(location);
-        self.component_count[type_idx] -= 1;
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
             if singleton_location == location {
                 self.singleton_locations[type_idx] = None;
@@ -242,13 +235,15 @@ mod component_storage_tests {
         let type1_idx = storage.type_idx_or_create::<u32>();
         let type2_idx = storage.type_idx_or_create::<i64>();
         let type3_idx = storage.type_idx_or_create::<u32>();
+        let entity_type_idx = storage.add_entity_type::<u16>();
         storage.add_entity_type::<u16>();
         storage.add_entity_type::<u32>();
         assert_eq!([type1_idx, type3_idx], [0.into(); 2]);
         assert_eq!(type2_idx, 1.into());
+        assert_eq!(entity_type_idx, 2.into());
         assert_eq!(storage.type_idx(TypeId::of::<u32>()), Some(type1_idx));
         assert_eq!(storage.type_idx(TypeId::of::<i64>()), Some(type2_idx));
-        assert_eq!(storage.type_idx(TypeId::of::<u16>()), Some(2.into()));
+        assert_eq!(storage.type_idx(TypeId::of::<u16>()), Some(entity_type_idx));
         assert_eq!(storage.type_idx(TypeId::of::<i8>()), None);
         assert!(storage.is_entity_type::<u32>());
         assert!(!storage.is_entity_type::<i64>());
@@ -284,7 +279,6 @@ mod component_storage_tests {
         let sorted_archetype_idxs = storage.sorted_archetype_idxs(type_idx);
         let expected_sorted_archetypes = [archetype1_idx, archetype2_idx, archetype3_idx];
         assert_eq!(sorted_archetype_idxs, expected_sorted_archetypes);
-        assert_eq!(storage.count(type_idx), 4);
         assert_eq!(storage.singleton_locations(type_idx), None);
     }
 

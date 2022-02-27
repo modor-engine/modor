@@ -1,7 +1,5 @@
 use crate::storages::actions::ActionStorage;
-use crate::storages::archetypes::{
-    ArchetypeFilter, ArchetypeIdx, ArchetypeStorage, FilteredArchetypeIdxIter,
-};
+use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityStorage;
@@ -19,23 +17,21 @@ use std::sync::Mutex;
 ///
 /// # System behaviour
 ///
-/// There are two types of system:
-/// - iterative system: at least one of the argument types corresponds to an entity part
-/// - non-iterative system: none of the argument types correspond to an entity part
+/// If the system is defined for an entity main component of type `E`, the system is run for each
+/// entity containing a component of type `E`.
 ///
-/// The types that can represent an entity part are:
-/// - `&C` where `C` is a component type
-/// - `&mut C` where `C` is a component type
+/// Some system parameter types help to access information about the current entity:
+/// - `&C` where `C` is a component type (the system is not executed for the entity
+/// if it does not have a component of type `C`)
+/// - `&mut C` where `C` is a component type (the system is not executed for the entity
+/// if it does not have a component of type `C`)
 /// - `Option<&C>` where `C` is a component type
 /// - `Option<&mut C>` where `C` is a component type
 /// - [`Entity`](crate::Entity)
-/// - a tuple containing at least one of the previous types
 ///
-/// An iterative system is run for each entity containing components of type `C` when
-/// `&C` or `&mut C` is the type of an argument. If there is no argument of type `&C` or `&mut C`,
-/// then the system iterates on all entities.
+/// Other system parameter types are more global.
 ///
-/// A non-iterative system is only run once per application update.
+/// See [`SystemParam`](crate::SystemParam) to see the full list of system parameter types.
 ///
 /// # Static checks
 ///
@@ -60,32 +56,27 @@ use std::sync::Mutex;
 /// ```rust
 /// # use modor::{system, Entity, World, Query};
 /// #
-/// system!(iterative_system);
-/// system!(other_iterative_system);
-/// system!(non_iterative_system);
-/// system!(iterative_system_again);
+/// system!(access_entity_info);
+/// system!(access_global_info);
+/// system!(mixed_system);
 ///
-/// fn iterative_system(id: &u32, message: Option<&mut String>) {
-///     // run for each entity with at least a component of type `u32`
-///     // `String` is not used to filter entities as it is optional
+/// fn access_entity_info(id: &u32, message: Option<&mut String>) {
+///     // Run for each entity with at least a component of type `u32`.
+///     // `String` is not used to filter entities as it is optional.
 ///     if let Some(message) = message {
 ///         *message = format!("id: {}", id);
 ///     }
 /// }
 ///
-/// fn other_iterative_system(entity: Entity<'_>) {
-///     // run for all entities
-///     println!("entity detected with ID {}", entity.id());
-/// }
-///
-/// fn non_iterative_system(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
-///     // run only once per application update
+/// fn access_global_info(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
+///     // Even if there is no entity-specific parameter, this will be executed for each entity.
+///     // You generally want to define this type of system for a singleton entity, as it will be
+///     // executed at most once.
 ///     query.iter().for_each(|entity| world.delete_entity(entity.id()));
 /// }
 ///
-/// fn iterative_system_again(entity: Entity<'_>, mut world: World<'_>) {
-///     // run for all entities because one of the parameters is of type `Entity`
-///     // equivalent to the system `non_iterative_system`
+/// fn mixed_system(entity: Entity<'_>, mut world: World<'_>) {
+///     // You can also mix entity and global parameters.
 ///     world.delete_entity(entity.id());
 /// }
 /// ```
@@ -127,7 +118,6 @@ macro_rules! system {
 #[derive(Clone, Copy)]
 pub struct SystemInfo<'a> {
     pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
-    pub(crate) archetype_filter: &'a ArchetypeFilter,
     pub(crate) item_count: usize,
 }
 
@@ -145,42 +135,22 @@ impl SystemData<'_> {
     pub(crate) fn filter_archetype_idx_iter<'a>(
         &'a self,
         filtered_component_type_idxs: &'a [ComponentTypeIdx],
-        archetype_filter: &'a ArchetypeFilter,
     ) -> FilteredArchetypeIdxIter<'a> {
-        const EMPTY_ARCHETYPE_IDX_SLICE: &[ArchetypeIdx] = &[];
-        let pre_filtered_archetype_idxs =
-            if let Some(&type_idx) = filtered_component_type_idxs.first() {
-                self.components.sorted_archetype_idxs(type_idx)
-            } else {
-                match &archetype_filter {
-                    ArchetypeFilter::None => EMPTY_ARCHETYPE_IDX_SLICE,
-                    ArchetypeFilter::All | ArchetypeFilter::Union(_) => {
-                        self.archetypes.all_sorted_idxs()
-                    }
-                    ArchetypeFilter::Intersection(type_idxs) => {
-                        self.components.sorted_archetype_idxs(*type_idxs.first())
-                    }
-                }
-            };
-        self.archetypes.filter_idxs(
-            pre_filtered_archetype_idxs.iter(),
-            filtered_component_type_idxs,
-            archetype_filter,
-        )
+        if let Some((&first_idx, other_idxs)) = filtered_component_type_idxs.split_first() {
+            self.archetypes.filter_idxs(
+                self.components.sorted_archetype_idxs(first_idx).iter(),
+                other_idxs,
+            )
+        } else {
+            self.archetypes
+                .filter_idxs(self.archetypes.all_sorted_idxs().iter(), &[])
+        }
     }
 
-    pub(crate) fn item_count(
-        &self,
-        filtered_component_type_idxs: &[ComponentTypeIdx],
-        archetype_filter: &ArchetypeFilter,
-    ) -> usize {
-        if archetype_filter == &ArchetypeFilter::None {
-            1
-        } else {
-            self.filter_archetype_idx_iter(filtered_component_type_idxs, archetype_filter)
-                .map(|a| self.archetypes.entity_idxs(a).len())
-                .sum()
-        }
+    pub(crate) fn item_count(&self, filtered_component_type_idxs: &[ComponentTypeIdx]) -> usize {
+        self.filter_archetype_idx_iter(filtered_component_type_idxs)
+            .map(|a| self.archetypes.entity_idxs(a).len())
+            .sum()
     }
 }
 
@@ -287,11 +257,10 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod system_data_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
     use crate::storages::core::CoreStorage;
 
     #[test]
-    fn retrieve_filter_archetype_idx_iter_when_some_filtered_types() {
+    fn retrieve_filter_archetype_idx_iter() {
         let mut core = CoreStorage::default();
         let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
         let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
@@ -300,40 +269,10 @@ mod system_data_tests {
         core.add_component(20_i64, type2_idx, location, false);
         let data = core.system_data();
         let filtered_type_idxs = &[type2_idx];
-
-        let mut iter = data.filter_archetype_idx_iter(filtered_type_idxs, &ArchetypeFilter::All);
-
+        let mut iter = data.filter_archetype_idx_iter(filtered_type_idxs);
         assert_eq!(iter.next(), Some(archetype2_idx));
         assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_filter_archetype_idx_iter_when_no_filtered_type_and_none_archetype_filter() {
-        let mut core = CoreStorage::default();
-        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
-        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location, false);
-        core.add_component(20_i64, type2_idx, location, false);
-        let data = core.system_data();
-
-        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::None);
-
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_filter_archetype_idx_iter_with_all_archetype_filter() {
-        let mut core = CoreStorage::default();
-        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
-        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location, false);
-        core.add_component(20_i64, type2_idx, location, false);
-        let data = core.system_data();
-
-        let mut iter = data.filter_archetype_idx_iter(&[], &ArchetypeFilter::All);
-
+        let mut iter = data.filter_archetype_idx_iter(&[]);
         assert_eq!(iter.next(), Some(0.into()));
         assert_eq!(iter.next(), Some(archetype1_idx));
         assert_eq!(iter.next(), Some(archetype2_idx));
@@ -341,62 +280,15 @@ mod system_data_tests {
     }
 
     #[test]
-    fn retrieve_filter_archetype_idx_iter_with_union_archetype_filter() {
+    fn retrieve_item_count() {
         let mut core = CoreStorage::default();
-        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
-        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location, false);
-        core.add_component(20_i64, type2_idx, location, false);
+        core.create_entity_with_1_component(10_u32, None);
+        core.create_entity_with_2_components(20_u32, 40_i64, None);
+        core.create_entity_with_2_components(30_u32, 50_i64, None);
         let data = core.system_data();
-        let archetype_filter = ArchetypeFilter::Union(ne_vec![type1_idx]);
-
-        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
-
-        assert_eq!(iter.next(), Some(archetype1_idx));
-        assert_eq!(iter.next(), Some(archetype2_idx));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_filter_archetype_idx_iter_with_intersection_archetype_filter() {
-        let mut core = CoreStorage::default();
-        let (type1_idx, archetype1_idx) = core.add_component_type::<u32>(0.into());
-        let (type2_idx, archetype2_idx) = core.add_component_type::<i64>(archetype1_idx);
-        let (_, location) = core.create_entity(archetype2_idx, None);
-        core.add_component(10_u32, type1_idx, location, false);
-        core.add_component(20_i64, type2_idx, location, false);
-        let data = core.system_data();
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![type1_idx]);
-
-        let mut iter = data.filter_archetype_idx_iter(&[], &archetype_filter);
-
-        assert_eq!(iter.next(), Some(archetype2_idx));
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn retrieve_item_count_with_none_archetype_filter() {
-        let core = CoreStorage::default();
-        let data = core.system_data();
-
-        let item_count = data.item_count(&[], &ArchetypeFilter::None);
-
-        assert_eq!(item_count, 1);
-    }
-
-    #[test]
-    fn retrieve_item_count_with_not_none_archetype_filter() {
-        let mut core = CoreStorage::default();
-        let (_, archetype_idx) = core.add_component_type::<u32>(0.into());
-        core.create_entity(ArchetypeStorage::DEFAULT_IDX, None);
-        core.create_entity(archetype_idx, None);
-        core.create_entity(archetype_idx, None);
-        let data = core.system_data();
-
-        let item_count = data.item_count(&[], &ArchetypeFilter::All);
-
-        assert_eq!(item_count, 3);
+        let filtered_type_idxs = &[1.into()];
+        assert_eq!(data.item_count(filtered_type_idxs), 2);
+        assert_eq!(data.item_count(&[]), 3);
     }
 }
 
@@ -410,7 +302,6 @@ mod system_builder_tests {
 
 #[cfg(test)]
 mod system_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::{System, SystemInfo};
@@ -440,7 +331,6 @@ mod system_tests {
         let system = |_: &u32, _: &mut i16| ();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 2,
         };
         let mut guard = System::lock(&system, core.system_data(), info);

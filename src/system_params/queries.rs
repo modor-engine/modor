@@ -1,5 +1,5 @@
 use crate::queries::internal::{QueryGuard, QueryGuardBorrow};
-use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
@@ -218,7 +218,7 @@ where
         SystemProperties {
             component_types: param_properties.component_types,
             can_update: param_properties.can_update,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -340,7 +340,6 @@ impl_tuple_query_filter!();
 run_for_tuples_with_idxs!(impl_tuple_query_filter);
 
 mod internal {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::components::ComponentTypeIdx;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
     use crate::{QueryFilter, SystemData, SystemInfo};
@@ -372,10 +371,7 @@ mod internal {
                 data: self.data,
                 param_info: SystemInfo {
                     filtered_component_type_idxs: &self.filtered_component_type_idxs,
-                    archetype_filter: &ArchetypeFilter::All,
-                    item_count: self
-                        .data
-                        .item_count(&self.filtered_component_type_idxs, &ArchetypeFilter::All),
+                    item_count: self.data.item_count(&self.filtered_component_type_idxs),
                 },
                 item_count: self.item_count,
                 filtered_component_type_idxs: &self.filtered_component_type_idxs,
@@ -417,7 +413,6 @@ mod internal {
 
 #[cfg(test)]
 mod query_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
@@ -436,7 +431,6 @@ mod query_tests {
         let data = core.system_data();
         let info = SystemInfo {
             filtered_component_type_idxs: &[2.into()],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 2,
         };
         let filtered_type_idxs = vec![2.into()];
@@ -477,7 +471,7 @@ mod query_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 1.into());
         assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -487,7 +481,6 @@ mod query_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = Query::<&u32, With<i64>>::lock(core.system_data(), info);

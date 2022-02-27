@@ -1,5 +1,4 @@
 use crate::singletons::internal::{SingletonGuard, SingletonGuardBorrow, SingletonStream};
-use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
@@ -86,7 +85,7 @@ where
                 type_idx,
             }],
             can_update: false,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -221,7 +220,6 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod single_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::{Entity, Single, Singleton, SystemInfo, SystemParam};
@@ -253,7 +251,7 @@ mod single_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -266,7 +264,6 @@ mod single_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = Single::<SingletonEntity>::lock(core.system_data(), info);
@@ -291,7 +288,6 @@ mod single_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = Single::<SingletonEntity>::lock(core.system_data(), info);

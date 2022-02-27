@@ -202,10 +202,10 @@ where
         let builder = self.with(entity);
         let components = builder.core.components();
         if !components.is_entity_type::<E>() {
-            builder.core.add_entity_type::<E>();
+            let entity_type_idx = builder.core.add_entity_type::<E>();
             E::on_update(SystemRunner {
                 core: builder.core,
-                entity_type: TypeId::of::<E>(),
+                entity_type_idx,
                 latest_action_idx: None,
             });
         }
