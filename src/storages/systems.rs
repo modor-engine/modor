@@ -162,7 +162,9 @@ mod system_storage_tests {
     };
     use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
     use crate::storages::entities::EntityStorage;
-    use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties, SystemStorage};
+    use crate::storages::systems::{
+        Access, ComponentTypeAccess, SystemIdx, SystemProperties, SystemStorage,
+    };
     use crate::storages::updates::UpdateStorage;
     use crate::systems::internal::SystemWrapper;
     use crate::{SystemData, SystemInfo};
@@ -170,6 +172,12 @@ mod system_storage_tests {
     use std::sync::Mutex;
     use std::thread;
     use std::thread::ThreadId;
+
+    impl SystemStorage {
+        pub(crate) fn filtered_component_idxs(&self, system_idx: SystemIdx) -> &[ComponentTypeIdx] {
+            &self.filtered_component_type_idxs[system_idx]
+        }
+    }
 
     #[derive(Clone)]
     struct Component1(ThreadId);

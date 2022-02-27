@@ -191,6 +191,8 @@ mod entity_runner_tests {
         assert_eq!(actions.dependency_idxs(3.into()), []);
         assert_eq!(actions.dependency_idxs(4.into()), [3.into()]);
         assert_eq!(actions.dependency_idxs(5.into()), [3.into()]);
+        let filtered_type_idxs = core.systems().filtered_component_idxs(0.into());
+        assert_eq!(filtered_type_idxs, [entity_type_idx]);
     }
 
     fn create_system_builder() -> SystemBuilder {
