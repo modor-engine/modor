@@ -49,11 +49,11 @@ impl CoreStorage {
         self.components.type_idx_or_create::<C>()
     }
 
-    pub(crate) fn add_entity_type<C>(&mut self)
+    pub(crate) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
     where
         C: Any + Sync + Send,
     {
-        self.components.add_entity_type::<C>();
+        self.components.add_entity_type::<C>()
     }
 
     pub(crate) fn add_component_type<C>(
@@ -139,19 +139,13 @@ impl CoreStorage {
     pub(crate) fn add_system(
         &mut self,
         wrapper: SystemWrapper,
-        entity_type: TypeId,
         properties: SystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> ActionIdx {
-        let entity_type_idx = self
-            .components
-            .type_idx(entity_type)
-            .expect("internal error: missing entity type when adding system");
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
         self.actions.add_system(action_idx);
-        self.systems
-            .add(wrapper, entity_type_idx, properties, action_idx);
+        self.systems.add(wrapper, properties, action_idx);
         action_idx
     }
 
@@ -231,11 +225,11 @@ impl CoreStorage {
 
 #[cfg(test)]
 mod core_storage_tests {
-    use std::any::{Any, TypeId};
+    use std::any::Any;
     use typed_index_collections::TiVec;
 
     use crate::storages::actions::ActionDependencies;
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage, EntityLocation};
+    use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
     use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
@@ -332,7 +326,7 @@ mod core_storage_tests {
     fn configure_entity() {
         let mut storage = CoreStorage::default();
         let type1_idx = storage.register_component_type::<u32>();
-        storage.add_entity_type::<u32>();
+        let entity_type_idx = storage.add_entity_type::<u32>();
         let archetype1_idx = ArchetypeStorage::DEFAULT_IDX;
         let (type2_idx, archetype2_idx) = storage.add_component_type::<u32>(archetype1_idx);
         let (type3_idx, archetype3_idx) = storage.add_component_type::<i8>(archetype2_idx);
@@ -344,6 +338,7 @@ mod core_storage_tests {
         storage.add_component(30_u32, type2_idx, location2, false);
         storage.add_component(40_i8, type3_idx, location2, false);
         let location3 = storage.move_entity(location1, archetype2_idx);
+        assert_eq!(type1_idx, entity_type_idx);
         assert_eq!(type1_idx, type2_idx);
         assert_eq!(type3_idx, type4_idx);
         assert_eq!(archetype3_idx, archetype4_idx);
@@ -390,7 +385,6 @@ mod core_storage_tests {
                 updates.delete_entity(missing_idx);
                 updates.delete_entity(1.into());
             },
-            TypeId::of::<u32>(),
             create_system_properties(),
             None,
             ActionDependencies::Types(vec![]),
@@ -422,7 +416,6 @@ mod core_storage_tests {
                     Box::new(move |c, l| c.add_component(20_i64, 1.into(), l, false)),
                 );
             },
-            TypeId::of::<u32>(),
             create_system_properties(),
             None,
             ActionDependencies::Types(vec![]),
@@ -455,7 +448,6 @@ mod core_storage_tests {
                     }),
                 );
             },
-            TypeId::of::<u32>(),
             create_system_properties(),
             None,
             ActionDependencies::Types(vec![]),
@@ -472,7 +464,7 @@ mod core_storage_tests {
                 type_idx: 0.into(),
             }],
             can_update: true,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![0.into()],
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -23,7 +23,7 @@ impl SystemParam for () {
         SystemProperties {
             component_types: vec![],
             can_update: false,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -150,8 +150,9 @@ macro_rules! impl_tuple_system_param {
                 SystemProperties {
                     component_types: utils::merge([$(properties.$indexes.component_types),+]),
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
-                    archetype_filter:
-                        ArchetypeFilter::None $(.merge(properties.$indexes.archetype_filter))+
+                    filtered_component_type_idxs: utils::merge(
+                        [$(properties.$indexes.filtered_component_type_idxs),+]
+                    ),
                 }
             }
 
@@ -445,7 +446,6 @@ mod internal {
 #[allow(clippy::let_unit_value)]
 #[cfg(test)]
 mod empty_tuple_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::utils::test_utils::assert_iter;
     use crate::{QuerySystemParam, SystemInfo, SystemParam};
@@ -457,7 +457,7 @@ mod empty_tuple_tests {
         let properties = <()>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -467,7 +467,6 @@ mod empty_tuple_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = <()>::lock(core.system_data(), info);
@@ -491,7 +490,6 @@ mod empty_tuple_tests {
 
 #[cfg(test)]
 mod tuple_with_one_item_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
@@ -506,8 +504,7 @@ mod tuple_with_one_item_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+        assert_eq!(properties.filtered_component_type_idxs, [0.into()]);
     }
 
     #[test]
@@ -520,7 +517,6 @@ mod tuple_with_one_item_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 2,
         };
         let mut guard = <(&u32,)>::lock(core.system_data(), info);
@@ -547,7 +543,6 @@ mod tuple_with_one_item_tests {
 
 #[cfg(test)]
 mod tuple_with_two_items_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
@@ -562,8 +557,7 @@ mod tuple_with_two_items_tests {
         assert_eq!(properties.component_types[0].access, Access::Read);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+        assert_eq!(properties.filtered_component_type_idxs, [0.into()]);
     }
 
     #[test]
@@ -576,8 +570,10 @@ mod tuple_with_two_items_tests {
         assert_eq!(properties.component_types[1].access, Access::Write);
         assert_eq!(properties.component_types[1].type_idx, 1.into());
         assert!(!properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+        assert_eq!(
+            properties.filtered_component_type_idxs,
+            [0.into(), 1.into()]
+        );
     }
 
     #[test]
@@ -590,7 +586,6 @@ mod tuple_with_two_items_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 2,
         };
         let mut guard = <(&u32, &mut i16)>::lock(core.system_data(), info);
@@ -624,7 +619,6 @@ mod tuple_with_two_items_tests {
 
 #[cfg(test)]
 mod tuple_with_more_than_two_items_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
@@ -643,8 +637,10 @@ mod tuple_with_more_than_two_items_tests {
         assert_eq!(properties.component_types[2].access, Access::Read);
         assert_eq!(properties.component_types[2].type_idx, 2.into());
         assert!(!properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into(), 1.into(), 2.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+        assert_eq!(
+            properties.filtered_component_type_idxs,
+            [0.into(), 1.into(), 2.into()]
+        );
     }
 
     #[test]
@@ -655,7 +651,6 @@ mod tuple_with_more_than_two_items_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 2,
         };
         let mut guard = <(&u32, &mut i16, &i64)>::lock(core.system_data(), info);

@@ -1,5 +1,5 @@
 use crate::components_mut::internal::{ComponentMutGuard, ComponentMutGuardBorrow};
-use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::ComponentIter;
@@ -36,7 +36,7 @@ where
                 type_idx,
             }],
             can_update: false,
-            archetype_filter: ArchetypeFilter::Intersection(ne_vec![type_idx]),
+            filtered_component_type_idxs: vec![type_idx],
         }
     }
 
@@ -191,10 +191,9 @@ pub(crate) mod internal {
             ComponentMutGuardBorrow {
                 components: &mut *self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.filtered_component_type_idxs,
-                    self.info.archetype_filter,
-                ),
+                sorted_archetype_idxs: self
+                    .data
+                    .filter_archetype_idx_iter(self.info.filtered_component_type_idxs),
             }
         }
     }
@@ -286,7 +285,6 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod component_mut_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
     use crate::utils::test_utils::assert_iter;
@@ -301,8 +299,7 @@ mod component_mut_tests {
         assert_eq!(properties.component_types[0].access, Access::Write);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
-        let archetype_filter = ArchetypeFilter::Intersection(ne_vec![0.into()]);
-        assert_eq!(properties.archetype_filter, archetype_filter);
+        assert_eq!(properties.filtered_component_type_idxs, [0.into()]);
     }
 
     #[test]
@@ -317,7 +314,6 @@ mod component_mut_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = <&mut u32>::lock(core.system_data(), info);

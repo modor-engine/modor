@@ -1,4 +1,3 @@
-use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
@@ -138,7 +137,7 @@ impl SystemParam for World<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: true,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -230,7 +229,7 @@ mod internal {
 
 #[cfg(test)]
 mod world_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
     use crate::{SystemInfo, SystemParam, World};
     use std::any::TypeId;
@@ -270,7 +269,7 @@ mod world_tests {
         let properties = World::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
         assert!(properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -282,7 +281,6 @@ mod world_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<u32>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = World::lock(core.system_data(), info);

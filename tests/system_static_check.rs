@@ -2,8 +2,32 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{system, Query, Single, SingleMut, World};
+use modor::{
+    system, Built, EntityBuilder, EntityMainComponent, Query, Single, SingleMut, Singleton, World,
+};
 use std::path::PathBuf;
+
+struct SingletonEntity1;
+
+impl EntityMainComponent for SingletonEntity1 {
+    type Type = Singleton;
+    type Data = ();
+
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
+        builder.with_self(Self)
+    }
+}
+
+struct SingletonEntity2;
+
+impl EntityMainComponent for SingletonEntity2 {
+    type Type = Singleton;
+    type Data = ();
+
+    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
+        builder.with_self(Self)
+    }
+}
 
 fn no_param() {}
 
@@ -23,13 +47,31 @@ fn same_const_component(_: &u32, _: &u32) {}
 
 fn different_mut_components(_: &mut u32, _: &mut i64) {}
 
-fn same_const_singleton(_: Single<'_, u32>, _: Single<'_, u32>, _: &u32) {}
+fn same_const_singleton(
+    _: Single<'_, SingletonEntity1>,
+    _: Single<'_, SingletonEntity1>,
+    _: &SingletonEntity1,
+) {
+}
 
-fn different_mut_singletons(_: SingleMut<'_, u32>, _: SingleMut<'_, i64>) {}
+fn different_mut_singletons(
+    _: SingleMut<'_, SingletonEntity1>,
+    _: SingleMut<'_, SingletonEntity2>,
+) {
+}
 
-fn same_const_singleton_option(_: Option<Single<'_, u32>>, _: Option<Single<'_, u32>>, _: &u32) {}
+fn same_const_singleton_option(
+    _: Option<Single<'_, SingletonEntity1>>,
+    _: Option<Single<'_, SingletonEntity1>>,
+    _: &SingletonEntity1,
+) {
+}
 
-fn different_mut_singleton_options(_: Option<SingleMut<'_, u32>>, _: Option<SingleMut<'_, i64>>) {}
+fn different_mut_singleton_options(
+    _: Option<SingleMut<'_, SingletonEntity1>>,
+    _: Option<SingleMut<'_, SingletonEntity2>>,
+) {
+}
 
 fn all_entity_param_types(_: &mut u32, _: Option<&mut i64>, _: &i16, _: Option<&i16>) {}
 

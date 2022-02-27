@@ -202,10 +202,10 @@ where
         let builder = self.with(entity);
         let components = builder.core.components();
         if !components.is_entity_type::<E>() {
-            builder.core.add_entity_type::<E>();
+            let entity_type_idx = builder.core.add_entity_type::<E>();
             E::on_update(SystemRunner {
                 core: builder.core,
-                entity_type: TypeId::of::<E>(),
+                entity_type_idx,
                 latest_action_idx: None,
             });
         }
@@ -314,12 +314,13 @@ impl Built<'_> {
         E: EntityMainComponent<Type = Singleton>,
     {
         // Method of `Build` and not of `EntityBuilder` to avoid stack overflow
-        let singleton_count = self
+        let singleton_exists = self
             .core
             .components()
             .type_idx(TypeId::of::<E>())
-            .map_or(0, |c| self.core.components().count(c));
-        if singleton_count == 0 {
+            .and_then(|c| self.core.components().singleton_locations(c))
+            .is_none();
+        if singleton_exists {
             E::build(EntityBuilder::<_, ()>::new(self.core, None), data);
         }
         self

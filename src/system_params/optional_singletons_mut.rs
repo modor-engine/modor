@@ -1,16 +1,14 @@
 use crate::optional_singletons_mut::internal::SingletonOptionMutStream;
 use crate::singletons_mut::internal::{SingletonMutGuard, SingletonMutGuardBorrow};
-use crate::storages::archetypes::ArchetypeFilter;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
-use crate::{SingleMut, SystemData, SystemInfo, SystemParam};
-use std::any::Any;
+use crate::{EntityMainComponent, SingleMut, Singleton, SystemData, SystemInfo, SystemParam};
 
 #[allow(clippy::use_self)]
 impl<'a, C> SystemParamWithLifetime<'a> for Option<SingleMut<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Param = Option<SingleMut<'a, C>>;
     type Guard = SingletonMutGuard<'a, C>;
@@ -20,7 +18,7 @@ where
 
 impl<C> SystemParam for Option<SingleMut<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type Tuple = (Self,);
     type InnerTuple = ();
@@ -33,7 +31,7 @@ where
                 type_idx,
             }],
             can_update: false,
-            archetype_filter: ArchetypeFilter::None,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -74,7 +72,7 @@ where
 
 impl<C> LockableSystemParam for Option<SingleMut<'_, C>>
 where
-    C: Any + Sync + Send,
+    C: EntityMainComponent<Type = Singleton>,
 {
     type LockedType = C;
     type Mutability = Mut;
@@ -83,8 +81,7 @@ where
 pub(crate) mod internal {
     use crate::singletons_mut::internal::SingletonMutGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, SingleMut, SystemData};
-    use std::any::Any;
+    use crate::{Entity, EntityMainComponent, SingleMut, Singleton, SystemData};
     use std::ops::Range;
 
     pub struct SingletonOptionMutStream<'a, C> {
@@ -95,7 +92,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonOptionMutStream<'a, C>
     where
-        C: Any + Sync + Send,
+        C: EntityMainComponent<Type = Singleton>,
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {
@@ -124,21 +121,22 @@ pub(crate) mod internal {
 
 #[cfg(test)]
 mod single_mut_option_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::Access;
-    use crate::{SingleMut, SystemInfo, SystemParam};
+    use crate::{SingleMut, Singleton, SystemInfo, SystemParam};
     use std::any::TypeId;
+
+    create_entity_type!(SingletonEntity, Singleton);
 
     #[test]
     fn retrieve_system_param_properties() {
         let mut core = CoreStorage::default();
-        let properties = Option::<SingleMut<'_, u32>>::properties(&mut core);
+        let properties = Option::<SingleMut<'_, SingletonEntity>>::properties(&mut core);
         assert_eq!(properties.component_types.len(), 1);
         assert_eq!(properties.component_types[0].access, Access::Write);
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::None);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -147,23 +145,23 @@ mod single_mut_option_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.create_singleton(40_u32);
+        core.create_singleton(SingletonEntity(40));
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Option::<SingleMut<'_, u32>>::lock(core.system_data(), info);
-        let mut borrow = Option::<SingleMut<'_, u32>>::borrow_guard(&mut guard);
-        let mut stream = Option::<SingleMut<'_, u32>>::stream(&mut borrow);
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
-        assert_eq!(item.as_ref().map(Option::as_deref), Some(Some(&40)));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
+        let mut guard = Option::<SingleMut<'_, SingletonEntity>>::lock(core.system_data(), info);
+        let mut borrow = Option::<SingleMut<'_, SingletonEntity>>::borrow_guard(&mut guard);
+        let mut stream = Option::<SingleMut<'_, SingletonEntity>>::stream(&mut borrow);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
+        let component = Some(Some(&SingletonEntity(40)));
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
+        assert_eq!(item.as_ref().map(Option::as_deref), component);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), None);
     }
 
@@ -173,23 +171,22 @@ mod single_mut_option_tests {
         core.create_entity_with_1_component(10_i64, None);
         core.create_entity_with_1_component(20_i64, None);
         core.create_entity_with_1_component(30_i64, None);
-        core.register_component_type::<u32>();
+        core.register_component_type::<SingletonEntity>();
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i64>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
-        let mut guard = Option::<SingleMut<'_, u32>>::lock(core.system_data(), info);
-        let mut borrow = Option::<SingleMut<'_, u32>>::borrow_guard(&mut guard);
-        let mut stream = Option::<SingleMut<'_, u32>>::stream(&mut borrow);
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
+        let mut guard = Option::<SingleMut<'_, SingletonEntity>>::lock(core.system_data(), info);
+        let mut borrow = Option::<SingleMut<'_, SingletonEntity>>::borrow_guard(&mut guard);
+        let mut stream = Option::<SingleMut<'_, SingletonEntity>>::stream(&mut borrow);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), Some(None));
-        let item = Option::<SingleMut<'_, u32>>::stream_next(&mut stream);
+        let item = Option::<SingleMut<'_, SingletonEntity>>::stream_next(&mut stream);
         assert_eq!(item.as_ref().map(Option::as_deref), None);
     }
 }

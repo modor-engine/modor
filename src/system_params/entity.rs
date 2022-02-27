@@ -1,5 +1,5 @@
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
-use crate::storages::archetypes::{ArchetypeFilter, EntityLocation};
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
@@ -84,7 +84,7 @@ impl SystemParam for Entity<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: false,
-            archetype_filter: ArchetypeFilter::All,
+            filtered_component_type_idxs: vec![],
         }
     }
 
@@ -215,10 +215,9 @@ mod internal {
         pub(crate) fn borrow(&mut self) -> EntityGuardBorrow<'_> {
             EntityGuardBorrow {
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.filtered_component_type_idxs,
-                    self.info.archetype_filter,
-                ),
+                sorted_archetype_idxs: self
+                    .data
+                    .filter_archetype_idx_iter(self.info.filtered_component_type_idxs),
                 data: self.data,
             }
         }
@@ -315,7 +314,7 @@ mod internal {
 
 #[cfg(test)]
 mod entity_tests {
-    use crate::storages::archetypes::{ArchetypeFilter, ArchetypeStorage};
+    use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
     use crate::utils::test_utils::assert_iter;
     use crate::{Entity, QuerySystemParam, SystemInfo, SystemParam};
@@ -352,7 +351,7 @@ mod entity_tests {
         let properties = Entity::properties(&mut core);
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
-        assert_eq!(properties.archetype_filter, ArchetypeFilter::All);
+        assert_eq!(properties.filtered_component_type_idxs, []);
     }
 
     #[test]
@@ -367,7 +366,6 @@ mod entity_tests {
         let filtered_type_idx = core.components().type_idx(TypeId::of::<i16>()).unwrap();
         let info = SystemInfo {
             filtered_component_type_idxs: &[filtered_type_idx],
-            archetype_filter: &ArchetypeFilter::All,
             item_count: 3,
         };
         let mut guard = Entity::lock(core.system_data(), info);

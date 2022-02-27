@@ -1,17 +1,16 @@
 use crate::storages::actions::{ActionDependencies, ActionIdx};
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 
 /// A type for defining systems to run during each [`App`](crate::App) update.
 ///
-/// Cyclic dependencies between systems are detected at compile time.
-///
+/// Cyclic dependencies between systems are detected at compile time.<br>
 /// The definition order of the systems can be different than their execution order if systems
 /// are defined without constraint.
 ///
-/// Iterative systems (see [`system!`](crate::system!) for more information) defined for an entity
-/// main component of type `E` iterates only on entities containing a component of type `E`.
+/// See [`system!`](crate::system!) for more information about systems.
 ///
 /// # Examples
 ///
@@ -65,7 +64,7 @@ use std::any::TypeId;
 /// ```
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) entity_type: TypeId,
+    pub(crate) entity_type_idx: ComponentTypeIdx,
     pub(crate) latest_action_idx: Option<ActionIdx>,
 }
 
@@ -129,28 +128,28 @@ impl<'a> SystemRunner<'a> {
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> SystemRunner<'a> {
-        let properties = (system.properties_fn)(self.core);
+        let mut properties = (system.properties_fn)(self.core);
+        properties
+            .filtered_component_type_idxs
+            .push(self.entity_type_idx);
         SystemRunner {
             latest_action_idx: Some(self.core.add_system(
                 system.wrapper,
-                self.entity_type,
                 properties,
                 action_type,
                 action_dependencies,
             )),
             core: self.core,
-            entity_type: self.entity_type,
+            entity_type_idx: self.entity_type_idx,
         }
     }
 }
 
 #[cfg(test)]
 mod entity_runner_tests {
-    use crate::storages::archetypes::ArchetypeFilter;
     use crate::storages::core::CoreStorage;
     use crate::storages::systems::SystemProperties;
     use crate::{Action, DependsOn, SystemBuilder, SystemRunner};
-    use std::any::TypeId;
 
     struct TestActionDependency;
 
@@ -171,10 +170,10 @@ mod entity_runner_tests {
     #[test]
     fn run_systems() {
         let mut core = CoreStorage::default();
-        core.add_entity_type::<TestEntity>();
+        let entity_type_idx = core.add_entity_type::<TestEntity>();
         let runner = SystemRunner {
             core: &mut core,
-            entity_type: TypeId::of::<TestEntity>(),
+            entity_type_idx,
             latest_action_idx: None,
         };
         runner
@@ -192,6 +191,8 @@ mod entity_runner_tests {
         assert_eq!(actions.dependency_idxs(3.into()), []);
         assert_eq!(actions.dependency_idxs(4.into()), [3.into()]);
         assert_eq!(actions.dependency_idxs(5.into()), [3.into()]);
+        let filtered_type_idxs = core.systems().filtered_component_idxs(0.into());
+        assert_eq!(filtered_type_idxs, [entity_type_idx]);
     }
 
     fn create_system_builder() -> SystemBuilder {
@@ -199,7 +200,7 @@ mod entity_runner_tests {
             properties_fn: |_| SystemProperties {
                 component_types: vec![],
                 can_update: false,
-                archetype_filter: ArchetypeFilter::None,
+                filtered_component_type_idxs: vec![],
             },
             wrapper: |_, _| (),
         }

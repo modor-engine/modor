@@ -62,8 +62,6 @@
 
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::multiple_inherent_impl))]
 
-#[macro_use]
-extern crate non_empty_vec;
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
