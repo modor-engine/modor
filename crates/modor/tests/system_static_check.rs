@@ -111,9 +111,11 @@ fn create_invalid_systems() {
     let config = Config {
         mode: Mode::CompileFail,
         src_base: [root_path, "tests", "system_static_check"].iter().collect(),
-        target_rustcflags: Some(
-            format!("-L {} -L {}", lib_path_1.display(), lib_path_2.display()).to_string(),
-        ),
+        target_rustcflags: Some(format!(
+            "-L {} -L {}",
+            lib_path_1.display(),
+            lib_path_2.display()
+        )),
         ..Config::default()
     };
     config.clean_rmeta();
