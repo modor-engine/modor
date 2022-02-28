@@ -29,7 +29,7 @@ add_mutation_annotations() {
 }
 
 IFS=";"
-for crate_path in $CRATE_PATHS; do
+for crate_path in ./crates/*; do
     cd "$crate_path"
     while IFS= read -r -d '' file; do
         add_mutation_annotations "$file"

@@ -9,8 +9,6 @@
 [![Lines of code](https://tokei.rs/b1/github/modor-engine/modor?category=code)](https://github.com/modor-engine/modor)
 [![Safe Rust](https://img.shields.io/badge/safe%20Rust-%E2%9C%94%EF%B8%8F-green.svg)](https://github.com/modor-engine/modor/search?q=unsafe)
 
-Core library of Modor
-
 Modor is a modular and kind of object-oriented game engine. It is based on
 the [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but provides an API that
 represents entities like strongly typed objects.
@@ -26,6 +24,9 @@ It also makes extensive use of compile-time checks. For example:
 
 - Windows
 - Linux
+
+Not tested but should also work on:
+
 - macOS
 
 ## Usage

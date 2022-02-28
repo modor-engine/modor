@@ -6,7 +6,7 @@ use std::path::PathBuf;
 fn create_invalid_actions() {
     let config = Config {
         mode: Mode::CompileFail,
-        src_base: PathBuf::from("tests/action_static_check"),
+        src_base: PathBuf::from("action_static_check"),
         target_rustcflags: Some("-L target/debug -L target/debug/deps".to_string()),
         ..Config::default()
     };

@@ -103,7 +103,7 @@ fn create_valid_systems() {
 fn create_invalid_systems() {
     let config = Config {
         mode: Mode::CompileFail,
-        src_base: PathBuf::from("tests/system_static_check"),
+        src_base: PathBuf::from("system_static_check"),
         target_rustcflags: Some("-L target/debug -L target/debug/deps".to_string()),
         ..Config::default()
     };
