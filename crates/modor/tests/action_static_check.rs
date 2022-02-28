@@ -4,10 +4,19 @@ use std::path::PathBuf;
 
 #[test]
 fn create_invalid_actions() {
+    let root_path = env!("CARGO_MANIFEST_DIR");
+    let lib_path_1 = [root_path, "..", "..", "target", "debug"]
+        .iter()
+        .collect::<PathBuf>();
+    let lib_path_2 = [root_path, "..", "..", "target", "debug", "deps"]
+        .iter()
+        .collect::<PathBuf>();
     let config = Config {
         mode: Mode::CompileFail,
-        src_base: PathBuf::from("action_static_check"),
-        target_rustcflags: Some("-L target/debug -L target/debug/deps".to_string()),
+        src_base: [root_path, "tests", "action_static_check"].iter().collect(),
+        target_rustcflags: Some(
+            format!("-L {} -L {}", lib_path_1.display(), lib_path_2.display()).to_string(),
+        ),
         ..Config::default()
     };
     config.clean_rmeta();

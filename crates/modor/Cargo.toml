@@ -9,7 +9,7 @@ repository = "https://github.com/modor-engine/modor"
 readme = "../../README.md"
 keywords = ["game", "engine", "modular", "object", "framework"]
 categories = ["game-engines"]
-exclude = [".github"]
+exclude = [".github", "README.md"]
 
 [dependencies]
 fxhash = "0.2"
