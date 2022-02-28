@@ -3,8 +3,8 @@ set -xeu
 
 IFS=";"
 version=""
-for crate_path in $CRATE_PATHS; do
-    cd "$crate_path"
+for crate_name in $PUBLISHED_CRATES; do
+    cd "./crates/$crate_name"
     current_version=$(grep -m 1 '^version' Cargo.toml | cut -d '"' -f2 | tr -d '\n')
     if [ "$version" == "" ]; then
        version="$current_version"

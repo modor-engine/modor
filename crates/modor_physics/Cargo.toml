@@ -1,0 +1,15 @@
+[package]
+name = "modor_physics"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Physics module of Modor game engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "./README.md"
+keywords = ["modor", "physics", "collision", "game", "engine"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+
+[dependencies]
+modor = { version = "0.1.0", path = "../modor" }

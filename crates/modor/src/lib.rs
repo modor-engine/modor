@@ -96,4 +96,4 @@ pub use system_runner::*;
 pub use systems::*;
 
 #[cfg(doctest)]
-doc_comment!(include_str!("../README.md"));
+doc_comment!(include_str!("../../../README.md"));
