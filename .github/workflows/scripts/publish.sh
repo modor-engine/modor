@@ -9,7 +9,7 @@ for crate_name in $PUBLISHED_CRATES; do
         echo "'$crate_name' already published"
     else
         cargo publish --token "$CRATES_IO_TOKEN"
+        sleep 60 # avoid reaching Cargo rate limit
     fi
     cd - || exit 1
-    sleep 60 # avoid reaching Cargo rate limit
 done
