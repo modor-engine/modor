@@ -1,22 +1,11 @@
 use modor::testing::TestApp;
 use modor::{
-    system, Action, Built, DependsOn, EntityBuilder, EntityMainComponent, Query, SystemRunner, With,
+    define_action, system, Built, DependsOn, EntityBuilder, EntityMainComponent, Query,
+    SystemRunner, With,
 };
 
 #[derive(Debug, PartialEq)]
 struct Position(usize, usize);
-
-struct PositionDisplayAction;
-
-impl Action for PositionDisplayAction {
-    type Constraint = ();
-}
-
-struct EnemyPositionUpdateAction;
-
-impl Action for EnemyPositionUpdateAction {
-    type Constraint = DependsOn<PositionDisplayAction>;
-}
 
 struct Enemy;
 
@@ -100,6 +89,9 @@ impl DisplayManager {
         self.0 += 1;
     }
 }
+
+define_action!(PositionDisplayAction);
+define_action!(EnemyPositionUpdateAction: PositionDisplayAction);
 
 #[test]
 fn run_ordered_systems() {
