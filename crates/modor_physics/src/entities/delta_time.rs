@@ -126,6 +126,10 @@ mod updates_per_second_tests {
         thread::sleep(Duration::from_millis(external_sleep_millis));
         app.update();
         let update_end = Instant::now();
+        let mut duration = Duration::from_millis(0);
+        app.assert_singleton::<DeltaTime>()
+            .has::<DeltaTime, _>(|d| duration = d.get());
+        println!("Duration: {:?}", duration);
         app.assert_singleton::<DeltaTime>()
             .has::<DeltaTime, _>(|d| assert!(d.get() >= Duration::from_millis(min_millis)))
             .has::<DeltaTime, _>(|d| assert!(d.get() <= Duration::from_millis(max_millis)));
