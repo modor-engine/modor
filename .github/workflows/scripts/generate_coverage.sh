@@ -13,4 +13,4 @@ grcov . \
     --output-path "$output_path" \
     --excl-line '(#\[|^[^ ]+!\()' \
     --excl-start '#\[cfg\(test\)\]' \
-    --keep-only "src/**/*"
+    --keep-only "**/src/**/*"
