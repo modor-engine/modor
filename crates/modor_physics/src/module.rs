@@ -84,8 +84,7 @@ impl PhysicsModule {
         entities_with_scale: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
         mut scales: Query<'_, &mut Scale, With<Position>>,
     ) {
-        let mut entities: Vec<_> = entities_with_scale.iter().collect();
-        entities.sort_unstable_by_key(|e| e.depth());
+        let entities = Self::sorted_by_depth(entities_with_scale.iter());
         for entity in entities {
             let result = scales.get_with_first_parent_mut(entity.id());
             if let (Some(scale), Some(parent_scale)) = result {
@@ -98,14 +97,22 @@ impl PhysicsModule {
         entities_with_position: Query<'_, Entity<'_>, With<Position>>,
         mut components: Query<'_, (&mut Position, Option<&mut Scale>)>,
     ) {
-        let mut entities: Vec<_> = entities_with_position.iter().collect();
-        entities.sort_unstable_by_key(|e| e.depth());
+        let entities = Self::sorted_by_depth(entities_with_position.iter());
         for entity in entities {
             let result = components.get_with_first_parent_mut(entity.id());
             if let (Some((position, _)), Some((parent_position, parent_scale))) = result {
                 position.update_abs(parent_position, parent_scale.as_deref());
             }
         }
+    }
+
+    fn sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
+    where
+        I: Iterator<Item = Entity<'a>>,
+    {
+        let mut entities: Vec<_> = entities.collect();
+        entities.sort_unstable_by_key(|e| e.depth());
+        entities
     }
 }
 

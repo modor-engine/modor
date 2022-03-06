@@ -342,6 +342,8 @@ mod test_app_tests {
     fn create_child_entity() {
         let mut app = TestApp::new();
         let parent_id = app.create_entity::<TestEntity>("parent".into());
+        let missing_id = 10;
+        assert_panics!(app.create_child::<TestEntity>(missing_id, "child".into()));
         let child_id = app.create_child::<TestEntity>(parent_id, "child".into());
         app.assert_entity(parent_id)
             .has_children(|c| assert_eq!(c, vec![1, 2, child_id]));
