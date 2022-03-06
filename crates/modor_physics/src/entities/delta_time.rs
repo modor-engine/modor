@@ -83,13 +83,13 @@ mod updates_per_second_tests {
     use std::thread;
     use std::time::{Duration, Instant};
 
-    #[test]
+    #[flaky_test::flaky_test]
     fn update_without_rate_limit() {
         let mut app: TestApp = App::new().with_entity::<DeltaTime>(()).into();
         assert_correct_update(&mut app, 100, 100, 150);
     }
 
-    #[test]
+    #[flaky_test::flaky_test]
     fn update_with_rate_limit_less_than_zero() {
         let mut app: TestApp = App::new()
             .with_entity::<DeltaTime>(())
@@ -98,7 +98,7 @@ mod updates_per_second_tests {
         assert_correct_update(&mut app, 100, 100, 150);
     }
 
-    #[test]
+    #[flaky_test::flaky_test]
     fn update_with_rate_limit_equal_to_zero() {
         let mut app: TestApp = App::new()
             .with_entity::<DeltaTime>(())
@@ -107,7 +107,7 @@ mod updates_per_second_tests {
         assert_correct_update(&mut app, 100, 100, 150);
     }
 
-    #[test]
+    #[flaky_test::flaky_test]
     fn update_with_rate_limit_greater_than_zero() {
         let mut app: TestApp = App::new()
             .with_entity::<DeltaTime>(())
