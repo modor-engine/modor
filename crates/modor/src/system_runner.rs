@@ -16,7 +16,7 @@ use std::any::TypeId;
 ///
 /// ```rust
 /// # use modor::{
-/// #     Action, Built, DependsOn, EntityBuilder, EntityMainComponent, SystemRunner, system
+/// #     Built, DependsOn, EntityBuilder, EntityMainComponent, SystemRunner, system, define_action
 /// # };
 /// #
 /// # fn system1() {}
@@ -50,17 +50,8 @@ use std::any::TypeId;
 ///     }
 /// }
 ///
-/// struct Action1 {}
-///
-/// impl Action for Action1 {
-///     type Constraint = ();
-/// }
-///
-/// struct Action2 {}
-///
-/// impl Action for Action2 {
-///     type Constraint = DependsOn<Action1>;
-/// }
+/// define_action!(Action1);
+/// define_action!(Action2: Action1);
 /// ```
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,

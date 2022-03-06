@@ -1,4 +1,12 @@
-# modor
+# modor_physics
+
+[![Crates.io](https://img.shields.io/crates/v/modor_physics.svg)](https://crates.io/crates/modor_physics)
+[![Docs.rs](https://img.shields.io/docsrs/modor_physics)](https://docs.rs/crate/modor_physics)
+[![License](https://img.shields.io/crates/l/modor_physics)](https://github.com/modor-engine/modor_physics)
+[![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
+[![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
+[![Mutation tested with mutagen](https://img.shields.io/badge/mutation%20tested-mutagen-blue.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
+[![Safe Rust](https://img.shields.io/badge/safe%20Rust-%E2%9C%94%EF%B8%8F-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor_physics+unsafe)
 
 Physics module of Modor.
 

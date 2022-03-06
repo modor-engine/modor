@@ -327,7 +327,7 @@ impl Built<'_> {
     }
 }
 
-mod internal {
+pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
@@ -339,7 +339,7 @@ mod internal {
         pub(super) core: &'a mut CoreStorage,
     }
 
-    pub trait ComponentAdd {
+    pub trait ComponentAdd: Any + Sync + Send {
         fn add(self, storage: &mut StorageWrapper<'_>, location: EntityLocation);
     }
 
