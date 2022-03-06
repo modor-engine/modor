@@ -120,13 +120,24 @@ mod updates_per_second_tests {
     }
 
     #[test]
-    fn update_with_rate_limit_greater_than_zero() {
+    fn update_with_rate_limit_equal_to_one() {
         retry!(10, {
             let mut app: TestApp = App::new()
                 .with_entity::<DeltaTime>(())
                 .with_entity::<UpdatesPerSecond>(1)
                 .into();
             assert_correct_update(&mut app, 500, 1000, 1200);
+        });
+    }
+
+    #[test]
+    fn update_with_rate_limit_greater_than_one() {
+        retry!(10, {
+            let mut app: TestApp = App::new()
+                .with_entity::<DeltaTime>(())
+                .with_entity::<UpdatesPerSecond>(5)
+                .into();
+            assert_correct_update(&mut app, 100, 200, 300);
         });
     }
 
