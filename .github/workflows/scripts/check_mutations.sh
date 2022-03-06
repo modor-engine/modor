@@ -41,7 +41,6 @@ for crate_path in ./crates/*; do
 
     log_path=log.txt
     rm -rf tests
-    cargo clean
     cargo test --no-run --verbose
     cargo-mutagen | tee $log_path
     killed=$(grep -o '([^"]*%) mutants killed' $log_path | grep -o '[0-9.]*')
@@ -51,5 +50,10 @@ for crate_path in ./crates/*; do
         echo "Mutation tests have failed with $killed% of killed mutants instead of at least $MUTAGEN_THRESHOLD%."
         exit 1
     fi
+
+    sed -i "s;mutagen = { git = \"https://github.com/llogiq/mutagen\", rev = \"$MUTAGEN_COMMIT\" };;" Cargo.toml
+    while IFS= read -r -d '' file; do
+        sed -i "s;#\[::mutagen::mutate\];;" "$file"
+    done< <(find ./src -type f -name '*.rs' -print0)
     cd -
 done
