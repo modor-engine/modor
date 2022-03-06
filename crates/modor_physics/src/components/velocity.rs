@@ -3,11 +3,11 @@ use std::time::Duration;
 
 /// A component storing the velocity of an entity.
 ///
-/// This component is effective only if the entity also have a [`Position`](crate::Position).<br>
+/// This component is effective only if the entity also has a [`Position`](crate::Position).<br>
 /// [`PhysicsModule`](crate::PhysicsModule) automatically updates the position from the
 /// velocity.
 ///
-/// The acceleration is measured in distance units per second.<br>
+/// The velocity is measured in distance units per second.<br>
 /// A distance unit of 1 on an axis corresponds to the size along this axis of the first
 /// parent having a position.
 ///

@@ -1,6 +1,6 @@
 /// A component storing the acceleration of an entity.
 ///
-/// This component is effective only if the entity also have a [`Velocity`](crate::Velocity).<br>
+/// This component is effective only if the entity also has a [`Velocity`](crate::Velocity).<br>
 /// [`PhysicsModule`](crate::PhysicsModule) automatically updates the velocity from the
 /// acceleration.
 ///

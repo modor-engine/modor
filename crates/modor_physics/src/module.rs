@@ -15,7 +15,7 @@ use modor::{
 /// ```rust
 /// # use modor::{App, Built, EntityBuilder, EntityMainComponent};
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Scale, Shape, Velocity};
-///
+/// #
 /// let mut app = App::new()
 ///     .with_entity::<PhysicsModule>(())
 ///     .with_entity::<Object>(());

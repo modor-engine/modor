@@ -9,7 +9,6 @@ use std::time::Duration;
 /// # Examples
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-/// ```
 #[derive(Clone, Debug)]
 pub struct Position {
     /// The X-coordinate.

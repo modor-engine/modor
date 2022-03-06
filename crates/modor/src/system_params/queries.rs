@@ -284,6 +284,7 @@ pub trait QueryFilter: 'static {
 ///
 /// ```rust
 /// # use modor::{Query, With, Entity};
+/// #
 /// struct Position;
 /// struct Velocity;
 ///

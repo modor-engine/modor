@@ -55,8 +55,8 @@ impl DeltaTime {
 
     fn update(&mut self, updates_per_second: Option<Single<'_, UpdatesPerSecond>>) {
         if let Some(updates_per_second) = updates_per_second {
-            if updates_per_second.get() > 0. {
-                let update_time = Duration::from_secs_f32(1. / updates_per_second.get());
+            if updates_per_second.get() > 0 {
+                let update_time = Duration::from_secs_f32(1. / f32::from(updates_per_second.get()));
                 let current_update_time = Instant::now().duration_since(self.last_instant);
                 if let Some(remaining_time) = update_time.checked_sub(current_update_time) {
                     thread::sleep(remaining_time);
@@ -109,22 +109,11 @@ mod updates_per_second_tests {
     }
 
     #[test]
-    fn update_with_rate_limit_less_than_zero() {
-        retry!(10, {
-            let mut app: TestApp = App::new()
-                .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(-5.)
-                .into();
-            assert_correct_update(&mut app, 100, 100, 150);
-        });
-    }
-
-    #[test]
     fn update_with_rate_limit_equal_to_zero() {
         retry!(10, {
             let mut app: TestApp = App::new()
                 .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(0.)
+                .with_entity::<UpdatesPerSecond>(0)
                 .into();
             assert_correct_update(&mut app, 100, 100, 150);
         });
@@ -135,7 +124,7 @@ mod updates_per_second_tests {
         retry!(10, {
             let mut app: TestApp = App::new()
                 .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(5.)
+                .with_entity::<UpdatesPerSecond>(5)
                 .into();
             assert_correct_update(&mut app, 100, 200, 300);
         });

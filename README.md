@@ -33,7 +33,7 @@ Not tested but should also work on:
 
 The minimum supported version of Rust is 1.57.
 
-To include this library in your project, just add the following line in your `Cargo.toml` file:
+To include this library in your project, just add the following dependency in your `Cargo.toml` file:
 
 ```toml
 modor = "0.1"

@@ -1,14 +1,14 @@
 /// A component storing the scale of an entity.
 ///
 /// The scale is relative to the first parent entity having a position and a scale.<br>
-/// This is an absolute size in case the entity does not have any parent with a scale.
+/// This is an absolute size in case the entity does not have any parent with a position and a
+/// scale.
 ///
 /// An entity having a [`Position`](crate::Position) has a default scale `Scale::xyz(1., 1., 1.)`.
 ///
 /// # Examples
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-/// ```
 #[derive(Clone, Debug)]
 pub struct Scale {
     /// The X-coordinate.
