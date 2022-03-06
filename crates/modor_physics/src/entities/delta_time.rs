@@ -113,7 +113,7 @@ mod updates_per_second_tests {
             .with_entity::<DeltaTime>(())
             .with_entity::<UpdatesPerSecond>(5.)
             .into();
-        assert_correct_update(&mut app, 100, 200, 250);
+        assert_correct_update(&mut app, 100, 200, 300);
     }
 
     fn assert_correct_update(
