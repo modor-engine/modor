@@ -83,37 +83,62 @@ mod updates_per_second_tests {
     use std::thread;
     use std::time::{Duration, Instant};
 
-    #[flaky_test::flaky_test]
+    macro_rules! retry {
+        ($count:literal, $block:block) => {
+            for i in 0..$count {
+                println!("Try #{}...", i);
+                let r = std::panic::catch_unwind(|| $block);
+                if r.is_ok() {
+                    return;
+                }
+                if i == $count {
+                    std::panic::resume_unwind(r.unwrap_err());
+                } else {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+            }
+        };
+    }
+
+    #[test]
     fn update_without_rate_limit() {
-        let mut app: TestApp = App::new().with_entity::<DeltaTime>(()).into();
-        assert_correct_update(&mut app, 100, 100, 150);
+        retry!(10, {
+            let mut app: TestApp = App::new().with_entity::<DeltaTime>(()).into();
+            assert_correct_update(&mut app, 100, 100, 150);
+        });
     }
 
-    #[flaky_test::flaky_test]
+    #[test]
     fn update_with_rate_limit_less_than_zero() {
-        let mut app: TestApp = App::new()
-            .with_entity::<DeltaTime>(())
-            .with_entity::<UpdatesPerSecond>(-5.)
-            .into();
-        assert_correct_update(&mut app, 100, 100, 150);
+        retry!(10, {
+            let mut app: TestApp = App::new()
+                .with_entity::<DeltaTime>(())
+                .with_entity::<UpdatesPerSecond>(-5.)
+                .into();
+            assert_correct_update(&mut app, 100, 100, 150);
+        });
     }
 
-    #[flaky_test::flaky_test]
+    #[test]
     fn update_with_rate_limit_equal_to_zero() {
-        let mut app: TestApp = App::new()
-            .with_entity::<DeltaTime>(())
-            .with_entity::<UpdatesPerSecond>(0.)
-            .into();
-        assert_correct_update(&mut app, 100, 100, 150);
+        retry!(10, {
+            let mut app: TestApp = App::new()
+                .with_entity::<DeltaTime>(())
+                .with_entity::<UpdatesPerSecond>(0.)
+                .into();
+            assert_correct_update(&mut app, 100, 100, 150);
+        });
     }
 
-    #[flaky_test::flaky_test]
+    #[test]
     fn update_with_rate_limit_greater_than_zero() {
-        let mut app: TestApp = App::new()
-            .with_entity::<DeltaTime>(())
-            .with_entity::<UpdatesPerSecond>(5.)
-            .into();
-        assert_correct_update(&mut app, 100, 200, 300);
+        retry!(10, {
+            let mut app: TestApp = App::new()
+                .with_entity::<DeltaTime>(())
+                .with_entity::<UpdatesPerSecond>(5.)
+                .into();
+            assert_correct_update(&mut app, 100, 200, 300);
+        });
     }
 
     fn assert_correct_update(
@@ -126,10 +151,6 @@ mod updates_per_second_tests {
         thread::sleep(Duration::from_millis(external_sleep_millis));
         app.update();
         let update_end = Instant::now();
-        let mut duration = Duration::from_millis(0);
-        app.assert_singleton::<DeltaTime>()
-            .has::<DeltaTime, _>(|d| duration = d.get());
-        println!("Duration: {:?}", duration);
         app.assert_singleton::<DeltaTime>()
             .has::<DeltaTime, _>(|d| assert!(d.get() >= Duration::from_millis(min_millis)))
             .has::<DeltaTime, _>(|d| assert!(d.get() <= Duration::from_millis(max_millis)));
