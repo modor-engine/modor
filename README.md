@@ -39,6 +39,9 @@ To include this library in your project, just add the following line in your `Ca
 modor = "0.1"
 ```
 
+You can also include the modules you want, like:
+- [physics](crates/modor_physics/README.md)
+
 ## Example
 
  ```rust

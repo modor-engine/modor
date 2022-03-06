@@ -344,7 +344,7 @@ mod test_app_tests {
         let parent_id = app.create_entity::<TestEntity>("parent".into());
         let child_id = app.create_child::<TestEntity>(parent_id, "child".into());
         app.assert_entity(parent_id)
-            .has_children(|c| assert_eq!(c, vec![child_id]));
+            .has_children(|c| assert_eq!(c, vec![1, 2, child_id]));
         app.assert_entity(child_id)
             .has::<TestEntity, _>(|c| assert_eq!(c.0, "child"));
     }
