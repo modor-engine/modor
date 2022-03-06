@@ -91,7 +91,7 @@ mod updates_per_second_tests {
                 if r.is_ok() {
                     return;
                 }
-                if i == $count {
+                if i == $count - 1 {
                     std::panic::resume_unwind(r.unwrap_err());
                 } else {
                     std::thread::sleep(std::time::Duration::from_secs(1));
@@ -124,9 +124,9 @@ mod updates_per_second_tests {
         retry!(10, {
             let mut app: TestApp = App::new()
                 .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(5)
+                .with_entity::<UpdatesPerSecond>(1)
                 .into();
-            assert_correct_update(&mut app, 100, 200, 300);
+            assert_correct_update(&mut app, 500, 1000, 1200);
         });
     }
 
