@@ -1,6 +1,6 @@
 use crate::entities::internal::{
     BuildEntity, BuildEntityPart, ChildPart, ChildrenPart, ComponentPart, DependencyPart,
-    InheritedPart, SealedEntityType,
+    InheritedPart, MainComponentPart, SealedEntityType,
 };
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
@@ -115,16 +115,18 @@ pub struct EntityBuilder<E, P, O> {
     phantom: PhantomData<E>,
 }
 
-impl<E> EntityBuilder<E, ComponentPart<E>, ()>
+impl<E> EntityBuilder<E, MainComponentPart<E>, ()>
 where
     E: EntityMainComponent,
 {
     /// Starts building an entity by providing its `main_component`.
     pub fn new(main_component: E) -> Self {
         Self {
-            part: ComponentPart {
-                component: Some(main_component),
-                type_idx: None,
+            part: MainComponentPart {
+                component_part: ComponentPart {
+                    component: Some(main_component),
+                    type_idx: None,
+                },
                 is_singleton: TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
             },
             other_parts: (),
@@ -145,7 +147,6 @@ impl<E, P, O> EntityBuilder<E, P, O> {
             part: ComponentPart {
                 component: Some(component),
                 type_idx: None,
-                is_singleton: false,
             },
             other_parts: self,
             phantom: PhantomData,
@@ -163,7 +164,6 @@ impl<E, P, O> EntityBuilder<E, P, O> {
             part: ComponentPart {
                 component,
                 type_idx: None,
-                is_singleton: false,
             },
             other_parts: self,
             phantom: PhantomData,
@@ -278,23 +278,6 @@ where
     O: BuildEntityPart,
 {
     fn build(mut self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
-        if core.components().is_entity_type::<E>() {
-            let type_idx = core
-                .components()
-                .type_idx(TypeId::of::<E>())
-                .expect("internal error: entity type without index");
-            if let Some(location) = core.components().singleton_locations(type_idx) {
-                let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-                core.delete_entity(entity_idx);
-            }
-        } else {
-            let entity_type_idx = core.add_entity_type::<E>();
-            E::on_update(SystemRunner {
-                core,
-                entity_type_idx,
-                latest_action_idx: None,
-            });
-        };
         let archetype_idx = self.create_archetype(core, ArchetypeStorage::DEFAULT_IDX);
         let (entity_idx, location) = core.create_entity(archetype_idx, parent_idx);
         self.add_components(core, location);
@@ -367,7 +350,7 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::{ChildBuilder, EntityMainComponent};
+    use crate::{ChildBuilder, EntityMainComponent, SystemRunner};
     use std::any::{Any, TypeId};
     use std::marker::PhantomData;
 
@@ -390,10 +373,65 @@ mod internal {
 
     impl BuildEntityPart for () {}
 
+    pub struct MainComponentPart<E> {
+        pub(super) component_part: ComponentPart<E>,
+        pub(super) is_singleton: bool,
+    }
+
+    impl<E> BuildEntityPart for MainComponentPart<E>
+    where
+        E: EntityMainComponent,
+    {
+        fn create_archetype(
+            &mut self,
+            core: &mut CoreStorage,
+            archetype_idx: ArchetypeIdx,
+        ) -> ArchetypeIdx {
+            if core.components().is_entity_type::<E>() {
+                let type_idx = core
+                    .components()
+                    .type_idx(TypeId::of::<E>())
+                    .expect("internal error: entity type without index");
+                if let Some(location) = core.components().singleton_locations(type_idx) {
+                    let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
+                    core.delete_entity(entity_idx);
+                }
+            } else {
+                let entity_type_idx = core.add_entity_type::<E>();
+                E::on_update(SystemRunner {
+                    core,
+                    entity_type_idx,
+                    latest_action_idx: None,
+                });
+            };
+            self.component_part.create_archetype(core, archetype_idx)
+        }
+
+        fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
+            self.component_part
+                .add_components(core, location, self.is_singleton);
+        }
+    }
+
     pub struct ComponentPart<C> {
         pub(super) component: Option<C>,
         pub(super) type_idx: Option<ComponentTypeIdx>,
-        pub(super) is_singleton: bool,
+    }
+
+    impl<C> ComponentPart<C>
+    where
+        C: Any + Sync + Send,
+    {
+        fn add_components(
+            &mut self,
+            core: &mut CoreStorage,
+            location: EntityLocation,
+            is_singleton: bool,
+        ) {
+            if let (Some(component), Some(type_idx)) = (self.component.take(), self.type_idx) {
+                core.add_component(component, type_idx, location, is_singleton);
+            }
+        }
     }
 
     impl<C> BuildEntityPart for ComponentPart<C>
@@ -415,9 +453,7 @@ mod internal {
         }
 
         fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-            if let (Some(component), Some(type_idx)) = (self.component.take(), self.type_idx) {
-                core.add_component(component, type_idx, location, self.is_singleton);
-            }
+            self.add_components(core, location, false);
         }
     }
 
@@ -496,7 +532,7 @@ mod internal {
     }
 
     pub trait BuildEntity: BuildEntityPart {
-        fn build(self, core: &mut CoreStorage, parent: Option<EntityIdx>) -> EntityIdx;
+        fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
     }
 }
 
