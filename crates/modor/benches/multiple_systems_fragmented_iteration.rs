@@ -10,27 +10,26 @@ macro_rules! create_entities {
         $(
             struct $variants(f32);
 
+            impl $variants {
+                fn build() -> impl Built<Self> {
+                    EntityBuilder::new(Self(0.0)).with(Data(1.0))
+                }
+
+                fn update(data: &mut Data) {
+                    data.0 *= 2.0;
+                }
+            }
+
             impl EntityMainComponent for $variants {
                 type Type = ();
-                type Data = ();
-
-                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-                    builder.with(Data(1.0)).with_self(Self(0.0))
-                }
 
                 fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
                     runner.run(system!(Self::update))
                 }
             }
 
-            impl $variants {
-                fn update(data: &mut Data) {
-                    data.0 *= 2.0;
-                }
-            }
-
             for _ in 0..20 {
-                $app = $app.with_entity::<$variants>(());
+                $app = $app.with_entity($variants::build());
             }
         )*
     };

@@ -9,26 +9,18 @@ struct RelPosition(u16);
 
 struct Node;
 
-impl EntityMainComponent for Node {
-    type Type = ();
-    type Data = u16;
-
-    fn build(mut builder: EntityBuilder<'_, Self>, levels: Self::Data) -> Built<'_> {
-        if levels > 0 {
-            builder = builder.with_child::<Self>(levels - 1);
-        }
-        builder
+impl Node {
+    fn build(levels: u16) -> impl Built<Self> {
+        EntityBuilder::new(Self)
             .with_option((levels % 2 == 1).then(|| RelPosition(levels)))
             .with_option((levels % 2 == 1).then(|| AbsPosition(levels)))
-            .with_self(Self)
+            .with_children(move |b| {
+                if levels > 0 {
+                    b.add(Self::build(levels - 1));
+                }
+            })
     }
 
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update_absolute_positions))
-    }
-}
-
-impl Node {
     fn update_absolute_positions(
         entities_with_pos: Query<'_, Entity<'_>, (With<AbsPosition>, With<RelPosition>)>,
         mut positions: Query<'_, (&mut AbsPosition, &RelPosition)>,
@@ -45,10 +37,18 @@ impl Node {
     }
 }
 
+impl EntityMainComponent for Node {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update_absolute_positions))
+    }
+}
+
 #[test]
 fn update_component_hierarchically() {
     let mut app = TestApp::new();
-    let root_id = app.create_entity::<Node>(5);
+    let root_id = app.create_entity(Node::build(5));
     app.update();
     app.assert_entity(root_id)
         .has::<RelPosition, _>(|p| assert_eq!(p.0, 5))

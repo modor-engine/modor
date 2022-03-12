@@ -27,19 +27,17 @@ impl Size {
 
 struct Point;
 
+impl Point {
+    fn build(position: Position) -> impl Built<Self> {
+        EntityBuilder::new(Self).with(position).with(Size {
+            width: 0,
+            height: 0,
+        })
+    }
+}
+
 impl EntityMainComponent for Point {
     type Type = ();
-    type Data = Position;
-
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
-        builder
-            .with(position)
-            .with(Size {
-                width: 0,
-                height: 0,
-            })
-            .with_self(Self)
-    }
 }
 
 struct Object {
@@ -47,25 +45,16 @@ struct Object {
     is_collided_2: bool,
 }
 
-impl EntityMainComponent for Object {
-    type Type = ();
-    type Data = (Position, Size);
-
-    fn build(builder: EntityBuilder<'_, Self>, (position, size): Self::Data) -> Built<'_> {
-        builder.with(position).with(size).with_self(Self {
+impl Object {
+    fn build(position: Position, size: Size) -> impl Built<Self> {
+        EntityBuilder::new(Self {
             is_collided_1: false,
             is_collided_2: false,
         })
+        .with(position)
+        .with(size)
     }
 
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run(system!(Self::detect_collisions_v1))
-            .run(system!(Self::detect_collisions_v2))
-    }
-}
-
-impl Object {
     fn detect_collisions_v1(
         mut objects: Query<'_, (&mut Self, &Position, &Size, Entity<'_>)>,
         other_objects: Query<'_, (&Position, &Size, Entity<'_>), With<Self>>,
@@ -112,13 +101,23 @@ impl Object {
     }
 }
 
+impl EntityMainComponent for Object {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner
+            .run(system!(Self::detect_collisions_v1))
+            .run(system!(Self::detect_collisions_v2))
+    }
+}
+
 #[test]
 fn run_queries() {
     let mut app = TestApp::new();
-    let object1_id = app.create_entity::<Object>((Position::new(0, 0), Size::new(1, 1)));
-    let _ = app.create_entity::<Point>(Position::new(0, 0));
-    let object2_id = app.create_entity::<Object>((Position::new(5, 4), Size::new(2, 1)));
-    let object3_id = app.create_entity::<Object>((Position::new(-1, -2), Size::new(3, 4)));
+    let object1_id = app.create_entity(Object::build(Position::new(0, 0), Size::new(1, 1)));
+    let _ = app.create_entity(Point::build(Position::new(0, 0)));
+    let object2_id = app.create_entity(Object::build(Position::new(5, 4), Size::new(2, 1)));
+    let object3_id = app.create_entity(Object::build(Position::new(-1, -2), Size::new(3, 4)));
     app.update();
     app.assert_entity(object1_id)
         .has::<Object, _>(|c| assert!(c.is_collided_1))

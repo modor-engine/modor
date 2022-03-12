@@ -4,155 +4,152 @@ use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, SystemRun
 #[derive(PartialEq, Debug)]
 struct Parent(u32);
 
+impl Parent {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self(id))
+    }
+}
+
 impl EntityMainComponent for Parent {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder.with_self(Self(id))
-    }
 }
 
 struct EntityToDelete;
 
+impl EntityToDelete {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
+    fn delete(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_entity(entity.id());
+    }
+}
+
 impl EntityMainComponent for EntityToDelete {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder.inherit_from::<Parent>(id).with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(Self::delete))
     }
 }
 
-impl EntityToDelete {
-    fn delete(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_entity(entity.id());
+struct EntityWithAddedComponent;
+
+impl EntityWithAddedComponent {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
+    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
+        world.add_component(entity.id(), format!("id: {}", parent.0));
     }
 }
 
-struct EntityWithAddedComponent;
-
 impl EntityMainComponent for EntityWithAddedComponent {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder.inherit_from::<Parent>(id).with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(Self::add_component))
     }
 }
 
-impl EntityWithAddedComponent {
-    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), format!("id: {}", parent.0));
+struct EntityWithExistingComponentDeleted;
+
+impl EntityWithExistingComponentDeleted {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Parent::build(id))
+            .with(String::from("existing"))
+    }
+
+    fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_component::<String>(entity.id());
     }
 }
-
-struct EntityWithExistingComponentDeleted;
 
 impl EntityMainComponent for EntityWithExistingComponentDeleted {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder
-            .inherit_from::<Parent>(id)
-            .with(String::from("existing"))
-            .with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(Self::delete_component))
-    }
-}
-
-impl EntityWithExistingComponentDeleted {
-    fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_component::<String>(entity.id());
     }
 }
 
 struct EntityWithMissingComponentDeleted;
 
-impl EntityMainComponent for EntityWithMissingComponentDeleted {
-    type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder.inherit_from::<Parent>(id).with_self(Self)
-    }
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::delete_component))
-    }
-}
-
 impl EntityWithMissingComponentDeleted {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<String>(entity.id());
     }
 }
 
-struct EntityWithNotRegisteredComponentTypeDeleted;
-
-impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
+impl EntityMainComponent for EntityWithMissingComponentDeleted {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, id: Self::Data) -> Built<'_> {
-        builder.inherit_from::<Parent>(id).with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(Self::delete_component))
     }
 }
 
+struct EntityWithNotRegisteredComponentTypeDeleted;
+
 impl EntityWithNotRegisteredComponentTypeDeleted {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<i64>(entity.id());
-        world.create_root_entity::<NewRootEntity>(10);
-        world.create_child_entity::<NewChildEntity>(entity.id(), 20);
+        world.create_root_entity(NewRootEntity::build(10));
+        world.create_child_entity(entity.id(), NewChildEntity::build(20));
+    }
+}
+
+impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::delete_component))
     }
 }
 
 struct NewRootEntity(u32);
 
+impl NewRootEntity {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self(id))
+    }
+}
+
 impl EntityMainComponent for NewRootEntity {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-        builder.with_self(Self(data))
-    }
 }
 
 struct NewChildEntity(u32);
 
+impl NewChildEntity {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self(id))
+    }
+}
+
 impl EntityMainComponent for NewChildEntity {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-        builder.with_self(Self(data))
-    }
 }
 
 #[test]
 fn use_world() {
     let mut app = TestApp::new();
-    let entity1_id = app.create_entity::<EntityToDelete>(10);
-    let entity2_id = app.create_entity::<EntityWithAddedComponent>(20);
-    let entity3_id = app.create_entity::<EntityWithExistingComponentDeleted>(30);
-    let entity4_id = app.create_entity::<EntityWithMissingComponentDeleted>(40);
-    let entity5_id = app.create_entity::<EntityWithNotRegisteredComponentTypeDeleted>(50);
+    let entity1_id = app.create_entity(EntityToDelete::build(10));
+    let entity2_id = app.create_entity(EntityWithAddedComponent::build(20));
+    let entity3_id = app.create_entity(EntityWithExistingComponentDeleted::build(30));
+    let entity4_id = app.create_entity(EntityWithMissingComponentDeleted::build(40));
+    let entity5_id = app.create_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50));
     app.assert_entity(entity1_id)
         .has::<Parent, _>(|c| assert_eq!(c, &Parent(10)))
         .has_not::<String>();

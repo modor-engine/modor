@@ -113,11 +113,6 @@ struct SingletonEntity;
 
 impl EntityMainComponent for SingletonEntity {
     type Type = Singleton;
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with_self(Self)
-    }
 }
 
 fn const_and_mut_same_component(_: &u32, _: &String, _: &mut u32) {}

@@ -2,31 +2,19 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{
-    system, Built, EntityBuilder, EntityMainComponent, Query, Single, SingleMut, Singleton, World,
-};
+use modor::{system, EntityMainComponent, Query, Single, SingleMut, Singleton, World};
 use std::path::PathBuf;
 
 struct SingletonEntity1;
 
 impl EntityMainComponent for SingletonEntity1 {
     type Type = Singleton;
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with_self(Self)
-    }
 }
 
 struct SingletonEntity2;
 
 impl EntityMainComponent for SingletonEntity2 {
     type Type = Singleton;
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with_self(Self)
-    }
 }
 
 fn no_param() {}

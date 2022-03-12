@@ -26,23 +26,6 @@ pub struct DeltaTime {
     last_instant: Instant,
 }
 
-impl EntityMainComponent for DeltaTime {
-    type Type = Singleton;
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        let now = Instant::now();
-        builder.with_self(Self {
-            previous_instant: now,
-            last_instant: now,
-        })
-    }
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_as::<UpdateDeltaTimeAction>(system!(Self::update))
-    }
-}
-
 impl DeltaTime {
     /// Returns the duration of the last update.
     ///
@@ -51,6 +34,14 @@ impl DeltaTime {
     /// delta time.
     pub fn get(&self) -> Duration {
         self.last_instant.duration_since(self.previous_instant)
+    }
+
+    pub(crate) fn build() -> impl Built<Self> {
+        let now = Instant::now();
+        EntityBuilder::new(Self {
+            previous_instant: now,
+            last_instant: now,
+        })
     }
 
     fn update(&mut self, updates_per_second: Option<Single<'_, UpdatesPerSecond>>) {
@@ -65,6 +56,14 @@ impl DeltaTime {
         }
         self.previous_instant = self.last_instant;
         self.last_instant = Instant::now();
+    }
+}
+
+impl EntityMainComponent for DeltaTime {
+    type Type = Singleton;
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run_as::<UpdateDeltaTimeAction>(system!(Self::update))
     }
 }
 
@@ -103,7 +102,7 @@ mod updates_per_second_tests {
     #[test]
     fn update_without_rate_limit() {
         retry!(10, {
-            let mut app: TestApp = App::new().with_entity::<DeltaTime>(()).into();
+            let mut app: TestApp = App::new().with_entity(DeltaTime::build()).into();
             assert_correct_update(&mut app, 100, 100, 150);
         });
     }
@@ -112,8 +111,8 @@ mod updates_per_second_tests {
     fn update_with_rate_limit_equal_to_zero() {
         retry!(10, {
             let mut app: TestApp = App::new()
-                .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(0)
+                .with_entity(DeltaTime::build())
+                .with_entity(UpdatesPerSecond::build(0))
                 .into();
             assert_correct_update(&mut app, 100, 100, 150);
         });
@@ -123,8 +122,8 @@ mod updates_per_second_tests {
     fn update_with_rate_limit_equal_to_one() {
         retry!(10, {
             let mut app: TestApp = App::new()
-                .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(1)
+                .with_entity(DeltaTime::build())
+                .with_entity(UpdatesPerSecond::build(1))
                 .into();
             assert_correct_update(&mut app, 500, 1000, 1200);
         });
@@ -134,8 +133,8 @@ mod updates_per_second_tests {
     fn update_with_rate_limit_greater_than_one() {
         retry!(10, {
             let mut app: TestApp = App::new()
-                .with_entity::<DeltaTime>(())
-                .with_entity::<UpdatesPerSecond>(5)
+                .with_entity(DeltaTime::build())
+                .with_entity(UpdatesPerSecond::build(5))
                 .into();
             assert_correct_update(&mut app, 100, 200, 300);
         });

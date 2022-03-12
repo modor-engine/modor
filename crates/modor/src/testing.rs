@@ -1,11 +1,9 @@
 //! Testing utilities.
 
-use crate::entities::internal::ComponentAdd;
-use crate::storages::archetypes::{ArchetypeStorage, EntityLocation};
+use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
-use crate::{App, Built, EntityBuilder, EntityMainComponent, Singleton};
+use crate::{App, Built, EntityMainComponent, Singleton};
 use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 /// A utility to facilitate entity testing.
@@ -19,25 +17,24 @@ use std::ops::{Deref, DerefMut};
 /// # use modor::{EntityMainComponent, EntityBuilder, Built};
 /// #
 /// let mut app = TestApp::new();
-/// let entity_id = app.create_entity::<Button>("name".into());
+/// let entity_id = app.create_entity(Button::build("Play".into()));
 /// app.assert_entity(entity_id)
 ///     .exists()
-///     .has::<String, _>(|name| assert_eq!(name, "name"))
+///     .has::<String, _>(|name| assert_eq!(name, "Play"))
 ///     .has::<Button, _>(|_| ())
 ///     .has_not::<usize>()
 ///     .has_children(|c| assert!(c.is_empty()));
 ///
 /// struct Button;
 ///
+/// impl Button {
+///     fn build(label: String) -> impl Built<Self> {
+///         EntityBuilder::new(Self).with(label)
+///     }
+/// }
+///
 /// impl EntityMainComponent for Button {
 ///     type Type = ();
-///     type Data = String;
-///
-///     fn build(builder: EntityBuilder<'_, Self>, name: Self::Data) -> Built<'_> {
-///         builder
-///             .with(name)
-///             .with_self(Self)
-///     }
 /// }
 /// ```
 #[derive(Default)]
@@ -54,18 +51,12 @@ impl TestApp {
     /// Creates a new entity and returns its ID.
     ///
     /// Entity IDs are unique and can be recycled in case the entity is deleted.
-    pub fn create_entity<E>(&mut self, data: E::Data) -> usize
+    pub fn create_entity<E, B>(&mut self, entity: B) -> usize
     where
         E: EntityMainComponent,
+        B: Built<E>,
     {
-        let core = &mut self.app.core;
-        let location = core.create_entity(ArchetypeStorage::DEFAULT_IDX, None).1;
-        let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-        E::build(
-            EntityBuilder::<_, ()>::from_existing(core, entity_idx),
-            data,
-        );
-        entity_idx.into()
+        entity.build(&mut self.app.core, None).into()
     }
 
     /// Creates a new child entity and returns its ID.
@@ -75,9 +66,10 @@ impl TestApp {
     /// # Panics
     ///
     /// This will panic if the parent entity does not exist.
-    pub fn create_child<E>(&mut self, parent_id: usize, data: E::Data) -> usize
+    pub fn create_child<E, B>(&mut self, parent_id: usize, entity: B) -> usize
     where
         E: EntityMainComponent,
+        B: Built<E>,
     {
         let core = &mut self.app.core;
         assert!(
@@ -85,15 +77,9 @@ impl TestApp {
             "parent entity with ID {} does not exist",
             parent_id
         );
-        let location = core
-            .create_entity(ArchetypeStorage::DEFAULT_IDX, Some(parent_id.into()))
-            .1;
-        let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-        E::build(
-            EntityBuilder::<_, ()>::from_existing(core, entity_idx),
-            data,
-        );
-        entity_idx.into()
+        entity
+            .build(&mut self.app.core, Some(parent_id.into()))
+            .into()
     }
 
     /// Starts assertions on an entity.
@@ -211,7 +197,7 @@ impl EntityAssertion<'_> {
         assert!(
             self.test_component_exists::<C, _>(location, |_| ())
                 .is_none(),
-            "assertion failed: component expected to exist in entity",
+            "assertion failed: component expected to be missing in entity",
         );
         self
     }
@@ -253,56 +239,13 @@ impl EntityAssertion<'_> {
     }
 }
 
-/// An entity main component used to facilitate testing.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::testing::{TestApp, TestEntity};
-/// #
-/// let mut app = TestApp::new();
-/// app.create_entity::<TestEntity<_>>(Box::new(|b| {
-///     b.with("my component".to_string())
-/// }));
-/// ```
-pub struct TestEntity<A>(PhantomData<A>)
-where
-    A: ComponentAdd;
-
-impl<A> EntityMainComponent for TestEntity<A>
-where
-    A: ComponentAdd,
-{
-    type Type = ();
-    type Data =
-        Box<dyn FnOnce(EntityBuilder<'_, Self>) -> EntityBuilder<'_, Self, A> + Sync + Send>;
-
-    fn build(builder: EntityBuilder<'_, Self>, build_fn: Self::Data) -> Built<'_> {
-        build_fn(builder).with_self(Self(PhantomData))
-    }
-}
-
 #[cfg(test)]
 mod test_app_tests {
     use crate::testing::TestApp;
-    use crate::{App, Built, EntityBuilder, EntityMainComponent, Singleton};
+    use crate::{App, EntityBuilder, Singleton};
     use std::ptr;
 
-    #[derive(Debug, PartialEq)]
-    struct TestEntity(String);
-
-    impl EntityMainComponent for TestEntity {
-        type Type = ();
-        type Data = String;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder
-                .with_child::<ChildEntity>(10)
-                .with_child::<ChildEntity>(20)
-                .with_self(Self(data))
-        }
-    }
-
+    create_entity_type!(TestEntity);
     create_entity_type!(ChildEntity);
     create_entity_type!(SingletonEntity1, Singleton);
     create_entity_type!(SingletonEntity2, Singleton);
@@ -317,10 +260,14 @@ mod test_app_tests {
     #[test]
     fn assert_on_entities_from_new_app() {
         let mut app = TestApp::new();
-        let entity_id = app.create_entity::<TestEntity>("string".into());
+        let entity_id = app.create_entity(
+            EntityBuilder::new(TestEntity(10))
+                .with_child(EntityBuilder::new(ChildEntity(20)))
+                .with_child(EntityBuilder::new(ChildEntity(30))),
+        );
         app.assert_entity(entity_id)
             .exists()
-            .has::<TestEntity, _>(|c| assert_eq!(c.0, "string"))
+            .has::<TestEntity, _>(|c| assert_eq!(c.0, 10))
             .has_not::<String>()
             .has_children(|c| assert_eq!(c, [1, 2]));
         assert_panics!(app.assert_entity(entity_id).does_not_exist());
@@ -341,20 +288,20 @@ mod test_app_tests {
     #[test]
     fn create_child_entity() {
         let mut app = TestApp::new();
-        let parent_id = app.create_entity::<TestEntity>("parent".into());
-        let missing_id = 10;
-        assert_panics!(app.create_child::<TestEntity>(missing_id, "child".into()));
-        let child_id = app.create_child::<TestEntity>(parent_id, "child".into());
+        let parent_id = app.create_entity(EntityBuilder::new(TestEntity(10)));
+        let child_id = app.create_child(parent_id, EntityBuilder::new(TestEntity(20)));
         app.assert_entity(parent_id)
-            .has_children(|c| assert_eq!(c, vec![1, 2, child_id]));
+            .has_children(|c| assert_eq!(c, vec![child_id]));
         app.assert_entity(child_id)
-            .has::<TestEntity, _>(|c| assert_eq!(c.0, "child"));
+            .has::<TestEntity, _>(|c| assert_eq!(c.0, 20));
+        let missing_id = 10;
+        assert_panics!(app.create_child(missing_id, EntityBuilder::new(TestEntity(30))));
     }
 
     #[test]
     fn assert_on_singleton_from_new_app() {
         let mut app = TestApp::new();
-        app.create_entity::<SingletonEntity1>(10);
+        app.create_entity(EntityBuilder::new(SingletonEntity1(10)));
         app.assert_singleton::<SingletonEntity2>().does_not_exist();
         app.assert_singleton::<SingletonEntity1>().exists();
         assert_panics!(app.assert_singleton::<SingletonEntity1>().does_not_exist());
@@ -363,23 +310,10 @@ mod test_app_tests {
 
     #[test]
     fn assert_from_existing_app() {
-        let existing_app = App::new().with_entity::<TestEntity>("string".into());
+        let existing_app = App::new().with_entity(EntityBuilder::new(TestEntity(10)));
         let mut app = TestApp::from(existing_app);
         app.assert_entity(0).exists();
         assert!(ptr::eq(&*app, &app.app));
         assert!(ptr::eq(&mut *app as *const App, &app.app));
-    }
-}
-
-#[cfg(test)]
-mod test_entity_tests {
-    use crate::testing::{TestApp, TestEntity};
-
-    #[test]
-    fn build() {
-        let mut app = TestApp::new();
-        let entity_id = app.create_entity::<TestEntity<_>>(Box::new(|b| b.with(10_u32)));
-        app.assert_entity(entity_id)
-            .has::<u32, _>(|c| assert_eq!(c, &10));
     }
 }

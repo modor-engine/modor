@@ -27,13 +27,14 @@ use std::any::TypeId;
 /// #
 /// struct MyEntity;
 ///
+/// impl MyEntity {
+///     fn build() -> impl Built<Self> {
+///         EntityBuilder::new(Self)
+///     }
+/// }
+///
 /// impl EntityMainComponent for MyEntity {
 ///     type Type = ();
-///     type Data = ();
-///
-///     fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-///         builder.with_self(Self)
-///     }
 ///
 ///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
 ///         runner

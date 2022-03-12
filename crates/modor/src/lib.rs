@@ -14,9 +14,9 @@
 //! use modor::*;
 //!
 //! App::new()
-//!     .with_entity::<Character>((Position(45., 65.), CharacterType::Main))
-//!     .with_entity::<Character>((Position(98., 12.), CharacterType::Enemy))
-//!     .with_entity::<Character>((Position(14., 23.), CharacterType::Enemy))
+//!     .with_entity(Character::build(Position(45., 65.), CharacterType::Main))
+//!     .with_entity(Character::build(Position(98., 12.), CharacterType::Enemy))
+//!     .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
 //!     .update();
 //!
 //! #[derive(Debug)]
@@ -34,28 +34,26 @@
 //!     ammunition: u32,
 //! }
 //!
-//! impl EntityMainComponent for Character {
-//!     type Type = ();
-//!     type Data = (Position, CharacterType);
-//!
-//!     fn build(builder: EntityBuilder<'_, Self>, (position, type_): Self::Data) -> Built<'_> {
-//!         builder
+//! impl Character {
+//!     fn build(position: Position, type_: CharacterType) -> impl Built<Self> {
+//!         EntityBuilder::new(Self { ammunition: 10 })
 //!             .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
 //!             .with(position)
-//!             .with_self(Self { ammunition: 10 })
 //!     }
 //!
-//!     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-//!         runner.run(system!(Self::fire_when_enemy))
-//!     }
-//! }
-//!
-//! impl Character {
 //!     fn fire_when_enemy(&mut self, position: &Position, _: &Enemy) {
 //!         if self.ammunition > 0 {
 //!             self.ammunition -= 1;
 //!             println!("Enemy at {:?} has fired", position);
 //!         }
+//!     }
+//! }
+//!
+//! impl EntityMainComponent for Character {
+//!     type Type = ();
+//!
+//!     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+//!         runner.run(system!(Self::fire_when_enemy))
 //!     }
 //! }
 //! ```

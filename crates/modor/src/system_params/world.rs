@@ -3,7 +3,7 @@ use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
-use crate::{EntityBuilder, EntityMainComponent, SystemData, SystemInfo, SystemParam};
+use crate::{Built, EntityMainComponent, SystemData, SystemInfo, SystemParam};
 use std::any::{Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -23,12 +23,13 @@ pub struct World<'a> {
 }
 
 impl<'a> World<'a> {
-    /// Creates a new root entity of type `E` with building data `data`.
+    /// Creates a new root entity of type `E`.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_root_entity<E>(&mut self, data: E::Data)
+    pub fn create_root_entity<E, B>(&mut self, entity: B)
     where
         E: EntityMainComponent,
+        B: Built<E>,
     {
         self.data
             .updates
@@ -37,18 +38,18 @@ impl<'a> World<'a> {
             .create_entity(
                 None,
                 Box::new(|c| {
-                    E::build(EntityBuilder::<_, ()>::new(c, None), data);
+                    entity.build(c, None);
                 }),
             );
     }
 
-    /// Creates a new entity of type `E` with building data `data` and parent entity with ID
-    /// `parent_id`.
+    /// Creates a new entity of type `E` with parent entity with ID `parent_id`.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_child_entity<E>(&mut self, parent_id: usize, data: E::Data)
+    pub fn create_child_entity<E, B>(&mut self, parent_id: usize, entity: B)
     where
         E: EntityMainComponent,
+        B: Built<E>,
     {
         self.data
             .updates
@@ -57,7 +58,7 @@ impl<'a> World<'a> {
             .create_entity(
                 Some(parent_id.into()),
                 Box::new(move |c| {
-                    E::build(EntityBuilder::<_, ()>::new(c, Some(parent_id.into())), data);
+                    entity.build(c, Some(parent_id.into()));
                 }),
             );
     }
@@ -231,7 +232,7 @@ mod internal {
 mod world_tests {
     use crate::storages::archetypes::ArchetypeStorage;
     use crate::storages::core::CoreStorage;
-    use crate::{SystemInfo, SystemParam, World};
+    use crate::{EntityBuilder, SystemInfo, SystemParam, World};
     use std::any::TypeId;
 
     create_entity_type!(TestEntity);
@@ -247,8 +248,8 @@ mod world_tests {
         world.delete_entity(0);
         world.add_component(1, 30_i8);
         world.delete_component::<i8>(2);
-        world.create_root_entity::<TestEntity>(40);
-        world.create_child_entity::<TestEntity>(1, 50);
+        world.create_root_entity(EntityBuilder::new(TestEntity(40)));
+        world.create_child_entity(1, EntityBuilder::new(TestEntity(50)));
         core.update();
         assert_eq!(core.entities().location(0.into()), None);
         let components = core.components().read_components::<i8>().clone();
