@@ -6,7 +6,7 @@ use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::SystemRunner;
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::marker::PhantomData;
 
 /// A trait for defining the main component of an entity type.
@@ -126,8 +126,8 @@ where
                 component_part: ComponentPart {
                     component: Some(main_component),
                     type_idx: None,
+                    phantom: PhantomData,
                 },
-                is_singleton: TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
             },
             other_parts: (),
             phantom: PhantomData,
@@ -139,7 +139,7 @@ impl<E, P, O> EntityBuilder<E, P, O> {
     /// Adds a component of type `C`.
     ///
     /// If a component of type `C` already exists, it is overwritten.
-    pub fn with<C>(self, component: C) -> EntityBuilder<E, ComponentPart<C>, Self>
+    pub fn with<C>(self, component: C) -> EntityBuilder<E, ComponentPart<E, C>, Self>
     where
         C: Any + Sync + Send,
     {
@@ -147,6 +147,7 @@ impl<E, P, O> EntityBuilder<E, P, O> {
             part: ComponentPart {
                 component: Some(component),
                 type_idx: None,
+                phantom: PhantomData,
             },
             other_parts: self,
             phantom: PhantomData,
@@ -156,7 +157,7 @@ impl<E, P, O> EntityBuilder<E, P, O> {
     /// Adds a component of type `C` only if `component` is not `None`.
     ///
     /// If `component` is not `None` and a component of type `C` already exists, it is overwritten.
-    pub fn with_option<C>(self, component: Option<C>) -> EntityBuilder<E, ComponentPart<C>, Self>
+    pub fn with_option<C>(self, component: Option<C>) -> EntityBuilder<E, ComponentPart<E, C>, Self>
     where
         C: Any + Sync + Send,
     {
@@ -164,6 +165,7 @@ impl<E, P, O> EntityBuilder<E, P, O> {
             part: ComponentPart {
                 component,
                 type_idx: None,
+                phantom: PhantomData,
             },
             other_parts: self,
             phantom: PhantomData,
@@ -350,7 +352,7 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::{ChildBuilder, EntityMainComponent, SystemRunner};
+    use crate::{ChildBuilder, EntityMainComponent, Singleton, SystemRunner};
     use std::any::{Any, TypeId};
     use std::marker::PhantomData;
 
@@ -374,8 +376,7 @@ mod internal {
     impl BuildEntityPart for () {}
 
     pub struct MainComponentPart<E> {
-        pub(super) component_part: ComponentPart<E>,
-        pub(super) is_singleton: bool,
+        pub(super) component_part: ComponentPart<E, E>,
     }
 
     impl<E> BuildEntityPart for MainComponentPart<E>
@@ -408,34 +409,19 @@ mod internal {
         }
 
         fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-            self.component_part
-                .add_components(core, location, self.is_singleton);
+            self.component_part.add_components(core, location);
         }
     }
 
-    pub struct ComponentPart<C> {
+    pub struct ComponentPart<E, C> {
         pub(super) component: Option<C>,
         pub(super) type_idx: Option<ComponentTypeIdx>,
+        pub(super) phantom: PhantomData<E>,
     }
 
-    impl<C> ComponentPart<C>
+    impl<E, C> BuildEntityPart for ComponentPart<E, C>
     where
-        C: Any + Sync + Send,
-    {
-        fn add_components(
-            &mut self,
-            core: &mut CoreStorage,
-            location: EntityLocation,
-            is_singleton: bool,
-        ) {
-            if let (Some(component), Some(type_idx)) = (self.component.take(), self.type_idx) {
-                core.add_component(component, type_idx, location, is_singleton);
-            }
-        }
-    }
-
-    impl<C> BuildEntityPart for ComponentPart<C>
-    where
+        E: EntityMainComponent,
         C: Any + Sync + Send,
     {
         fn create_archetype(
@@ -453,7 +439,15 @@ mod internal {
         }
 
         fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-            self.add_components(core, location, false);
+            if let (Some(component), Some(type_idx)) = (self.component.take(), self.type_idx) {
+                core.add_component(
+                    component,
+                    type_idx,
+                    location,
+                    TypeId::of::<C>() == TypeId::of::<E>()
+                        && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
+                );
+            }
         }
     }
 
