@@ -5,13 +5,14 @@ struct ButtonSelection {
     label: String,
 }
 
+impl ButtonSelection {
+    fn build(label: String) -> impl Built<Self> {
+        EntityBuilder::new(Self { label })
+    }
+}
+
 impl EntityMainComponent for ButtonSelection {
     type Type = ();
-    type Data = String;
-
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
-        builder.with_self(Self { label })
-    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -19,20 +20,11 @@ struct Button {
     is_pressed: bool,
 }
 
-impl EntityMainComponent for Button {
-    type Type = ();
-    type Data = String;
-
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
-        builder.with(label).with_self(Self { is_pressed: false })
-    }
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update))
-    }
-}
-
 impl Button {
+    fn build(label: String) -> impl Built<Self> {
+        EntityBuilder::new(Self { is_pressed: false }).with(label)
+    }
+
     #[allow(clippy::ptr_arg)]
     fn update(&mut self, label: &String, selections: Query<'_, &ButtonSelection>) {
         for selection in selections.iter() {
@@ -43,28 +35,24 @@ impl Button {
     }
 }
 
-#[derive(PartialEq, Debug)]
-struct ExitButton;
-
-impl EntityMainComponent for ExitButton {
+impl EntityMainComponent for Button {
     type Type = ();
-    type Data = String;
-
-    fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
-        builder
-            .inherit_from::<Button>(label)
-            .with(ExitState(false))
-            .with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run(system!(Self::update_state))
-            .run(system!(Self::update_label))
+        runner.run(system!(Self::update))
     }
 }
 
+#[derive(PartialEq, Debug)]
+struct ExitButton;
+
 impl ExitButton {
+    fn build(label: String) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Button::build(label))
+            .with(ExitState(false))
+    }
+
     fn update_state(state: &mut ExitState, button: &Button) {
         state.0 = button.is_pressed;
     }
@@ -76,14 +64,24 @@ impl ExitButton {
     }
 }
 
+impl EntityMainComponent for ExitButton {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner
+            .run(system!(Self::update_state))
+            .run(system!(Self::update_label))
+    }
+}
+
 struct ExitState(bool);
 
 #[test]
 fn run_entity_systems() {
     let mut app = TestApp::new();
-    let other_button_id = app.create_entity::<Button>("New game".into());
-    let exit_button_id = app.create_entity::<ExitButton>("Exit".into());
-    app.create_entity::<ButtonSelection>("New game".into());
+    let other_button_id = app.create_entity(Button::build("New game".into()));
+    let exit_button_id = app.create_entity(ExitButton::build("Exit".into()));
+    app.create_entity(ButtonSelection::build("New game".into()));
     app.update();
     app.assert_entity(other_button_id)
         .has::<Button, _>(|c| assert!(c.is_pressed))
@@ -98,9 +96,9 @@ fn run_entity_systems() {
 #[test]
 fn run_inherited_systems() {
     let mut app = TestApp::new();
-    let other_button_id = app.create_entity::<Button>("New game".into());
-    let exit_button_id = app.create_entity::<ExitButton>("Exit".into());
-    app.create_entity::<ButtonSelection>("Exit".into());
+    let other_button_id = app.create_entity(Button::build("New game".into()));
+    let exit_button_id = app.create_entity(ExitButton::build("Exit".into()));
+    app.create_entity(ButtonSelection::build("Exit".into()));
     app.update();
     app.assert_entity(other_button_id)
         .has::<Button, _>(|c| assert!(!c.is_pressed))

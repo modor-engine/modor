@@ -1,5 +1,5 @@
 use crate::storages::core::CoreStorage;
-use crate::{EntityBuilder, EntityMainComponent};
+use crate::{Built, EntityMainComponent};
 
 /// The entrypoint of the engine.
 ///
@@ -11,23 +11,22 @@ use crate::{EntityBuilder, EntityMainComponent};
 /// fn main() {
 ///     let mut app = App::new()
 ///         .with_thread_count(4)
-///         .with_entity::<Button>("New game".into())
-///         .with_entity::<Button>("Settings".into())
-///         .with_entity::<Button>("Exit".into());
+///         .with_entity(Button::build("New game".into()))
+///         .with_entity(Button::build("Settings".into()))
+///         .with_entity(Button::build("Exit".into()));
 ///     app.update();
 /// }
 ///
 /// struct Button;
 ///
+/// impl Button {
+///     fn build(label: String) -> impl Built<Self> {
+///         EntityBuilder::new(Self).with(label)
+///     }
+/// }
+///
 /// impl EntityMainComponent for Button {
 ///     type Type = ();
-///     type Data = String;
-///
-///     fn build(builder: EntityBuilder<'_, Self>, label: Self::Data) -> Built<'_> {
-///         builder
-///             .with(label)
-///             .with_self(Self)
-///     }
 /// }
 /// ```
 #[derive(Default)]
@@ -50,12 +49,13 @@ impl App {
         self
     }
 
-    /// Creates a new entity with main component of type `E` and building data `data`.
-    pub fn with_entity<E>(mut self, data: E::Data) -> Self
+    /// Creates a new entity with main component of type `E`.
+    pub fn with_entity<E, B>(mut self, entity: B) -> Self
     where
         E: EntityMainComponent,
+        B: Built<E>,
     {
-        E::build(EntityBuilder::<_, ()>::new(&mut self.core, None), data);
+        entity.build(&mut self.core, None);
         self
     }
 
@@ -73,18 +73,13 @@ impl App {
 #[cfg(test)]
 mod app_tests {
     use crate::storages::systems::SystemProperties;
-    use crate::{App, Built, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
+    use crate::{App, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
 
     #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
         type Type = ();
-        type Data = u32;
-
-        fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-            builder.with_self(Self(data))
-        }
 
         fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
             runner.run(SystemBuilder {
@@ -104,7 +99,7 @@ mod app_tests {
     fn configure_app() {
         let mut app = App::new()
             .with_thread_count(2)
-            .with_entity::<TestEntity>(10);
+            .with_entity(EntityBuilder::new(TestEntity(10)));
         assert_eq!(app.thread_count(), 2);
         let components = (&*app.core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10)]];

@@ -4,33 +4,35 @@ use modor::{App, Built, EntityBuilder, EntityMainComponent};
 #[derive(PartialEq, Debug)]
 struct Integer(u32);
 
+impl Integer {
+    fn build(integer: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self(integer))
+    }
+}
+
 impl EntityMainComponent for Integer {
     type Type = ();
-    type Data = u32;
-
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-        builder.with_self(Self(data))
-    }
 }
 
 #[derive(PartialEq, Debug)]
 struct Text(String);
 
+impl Text {
+    fn build(text: String) -> impl Built<Self> {
+        EntityBuilder::new(Self(text))
+    }
+}
+
 impl EntityMainComponent for Text {
     type Type = ();
-    type Data = String;
-
-    fn build(builder: EntityBuilder<'_, Self>, data: Self::Data) -> Built<'_> {
-        builder.with_self(Self(data))
-    }
 }
 
 #[test]
 fn configure_app() {
     let app = App::new()
         .with_thread_count(2)
-        .with_entity::<Integer>(10)
-        .with_entity::<Text>("text".into());
+        .with_entity(Integer::build(10))
+        .with_entity(Text::build("text".into()));
     let mut app = TestApp::from(app);
     app.assert_entity(0)
         .has::<Integer, _>(|i| assert_eq!(i, &Integer(10)));

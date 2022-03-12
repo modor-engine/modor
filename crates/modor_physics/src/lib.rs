@@ -15,7 +15,7 @@
 //! use modor::App;
 //! use modor_physics::PhysicsModule;
 //!
-//! let mut app = App::new().with_entity::<PhysicsModule>(());
+//! let mut app = App::new().with_entity(PhysicsModule::build());
 //! loop {
 //!     app.update();
 //!     # break;

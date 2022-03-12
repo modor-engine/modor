@@ -9,42 +9,32 @@ struct Position(usize, usize);
 
 struct Enemy;
 
-impl EntityMainComponent for Enemy {
-    type Type = ();
-    type Data = Position;
-
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
-        builder.with(position).with_self(Self)
-    }
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update))
-    }
-}
-
 impl Enemy {
+    fn build(position: Position) -> impl Built<Self> {
+        EntityBuilder::new(Self).with(position)
+    }
+
     fn update(position: &mut Position) {
         position.0 += 1;
         position.1 += 2;
     }
 }
 
-struct Selection(Position);
-
-impl EntityMainComponent for Selection {
+impl EntityMainComponent for Enemy {
     type Type = ();
-    type Data = Position;
-
-    fn build(builder: EntityBuilder<'_, Self>, position: Self::Data) -> Built<'_> {
-        builder.with_self(Self(position))
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update))
+        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update))
     }
 }
 
+struct Selection(Position);
+
 impl Selection {
+    fn build(position: Position) -> impl Built<Self> {
+        EntityBuilder::new(Self(position))
+    }
+
     fn update(&mut self, enemy_positions: Query<'_, &Position, With<Enemy>>) {
         if let Some(enemy_positions) = enemy_positions.iter().next() {
             self.0 .0 = enemy_positions.0;
@@ -53,24 +43,21 @@ impl Selection {
     }
 }
 
-struct DisplayManager(usize, Vec<String>);
-
-impl EntityMainComponent for DisplayManager {
+impl EntityMainComponent for Selection {
     type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with_self(Self(0, vec![]))
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run_as::<PositionDisplayAction>(system!(Self::print_positions))
-            .and_then(system!(Self::increment_frame_index))
+        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update))
     }
 }
 
+struct DisplayManager(usize, Vec<String>);
+
 impl DisplayManager {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self(0, vec![]))
+    }
+
     fn print_positions(
         &mut self,
         enemy_positions: Query<'_, &Position, With<Enemy>>,
@@ -90,15 +77,25 @@ impl DisplayManager {
     }
 }
 
+impl EntityMainComponent for DisplayManager {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner
+            .run_as::<PositionDisplayAction>(system!(Self::print_positions))
+            .and_then(system!(Self::increment_frame_index))
+    }
+}
+
 define_action!(PositionDisplayAction);
 define_action!(EnemyPositionUpdateAction: PositionDisplayAction);
 
 #[test]
 fn run_ordered_systems() {
     let mut app = TestApp::new();
-    let enemy_id = app.create_entity::<Enemy>(Position(0, 0));
-    let display_manager_id = app.create_entity::<DisplayManager>(());
-    let selection_id = app.create_entity::<Selection>(Position(0, 0));
+    let enemy_id = app.create_entity(Enemy::build(Position(0, 0)));
+    let display_manager_id = app.create_entity(DisplayManager::build());
+    let selection_id = app.create_entity(Selection::build(Position(0, 0)));
     app.update();
     app.update();
     app.assert_entity(enemy_id)

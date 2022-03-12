@@ -5,22 +5,21 @@ use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner
 
 struct Data(f32);
 
-impl EntityMainComponent for Data {
-    type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with_self(Self(1.0))
+impl Data {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self(1.0))
     }
 
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update))
+    fn update(&mut self) {
+        self.0 *= 2.0;
     }
 }
 
-impl Data {
-    fn update(&mut self) {
-        self.0 *= 2.0;
+impl EntityMainComponent for Data {
+    type Type = ();
+
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
+        runner.run(system!(Self::update))
     }
 }
 
@@ -29,19 +28,19 @@ macro_rules! create_entities {
         $(
             struct $variants(f32);
 
-            impl EntityMainComponent for $variants {
-                type Type = ();
-                type Data = ();
-
-                fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-                    builder
-                        .inherit_from::<Data>(())
-                        .with_self(Self(0.0))
+            impl $variants {
+                fn build() -> impl Built<Self> {
+                    EntityBuilder::new(Self(0.0))
+                        .inherit_from(Data::build())
                 }
             }
 
+            impl EntityMainComponent for $variants {
+                type Type = ();
+            }
+
             for _ in 0..20 {
-                $app = $app.with_entity::<$variants>(());
+                $app = $app.with_entity($variants::build());
             }
         )*
     };

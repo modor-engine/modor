@@ -18,13 +18,14 @@ use std::ops::Deref;
 /// #
 /// struct GameScore(u32);
 ///
+/// impl GameScore {
+///     fn build(score: u32) -> impl Built<Self> {
+///         EntityBuilder::new(Self(score))
+///     }
+/// }
+///
 /// impl EntityMainComponent for GameScore {
 ///     type Type = Singleton;
-///     type Data = u32;
-///
-///     fn build(builder: EntityBuilder<'_, Self>, score: Self::Data) -> Built<'_> {
-///         builder.with_self(Self(score))
-///     }
 /// }
 ///
 /// fn print_score(score: Single<'_, GameScore>) {

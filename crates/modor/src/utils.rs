@@ -166,14 +166,6 @@ pub(crate) mod test_utils {
             #[allow(unused_qualifications)]
             impl crate::EntityMainComponent for $name {
                 type Type = $type;
-                type Data = u32;
-
-                fn build(
-                    builder: crate::EntityBuilder<'_, Self>,
-                    data: Self::Data,
-                ) -> crate::Built<'_> {
-                    builder.with_self(Self(data))
-                }
             }
         };
     }

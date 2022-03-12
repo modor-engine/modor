@@ -11,13 +11,14 @@ struct E(f32);
 
 struct Item1;
 
+impl Item1 {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self).with(A(0.0)).with(B(0.0))
+    }
+}
+
 impl EntityMainComponent for Item1 {
     type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder.with(A(0.0)).with(B(0.0)).with_self(Self)
-    }
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce))
@@ -26,17 +27,17 @@ impl EntityMainComponent for Item1 {
 
 struct Item2;
 
-impl EntityMainComponent for Item2 {
-    type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder
+impl Item2 {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))
-            .with_self(Self)
     }
+}
+
+impl EntityMainComponent for Item2 {
+    type Type = ();
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce))
@@ -45,18 +46,18 @@ impl EntityMainComponent for Item2 {
 
 struct Item3;
 
-impl EntityMainComponent for Item3 {
-    type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder
+impl Item3 {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))
             .with(D(0.0))
-            .with_self(Self)
     }
+}
+
+impl EntityMainComponent for Item3 {
+    type Type = ();
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce))
@@ -65,18 +66,18 @@ impl EntityMainComponent for Item3 {
 
 struct Item4;
 
-impl EntityMainComponent for Item4 {
-    type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder
+impl Item4 {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))
             .with(E(0.0))
-            .with_self(Self)
     }
+}
+
+impl EntityMainComponent for Item4 {
+    type Type = ();
 
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner.run(system!(ab)).run(system!(cd)).run(system!(ce))
@@ -98,16 +99,16 @@ fn ce(c: &mut C, e: &mut E) {
 fn run(c: &mut Criterion) {
     let mut app = App::new().with_thread_count(3);
     for _ in 0..10_000 {
-        app = app.with_entity::<Item1>(());
+        app = app.with_entity(Item1::build());
     }
     for _ in 0..10_000 {
-        app = app.with_entity::<Item2>(());
+        app = app.with_entity(Item2::build());
     }
     for _ in 0..10_000 {
-        app = app.with_entity::<Item3>(());
+        app = app.with_entity(Item3::build());
     }
     for _ in 0..10_000 {
-        app = app.with_entity::<Item4>(());
+        app = app.with_entity(Item4::build());
     }
     c.bench_function("parallel_system_iteration", |b| b.iter(|| app.update()));
 }

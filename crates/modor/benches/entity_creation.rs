@@ -17,22 +17,22 @@ struct Velocity(Vec3);
 
 struct Object(Mat4);
 
+impl Object {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self(Mat4(
+            Vec4(1., 0., 0., 0.),
+            Vec4(0., 1., 0., 0.),
+            Vec4(0., 0., 1., 0.),
+            Vec4(0., 0., 0., 1.),
+        )))
+        .with(Position(Vec3(1., 0., 0.)))
+        .with(Rotation(Vec3(1., 0., 0.)))
+        .with(Velocity(Vec3(1., 0., 0.)))
+    }
+}
+
 impl EntityMainComponent for Object {
     type Type = ();
-    type Data = ();
-
-    fn build(builder: EntityBuilder<'_, Self>, _: Self::Data) -> Built<'_> {
-        builder
-            .with(Position(Vec3(1., 0., 0.)))
-            .with(Rotation(Vec3(1., 0., 0.)))
-            .with(Velocity(Vec3(1., 0., 0.)))
-            .with_self(Self(Mat4(
-                Vec4(1., 0., 0., 0.),
-                Vec4(0., 1., 0., 0.),
-                Vec4(0., 0., 1., 0.),
-                Vec4(0., 0., 0., 1.),
-            )))
-    }
 }
 
 fn run(c: &mut Criterion) {
@@ -40,7 +40,7 @@ fn run(c: &mut Criterion) {
         b.iter(|| {
             let mut app = App::new();
             for _ in 0..10_000 {
-                app = app.with_entity::<Object>(());
+                app = app.with_entity(Object::build());
             }
         });
     });
