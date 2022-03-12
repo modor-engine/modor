@@ -4,7 +4,9 @@ set -xeu
 output_type=$1
 output_path=$2
 
-grcov . \
+ignore_args=$(echo $UNTESTED_CRATES | sed -r "s|([^;]*)|--ignore ./crates/\1|g" | sed "s|;| |g")
+
+grcov . $ignore_args \
     --binary-path ./target/debug/ \
     --source-dir . \
     --output-type "$output_type" \

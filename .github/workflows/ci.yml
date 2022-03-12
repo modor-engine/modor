@@ -18,6 +18,7 @@ env:
   COV_THRESHOLD: 100.0
   MUTAGEN_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
+  UNTESTED_CRATES: modor_derive
 
 jobs:
 
