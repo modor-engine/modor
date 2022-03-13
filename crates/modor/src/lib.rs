@@ -152,7 +152,7 @@ pub use systems::*;
 /// You can use `run*` attributes this way:
 ///
 /// ```rust
-/// # use modor::{entity, define_action, EntityBuilder, Built};
+/// # use modor::{entity, action, EntityBuilder, Built};
 /// #
 /// struct MyEntity;
 ///
@@ -188,8 +188,11 @@ pub use systems::*;
 ///     }
 /// }
 ///
-/// define_action!(Action1);
-/// define_action!(Action2: Action1);
+/// #[action]
+/// struct Action1;
+///
+/// #[action(Action1)]
+/// struct Action2;
 /// ```
 ///
 /// Here are some valid systems:
@@ -282,3 +285,46 @@ pub use modor_derive::entity;
 /// }
 /// ```
 pub use modor_derive::singleton;
+
+/// Defines a type implementing [`Action`](crate::Action).
+///
+/// Dependent actions can be passed as argument of this macro.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::action;
+/// #
+/// #[action]
+/// struct A;
+///
+/// #[action]
+/// pub struct B;
+///
+/// #[action(A, B)]
+/// pub(crate) struct C;
+/// ```
+///
+/// This is equivalent to:
+/// ```rust
+/// # use modor::{Action, DependsOn};
+/// #
+/// struct A;
+///
+/// impl Action for A {
+///     type Constraint = ();
+/// }
+///
+/// pub struct B;
+///
+/// impl Action for B {
+///     type Constraint = ();
+/// }
+///
+/// pub(crate) struct C;
+///
+/// impl Action for C {
+///     type Constraint = (DependsOn<A>, DependsOn<B>);
+/// }
+/// ```
+pub use modor_derive::action;

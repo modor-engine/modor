@@ -4,7 +4,7 @@ use std::any::{Any, TypeId};
 ///
 /// Actions are used to constrain systems.
 ///
-/// The [`define_action!`](crate::define_action!) macro is a convenient way to define an action.
+/// The [`action`](macro@crate::action) proc macro is a convenient way to define an action.
 ///
 /// ## Examples
 ///
@@ -50,54 +50,6 @@ where
     fn dependency_types() -> Vec<TypeId> {
         vec![TypeId::of::<A>()]
     }
-}
-
-/// Defines a type implementing [`Action`](crate::Action) in a concise way.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::define_action;
-/// #
-/// define_action!(A);
-/// define_action!(B, pub);
-/// define_action!(C: A + B, pub(crate));
-/// ```
-///
-/// This is equivalent to:
-/// ```rust
-/// # use modor::{Action, DependsOn};
-/// #
-/// struct A;
-///
-/// impl Action for A {
-///     type Constraint = ();
-/// }
-///
-/// pub struct B;
-///
-/// impl Action for B {
-///     type Constraint = ();
-/// }
-///
-/// pub(crate) struct C;
-///
-/// impl Action for C {
-///     type Constraint = (DependsOn<A>, DependsOn<B>);
-/// }
-/// ```
-#[macro_export]
-macro_rules! define_action {
-    ($name:ident $(: $dependency:ident $(+ $dependencies:ident)*)? $(, $visibility:vis)?) => {
-        $($visibility)? struct $name;
-
-        impl ::modor::Action for $name {
-            type Constraint = ($(
-                ::modor::DependsOn<$dependency>,
-                $(::modor::DependsOn<$dependencies>),*
-            )?);
-        }
-    };
 }
 
 #[cfg(test)]
