@@ -68,8 +68,11 @@ impl DisplayManager {
     }
 }
 
-define_action!(PositionDisplayAction);
-define_action!(EnemyPositionUpdateAction: PositionDisplayAction);
+#[action]
+struct PositionDisplayAction;
+
+#[action(PositionDisplayAction)]
+struct EnemyPositionUpdateAction;
 
 #[test]
 fn run_ordered_systems() {

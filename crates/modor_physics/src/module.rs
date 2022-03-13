@@ -3,7 +3,7 @@ use crate::module::internal::{
     UpdateVelocitiesAction,
 };
 use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
-use modor::{Action, Built, DependsOn, Entity, EntityBuilder, Query, Single, With};
+use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 
 /// The main entity of the physics module.
 ///
@@ -96,7 +96,7 @@ impl PhysicsModule {
     }
 
     #[run_as(PhysicsUpdateAction)]
-    fn assess_physics_update_is_done() {}
+    fn finish_update() {}
 
     fn sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
     where
@@ -109,23 +109,23 @@ impl PhysicsModule {
 }
 
 /// An action done when the positions and scales have been updated.
+#[action(UpdateAbsolutePositionsAction)]
 pub struct PhysicsUpdateAction;
-
-impl Action for PhysicsUpdateAction {
-    type Constraint = DependsOn<UpdateAbsolutePositionsAction>;
-}
 
 mod internal {
     use crate::UpdateDeltaTimeAction;
-    use modor::define_action;
 
-    define_action!(UpdateVelocitiesAction: UpdateDeltaTimeAction, pub);
-    define_action!(UpdatePositionsAction: UpdateVelocitiesAction, pub);
-    define_action!(UpdateAbsoluteScalesAction: UpdateDeltaTimeAction, pub);
-    define_action!(
-        UpdateAbsolutePositionsAction: UpdateAbsoluteScalesAction,
-        pub
-    );
+    #[action(UpdateDeltaTimeAction)]
+    pub struct UpdateVelocitiesAction;
+
+    #[action(UpdateVelocitiesAction)]
+    pub struct UpdatePositionsAction;
+
+    #[action(UpdateDeltaTimeAction)]
+    pub struct UpdateAbsoluteScalesAction;
+
+    #[action(UpdatePositionsAction, UpdateAbsoluteScalesAction)]
+    pub struct UpdateAbsolutePositionsAction;
 }
 
 #[cfg(test)]
