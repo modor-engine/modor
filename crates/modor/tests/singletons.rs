@@ -1,10 +1,12 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{
-    system, Built, EntityBuilder, EntityMainComponent, SingleMut, Singleton, SystemRunner,
-};
+use modor::{Built, EntityBuilder, SingleMut};
 
 struct MainModule;
 
+#[singleton]
 impl MainModule {
     fn build(increments: Vec<u32>) -> impl Built<Self> {
         EntityBuilder::new(Self)
@@ -17,39 +19,26 @@ impl MainModule {
     }
 }
 
-impl EntityMainComponent for MainModule {
-    type Type = Singleton;
-}
-
 struct Total(u32);
 
+#[singleton]
 impl Total {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self(0))
     }
 }
 
-impl EntityMainComponent for Total {
-    type Type = Singleton;
-}
-
 struct Incrementer(u32);
 
+#[entity]
 impl Incrementer {
     fn build(increment: u32) -> impl Built<Self> {
         EntityBuilder::new(Self(increment))
     }
 
+    #[run]
     fn update(&self, mut total: SingleMut<'_, Total>) {
         total.0 += self.0;
-    }
-}
-
-impl EntityMainComponent for Incrementer {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update))
     }
 }
 

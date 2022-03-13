@@ -20,11 +20,12 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
         .iter()
         .filter_map(|i| {
             if let ImplItem::Method(method) = i {
-                return match method.attrs.len().cmp(&1) {
-                    Ordering::Equal => Some(generate_system_call(method, &method.attrs[0])),
+                let attributes = supported_attributes(&method.attrs);
+                return match attributes.len().cmp(&1) {
+                    Ordering::Equal => Some(generate_system_call(method, attributes[0])),
                     Ordering::Less => None,
                     Ordering::Greater => {
-                        emit_error!(method.attrs[1], "found more than one `run*` attribute");
+                        emit_error!(attributes[1], "found more than one `run*` attribute");
                         None
                     }
                 };
@@ -32,6 +33,13 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
             None
         })
         .flatten()
+}
+
+fn supported_attributes(attributes: &[Attribute]) -> Vec<&Attribute> {
+    attributes
+        .iter()
+        .filter(|a| attributes::is_supported(a))
+        .collect()
 }
 
 fn generate_system_call(method: &ImplItemMethod, attribute: &Attribute) -> Option<TokenStream> {

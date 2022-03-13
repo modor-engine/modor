@@ -157,7 +157,7 @@ pub(crate) mod test_utils {
 
     macro_rules! create_entity_type {
         ($name:ident) => {
-            create_entity_type!($name, ());
+            create_entity_type!($name, crate::NotSingleton);
         };
         ($name:ident, $type:ty) => {
             #[derive(Debug, PartialEq, Clone)]

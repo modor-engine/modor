@@ -1,90 +1,92 @@
 #![allow(clippy::trivially_copy_pass_by_ref)]
 
+#[macro_use]
+extern crate modor;
+
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{system, EntityMainComponent, Query, Single, SingleMut, Singleton, World};
+use modor::{Query, Single, SingleMut, World};
 use std::path::PathBuf;
 
 struct SingletonEntity1;
 
-impl EntityMainComponent for SingletonEntity1 {
-    type Type = Singleton;
-}
+#[singleton]
+impl SingletonEntity1 {}
 
 struct SingletonEntity2;
 
-impl EntityMainComponent for SingletonEntity2 {
-    type Type = Singleton;
-}
+#[singleton]
+impl SingletonEntity2 {}
 
-fn no_param() {}
+struct EntityWithValidSystems;
 
-fn mandatory_component(_: &u32) {}
+#[entity]
+impl EntityWithValidSystems {
+    #[run]
+    fn no_param() {}
 
-fn mandatory_component_in_tuple(_: Option<&u32>, _: (&mut i64,)) {}
+    #[run]
+    fn mandatory_component(_: &u32) {}
 
-fn mandatory_component_in_sub_tuple(_: Option<&u32>, _: (World<'_>, (&mut i64,))) {}
+    #[run]
+    fn mandatory_component_in_tuple(_: Option<&u32>, _: (&mut i64,)) {}
 
-fn mandatory_component_in_query(_: Query<'_, &mut i64>) {}
+    #[run]
+    fn mandatory_component_in_sub_tuple(_: Option<&u32>, _: (World<'_>, (&mut i64,))) {}
 
-fn mandatory_component_in_tuple_in_query(_: Query<'_, (&mut i64,)>) {}
+    #[run]
+    fn mandatory_component_in_query(_: Query<'_, &mut i64>) {}
 
-fn mandatory_component_in_sub_tuple_in_query(_: Query<'_, (&u32, (&mut i64,))>) {}
+    #[run]
+    fn mandatory_component_in_tuple_in_query(_: Query<'_, (&mut i64,)>) {}
 
-fn same_const_component(_: &u32, _: &u32) {}
+    #[run]
+    fn mandatory_component_in_sub_tuple_in_query(_: Query<'_, (&u32, (&mut i64,))>) {}
 
-fn different_mut_components(_: &mut u32, _: &mut i64) {}
+    #[run]
+    fn same_const_component(_: &u32, _: &u32) {}
 
-fn same_const_singleton(
-    _: Single<'_, SingletonEntity1>,
-    _: Single<'_, SingletonEntity1>,
-    _: &SingletonEntity1,
-) {
-}
+    #[run]
+    fn different_mut_components(_: &mut u32, _: &mut i64) {}
 
-fn different_mut_singletons(
-    _: SingleMut<'_, SingletonEntity1>,
-    _: SingleMut<'_, SingletonEntity2>,
-) {
-}
+    #[run]
+    fn same_const_singleton(
+        _: Single<'_, SingletonEntity1>,
+        _: Single<'_, SingletonEntity1>,
+        _: &SingletonEntity1,
+    ) {
+    }
 
-fn same_const_singleton_option(
-    _: Option<Single<'_, SingletonEntity1>>,
-    _: Option<Single<'_, SingletonEntity1>>,
-    _: &SingletonEntity1,
-) {
-}
+    #[run]
+    fn different_mut_singletons(
+        _: SingleMut<'_, SingletonEntity1>,
+        _: SingleMut<'_, SingletonEntity2>,
+    ) {
+    }
 
-fn different_mut_singleton_options(
-    _: Option<SingleMut<'_, SingletonEntity1>>,
-    _: Option<SingleMut<'_, SingletonEntity2>>,
-) {
-}
+    #[run]
+    fn same_const_singleton_option(
+        _: Option<Single<'_, SingletonEntity1>>,
+        _: Option<Single<'_, SingletonEntity1>>,
+        _: &SingletonEntity1,
+    ) {
+    }
 
-fn all_entity_param_types(_: &mut u32, _: Option<&mut i64>, _: &i16, _: Option<&i16>) {}
+    #[run]
+    fn different_mut_singleton_options(
+        _: Option<SingleMut<'_, SingletonEntity1>>,
+        _: Option<SingleMut<'_, SingletonEntity2>>,
+    ) {
+    }
 
-fn entity_params_with_query(_: &mut u32, _: Query<'_, (&mut i64,)>) {}
+    #[run]
+    fn all_entity_param_types(_: &mut u32, _: Option<&mut i64>, _: &i16, _: Option<&i16>) {}
 
-fn entity_params_with_world(_: &mut u32, _: World<'_>) {}
+    #[run]
+    fn entity_params_with_query(_: &mut u32, _: Query<'_, (&mut i64,)>) {}
 
-#[test]
-fn create_valid_systems() {
-    system!(no_param);
-    system!(mandatory_component);
-    system!(mandatory_component_in_tuple);
-    system!(mandatory_component_in_sub_tuple);
-    system!(mandatory_component_in_query);
-    system!(mandatory_component_in_tuple_in_query);
-    system!(mandatory_component_in_sub_tuple_in_query);
-    system!(same_const_component);
-    system!(different_mut_components);
-    system!(same_const_singleton);
-    system!(different_mut_singletons);
-    system!(same_const_singleton_option);
-    system!(different_mut_singleton_options);
-    system!(all_entity_param_types);
-    system!(entity_params_with_query);
-    system!(entity_params_with_world);
+    #[run]
+    fn entity_params_with_world(_: &mut u32, _: World<'_>) {}
 }
 
 #[test]

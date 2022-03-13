@@ -11,80 +11,30 @@ use std::marker::PhantomData;
 
 /// A trait for defining the main component of an entity type.
 ///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// # struct Position(f32, f32);
-/// # struct Velocity(f32, f32);
-/// #
-/// struct Object {
-///     name: String,
-/// }
-///
-/// impl Object {
-///     fn build(name: String) -> impl Built<Self> {
-///         EntityBuilder::new(Self{name})
-///             .with(Position(0., 0.))
-///             .with(Velocity(1., 2.))
-///     }
-///
-///     fn update_position(&self, position: &mut Position, velocity: &Velocity) {
-///         position.0 += velocity.0;
-///         position.1 += velocity.1;
-///         println!("New position of '{}': ({}, {})", self.name, position.0, position.1);
-///     }
-///
-///     fn update_state(&self, position: &Position, entity: Entity<'_>, mut world: World<'_>) {
-///         if position.0 > 10. {
-///             world.delete_entity(entity.id());
-///             println!("'{}' has been deleted", self.name);
-///         }
-///     }
-/// }
-///
-/// impl EntityMainComponent for Object {
-///     type Type = ();
-///
-///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-///         runner
-///             .run(system!(Self::update_position))
-///             .run(system!(Self::update_state))
-///     }
-/// }
-/// ```
+/// This trait shouldn't be directly implemented.<br>
+/// Instead, you can use [`entity`](macro@crate::entity) and [`singleton`](macro@crate::singleton)
+/// proc macros.
 pub trait EntityMainComponent: Sized + Any + Sync + Send {
-    /// The entity type, can be either `()` (standard entity) or [`Singleton`](crate::Singleton).
+    #[doc(hidden)]
     type Type: EntityType;
 
-    /// Defines systems to run during update.
-    ///
-    /// The systems are only run when a component of type `Self` exists in at least one entity.
+    #[doc(hidden)]
     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
         runner
     }
 }
 
-/// A trait implemented for all entity types.
+#[doc(hidden)]
 pub trait EntityType: Any + SealedEntityType {}
 
-impl SealedEntityType for () {}
+#[doc(hidden)]
+pub struct NotSingleton;
 
-impl EntityType for () {}
+impl SealedEntityType for NotSingleton {}
 
-/// The singleton entity type.
-///
-/// When you create a singleton entity, any existing instance is deleted first, except with the
-/// [`EntityBuilder::with_dependency`](crate::EntityBuilder::with_dependency) method.<br>
-/// The instance can be directly accessed in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut) parameter types.
-///
-/// It has to be noted that an entity main component defined as singleton can be added to entities
-/// as a simple component (e.g. using [`EntityBuilder::with`](crate::EntityBuilder::with)).<br>
-/// In this case, the entity will not be tracked as a singleton by the engine, and so the component
-/// will not be accessible in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut).
+impl EntityType for NotSingleton {}
+
+#[doc(hidden)]
 pub struct Singleton;
 
 impl SealedEntityType for Singleton {}
@@ -97,7 +47,7 @@ impl EntityType for Singleton {}
 ///
 /// # Examples
 ///
-/// See [`EntityMainComponent`](crate::EntityMainComponent).
+/// See [`EntityBuilder`](crate::EntityBuilder).
 pub trait Built<E>: BuildEntity
 where
     E: EntityMainComponent,
@@ -108,7 +58,28 @@ where
 ///
 /// # Examples
 ///
-/// See [`EntityMainComponent`](crate::EntityMainComponent).
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// # struct Position(f32, f32);
+/// # struct Velocity(f32, f32);
+/// # struct Acceleration(f32, f32);
+/// #
+/// struct Object {
+///     name: String,
+/// }
+///
+/// #[entity]
+/// impl Object {
+///     fn build(name: String, is_accelerating: bool) -> impl Built<Self> {
+///         EntityBuilder::new(Self{name})
+///             .with(Position(0., 0.))
+///             .with(Velocity(1., 2.))
+///             .with_option(is_accelerating.then(|| Acceleration(0.01, 0.08)))
+///     }
+/// }
+/// ```
 pub struct EntityBuilder<E, P, O> {
     part: P,
     other_parts: O,
@@ -301,10 +272,11 @@ where
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Built, EntityBuilder, EntityMainComponent};
+/// # use modor::{Built, EntityBuilder, entity};
 /// #
 /// struct Level1;
 ///
+/// #[entity]
 /// impl Level1 {
 ///     fn build(child_count: u32) -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
@@ -316,20 +288,13 @@ where
 ///     }
 /// }
 ///
-/// impl EntityMainComponent for Level1 {
-///     type Type = ();
-/// }
-///
 /// struct Level2(u32);
 ///
+/// #[entity]
 /// impl Level2 {
 ///     fn build(id: u32) -> impl Built<Self> {
 ///         EntityBuilder::new(Self(id))
 ///     }
-/// }
-///
-/// impl EntityMainComponent for Level2 {
-///     type Type = ();
 /// }
 /// ```
 pub struct ChildBuilder<'a> {

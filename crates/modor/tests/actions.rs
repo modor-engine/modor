@@ -1,40 +1,36 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{
-    define_action, system, Built, DependsOn, EntityBuilder, EntityMainComponent, Query,
-    SystemRunner, With,
-};
+use modor::{Built, EntityBuilder, Query, With};
 
 #[derive(Debug, PartialEq)]
 struct Position(usize, usize);
 
 struct Enemy;
 
+#[entity]
 impl Enemy {
     fn build(position: Position) -> impl Built<Self> {
         EntityBuilder::new(Self).with(position)
     }
 
+    #[run_as(EnemyPositionUpdateAction)]
     fn update(position: &mut Position) {
         position.0 += 1;
         position.1 += 2;
     }
 }
 
-impl EntityMainComponent for Enemy {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_as::<EnemyPositionUpdateAction>(system!(Self::update))
-    }
-}
-
 struct Selection(Position);
 
+#[entity]
 impl Selection {
     fn build(position: Position) -> impl Built<Self> {
         EntityBuilder::new(Self(position))
     }
 
+    #[run_after(EnemyPositionUpdateAction)]
     fn update(&mut self, enemy_positions: Query<'_, &Position, With<Enemy>>) {
         if let Some(enemy_positions) = enemy_positions.iter().next() {
             self.0 .0 = enemy_positions.0;
@@ -43,21 +39,15 @@ impl Selection {
     }
 }
 
-impl EntityMainComponent for Selection {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_constrained::<DependsOn<EnemyPositionUpdateAction>>(system!(Self::update))
-    }
-}
-
 struct DisplayManager(usize, Vec<String>);
 
+#[entity]
 impl DisplayManager {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self(0, vec![]))
     }
 
+    #[run_as(PositionDisplayAction)]
     fn print_positions(
         &mut self,
         enemy_positions: Query<'_, &Position, With<Enemy>>,
@@ -72,18 +62,9 @@ impl DisplayManager {
         }
     }
 
+    #[run_after_previous]
     fn increment_frame_index(&mut self) {
         self.0 += 1;
-    }
-}
-
-impl EntityMainComponent for DisplayManager {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run_as::<PositionDisplayAction>(system!(Self::print_positions))
-            .and_then(system!(Self::increment_frame_index))
     }
 }
 

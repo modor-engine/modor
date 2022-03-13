@@ -8,16 +8,14 @@ mod attributes;
 mod impl_block;
 mod systems;
 
-// TODO: improve doc
-
-/// Defines an entity.
+#[allow(missing_docs)]
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
 pub fn entity(_attr: TokenStream, item: TokenStream) -> TokenStream {
     implement_entity_main_component(item, false)
 }
 
-/// Defines a singleton entity.
+#[allow(missing_docs)]
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
 pub fn singleton(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -31,7 +29,7 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
     let entity_type = if is_singleton {
         quote!(::modor::Singleton)
     } else {
-        quote!(())
+        quote!(::modor::NotSingleton)
     };
     let update_statement = systems::generate_update_statement(&item);
     let output = quote! {

@@ -6,6 +6,9 @@ use crate::{Built, EntityMainComponent};
 /// # Examples
 ///
 /// ```rust
+/// # #[macro_use]
+/// # extern crate modor;
+/// #
 /// # use modor::*;
 /// #
 /// fn main() {
@@ -19,14 +22,11 @@ use crate::{Built, EntityMainComponent};
 ///
 /// struct Button;
 ///
+/// #[entity]
 /// impl Button {
 ///     fn build(label: String) -> impl Built<Self> {
 ///         EntityBuilder::new(Self).with(label)
 ///     }
-/// }
-///
-/// impl EntityMainComponent for Button {
-///     type Type = ();
 /// }
 /// ```
 #[derive(Default)]
@@ -73,13 +73,15 @@ impl App {
 #[cfg(test)]
 mod app_tests {
     use crate::storages::systems::SystemProperties;
-    use crate::{App, EntityBuilder, EntityMainComponent, SystemBuilder, SystemRunner};
+    use crate::{
+        App, EntityBuilder, EntityMainComponent, NotSingleton, SystemBuilder, SystemRunner,
+    };
 
     #[derive(Debug, PartialEq, Clone)]
     struct TestEntity(u32);
 
     impl EntityMainComponent for TestEntity {
-        type Type = ();
+        type Type = NotSingleton;
 
         fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
             runner.run(SystemBuilder {

@@ -21,6 +21,10 @@
 //!     # break;
 //! }
 //! ```
+
+#[macro_use]
+extern crate modor;
+
 mod components;
 mod entities;
 mod module;

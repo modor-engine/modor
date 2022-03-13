@@ -1,5 +1,8 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, Query, SystemRunner, With};
+use modor::{Built, Entity, EntityBuilder, Query, With};
 
 #[derive(PartialEq)]
 struct Position {
@@ -27,6 +30,7 @@ impl Size {
 
 struct Point;
 
+#[entity]
 impl Point {
     fn build(position: Position) -> impl Built<Self> {
         EntityBuilder::new(Self).with(position).with(Size {
@@ -36,15 +40,12 @@ impl Point {
     }
 }
 
-impl EntityMainComponent for Point {
-    type Type = ();
-}
-
 struct Object {
     is_collided_1: bool,
     is_collided_2: bool,
 }
 
+#[entity]
 impl Object {
     fn build(position: Position, size: Size) -> impl Built<Self> {
         EntityBuilder::new(Self {
@@ -55,6 +56,7 @@ impl Object {
         .with(size)
     }
 
+    #[run]
     fn detect_collisions_v1(
         mut objects: Query<'_, (&mut Self, &Position, &Size, Entity<'_>)>,
         other_objects: Query<'_, (&Position, &Size, Entity<'_>), With<Self>>,
@@ -73,6 +75,7 @@ impl Object {
         }
     }
 
+    #[run]
     fn detect_collisions_v2(
         &mut self,
         pos: &Position,
@@ -98,16 +101,6 @@ impl Object {
         let bottom = pos1.y + size1.height;
         let is_bottom_collision = bottom >= pos2.y && bottom < pos2.y + size2.height;
         (is_left_collision || is_right_collision) && (is_top_collision || is_bottom_collision)
-    }
-}
-
-impl EntityMainComponent for Object {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run(system!(Self::detect_collisions_v1))
-            .run(system!(Self::detect_collisions_v2))
     }
 }
 

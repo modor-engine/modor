@@ -4,56 +4,7 @@ use crate::storages::core::CoreStorage;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 
-/// A type for defining systems to run during each [`App`](crate::App) update.
-///
-/// Cyclic dependencies between systems are detected at compile time.<br>
-/// The definition order of the systems can be different than their execution order if systems
-/// are defined without constraint.
-///
-/// See [`system!`](crate::system!) for more information about systems.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::{
-/// #     Built, DependsOn, EntityBuilder, EntityMainComponent, SystemRunner, system, define_action
-/// # };
-/// #
-/// # fn system1() {}
-/// # fn system2() {}
-/// # fn system3() {}
-/// # fn system4() {}
-/// # fn system5() {}
-/// #
-/// struct MyEntity;
-///
-/// impl MyEntity {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self)
-///     }
-/// }
-///
-/// impl EntityMainComponent for MyEntity {
-///     type Type = ();
-///
-///     fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-///         runner
-///             // `system1` has no constraint
-///             .run(system!(system1))
-///             // `system2` will be run after `system3` because of `Action2::Constraint`
-///             .run_as::<Action2>(system!(system2))
-///             // `system3` has no constraint because of `Action1::Constraint`
-///             .run_as::<Action1>(system!(system3))
-///             // `system4` will be run after `system2` and `system3`
-///             .run_constrained::<(DependsOn<Action1>, DependsOn<Action2>)>(system!(system4))
-///             // `system5` will be run after `system4`
-///             .and_then(system!(system5))
-///     }
-/// }
-///
-/// define_action!(Action1);
-/// define_action!(Action2: Action1);
-/// ```
+#[doc(hidden)]
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
     pub(crate) entity_type_idx: ComponentTypeIdx,
@@ -61,18 +12,12 @@ pub struct SystemRunner<'a> {
 }
 
 impl<'a> SystemRunner<'a> {
-    /// Adds a system.
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    #[doc(hidden)]
     pub fn run(self, system: SystemBuilder) -> SystemRunner<'a> {
         self.run_with_action(system, None, ActionDependencies::Types(vec![]))
     }
 
-    /// Adds a system associated to an action.
-    ///
-    /// The constraints of the system are defined by `<A as Action>::Constraint`.
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    #[doc(hidden)]
     pub fn run_as<A>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         A: Action,
@@ -84,9 +29,7 @@ impl<'a> SystemRunner<'a> {
         )
     }
 
-    /// Adds a system with constraints `C`.
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    #[doc(hidden)]
     pub fn run_constrained<C>(self, system: SystemBuilder) -> SystemRunner<'a>
     where
         C: ActionConstraint,
@@ -98,14 +41,7 @@ impl<'a> SystemRunner<'a> {
         )
     }
 
-    /// Adds a system to run after the previous defined one.
-    ///
-    /// The added system does not have an associated action, and the action of the previous
-    /// defined system is not inherited.<br>
-    /// If no system has been previously defined, this method has the same effect as
-    /// [`SystemRunner::run`](crate::SystemRunner::run).
-    ///
-    /// The [`system!`](crate::system!) macro must be used to define the `system`.
+    #[doc(hidden)]
     pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a> {
         if let Some(latest_action_idx) = self.latest_action_idx {
             self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))

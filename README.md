@@ -45,6 +45,9 @@ You can also include the modules you want, like:
 ## Example
 
  ```rust
+#[macro_use]
+extern crate modor;
+
 use modor::*;
 
 fn main() {
@@ -70,6 +73,7 @@ struct Character {
     ammunition: u32,
 }
 
+#[entity]
 impl Character {
     fn build(position: Position, type_: CharacterType) -> impl Built<Self> {
         EntityBuilder::new(Self { ammunition: 10 })
@@ -77,19 +81,12 @@ impl Character {
             .with(position)
     }
 
+    #[run]
     fn fire_when_enemy(&mut self, position: &Position, _: &Enemy) {
         if self.ammunition > 0 {
             self.ammunition -= 1;
             println!("Enemy at {:?} has fired", position);
         }
-    }
-}
-
-impl EntityMainComponent for Character {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::fire_when_enemy))
     }
 }
 ```

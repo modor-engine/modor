@@ -1,7 +1,10 @@
 //! Tests performance of entity creation.
 
+#[macro_use]
+extern crate modor;
+
 use criterion::{criterion_main, Criterion};
-use modor::{App, Built, EntityBuilder, EntityMainComponent};
+use modor::{App, Built, EntityBuilder};
 
 struct Vec3(f32, f32, f32);
 
@@ -17,6 +20,7 @@ struct Velocity(Vec3);
 
 struct Object(Mat4);
 
+#[entity]
 impl Object {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self(Mat4(
@@ -29,10 +33,6 @@ impl Object {
         .with(Rotation(Vec3(1., 0., 0.)))
         .with(Velocity(Vec3(1., 0., 0.)))
     }
-}
-
-impl EntityMainComponent for Object {
-    type Type = ();
 }
 
 fn run(c: &mut Criterion) {
