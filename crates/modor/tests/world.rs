@@ -1,61 +1,50 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, SystemRunner, World};
+use modor::{Built, Entity, EntityBuilder, World};
 
 #[derive(PartialEq, Debug)]
 struct Parent(u32);
 
+#[entity]
 impl Parent {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self(id))
     }
 }
 
-impl EntityMainComponent for Parent {
-    type Type = ();
-}
-
 struct EntityToDelete;
 
+#[entity]
 impl EntityToDelete {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(Parent::build(id))
     }
 
+    #[run]
     fn delete(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_entity(entity.id());
     }
 }
 
-impl EntityMainComponent for EntityToDelete {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::delete))
-    }
-}
-
 struct EntityWithAddedComponent;
 
+#[entity]
 impl EntityWithAddedComponent {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(Parent::build(id))
     }
 
+    #[run]
     fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
         world.add_component(entity.id(), format!("id: {}", parent.0));
     }
 }
 
-impl EntityMainComponent for EntityWithAddedComponent {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::add_component))
-    }
-}
-
 struct EntityWithExistingComponentDeleted;
 
+#[entity]
 impl EntityWithExistingComponentDeleted {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
@@ -63,46 +52,35 @@ impl EntityWithExistingComponentDeleted {
             .with(String::from("existing"))
     }
 
+    #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<String>(entity.id());
-    }
-}
-
-impl EntityMainComponent for EntityWithExistingComponentDeleted {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::delete_component))
     }
 }
 
 struct EntityWithMissingComponentDeleted;
 
+#[entity]
 impl EntityWithMissingComponentDeleted {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(Parent::build(id))
     }
 
+    #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<String>(entity.id());
     }
 }
 
-impl EntityMainComponent for EntityWithMissingComponentDeleted {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::delete_component))
-    }
-}
-
 struct EntityWithNotRegisteredComponentTypeDeleted;
 
+#[entity]
 impl EntityWithNotRegisteredComponentTypeDeleted {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(Parent::build(id))
     }
 
+    #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_component::<i64>(entity.id());
         world.create_root_entity(NewRootEntity::build(10));
@@ -110,36 +88,22 @@ impl EntityWithNotRegisteredComponentTypeDeleted {
     }
 }
 
-impl EntityMainComponent for EntityWithNotRegisteredComponentTypeDeleted {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::delete_component))
-    }
-}
-
 struct NewRootEntity(u32);
 
+#[entity]
 impl NewRootEntity {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self(id))
     }
 }
 
-impl EntityMainComponent for NewRootEntity {
-    type Type = ();
-}
-
 struct NewChildEntity(u32);
 
+#[entity]
 impl NewChildEntity {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self(id))
     }
-}
-
-impl EntityMainComponent for NewChildEntity {
-    type Type = ();
 }
 
 #[test]

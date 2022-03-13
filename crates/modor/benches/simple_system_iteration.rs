@@ -1,7 +1,10 @@
 //! Tests performance of direct component iteration in systems.
 
+#[macro_use]
+extern crate modor;
+
 use criterion::{criterion_main, Criterion};
-use modor::{system, App, Built, EntityBuilder, EntityMainComponent, SystemRunner};
+use modor::{App, Built, EntityBuilder};
 
 struct Vec3(f32, f32, f32);
 
@@ -17,6 +20,7 @@ struct Velocity(Vec3);
 
 struct Object(Mat4);
 
+#[entity]
 impl Object {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self(Mat4(
@@ -30,18 +34,11 @@ impl Object {
         .with(Velocity(Vec3(1., 0., 0.)))
     }
 
+    #[run]
     fn update(velocity: &Velocity, position: &mut Position) {
         position.0 .0 += velocity.0 .0;
         position.0 .1 += velocity.0 .1;
         position.0 .2 += velocity.0 .2;
-    }
-}
-
-impl EntityMainComponent for Object {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update))
     }
 }
 

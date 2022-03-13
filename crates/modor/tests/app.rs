@@ -1,30 +1,27 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder, EntityMainComponent};
+use modor::{App, Built, EntityBuilder};
 
 #[derive(PartialEq, Debug)]
 struct Integer(u32);
 
+#[entity]
 impl Integer {
     fn build(integer: u32) -> impl Built<Self> {
         EntityBuilder::new(Self(integer))
     }
 }
 
-impl EntityMainComponent for Integer {
-    type Type = ();
-}
-
 #[derive(PartialEq, Debug)]
 struct Text(String);
 
+#[entity]
 impl Text {
     fn build(text: String) -> impl Built<Self> {
         EntityBuilder::new(Self(text))
     }
-}
-
-impl EntityMainComponent for Text {
-    type Type = ();
 }
 
 #[test]

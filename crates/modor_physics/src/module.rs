@@ -3,17 +3,17 @@ use crate::module::internal::{
     UpdateVelocitiesAction,
 };
 use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
-use modor::{
-    system, Action, Built, DependsOn, Entity, EntityBuilder, EntityMainComponent, Query, Single,
-    Singleton, SystemRunner, With,
-};
+use modor::{Action, Built, DependsOn, Entity, EntityBuilder, Query, Single, With};
 
 /// The main entity of the physics module.
 ///
 /// # Examples
 ///
-/// ```rust
-/// # use modor::{App, Built, EntityBuilder, EntityMainComponent};
+/// ```rust#
+/// # #[macro_use]
+/// # extern crate modor;
+/// #
+/// # use modor::{App, Built, EntityBuilder};
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Scale, Shape, Velocity};
 /// #
 /// let mut app = App::new()
@@ -26,6 +26,7 @@ use modor::{
 ///
 /// struct Object;
 ///
+/// #[entity]
 /// impl Object {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
@@ -36,19 +37,17 @@ use modor::{
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
-///
-/// impl EntityMainComponent for Object {
-///     type Type = ();
-/// }
 /// ```
 pub struct PhysicsModule;
 
+#[singleton]
 impl PhysicsModule {
     /// Builds the module.
     pub fn build() -> impl Built<Self> {
         EntityBuilder::new(Self).with_child(DeltaTime::build())
     }
 
+    #[run_as(UpdateVelocitiesAction)]
     fn update_velocities(
         delta_time: Single<'_, DeltaTime>,
         mut components: Query<'_, (&mut Velocity, &Acceleration)>,
@@ -58,6 +57,7 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(UpdatePositionsAction)]
     fn update_positions(
         delta_time: Single<'_, DeltaTime>,
         mut components: Query<'_, (&mut Position, &Velocity)>,
@@ -67,6 +67,7 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(UpdateAbsoluteScalesAction)]
     fn update_absolute_scales(
         entities_with_scale: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
         mut scales: Query<'_, &mut Scale, With<Position>>,
@@ -80,6 +81,7 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(UpdateAbsolutePositionsAction)]
     fn update_absolute_positions(
         entities_with_position: Query<'_, Entity<'_>, With<Position>>,
         mut components: Query<'_, (&mut Position, Option<&mut Scale>)>,
@@ -93,6 +95,9 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(PhysicsUpdateAction)]
+    fn assess_physics_update_is_done() {}
+
     fn sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
     where
         I: Iterator<Item = Entity<'a>>,
@@ -100,19 +105,6 @@ impl PhysicsModule {
         let mut entities: Vec<_> = entities.collect();
         entities.sort_unstable_by_key(|e| e.depth());
         entities
-    }
-}
-
-impl EntityMainComponent for PhysicsModule {
-    type Type = Singleton;
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run_as::<UpdateVelocitiesAction>(system!(Self::update_velocities))
-            .run_as::<UpdatePositionsAction>(system!(Self::update_positions))
-            .run_as::<UpdateAbsoluteScalesAction>(system!(Self::update_absolute_scales))
-            .run_as::<UpdateAbsolutePositionsAction>(system!(Self::update_absolute_positions))
-            .run_as::<PhysicsUpdateAction>(system!(|| ()))
     }
 }
 
@@ -141,13 +133,12 @@ mod physics_module_tests {
     use crate::{Acceleration, DeltaTime, PhysicsModule, Position, Scale, Velocity};
     use approx::assert_abs_diff_eq;
     use modor::testing::TestApp;
-    use modor::{App, EntityBuilder, EntityMainComponent};
+    use modor::{App, EntityBuilder};
 
     struct TestEntity;
 
-    impl EntityMainComponent for TestEntity {
-        type Type = ();
-    }
+    #[entity]
+    impl TestEntity {}
 
     #[test]
     fn build() {

@@ -79,8 +79,9 @@ impl<'a> World<'a> {
     /// The component is actually added once all registered systems have been run.
     ///
     /// If the entity already has a component of type `C`, it is overwritten.<br>
-    /// If `C` implements [`EntityMainComponent`](crate::EntityMainComponent),
-    /// systems defined for `C` will now be run for the entity.
+    /// If `C` is the main component of an entity defined with the [`entity`](macro@crate::entity)
+    /// or [`singleton`](macro@crate::singleton) proc macro, then systems defined for `C` will now
+    /// be run for the entity.
     pub fn add_component<C>(&mut self, entity_id: usize, component: C)
     where
         C: Any + Sync + Send,
@@ -107,8 +108,9 @@ impl<'a> World<'a> {
     /// The component is actually deleted once all registered systems have been run.
     ///
     /// If the entity does not have a component of type `C`, nothing is done.<br>
-    /// If `C` implements [`EntityMainComponent`](crate::EntityMainComponent),
-    /// systems defined for `C` will not be run anymore for the entity.
+    /// If `C` is the main component of an entity defined with the [`entity`](macro@crate::entity)
+    /// or [`singleton`](macro@crate::singleton) proc macro, then systems defined for `C` will now
+    /// be run for the entity.
     pub fn delete_component<C>(&mut self, entity_id: usize)
     where
         C: Any + Sync + Send,

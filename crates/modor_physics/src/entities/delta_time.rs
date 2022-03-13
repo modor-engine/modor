@@ -1,7 +1,5 @@
 use crate::UpdatesPerSecond;
-use modor::{
-    system, Action, Built, EntityBuilder, EntityMainComponent, Single, Singleton, SystemRunner,
-};
+use modor::{Action, Built, EntityBuilder, Single};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -26,6 +24,7 @@ pub struct DeltaTime {
     last_instant: Instant,
 }
 
+#[singleton]
 impl DeltaTime {
     /// Returns the duration of the last update.
     ///
@@ -44,6 +43,7 @@ impl DeltaTime {
         })
     }
 
+    #[run_as(UpdateDeltaTimeAction)]
     fn update(&mut self, updates_per_second: Option<Single<'_, UpdatesPerSecond>>) {
         if let Some(updates_per_second) = updates_per_second {
             if updates_per_second.get() > 0 {
@@ -56,14 +56,6 @@ impl DeltaTime {
         }
         self.previous_instant = self.last_instant;
         self.last_instant = Instant::now();
-    }
-}
-
-impl EntityMainComponent for DeltaTime {
-    type Type = Singleton;
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run_as::<UpdateDeltaTimeAction>(system!(Self::update))
     }
 }
 

@@ -1,4 +1,4 @@
-use modor::{Built, EntityBuilder, EntityMainComponent, Singleton};
+use modor::{Built, EntityBuilder};
 
 /// An entity main component used to limit the number of updates per second.
 ///
@@ -18,6 +18,7 @@ use modor::{Built, EntityBuilder, EntityMainComponent, Singleton};
 /// ```
 pub struct UpdatesPerSecond(u16);
 
+#[singleton]
 impl UpdatesPerSecond {
     /// Builds the entity.
     pub fn build(updates_per_second: u16) -> impl Built<Self> {
@@ -33,10 +34,6 @@ impl UpdatesPerSecond {
     pub fn set(&mut self, updates_per_second: u16) {
         self.0 = updates_per_second;
     }
-}
-
-impl EntityMainComponent for UpdatesPerSecond {
-    type Type = Singleton;
 }
 
 #[cfg(test)]

@@ -14,18 +14,15 @@ use std::ops::Deref;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Single, EntityMainComponent, Built, EntityBuilder, Singleton};
+/// # use modor::{singleton, Single, Built, EntityBuilder, Singleton};
 /// #
 /// struct GameScore(u32);
 ///
+/// #[singleton]
 /// impl GameScore {
 ///     fn build(score: u32) -> impl Built<Self> {
 ///         EntityBuilder::new(Self(score))
 ///     }
-/// }
-///
-/// impl EntityMainComponent for GameScore {
-///     type Type = Singleton;
 /// }
 ///
 /// fn print_score(score: Single<'_, GameScore>) {

@@ -16,18 +16,15 @@ use std::ops::{Deref, DerefMut};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Built, EntityBuilder, EntityMainComponent, SingleMut, Singleton};
+/// # use modor::{singleton, Built, EntityBuilder, SingleMut, Singleton};
 /// #
 /// struct GameScore(u32);
 ///
+/// #[singleton]
 /// impl GameScore {
 ///     fn build(score: u32) -> impl Built<Self> {
 ///         EntityBuilder::new(Self(score))
 ///     }
-/// }
-///
-/// impl EntityMainComponent for GameScore {
-///     type Type = Singleton;
 /// }
 ///
 /// fn increment_score(mut score: SingleMut<'_, GameScore>) {

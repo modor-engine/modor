@@ -10,88 +10,7 @@ use crate::systems::internal::{SealedSystem, SystemWrapper};
 use crate::SystemParam;
 use std::sync::Mutex;
 
-/// Creates a valid instance of [`SystemBuilder`](crate::SystemBuilder).
-///
-/// The system passed as parameter must be a function or a static closure with no captured
-/// variables, and must implement the [`System`](crate::System) trait.
-///
-/// # System behaviour
-///
-/// If the system is defined for an entity main component of type `E`, the system is run for each
-/// entity containing a component of type `E`.
-///
-/// Some system parameter types help to access information about the current entity:
-/// - `&C` where `C` is a component type (the system is not executed for the entity
-/// if it does not have a component of type `C`)
-/// - `&mut C` where `C` is a component type (the system is not executed for the entity
-/// if it does not have a component of type `C`)
-/// - `Option<&C>` where `C` is a component type
-/// - `Option<&mut C>` where `C` is a component type
-/// - [`Entity`](crate::Entity)
-///
-/// Other system parameter types are more global.
-///
-/// See [`SystemParam`](crate::SystemParam) to see the full list of system parameter types.
-///
-/// # Static checks
-///
-/// Compile time checks are applied by this macro to ensure the system will not panic at runtime.
-/// If the system is invalid, the macro returns a compile time error.
-///
-/// The [`SystemWithParams`](crate::SystemWithParams) trait is implemented for all systems.
-///
-/// The [`SystemWithParamMutabilityIssue`](crate::SystemWithParamMutabilityIssue) trait
-/// is implemented in case the system is invalid. If this trait is implemented for the system,
-/// it creates a compile time error due to a conflict with the implemented
-/// [`SystemWithParams`](crate::SystemWithParams) trait.
-///
-/// # Limitations
-///
-/// A system supports up to 10 parameters.<br>
-/// If more parameters are needed, tuples can be used to group parameters and count them as one.
-///
-/// # Examples
-///
-/// Valid systems:
-/// ```rust
-/// # use modor::{system, Entity, World, Query};
-/// #
-/// system!(access_entity_info);
-/// system!(access_global_info);
-/// system!(mixed_system);
-///
-/// fn access_entity_info(id: &u32, message: Option<&mut String>) {
-///     // Run for each entity with at least a component of type `u32`.
-///     // `String` is not used to filter entities as it is optional.
-///     if let Some(message) = message {
-///         *message = format!("id: {}", id);
-///     }
-/// }
-///
-/// fn access_global_info(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
-///     // Even if there is no entity-specific parameter, this will be executed for each entity.
-///     // You generally want to define this type of system for a singleton entity, as it will be
-///     // executed at most once.
-///     query.iter().for_each(|entity| world.delete_entity(entity.id()));
-/// }
-///
-/// fn mixed_system(entity: Entity<'_>, mut world: World<'_>) {
-///     // You can also mix entity and global parameters.
-///     world.delete_entity(entity.id());
-/// }
-/// ```
-///
-/// Invalid systems:
-/// ```compile_fail
-/// # use modor::{system, Entity, World, Query};
-/// #
-/// system!(invalid_system);
-///
-/// fn invalid_system(name: &String, name_mut: &mut String) {
-///     // invalid as `String` cannot be borrowed both mutably and immutably
-///     *name_mut = format!("[[[ {} ]]]", name);
-/// }
-/// ```
+#[doc(hidden)]
 #[macro_export]
 macro_rules! system {
     ($system:expr) => {{
@@ -154,9 +73,7 @@ impl SystemData<'_> {
     }
 }
 
-/// A builder for defining a system.
-///
-/// The [`system!`](crate::system!) macro is used to construct a `SystemBuilder`.
+#[doc(hidden)]
 pub struct SystemBuilder {
     #[doc(hidden)]
     pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
@@ -164,7 +81,7 @@ pub struct SystemBuilder {
     pub wrapper: SystemWrapper,
 }
 
-/// A trait implemented for any system that can be passed to the [`system!`](crate::system!) macro.
+/// A trait implemented for any system.
 pub trait System<P>: SealedSystem<P>
 where
     P: SystemParam,

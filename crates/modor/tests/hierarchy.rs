@@ -1,5 +1,8 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{system, Built, Entity, EntityBuilder, EntityMainComponent, Query, SystemRunner, With};
+use modor::{Built, Entity, EntityBuilder, Query, With};
 
 #[derive(Clone, Copy)]
 struct AbsPosition(u16);
@@ -9,6 +12,7 @@ struct RelPosition(u16);
 
 struct Node;
 
+#[entity]
 impl Node {
     fn build(levels: u16) -> impl Built<Self> {
         EntityBuilder::new(Self)
@@ -21,6 +25,7 @@ impl Node {
             })
     }
 
+    #[run]
     fn update_absolute_positions(
         entities_with_pos: Query<'_, Entity<'_>, (With<AbsPosition>, With<RelPosition>)>,
         mut positions: Query<'_, (&mut AbsPosition, &RelPosition)>,
@@ -34,14 +39,6 @@ impl Node {
                 abs.0 = parent_abs.0 + rel.0;
             }
         }
-    }
-}
-
-impl EntityMainComponent for Node {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update_absolute_positions))
     }
 }
 

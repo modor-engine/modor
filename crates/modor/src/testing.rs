@@ -14,7 +14,7 @@ use std::ops::{Deref, DerefMut};
 ///
 /// ```rust
 /// # use modor::testing::TestApp;
-/// # use modor::{EntityMainComponent, EntityBuilder, Built};
+/// # use modor::{EntityMainComponent, EntityBuilder, Built, entity};
 /// #
 /// let mut app = TestApp::new();
 /// let entity_id = app.create_entity(Button::build("Play".into()));
@@ -27,14 +27,11 @@ use std::ops::{Deref, DerefMut};
 ///
 /// struct Button;
 ///
+/// #[entity]
 /// impl Button {
 ///     fn build(label: String) -> impl Built<Self> {
 ///         EntityBuilder::new(Self).with(label)
 ///     }
-/// }
-///
-/// impl EntityMainComponent for Button {
-///     type Type = ();
 /// }
 /// ```
 #[derive(Default)]
@@ -126,7 +123,7 @@ impl DerefMut for TestApp {
     }
 }
 
-/// A utility to assert on an entity.
+/// A utility for asserting on an entity.
 ///
 /// # Examples
 ///

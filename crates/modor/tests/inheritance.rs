@@ -1,18 +1,18 @@
+#[macro_use]
+extern crate modor;
+
 use modor::testing::TestApp;
-use modor::{system, Built, EntityBuilder, EntityMainComponent, Query, SystemRunner};
+use modor::{Built, EntityBuilder, Query};
 
 struct ButtonSelection {
     label: String,
 }
 
+#[entity]
 impl ButtonSelection {
     fn build(label: String) -> impl Built<Self> {
         EntityBuilder::new(Self { label })
     }
-}
-
-impl EntityMainComponent for ButtonSelection {
-    type Type = ();
 }
 
 #[derive(PartialEq, Debug)]
@@ -20,12 +20,14 @@ struct Button {
     is_pressed: bool,
 }
 
+#[entity]
 impl Button {
     fn build(label: String) -> impl Built<Self> {
         EntityBuilder::new(Self { is_pressed: false }).with(label)
     }
 
     #[allow(clippy::ptr_arg)]
+    #[run]
     fn update(&mut self, label: &String, selections: Query<'_, &ButtonSelection>) {
         for selection in selections.iter() {
             if &selection.label == label {
@@ -35,17 +37,10 @@ impl Button {
     }
 }
 
-impl EntityMainComponent for Button {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner.run(system!(Self::update))
-    }
-}
-
 #[derive(PartialEq, Debug)]
 struct ExitButton;
 
+#[entity]
 impl ExitButton {
     fn build(label: String) -> impl Built<Self> {
         EntityBuilder::new(Self)
@@ -53,24 +48,16 @@ impl ExitButton {
             .with(ExitState(false))
     }
 
+    #[run]
     fn update_state(state: &mut ExitState, button: &Button) {
         state.0 = button.is_pressed;
     }
 
+    #[run]
     fn update_label(label: &mut String, button: &Button) {
         if button.is_pressed {
             *label = format!("{} (selected)", label);
         }
-    }
-}
-
-impl EntityMainComponent for ExitButton {
-    type Type = ();
-
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-            .run(system!(Self::update_state))
-            .run(system!(Self::update_label))
     }
 }
 
