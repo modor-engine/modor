@@ -199,7 +199,7 @@ where
     F: QueryFilter,
 {
     type Param = Query<'a, P, F>;
-    type Guard = QueryGuard<'a, F>;
+    type Guard = QueryGuard<'a, P, F>;
     type GuardBorrow = QueryGuardBorrow<'a>;
     type Stream = QueryStream<'a, P>;
 }
@@ -343,26 +343,30 @@ run_for_tuples_with_idxs!(impl_tuple_query_filter);
 mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
-    use crate::{QueryFilter, SystemData, SystemInfo};
+    use crate::{utils, QueryFilter, QuerySystemParam, SystemData, SystemInfo};
     use std::marker::PhantomData;
     use std::ops::Range;
 
-    pub struct QueryGuard<'a, F> {
+    pub struct QueryGuard<'a, P, F> {
         data: SystemData<'a>,
         item_count: usize,
         filtered_component_type_idxs: Vec<ComponentTypeIdx>,
-        phantom: PhantomData<F>,
+        phantom: PhantomData<(P, F)>,
     }
 
-    impl<'a, F> QueryGuard<'a, F>
+    impl<'a, P, F> QueryGuard<'a, P, F>
     where
+        P: QuerySystemParam,
         F: QueryFilter,
     {
         pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {
                 data,
                 item_count: info.item_count,
-                filtered_component_type_idxs: F::filtered_component_type_idxs(data),
+                filtered_component_type_idxs: utils::merge([
+                    P::filtered_component_type_idxs(data),
+                    F::filtered_component_type_idxs(data),
+                ]),
                 phantom: PhantomData,
             }
         }

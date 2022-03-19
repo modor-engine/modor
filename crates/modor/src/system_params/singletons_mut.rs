@@ -174,7 +174,7 @@ pub(crate) mod internal {
                 .components
                 .type_idx(TypeId::of::<C>())
                 .expect("internal error: singleton type not registered");
-            let singleton_location = self.data.components.singleton_locations(type_idx);
+            let singleton_location = self.data.components.singleton_location(type_idx);
             SingletonMutGuardBorrow {
                 components: &mut *self.components,
                 item_count: self.info.item_count,

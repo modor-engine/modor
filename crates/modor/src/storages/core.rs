@@ -356,7 +356,7 @@ mod core_storage_tests {
         assert_eq!(&*storage.components().read_components::<u32>(), &components);
         let components = ti_vec![ti_vec![], ti_vec![], ti_vec![40_i8]];
         assert_eq!(&*storage.components.read_components::<i8>(), &components);
-        assert_eq!(storage.components().singleton_locations(type1_idx), None);
+        assert_eq!(storage.components().singleton_location(type1_idx), None);
     }
 
     #[test]
@@ -366,7 +366,7 @@ mod core_storage_tests {
         let (type_idx, archetype2_idx) = storage.add_component_type::<u32>(archetype1_idx);
         let (_, location) = storage.create_entity(archetype2_idx, None);
         storage.add_component(10_u32, type_idx, location, true);
-        let singleton_location = storage.components().singleton_locations(type_idx);
+        let singleton_location = storage.components().singleton_location(type_idx);
         assert_eq!(singleton_location, Some(location));
     }
 

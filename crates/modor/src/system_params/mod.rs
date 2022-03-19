@@ -1,4 +1,5 @@
 use crate::storages::archetypes::EntityLocation;
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -57,6 +58,9 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
 
 /// A trait implemented for valid [`Query`](crate::Query) parameters.
 pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'a> {
+    #[doc(hidden)]
+    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx>;
+
     #[doc(hidden)]
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,

@@ -98,7 +98,7 @@ impl TestApp {
             location: core
                 .components()
                 .type_idx(TypeId::of::<C>())
-                .and_then(|c| core.components().singleton_locations(c)),
+                .and_then(|c| core.components().singleton_location(c)),
         }
     }
 }

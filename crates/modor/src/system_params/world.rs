@@ -263,7 +263,7 @@ mod world_tests {
             ti_vec![ti_vec![], ti_vec![], ti_vec![], new_entities]
         );
         assert_eq!(core.entities().parent_idx(3.into()), Some(1.into()));
-        assert_eq!(core.components().singleton_locations(1.into()), None);
+        assert_eq!(core.components().singleton_location(1.into()), None);
     }
 
     #[test]
