@@ -103,10 +103,12 @@ impl Context {
         &mut self,
         shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
     ) {
+        let translucent_instances = self.sorted_translucent_instances.data_mut();
         for instances in &mut self.opaque_instances {
             instances.data_mut().clear();
         }
-        self.sorted_translucent_instances.data_mut().clear();
+        translucent_instances.clear();
+        self.translucent_instance_metadata.clear();
         let (min_z, max_z) = shapes
             .iter()
             .map(|(_, p, _, _)| p.z)
@@ -115,16 +117,26 @@ impl Context {
             });
         for (color, position, scale, shape) in shapes.iter() {
             let instance = Self::create_instance(color, position, scale, min_z, max_z);
+            let model_idx = match shape.unwrap_or(&Shape::Rectangle2D) {
+                Shape::Rectangle2D => ModelIdx::from(0),
+                Shape::Circle2D => ModelIdx::from(1),
+            };
             if color.0.a > 0. && color.0.a < 1. {
-                self.sorted_translucent_instances.data_mut().push(instance);
+                translucent_instances.push(instance);
+                self.translucent_instance_metadata
+                    .push(TranslucentInstanceMetadata {
+                        initial_idx: self.translucent_instance_metadata.len(),
+                        model_idx,
+                    });
             } else {
-                let model_idx = match shape.unwrap_or(&Shape::Rectangle2D) {
-                    Shape::Rectangle2D => ModelIdx::from(0),
-                    Shape::Circle2D => ModelIdx::from(1),
-                };
                 self.opaque_instances[model_idx].data_mut().push(instance);
             }
         }
+        self.translucent_instance_metadata.sort_unstable_by(|a, b| {
+            translucent_instances[b.initial_idx].transform[3][2]
+                .partial_cmp(&translucent_instances[a.initial_idx].transform[3][2])
+                .unwrap_or(Ordering::Equal)
+        });
         self.sorted_translucent_instances
             .data_mut()
             .sort_unstable_by(|a, b| {
@@ -156,14 +168,28 @@ impl Context {
                 0..instances.len(),
             )
         }
-        // TODO: handle transparency correctly
-        commands.push_shader_change(&self.shaders[ShaderIdx::from(0)]);
-        commands.push_draw(
-            &self.models[ModelIdx::from(0)].vertex_buffer,
-            &self.models[ModelIdx::from(0)].index_buffer,
-            &self.sorted_translucent_instances,
-            0..self.sorted_translucent_instances.len(),
-        );
+        let mut next_instance_idx = 0;
+        loop {
+            if let Some(metadata) = self.translucent_instance_metadata.get(next_instance_idx) {
+                let model_idx = metadata.model_idx;
+                let first_instance_idx_with_different_model =
+                    self.first_instance_idx_with_different_model(model_idx, next_instance_idx);
+                let model = &self.models[model_idx];
+                if current_shader_idx != Some(model.shader_idx) {
+                    current_shader_idx = Some(model.shader_idx);
+                    commands.push_shader_change(&self.shaders[model.shader_idx]);
+                }
+                commands.push_draw(
+                    &model.vertex_buffer,
+                    &model.index_buffer,
+                    &self.sorted_translucent_instances,
+                    next_instance_idx..first_instance_idx_with_different_model,
+                );
+                next_instance_idx = first_instance_idx_with_different_model;
+            } else {
+                break;
+            }
+        }
         drop(commands);
         rendering.apply();
     }
@@ -186,6 +212,22 @@ impl Context {
             ],
             color: [c.0.r, c.0.g, c.0.b, c.0.a],
         }
+    }
+
+    fn first_instance_idx_with_different_model(
+        &self,
+        model_idx: ModelIdx,
+        first_instance_idx: usize,
+    ) -> usize {
+        for (instance_offset, metadata) in self.translucent_instance_metadata[first_instance_idx..]
+            .iter()
+            .enumerate()
+        {
+            if metadata.model_idx != model_idx {
+                return first_instance_idx + instance_offset;
+            }
+        }
+        self.translucent_instance_metadata.len()
     }
 }
 
@@ -263,6 +305,8 @@ impl Instance {
     }
 }
 
+#[derive(Debug)]
 struct TranslucentInstanceMetadata {
-    model: ModelIdx,
+    initial_idx: usize,
+    model_idx: ModelIdx,
 }
