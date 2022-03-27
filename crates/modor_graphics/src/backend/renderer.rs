@@ -1,3 +1,4 @@
+use crate::WindowSize;
 use wgpu::{
     Adapter, Backends, Device, DeviceDescriptor, Extent3d, Features, Instance, Limits,
     PowerPreference, PresentMode, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration,
@@ -31,6 +32,13 @@ impl Renderer {
             device,
             queue,
             depth_buffer,
+        }
+    }
+
+    pub(crate) fn window_size(&self) -> WindowSize {
+        WindowSize {
+            width: self.surface_config.width,
+            height: self.surface_config.height,
         }
     }
 

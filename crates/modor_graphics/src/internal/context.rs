@@ -13,6 +13,8 @@ use wgpu::{
     VertexBufferLayout, VertexStepMode,
 };
 
+// TODO: should Scale be relative ? (issue: complicated to create squares as child entity)
+
 const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 const MAX_2D_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 const RECTANGLE_VERTICES: [Vertex; 4] = [
@@ -103,6 +105,17 @@ impl Context {
         &mut self,
         shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
     ) {
+        let window_size = self.renderer.window_size();
+        let x_scale = if window_size.width > window_size.height {
+            window_size.height as f32 / window_size.width as f32
+        } else {
+            1.
+        };
+        let y_scale = if window_size.width > window_size.height {
+            1.
+        } else {
+            window_size.width as f32 / window_size.height as f32
+        };
         let translucent_instances = self.sorted_translucent_instances.data_mut();
         for instances in &mut self.opaque_instances {
             instances.data_mut().clear();
@@ -116,7 +129,8 @@ impl Context {
                 (min.min(b), max.max(b))
             });
         for (color, position, scale, shape) in shapes.iter() {
-            let instance = Self::create_instance(color, position, scale, min_z, max_z);
+            let instance =
+                Self::create_instance(color, position, scale, min_z, max_z, x_scale, y_scale);
             let model_idx = match shape.unwrap_or(&Shape::Rectangle2D) {
                 Shape::Rectangle2D => ModelIdx::from(0),
                 Shape::Circle2D => ModelIdx::from(1),
@@ -200,15 +214,17 @@ impl Context {
         s: Option<&Scale>,
         min_z: f32,
         max_z: f32,
+        x_scale: f32,
+        y_scale: f32,
     ) -> Instance {
         let scale = s.unwrap_or(&DEFAULT_SCALE);
         let z_position = (1. - (p.z - min_z) / (max_z - min_z)) * MAX_2D_DEPTH;
         Instance {
             transform: [
-                [scale.x, 0., 0., 0.],
-                [0., scale.y, 0., 0.],
-                [0., 0., scale.z, 0.],
-                [p.x, p.y, z_position, 1.],
+                [scale.x * 2. * x_scale, 0., 0., 0.],
+                [0., scale.y * 2. * y_scale, 0., 0.],
+                [0., 0., 0., 0.],
+                [p.x * 2. * x_scale, p.y * 2. * y_scale, z_position, 1.],
             ],
             color: [c.0.r, c.0.g, c.0.b, c.0.a],
         }
