@@ -1,4 +1,5 @@
-use crate::backend::buffer::DynamicBuffer;
+use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
+use crate::backend::data::{GpuData, Instance, Vertex};
 use crate::backend::renderer::Renderer;
 use crate::backend::rendering::{RenderCommands, Rendering};
 use crate::backend::shaders::Shader;
@@ -6,12 +7,7 @@ use crate::{GraphicsModule, ShapeColor};
 use modor::{Built, EntityBuilder, Query, Single};
 use modor_physics::{Position, Scale, Shape};
 use std::cmp::Ordering;
-use std::mem;
 use typed_index_collections::TiVec;
-use wgpu::{
-    include_wgsl, vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute,
-    VertexBufferLayout, VertexStepMode,
-};
 
 // TODO: should Scale be relative ? (issue: complicated to create squares as child entity)
 
@@ -46,14 +42,20 @@ pub(crate) struct Context {
 impl Context {
     pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
         let rectangle_shader = Shader::new(
-            include_wgsl!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
-            &[Vertex::layout(), Instance::layout()],
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
+            &[
+                <Vertex as GpuData<0>>::layout(),
+                <Instance as GpuData<1>>::layout(),
+            ],
             "rectangle",
             &renderer,
         );
         let circle_shader = Shader::new(
-            include_wgsl!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
-            &[Vertex::layout(), Instance::layout()],
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
+            &[
+                <Vertex as GpuData<0>>::layout(),
+                <Instance as GpuData<1>>::layout(),
+            ],
             "circle",
             &renderer,
         );
@@ -76,18 +78,18 @@ impl Context {
             models: ti_vec![rectangle_model, circle_model],
             opaque_instances: ti_vec![
                 DynamicBuffer::empty(
-                    BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                    DynamicBufferUsage::INSTANCE,
                     "modor_instance_buffer_opaque_rectangle".into(),
                     &renderer,
                 ),
                 DynamicBuffer::empty(
-                    BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                    DynamicBufferUsage::INSTANCE,
                     "modor_instance_buffer_opaque_circle".into(),
                     &renderer,
                 )
             ],
             sorted_translucent_instances: DynamicBuffer::empty(
-                BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                DynamicBufferUsage::INSTANCE,
                 "modor_instance_buffer_translucent".into(),
                 &renderer,
             ),
@@ -265,13 +267,13 @@ impl Model {
             shader_idx,
             vertex_buffer: DynamicBuffer::new(
                 vertices,
-                BufferUsages::VERTEX,
+                DynamicBufferUsage::VERTEX,
                 format!("modor_vertex_buffer_{}", label),
                 renderer,
             ),
             index_buffer: DynamicBuffer::new(
                 indices,
-                BufferUsages::INDEX,
+                DynamicBufferUsage::INDEX,
                 format!("modor_index_buffer_{}", label),
                 renderer,
             ),
@@ -281,45 +283,6 @@ impl Model {
 
 idx_type!(ShaderIdx);
 idx_type!(ModelIdx);
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-struct Vertex {
-    position: [f32; 3],
-}
-
-impl Vertex {
-    const ATTRIBUTES: [VertexAttribute; 1] = vertex_attr_array![0 => Float32x3];
-
-    fn layout<'a>() -> VertexBufferLayout<'a> {
-        VertexBufferLayout {
-            array_stride: mem::size_of::<Vertex>() as BufferAddress,
-            step_mode: VertexStepMode::Vertex,
-            attributes: &Self::ATTRIBUTES,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-pub(crate) struct Instance {
-    transform: [[f32; 4]; 4],
-    color: [f32; 4],
-}
-
-impl Instance {
-    const ATTRIBUTES: [VertexAttribute; 5] = vertex_attr_array![
-        1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Float32x4
-    ];
-
-    fn layout<'a>() -> VertexBufferLayout<'a> {
-        VertexBufferLayout {
-            array_stride: mem::size_of::<Instance>() as BufferAddress,
-            step_mode: VertexStepMode::Instance,
-            attributes: &Self::ATTRIBUTES,
-        }
-    }
-}
 
 #[derive(Debug)]
 struct TranslucentInstanceMetadata {

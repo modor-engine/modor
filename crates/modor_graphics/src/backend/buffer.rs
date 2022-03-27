@@ -6,7 +6,7 @@ use wgpu::{Buffer, BufferDescriptor, BufferUsages};
 
 pub(crate) struct DynamicBuffer<T> {
     data: Vec<T>,
-    usages: BufferUsages,
+    usage: DynamicBufferUsage,
     label: String,
     buffer: Buffer,
     buffer_capacity: usize,
@@ -18,16 +18,16 @@ where
 {
     pub(crate) fn new(
         data: Vec<T>,
-        usages: BufferUsages,
+        usage: DynamicBufferUsage,
         label: String,
         renderer: &Renderer,
     ) -> Self {
         Self {
-            usages,
+            usage,
             buffer: renderer.device().create_buffer_init(&BufferInitDescriptor {
                 label: Some(&label),
                 contents: bytemuck::cast_slice(&data),
-                usage: usages,
+                usage: usage.into(),
             }),
             buffer_capacity: data.capacity(),
             data,
@@ -35,14 +35,14 @@ where
         }
     }
 
-    pub(crate) fn empty(usages: BufferUsages, label: String, renderer: &Renderer) -> Self {
+    pub(crate) fn empty(usage: DynamicBufferUsage, label: String, renderer: &Renderer) -> Self {
         Self {
             data: vec![],
-            usages,
+            usage,
             buffer: renderer.device().create_buffer(&BufferDescriptor {
                 label: Some(&label),
                 size: 0,
-                usage: usages,
+                usage: usage.into(),
                 mapped_at_creation: false,
             }),
             label,
@@ -65,7 +65,7 @@ where
             self.buffer = renderer.device().create_buffer(&BufferDescriptor {
                 label: Some(&self.label),
                 size: Self::raw_capacity(self.data.capacity()),
-                usage: self.usages,
+                usage: self.usage.into(),
                 mapped_at_creation: false,
             });
         }
@@ -85,5 +85,22 @@ where
             (raw_capacity + align_mask) & !align_mask,
             wgpu::COPY_BUFFER_ALIGNMENT,
         )
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum DynamicBufferUsage {
+    VERTEX,
+    INDEX,
+    INSTANCE,
+}
+
+impl From<DynamicBufferUsage> for BufferUsages {
+    fn from(usage: DynamicBufferUsage) -> Self {
+        match usage {
+            DynamicBufferUsage::VERTEX => BufferUsages::VERTEX,
+            DynamicBufferUsage::INDEX => BufferUsages::INDEX,
+            DynamicBufferUsage::INSTANCE => BufferUsages::VERTEX | BufferUsages::COPY_DST,
+        }
     }
 }

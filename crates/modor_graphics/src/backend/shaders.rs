@@ -3,7 +3,8 @@ use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     Face, FragmentState, FrontFace, MultisampleState, PipelineLayout, PipelineLayoutDescriptor,
     PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModule, ShaderModuleDescriptor, StencilState, VertexBufferLayout, VertexState,
+    ShaderModule, ShaderModuleDescriptor, ShaderSource, StencilState, VertexBufferLayout,
+    VertexState,
 };
 
 pub(crate) struct Shader {
@@ -12,13 +13,18 @@ pub(crate) struct Shader {
 
 impl Shader {
     pub(crate) fn new(
-        descriptor: ShaderModuleDescriptor,
+        code: &str,
         vertex_buffer_layout: &[VertexBufferLayout<'_>],
         label_suffix: &str,
         renderer: &Renderer,
     ) -> Self {
         let pipeline_layout = Self::create_pipeline_layout(label_suffix, renderer);
-        let shader = renderer.device().create_shader_module(&descriptor);
+        let shader = renderer
+            .device()
+            .create_shader_module(&ShaderModuleDescriptor {
+                label: Some(&format!("modor_shader_{}", label_suffix)),
+                source: ShaderSource::Wgsl(code.into()),
+            });
         Self {
             pipeline: Self::create_pipeline(
                 renderer,
