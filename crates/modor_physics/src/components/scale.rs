@@ -20,11 +20,12 @@ pub struct Scale {
     pub(crate) abs: Size,
 }
 
+// TODO: apply "const" keyword to all possible methods
 impl Scale {
     /// Creates a 3D scale.
     ///
     /// Absolute size is initialized with the same coordinates.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self {
             x,
             y,
@@ -38,7 +39,7 @@ impl Scale {
     /// Z-coordinate is set to zero.
     ///
     /// Absolute size is initialized with the same coordinates.
-    pub fn xy(x: f32, y: f32) -> Self {
+    pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 

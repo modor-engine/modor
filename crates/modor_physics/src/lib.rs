@@ -25,6 +25,8 @@
 #[macro_use]
 extern crate modor;
 
+// TODO: reorganize modules like in modor_graphics
+
 mod components;
 mod entities;
 mod module;

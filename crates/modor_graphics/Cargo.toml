@@ -1,0 +1,22 @@
+[package]
+name = "modor_graphics"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Graphics module of Modor game engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "./README.md"
+keywords = ["modor", "graphics", "display", "game", "engine"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+
+[dependencies]
+bytemuck = { version = "1.8", features = ["derive"] }
+env_logger = "0.9"
+pollster = "0.2"
+typed-index-collections = "3.0"
+winit = "0.26"
+wgpu = "0.12"
+modor = { version = "0.1.0", path = "../modor" }
+modor_physics = { version = "0.1.0", path = "../modor_physics" }
