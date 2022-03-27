@@ -1,4 +1,4 @@
-use crate::wgpu::renderer::Renderer;
+use crate::backend::renderer::Renderer;
 use crate::window::WindowSize;
 use modor::{Built, Entity, EntityBuilder, World};
 use winit::dpi::{PhysicalSize, Size};

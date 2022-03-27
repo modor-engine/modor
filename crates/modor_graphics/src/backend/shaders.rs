@@ -1,4 +1,4 @@
-use crate::wgpu::renderer::{Renderer, DEPTH_TEXTUER_FORMAT};
+use crate::backend::renderer::{Renderer, DEPTH_TEXTUER_FORMAT};
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     Face, FragmentState, FrontFace, MultisampleState, PipelineLayout, PipelineLayoutDescriptor,

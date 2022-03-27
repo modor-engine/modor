@@ -4,10 +4,10 @@
 extern crate modor;
 
 mod appearance;
+mod backend;
 mod internal;
 mod module;
 mod runner;
-mod wgpu;
 mod window;
 
 pub use appearance::*;

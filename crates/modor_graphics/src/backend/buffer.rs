@@ -1,4 +1,4 @@
-use crate::wgpu::renderer::Renderer;
+use crate::backend::renderer::Renderer;
 use bytemuck::Pod;
 use std::mem;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
@@ -54,6 +54,7 @@ where
         self.data.len()
     }
 
+    #[inline]
     pub(crate) fn data_mut(&mut self) -> &mut Vec<T> {
         &mut self.data
     }

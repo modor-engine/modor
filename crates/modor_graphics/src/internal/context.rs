@@ -1,10 +1,10 @@
-use crate::wgpu::buffer::DynamicBuffer;
-use crate::wgpu::renderer::Renderer;
-use crate::wgpu::rendering::{RenderCommands, Rendering};
-use crate::wgpu::shaders::Shader;
+use crate::backend::buffer::DynamicBuffer;
+use crate::backend::renderer::Renderer;
+use crate::backend::rendering::{RenderCommands, Rendering};
+use crate::backend::shaders::Shader;
 use crate::{GraphicsModule, ShapeColor};
 use modor::{Built, EntityBuilder, Query, Single};
-use modor_physics::{Position, Scale};
+use modor_physics::{Position, Scale, Shape};
 use std::cmp::Ordering;
 use std::mem;
 use typed_index_collections::TiVec;
@@ -15,6 +15,21 @@ use wgpu::{
 
 const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 const MAX_2D_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
+const RECTANGLE_VERTICES: [Vertex; 4] = [
+    Vertex {
+        position: [-0.5, 0.5, 0.],
+    },
+    Vertex {
+        position: [-0.5, -0.5, 0.],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.],
+    },
+    Vertex {
+        position: [0.5, 0.5, 0.],
+    },
+];
+const RECTANGLE_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
 pub(crate) struct Context {
     renderer: Renderer,
@@ -34,34 +49,41 @@ impl Context {
             "rectangle",
             &renderer,
         );
+        let circle_shader = Shader::new(
+            include_wgsl!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
+            &[Vertex::layout(), Instance::layout()],
+            "circle",
+            &renderer,
+        );
         let rectangle_model = Model::new(
             ShaderIdx::from(0),
             "rectangle",
-            vec![
-                Vertex {
-                    position: [-1., 1., 0.],
-                },
-                Vertex {
-                    position: [-1., -1., 0.],
-                },
-                Vertex {
-                    position: [1., -1., 0.],
-                },
-                Vertex {
-                    position: [1., 1., 0.],
-                },
-            ],
-            vec![0, 1, 2, 0, 2, 3],
+            RECTANGLE_VERTICES.to_vec(),
+            RECTANGLE_INDICES.to_vec(),
+            &renderer,
+        );
+        let circle_model = Model::new(
+            ShaderIdx::from(1),
+            "circle",
+            RECTANGLE_VERTICES.to_vec(),
+            RECTANGLE_INDICES.to_vec(),
             &renderer,
         );
         EntityBuilder::new(Self {
-            shaders: ti_vec![rectangle_shader],
-            models: ti_vec![rectangle_model],
-            opaque_instances: ti_vec![DynamicBuffer::empty(
-                BufferUsages::VERTEX | BufferUsages::COPY_DST,
-                "modor_instance_buffer_opaque_rectangle".into(),
-                &renderer,
-            )],
+            shaders: ti_vec![rectangle_shader, circle_shader],
+            models: ti_vec![rectangle_model, circle_model],
+            opaque_instances: ti_vec![
+                DynamicBuffer::empty(
+                    BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                    "modor_instance_buffer_opaque_rectangle".into(),
+                    &renderer,
+                ),
+                DynamicBuffer::empty(
+                    BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                    "modor_instance_buffer_opaque_circle".into(),
+                    &renderer,
+                )
+            ],
             sorted_translucent_instances: DynamicBuffer::empty(
                 BufferUsages::VERTEX | BufferUsages::COPY_DST,
                 "modor_instance_buffer_translucent".into(),
@@ -77,28 +99,32 @@ impl Context {
     }
 
     #[run]
-    pub(crate) fn update(&mut self, shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>)>) {
+    pub(crate) fn update(
+        &mut self,
+        shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
+    ) {
+        for instances in &mut self.opaque_instances {
+            instances.data_mut().clear();
+        }
+        self.sorted_translucent_instances.data_mut().clear();
         let (min_z, max_z) = shapes
             .iter()
-            .map(|(_, p, _)| p.z)
+            .map(|(_, p, _, _)| p.z)
             .fold((f32::INFINITY, 0_f32), |(min, max), b| {
                 (min.min(b), max.max(b))
             });
-        // TODO: generalize
-        self.opaque_instances[ModelIdx::from(0)].data_mut().clear();
-        self.opaque_instances[ModelIdx::from(0)].data_mut().extend(
-            shapes
-                .iter()
-                .filter(|(c, _, _)| c.0.a <= 0. || c.0.a >= 1.)
-                .map(|(c, p, s)| Self::create_instance(c, p, s, min_z, max_z)),
-        );
-        self.sorted_translucent_instances.data_mut().clear();
-        self.sorted_translucent_instances.data_mut().extend(
-            shapes
-                .iter()
-                .filter(|(c, _, _)| c.0.a > 0. && c.0.a < 1.)
-                .map(|(c, p, s)| Self::create_instance(c, p, s, min_z, max_z)),
-        );
+        for (color, position, scale, shape) in shapes.iter() {
+            let instance = Self::create_instance(color, position, scale, min_z, max_z);
+            if color.0.a > 0. && color.0.a < 1. {
+                self.sorted_translucent_instances.data_mut().push(instance);
+            } else {
+                let model_idx = match shape.unwrap_or(&Shape::Rectangle2D) {
+                    Shape::Rectangle2D => ModelIdx::from(0),
+                    Shape::Circle2D => ModelIdx::from(1),
+                };
+                self.opaque_instances[model_idx].data_mut().push(instance);
+            }
+        }
         self.sorted_translucent_instances
             .data_mut()
             .sort_unstable_by(|a, b| {
@@ -131,6 +157,7 @@ impl Context {
             )
         }
         // TODO: handle transparency correctly
+        commands.push_shader_change(&self.shaders[ShaderIdx::from(0)]);
         commands.push_draw(
             &self.models[ModelIdx::from(0)].vertex_buffer,
             &self.models[ModelIdx::from(0)].index_buffer,

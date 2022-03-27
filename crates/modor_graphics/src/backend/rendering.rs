@@ -1,6 +1,6 @@
-use crate::wgpu::buffer::DynamicBuffer;
-use crate::wgpu::renderer::Renderer;
-use crate::wgpu::shaders::Shader;
+use crate::backend::buffer::DynamicBuffer;
+use crate::backend::renderer::Renderer;
+use crate::backend::shaders::Shader;
 use bytemuck::Pod;
 use std::ops::Range;
 use wgpu::{
