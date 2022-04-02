@@ -21,7 +21,8 @@ impl From<Color> for wgpu::Color {
 }
 
 impl Color {
-    // TODO: add more colors
+    // TODO: add more colors (https://www.rapidtables.com/web/color/RGB_Color.html)
+    // TODO: add rgb(a)_u8 methods
     pub const BLACK: Color = Color::rgb(0., 0., 0.);
     pub const WHITE: Color = Color::rgb(1., 1., 1.);
     pub const RED: Color = Color::rgb(1., 0., 0.);

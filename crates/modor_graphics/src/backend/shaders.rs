@@ -1,4 +1,4 @@
-use crate::backend::renderer::{Renderer, DEPTH_TEXTUER_FORMAT};
+use crate::backend::renderer::{Renderer, DEPTH_TEXTURE_FORMAT};
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     Face, FragmentState, FrontFace, MultisampleState, PipelineLayout, PipelineLayoutDescriptor,
@@ -84,7 +84,7 @@ impl Shader {
                     conservative: false,
                 },
                 depth_stencil: Some(DepthStencilState {
-                    format: DEPTH_TEXTUER_FORMAT,
+                    format: DEPTH_TEXTURE_FORMAT,
                     depth_write_enabled: true,
                     depth_compare: CompareFunction::Less,
                     stencil: StencilState::default(),

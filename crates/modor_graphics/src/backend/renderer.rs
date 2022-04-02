@@ -1,4 +1,3 @@
-use crate::WindowSize;
 use wgpu::{
     Adapter, Backends, Device, DeviceDescriptor, Extent3d, Features, Instance, Limits,
     PowerPreference, PresentMode, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration,
@@ -7,9 +6,10 @@ use wgpu::{
 };
 use winit::window::Window;
 
-pub(super) const DEPTH_TEXTUER_FORMAT: TextureFormat = TextureFormat::Depth32Float;
+pub(super) const DEPTH_TEXTURE_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
 pub(crate) struct Renderer {
+    surface_size: (u32, u32),
     surface: Surface,
     surface_config: SurfaceConfiguration,
     device: Device,
@@ -23,10 +23,13 @@ impl Renderer {
         let surface = unsafe { instance.create_surface(&window) };
         let adapter = Self::retrieve_adapter(&instance, &surface);
         let (device, queue) = Self::retrieve_device(&adapter);
-        let surface_config = Self::create_surface_config(&window, &surface, &adapter);
+        let window_size = window.inner_size();
+        let surface_size = (window_size.width, window_size.height);
+        let surface_config = Self::create_surface_config(surface_size, &surface, &adapter);
         surface.configure(&device, &surface_config);
         let depth_buffer = Self::create_depth_buffer(&device, &surface_config);
         Self {
+            surface_size,
             surface,
             surface_config,
             device,
@@ -35,15 +38,9 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn window_size(&self) -> WindowSize {
-        WindowSize {
-            width: self.surface_config.width,
-            height: self.surface_config.height,
-        }
-    }
-
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
-        if width > 0 && height > 0 {
+        if width > 0 && height > 0 && (width, height) != self.surface_size {
+            self.surface_size = (width, height);
             self.surface_config.width = width;
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
@@ -93,19 +90,17 @@ impl Renderer {
     }
 
     fn create_surface_config(
-        window: &Window,
+        surface_size: (u32, u32),
         surface: &Surface,
         adapter: &Adapter,
     ) -> SurfaceConfiguration {
-        let window_size = window.inner_size();
-        let window_width = window_size.width;
-        let window_height = window_size.height;
+        let (width, height) = surface_size;
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: surface.get_preferred_format(adapter).unwrap(),
-            width: if window_width == 0 { 1 } else { window_width },
-            height: if window_height == 0 { 1 } else { window_height },
-            present_mode: PresentMode::Fifo,
+            width: if width == 0 { 1 } else { width },
+            height: if height == 0 { 1 } else { height },
+            present_mode: PresentMode::Immediate,
         }
     }
 
@@ -120,7 +115,7 @@ impl Renderer {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: DEPTH_TEXTUER_FORMAT,
+            format: DEPTH_TEXTURE_FORMAT,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
         };
         let texture = device.create_texture(&desc);
