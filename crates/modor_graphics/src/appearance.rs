@@ -1,3 +1,5 @@
+use modor::{Built, EntityBuilder};
+
 #[derive(Clone, Debug)]
 pub struct ShapeColor(pub Color);
 
@@ -36,5 +38,14 @@ impl Color {
 
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self::rgba(r, g, b, 1.0)
+    }
+}
+
+pub struct BackgroundColor(pub Color);
+
+#[singleton]
+impl BackgroundColor {
+    pub fn build(color: Color) -> impl Built<Self> {
+        EntityBuilder::new(Self(color))
     }
 }

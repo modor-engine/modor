@@ -1,4 +1,4 @@
-use crate::internal::window::WindowInit;
+use crate::window::WindowInit;
 use modor::App;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::event::{Event, WindowEvent};

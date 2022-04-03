@@ -1,11 +1,24 @@
 use crate::backend::renderer::Renderer;
 use crate::storages::core::CoreStorage;
-use crate::{BackgroundColor, Color, ShapeColor};
-use modor::{Built, EntityBuilder, Query, Single};
+use crate::{BackgroundColor, Color, GraphicsModule, ShapeColor};
+use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use winit::dpi::PhysicalSize;
-use winit::window::Window as WinitWindow;
+use winit::event_loop::EventLoop;
+use winit::window::{Window as WinitWindow, WindowBuilder};
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl WindowSize {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+}
 
 pub struct Window {
     window: Arc<RwLock<WinitWindow>>,
@@ -70,14 +83,52 @@ impl Window {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct WindowSize {
-    pub width: u32,
-    pub height: u32,
+pub(crate) struct WindowInit {
+    size: WindowSize,
+    title: String,
+    renderer: Option<Renderer>,
+    window: Option<Arc<RwLock<WinitWindow>>>,
 }
 
-impl WindowSize {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height }
+#[singleton]
+impl WindowInit {
+    pub(crate) fn build(size: WindowSize, title: String) -> impl Built<Self> {
+        EntityBuilder::new(Self {
+            size,
+            title,
+            renderer: None,
+            window: None,
+        })
+    }
+
+    pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> Arc<RwLock<WinitWindow>> {
+        let window = WindowBuilder::new()
+            .with_title(self.title.clone())
+            .with_inner_size(PhysicalSize::new(self.size.width, self.size.height))
+            .build(event_loop)
+            .expect("failed to create window");
+        self.renderer = Some(Renderer::new(&window));
+        let window = Arc::new(RwLock::new(window));
+        self.window = Some(window.clone());
+        window
+    }
+
+    #[run]
+    fn consume(
+        &mut self,
+        entity: Entity<'_>,
+        graphics: Single<'_, GraphicsModule>,
+        mut world: World<'_>,
+    ) {
+        let window = self
+            .window
+            .take()
+            .expect("internal error: window not initialized");
+        let renderer = self
+            .renderer
+            .take()
+            .expect("internal error: renderer not initialized");
+        world.create_child_entity(graphics.entity().id(), Window::build(window, renderer));
+        world.delete_entity(entity.id());
     }
 }

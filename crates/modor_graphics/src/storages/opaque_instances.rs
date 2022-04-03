@@ -2,7 +2,7 @@ use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Instance;
 use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
-use crate::internal::utils;
+use crate::utils;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use typed_index_collections::TiVec;

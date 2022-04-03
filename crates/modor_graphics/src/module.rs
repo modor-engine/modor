@@ -1,4 +1,4 @@
-use crate::internal::window::WindowInit;
+use crate::window::WindowInit;
 use crate::window::WindowSize;
 use modor::{Built, EntityBuilder};
 use modor_physics::PhysicsModule;
