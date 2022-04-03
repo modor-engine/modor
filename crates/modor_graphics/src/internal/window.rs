@@ -17,13 +17,10 @@ pub(crate) struct WindowInit {
 
 #[singleton]
 impl WindowInit {
-    pub(crate) fn build<T>(size: WindowSize, title: T) -> impl Built<Self>
-    where
-        T: Into<String>,
-    {
+    pub(crate) fn build(size: WindowSize, title: String) -> impl Built<Self> {
         EntityBuilder::new(Self {
             size,
-            title: title.into(),
+            title,
             renderer: None,
             window: None,
         })

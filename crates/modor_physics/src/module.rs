@@ -5,6 +5,9 @@ use crate::module::internal::{
 use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 
+const DEFAULT_POSITION: Position = Position::xyz(0., 0., 0.);
+const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
+
 /// The main entity of the physics module.
 ///
 /// # Examples
@@ -74,8 +77,9 @@ impl PhysicsModule {
     ) {
         let entities = Self::sorted_by_depth(entities_with_scale.iter());
         for entity in entities {
-            let result = scales.get_with_first_parent_mut(entity.id());
-            if let (Some(scale), Some(parent_scale)) = result {
+            let (result, parent_result) = scales.get_with_first_parent_mut(entity.id());
+            let parent_scale = parent_result.as_deref().unwrap_or(&DEFAULT_SCALE);
+            if let Some(scale) = result {
                 scale.update_abs(parent_scale);
             }
         }
@@ -88,9 +92,13 @@ impl PhysicsModule {
     ) {
         let entities = Self::sorted_by_depth(entities_with_position.iter());
         for entity in entities {
-            let result = components.get_with_first_parent_mut(entity.id());
-            if let (Some((position, _)), Some((parent_position, parent_scale))) = result {
-                position.update_abs(parent_position, parent_scale.as_deref());
+            let (result, parent_result) = components.get_with_first_parent_mut(entity.id());
+            let (parent_position, parent_scale) = parent_result
+                .map_or((&DEFAULT_POSITION, &DEFAULT_SCALE), |(p, s)| {
+                    (p, s.map_or(&DEFAULT_SCALE, |a| a))
+                });
+            if let Some((position, _)) = result {
+                position.update_abs(parent_position, parent_scale);
             }
         }
     }

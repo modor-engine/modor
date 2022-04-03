@@ -12,7 +12,7 @@ impl GraphicsModule {
         T: Into<String>,
     {
         EntityBuilder::new(Self)
-            .with_child(WindowInit::build(window_size, window_title))
+            .with_child(WindowInit::build(window_size, window_title.into()))
             .with_dependency(PhysicsModule::build())
     }
 }

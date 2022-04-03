@@ -17,14 +17,14 @@ pub struct Position {
     pub y: f32,
     /// The Z-coordinate.
     pub z: f32,
-    pub(crate) abs: AbsolutePosition,
+    abs: AbsolutePosition,
 }
 
 impl Position {
     /// Creates a 3D position.
     ///
     /// Absolute position is initialized with the same coordinates.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self {
             x,
             y,
@@ -38,7 +38,7 @@ impl Position {
     /// Z-coordinate is set to zero.
     ///
     /// Absolute position is initialized with the same coordinates.
-    pub fn xy(x: f32, y: f32) -> Self {
+    pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 
@@ -71,19 +71,10 @@ impl Position {
         self.z += velocity.z * delta_time.as_secs_f32();
     }
 
-    pub(crate) fn update_abs(&mut self, parent_position: &Self, parent_scale: Option<&Scale>) {
-        self.abs.x = self.x.mul_add(
-            parent_scale.map_or(1., |s| s.abs().x),
-            parent_position.abs.x,
-        );
-        self.abs.y = self.y.mul_add(
-            parent_scale.map_or(1., |s| s.abs().y),
-            parent_position.abs.y,
-        );
-        self.abs.z = self.z.mul_add(
-            parent_scale.map_or(1., |s| s.abs().z),
-            parent_position.abs.z,
-        );
+    pub(crate) fn update_abs(&mut self, parent_position: &Self, parent_scale: &Scale) {
+        self.abs.x = self.x.mul_add(parent_scale.abs().x, parent_position.abs.x);
+        self.abs.y = self.y.mul_add(parent_scale.abs().y, parent_position.abs.y);
+        self.abs.z = self.z.mul_add(parent_scale.abs().z, parent_position.abs.z);
     }
 }
 

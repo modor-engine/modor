@@ -14,7 +14,7 @@ pub(crate) struct Shader {
 impl Shader {
     pub(crate) fn new(
         code: &str,
-        vertex_buffer_layout: &[VertexBufferLayout<'_>],
+        vertex_buffer_layouts: &[VertexBufferLayout<'_>],
         label_suffix: &str,
         renderer: &Renderer,
     ) -> Self {
@@ -28,7 +28,7 @@ impl Shader {
         Self {
             pipeline: Self::create_pipeline(
                 renderer,
-                vertex_buffer_layout,
+                vertex_buffer_layouts,
                 &pipeline_layout,
                 &shader,
             ),
@@ -51,7 +51,7 @@ impl Shader {
 
     fn create_pipeline(
         renderer: &Renderer,
-        vertex_buffer_layout: &[VertexBufferLayout],
+        vertex_buffer_layouts: &[VertexBufferLayout],
         pipeline_layout: &PipelineLayout,
         shader: &ShaderModule,
     ) -> RenderPipeline {
@@ -63,7 +63,7 @@ impl Shader {
                 vertex: VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: vertex_buffer_layout,
+                    buffers: vertex_buffer_layouts,
                 },
                 fragment: Some(FragmentState {
                     module: &shader,

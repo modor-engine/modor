@@ -38,6 +38,10 @@ impl Renderer {
         }
     }
 
+    pub(crate) fn surface_size(&self) -> (u32, u32) {
+        self.surface_size
+    }
+
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 && (width, height) != self.surface_size {
             self.surface_size = (width, height);

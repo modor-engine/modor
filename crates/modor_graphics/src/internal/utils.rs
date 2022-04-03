@@ -1,3 +1,4 @@
+use typed_index_collections::TiVec;
 macro_rules! ti_vec {
    () => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![])
@@ -29,4 +30,15 @@ macro_rules! idx_type {
             }
         }
     };
+}
+
+pub(crate) fn set_value<K, V>(vec: &mut TiVec<K, V>, idx: K, value: V)
+where
+    usize: From<K>,
+    K: From<usize>,
+    V: Default,
+{
+    let idx = usize::from(idx);
+    (vec.len()..=idx).for_each(|_| vec.push(V::default()));
+    vec[K::from(idx)] = value;
 }

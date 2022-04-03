@@ -17,7 +17,7 @@ pub struct Scale {
     pub y: f32,
     /// The Z-coordinate.
     pub z: f32,
-    pub(crate) abs: Size,
+    abs: Size,
 }
 
 // TODO: apply "const" keyword to all possible methods

@@ -10,6 +10,7 @@ mod backend;
 mod background;
 mod module;
 mod runner;
+mod storages;
 mod window;
 
 pub use appearance::*;
