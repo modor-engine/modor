@@ -45,7 +45,7 @@ impl Capture {
 
     #[run_as(RenderCaptureAction)]
     fn render(&mut self, background_color: Option<Single<'_, BackgroundColor>>) {
-        let background_color = background_color.map_or(Color::BLACK, |c| c.color());
+        let background_color = background_color.map_or(Color::BLACK, |c| **c);
         self.core.render(background_color);
     }
 
