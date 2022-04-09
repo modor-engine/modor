@@ -1,24 +1,13 @@
 use crate::backend::renderer::Renderer;
 use crate::storages::core::CoreStorage;
-use crate::{BackgroundColor, Color, GraphicsModule, ShapeColor};
+use crate::window::internal::UpdateWindowAction;
+use crate::{BackgroundColor, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct WindowSize {
-    pub width: u32,
-    pub height: u32,
-}
-
-impl WindowSize {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height }
-    }
-}
 
 pub struct Window {
     window: Arc<RwLock<WinitWindow>>,
@@ -34,15 +23,15 @@ impl Window {
         })
     }
 
-    pub fn size(&self) -> WindowSize {
+    pub fn size(&self) -> SurfaceSize {
         let size = self.read_winit_window().inner_size();
-        WindowSize {
+        SurfaceSize {
             width: size.width,
             height: size.height,
         }
     }
 
-    pub fn set_size(&mut self, size: WindowSize) {
+    pub fn set_size(&mut self, size: SurfaceSize) {
         let size = PhysicalSize::new(size.width, size.height);
         self.write_winit_window().set_inner_size(size);
     }
@@ -56,7 +45,7 @@ impl Window {
         self.core.set_size(self.size());
     }
 
-    #[run_after_previous]
+    #[run_as(UpdateWindowAction)]
     fn update(
         &mut self,
         shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
@@ -64,9 +53,9 @@ impl Window {
         self.core.update_instances(shapes);
     }
 
-    #[run_after_previous]
+    #[run_after(UpdateWindowAction)]
     fn render(&mut self, background_color: Option<Single<'_, BackgroundColor>>) {
-        let background_color = background_color.map_or(Color::BLACK, |c| c.0);
+        let background_color = background_color.map_or(Color::BLACK, |c| c.color());
         self.core.render(background_color);
     }
 
@@ -84,7 +73,7 @@ impl Window {
 }
 
 pub(crate) struct WindowInit {
-    size: WindowSize,
+    size: SurfaceSize,
     title: String,
     renderer: Option<Renderer>,
     window: Option<Arc<RwLock<WinitWindow>>>,
@@ -92,7 +81,7 @@ pub(crate) struct WindowInit {
 
 #[singleton]
 impl WindowInit {
-    pub(crate) fn build(size: WindowSize, title: String) -> impl Built<Self> {
+    pub(crate) fn build(size: SurfaceSize, title: String) -> impl Built<Self> {
         EntityBuilder::new(Self {
             size,
             title,
@@ -107,7 +96,7 @@ impl WindowInit {
             .with_inner_size(PhysicalSize::new(self.size.width, self.size.height))
             .build(event_loop)
             .expect("failed to create window");
-        self.renderer = Some(Renderer::new(&window));
+        self.renderer = Some(Renderer::for_surface(&window));
         let window = Arc::new(RwLock::new(window));
         self.window = Some(window.clone());
         window
@@ -131,4 +120,11 @@ impl WindowInit {
         world.create_child_entity(graphics.entity().id(), Window::build(window, renderer));
         world.delete_entity(entity.id());
     }
+}
+
+pub(crate) mod internal {
+    use modor_physics::UpdatePhysicsAction;
+
+    #[action(UpdatePhysicsAction)]
+    pub struct UpdateWindowAction;
 }

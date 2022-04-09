@@ -1,11 +1,11 @@
 use crate::backend::data::Instance;
-use crate::backend::renderer::Renderer;
+use crate::backend::renderer::{Renderer, TargetView};
 use crate::backend::rendering::{RenderCommands, Rendering};
 use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{Color, ShapeColor, WindowSize};
+use crate::{Color, ShapeColor, SurfaceSize};
 use modor::Query;
 use modor_physics::{Position, Scale, Shape};
 
@@ -31,7 +31,15 @@ impl CoreStorage {
         }
     }
 
-    pub(crate) fn set_size(&mut self, size: WindowSize) {
+    pub(crate) fn renderer(&self) -> &Renderer {
+        &self.renderer
+    }
+
+    pub(crate) fn target_view(&mut self) -> TargetView<'_> {
+        self.renderer.target_view()
+    }
+
+    pub(crate) fn set_size(&mut self, size: SurfaceSize) {
         self.renderer.resize(size.width, size.height);
     }
 
@@ -75,7 +83,7 @@ impl CoreStorage {
     }
 
     fn fixed_scale(&self) -> (f32, f32) {
-        let size = self.renderer.surface_size();
+        let size = self.renderer.target_size();
         let width_scale = if size.0 > size.1 {
             size.1 as f32 / size.0 as f32
         } else {

@@ -103,7 +103,7 @@ impl PhysicsModule {
         }
     }
 
-    #[run_as(PhysicsUpdateAction)]
+    #[run_as(UpdatePhysicsAction)]
     fn finish_update() {}
 
     fn sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
@@ -118,7 +118,7 @@ impl PhysicsModule {
 
 /// An action done when the positions and scales have been updated.
 #[action(UpdateAbsolutePositionsAction)]
-pub struct PhysicsUpdateAction;
+pub struct UpdatePhysicsAction;
 
 mod internal {
     use crate::UpdateDeltaTimeAction;

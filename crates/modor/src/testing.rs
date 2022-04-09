@@ -6,6 +6,8 @@ use crate::{App, Built, EntityMainComponent, Singleton};
 use std::any::{Any, TypeId};
 use std::ops::{Deref, DerefMut};
 
+// TODO: singleton must be specify twice, can create issues
+
 /// A utility to facilitate entity testing.
 ///
 /// This is an augmented [`App`](crate::App) type.

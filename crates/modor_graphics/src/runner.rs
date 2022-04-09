@@ -13,8 +13,7 @@ pub fn runner(mut app: App) {
     let event_loop = EventLoop::new();
     let mut window = None;
     app.run_for_singleton::<WindowInit, _>(|i| window = Some(i.create_window(&event_loop)));
-    let window =
-        window.expect("failed to create window because `GraphicsModule` entity is not found");
+    let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     event_loop.run(move |event, _, control_flow| match event {
         Event::MainEventsCleared => read_window(&window).request_redraw(),
         Event::RedrawRequested(window_id) if window_id == read_window(&window).id() => app.update(),

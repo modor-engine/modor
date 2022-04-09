@@ -41,11 +41,27 @@ impl Color {
     }
 }
 
-pub struct BackgroundColor(pub Color);
+pub struct BackgroundColor(Color);
 
 #[singleton]
 impl BackgroundColor {
     pub fn build(color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self(color))
+    }
+
+    pub fn color(&self) -> Color {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SurfaceSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl SurfaceSize {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
     }
 }

@@ -48,7 +48,7 @@ impl Scale {
     /// The absolute size is automatically calculated by the
     /// [`PhysicsModule`](crate::PhysicsModule).<br>
     /// If your system needs to access the absolute size, then it can depend on
-    /// [`PhysicsUpdateAction`](crate::PhysicsUpdateAction) to make sure to use an up-to-date
+    /// [`UpdatePhysicsAction`](crate::UpdatePhysicsAction) to make sure to use an up-to-date
     /// size.
     pub fn abs(&self) -> &Size {
         &self.abs
