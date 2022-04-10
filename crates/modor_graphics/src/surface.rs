@@ -61,10 +61,6 @@ impl Window {
         }
     }
 
-    pub fn set_title(&mut self, title: &str) {
-        self.write_winit_window().set_title(title);
-    }
-
     #[run]
     fn update_size(&mut self, surface: &mut Surface) {
         surface.core.set_size(self.size());
@@ -74,12 +70,6 @@ impl Window {
         self.window
             .read()
             .expect("internal error: cannot read inner window")
-    }
-
-    fn write_winit_window(&mut self) -> RwLockWriteGuard<'_, WinitWindow> {
-        self.window
-            .write()
-            .expect("internal error: cannot write inner window")
     }
 }
 
