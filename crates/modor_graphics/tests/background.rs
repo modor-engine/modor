@@ -25,5 +25,6 @@ fn update_background() {
         .with_entity(BackgroundUpdater::build())
         .into();
     app.update();
+    app.update();
     testing::assert_capture(&app, "tests/expected/background.png");
 }

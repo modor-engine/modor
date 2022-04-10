@@ -1,4 +1,7 @@
 use typed_index_collections::TiVec;
+
+// TODO: create common crate for internal utilities of modor
+
 macro_rules! ti_vec {
    () => (
         ::typed_index_collections::TiVec::<_, _>::from(vec![])

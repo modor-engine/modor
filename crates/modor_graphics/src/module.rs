@@ -1,6 +1,4 @@
-use crate::capture::internal::PrepareCaptureRenderingAction;
-use crate::window::internal::UpdateWindowAction;
-use crate::window::WindowInit;
+use crate::surface::WindowInit;
 use crate::SurfaceSize;
 use modor::{Built, EntityBuilder};
 use modor_physics::PhysicsModule;
@@ -21,10 +19,4 @@ impl GraphicsModule {
     pub fn build_windowless() -> impl Built<Self> {
         EntityBuilder::new(Self).with_dependency(PhysicsModule::build())
     }
-
-    #[run_as(UpdateGraphicsAction)]
-    fn finish_update() {}
 }
-
-#[action(PrepareCaptureRenderingAction, UpdateWindowAction)]
-pub struct UpdateGraphicsAction;

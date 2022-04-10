@@ -9,16 +9,16 @@ mod utils;
 
 mod appearance;
 mod backend;
-mod capture;
+mod background;
 mod module;
 mod runner;
 mod storages;
-mod window;
+mod surface;
 
 pub mod testing;
 
 pub use appearance::*;
-pub use capture::*;
+pub use background::*;
 pub use module::*;
 pub use runner::*;
-pub use window::*;
+pub use surface::*;

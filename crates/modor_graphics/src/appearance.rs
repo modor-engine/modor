@@ -1,6 +1,3 @@
-use modor::{Built, EntityBuilder};
-use std::ops::{Deref, DerefMut};
-
 #[derive(Clone, Debug)]
 pub struct ShapeColor(pub Color);
 
@@ -39,40 +36,5 @@ impl Color {
 
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self::rgba(r, g, b, 1.0)
-    }
-}
-
-pub struct BackgroundColor(Color);
-
-#[singleton]
-impl BackgroundColor {
-    pub fn build(color: Color) -> impl Built<Self> {
-        EntityBuilder::new(Self(color))
-    }
-}
-
-impl Deref for BackgroundColor {
-    type Target = Color;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for BackgroundColor {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct SurfaceSize {
-    pub width: u32,
-    pub height: u32,
-}
-
-impl SurfaceSize {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height }
     }
 }

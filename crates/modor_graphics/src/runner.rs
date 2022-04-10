@@ -1,4 +1,4 @@
-use crate::window::WindowInit;
+use crate::WindowInit;
 use modor::App;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::event::{Event, WindowEvent};
@@ -12,7 +12,7 @@ pub fn runner(mut app: App) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut window = None;
-    app.run_for_singleton::<WindowInit, _>(|i| window = Some(i.create_window(&event_loop)));
+    app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     event_loop.run(move |event, _, control_flow| match event {
         Event::MainEventsCleared => read_window(&window).request_redraw(),

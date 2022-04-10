@@ -31,10 +31,6 @@ impl CoreStorage {
         }
     }
 
-    pub(crate) fn renderer(&self) -> &Renderer {
-        &self.renderer
-    }
-
     pub(crate) fn target_view(&mut self) -> TargetView<'_> {
         self.renderer.target_view()
     }
