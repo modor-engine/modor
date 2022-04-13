@@ -24,6 +24,6 @@ where
             .unwrap()
             .decode()
             .unwrap();
-        assert_eq!(c.buffer(), image.as_bytes());
+        assert!(c.buffer() == image.as_bytes());
     });
 }

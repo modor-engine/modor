@@ -29,12 +29,12 @@ fn display_transparent_and_opaque_shapes_ordered() {
             Color::rgba(1., 1., 1., 0.8),
         ))
         .with_entity(Object::build(
-            Position::xyz(0.15, 0.15, 2.),
-            Color::rgba(1., 0., 0., 1.0),
+            Position::xyz(0.1, 0.1, 2.),
+            Color::rgba(0., 1., 0., 0.2),
         ))
         .with_entity(Object::build(
-            Position::xyz(0.1, 0.1, 3.),
-            Color::rgba(0., 1., 0., 0.2),
+            Position::xyz(0.15, 0.15, 3.),
+            Color::rgba(1., 0., 0., 1.0),
         ))
         .into();
     app.update();
@@ -47,20 +47,20 @@ fn display_transparent_and_opaque_shapes_unordered() {
         .with_entity(GraphicsModule::build_windowless())
         .with_entity(Capture::build(SurfaceSize::new(300, 200)))
         .with_entity(Object::build(
-            Position::xyz(0.1, 0.1, 3.),
-            Color::rgba(0., 1., 0., 0.2),
+            Position::xyz(0.15, 0.15, 3.),
+            Color::rgba(1., 0., 0., 1.0),
         ))
         .with_entity(Object::build(
-            Position::xyz(0.05, 0.05, 1.),
-            Color::rgba(1., 1., 1., 0.8),
+            Position::xyz(0.1, 0.1, 2.),
+            Color::rgba(0., 1., 0., 0.2),
         ))
         .with_entity(Object::build(
             Position::xyz(0., 0., 0.),
             Color::rgba(0., 0., 1., 1.0),
         ))
         .with_entity(Object::build(
-            Position::xyz(0.15, 0.15, 2.),
-            Color::rgba(1., 0., 0., 1.0),
+            Position::xyz(0.05, 0.05, 1.),
+            Color::rgba(1., 1., 1., 0.8),
         ))
         .into();
     app.update();

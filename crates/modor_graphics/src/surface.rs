@@ -6,7 +6,7 @@ use crate::{Color, GraphicsModule, ShapeColor};
 use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
 use std::io::{BufWriter, Write};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
