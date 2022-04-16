@@ -30,7 +30,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
         .with_entity(Capture::build(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_rectangle(
             Position::xyz(0., 0., 0.),
-            Color::rgba(0., 0., 1., 1.0),
+            Color::rgb(0., 0., 1.),
         ))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.05, 0.05, 1.),
@@ -42,7 +42,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
         ))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.15, 0.15, 3.),
-            Color::rgba(1., 0., 0., 1.0),
+            Color::rgb(1., 0., 0.),
         ))
         .into();
     app.update();
@@ -56,7 +56,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
         .with_entity(Capture::build(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.15, 0.15, 3.),
-            Color::rgba(1., 0., 0., 1.0),
+            Color::rgb(1., 0., 0.),
         ))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.1, 0.1, 2.),
@@ -64,7 +64,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
         ))
         .with_entity(Object::build_rectangle(
             Position::xyz(0., 0., 0.),
-            Color::rgba(0., 0., 1., 1.0),
+            Color::rgb(0., 0., 1.),
         ))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.05, 0.05, 1.),

@@ -20,7 +20,6 @@ pub struct Scale {
     abs: Size,
 }
 
-// TODO: apply "const" keyword to all possible methods
 impl Scale {
     /// Creates a 3D scale.
     ///

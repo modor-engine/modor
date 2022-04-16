@@ -23,14 +23,14 @@ pub struct Acceleration {
 
 impl Acceleration {
     /// Creates a 3D acceleration.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
     /// Creates a 2D acceleration.
     ///
     /// Z-coordinate is set to zero.
-    pub fn xy(x: f32, y: f32) -> Self {
+    pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 
