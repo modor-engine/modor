@@ -52,14 +52,16 @@ impl TransparentInstanceStorage {
         });
     }
 
+    pub(super) fn sync_buffers(&mut self, renderer: &Renderer) {
+        self.instances.sync(renderer);
+    }
+
     pub(super) fn render<'a>(
         &'a mut self,
         commands: &mut RenderCommands<'a>,
-        renderer: &Renderer,
         shaders: &'a ShaderStorage,
         models: &'a ModelStorage,
     ) {
-        self.instances.sync(renderer);
         let mut current_shader_idx = None;
         let mut next_instance_idx = 0;
         loop {

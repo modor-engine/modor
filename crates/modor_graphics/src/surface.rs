@@ -1,11 +1,13 @@
 use crate::backend::renderer::Renderer;
+use crate::backend::targets::texture::TextureTarget;
+use crate::backend::targets::window::WindowTarget;
 use crate::background::BackgroundColor;
+use crate::internal::PrepareCaptureAction;
 use crate::storages::core::CoreStorage;
 use crate::surface::internal::{PrepareRenderingAction, RenderAction};
 use crate::{Color, GraphicsModule, ShapeColor};
 use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
-use std::io::{BufWriter, Write};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
@@ -97,7 +99,7 @@ impl WindowInit {
             .with_inner_size(PhysicalSize::new(self.size.width, self.size.height))
             .build(event_loop)
             .expect("failed to create window");
-        self.renderer = Some(Renderer::for_surface(&window));
+        self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
         let window = Arc::new(RwLock::new(window));
         self.window = Some(window.clone());
         window
@@ -125,6 +127,7 @@ impl WindowInit {
 
 pub struct Capture {
     size: SurfaceSize,
+    buffer_size: SurfaceSize,
     buffer: Vec<u8>,
 }
 
@@ -133,41 +136,40 @@ impl Capture {
     pub fn build(size: SurfaceSize) -> impl Built<Self> {
         EntityBuilder::new(Self {
             size,
+            buffer_size: size,
             buffer: vec![],
         })
-        .inherit_from(Surface::build(Renderer::for_texture((
+        .inherit_from(Surface::build(Renderer::new(TextureTarget::new(
             size.width,
             size.height,
         ))))
     }
 
     pub fn size(&self) -> SurfaceSize {
-        self.size
+        self.buffer_size
     }
 
     pub fn set_size(&mut self, size: SurfaceSize) {
         self.size = size;
     }
 
-    pub fn buffer(&self) -> &[u8] {
-        &self.buffer
+    pub fn buffer(&self) -> Option<&[u8]> {
+        if self.buffer.is_empty() {
+            None
+        } else {
+            Some(&self.buffer)
+        }
+    }
+
+    #[run_as(PrepareCaptureAction)]
+    fn update_config(&mut self, surface: &mut Surface) {
+        surface.core.set_size(self.size);
     }
 
     #[run_as(UpdateCaptureBuffer)]
     fn update_buffer(&mut self, surface: &mut Surface) {
-        surface.core.set_size(self.size);
-        let target = surface.core.target_view();
-        let mut writer = BufWriter::new(Vec::new());
-        target.use_buffer_slice(|s| {
-            for chunk in s.chunks(target.padded_bytes_per_row()) {
-                writer
-                    .write_all(&chunk[..target.unpadded_bytes_per_row()])
-                    .expect("internal error: cannot write capture buffer");
-            }
-        });
-        self.buffer = writer
-            .into_inner()
-            .expect("internal error: cannot extract capture buffer");
+        self.buffer_size = self.size;
+        self.buffer = surface.core.renderer().retrieve_buffer();
     }
 }
 
@@ -192,7 +194,10 @@ pub struct UpdateCaptureBuffer;
 pub(crate) mod internal {
     use modor_physics::UpdatePhysicsAction;
 
-    #[action(UpdatePhysicsAction)]
+    #[action]
+    pub struct PrepareCaptureAction;
+
+    #[action(UpdatePhysicsAction, PrepareCaptureAction)]
     pub struct PrepareRenderingAction;
 
     #[action(PrepareRenderingAction)]

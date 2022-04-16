@@ -69,7 +69,7 @@ impl Shader {
                     module: &shader,
                     entry_point: "fs_main",
                     targets: &[ColorTargetState {
-                        format: renderer.target().format(),
+                        format: renderer.target().texture_format(),
                         blend: Some(BlendState::ALPHA_BLENDING),
                         write_mask: ColorWrites::ALL,
                     }],

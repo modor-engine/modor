@@ -2,9 +2,9 @@ use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Instance;
 use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
-use crate::utils;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
+use crate::utils;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
@@ -31,16 +31,20 @@ impl OpaqueInstanceStorage {
         self.groups[group_idx].instances.data_mut().push(instance);
     }
 
+    pub(super) fn sync_buffers(&mut self, renderer: &Renderer) {
+        for group in &mut self.groups {
+            group.instances.sync(renderer);
+        }
+    }
+
     pub(super) fn render<'a>(
         &'a mut self,
         commands: &mut RenderCommands<'a>,
-        renderer: &Renderer,
         shaders: &'a ShaderStorage,
         models: &'a ModelStorage,
     ) {
         let mut current_shader_idx = None;
         for group in &mut self.groups {
-            group.instances.sync(renderer);
             if current_shader_idx != Some(group.shader_idx) {
                 current_shader_idx = Some(group.shader_idx);
                 commands.push_shader_change(shaders.get(group.shader_idx));

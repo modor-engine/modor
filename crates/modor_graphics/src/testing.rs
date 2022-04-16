@@ -9,21 +9,24 @@ where
     P: AsRef<Path>,
 {
     app.assert_singleton::<Capture>().has(|c: &Capture| {
+        let buffer = c
+            .buffer()
+            .expect("capture not yet done (at least one update required)");
         if !capture_path.as_ref().exists() {
             let size = c.size();
             image::save_buffer(
                 capture_path.as_ref(),
-                &c.buffer(),
+                &buffer,
                 size.width,
                 size.height,
                 ColorType::Rgba8,
             )
-            .unwrap();
+            .expect("cannot save expected capture");
         }
         let image = Reader::open(capture_path.as_ref())
-            .unwrap()
+            .expect("cannot read expected capture from disk")
             .decode()
-            .unwrap();
-        assert!(c.buffer() == image.as_bytes());
+            .expect("cannot decode expected capture");
+        assert!(buffer == image.as_bytes());
     });
 }

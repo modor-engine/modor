@@ -1,28 +1,22 @@
 use crate::backend::buffer::DynamicBuffer;
-use crate::backend::renderer::{RenderOutput, Renderer};
+use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
 use bytemuck::Pod;
-use std::num::NonZeroU32;
 use std::ops::Range;
 use wgpu::{
-    Color, CommandEncoder, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, IndexFormat,
-    LoadOp, Operations, RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
-    RenderPassDescriptor, TextureView, TextureViewDescriptor,
+    Color, CommandEncoder, CommandEncoderDescriptor, IndexFormat, LoadOp, Operations, RenderPass,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, TextureView,
 };
 
 pub(crate) struct Rendering<'a> {
-    renderer: &'a Renderer,
-    output: RenderOutput<'a>,
+    renderer: &'a mut Renderer,
     surface: TextureView,
     encoder: CommandEncoder,
 }
 
 impl<'a> Rendering<'a> {
-    pub(crate) fn new(renderer: &'a Renderer) -> Self {
-        let output = renderer.target().output();
-        let surface = output
-            .texture()
-            .create_view(&TextureViewDescriptor::default());
+    pub(crate) fn new(renderer: &'a mut Renderer) -> Self {
+        let surface = renderer.prepare_texture();
         let encoder = renderer
             .device()
             .create_command_encoder(&CommandEncoderDescriptor {
@@ -32,35 +26,11 @@ impl<'a> Rendering<'a> {
             renderer,
             surface,
             encoder,
-            output,
         }
     }
 
-    pub(crate) fn apply(mut self) {
-        if let Some(buffer) = self.output.buffer() {
-            self.encoder.copy_texture_to_buffer(
-                self.output.texture().as_image_copy(),
-                ImageCopyBuffer {
-                    buffer: &buffer,
-                    layout: wgpu::ImageDataLayout {
-                        offset: 0,
-                        bytes_per_row: Some(
-                            NonZeroU32::new(self.output.padded_bytes_per_row() as u32).unwrap(),
-                        ),
-                        rows_per_image: None,
-                    },
-                },
-                Extent3d {
-                    width: self.renderer.target_size().0,
-                    height: self.renderer.target_size().1,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-        self.renderer
-            .queue()
-            .submit(std::iter::once(self.encoder.finish()));
-        self.output.finish();
+    pub(crate) fn apply(self) {
+        self.renderer.render(self.encoder);
     }
 }
 

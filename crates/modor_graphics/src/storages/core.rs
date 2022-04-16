@@ -1,5 +1,5 @@
 use crate::backend::data::Instance;
-use crate::backend::renderer::{Renderer, TargetView};
+use crate::backend::renderer::Renderer;
 use crate::backend::rendering::{RenderCommands, Rendering};
 use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
@@ -31,12 +31,12 @@ impl CoreStorage {
         }
     }
 
-    pub(crate) fn target_view(&mut self) -> TargetView<'_> {
-        self.renderer.target_view()
+    pub(crate) fn renderer(&self) -> &Renderer {
+        &self.renderer
     }
 
     pub(crate) fn set_size(&mut self, size: SurfaceSize) {
-        self.renderer.resize(size.width, size.height);
+        self.renderer.set_size(size.width, size.height);
     }
 
     pub(crate) fn update_instances(
@@ -64,16 +64,14 @@ impl CoreStorage {
     }
 
     pub(crate) fn render(&mut self, background_color: Color) {
-        let mut rendering = Rendering::new(&self.renderer);
+        self.opaque_instances.sync_buffers(&self.renderer);
+        self.transparent_instances.sync_buffers(&self.renderer);
+        let mut rendering = Rendering::new(&mut self.renderer);
         let mut commands = RenderCommands::new(background_color.into(), &mut rendering);
         self.opaque_instances
-            .render(&mut commands, &self.renderer, &self.shaders, &self.models);
-        self.transparent_instances.render(
-            &mut commands,
-            &self.renderer,
-            &self.shaders,
-            &self.models,
-        );
+            .render(&mut commands, &self.shaders, &self.models);
+        self.transparent_instances
+            .render(&mut commands, &self.shaders, &self.models);
         drop(commands);
         rendering.apply();
     }
