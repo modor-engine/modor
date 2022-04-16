@@ -65,3 +65,4 @@ fn resize_capture_bigger() {
 }
 
 // TODO: resize_capture_zero/empty
+// TODO: resize to vertical

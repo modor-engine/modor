@@ -68,7 +68,7 @@ impl TransparentInstanceStorage {
             if let Some(details) = self.instance_details.get(next_instance_idx) {
                 let model_idx = details.model_idx;
                 let first_instance_idx_with_different_model =
-                    self.first_instance_idx_with_config_change(next_instance_idx, model_idx);
+                    self.first_instance_idx_with_config_change(next_instance_idx, details);
                 let model = models.get(model_idx);
                 if current_shader_idx != Some(details.shader_idx) {
                     current_shader_idx = Some(details.shader_idx);
@@ -90,13 +90,15 @@ impl TransparentInstanceStorage {
     fn first_instance_idx_with_config_change(
         &self,
         first_instance_idx: usize,
-        model_idx: ModelIdx,
+        current_details: &InstanceDetails,
     ) -> usize {
         for (instance_offset, details) in self.instance_details[first_instance_idx..]
             .iter()
             .enumerate()
         {
-            if details.model_idx != model_idx {
+            if details.shader_idx != current_details.shader_idx
+                || details.model_idx != current_details.model_idx
+            {
                 return first_instance_idx + instance_offset;
             }
         }

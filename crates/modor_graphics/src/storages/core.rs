@@ -95,13 +95,9 @@ impl CoreStorage {
     where
         I: Iterator<Item = f32>,
     {
-        let (min_z, mut max_z) = depths.fold((f32::INFINITY, 0_f32), |(min, max), b| {
+        depths.fold((f32::INFINITY, 0_f32), |(min, max), b| {
             (min.min(b), max.max(b))
-        });
-        if min_z == max_z {
-            max_z += f32::EPSILON; // avoid division by zero when creating instance
-        }
-        (min_z, max_z)
+        })
     }
 
     fn create_instance(
@@ -114,7 +110,11 @@ impl CoreStorage {
         let (min_z, max_z) = depth_bounds;
         let (x_scale, y_scale) = fixed_scale;
         let scale = scale.unwrap_or(&DEFAULT_SCALE).abs();
-        let z_position = (1. - (position.abs().z - min_z) / (max_z - min_z)) * MAX_2D_DEPTH;
+        let z_position = if max_z - min_z > 0. {
+            (1. - (position.abs().z - min_z) / (max_z - min_z)) * MAX_2D_DEPTH
+        } else {
+            0.5
+        };
         Instance {
             transform: [
                 [scale.x * 2. * x_scale, 0., 0., 0.],
