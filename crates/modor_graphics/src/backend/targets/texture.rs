@@ -118,7 +118,6 @@ impl Target for TextureTarget {
         self.texture.create_view(&TextureViewDescriptor::default())
     }
 
-    // TODO: better handle unwrap()
     fn render(&mut self, queue: &Queue, mut encoder: CommandEncoder) {
         encoder.copy_texture_to_buffer(
             self.texture.as_image_copy(),
@@ -126,7 +125,10 @@ impl Target for TextureTarget {
                 buffer: &self.buffer,
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: Some(NonZeroU32::new(self.padded_row_bytes as u32).unwrap()),
+                    bytes_per_row: Some(
+                        NonZeroU32::new(self.padded_row_bytes as u32)
+                            .expect("internal error: cannot render empty buffer"),
+                    ),
                     rows_per_image: None,
                 },
             },

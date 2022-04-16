@@ -126,18 +126,18 @@ impl WindowInit {
 }
 
 pub struct Capture {
-    size: SurfaceSize,
-    buffer_size: SurfaceSize,
     buffer: Vec<u8>,
+    buffer_size: SurfaceSize,
+    updated_size: Option<SurfaceSize>,
 }
 
 #[singleton]
 impl Capture {
     pub fn build(size: SurfaceSize) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            size,
             buffer_size: size,
             buffer: vec![],
+            updated_size: Some(size),
         })
         .inherit_from(Surface::build(Renderer::new(TextureTarget::new(
             size.width,
@@ -150,7 +150,7 @@ impl Capture {
     }
 
     pub fn set_size(&mut self, size: SurfaceSize) {
-        self.size = size;
+        self.updated_size = Some(size);
     }
 
     pub fn buffer(&self) -> Option<&[u8]> {
@@ -163,12 +163,15 @@ impl Capture {
 
     #[run_as(PrepareCaptureAction)]
     fn update_config(&mut self, surface: &mut Surface) {
-        surface.core.set_size(self.size);
+        if let Some(size) = self.updated_size.take() {
+            surface.core.set_size(size);
+        }
     }
 
     #[run_as(UpdateCaptureBuffer)]
     fn update_buffer(&mut self, surface: &mut Surface) {
-        self.buffer_size = self.size;
+        let (width, height) = surface.core.renderer().target_size();
+        self.buffer_size = SurfaceSize::new(width, height);
         self.buffer = surface.core.renderer().retrieve_buffer();
     }
 }

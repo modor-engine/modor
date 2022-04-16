@@ -64,5 +64,32 @@ fn resize_capture_bigger() {
     testing::assert_capture(&app, "tests/expected/capture_bigger.png");
 }
 
-// TODO: resize_capture_zero/empty
-// TODO: resize to vertical
+#[test]
+fn resize_capture_to_zero() {
+    let mut app: TestApp = App::new()
+        .with_entity(GraphicsModule::build_windowless())
+        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(BackgroundColor::build(Color::GREEN))
+        .with_entity(Rectangle::build())
+        .with_entity(CaptureResizer::build(SurfaceSize::new(0, 0)))
+        .into();
+    app.update();
+    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
+    app.update();
+    testing::assert_capture(&app, "tests/expected/capture_zero.png");
+}
+
+#[test]
+fn resize_capture_vertically() {
+    let mut app: TestApp = App::new()
+        .with_entity(GraphicsModule::build_windowless())
+        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(BackgroundColor::build(Color::GREEN))
+        .with_entity(Rectangle::build())
+        .with_entity(CaptureResizer::build(SurfaceSize::new(200, 300)))
+        .into();
+    app.update();
+    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
+    app.update();
+    testing::assert_capture(&app, "tests/expected/capture_vertical.png");
+}

@@ -32,9 +32,10 @@ impl Renderer {
         self.target.retrieve_buffer(&self.device)
     }
 
-    // TODO: handle correctly width and height =0 (automatically reset to 1)
     pub(crate) fn set_size(&mut self, width: u32, height: u32) {
-        if width > 0 && height > 0 && (width, height) != self.target.size() {
+        let width = u32::max(width, 1);
+        let height = u32::max(height, 1);
+        if (width, height) != self.target.size() {
             self.depth_buffer = Self::create_depth_buffer(&self.device, width, height);
             self.target.set_size(width, height, &self.device);
         }
