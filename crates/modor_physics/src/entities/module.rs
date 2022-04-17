@@ -1,4 +1,4 @@
-use crate::module::internal::{
+use crate::entities::module::internal::{
     UpdateAbsolutePositionsAction, UpdateAbsoluteScalesAction, UpdatePositionsAction,
     UpdateVelocitiesAction,
 };

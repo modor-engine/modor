@@ -51,8 +51,10 @@
 //!     }
 //! }
 //! ```
-
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::multiple_inherent_impl))]
+
+#[macro_use]
+extern crate modor_internal;
 
 #[cfg(test)]
 #[macro_use]

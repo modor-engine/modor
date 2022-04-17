@@ -1,0 +1,15 @@
+[package]
+name = "modor_internal"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Internal module of Modor game engine for common utils"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "./README.md"
+keywords = ["modor", "internal"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+
+[dependencies]
+typed-index-collections = "3.0"

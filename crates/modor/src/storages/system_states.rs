@@ -1,7 +1,7 @@
 use crate::storages::actions::{ActionIdx, ActionStorage};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemIdx};
-use crate::utils;
+use modor_internal::ti_vec;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
@@ -23,7 +23,7 @@ impl SystemStateStorage {
         action_idx: ActionIdx,
     ) {
         for component_types in &component_types {
-            utils::set_value(
+            ti_vec::set_value(
                 &mut self.component_type_states,
                 component_types.type_idx,
                 LockState::Free,

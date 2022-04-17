@@ -1,6 +1,6 @@
 use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
-use crate::utils;
 use fxhash::FxHashMap;
+use modor_internal::ti_vec;
 use std::any::{Any, TypeId};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use typed_index_collections::TiVec;
@@ -113,7 +113,7 @@ impl ComponentStorage {
                 self.add_archetype(type_idx, location.idx);
             }
         } else {
-            utils::set_value(archetypes, location.idx, ti_vec![component]);
+            ti_vec::set_value(archetypes, location.idx, ti_vec![component]);
             self.add_archetype(type_idx, location.idx);
         }
         if is_singleton {
@@ -188,7 +188,7 @@ where
         if let Some(archetype) = archetypes.get_mut(dst_archetype_idx) {
             archetype.push(component);
         } else {
-            utils::set_value(&mut *archetypes, dst_archetype_idx, ti_vec![component]);
+            ti_vec::set_value(&mut *archetypes, dst_archetype_idx, ti_vec![component]);
         }
     }
 

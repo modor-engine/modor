@@ -1,5 +1,14 @@
-#[derive(Clone, Debug)]
-pub struct ShapeColor(pub Color);
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SurfaceSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl SurfaceSize {
+    pub const fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color {

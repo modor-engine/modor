@@ -1,11 +1,11 @@
 use crate::backend::renderer::Renderer;
 use crate::backend::targets::texture::TextureTarget;
 use crate::backend::targets::window::WindowTarget;
-use crate::background::BackgroundColor;
+use crate::entities::background_color::BackgroundColor;
+use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::CoreStorage;
-use crate::surface::internal::{PrepareRenderingAction, RenderAction};
-use crate::{Color, GraphicsModule, ShapeColor};
+use crate::{Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
@@ -15,12 +15,12 @@ use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
 
-pub(crate) struct Surface {
+pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
 }
 
 #[entity]
-impl Surface {
+impl RenderTarget {
     pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
         EntityBuilder::new(Self {
             core: CoreStorage::new(renderer),
@@ -52,7 +52,7 @@ pub struct Window {
 #[singleton]
 impl Window {
     pub(crate) fn build(window: Arc<RwLock<WinitWindow>>, renderer: Renderer) -> impl Built<Self> {
-        EntityBuilder::new(Self { window }).inherit_from(Surface::build(renderer))
+        EntityBuilder::new(Self { window }).inherit_from(RenderTarget::build(renderer))
     }
 
     pub fn size(&self) -> SurfaceSize {
@@ -64,7 +64,7 @@ impl Window {
     }
 
     #[run]
-    fn update_size(&mut self, surface: &mut Surface) {
+    fn update_size(&mut self, surface: &mut RenderTarget) {
         surface.core.set_size(self.size());
     }
 
@@ -139,7 +139,7 @@ impl Capture {
             buffer: vec![],
             updated_size: Some(size),
         })
-        .inherit_from(Surface::build(Renderer::new(TextureTarget::new(
+        .inherit_from(RenderTarget::build(Renderer::new(TextureTarget::new(
             size.width,
             size.height,
         ))))
@@ -162,29 +162,17 @@ impl Capture {
     }
 
     #[run_as(PrepareCaptureAction)]
-    fn update_config(&mut self, surface: &mut Surface) {
+    fn update_config(&mut self, surface: &mut RenderTarget) {
         if let Some(size) = self.updated_size.take() {
             surface.core.set_size(size);
         }
     }
 
     #[run_as(UpdateCaptureBuffer)]
-    fn update_buffer(&mut self, surface: &mut Surface) {
+    fn update_buffer(&mut self, surface: &mut RenderTarget) {
         let (width, height) = surface.core.renderer().target_size();
         self.buffer_size = SurfaceSize::new(width, height);
         self.buffer = surface.core.renderer().retrieve_buffer();
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct SurfaceSize {
-    pub width: u32,
-    pub height: u32,
-}
-
-impl SurfaceSize {
-    pub const fn new(width: u32, height: u32) -> Self {
-        Self { width, height }
     }
 }
 

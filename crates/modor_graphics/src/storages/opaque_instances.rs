@@ -4,7 +4,7 @@ use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
-use crate::utils;
+use modor_internal::ti_vec;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
@@ -88,8 +88,8 @@ impl OpaqueInstanceStorage {
                 renderer,
             ),
         });
-        utils::set_value(&mut self.group_idxs, shader_idx, ti_vec![]);
-        utils::set_value(&mut self.group_idxs[shader_idx], model_idx, Some(group_idx));
+        ti_vec::set_value(&mut self.group_idxs, shader_idx, ti_vec![]);
+        ti_vec::set_value(&mut self.group_idxs[shader_idx], model_idx, Some(group_idx));
         group_idx
     }
 }

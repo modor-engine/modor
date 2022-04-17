@@ -2,23 +2,21 @@
 
 #[macro_use]
 extern crate modor;
-extern crate core;
-
 #[macro_use]
-mod utils;
+extern crate modor_internal;
 
-mod appearance;
 mod backend;
-mod background;
-mod module;
+mod components;
+mod data;
+mod entities;
 mod runner;
 mod storages;
-mod surface;
 
 pub mod testing;
 
-pub use appearance::*;
-pub use background::*;
-pub use module::*;
+pub use components::shape_color::*;
+pub use data::*;
+pub use entities::background_color::*;
+pub use entities::module::*;
+pub use entities::render_target::*;
 pub use runner::*;
-pub use surface::*;

@@ -1,4 +1,4 @@
-use crate::surface::WindowInit;
+use crate::entities::render_target::WindowInit;
 use crate::SurfaceSize;
 use modor::{Built, EntityBuilder};
 use modor_physics::PhysicsModule;

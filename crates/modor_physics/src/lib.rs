@@ -25,11 +25,8 @@
 #[macro_use]
 extern crate modor;
 
-// TODO: reorganize modules like in modor_graphics
-
 mod components;
 mod entities;
-mod module;
 
 pub use components::acceleration::*;
 pub use components::position::*;
@@ -37,5 +34,5 @@ pub use components::scale::*;
 pub use components::shape::*;
 pub use components::velocity::*;
 pub use entities::delta_time::*;
+pub use entities::module::*;
 pub use entities::updates_per_second::*;
-pub use module::*;
