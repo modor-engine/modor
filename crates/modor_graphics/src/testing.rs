@@ -16,7 +16,7 @@ where
             let size = c.size();
             image::save_buffer(
                 capture_path.as_ref(),
-                &buffer,
+                buffer,
                 size.width,
                 size.height,
                 ColorType::Rgba8,
@@ -27,6 +27,12 @@ where
             .expect("cannot read expected capture from disk")
             .decode()
             .expect("cannot decode expected capture");
-        assert!(buffer == image.as_bytes());
+        assert!(
+            !buffer
+                .iter()
+                .zip(image.as_bytes())
+                .any(|(a, b)| a.abs_diff(*b) > 1),
+            "captures are different"
+        );
     });
 }

@@ -31,7 +31,7 @@ Not tested but should also work on:
 
 ## Usage
 
-The minimum supported version of Rust is 1.57.
+The minimum supported version of Rust is 1.60.
 
 To include this library in your project, just add the following dependency in your `Cargo.toml` file:
 
