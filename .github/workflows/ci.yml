@@ -33,6 +33,8 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           profile: minimal
           override: true
+      - name: Install graphics dependencies
+        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
         uses: actions-rs/cargo@v1
         with:
