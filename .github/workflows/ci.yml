@@ -40,10 +40,18 @@ jobs:
         with:
           command: build
           args: --all-targets
-      - name: Test
+      - name: Test with OpenGL
         uses: actions-rs/cargo@v1
         with:
           command: test
+        env:
+          WGPU_BACKEND: gl
+      - name: Test with Vulkan
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          WGPU_BACKEND: vulkan
 
   test-windows:
     runs-on: windows-2022
@@ -61,10 +69,18 @@ jobs:
         with:
           command: build
           args: --all-targets
-      - name: Test
+      - name: Test with DirectX 11
         uses: actions-rs/cargo@v1
         with:
           command: test
+        env:
+          WGPU_BACKEND: dx11
+      - name: Test with DirectX 12
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          WGPU_BACKEND: dx12
 
   test-macos:
     runs-on: macos-11
@@ -82,10 +98,7 @@ jobs:
         with:
           command: build
           args: --all-targets
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+      # Tests are disabled because there is no available software renderer
 
   check-coverage:
     runs-on: ubuntu-20.04
