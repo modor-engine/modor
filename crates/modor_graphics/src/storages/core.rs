@@ -95,7 +95,7 @@ impl CoreStorage {
     where
         I: Iterator<Item = f32>,
     {
-        depths.fold((f32::INFINITY, 0_f32), |(min, max), b| {
+        depths.fold((f32::INFINITY, 0.0_f32), |(min, max), b| {
             (min.min(b), max.max(b))
         })
     }

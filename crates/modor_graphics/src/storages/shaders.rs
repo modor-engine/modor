@@ -4,6 +4,9 @@ use crate::backend::shaders::Shader;
 use modor_physics::Shape;
 use typed_index_collections::TiVec;
 
+const FIRST_VERTEX_BUFFER_LOCATION: u32 = 0;
+const FIRST_INSTANCE_BUFFER_LOCATION: u32 = 1;
+
 pub(super) struct ShaderStorage {
     shaders: TiVec<ShaderIdx, Shader>,
 }
@@ -11,8 +14,8 @@ pub(super) struct ShaderStorage {
 impl ShaderStorage {
     pub(super) fn new(renderer: &Renderer) -> Self {
         let vertex_buffer_layouts = &[
-            <Vertex as GpuData<0>>::layout(),
-            <Instance as GpuData<1>>::layout(),
+            <Vertex as GpuData<FIRST_VERTEX_BUFFER_LOCATION>>::layout(),
+            <Instance as GpuData<FIRST_INSTANCE_BUFFER_LOCATION>>::layout(),
         ];
         Self {
             shaders: ti_vec![

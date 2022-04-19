@@ -99,6 +99,8 @@ jobs:
           profile: minimal
           components: llvm-tools-preview
           override: true
+      - name: Install graphics dependencies
+        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
         uses: actions-rs/cargo@v1
         with:
@@ -146,6 +148,8 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
           profile: minimal
           override: true
+      - name: Install graphics dependencies
+        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install mutagen
         run: bash .github/workflows/scripts/install_mutagen.sh
       - name: Run mutation tests
