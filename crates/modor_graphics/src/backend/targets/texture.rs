@@ -19,8 +19,7 @@ pub(crate) struct TextureTarget {
 
 impl TextureTarget {
     pub(crate) fn new(width: u32, height: u32) -> CreatedTarget<Self> {
-        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all);
-        let instance = Instance::new(backends);
+        let instance = Instance::new(Backends::all());
         let adapter = Self::retrieve_adapter(&instance);
         let (device, queue) = super::retrieve_device(&adapter);
         let texture = Self::create_texture(&device, width, height);

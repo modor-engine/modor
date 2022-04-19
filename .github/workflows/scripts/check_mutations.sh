@@ -41,8 +41,13 @@ for crate_path in ./crates/*; do
     echo "Dependency added."
 
     log_path=log.txt
-    rm -rf tests
-    cargo test --no-run --verbose
+    cargo test --no-run --verbose --features test-coverage
+
+    sed -i "s;mutagen = { git = \"https://github.com/llogiq/mutagen\", rev = \"$MUTAGEN_COMMIT\" };;" Cargo.toml
+    while IFS= read -r -d '' file; do
+        sed -i "s;#\[::mutagen::mutate\];;" "$file"
+    done< <(find ./src -type f -name '*.rs' -print0)
+
     cargo-mutagen | tee $log_path
     killed=$(grep -o '([^"]*%) mutants killed' $log_path | grep -o '[0-9.]*')
     rm $log_path
@@ -52,9 +57,5 @@ for crate_path in ./crates/*; do
         exit 1
     fi
 
-    sed -i "s;mutagen = { git = \"https://github.com/llogiq/mutagen\", rev = \"$MUTAGEN_COMMIT\" };;" Cargo.toml
-    while IFS= read -r -d '' file; do
-        sed -i "s;#\[::mutagen::mutate\];;" "$file"
-    done< <(find ./src -type f -name '*.rs' -print0)
     cd -
 done

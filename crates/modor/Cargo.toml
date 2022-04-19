@@ -24,6 +24,9 @@ criterion = "0.3"
 doc-comment = "0.3"
 static_assertions = "1.1"
 
+[features]
+test-coverage = []
+
 [[bench]]
 name = "entity_creation"
 harness = false
