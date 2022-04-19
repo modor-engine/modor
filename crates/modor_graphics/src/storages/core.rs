@@ -67,12 +67,13 @@ impl CoreStorage {
         self.opaque_instances.sync_buffers(&self.renderer);
         self.transparent_instances.sync_buffers(&self.renderer);
         let mut rendering = Rendering::new(&mut self.renderer);
-        let mut commands = RenderCommands::new(background_color.into(), &mut rendering);
-        self.opaque_instances
-            .render(&mut commands, &self.shaders, &self.models);
-        self.transparent_instances
-            .render(&mut commands, &self.shaders, &self.models);
-        drop(commands);
+        {
+            let mut commands = RenderCommands::new(background_color.into(), &mut rendering);
+            self.opaque_instances
+                .render(&mut commands, &self.shaders, &self.models);
+            self.transparent_instances
+                .render(&mut commands, &self.shaders, &self.models);
+        }
         rendering.apply();
     }
 
