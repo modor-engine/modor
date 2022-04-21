@@ -30,7 +30,7 @@ add_mutation_annotations() {
 
 IFS=";"
 for crate_path in ./crates/*; do
-    echo $UNTESTED_CRATES | grep $(basename $crate_path) && continue
+    echo $UNTESTED_CRATES | grep "(^| )$(basename ./crates/modor_deriv)($| )" && continue
     cd "$crate_path"
     while IFS= read -r -d '' file; do
         add_mutation_annotations "$file"
