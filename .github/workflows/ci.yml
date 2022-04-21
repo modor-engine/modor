@@ -112,7 +112,7 @@ jobs:
           command: test
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code -Ccodegen-units=1
-          LLVM_PROFILE_FILE: %m.profraw
+          LLVM_PROFILE_FILE: "%m.profraw"
       - name: Generate HTML coverage report
         run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub
