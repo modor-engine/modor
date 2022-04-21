@@ -95,7 +95,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
           profile: minimal
           components: llvm-tools-preview
           override: true
@@ -110,9 +110,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features test-coverage
         env:
-          RUSTFLAGS: -Zinstrument-coverage -Clink-dead-code
+          RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code -Ccodegen-units=1
+          LLVM_PROFILE_FILE: %m.profraw
       - name: Generate HTML coverage report
         run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub
