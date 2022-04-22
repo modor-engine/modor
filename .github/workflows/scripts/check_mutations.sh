@@ -13,15 +13,16 @@ add_mutation_annotations() {
             if [[ "$line" =~ ^[^/]+.*" fn ".* ]] || [[ "$line" =~ ^"fn ".* ]] && [ $replace -eq 1 ]; then
                 echo "#[::mutagen::mutate] $line" >> "$1.tmp"
             else
-                # Fix to avoid "annotation needed" due to a bug with serde_json (https://github.com/llogiq/mutagen/issues/164)
-                line=$(echo "$line" | sed -e "s/assert_eq!(\(.*\), &\[\])/assert!(\1.is_empty())/")
-                line=$(echo "$line" | sed -e "s/assert_eq!(\(.*\), \[\])/assert!(\1.is_empty())/")
-                line=$(echo "$line" | sed -e "s/assert_eq!(\(.*\), Vec::new())/assert!(\1.is_empty())/")
-                line=$(echo "$line" | sed -e "s/assert_eq!(\(.*\), vec!\[\])/assert!(\1.is_empty())/")
-
                 echo "$line" >> "$1.tmp"
             fi
         done < "$1"
+
+        # Fix to avoid "annotation needed" due to a bug with serde_json (https://github.com/llogiq/mutagen/issues/164)
+        sed -e "s/assert_eq!(\(.*\), &\[\])/assert!(\1.is_empty())/g" -i "$1.tmp"
+        sed -e "s/assert_eq!(\(.*\), \[\])/assert!(\1.is_empty())/g" -i "$1.tmp"
+        sed -e "s/assert_eq!(\(.*\), Vec::new())/assert!(\1.is_empty())/g" -i "$1.tmp"
+        sed -e "s/assert_eq!(\(.*\), vec!\[\])/assert!(\1.is_empty())/g" -i "$1.tmp"
+
         rm "$1"
         mv "$1.tmp" "$1"
     fi
@@ -40,22 +41,25 @@ for crate_path in ./crates/*; do
     sed -i -re "s;(\[dependencies\]);\1\nmutagen = { git = \"https://github.com/llogiq/mutagen\", rev = \"$MUTAGEN_COMMIT\" };" Cargo.toml
     echo "Dependency added."
 
-    log_path=log.txt
-    cargo test --no-run --verbose --features test-coverage
+    cargo test --no-run --verbose
+    cargo-mutagen | tee log.txt
 
-    sed -i "s;mutagen = { git = \"https://github.com/llogiq/mutagen\", rev = \"$MUTAGEN_COMMIT\" };;" Cargo.toml
+    sed -i "/mutagen.*/d" Cargo.toml
     while IFS= read -r -d '' file; do
-        sed -i "s;#\[::mutagen::mutate\];;" "$file"
+        sed -i "s;#\[::mutagen::mutate\] ;;" "$file"
     done< <(find ./src -type f -name '*.rs' -print0)
+    cd -
+done
 
-    cargo-mutagen | tee $log_path
-    killed=$(grep -o '([^"]*%) mutants killed' $log_path | grep -o '[0-9.]*')
-    rm $log_path
+for crate_path in ./crates/*; do
+    echo $UNTESTED_CRATES | grep "(^| )$(basename $crate_path)($| )" && continue
+    cd "$crate_path"
+    killed=$(grep -o '([^"]*%) mutants killed' log.txt | grep -o '[0-9.]*')
+    rm log.txt
     failure=$(awk 'BEGIN{ print '"$killed"'<'"$MUTAGEN_THRESHOLD"' }')
     if [ "$failure" -eq "1" ]; then
         echo "Mutation tests have failed with $killed% of killed mutants instead of at least $MUTAGEN_THRESHOLD%."
         exit 1
     fi
-
     cd -
 done
