@@ -5,6 +5,8 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window as WinitWindow;
 
+// coverage: off (window cannot be tested)
+
 // TODO: move frame rate limitation in runner ?
 
 #[allow(clippy::single_match, clippy::collapsible_match)]

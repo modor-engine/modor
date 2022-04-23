@@ -6,6 +6,8 @@ use wgpu::{
 };
 use winit::window::Window;
 
+// coverage: off (window cannot be tested)
+
 pub(crate) struct WindowTarget {
     surface: Surface,
     surface_config: SurfaceConfiguration,

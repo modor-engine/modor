@@ -45,6 +45,7 @@ impl RenderTarget {
     fn finish_update() {}
 }
 
+// coverage: off (window cannot be tested)
 pub struct Window {
     window: Arc<RwLock<WinitWindow>>,
 }
@@ -124,6 +125,7 @@ impl WindowInit {
         world.delete_entity(entity.id());
     }
 }
+// coverage: on
 
 pub struct Capture {
     buffer: Vec<u8>,
