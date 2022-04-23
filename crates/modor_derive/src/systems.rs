@@ -1,10 +1,9 @@
 use crate::attributes;
-use crate::attributes::AttributeType;
+use crate::attributes::{AttributeType, ParsedAttribute};
 use proc_macro2::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned};
 use std::cmp::Ordering;
-use syn::spanned::Spanned;
 use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
 pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
@@ -22,10 +21,10 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
             if let ImplItem::Method(method) = i {
                 let attributes = supported_attributes(&method.attrs);
                 return match attributes.len().cmp(&1) {
-                    Ordering::Equal => Some(generate_system_call(method, attributes[0])),
+                    Ordering::Equal => Some(generate_system_call(method, &attributes[0])),
                     Ordering::Less => None,
                     Ordering::Greater => {
-                        emit_error!(attributes[1], "found more than one `run*` attribute");
+                        emit_error!(attributes[1].span(), "found more than one `run*` attribute");
                         None
                     }
                 };
@@ -35,28 +34,28 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
         .flatten()
 }
 
-fn supported_attributes(attributes: &[Attribute]) -> Vec<&Attribute> {
+fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
     attributes
         .iter()
-        .filter(|a| attributes::is_supported(a))
+        .filter_map(|a| attributes::parse_type(a))
         .collect()
 }
 
-fn generate_system_call(method: &ImplItemMethod, attribute: &Attribute) -> Option<TokenStream> {
+fn generate_system_call(method: &ImplItemMethod, attribute: &AttributeType) -> Option<TokenStream> {
     let system_name = &method.sig.ident;
     Some(match attributes::parse(attribute)? {
-        AttributeType::Run => quote_spanned! { attribute.span() =>
+        ParsedAttribute::Run => quote_spanned! { attribute.span() =>
             .run(::modor::system!(Self::#system_name))
         },
-        AttributeType::RunAs(action) => quote_spanned! { attribute.span() =>
+        ParsedAttribute::RunAs(action) => quote_spanned! { attribute.span() =>
             .run_as::<#action>(::modor::system!(Self::#system_name))
         },
-        AttributeType::RunAfter(actions) => quote_spanned! { attribute.span() =>
+        ParsedAttribute::RunAfter(actions) => quote_spanned! { attribute.span() =>
             .run_constrained::<(#(::modor::DependsOn<#actions>,)*)>(
                 ::modor::system!(Self::#system_name)
             )
         },
-        AttributeType::RunAfterPrevious => quote_spanned! { attribute.span() =>
+        ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
             .and_then(::modor::system!(Self::#system_name))
         },
     })
