@@ -1,10 +1,8 @@
 use crate::Capture;
-use image::io::Reader;
 use image::ColorType;
 use modor::testing::TestApp;
 use std::path::Path;
 
-// TODO: read capture at compile time instead of runtime (may require to make assert_capture a macro)
 pub fn assert_capture<P>(app: &TestApp, capture_path: P)
 where
     P: AsRef<Path>,
@@ -24,10 +22,8 @@ where
             )
             .expect("cannot save expected capture");
         }
-        let image = Reader::open(capture_path.as_ref())
-            .expect("cannot read expected capture from disk")
-            .decode()
-            .expect("cannot decode expected capture");
+        let image =
+            image::open(capture_path.as_ref()).expect("cannot read expected capture from disk");
         assert!(
             !buffer
                 .iter()

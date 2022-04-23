@@ -16,6 +16,3 @@ modor = { version = "0.1.0", path = "../modor" }
 
 [dev-dependencies]
 approx = "0.5"
-
-[features]
-test-coverage = []

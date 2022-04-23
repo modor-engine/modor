@@ -3,7 +3,6 @@ use compiletest_rs::Config;
 use std::path::PathBuf;
 
 #[test]
-#[cfg_attr(feature = "test-coverage", ignore)]
 fn create_invalid_actions() {
     let root_path = env!("CARGO_MANIFEST_DIR");
     let lib_path_1 = [root_path, "..", "..", "target", "debug"]

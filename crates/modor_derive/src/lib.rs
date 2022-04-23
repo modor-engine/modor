@@ -73,4 +73,3 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
 
 // TODO: add to coverage
 // TODO: probably requires compile fail tests (see if it can work on coverage/mutation tests)
-// TODO: test-coverage still useful ?

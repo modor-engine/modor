@@ -18,7 +18,7 @@ env:
   COV_THRESHOLD: 100.0
   MUTAGEN_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
-  UNTESTED_CRATES: modor_derive # space-delimited list
+  NOT_MUTATED_CRATES: modor_derive # space-delimited list
 
 jobs:
 
@@ -86,7 +86,6 @@ jobs:
 
   check-coverage:
     runs-on: ubuntu-20.04
-    needs: test-ubuntu
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -138,7 +137,6 @@ jobs:
 
   check-mutations:
     runs-on: ubuntu-20.04
-    needs: test-ubuntu
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -157,7 +155,6 @@ jobs:
 
   lint-rust:
     runs-on: ubuntu-20.04
-    needs: test-ubuntu
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -186,7 +183,6 @@ jobs:
 
   lint-generic:
     runs-on: ubuntu-20.04
-    needs: test-ubuntu
     steps:
       - name: Checkout
         uses: actions/checkout@v2
