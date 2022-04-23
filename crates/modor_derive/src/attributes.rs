@@ -82,11 +82,11 @@ fn parse_run_after(attribute: &Attribute) -> Option<AttributeType> {
         Meta::List(list) => Some(AttributeType::RunAfter(
             list.nested
                 .iter()
-                .filter_map(|n| match &n {
+                .map(|n| match &n {
                     NestedMeta::Meta(Meta::Path(path)) => Some(path.clone()),
                     NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
                 })
-                .collect(),
+                .collect::<Option<_>>()?,
         )),
         Meta::Path(_) | Meta::NameValue(_) => None,
     }
