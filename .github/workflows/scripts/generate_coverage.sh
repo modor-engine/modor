@@ -11,7 +11,7 @@ grcov . \
     --branch \
     --ignore-not-existing \
     --output-path "$output_path" \
+    --keep-only "**/src/**/*"
 #    --excl-line '(#\[|^[^ ]+!\()' \
 #    --excl-start '(#\[cfg\(test\)\]|coverage: off)' \
 #    --excl-stop 'coverage: on' \
-    --keep-only "**/src/**/*"
