@@ -90,11 +90,7 @@ impl Shader {
                     stencil: StencilState::default(),
                     bias: DepthBiasState::default(),
                 }),
-                multisample: MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
+                multisample: MultisampleState::default(),
                 multiview: None,
             })
     }

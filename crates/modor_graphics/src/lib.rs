@@ -11,6 +11,7 @@ mod data;
 mod entities;
 mod runner;
 mod storages;
+mod utils;
 
 pub mod testing;
 

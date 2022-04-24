@@ -92,9 +92,8 @@ impl Target for TextureTarget {
 
     fn retrieve_buffer(&self, device: &Device) -> Vec<u8> {
         let slice = self.buffer.slice(..);
-        let future = slice.map_async(MapMode::Read);
+        let _ = slice.map_async(MapMode::Read);
         device.poll(wgpu::Maintain::Wait);
-        pollster::block_on(future).expect("internal error: cannot retrieve texture buffer");
         let content = slice
             .get_mapped_range()
             .chunks(self.padded_row_bytes as usize)

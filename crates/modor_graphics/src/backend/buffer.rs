@@ -1,4 +1,5 @@
 use crate::backend::renderer::Renderer;
+use crate::utils;
 use bytemuck::Pod;
 use std::mem;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
@@ -35,21 +36,6 @@ where
         }
     }
 
-    pub(crate) fn empty(usage: DynamicBufferUsage, label: String, renderer: &Renderer) -> Self {
-        Self {
-            data: vec![],
-            usage,
-            buffer: renderer.device().create_buffer(&BufferDescriptor {
-                label: Some(&label),
-                size: 0,
-                usage: usage.into(),
-                mapped_at_creation: false,
-            }),
-            label,
-            buffer_capacity: 0,
-        }
-    }
-
     pub(crate) fn len(&self) -> usize {
         self.data.len()
     }
@@ -60,7 +46,7 @@ where
     }
 
     pub(crate) fn sync(&mut self, renderer: &Renderer) {
-        if self.buffer_capacity < self.data.capacity() {
+        if self.buffer_capacity != self.data.capacity() {
             self.buffer_capacity = self.data.capacity();
             self.buffer = renderer.device().create_buffer(&BufferDescriptor {
                 label: Some(&self.label),
@@ -80,11 +66,7 @@ where
 
     fn raw_capacity(capacity: usize) -> u64 {
         let raw_capacity = (capacity * mem::size_of::<T>()) as u64;
-        let align_mask = wgpu::COPY_BUFFER_ALIGNMENT - 1;
-        u64::max(
-            (raw_capacity + align_mask) & !align_mask,
-            wgpu::COPY_BUFFER_ALIGNMENT,
-        )
+        utils::nearest_u64_multiple(raw_capacity, wgpu::COPY_BUFFER_ALIGNMENT)
     }
 }
 

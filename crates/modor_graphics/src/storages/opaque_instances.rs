@@ -9,14 +9,17 @@ use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(super) struct OpaqueInstanceStorage {
-    group_idxs: TiVec<ShaderIdx, TiVec<ModelIdx, Option<GroupIdx>>>,
-    groups: TiVec<GroupIdx, Group>,
+    instances: TiVec<ShaderIdx, TiVec<ModelIdx, Option<DynamicBuffer<Instance>>>>,
 }
 
 impl OpaqueInstanceStorage {
     pub(super) fn reset(&mut self) {
-        for group in &mut self.groups {
-            group.reset();
+        for shader_instances in &mut self.instances {
+            for instances in shader_instances {
+                if let Some(instances) = instances {
+                    instances.data_mut().clear();
+                }
+            }
         }
     }
 
@@ -27,83 +30,51 @@ impl OpaqueInstanceStorage {
         model_idx: ModelIdx,
         renderer: &Renderer,
     ) {
-        let group_idx = self.group_idx_or_create(shader_idx, model_idx, renderer);
-        self.groups[group_idx].instances.data_mut().push(instance);
+        if self.instances.get(shader_idx).is_none() {
+            ti_vec::set_value(&mut self.instances, shader_idx, ti_vec![]);
+        }
+        if let Some(Some(instances)) = self.instances[shader_idx].get_mut(model_idx) {
+            instances.data_mut().push(instance);
+        } else {
+            let instance = DynamicBuffer::new(
+                vec![instance],
+                DynamicBufferUsage::INSTANCE,
+                format!("modor_instance_buffer_opaque_{}", self.instances.len()),
+                renderer,
+            );
+            ti_vec::set_value(&mut self.instances[shader_idx], model_idx, Some(instance));
+        }
     }
 
     pub(super) fn sync_buffers(&mut self, renderer: &Renderer) {
-        for group in &mut self.groups {
-            group.instances.sync(renderer);
+        for shader_instances in &mut self.instances {
+            for instances in shader_instances {
+                if let Some(instances) = instances {
+                    instances.sync(renderer);
+                }
+            }
         }
     }
 
     pub(super) fn render<'a>(
-        &'a mut self,
+        &'a self,
         commands: &mut RenderCommands<'a>,
         shaders: &'a ShaderStorage,
         models: &'a ModelStorage,
     ) {
-        let mut current_shader_idx = None;
-        for group in &mut self.groups {
-            if current_shader_idx != Some(group.shader_idx) {
-                current_shader_idx = Some(group.shader_idx);
-                commands.push_shader_change(shaders.get(group.shader_idx));
+        for (shader_idx, shader_instances) in self.instances.iter_enumerated() {
+            commands.push_shader_change(shaders.get(shader_idx));
+            for (model_idx, instances) in shader_instances.iter_enumerated() {
+                let model = models.get(model_idx);
+                if let Some(instances) = instances {
+                    commands.push_draw(
+                        &model.vertex_buffer,
+                        &model.index_buffer,
+                        instances,
+                        0..instances.len(),
+                    )
+                }
             }
-            let model = models.get(group.model_idx);
-            commands.push_draw(
-                &model.vertex_buffer,
-                &model.index_buffer,
-                &group.instances,
-                0..group.instances.len(),
-            )
         }
-    }
-
-    fn group_idx_or_create(
-        &mut self,
-        shader_idx: ShaderIdx,
-        model_idx: ModelIdx,
-        renderer: &Renderer,
-    ) -> GroupIdx {
-        self.group_idxs
-            .get(shader_idx)
-            .and_then(|s| s.get(model_idx))
-            .copied()
-            .flatten()
-            .unwrap_or_else(|| self.create_group(shader_idx, model_idx, renderer))
-    }
-
-    fn create_group(
-        &mut self,
-        shader_idx: ShaderIdx,
-        model_idx: ModelIdx,
-        renderer: &Renderer,
-    ) -> GroupIdx {
-        let group_idx = self.groups.push_and_get_key(Group {
-            shader_idx,
-            model_idx,
-            instances: DynamicBuffer::empty(
-                DynamicBufferUsage::INSTANCE,
-                format!("modor_instance_buffer_opaque_{}", self.groups.len()),
-                renderer,
-            ),
-        });
-        ti_vec::set_value(&mut self.group_idxs, shader_idx, ti_vec![]);
-        ti_vec::set_value(&mut self.group_idxs[shader_idx], model_idx, Some(group_idx));
-        group_idx
-    }
-}
-
-idx_type!(GroupIdx);
-
-struct Group {
-    shader_idx: ShaderIdx,
-    model_idx: ModelIdx,
-    instances: DynamicBuffer<Instance>,
-}
-
-impl Group {
-    fn reset(&mut self) {
-        self.instances.data_mut().clear();
     }
 }

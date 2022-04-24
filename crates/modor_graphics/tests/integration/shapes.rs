@@ -37,8 +37,8 @@ fn display_shapes() {
         .with_entity(GraphicsModule::build_windowless())
         .with_entity(Capture::build(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_default())
-        .with_entity(Object::build_rectangle())
         .with_entity(Object::build_circle())
+        .with_entity(Object::build_rectangle())
         .into();
     app.update();
     testing::assert_capture(&app, "tests/expected/shapes.png");

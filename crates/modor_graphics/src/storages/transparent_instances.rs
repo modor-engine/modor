@@ -14,7 +14,8 @@ pub(super) struct TransparentInstanceStorage {
 impl TransparentInstanceStorage {
     pub(super) fn new(renderer: &Renderer) -> Self {
         Self {
-            instances: DynamicBuffer::empty(
+            instances: DynamicBuffer::new(
+                vec![],
                 DynamicBufferUsage::INSTANCE,
                 "modor_instance_buffer_translucent".into(),
                 renderer,
@@ -57,7 +58,7 @@ impl TransparentInstanceStorage {
     }
 
     pub(super) fn render<'a>(
-        &'a mut self,
+        &'a self,
         commands: &mut RenderCommands<'a>,
         shaders: &'a ShaderStorage,
         models: &'a ModelStorage,

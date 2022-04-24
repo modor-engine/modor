@@ -142,6 +142,7 @@ mod app_tests {
         assert_eq!(components, expected_components);
         let mut value = 0;
         app.run_for_singleton::<SingletonEntity1, _>(|s| value = s.0);
+        assert_eq!(value, 20);
         app.run_for_singleton::<SingletonEntity2, _>(|_| panic!("shouldn't be executed"));
         let mut thread_count = 0;
         app.run(|a| thread_count = a.thread_count());

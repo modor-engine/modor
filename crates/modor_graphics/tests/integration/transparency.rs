@@ -47,6 +47,9 @@ fn display_transparent_and_opaque_shapes_ordered() {
         .into();
     app.update();
     testing::assert_capture(&app, "tests/expected/transparency_with_opaque.png");
+    // test a second time to make sure objects have not been duplicated
+    app.update();
+    testing::assert_capture(&app, "tests/expected/transparency_with_opaque.png");
 }
 
 #[test]
