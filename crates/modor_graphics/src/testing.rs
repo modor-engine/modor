@@ -11,8 +11,8 @@ where
         let buffer = c
             .buffer()
             .expect("capture not yet done (at least one update required)");
-        let size = c.size();
         if !capture_path.as_ref().exists() {
+            let size = c.size();
             image::save_buffer(
                 capture_path.as_ref(),
                 buffer,
@@ -24,8 +24,6 @@ where
         }
         let image =
             image::open(capture_path.as_ref()).expect("cannot read expected capture from disk");
-        assert_eq!(size.width, image.width());
-        assert_eq!(size.height, image.height());
         assert!(
             !buffer
                 .iter()
