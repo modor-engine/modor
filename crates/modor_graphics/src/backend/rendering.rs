@@ -54,7 +54,7 @@ impl<'a> RenderCommands<'a> {
                 view: rendering.renderer.depth_buffer(),
                 depth_ops: Some(Operations {
                     load: LoadOp::Clear(1.0),
-                    store: true,
+                    store: no_mutation!(true),
                 }),
                 stencil_ops: None,
             }),

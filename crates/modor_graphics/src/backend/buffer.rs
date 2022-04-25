@@ -82,7 +82,9 @@ impl From<DynamicBufferUsage> for BufferUsages {
         match usage {
             DynamicBufferUsage::VERTEX => BufferUsages::VERTEX,
             DynamicBufferUsage::INDEX => BufferUsages::INDEX,
-            DynamicBufferUsage::INSTANCE => BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            DynamicBufferUsage::INSTANCE => {
+                no_mutation!(BufferUsages::VERTEX | BufferUsages::COPY_DST)
+            }
         }
     }
 }

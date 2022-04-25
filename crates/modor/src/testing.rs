@@ -6,7 +6,6 @@ use crate::{App, Built, EntityMainComponent, Singleton};
 use std::any::{Any, TypeId};
 use std::ops::{Deref, DerefMut};
 
-
 /// A utility to facilitate entity testing.
 ///
 /// This is an augmented [`App`](crate::App) type.
@@ -107,6 +106,12 @@ impl TestApp {
 impl From<App> for TestApp {
     fn from(app: App) -> Self {
         Self { app }
+    }
+}
+
+impl From<TestApp> for App {
+    fn from(app: TestApp) -> Self {
+        app.app
     }
 }
 

@@ -1,4 +1,3 @@
-
 pub(crate) fn nearest_u64_multiple(value: u64, multiple: u64) -> u64 {
     let align_mask = multiple - 1;
     (value + align_mask) & !align_mask

@@ -10,7 +10,7 @@ use modor::Query;
 use modor_physics::{Position, Scale, Shape};
 
 const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
-const MAX_2D_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
+const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -52,7 +52,7 @@ impl CoreStorage {
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
-            if color.0.a > 0. && color.0.a < 1. {
+            if Self::is_transparent(color.0.a) {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -79,16 +79,8 @@ impl CoreStorage {
 
     fn fixed_scale(&self) -> (f32, f32) {
         let size = self.renderer.target_size();
-        let width_scale = if size.0 > size.1 {
-            size.1 as f32 / size.0 as f32
-        } else {
-            1.
-        };
-        let height_scale = if size.0 > size.1 {
-            1.
-        } else {
-            size.0 as f32 / size.1 as f32
-        };
+        let width_scale = f32::min(size.1 as f32 / size.0 as f32, 1.);
+        let height_scale = f32::min(size.0 as f32 / size.1 as f32, 1.);
         (width_scale, height_scale)
     }
 
@@ -112,9 +104,9 @@ impl CoreStorage {
         let (x_scale, y_scale) = fixed_scale;
         let scale = scale.unwrap_or(&DEFAULT_SCALE).abs();
         let z_position = if max_z - min_z > 0. {
-            (1. - (position.abs().z - min_z) / (max_z - min_z)) * MAX_2D_DEPTH
+            (1. - (position.abs().z - min_z) / (max_z - min_z)) * MAX_DEPTH
         } else {
-            0.5
+            MAX_DEPTH
         };
         Instance {
             transform: [
@@ -131,4 +123,10 @@ impl CoreStorage {
             color: [color.0.r, color.0.g, color.0.b, color.0.a],
         }
     }
+
+    // coverage: off (optimization that cannot pass mutation tests)
+    fn is_transparent(transparency: f32) -> bool {
+        transparency > 0. && transparency < 1.
+    }
+    // coverage: on
 }

@@ -77,7 +77,7 @@ impl Renderer {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: DEPTH_TEXTURE_FORMAT,
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            usage: no_mutation!(TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING),
         };
         let texture = device.create_texture(&desc);
         texture.create_view(&TextureViewDescriptor::default())
