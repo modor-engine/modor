@@ -64,17 +64,12 @@ impl OpaqueInstanceStorage {
     ) {
         for (shader_idx, shader_instances) in self.instances.iter_enumerated() {
             commands.push_shader_change(shaders.get(shader_idx));
-            for (model_idx, instances) in shader_instances.iter_enumerated() {
-                let model = models.get(model_idx);
-                if let Some(instances) = instances {
-                    commands.push_draw(
-                        &model.vertex_buffer,
-                        &model.index_buffer,
-                        instances,
-                        0..instances.len(),
-                    )
-                }
-            }
+            shader_instances
+                .iter_enumerated()
+                .flat_map(|(m, i)| i.as_ref().map(|i| (models.get(m), i)))
+                .for_each(|(m, i)| {
+                    commands.push_draw(&m.vertex_buffer, &m.index_buffer, i, 0..i.len())
+                });
         }
     }
 }
