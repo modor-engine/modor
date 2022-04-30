@@ -33,7 +33,7 @@ add_mutation_annotations() {
 
 IFS=";"
 for crate_path in ./crates/*; do
-    echo "$NOT_MUTATED_CRATES" | grep "(^| )$(basename "$crate_path")($| )" && continue
+    echo "$NOT_MUTATED_CRATES" | grep -E "(^| )$(basename "$crate_path")($| )" && continue
     cd "$crate_path"
     while IFS= read -r -d '' file; do
         add_mutation_annotations "$file"
@@ -54,7 +54,7 @@ for crate_path in ./crates/*; do
 done
 
 for crate_path in ./crates/*; do
-    echo "$NOT_MUTATED_CRATES" | grep "(^| )$(basename "$crate_path")($| )" && continue
+    echo "$NOT_MUTATED_CRATES" | grep -E "(^| )$(basename "$crate_path")($| )" && continue
     cd "$crate_path"
     killed=$(grep -o '([^"]*%) mutants killed' log.txt | grep -o '[0-9.]*')
     rm log.txt
