@@ -14,4 +14,4 @@ grcov . \
     --excl-line '(#\[|^[^ ]+!\(|struct )' \
     --excl-start '(#\[cfg\(test\)\]|coverage: off)' \
     --excl-stop 'coverage: on' \
-    --keep-only "**/src/**/*"
+    --keep-only "**/crates/**/src/**/*"
