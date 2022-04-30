@@ -5,7 +5,7 @@ use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{Color, ShapeColor, SurfaceSize};
+use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
 use modor_physics::{Position, Scale, Shape};
 
@@ -79,9 +79,9 @@ impl CoreStorage {
 
     fn fixed_scale(&self) -> (f32, f32) {
         let size = self.renderer.target_size();
-        let width_scale = f32::min(size.1 as f32 / size.0 as f32, 1.);
-        let height_scale = f32::min(size.0 as f32 / size.1 as f32, 1.);
-        (width_scale, height_scale)
+        let x_scale = f32::min(size.1 as f32 / size.0 as f32, 1.);
+        let y_scale = f32::min(size.0 as f32 / size.1 as f32, 1.);
+        (x_scale, y_scale)
     }
 
     fn depth_bounds<'a, I>(depths: I) -> (f32, f32)
@@ -103,11 +103,8 @@ impl CoreStorage {
         let (min_z, max_z) = depth_bounds;
         let (x_scale, y_scale) = fixed_scale;
         let scale = scale.unwrap_or(&DEFAULT_SCALE).abs();
-        let z_position = if max_z - min_z > 0. {
-            (1. - (position.abs().z - min_z) / (max_z - min_z)) * MAX_DEPTH
-        } else {
-            MAX_DEPTH
-        };
+        let z_position =
+            MAX_DEPTH - utils::normalize(position.abs().z, min_z, max_z, 0., MAX_DEPTH);
         Instance {
             transform: [
                 [scale.x * 2. * x_scale, 0., 0., 0.],

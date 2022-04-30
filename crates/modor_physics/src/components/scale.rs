@@ -39,7 +39,7 @@ impl Scale {
     ///
     /// Absolute size is initialized with the same coordinates.
     pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+        Self::xyz(x, y, 1.)
     }
 
     /// Returns the absolute size.
@@ -78,13 +78,13 @@ mod scale_tests {
 
     #[test]
     fn create_2d() {
-        let scale = Scale::xy(1., 2.);
-        assert_abs_diff_eq!(scale.x, 1.);
+        let scale = Scale::xy(4., 2.);
+        assert_abs_diff_eq!(scale.x, 4.);
         assert_abs_diff_eq!(scale.y, 2.);
-        assert_abs_diff_eq!(scale.z, 0.);
-        assert_abs_diff_eq!(scale.abs().x, 1.);
+        assert_abs_diff_eq!(scale.z, 1.);
+        assert_abs_diff_eq!(scale.abs().x, 4.);
         assert_abs_diff_eq!(scale.abs().y, 2.);
-        assert_abs_diff_eq!(scale.abs().z, 0.);
+        assert_abs_diff_eq!(scale.abs().z, 1.);
     }
 
     #[test]

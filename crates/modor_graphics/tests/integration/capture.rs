@@ -31,6 +31,19 @@ impl Rectangle {
             .with(Position::xy(0., 0.))
             .with(Scale::xy(0.9, 0.9))
             .with(ShapeColor(Color::RED))
+            .with_child(Quarter::build())
+    }
+}
+
+struct Quarter;
+
+#[entity]
+impl Quarter {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .with(Position::xyz(0.25, 0.25, 1.))
+            .with(Scale::xy(0.5, 0.5))
+            .with(ShapeColor(Color::MAROON))
     }
 }
 

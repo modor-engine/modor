@@ -8,7 +8,7 @@ pub(crate) trait GpuData<const L: u32> {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+#[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
 pub(crate) struct Vertex {
     pub(crate) position: [f32; 3],
 }
@@ -26,7 +26,7 @@ impl<const L: u32> GpuData<L> for Vertex {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+#[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
 pub(crate) struct Instance {
     pub(crate) transform: [[f32; 4]; 4],
     pub(crate) color: [f32; 4],

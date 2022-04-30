@@ -130,6 +130,16 @@ fn hide_shape_after_deletion() {
         .into();
     app.update();
     testing::assert_capture(&app, "tests/expected/transparency_with_opaque.png");
+    let mut app: TestApp = App::from(app)
+        .with_entity(Object::build_rectangle(
+            Position::xyz(0., 0., 1.),
+            Color::rgba(1., 1., 0., 0.5),
+        ))
+        .with_entity(Object::build_rectangle(
+            Position::xyz(0.25, 0.25, 2.),
+            Color::rgba(1., 1., 0., 0.5),
+        ))
+        .into();
     app.update();
     testing::assert_capture(&app, "tests/expected/transparency_cleaned_up.png");
 }

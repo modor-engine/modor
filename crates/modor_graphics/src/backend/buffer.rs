@@ -66,7 +66,7 @@ where
 
     fn raw_capacity(capacity: usize) -> u64 {
         let raw_capacity = (capacity * mem::size_of::<T>()) as u64;
-        utils::nearest_u64_multiple(raw_capacity, wgpu::COPY_BUFFER_ALIGNMENT)
+        utils::nearest_multiple(raw_capacity, wgpu::COPY_BUFFER_ALIGNMENT)
     }
 }
 
