@@ -46,6 +46,17 @@ impl RenderTarget {
 }
 
 // coverage: off (window cannot be tested)
+
+/// The open window in which rendering occurs.
+///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
+///
+/// # Examples
+///
+/// See [`GraphicsModule`](crate::GraphicsModule).
 pub struct Window {
     window: Arc<RwLock<WinitWindow>>,
 }
@@ -56,6 +67,7 @@ impl Window {
         EntityBuilder::new(Self { window }).inherit_from(RenderTarget::build(renderer))
     }
 
+    /// Returns the size of the rendering area.
     pub fn size(&self) -> SurfaceSize {
         let size = self.read_winit_window().inner_size();
         SurfaceSize {
@@ -125,8 +137,20 @@ impl WindowInit {
         world.delete_entity(entity.id());
     }
 }
+
 // coverage: on
 
+/// A handler for capturing rendering.
+///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
+///
+/// # Examples
+///
+/// See [`GraphicsModule`](crate::GraphicsModule).
+// coverage: off (window cannot be tested)
 pub struct Capture {
     buffer: Vec<u8>,
     buffer_size: SurfaceSize,
@@ -135,7 +159,7 @@ pub struct Capture {
 
 #[singleton]
 impl Capture {
-    pub fn build(size: SurfaceSize) -> impl Built<Self> {
+    pub(crate) fn build(size: SurfaceSize) -> impl Built<Self> {
         EntityBuilder::new(Self {
             buffer_size: size,
             buffer: vec![],
@@ -147,14 +171,19 @@ impl Capture {
         ))))
     }
 
+    /// Returns the capture size.
     pub fn size(&self) -> SurfaceSize {
         self.buffer_size
     }
 
+    /// Sets the capture size.
     pub fn set_size(&mut self, size: SurfaceSize) {
         self.updated_size = Some(size);
     }
 
+    /// Returns the capture buffer.
+    ///
+    /// It corresponds to an 8-bit RGBA image buffer.
     pub fn buffer(&self) -> Option<&[u8]> {
         if self.buffer.is_empty() {
             None
@@ -178,9 +207,11 @@ impl Capture {
     }
 }
 
+/// An action done when the graphics module has retrieved all data necessary for the rendering.
 #[action(PrepareRenderingAction)]
 pub struct UpdateGraphicsAction;
 
+/// An action done when the rendering has been captured by the [`Capture`](crate::Capture) entity.
 #[action(RenderAction)]
 pub struct UpdateCaptureBuffer;
 

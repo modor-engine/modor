@@ -66,6 +66,7 @@ impl<'a> RenderCommands<'a> {
         self.pass.set_pipeline(shader.pipeline());
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) fn push_draw<V, I>(
         &mut self,
         vertex_buffer: &'a DynamicBuffer<V>,

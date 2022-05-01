@@ -47,7 +47,7 @@ impl Position {
     /// The absolute position is automatically calculated by the
     /// [`PhysicsModule`](crate::PhysicsModule).<br>
     /// If your system needs to access the absolute position, then it can depend on
-    /// [`PhysicsUpdateAction`](crate::PhysicsUpdateAction) to make sure to use an up-to-date
+    /// [`UpdatePhysicsAction`](crate::UpdatePhysicsAction) to make sure to use an up-to-date
     /// position.
     pub fn abs(&self) -> &AbsolutePosition {
         &self.abs

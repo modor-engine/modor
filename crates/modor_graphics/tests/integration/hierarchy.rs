@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{entity, App, Built, EntityBuilder};
-use modor_graphics::{testing, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor_physics::{Position, Scale, Shape};
 
 struct Character;
@@ -56,8 +56,7 @@ impl Center {
 #[test]
 fn display_hierarchy() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Center::build())
         .with_entity(Character::build(
             Position::xy(0.25, 0.25),

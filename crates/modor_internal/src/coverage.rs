@@ -4,7 +4,7 @@ macro_rules! no_mutation {
 }
 
 #[cfg(test)]
-mod coverage {
+mod coverage_tests {
     #[test]
     fn disable_mutations() {
         assert_eq!(no_mutation!(10 + 20), 30);

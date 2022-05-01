@@ -37,7 +37,7 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
 fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
     attributes
         .iter()
-        .filter_map(|a| attributes::parse_type(a))
+        .filter_map(attributes::parse_type)
         .collect()
 }
 

@@ -90,15 +90,15 @@ impl Target for TextureTarget {
         TEXTURE_FORMAT
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn retrieve_buffer(&self, device: &Device) -> Vec<u8> {
         let slice = self.buffer.slice(..);
-        let _ = slice.map_async(MapMode::Read);
+        let _future = slice.map_async(MapMode::Read);
         device.poll(wgpu::Maintain::Wait);
         let content = slice
             .get_mapped_range()
             .chunks(self.padded_row_bytes as usize)
-            .map(|a| &a[..self.unpadded_row_bytes as usize])
-            .flatten()
+            .flat_map(|a| &a[..self.unpadded_row_bytes as usize])
             .copied()
             .collect();
         self.buffer.unmap();
@@ -110,13 +110,14 @@ impl Target for TextureTarget {
         self.texture = Self::create_texture(device, width, height);
         self.unpadded_row_bytes = Self::calculate_unpadded_row_bytes(width);
         self.padded_row_bytes = Self::calculate_padded_row_bytes(self.unpadded_row_bytes);
-        self.buffer = Self::create_buffer(&device, height, self.padded_row_bytes);
+        self.buffer = Self::create_buffer(device, height, self.padded_row_bytes);
     }
 
     fn prepare_texture(&mut self) -> TextureView {
         self.texture.create_view(&TextureViewDescriptor::default())
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn render(&mut self, queue: &Queue, mut encoder: CommandEncoder) {
         encoder.copy_texture_to_buffer(
             self.texture.as_image_copy(),

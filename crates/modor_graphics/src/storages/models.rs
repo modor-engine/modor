@@ -36,6 +36,7 @@ impl ModelStorage {
         }
     }
 
+    #[allow(clippy::unused_self)] // will be used in the future
     pub(super) fn idx(&self, shape: &Shape) -> ModelIdx {
         match shape {
             Shape::Rectangle2D | Shape::Circle2D => ModelIdx(0),
@@ -59,13 +60,13 @@ impl Model {
         Self {
             vertex_buffer: DynamicBuffer::new(
                 vertices,
-                DynamicBufferUsage::VERTEX,
+                DynamicBufferUsage::Vertex,
                 format!("modor_vertex_buffer_{}", label),
                 renderer,
             ),
             index_buffer: DynamicBuffer::new(
                 indices,
-                DynamicBufferUsage::INDEX,
+                DynamicBufferUsage::Index,
                 format!("modor_index_buffer_{}", label),
                 renderer,
             ),

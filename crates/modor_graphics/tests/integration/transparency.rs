@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{entity, App, Built, Entity, EntityBuilder, World};
-use modor_graphics::{testing, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor_physics::{Position, Scale, Shape};
 
 struct Object;
@@ -31,8 +31,7 @@ impl Object {
 #[test]
 fn display_transparent_and_opaque_shapes_ordered() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_rectangle(
             Position::xyz(0., 0., 0.),
             Color::rgb(0., 0., 1.),
@@ -57,8 +56,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
 #[test]
 fn display_transparent_and_opaque_shapes_unordered() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.15, 0.15, 3.),
             Color::rgb(1., 0., 0.),
@@ -83,8 +81,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
 #[test]
 fn display_different_transparent_shapes() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_circle(
             Position::xyz(0.15, 0.15, 3.),
             Color::rgba(1., 0., 0., 0.5),
@@ -109,8 +106,7 @@ fn display_different_transparent_shapes() {
 #[test]
 fn hide_shape_after_deletion() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_rectangle(
             Position::xyz(0.15, 0.15, 3.),
             Color::rgb(1., 0., 0.),

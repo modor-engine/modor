@@ -1,8 +1,22 @@
+//! Testing utilities.
+
 use crate::Capture;
 use image::ColorType;
 use modor::testing::TestApp;
 use std::path::Path;
 
+/// Asserts the generated [`Capture`](crate::Capture) is the same as the image saved at
+/// `capture_path`.
+///
+/// If the image does not exist, the generated capture is saved at `capture_path`.
+///
+/// # Panics
+///
+/// This will panic if:
+/// - the generated capture is different than the image located at `capture_path`
+/// - the parent of `capture_path` does not exist or is not a folder
+/// - image located at `capture_path` cannot be read
+/// - [`Capture`](crate::Capture) has not yet been updated
 pub fn assert_capture<P>(app: &TestApp, capture_path: P)
 where
     P: AsRef<Path>,

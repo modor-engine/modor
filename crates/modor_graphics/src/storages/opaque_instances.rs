@@ -15,10 +15,8 @@ pub(super) struct OpaqueInstanceStorage {
 impl OpaqueInstanceStorage {
     pub(super) fn reset(&mut self) {
         for shader_instances in &mut self.instances {
-            for instances in shader_instances {
-                if let Some(instances) = instances {
-                    instances.data_mut().clear();
-                }
+            for instances in shader_instances.iter_mut().flatten() {
+                instances.data_mut().clear();
             }
         }
     }
@@ -38,7 +36,7 @@ impl OpaqueInstanceStorage {
         } else {
             let instance = DynamicBuffer::new(
                 vec![instance],
-                DynamicBufferUsage::INSTANCE,
+                DynamicBufferUsage::Instance,
                 format!("modor_instance_buffer_opaque_{}", self.instances.len()),
                 renderer,
             );
@@ -48,10 +46,8 @@ impl OpaqueInstanceStorage {
 
     pub(super) fn sync_buffers(&mut self, renderer: &Renderer) {
         for shader_instances in &mut self.instances {
-            for instances in shader_instances {
-                if let Some(instances) = instances {
-                    instances.sync(renderer);
-                }
+            for instances in shader_instances.iter_mut().flatten() {
+                instances.sync(renderer);
             }
         }
     }
@@ -64,12 +60,18 @@ impl OpaqueInstanceStorage {
     ) {
         for (shader_idx, shader_instances) in self.instances.iter_enumerated() {
             commands.push_shader_change(shaders.get(shader_idx));
-            shader_instances
+            for (model_idx, model_instances) in shader_instances
                 .iter_enumerated()
-                .flat_map(|(m, i)| i.as_ref().map(|i| (models.get(m), i)))
-                .for_each(|(m, i)| {
-                    commands.push_draw(&m.vertex_buffer, &m.index_buffer, i, 0..i.len())
-                });
+                .filter_map(|(m, i)| i.as_ref().map(|i| (m, i)))
+            {
+                let model = models.get(model_idx);
+                commands.push_draw(
+                    &model.vertex_buffer,
+                    &model.index_buffer,
+                    model_instances,
+                    0..model_instances.len(),
+                );
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ pub(crate) struct WindowTarget {
 }
 
 impl WindowTarget {
+    #[allow(unsafe_code)]
     pub(crate) fn new(window: &Window) -> CreatedTarget<Self> {
         let instance = Instance::new(Backends::all());
         let surface = unsafe { instance.create_surface(&window) };
@@ -52,7 +53,9 @@ impl WindowTarget {
         let (width, height) = surface_size;
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_preferred_format(adapter).unwrap(),
+            format: surface
+                .get_preferred_format(adapter)
+                .expect("internal error: surface is incompatible with adapter"),
             width: if width == 0 { 1 } else { width },
             height: if height == 0 { 1 } else { height },
             present_mode: PresentMode::Immediate,

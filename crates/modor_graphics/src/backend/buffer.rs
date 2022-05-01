@@ -72,18 +72,18 @@ where
 
 #[derive(Clone, Copy)]
 pub(crate) enum DynamicBufferUsage {
-    VERTEX,
-    INDEX,
-    INSTANCE,
+    Vertex,
+    Index,
+    Instance,
 }
 
 impl From<DynamicBufferUsage> for BufferUsages {
     fn from(usage: DynamicBufferUsage) -> Self {
         match usage {
-            DynamicBufferUsage::VERTEX => BufferUsages::VERTEX,
-            DynamicBufferUsage::INDEX => BufferUsages::INDEX,
-            DynamicBufferUsage::INSTANCE => {
-                no_mutation!(BufferUsages::VERTEX | BufferUsages::COPY_DST)
+            DynamicBufferUsage::Vertex => Self::VERTEX,
+            DynamicBufferUsage::Index => Self::INDEX,
+            DynamicBufferUsage::Instance => {
+                no_mutation!(Self::VERTEX | Self::COPY_DST)
             }
         }
     }

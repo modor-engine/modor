@@ -45,12 +45,14 @@ impl App {
     ///
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
+    #[must_use]
     pub fn with_thread_count(mut self, count: u32) -> Self {
         self.core.set_thread_count(count);
         self
     }
 
     /// Creates a new entity with main component of type `E`.
+    #[must_use]
     pub fn with_entity<E, B>(mut self, entity: B) -> Self
     where
         E: EntityMainComponent,

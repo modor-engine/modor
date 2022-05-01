@@ -139,6 +139,7 @@ pub struct EntityAssertion<'a> {
     location: Option<EntityLocation>,
 }
 
+#[allow(clippy::return_self_not_must_use)]
 impl EntityAssertion<'_> {
     /// Asserts the entity exists.
     ///
@@ -256,8 +257,8 @@ mod test_app_tests {
     #[test]
     fn deref() {
         let mut app = TestApp::from(App::new());
-        assert!(ptr::eq(&*app, &app.app));
-        assert!(ptr::eq(&mut *app as *const App, &app.app));
+        assert!(ptr::eq(ptr::addr_of!(*app), ptr::addr_of!(app.app)));
+        assert!(ptr::eq(ptr::addr_of_mut!(*app), ptr::addr_of_mut!(app.app)));
     }
 
     #[test]
@@ -316,7 +317,7 @@ mod test_app_tests {
         let existing_app = App::new().with_entity(EntityBuilder::new(TestEntity(10)));
         let mut app = TestApp::from(existing_app);
         app.assert_entity(0).exists();
-        assert!(ptr::eq(&*app, &app.app));
-        assert!(ptr::eq(&mut *app as *const App, &app.app));
+        assert!(ptr::eq(ptr::addr_of!(*app), ptr::addr_of!(app.app)));
+        assert!(ptr::eq(ptr::addr_of_mut!(*app), ptr::addr_of_mut!(app.app)));
     }
 }

@@ -23,18 +23,19 @@ impl ShaderStorage {
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
                     vertex_buffer_layouts,
                     "main_2d",
-                    &renderer,
+                    renderer,
                 ),
                 Shader::new(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
                     vertex_buffer_layouts,
                     "circle_2d",
-                    &renderer,
+                    renderer,
                 )
             ],
         }
     }
 
+    #[allow(clippy::unused_self)] // will be used in the future
     pub(super) fn idx(&self, shape: &Shape) -> ShaderIdx {
         match shape {
             Shape::Rectangle2D => ShaderIdx(0),

@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{entity, App, Built, EntityBuilder};
-use modor_graphics::{testing, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor_physics::{Position, Scale, Shape};
 
 struct Object;
@@ -34,8 +34,7 @@ impl Object {
 #[test]
 fn display_shapes() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_default())
         .with_entity(Object::build_circle())
         .with_entity(Object::build_rectangle())

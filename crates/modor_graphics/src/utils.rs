@@ -11,7 +11,7 @@ pub(crate) fn normalize(
     normalized_max: f32,
 ) -> f32 {
     if max > min {
-        (value - min) / (max - min) * (normalized_max - normalized_min) + normalized_min
+        ((value - min) / (max - min)).mul_add(normalized_max - normalized_min, normalized_min)
     } else {
         normalized_min
     }

@@ -16,7 +16,7 @@ impl TransparentInstanceStorage {
         Self {
             instances: DynamicBuffer::new(
                 vec![],
-                DynamicBufferUsage::INSTANCE,
+                DynamicBufferUsage::Instance,
                 "modor_instance_buffer_translucent".into(),
                 renderer,
             ),
@@ -65,26 +65,22 @@ impl TransparentInstanceStorage {
     ) {
         let mut current_shader_idx = None;
         let mut next_instance_idx = 0;
-        loop {
-            if let Some(details) = self.instance_details.get(next_instance_idx) {
-                let model_idx = details.model_idx;
-                let first_instance_idx_with_different_model =
-                    self.first_instance_idx_with_config_change(next_instance_idx, details);
-                let model = models.get(model_idx);
-                if current_shader_idx != Some(details.shader_idx) {
-                    current_shader_idx = Some(details.shader_idx);
-                    commands.push_shader_change(shaders.get(details.shader_idx));
-                }
-                commands.push_draw(
-                    &model.vertex_buffer,
-                    &model.index_buffer,
-                    &self.instances,
-                    next_instance_idx..first_instance_idx_with_different_model,
-                );
-                next_instance_idx = first_instance_idx_with_different_model;
-            } else {
-                break;
+        while let Some(details) = self.instance_details.get(next_instance_idx) {
+            let model_idx = details.model_idx;
+            let first_instance_idx_with_different_model =
+                self.first_instance_idx_with_config_change(next_instance_idx, details);
+            let model = models.get(model_idx);
+            if current_shader_idx != Some(details.shader_idx) {
+                current_shader_idx = Some(details.shader_idx);
+                commands.push_shader_change(shaders.get(details.shader_idx));
             }
+            commands.push_draw(
+                &model.vertex_buffer,
+                &model.index_buffer,
+                &self.instances,
+                next_instance_idx..first_instance_idx_with_different_model,
+            );
+            next_instance_idx = first_instance_idx_with_different_model;
         }
     }
 

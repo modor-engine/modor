@@ -51,7 +51,7 @@ impl Shader {
 
     fn create_pipeline(
         renderer: &Renderer,
-        vertex_buffer_layouts: &[VertexBufferLayout],
+        vertex_buffer_layouts: &[VertexBufferLayout<'_>],
         pipeline_layout: &PipelineLayout,
         shader: &ShaderModule,
     ) -> RenderPipeline {
@@ -59,14 +59,14 @@ impl Shader {
             .device()
             .create_render_pipeline(&RenderPipelineDescriptor {
                 label: Some("modor_render_pipeline"),
-                layout: Some(&pipeline_layout),
+                layout: Some(pipeline_layout),
                 vertex: VertexState {
-                    module: &shader,
+                    module: shader,
                     entry_point: "vs_main",
                     buffers: vertex_buffer_layouts,
                 },
                 fragment: Some(FragmentState {
-                    module: &shader,
+                    module: shader,
                     entry_point: "fs_main",
                     targets: &[ColorTargetState {
                         format: renderer.target().texture_format(),

@@ -77,6 +77,7 @@ impl CoreStorage {
         rendering.apply();
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn fixed_scale(&self) -> (f32, f32) {
         let size = self.renderer.target_size();
         let x_scale = f32::min(size.1 as f32 / size.0 as f32, 1.);
@@ -84,7 +85,7 @@ impl CoreStorage {
         (x_scale, y_scale)
     }
 
-    fn depth_bounds<'a, I>(depths: I) -> (f32, f32)
+    fn depth_bounds<I>(depths: I) -> (f32, f32)
     where
         I: Iterator<Item = f32>,
     {

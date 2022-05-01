@@ -50,8 +50,7 @@ impl Quarter {
 #[test]
 fn resize_capture_smaller() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(Rectangle::build())
         .with_entity(CaptureResizer::build(SurfaceSize::new(100, 50)))
@@ -65,8 +64,7 @@ fn resize_capture_smaller() {
 #[test]
 fn resize_capture_bigger() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(Rectangle::build())
         .with_entity(CaptureResizer::build(SurfaceSize::new(400, 300)))
@@ -80,8 +78,7 @@ fn resize_capture_bigger() {
 #[test]
 fn resize_capture_to_zero() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(Rectangle::build())
         .with_entity(CaptureResizer::build(SurfaceSize::new(0, 0)))
@@ -95,8 +92,7 @@ fn resize_capture_to_zero() {
 #[test]
 fn resize_capture_vertically() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(Rectangle::build())
         .with_entity(CaptureResizer::build(SurfaceSize::new(200, 300)))

@@ -9,7 +9,29 @@ use winit::window::Window as WinitWindow;
 
 // TODO: move frame rate limitation in runner ?
 
-#[allow(clippy::single_match, clippy::collapsible_match)]
+/// Run application update for each frame rendered in a window.
+///
+/// This runner must be used instead of a call to [`App::update`](modor::App::update)
+/// inside a loop to ensure a correct window update.
+///
+/// # Panics
+///
+/// This will panic if [`GraphicsModule`](GraphicsModule) does not exist or has been created in
+/// windowless mode.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::App;
+/// # use modor_graphics::{GraphicsModule, SurfaceSize};
+/// #
+/// # fn no_run() {
+/// App::new()
+///     .with_entity(GraphicsModule::build(SurfaceSize::new(640, 480), "title"))
+///     .run(modor_graphics::runner);
+/// # }
+/// ```
+#[allow(clippy::wildcard_enum_match_arm)]
 pub fn runner(mut app: App) {
     env_logger::init();
     let event_loop = EventLoop::new();
@@ -19,11 +41,11 @@ pub fn runner(mut app: App) {
     event_loop.run(move |event, _, control_flow| match event {
         Event::MainEventsCleared => read_window(&window).request_redraw(),
         Event::RedrawRequested(window_id) if window_id == read_window(&window).id() => app.update(),
-        Event::WindowEvent { event, window_id } if window_id == read_window(&window).id() => {
-            match event {
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => {}
-            }
+        Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            window_id,
+        } if window_id == read_window(&window).id() => {
+            *control_flow = ControlFlow::Exit;
         }
         _ => {}
     });

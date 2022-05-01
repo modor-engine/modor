@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{entity, App, Built, EntityBuilder, SingleMut};
-use modor_graphics::{testing, BackgroundColor, Capture, Color, GraphicsModule, SurfaceSize};
+use modor_graphics::{testing, BackgroundColor, Color, GraphicsModule, SurfaceSize};
 
 struct BackgroundUpdater;
 
@@ -19,8 +19,7 @@ impl BackgroundUpdater {
 #[test]
 fn update_background() {
     let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless())
-        .with_entity(Capture::build(SurfaceSize::new(300, 200)))
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(BackgroundUpdater::build())
         .into();
