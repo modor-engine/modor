@@ -1,12 +1,12 @@
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
 use crate::storages::archetypes::EntityLocation;
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::iter::FusedIterator;
-use crate::storages::components::ComponentTypeIdx;
 
 /// A system parameter for retrieving information about the entity.
 ///
