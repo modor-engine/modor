@@ -4,15 +4,21 @@ use crate::entities::module::internal::{
 };
 use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
+use std::marker::PhantomData;
 
 const DEFAULT_POSITION: Position = Position::xyz(0., 0., 0.);
 const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 
 /// The main entity of the physics module.
 ///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: custom (same as parent entity)
+///
 /// # Examples
 ///
-/// ```rust#
+/// ```rust
 /// # #[macro_use]
 /// # extern crate modor;
 /// #
@@ -41,13 +47,13 @@ const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 ///     }
 /// }
 /// ```
-pub struct PhysicsModule;
+pub struct PhysicsModule(PhantomData<()>);
 
 #[singleton]
 impl PhysicsModule {
     /// Builds the module.
     pub fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with_child(DeltaTime::build())
+        EntityBuilder::new(Self(PhantomData)).with_child(DeltaTime::build())
     }
 
     #[run_as(UpdateVelocitiesAction)]

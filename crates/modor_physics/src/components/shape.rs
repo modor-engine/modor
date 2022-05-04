@@ -1,9 +1,12 @@
-/// A component storing the shape of the entity.
+/// The shape of an entity.
 ///
 /// This component can be used by other modules, e.g. to know how to display the entity.
 ///
-/// An entity having a [`Position`](crate::Position) has
-/// [`Shape::Rectangle2D`](crate::Shape::Rectangle2D) as default shape.
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Position`](crate::Position)
+/// - **Default if missing**: `Shape::Rectangle2D`
 ///
 /// # Examples
 ///

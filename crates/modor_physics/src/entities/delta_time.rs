@@ -3,12 +3,16 @@ use modor::{Action, Built, EntityBuilder, Single};
 use std::thread;
 use std::time::{Duration, Instant};
 
-/// An entity main component that measures the duration of the last update.
+// TODO: scale has to be mandatory as it stores the absolute scale
+
+/// The duration of the latest update.
 ///
-/// The entity also limits the number of updates per second if an entity of type
-/// [`UpdatesPerSecond`](crate::UpdatesPerSecond) exists.
+/// # Modor
 ///
-/// This entity is automatically created by the [`PhysicsModule`](crate::PhysicsModule).
+/// - **Type**: singleton entity
+/// - **Lifetime**: same as [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated during**: [`UpdateDeltaTimeAction`](crate::UpdateDeltaTimeAction)
 ///
 /// # Examples
 ///
@@ -27,10 +31,6 @@ pub struct DeltaTime {
 #[singleton]
 impl DeltaTime {
     /// Returns the duration of the last update.
-    ///
-    /// If your system needs to access the delta time, then it can depend on
-    /// [`UpdateDeltaTimeAction`](crate::UpdateDeltaTimeAction) to make sure to use an up-to-date
-    /// delta time.
     pub fn get(&self) -> Duration {
         self.last_instant.duration_since(self.previous_instant)
     }

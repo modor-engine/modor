@@ -1,10 +1,17 @@
-/// A component storing the scale of an entity.
+/// The scale of an entity.
 ///
 /// The scale is relative to the first parent entity having a position and a scale.<br>
 /// This is an absolute size in case the entity does not have any parent with a position and a
 /// scale.
 ///
-/// An entity having a [`Position`](crate::Position) has a default scale `Scale::xyz(1., 1., 1.)`.
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Position`](crate::Position)
+/// - **Default if missing**: `Scale::xyz(1., 1., 1.)`
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated using**: [`Scale`](crate::Scale) of parent entity
+/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 ///
 /// # Examples
 ///
@@ -43,12 +50,6 @@ impl Scale {
     }
 
     /// Returns the absolute size.
-    ///
-    /// The absolute size is automatically calculated by the
-    /// [`PhysicsModule`](crate::PhysicsModule).<br>
-    /// If your system needs to access the absolute size, then it can depend on
-    /// [`UpdatePhysicsAction`](crate::UpdatePhysicsAction) to make sure to use an up-to-date
-    /// size.
     pub fn abs(&self) -> &Size {
         &self.abs
     }

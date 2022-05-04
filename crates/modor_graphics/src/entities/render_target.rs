@@ -146,6 +146,7 @@ impl WindowInit {
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
+/// - **Updated during**: [`UpdateCaptureBufferAction`](crate::UpdateCaptureBufferAction)
 ///
 /// # Examples
 ///
@@ -181,9 +182,7 @@ impl Capture {
         self.updated_size = Some(size);
     }
 
-    /// Returns the capture buffer.
-    ///
-    /// It corresponds to an 8-bit RGBA image buffer.
+    /// Returns the capture as a 8-bit RGBA image buffer.
     pub fn buffer(&self) -> Option<&[u8]> {
         if self.buffer.is_empty() {
             None
@@ -199,7 +198,7 @@ impl Capture {
         }
     }
 
-    #[run_as(UpdateCaptureBuffer)]
+    #[run_as(UpdateCaptureBufferAction)]
     fn update_buffer(&mut self, surface: &mut RenderTarget) {
         let (width, height) = surface.core.renderer().target_size();
         self.buffer_size = SurfaceSize::new(width, height);
@@ -213,7 +212,7 @@ pub struct UpdateGraphicsAction;
 
 /// An action done when the rendering has been captured by the [`Capture`](crate::Capture) entity.
 #[action(RenderAction)]
-pub struct UpdateCaptureBuffer;
+pub struct UpdateCaptureBufferAction;
 
 pub(crate) mod internal {
     use modor_physics::UpdatePhysicsAction;

@@ -1,10 +1,18 @@
 use crate::{Scale, Velocity};
 use std::time::Duration;
 
-/// A component storing the position of an entity.
+/// The position of an entity.
 ///
 /// The position is relative to the first parent entity also having a position.<br>
 /// This is an absolute position in case the entity does not have any parent with a position.
+///
+/// # Modor
+///
+/// - **Type**: component
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated using**: [`Velocity`](crate::Velocity), [`Position`](crate::Position)
+///     of parent entity, [`Scale`](crate::Scale) of parent entity, [`DeltaTime`](crate::DeltaTime)
+/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 ///
 /// # Examples
 ///
@@ -43,12 +51,6 @@ impl Position {
     }
 
     /// Returns the absolute position.
-    ///
-    /// The absolute position is automatically calculated by the
-    /// [`PhysicsModule`](crate::PhysicsModule).<br>
-    /// If your system needs to access the absolute position, then it can depend on
-    /// [`UpdatePhysicsAction`](crate::UpdatePhysicsAction) to make sure to use an up-to-date
-    /// position.
     pub fn abs(&self) -> &AbsolutePosition {
         &self.abs
     }

@@ -2,6 +2,7 @@ use crate::entities::render_target::WindowInit;
 use crate::{Capture, SurfaceSize};
 use modor::{Built, EntityBuilder};
 use modor_physics::PhysicsModule;
+use std::marker::PhantomData;
 
 /// The main entity of the graphics module.
 ///
@@ -46,7 +47,7 @@ use modor_physics::PhysicsModule;
 ///     }
 /// }
 /// ```
-pub struct GraphicsModule;
+pub struct GraphicsModule(PhantomData<()>);
 
 #[singleton]
 impl GraphicsModule {
@@ -58,7 +59,7 @@ impl GraphicsModule {
     where
         T: Into<String>,
     {
-        EntityBuilder::new(Self)
+        EntityBuilder::new(Self(PhantomData))
             .with_child(WindowInit::build(window_size, window_title.into()))
             .with_dependency(PhysicsModule::build())
     }
@@ -71,7 +72,7 @@ impl GraphicsModule {
     /// This mode is particularly useful for testing. You can use the
     /// [`assert_capture`](crate::testing::assert_capture) method to easily compare captures.
     pub fn build_windowless(capture_size: SurfaceSize) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+        EntityBuilder::new(Self(PhantomData))
             .with_child(Capture::build(capture_size))
             .with_dependency(PhysicsModule::build())
     }

@@ -1,6 +1,13 @@
 use modor::{Built, EntityBuilder};
 
-/// An entity main component used to limit the number of updates per second.
+/// The maximum number of updates per second of the application.
+///
+/// If this entity does not exist, there is no limitation.
+///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: custom (same as parent entity)
 ///
 /// # Examples
 ///
@@ -12,7 +19,7 @@ use modor::{Built, EntityBuilder};
 ///     .with_entity(PhysicsModule::build())
 ///     .with_entity(UpdatesPerSecond::build(60));
 /// loop {
-///     app.update(); // Limited to 60 updates per second
+///     app.update(); // Lasts at least 1/60th of a second
 ///     # break;
 /// }
 /// ```

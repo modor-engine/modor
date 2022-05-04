@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: custom (same as parent entity)
-/// - **Used by**: [`GraphicsModule`](crate::GraphicsModule)
+/// - **Default if missing**: `BackgroundColor::build(Color::BLACK)`
 ///
 /// # Examples
 ///
@@ -16,10 +16,10 @@ use std::ops::{Deref, DerefMut};
 /// # use modor::{App, SingleMut};
 /// # use modor_graphics::{BackgroundColor, Color};
 /// #
-/// let app = App::new().with_entity(BackgroundColor::build(Color::BLACK));
+/// let app = App::new().with_entity(BackgroundColor::build(Color::RED));
 ///
 /// fn update_color(mut color: SingleMut<'_, BackgroundColor>) {
-///     color.r += 0.001;
+///     color.r -= 0.001;
 /// }
 /// ```
 pub struct BackgroundColor(Color);

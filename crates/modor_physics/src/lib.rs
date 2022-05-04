@@ -36,5 +36,3 @@ pub use components::velocity::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;
 pub use entities::updates_per_second::*;
-
-// TODO: try to uniformize doc for entities and components

@@ -16,8 +16,8 @@ use winit::window::Window as WinitWindow;
 ///
 /// # Panics
 ///
-/// This will panic if [`GraphicsModule`](GraphicsModule) does not exist or has been created in
-/// windowless mode.
+/// This will panic if [`GraphicsModule`](crate::GraphicsModule) does not exist or has been created
+/// in windowless mode.
 ///
 /// # Examples
 ///

@@ -1,15 +1,20 @@
 use crate::Acceleration;
 use std::time::Duration;
 
-/// A component storing the velocity of an entity.
-///
-/// This component is effective only if the entity also has a [`Position`](crate::Position).<br>
-/// [`PhysicsModule`](crate::PhysicsModule) automatically updates the position from the
-/// velocity.
+/// The velocity of an entity.
 ///
 /// The velocity is measured in distance units per second.<br>
 /// A distance unit of 1 on an axis corresponds to the size along this axis of the first
 /// parent having a position.
+///
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Position`](crate::Position)
+/// - **Default if missing**: `Velocity::xyz(0., 0., 0.)`
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated using**: [`Acceleration`](crate::Acceleration), [`DeltaTime`](crate::DeltaTime)
+/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 ///
 /// # Examples
 ///

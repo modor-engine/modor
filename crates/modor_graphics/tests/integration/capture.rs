@@ -2,7 +2,7 @@ use modor::testing::TestApp;
 use modor::{entity, App, Built, EntityBuilder, SingleMut};
 use modor_graphics::{
     testing, BackgroundColor, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize,
-    UpdateCaptureBuffer,
+    UpdateCaptureBufferAction,
 };
 use modor_physics::{Position, Scale};
 
@@ -16,7 +16,7 @@ impl CaptureResizer {
         EntityBuilder::new(Self { new_size })
     }
 
-    #[run_after(UpdateCaptureBuffer)]
+    #[run_after(UpdateCaptureBufferAction)]
     fn run(&self, mut capture: SingleMut<'_, Capture>) {
         capture.set_size(self.new_size);
     }

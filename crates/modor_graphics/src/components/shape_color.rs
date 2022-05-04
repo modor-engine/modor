@@ -1,14 +1,14 @@
 use crate::Color;
 use std::ops::{Deref, DerefMut};
 
-/// The color of a shape.
+/// The color of an entity.
 ///
-/// This component makes an entity renderable with a specific color.
+/// An entity with this component will be rendered with the specified color.
 ///
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Other required components**: [`Position`](modor_physics::Position)
+/// - **Required components**: [`Position`](modor_physics::Position)
 ///
 /// # Examples
 ///
