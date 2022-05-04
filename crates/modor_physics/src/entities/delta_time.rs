@@ -3,8 +3,6 @@ use modor::{Action, Built, EntityBuilder, Single};
 use std::thread;
 use std::time::{Duration, Instant};
 
-// TODO: scale has to be mandatory as it stores the absolute scale
-
 /// The duration of the latest update.
 ///
 /// # Modor

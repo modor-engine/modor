@@ -9,6 +9,7 @@ use std::time::Duration;
 /// # Modor
 ///
 /// - **Type**: component
+/// - **Required components**: [`Scale`](crate::Scale)
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated using**: [`Velocity`](crate::Velocity), [`Position`](crate::Position)
 ///     of parent entity, [`Scale`](crate::Scale) of parent entity, [`DeltaTime`](crate::DeltaTime)

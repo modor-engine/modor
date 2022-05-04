@@ -8,7 +8,8 @@ use std::ops::{Deref, DerefMut};
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Required components**: [`Position`](modor_physics::Position)
+/// - **Required components**: [`Position`](modor_physics::Position),
+///     [`Scale`](modor_physics::Scale)
 ///
 /// # Examples
 ///

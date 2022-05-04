@@ -6,8 +6,8 @@ use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 use std::marker::PhantomData;
 
-const DEFAULT_POSITION: Position = Position::xyz(0., 0., 0.);
-const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
+const ROOT_POSITION: Position = Position::xyz(0., 0., 0.);
+const ROOT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 
 /// The main entity of the physics module.
 ///
@@ -75,13 +75,13 @@ impl PhysicsModule {
 
     #[run_as(UpdateAbsoluteScalesAction)]
     fn update_absolute_scales(
-        entities_with_scale: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
+        entities: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
         mut scales: Query<'_, &mut Scale, With<Position>>,
     ) {
-        let entities = Self::sorted_by_depth(entities_with_scale.iter());
+        let entities = Self::sorted_by_depth(entities.iter());
         for entity in entities {
             let (result, parent_result) = scales.get_with_first_parent_mut(entity.id());
-            let parent_scale = parent_result.as_deref().unwrap_or(&DEFAULT_SCALE);
+            let parent_scale = parent_result.as_deref().unwrap_or(&ROOT_SCALE);
             if let Some(scale) = result {
                 scale.update_abs(parent_scale);
             }
@@ -90,16 +90,14 @@ impl PhysicsModule {
 
     #[run_as(UpdateAbsolutePositionsAction)]
     fn update_absolute_positions(
-        entities_with_position: Query<'_, Entity<'_>, With<Position>>,
-        mut components: Query<'_, (&mut Position, Option<&mut Scale>)>,
+        entities: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
+        mut components: Query<'_, (&mut Position, &mut Scale)>,
     ) {
-        let entities = Self::sorted_by_depth(entities_with_position.iter());
+        let entities = Self::sorted_by_depth(entities.iter());
         for entity in entities {
             let (result, parent_result) = components.get_with_first_parent_mut(entity.id());
-            let (parent_position, parent_scale) = parent_result
-                .map_or((&DEFAULT_POSITION, &DEFAULT_SCALE), |(p, s)| {
-                    (p, s.map_or(&DEFAULT_SCALE, |a| a))
-                });
+            let (parent_position, parent_scale) =
+                parent_result.map_or((&ROOT_POSITION, &ROOT_SCALE), |(p, s)| (p, s));
             if let Some((position, _)) = result {
                 position.update_abs(parent_position, parent_scale);
             }
@@ -192,8 +190,11 @@ mod physics_module_tests {
     #[test]
     fn update_absolute_position() {
         let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
-        let entity1_id =
-            app.create_entity(EntityBuilder::new(TestEntity).with(Position::xyz(1., 2., 3.)));
+        let entity1_id = app.create_entity(
+            EntityBuilder::new(TestEntity)
+                .with(Position::xyz(1., 2., 3.))
+                .with(Scale::xyz(1., 1., 1.)),
+        );
         let entity2_id = app.create_child(entity1_id, EntityBuilder::new(TestEntity));
         let entity3_id = app.create_child(
             entity2_id,
@@ -203,7 +204,9 @@ mod physics_module_tests {
         );
         let entity4_id = app.create_child(
             entity3_id,
-            EntityBuilder::new(TestEntity).with(Position::xyz(7., 8., 9.)),
+            EntityBuilder::new(TestEntity)
+                .with(Position::xyz(7., 8., 9.))
+                .with(Scale::xyz(1., 1., 1.)),
         );
         app.update();
         app.assert_entity(entity1_id)

@@ -8,7 +8,6 @@
 ///
 /// - **Type**: component
 /// - **Required components**: [`Position`](crate::Position)
-/// - **Default if missing**: `Scale::xyz(1., 1., 1.)`
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated using**: [`Scale`](crate::Scale) of parent entity
 /// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)

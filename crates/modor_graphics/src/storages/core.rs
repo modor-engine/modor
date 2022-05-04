@@ -7,9 +7,8 @@ use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
-use modor_physics::{Position, Scale, Shape};
+use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
 
-const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
 pub(crate) struct CoreStorage {
@@ -41,14 +40,20 @@ impl CoreStorage {
 
     pub(crate) fn update_instances(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
         let fixed_scale = self.fixed_scale();
         let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _)| p.z));
         for (color, position, scale, shape) in shapes.iter() {
-            let instance = Self::create_instance(color, position, scale, depth_bounds, fixed_scale);
+            let instance = Self::create_instance(
+                color,
+                position.abs(),
+                scale.abs(),
+                depth_bounds,
+                fixed_scale,
+            );
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
@@ -96,24 +101,22 @@ impl CoreStorage {
 
     fn create_instance(
         color: &ShapeColor,
-        position: &Position,
-        scale: Option<&Scale>,
+        position: &AbsolutePosition,
+        size: &Size,
         depth_bounds: (f32, f32),
         fixed_scale: (f32, f32),
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let (x_scale, y_scale) = fixed_scale;
-        let scale = scale.unwrap_or(&DEFAULT_SCALE).abs();
-        let z_position =
-            MAX_DEPTH - utils::normalize(position.abs().z, min_z, max_z, 0., MAX_DEPTH);
+        let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
         Instance {
             transform: [
-                [scale.x * 2. * x_scale, 0., 0., 0.],
-                [0., scale.y * 2. * y_scale, 0., 0.],
+                [size.x * 2. * x_scale, 0., 0., 0.],
+                [0., size.y * 2. * y_scale, 0., 0.],
                 [0., 0., 0., 0.],
                 [
-                    position.abs().x * 2. * x_scale,
-                    position.abs().y * 2. * y_scale,
+                    position.x * 2. * x_scale,
+                    position.y * 2. * y_scale,
                     z_position,
                     1.,
                 ],

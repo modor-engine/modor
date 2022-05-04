@@ -30,7 +30,7 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, Option<&Scale>, Option<&Shape>)>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
     ) {
         self.core.update_instances(shapes);
     }
