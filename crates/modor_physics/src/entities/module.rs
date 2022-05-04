@@ -19,10 +19,7 @@ const DEFAULT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 /// # Examples
 ///
 /// ```rust
-/// # #[macro_use]
-/// # extern crate modor;
-/// #
-/// # use modor::{App, Built, EntityBuilder};
+/// # use modor::{entity, App, Built, EntityBuilder};
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Scale, Shape, Velocity};
 /// #
 /// let mut app = App::new()
