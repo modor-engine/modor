@@ -82,6 +82,18 @@ impl Target for WindowTarget {
         self.surface.configure(device, &self.surface_config);
     }
 
+    fn toggle_vsync(&mut self, enabled: bool, device: &Device) {
+        let previous_mode = self.surface_config.present_mode;
+        self.surface_config.present_mode = if enabled {
+            PresentMode::Fifo
+        } else {
+            PresentMode::Immediate
+        };
+        if previous_mode != self.surface_config.present_mode {
+            self.surface.configure(device, &self.surface_config);
+        }
+    }
+
     fn prepare_texture(&mut self) -> TextureView {
         let texture = self
             .surface

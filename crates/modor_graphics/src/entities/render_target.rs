@@ -5,7 +5,7 @@ use crate::entities::background_color::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::CoreStorage;
-use crate::{Color, GraphicsModule, ShapeColor, SurfaceSize};
+use crate::{Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize};
 use modor::{Built, Entity, EntityBuilder, Query, Single, World};
 use modor_physics::{Position, Scale, Shape};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
@@ -36,8 +36,14 @@ impl RenderTarget {
     }
 
     #[run_as(RenderAction)]
-    fn render(&mut self, background_color: Option<Single<'_, BackgroundColor>>) {
+    fn render(
+        &mut self,
+        background_color: Option<Single<'_, BackgroundColor>>,
+        frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
+    ) {
         let background_color = background_color.map_or(DEFAULT_BACKGROUND_COLOR, |c| **c);
+        let enable_vsync = matches!(frame_rate_limit.map(|l| l.get()), Some(FrameRate::VSync));
+        no_mutation!(self.core.toggle_vsync(enable_vsync)); // window cannot be tested
         self.core.render(background_color);
     }
 

@@ -41,6 +41,7 @@ pub mod testing;
 pub use components::shape_color::*;
 pub use data::*;
 pub use entities::background_color::*;
+pub use entities::frame_rate::*;
 pub use entities::module::*;
 pub use entities::render_target::*;
 pub use runner::*;

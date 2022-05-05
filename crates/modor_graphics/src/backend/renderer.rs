@@ -41,6 +41,10 @@ impl Renderer {
         }
     }
 
+    pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
+        self.target.toggle_vsync(enabled, &self.device);
+    }
+
     pub(crate) fn prepare_texture(&mut self) -> TextureView {
         self.target.prepare_texture()
     }

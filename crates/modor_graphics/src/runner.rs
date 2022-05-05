@@ -1,13 +1,12 @@
-use crate::WindowInit;
+use crate::{utils, FrameRate, FrameRateLimit, WindowInit};
 use modor::App;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::time::Instant;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window as WinitWindow;
 
 // coverage: off (window cannot be tested)
-
-// TODO: move frame rate limitation in runner ?
 
 /// Run application update for each frame rendered in a window.
 ///
@@ -38,9 +37,15 @@ pub fn runner(mut app: App) {
     let mut window = None;
     app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
+    let mut previous_update_end = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
         Event::MainEventsCleared => read_window(&window).request_redraw(),
-        Event::RedrawRequested(window_id) if window_id == read_window(&window).id() => app.update(),
+        Event::RedrawRequested(window_id) if window_id == read_window(&window).id() => {
+            let mut frame_rate = FrameRate::Unlimited;
+            app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
+            utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
+            previous_update_end = Instant::now();
+        }
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
             window_id,

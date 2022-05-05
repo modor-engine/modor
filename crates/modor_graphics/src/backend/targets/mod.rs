@@ -16,6 +16,8 @@ pub(crate) trait Target: Any + Sync + Send {
 
     fn set_size(&mut self, width: u32, height: u32, device: &Device);
 
+    fn toggle_vsync(&mut self, enabled: bool, device: &Device);
+
     fn prepare_texture(&mut self) -> TextureView;
 
     fn render(&mut self, queue: &Queue, encoder: CommandEncoder);

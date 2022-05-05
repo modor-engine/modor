@@ -38,6 +38,10 @@ impl CoreStorage {
         self.renderer.set_size(size.width, size.height);
     }
 
+    pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
+        self.renderer.toggle_vsync(enabled);
+    }
+
     pub(crate) fn update_instances(
         &mut self,
         shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,

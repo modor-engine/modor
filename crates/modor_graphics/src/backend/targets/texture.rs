@@ -113,6 +113,10 @@ impl Target for TextureTarget {
         self.buffer = Self::create_buffer(device, height, self.padded_row_bytes);
     }
 
+    // coverage: off (no frame rate limitation with capture)
+    fn toggle_vsync(&mut self, _enabled: bool, _device: &Device) {}
+    // coverage: on
+
     fn prepare_texture(&mut self) -> TextureView {
         self.texture.create_view(&TextureViewDescriptor::default())
     }

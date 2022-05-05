@@ -24,6 +24,8 @@
 
 #[macro_use]
 extern crate modor;
+#[cfg_attr(test, macro_use)]
+extern crate modor_internal;
 
 mod components;
 mod entities;
@@ -35,4 +37,3 @@ pub use components::shape::*;
 pub use components::velocity::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;
-pub use entities::updates_per_second::*;
