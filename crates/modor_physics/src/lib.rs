@@ -24,8 +24,6 @@
 
 #[macro_use]
 extern crate modor;
-#[cfg_attr(test, macro_use)]
-extern crate modor_internal;
 
 mod components;
 mod entities;

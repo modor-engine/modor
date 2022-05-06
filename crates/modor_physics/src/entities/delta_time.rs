@@ -63,7 +63,7 @@ mod updates_per_second_tests {
 
     #[test]
     fn assert_correct_update() {
-        retry!(10, {
+        modor_internal::retry!(10, {
             let mut app: TestApp = App::new().with_entity(DeltaTime::build()).into();
             thread::sleep(Duration::from_millis(100));
             app.update();

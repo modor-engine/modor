@@ -76,7 +76,7 @@ mod utils_tests {
     ) {
         let update_start = Instant::now();
         super::run_with_frame_rate(Instant::now(), frame_rate, || {
-            thread::sleep(Duration::from_millis(external_sleep_millis))
+            thread::sleep(Duration::from_millis(external_sleep_millis));
         });
         let update_end = Instant::now();
         assert!(update_end.duration_since(update_start) >= Duration::from_millis(min_millis));

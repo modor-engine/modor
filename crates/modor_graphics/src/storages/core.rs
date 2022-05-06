@@ -39,7 +39,7 @@ impl CoreStorage {
     }
 
     pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
-        self.renderer.toggle_vsync(enabled);
+        no_mutation!(self.renderer.toggle_vsync(enabled)); // window cannot be tested
     }
 
     pub(crate) fn update_instances(

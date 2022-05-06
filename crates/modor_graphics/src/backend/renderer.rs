@@ -42,7 +42,7 @@ impl Renderer {
     }
 
     pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
-        self.target.toggle_vsync(enabled, &self.device);
+        no_mutation!(self.target.toggle_vsync(enabled, &self.device)); // window cannot be tested
     }
 
     pub(crate) fn prepare_texture(&mut self) -> TextureView {

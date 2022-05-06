@@ -139,7 +139,7 @@ mod internal {
 
 #[cfg(test)]
 mod physics_module_tests {
-    use crate::{Acceleration, DeltaTime, PhysicsModule, Position, Scale, Velocity};
+    use crate::{Acceleration, DeltaTime, PhysicsModule, Position, Scale, Shape, Velocity};
     use approx::assert_abs_diff_eq;
     use modor::testing::TestApp;
     use modor::{App, EntityBuilder};
@@ -236,7 +236,8 @@ mod physics_module_tests {
             entity2_id,
             EntityBuilder::new(TestEntity)
                 .with(Position::xyz(40., 50., 60.))
-                .with(Scale::xyz(0.1, 0.2, 0.5)),
+                .with(Scale::xyz(0.1, 0.2, 0.5))
+                .with(Shape::Rectangle2D),
         );
         let entity4_id = app.create_child(
             entity3_id,
