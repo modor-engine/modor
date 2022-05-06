@@ -122,15 +122,13 @@ impl PhysicsModule {
 pub struct UpdatePhysicsAction;
 
 mod internal {
-    use crate::UpdateDeltaTimeAction;
-
-    #[action(UpdateDeltaTimeAction)]
+    #[action]
     pub struct UpdateVelocitiesAction;
 
     #[action(UpdateVelocitiesAction)]
     pub struct UpdatePositionsAction;
 
-    #[action(UpdateDeltaTimeAction)]
+    #[action]
     pub struct UpdateAbsoluteScalesAction;
 
     #[action(UpdatePositionsAction, UpdateAbsoluteScalesAction)]

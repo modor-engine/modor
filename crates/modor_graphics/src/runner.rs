@@ -1,5 +1,6 @@
 use crate::{utils, FrameRate, FrameRateLimit, WindowInit};
 use modor::App;
+use modor_physics::DeltaTime;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use std::time::Instant;
 use winit::event::{Event, WindowEvent};
@@ -9,6 +10,9 @@ use winit::window::Window as WinitWindow;
 // coverage: off (window cannot be tested)
 
 /// Run application update for each frame rendered in a window.
+///
+/// [`DeltaTime`](modor_physics::DeltaTime) is automatically updated.<br>
+/// Frame rate is limited depending on [`FrameRateLimit`](crate::FrameRateLimit).
 ///
 /// This runner must be used instead of a call to [`App::update`](modor::App::update)
 /// inside a loop to ensure a correct window update.
@@ -44,7 +48,9 @@ pub fn runner(mut app: App) {
             let mut frame_rate = FrameRate::Unlimited;
             app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
             utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
-            previous_update_end = Instant::now();
+            let update_end = Instant::now();
+            app.run_for_singleton(|t: &mut DeltaTime| t.set(update_end - previous_update_end));
+            previous_update_end = update_end;
         }
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,

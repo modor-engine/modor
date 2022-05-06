@@ -1,9 +1,13 @@
-use modor::{Action, Built, EntityBuilder};
-use std::time::{Duration, Instant};
-
-// TODO: compute it more accurately
+use modor::{Built, EntityBuilder};
+use std::time::Duration;
 
 /// The duration of the latest update.
+///
+/// Default value is zero.
+///
+/// The physics module does not update automatically this entity.<br>
+/// Instead, the delta time can be manually set to simulate time, or be automatically updated
+/// by another module.
 ///
 /// # Modor
 ///
@@ -20,56 +24,40 @@ use std::time::{Duration, Instant};
 /// }
 /// ```
 pub struct DeltaTime {
-    previous_instant: Instant,
-    last_instant: Instant,
+    duration: Duration,
 }
 
 #[singleton]
 impl DeltaTime {
     /// Returns the duration of the last update.
     pub fn get(&self) -> Duration {
-        self.last_instant.duration_since(self.previous_instant)
+        self.duration
+    }
+
+    /// Set the duration of the last update.
+    pub fn set(&mut self, duration: Duration) {
+        self.duration = duration;
     }
 
     pub(crate) fn build() -> impl Built<Self> {
-        let now = Instant::now();
         EntityBuilder::new(Self {
-            previous_instant: now,
-            last_instant: now,
+            duration: Duration::ZERO,
         })
     }
-
-    #[run_as(UpdateDeltaTimeAction)]
-    fn update(&mut self) {
-        self.previous_instant = self.last_instant;
-        self.last_instant = Instant::now();
-    }
-}
-
-/// An action done when the delta time has been updated.
-pub struct UpdateDeltaTimeAction;
-
-impl Action for UpdateDeltaTimeAction {
-    type Constraint = ();
 }
 
 #[cfg(test)]
 mod updates_per_second_tests {
     use crate::DeltaTime;
-    use modor::testing::TestApp;
-    use modor::App;
-    use std::thread;
     use std::time::Duration;
 
     #[test]
-    fn assert_correct_update() {
-        modor_internal::retry!(10, {
-            let mut app: TestApp = App::new().with_entity(DeltaTime::build()).into();
-            thread::sleep(Duration::from_millis(100));
-            app.update();
-            app.assert_singleton::<DeltaTime>()
-                .has::<DeltaTime, _>(|d| assert!(d.get() >= Duration::from_millis(100)))
-                .has::<DeltaTime, _>(|d| assert!(d.get() <= Duration::from_millis(150)));
-        });
+    fn use_delta_time() {
+        let mut delta_time = DeltaTime {
+            duration: Duration::ZERO,
+        };
+        assert_eq!(delta_time.get(), Duration::ZERO);
+        delta_time.set(Duration::from_millis(10));
+        assert_eq!(delta_time.get(), Duration::from_millis(10));
     }
 }
