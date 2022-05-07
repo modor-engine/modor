@@ -41,7 +41,7 @@ impl Scale {
 
     /// Creates a 2D scale.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to one.
     ///
     /// Absolute size is initialized with the same coordinates.
     pub const fn xy(x: f32, y: f32) -> Self {
