@@ -1,6 +1,7 @@
-use crate::backend::data::{GpuData, Instance, Vertex};
+use crate::backend::data::{Camera, GpuData, Instance, Vertex};
 use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
+use crate::backend::uniforms::Uniform;
 use modor_physics::Shape;
 use typed_index_collections::TiVec;
 
@@ -12,7 +13,7 @@ pub(super) struct ShaderStorage {
 }
 
 impl ShaderStorage {
-    pub(super) fn new(renderer: &Renderer) -> Self {
+    pub(super) fn new(camera_2d: &Uniform<Camera>, renderer: &Renderer) -> Self {
         let vertex_buffer_layouts = &[
             <Vertex as GpuData<FIRST_VERTEX_BUFFER_LOCATION>>::layout(),
             <Instance as GpuData<FIRST_INSTANCE_BUFFER_LOCATION>>::layout(),
@@ -22,12 +23,14 @@ impl ShaderStorage {
                 Shader::new(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
                     vertex_buffer_layouts,
+                    &[camera_2d.bind_group_layout()],
                     "main_2d",
                     renderer,
                 ),
                 Shader::new(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
                     vertex_buffer_layouts,
+                    &[camera_2d.bind_group_layout()],
                     "circle_2d",
                     renderer,
                 )

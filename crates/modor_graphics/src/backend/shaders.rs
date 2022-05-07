@@ -1,10 +1,10 @@
 use crate::backend::renderer::{Renderer, DEPTH_TEXTURE_FORMAT};
 use wgpu::{
-    BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
-    Face, FragmentState, FrontFace, MultisampleState, PipelineLayout, PipelineLayoutDescriptor,
-    PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModule, ShaderModuleDescriptor, ShaderSource, StencilState, VertexBufferLayout,
-    VertexState,
+    BindGroupLayout, BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
+    DepthStencilState, Face, FragmentState, FrontFace, MultisampleState, PipelineLayout,
+    PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline,
+    RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderSource, StencilState,
+    VertexBufferLayout, VertexState,
 };
 
 pub(crate) struct Shader {
@@ -15,10 +15,12 @@ impl Shader {
     pub(crate) fn new(
         code: &str,
         vertex_buffer_layouts: &[VertexBufferLayout<'_>],
+        bind_group_layouts: &[&BindGroupLayout],
         label_suffix: &str,
         renderer: &Renderer,
     ) -> Self {
-        let pipeline_layout = Self::create_pipeline_layout(label_suffix, renderer);
+        let pipeline_layout =
+            Self::create_pipeline_layout(bind_group_layouts, label_suffix, renderer);
         let shader = renderer
             .device()
             .create_shader_module(&ShaderModuleDescriptor {
@@ -39,12 +41,16 @@ impl Shader {
         &self.pipeline
     }
 
-    fn create_pipeline_layout(label_suffix: &str, renderer: &Renderer) -> PipelineLayout {
+    fn create_pipeline_layout(
+        bind_group_layouts: &[&BindGroupLayout],
+        label_suffix: &str,
+        renderer: &Renderer,
+    ) -> PipelineLayout {
         renderer
             .device()
             .create_pipeline_layout(&PipelineLayoutDescriptor {
                 label: Some(&format!("modor_pipeline_layout_{}", label_suffix)),
-                bind_group_layouts: &[],
+                bind_group_layouts,
                 push_constant_ranges: &[],
             })
     }

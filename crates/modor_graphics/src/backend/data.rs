@@ -49,3 +49,9 @@ impl<const L: u32> GpuData<L> for Instance {
         }
     }
 }
+
+#[repr(C)]
+#[derive(Default, Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
+pub(crate) struct Camera {
+    pub(crate) transform: [[f32; 4]; 4],
+}

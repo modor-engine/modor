@@ -1,3 +1,10 @@
+struct CameraUniform {
+    transform: mat4x4<f32>;
+};
+
+[[group(0), binding(0)]]
+var<uniform> camera: CameraUniform;
+
 struct VertexInput {
     [[location(0)]] position: vec3<f32>;
 };
@@ -24,7 +31,7 @@ fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
         instance.transform_3,
     );
     var out: VertexOutput;
-    out.position = transform * vec4<f32>(vertex.position, 1.);
+    out.position = camera.transform * transform * vec4<f32>(vertex.position, 1.);
     out.color = instance.color;
     return out;
 }

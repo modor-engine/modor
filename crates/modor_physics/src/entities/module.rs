@@ -141,6 +141,7 @@ mod physics_module_tests {
     use approx::assert_abs_diff_eq;
     use modor::testing::TestApp;
     use modor::{App, EntityBuilder};
+    use std::time::Duration;
 
     struct TestEntity;
 
@@ -163,10 +164,9 @@ mod physics_module_tests {
                 .with(Velocity::xyz(4., 5., 6.))
                 .with(Acceleration::xyz(7., 8., 9.)),
         );
+        let delta_time = 2.;
+        app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
         app.update();
-        let mut delta_time = 0.;
-        app.assert_singleton::<DeltaTime>()
-            .has::<DeltaTime, _>(|d| delta_time = d.get().as_secs_f32());
         app.assert_entity(entity_id)
             .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.x, 7.))
             .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.y, 8.))

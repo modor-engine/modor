@@ -4,16 +4,28 @@ use crate::backend::targets::window::WindowTarget;
 use crate::entities::background_color::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
-use crate::storages::core::CoreStorage;
-use crate::{Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize};
-use modor::{Built, Entity, EntityBuilder, Query, Single, World};
-use modor_physics::{Position, Scale, Shape};
+use crate::storages::core::{CameraProperties, CoreStorage};
+use crate::{Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize};
+use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
+use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
+const DEFAULT_CAMERA: CameraProperties = CameraProperties {
+    position: AbsolutePosition {
+        x: 0.,
+        y: 0.,
+        z: 0.,
+    },
+    size: Size {
+        x: 1.,
+        y: 1.,
+        z: 1.,
+    },
+};
 
 pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
@@ -31,8 +43,10 @@ impl RenderTarget {
     fn prepare_rendering(
         &mut self,
         shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
+        cameras: Query<'_, (&Position, &Scale), With<Camera2D>>,
     ) {
-        self.core.update_instances(shapes);
+        let camera = Self::extract_camera(cameras);
+        self.core.update_instances(shapes, camera);
     }
 
     #[run_as(RenderAction)]
@@ -49,6 +63,16 @@ impl RenderTarget {
 
     #[run_as(UpdateGraphicsAction)]
     fn finish_update() {}
+
+    fn extract_camera(cameras: Query<'_, (&Position, &Scale), With<Camera2D>>) -> CameraProperties {
+        cameras
+            .iter()
+            .next()
+            .map_or(DEFAULT_CAMERA, |(p, s)| CameraProperties {
+                position: p.abs().clone(),
+                size: s.abs().clone(),
+            })
+    }
 }
 
 // coverage: off (window cannot be tested)

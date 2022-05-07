@@ -1,4 +1,5 @@
 pub mod background;
+pub mod camera;
 pub mod capture;
 pub mod components;
 pub mod frame_rate;

@@ -3,7 +3,7 @@ use crate::utils;
 use bytemuck::Pod;
 use std::mem;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{Buffer, BufferDescriptor, BufferUsages};
+use wgpu::{BindingResource, Buffer, BufferDescriptor, BufferUsages};
 
 pub(crate) struct DynamicBuffer<T> {
     data: Vec<T>,
@@ -64,6 +64,10 @@ where
         &self.buffer
     }
 
+    pub(super) fn binding_resource(&self) -> BindingResource<'_> {
+        self.buffer.as_entire_binding()
+    }
+
     fn raw_capacity(capacity: usize) -> u64 {
         let raw_capacity = (capacity * mem::size_of::<T>()) as u64;
         utils::nearest_multiple(raw_capacity, wgpu::COPY_BUFFER_ALIGNMENT)
@@ -75,6 +79,7 @@ pub(crate) enum DynamicBufferUsage {
     Vertex,
     Index,
     Instance,
+    Uniform,
 }
 
 impl From<DynamicBufferUsage> for BufferUsages {
@@ -85,6 +90,7 @@ impl From<DynamicBufferUsage> for BufferUsages {
             DynamicBufferUsage::Instance => {
                 no_mutation!(Self::VERTEX | Self::COPY_DST)
             }
+            DynamicBufferUsage::Uniform => Self::UNIFORM | Self::COPY_DST,
         }
     }
 }
