@@ -90,7 +90,7 @@ impl From<DynamicBufferUsage> for BufferUsages {
             DynamicBufferUsage::Instance => {
                 no_mutation!(Self::VERTEX | Self::COPY_DST)
             }
-            DynamicBufferUsage::Uniform => Self::UNIFORM | Self::COPY_DST,
+            DynamicBufferUsage::Uniform => no_mutation!(Self::UNIFORM | Self::COPY_DST),
         }
     }
 }
