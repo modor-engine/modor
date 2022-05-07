@@ -105,6 +105,7 @@ impl Object {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn run_queries() {
     let mut app = TestApp::new();
     let object1_id = app.create_entity(Object::build(Position::new(0, 0), Size::new(1, 1)));

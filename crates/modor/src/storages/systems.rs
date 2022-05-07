@@ -20,6 +20,7 @@ impl SystemStorage {
         self.pool.as_ref().map_or(0, Pool::thread_count) + 1
     }
 
+    #[allow(unused_variables)]
     pub(super) fn set_thread_count(&mut self, count: u32) {
         #[cfg(not(target_arch = "wasm32"))]
         {

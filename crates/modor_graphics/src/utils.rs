@@ -22,25 +22,24 @@ pub(crate) fn normalize(
     }
 }
 
+#[allow(unused_variables)]
 pub(crate) fn run_with_frame_rate<F>(start: Instant, frame_rate: FrameRate, f: F)
 where
     F: FnOnce(),
 {
     f();
-    #[cfg(not(target_arch = "wasm32"))]
     {
         if let FrameRate::FPS(frames_per_second) = frame_rate {
             if frames_per_second > 0 {
                 let update_time = Duration::from_secs_f32(1. / f32::from(frames_per_second));
                 let current_update_time = Instant::now().duration_since(start);
                 if let Some(remaining_time) = update_time.checked_sub(current_update_time) {
+                    #[cfg(not(target_arch = "wasm32"))]
                     spin_sleep::sleep(remaining_time);
                 }
             }
         }
     }
-    #[cfg(target_arch = "wasm32")]
-    {}
 }
 
 pub(crate) fn block_on<F>(future: F) -> F::Output
