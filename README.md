@@ -40,7 +40,9 @@ modor = "0.1"
 ```
 
 You can also include the modules you want, like:
+
 - [physics](crates/modor_physics/README.md)
+- [graphics](crates/modor_graphics/README.md)
 
 ## Example
 
