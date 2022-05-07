@@ -52,6 +52,10 @@ pub enum FrameRate {
     /// A limit in frames per second.
     ///
     /// `FrameRate::FPS(0)` is equivalent to `FrameRate::Unlimited`.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - Web: this is equivalent to `FrameRate::Unlimited`.
     FPS(u16),
     /// A limit based on vertical synchronization.
     ///

@@ -21,10 +21,17 @@ impl SystemStorage {
     }
 
     pub(super) fn set_thread_count(&mut self, count: u32) {
-        if count < 2 {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if count < 2 {
+                self.pool = None;
+            } else {
+                self.pool = Some(Pool::new(count - 1));
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
             self.pool = None;
-        } else {
-            self.pool = Some(Pool::new(count - 1));
         }
     }
 

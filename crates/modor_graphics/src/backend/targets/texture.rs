@@ -1,4 +1,5 @@
 use crate::backend::targets::{CreatedTarget, Target};
+use crate::utils;
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -40,7 +41,7 @@ impl TextureTarget {
     }
 
     fn retrieve_adapter(instance: &Instance) -> Adapter {
-        pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+        utils::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
             .expect("no supported graphic adapter found")
     }
 

@@ -17,6 +17,7 @@ impl BackgroundUpdater {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_background() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

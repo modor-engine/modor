@@ -1,4 +1,5 @@
 use crate::backend::targets::{CreatedTarget, Target};
+use crate::utils;
 use wgpu::{
     Adapter, Backends, CommandEncoder, Device, Instance, PowerPreference, PresentMode, Queue,
     RequestAdapterOptions, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
@@ -37,7 +38,7 @@ impl WindowTarget {
     }
 
     fn retrieve_adapter(instance: &Instance, surface: &Surface) -> Adapter {
-        pollster::block_on(instance.request_adapter(&RequestAdapterOptions {
+        utils::block_on(instance.request_adapter(&RequestAdapterOptions {
             power_preference: PowerPreference::default(),
             compatible_surface: Some(surface),
             force_fallback_adapter: false,

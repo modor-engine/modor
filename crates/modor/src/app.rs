@@ -45,6 +45,10 @@ impl App {
     ///
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - Web: update is done in one thread even if `count` if greater than `1`.
     #[must_use]
     pub fn with_thread_count(mut self, count: u32) -> Self {
         self.core.set_thread_count(count);

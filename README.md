@@ -24,6 +24,7 @@ It also makes extensive use of compile-time checks. For example:
 
 - Windows
 - Linux
+- Web
 
 Not tested but should also work on:
 

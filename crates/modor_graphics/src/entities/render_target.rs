@@ -8,7 +8,6 @@ use crate::storages::core::{CameraProperties, CoreStorage};
 use crate::{Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
 use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
-use std::sync::{Arc, RwLock, RwLockReadGuard};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
@@ -88,33 +87,31 @@ impl RenderTarget {
 ///
 /// See [`GraphicsModule`](crate::GraphicsModule).
 pub struct Window {
-    window: Arc<RwLock<WinitWindow>>,
+    size: SurfaceSize,
 }
 
 #[singleton]
 impl Window {
-    pub(crate) fn build(window: Arc<RwLock<WinitWindow>>, renderer: Renderer) -> impl Built<Self> {
-        EntityBuilder::new(Self { window }).inherit_from(RenderTarget::build(renderer))
-    }
-
     /// Returns the size of the rendering area.
     pub fn size(&self) -> SurfaceSize {
-        let size = self.read_winit_window().inner_size();
-        SurfaceSize {
-            width: size.width,
-            height: size.height,
-        }
+        self.size
+    }
+
+    pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
+        let (width, height) = renderer.target_size();
+        EntityBuilder::new(Self {
+            size: SurfaceSize { width, height },
+        })
+        .inherit_from(RenderTarget::build(renderer))
+    }
+
+    pub(crate) fn set_size(&mut self, size: SurfaceSize) {
+        self.size = size;
     }
 
     #[run]
     fn update_size(&mut self, surface: &mut RenderTarget) {
         surface.core.set_size(self.size());
-    }
-
-    fn read_winit_window(&self) -> RwLockReadGuard<'_, WinitWindow> {
-        self.window
-            .read()
-            .expect("internal error: cannot read inner window")
     }
 }
 
@@ -122,7 +119,6 @@ pub(crate) struct WindowInit {
     size: SurfaceSize,
     title: String,
     renderer: Option<Renderer>,
-    window: Option<Arc<RwLock<WinitWindow>>>,
 }
 
 #[singleton]
@@ -132,19 +128,28 @@ impl WindowInit {
             size,
             title,
             renderer: None,
-            window: None,
         })
     }
 
-    pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> Arc<RwLock<WinitWindow>> {
+    pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> WinitWindow {
         let window = WindowBuilder::new()
             .with_title(self.title.clone())
             .with_inner_size(PhysicalSize::new(self.size.width, self.size.height))
             .build(event_loop)
             .expect("failed to create window");
+        #[cfg(target_arch = "wasm32")]
+        {
+            use winit::platform::web::WindowExtWebSys;
+            web_sys::window()
+                .and_then(|win| win.document())
+                .and_then(|doc| doc.body())
+                .and_then(|body| {
+                    body.append_child(&web_sys::Element::from(window.canvas()))
+                        .ok()
+                })
+                .expect("cannot append canvas to document body");
+        }
         self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
-        let window = Arc::new(RwLock::new(window));
-        self.window = Some(window.clone());
         window
     }
 
@@ -155,15 +160,11 @@ impl WindowInit {
         graphics: Single<'_, GraphicsModule>,
         mut world: World<'_>,
     ) {
-        let window = self
-            .window
-            .take()
-            .expect("internal error: window not initialized");
         let renderer = self
             .renderer
             .take()
             .expect("internal error: renderer not initialized");
-        world.create_child_entity(graphics.entity().id(), Window::build(window, renderer));
+        world.create_child_entity(graphics.entity().id(), Window::build(renderer));
         world.delete_entity(entity.id());
     }
 }
@@ -190,18 +191,6 @@ pub struct Capture {
 
 #[singleton]
 impl Capture {
-    pub(crate) fn build(size: SurfaceSize) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            buffer_size: size,
-            buffer: vec![],
-            updated_size: Some(size),
-        })
-        .inherit_from(RenderTarget::build(Renderer::new(TextureTarget::new(
-            size.width,
-            size.height,
-        ))))
-    }
-
     /// Returns the capture size.
     pub fn size(&self) -> SurfaceSize {
         self.buffer_size
@@ -219,6 +208,18 @@ impl Capture {
         } else {
             Some(&self.buffer)
         }
+    }
+
+    pub(crate) fn build(size: SurfaceSize) -> impl Built<Self> {
+        EntityBuilder::new(Self {
+            buffer_size: size,
+            buffer: vec![],
+            updated_size: Some(size),
+        })
+        .inherit_from(RenderTarget::build(Renderer::new(TextureTarget::new(
+            size.width,
+            size.height,
+        ))))
     }
 
     #[run_as(PrepareCaptureAction)]

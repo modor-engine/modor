@@ -1,11 +1,9 @@
-use crate::{utils, FrameRate, FrameRateLimit, WindowInit};
+use crate::{utils, FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
+use instant::Instant;
 use modor::App;
 use modor_physics::DeltaTime;
-use std::sync::{Arc, RwLock, RwLockReadGuard};
-use std::time::Instant;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::Window as WinitWindow;
 
 // coverage: off (window cannot be tested)
 
@@ -36,32 +34,57 @@ use winit::window::Window as WinitWindow;
 /// ```
 #[allow(clippy::wildcard_enum_match_arm)]
 pub fn runner(mut app: App) {
-    env_logger::init();
+    configure_logging();
     let event_loop = EventLoop::new();
     let mut window = None;
     app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     let mut previous_update_end = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
-        Event::MainEventsCleared => read_window(&window).request_redraw(),
-        Event::RedrawRequested(window_id) if window_id == read_window(&window).id() => {
+        Event::MainEventsCleared => window.request_redraw(),
+        Event::RedrawRequested(window_id) if window_id == window.id() => {
             let mut frame_rate = FrameRate::Unlimited;
             app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
+            app.run_for_singleton(|w: &mut Window| {
+                let size = window.inner_size();
+                w.set_size(SurfaceSize {
+                    width: size.width,
+                    height: size.height,
+                });
+            });
             utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
             let update_end = Instant::now();
             app.run_for_singleton(|t: &mut DeltaTime| t.set(update_end - previous_update_end));
             previous_update_end = update_end;
         }
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            window_id,
-        } if window_id == read_window(&window).id() => {
-            *control_flow = ControlFlow::Exit;
-        }
+        Event::WindowEvent { event, window_id } if window_id == window.id() => match event {
+            WindowEvent::Resized(size)
+            | WindowEvent::ScaleFactorChanged {
+                new_inner_size: &mut size,
+                ..
+            } => {
+                app.run_for_singleton(|w: &mut Window| {
+                    w.set_size(SurfaceSize {
+                        width: size.width,
+                        height: size.height,
+                    });
+                });
+            }
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            _ => {}
+        },
         _ => {}
     });
 }
 
-fn read_window(window: &Arc<RwLock<WinitWindow>>) -> RwLockReadGuard<'_, WinitWindow> {
-    window.read().expect("internal error: cannot read window")
+fn configure_logging() {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::init();
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_log::init().expect("cannot initialize logger");
+    }
 }
