@@ -16,6 +16,7 @@ fxhash = "0.2"
 scoped_threadpool = "0.1"
 typed-index-collections = "3.0"
 modor_derive = { version = "0.1.0", path = "../modor_derive" }
+modor_internal = { version = "0.1.0", path = "../modor_internal" }
 
 [dev-dependencies]
 compiletest_rs = "0.7"

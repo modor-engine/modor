@@ -1,4 +1,5 @@
 use crate::storages::archetypes::EntityLocation;
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -70,6 +71,10 @@ impl<'a> QuerySystemParamWithLifetime<'a> for () {
 }
 
 impl QuerySystemParam for () {
+    fn filtered_component_type_idxs(_data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
+        vec![]
+    }
+
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -205,6 +210,11 @@ macro_rules! impl_tuple_system_param {
         where
             $($params: QuerySystemParam,)+
         {
+            fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
+                let filtered_type_idxs = ($($params::filtered_component_type_idxs(data),)+);
+                utils::merge([$(filtered_type_idxs.$indexes),+])
+            }
+
             #[allow(non_snake_case)]
             fn query_iter<'a, 'b>(
                 guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
@@ -461,6 +471,13 @@ mod empty_tuple_tests {
     }
 
     #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let core = CoreStorage::default();
+        let data = core.system_data();
+        assert_eq!(<()>::filtered_component_type_idxs(data), vec![]);
+    }
+
+    #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
         let location = core.create_entity_with_1_component(0_u32, None);
@@ -505,6 +522,15 @@ mod tuple_with_one_item_tests {
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
         assert_eq!(properties.filtered_component_type_idxs, [0.into()]);
+    }
+
+    #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let mut core = CoreStorage::default();
+        core.register_component_type::<u32>();
+        let data = core.system_data();
+        let filtered_type_idxs = <(&u32,)>::filtered_component_type_idxs(data);
+        assert_eq!(filtered_type_idxs, vec![0.into()]);
     }
 
     #[test]
@@ -577,6 +603,16 @@ mod tuple_with_two_items_tests {
     }
 
     #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let mut core = CoreStorage::default();
+        core.register_component_type::<u32>();
+        core.register_component_type::<i64>();
+        let data = core.system_data();
+        let filtered_type_idxs = <(&u32, &mut i64)>::filtered_component_type_idxs(data);
+        assert_eq!(filtered_type_idxs, vec![0.into(), 1.into()]);
+    }
+
+    #[test]
     fn use_system_param() {
         let mut core = CoreStorage::default();
         let location1 = core.create_entity_with_2_components(10_u32, 100_i16, None);
@@ -641,6 +677,17 @@ mod tuple_with_more_than_two_items_tests {
             properties.filtered_component_type_idxs,
             [0.into(), 1.into(), 2.into()]
         );
+    }
+
+    #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let mut core = CoreStorage::default();
+        core.register_component_type::<u32>();
+        core.register_component_type::<i16>();
+        core.register_component_type::<i64>();
+        let data = core.system_data();
+        let filtered_type_idxs = <(&u32, &mut i16, &i64)>::filtered_component_type_idxs(data);
+        assert_eq!(filtered_type_idxs, vec![0.into(), 1.into(), 2.into()]);
     }
 
     #[test]

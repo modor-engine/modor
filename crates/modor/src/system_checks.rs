@@ -29,6 +29,7 @@ impl<S, P> SealedChecker for SystemParamMutabilityChecker<S, P> {}
 /// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
 pub trait SystemWithParams<S, P>: Sized + SealedChecker {
     #[doc(hidden)]
+    #[must_use]
     fn check_param_mutability(self) -> Self {
         self
     }
@@ -51,6 +52,7 @@ where
 /// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
 pub trait SystemWithParamMutabilityIssue<S, Z>: Sized + SealedChecker {
     #[doc(hidden)]
+    #[must_use]
     fn check_param_mutability(self) -> Self {
         self
     }

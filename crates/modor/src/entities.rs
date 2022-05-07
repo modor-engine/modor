@@ -358,7 +358,7 @@ mod internal {
                     .components()
                     .type_idx(TypeId::of::<E>())
                     .expect("internal error: entity type without index");
-                if let Some(location) = core.components().singleton_locations(type_idx) {
+                if let Some(location) = core.components().singleton_location(type_idx) {
                     let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
                     core.delete_entity(entity_idx);
                 }
@@ -482,7 +482,7 @@ mod internal {
             let singleton_exists = core
                 .components()
                 .type_idx(TypeId::of::<E>())
-                .and_then(|c| core.components().singleton_locations(c))
+                .and_then(|c| core.components().singleton_location(c))
                 .is_some();
             if !singleton_exists {
                 self.entity.build(core, None);

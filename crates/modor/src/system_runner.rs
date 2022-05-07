@@ -11,14 +11,15 @@ pub struct SystemRunner<'a> {
     pub(crate) latest_action_idx: Option<ActionIdx>,
 }
 
+#[allow(clippy::return_self_not_must_use)]
 impl<'a> SystemRunner<'a> {
     #[doc(hidden)]
-    pub fn run(self, system: SystemBuilder) -> SystemRunner<'a> {
+    pub fn run(self, system: SystemBuilder) -> Self {
         self.run_with_action(system, None, ActionDependencies::Types(vec![]))
     }
 
     #[doc(hidden)]
-    pub fn run_as<A>(self, system: SystemBuilder) -> SystemRunner<'a>
+    pub fn run_as<A>(self, system: SystemBuilder) -> Self
     where
         A: Action,
     {
@@ -30,7 +31,7 @@ impl<'a> SystemRunner<'a> {
     }
 
     #[doc(hidden)]
-    pub fn run_constrained<C>(self, system: SystemBuilder) -> SystemRunner<'a>
+    pub fn run_constrained<C>(self, system: SystemBuilder) -> Self
     where
         C: ActionConstraint,
     {
@@ -42,7 +43,7 @@ impl<'a> SystemRunner<'a> {
     }
 
     #[doc(hidden)]
-    pub fn and_then(self, system: SystemBuilder) -> SystemRunner<'a> {
+    pub fn and_then(self, system: SystemBuilder) -> Self {
         if let Some(latest_action_idx) = self.latest_action_idx {
             self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
         } else {

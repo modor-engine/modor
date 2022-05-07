@@ -1,19 +1,25 @@
-use crate::module::internal::{
+use crate::entities::module::internal::{
     UpdateAbsolutePositionsAction, UpdateAbsoluteScalesAction, UpdatePositionsAction,
     UpdateVelocitiesAction,
 };
 use crate::{Acceleration, DeltaTime, Position, Scale, Velocity};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
+use std::marker::PhantomData;
+
+const ROOT_POSITION: Position = Position::xyz(0., 0., 0.);
+const ROOT_SCALE: Scale = Scale::xyz(1., 1., 1.);
 
 /// The main entity of the physics module.
 ///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: custom (same as parent entity)
+///
 /// # Examples
 ///
-/// ```rust#
-/// # #[macro_use]
-/// # extern crate modor;
-/// #
-/// # use modor::{App, Built, EntityBuilder};
+/// ```rust
+/// # use modor::{entity, App, Built, EntityBuilder};
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Scale, Shape, Velocity};
 /// #
 /// let mut app = App::new()
@@ -38,13 +44,13 @@ use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 ///     }
 /// }
 /// ```
-pub struct PhysicsModule;
+pub struct PhysicsModule(PhantomData<()>);
 
 #[singleton]
 impl PhysicsModule {
     /// Builds the module.
     pub fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with_child(DeltaTime::build())
+        EntityBuilder::new(Self(PhantomData)).with_child(DeltaTime::build())
     }
 
     #[run_as(UpdateVelocitiesAction)]
@@ -69,13 +75,14 @@ impl PhysicsModule {
 
     #[run_as(UpdateAbsoluteScalesAction)]
     fn update_absolute_scales(
-        entities_with_scale: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
+        entities: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
         mut scales: Query<'_, &mut Scale, With<Position>>,
     ) {
-        let entities = Self::sorted_by_depth(entities_with_scale.iter());
+        let entities = Self::sorted_by_depth(entities.iter());
         for entity in entities {
-            let result = scales.get_with_first_parent_mut(entity.id());
-            if let (Some(scale), Some(parent_scale)) = result {
+            let (result, parent_result) = scales.get_with_first_parent_mut(entity.id());
+            let parent_scale = parent_result.as_deref().unwrap_or(&ROOT_SCALE);
+            if let Some(scale) = result {
                 scale.update_abs(parent_scale);
             }
         }
@@ -83,19 +90,21 @@ impl PhysicsModule {
 
     #[run_as(UpdateAbsolutePositionsAction)]
     fn update_absolute_positions(
-        entities_with_position: Query<'_, Entity<'_>, With<Position>>,
-        mut components: Query<'_, (&mut Position, Option<&mut Scale>)>,
+        entities: Query<'_, Entity<'_>, (With<Position>, With<Scale>)>,
+        mut components: Query<'_, (&mut Position, &mut Scale)>,
     ) {
-        let entities = Self::sorted_by_depth(entities_with_position.iter());
+        let entities = Self::sorted_by_depth(entities.iter());
         for entity in entities {
-            let result = components.get_with_first_parent_mut(entity.id());
-            if let (Some((position, _)), Some((parent_position, parent_scale))) = result {
-                position.update_abs(parent_position, parent_scale.as_deref());
+            let (result, parent_result) = components.get_with_first_parent_mut(entity.id());
+            let (parent_position, parent_scale) =
+                parent_result.map_or((&ROOT_POSITION, &ROOT_SCALE), |(p, s)| (p, s));
+            if let Some((position, _)) = result {
+                position.update_abs(parent_position, parent_scale);
             }
         }
     }
 
-    #[run_as(PhysicsUpdateAction)]
+    #[run_as(UpdatePhysicsAction)]
     fn finish_update() {}
 
     fn sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
@@ -110,18 +119,16 @@ impl PhysicsModule {
 
 /// An action done when the positions and scales have been updated.
 #[action(UpdateAbsolutePositionsAction)]
-pub struct PhysicsUpdateAction;
+pub struct UpdatePhysicsAction;
 
 mod internal {
-    use crate::UpdateDeltaTimeAction;
-
-    #[action(UpdateDeltaTimeAction)]
+    #[action]
     pub struct UpdateVelocitiesAction;
 
     #[action(UpdateVelocitiesAction)]
     pub struct UpdatePositionsAction;
 
-    #[action(UpdateDeltaTimeAction)]
+    #[action]
     pub struct UpdateAbsoluteScalesAction;
 
     #[action(UpdatePositionsAction, UpdateAbsoluteScalesAction)]
@@ -130,10 +137,11 @@ mod internal {
 
 #[cfg(test)]
 mod physics_module_tests {
-    use crate::{Acceleration, DeltaTime, PhysicsModule, Position, Scale, Velocity};
+    use crate::{Acceleration, DeltaTime, PhysicsModule, Position, Scale, Shape, Velocity};
     use approx::assert_abs_diff_eq;
     use modor::testing::TestApp;
     use modor::{App, EntityBuilder};
+    use std::time::Duration;
 
     struct TestEntity;
 
@@ -156,10 +164,9 @@ mod physics_module_tests {
                 .with(Velocity::xyz(4., 5., 6.))
                 .with(Acceleration::xyz(7., 8., 9.)),
         );
+        let delta_time = 2.;
+        app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
         app.update();
-        let mut delta_time = 0.;
-        app.assert_singleton::<DeltaTime>()
-            .has::<DeltaTime, _>(|d| delta_time = d.get().as_secs_f32());
         app.assert_entity(entity_id)
             .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.x, 7.))
             .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.y, 8.))
@@ -181,8 +188,11 @@ mod physics_module_tests {
     #[test]
     fn update_absolute_position() {
         let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
-        let entity1_id =
-            app.create_entity(EntityBuilder::new(TestEntity).with(Position::xyz(1., 2., 3.)));
+        let entity1_id = app.create_entity(
+            EntityBuilder::new(TestEntity)
+                .with(Position::xyz(1., 2., 3.))
+                .with(Scale::xyz(1., 1., 1.)),
+        );
         let entity2_id = app.create_child(entity1_id, EntityBuilder::new(TestEntity));
         let entity3_id = app.create_child(
             entity2_id,
@@ -192,7 +202,9 @@ mod physics_module_tests {
         );
         let entity4_id = app.create_child(
             entity3_id,
-            EntityBuilder::new(TestEntity).with(Position::xyz(7., 8., 9.)),
+            EntityBuilder::new(TestEntity)
+                .with(Position::xyz(7., 8., 9.))
+                .with(Scale::xyz(1., 1., 1.)),
         );
         app.update();
         app.assert_entity(entity1_id)
@@ -222,7 +234,8 @@ mod physics_module_tests {
             entity2_id,
             EntityBuilder::new(TestEntity)
                 .with(Position::xyz(40., 50., 60.))
-                .with(Scale::xyz(0.1, 0.2, 0.5)),
+                .with(Scale::xyz(0.1, 0.2, 0.5))
+                .with(Shape::Rectangle2D),
         );
         let entity4_id = app.create_child(
             entity3_id,

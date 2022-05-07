@@ -4,4 +4,4 @@ coverage
 Cargo.lock
 .idea
 *.iml
-default.profraw
+*.profraw

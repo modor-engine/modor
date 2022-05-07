@@ -31,7 +31,7 @@ Not tested but should also work on:
 
 ## Usage
 
-The minimum supported version of Rust is 1.57.
+The minimum supported version of Rust is 1.60.
 
 To include this library in your project, just add the following dependency in your `Cargo.toml` file:
 
@@ -40,7 +40,9 @@ modor = "0.1"
 ```
 
 You can also include the modules you want, like:
+
 - [physics](crates/modor_physics/README.md)
+- [graphics](crates/modor_graphics/README.md)
 
 ## Example
 

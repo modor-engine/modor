@@ -1,5 +1,6 @@
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
 use crate::storages::archetypes::EntityLocation;
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
@@ -131,6 +132,10 @@ impl<'a> QuerySystemParamWithLifetime<'a> for Entity<'_> {
 }
 
 impl QuerySystemParam for Entity<'_> {
+    fn filtered_component_type_idxs(_data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
+        vec![]
+    }
+
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -352,6 +357,13 @@ mod entity_tests {
         assert_eq!(properties.component_types.len(), 0);
         assert!(!properties.can_update);
         assert_eq!(properties.filtered_component_type_idxs, []);
+    }
+
+    #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let core = CoreStorage::default();
+        let data = core.system_data();
+        assert_eq!(Entity::filtered_component_type_idxs(data), vec![]);
     }
 
     #[test]

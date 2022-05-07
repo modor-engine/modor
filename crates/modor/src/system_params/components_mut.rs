@@ -1,5 +1,6 @@
 use crate::components_mut::internal::{ComponentMutGuard, ComponentMutGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
+use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::ComponentIter;
@@ -9,7 +10,7 @@ use crate::system_params::internal::{
 };
 use crate::system_params::utils;
 use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 impl<'a, C> SystemParamWithLifetime<'a> for &mut C
 where
@@ -89,6 +90,13 @@ impl<C> QuerySystemParam for &mut C
 where
     C: Any + Sync + Send,
 {
+    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
+        vec![data
+            .components
+            .type_idx(TypeId::of::<C>())
+            .expect("internal error: component type not registered")]
+    }
+
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -300,6 +308,15 @@ mod component_mut_tests {
         assert_eq!(properties.component_types[0].type_idx, 0.into());
         assert!(!properties.can_update);
         assert_eq!(properties.filtered_component_type_idxs, [0.into()]);
+    }
+
+    #[test]
+    fn retrieve_system_param_filtered_component_types() {
+        let mut core = CoreStorage::default();
+        core.register_component_type::<u32>();
+        let data = core.system_data();
+        let filtered_type_idxs = <&mut u32>::filtered_component_type_idxs(data);
+        assert_eq!(filtered_type_idxs, vec![0.into()]);
     }
 
     #[test]

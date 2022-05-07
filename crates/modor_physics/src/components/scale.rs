@@ -1,10 +1,16 @@
-/// A component storing the scale of an entity.
+/// The scale of an entity.
 ///
 /// The scale is relative to the first parent entity having a position and a scale.<br>
 /// This is an absolute size in case the entity does not have any parent with a position and a
 /// scale.
 ///
-/// An entity having a [`Position`](crate::Position) has a default scale `Scale::xyz(1., 1., 1.)`.
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Position`](crate::Position)
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated using**: [`Scale`](crate::Scale) of parent entity
+/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 ///
 /// # Examples
 ///
@@ -17,14 +23,14 @@ pub struct Scale {
     pub y: f32,
     /// The Z-coordinate.
     pub z: f32,
-    pub(crate) abs: Size,
+    abs: Size,
 }
 
 impl Scale {
     /// Creates a 3D scale.
     ///
     /// Absolute size is initialized with the same coordinates.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self {
             x,
             y,
@@ -35,20 +41,14 @@ impl Scale {
 
     /// Creates a 2D scale.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to one.
     ///
     /// Absolute size is initialized with the same coordinates.
-    pub fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+    pub const fn xy(x: f32, y: f32) -> Self {
+        Self::xyz(x, y, 1.)
     }
 
     /// Returns the absolute size.
-    ///
-    /// The absolute size is automatically calculated by the
-    /// [`PhysicsModule`](crate::PhysicsModule).<br>
-    /// If your system needs to access the absolute size, then it can depend on
-    /// [`PhysicsUpdateAction`](crate::PhysicsUpdateAction) to make sure to use an up-to-date
-    /// size.
     pub fn abs(&self) -> &Size {
         &self.abs
     }
@@ -78,13 +78,13 @@ mod scale_tests {
 
     #[test]
     fn create_2d() {
-        let scale = Scale::xy(1., 2.);
-        assert_abs_diff_eq!(scale.x, 1.);
+        let scale = Scale::xy(4., 2.);
+        assert_abs_diff_eq!(scale.x, 4.);
         assert_abs_diff_eq!(scale.y, 2.);
-        assert_abs_diff_eq!(scale.z, 0.);
-        assert_abs_diff_eq!(scale.abs().x, 1.);
+        assert_abs_diff_eq!(scale.z, 1.);
+        assert_abs_diff_eq!(scale.abs().x, 4.);
         assert_abs_diff_eq!(scale.abs().y, 2.);
-        assert_abs_diff_eq!(scale.abs().z, 0.);
+        assert_abs_diff_eq!(scale.abs().z, 1.);
     }
 
     #[test]

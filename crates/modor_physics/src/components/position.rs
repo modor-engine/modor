@@ -1,10 +1,19 @@
 use crate::{Scale, Velocity};
 use std::time::Duration;
 
-/// A component storing the position of an entity.
+/// The position of an entity.
 ///
 /// The position is relative to the first parent entity also having a position.<br>
 /// This is an absolute position in case the entity does not have any parent with a position.
+///
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Scale`](crate::Scale)
+/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
+/// - **Updated using**: [`Velocity`](crate::Velocity), [`Position`](crate::Position)
+///     of parent entity, [`Scale`](crate::Scale) of parent entity, [`DeltaTime`](crate::DeltaTime)
+/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 ///
 /// # Examples
 ///
@@ -17,14 +26,14 @@ pub struct Position {
     pub y: f32,
     /// The Z-coordinate.
     pub z: f32,
-    pub(crate) abs: AbsolutePosition,
+    abs: AbsolutePosition,
 }
 
 impl Position {
     /// Creates a 3D position.
     ///
     /// Absolute position is initialized with the same coordinates.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self {
             x,
             y,
@@ -38,17 +47,11 @@ impl Position {
     /// Z-coordinate is set to zero.
     ///
     /// Absolute position is initialized with the same coordinates.
-    pub fn xy(x: f32, y: f32) -> Self {
+    pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 
     /// Returns the absolute position.
-    ///
-    /// The absolute position is automatically calculated by the
-    /// [`PhysicsModule`](crate::PhysicsModule).<br>
-    /// If your system needs to access the absolute position, then it can depend on
-    /// [`PhysicsUpdateAction`](crate::PhysicsUpdateAction) to make sure to use an up-to-date
-    /// position.
     pub fn abs(&self) -> &AbsolutePosition {
         &self.abs
     }
@@ -71,19 +74,10 @@ impl Position {
         self.z += velocity.z * delta_time.as_secs_f32();
     }
 
-    pub(crate) fn update_abs(&mut self, parent_position: &Self, parent_scale: Option<&Scale>) {
-        self.abs.x = self.x.mul_add(
-            parent_scale.map_or(1., |s| s.abs().x),
-            parent_position.abs.x,
-        );
-        self.abs.y = self.y.mul_add(
-            parent_scale.map_or(1., |s| s.abs().y),
-            parent_position.abs.y,
-        );
-        self.abs.z = self.z.mul_add(
-            parent_scale.map_or(1., |s| s.abs().z),
-            parent_position.abs.z,
-        );
+    pub(crate) fn update_abs(&mut self, parent_position: &Self, parent_scale: &Scale) {
+        self.abs.x = self.x.mul_add(parent_scale.abs().x, parent_position.abs.x);
+        self.abs.y = self.y.mul_add(parent_scale.abs().y, parent_position.abs.y);
+        self.abs.z = self.z.mul_add(parent_scale.abs().z, parent_position.abs.z);
     }
 }
 

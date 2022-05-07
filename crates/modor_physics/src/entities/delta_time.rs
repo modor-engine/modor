@@ -1,14 +1,18 @@
-use crate::UpdatesPerSecond;
-use modor::{Action, Built, EntityBuilder, Single};
-use std::thread;
-use std::time::{Duration, Instant};
+use modor::{Built, EntityBuilder};
+use std::time::Duration;
 
-/// An entity main component that measures the duration of the last update.
+/// The duration of the latest update.
 ///
-/// The entity also limits the number of updates per second if an entity of type
-/// [`UpdatesPerSecond`](crate::UpdatesPerSecond) exists.
+/// Default value is zero.
 ///
-/// This entity is automatically created by the [`PhysicsModule`](crate::PhysicsModule).
+/// The physics module does not update automatically this entity.<br>
+/// Instead, the delta time can be manually set to simulate time, or be automatically updated
+/// by another module.
+///
+/// # Modor
+///
+/// - **Type**: singleton entity
+/// - **Lifetime**: same as [`PhysicsModule`](crate::PhysicsModule)
 ///
 /// # Examples
 ///
@@ -20,132 +24,40 @@ use std::time::{Duration, Instant};
 /// }
 /// ```
 pub struct DeltaTime {
-    previous_instant: Instant,
-    last_instant: Instant,
+    duration: Duration,
 }
 
 #[singleton]
 impl DeltaTime {
     /// Returns the duration of the last update.
-    ///
-    /// If your system needs to access the delta time, then it can depend on
-    /// [`UpdateDeltaTimeAction`](crate::UpdateDeltaTimeAction) to make sure to use an up-to-date
-    /// delta time.
     pub fn get(&self) -> Duration {
-        self.last_instant.duration_since(self.previous_instant)
+        self.duration
+    }
+
+    /// Set the duration of the last update.
+    pub fn set(&mut self, duration: Duration) {
+        self.duration = duration;
     }
 
     pub(crate) fn build() -> impl Built<Self> {
-        let now = Instant::now();
         EntityBuilder::new(Self {
-            previous_instant: now,
-            last_instant: now,
+            duration: Duration::ZERO,
         })
     }
-
-    #[run_as(UpdateDeltaTimeAction)]
-    fn update(&mut self, updates_per_second: Option<Single<'_, UpdatesPerSecond>>) {
-        if let Some(updates_per_second) = updates_per_second {
-            if updates_per_second.get() > 0 {
-                let update_time = Duration::from_secs_f32(1. / f32::from(updates_per_second.get()));
-                let current_update_time = Instant::now().duration_since(self.last_instant);
-                if let Some(remaining_time) = update_time.checked_sub(current_update_time) {
-                    thread::sleep(remaining_time);
-                }
-            }
-        }
-        self.previous_instant = self.last_instant;
-        self.last_instant = Instant::now();
-    }
-}
-
-/// An action done when the delta time has been updated.
-pub struct UpdateDeltaTimeAction;
-
-impl Action for UpdateDeltaTimeAction {
-    type Constraint = ();
 }
 
 #[cfg(test)]
 mod updates_per_second_tests {
-    use crate::{DeltaTime, UpdatesPerSecond};
-    use modor::testing::TestApp;
-    use modor::App;
-    use std::thread;
-    use std::time::{Duration, Instant};
+    use crate::DeltaTime;
+    use std::time::Duration;
 
-    macro_rules! retry {
-        ($count:literal, $block:block) => {
-            for i in 0..$count {
-                println!("Try #{}...", i);
-                let r = std::panic::catch_unwind(|| $block);
-                if r.is_ok() {
-                    return;
-                }
-                if i == $count - 1 {
-                    std::panic::resume_unwind(r.unwrap_err());
-                } else {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                }
-            }
+    #[test]
+    fn use_delta_time() {
+        let mut delta_time = DeltaTime {
+            duration: Duration::ZERO,
         };
-    }
-
-    #[test]
-    fn update_without_rate_limit() {
-        retry!(10, {
-            let mut app: TestApp = App::new().with_entity(DeltaTime::build()).into();
-            assert_correct_update(&mut app, 100, 100, 150);
-        });
-    }
-
-    #[test]
-    fn update_with_rate_limit_equal_to_zero() {
-        retry!(10, {
-            let mut app: TestApp = App::new()
-                .with_entity(DeltaTime::build())
-                .with_entity(UpdatesPerSecond::build(0))
-                .into();
-            assert_correct_update(&mut app, 100, 100, 150);
-        });
-    }
-
-    #[test]
-    fn update_with_rate_limit_equal_to_one() {
-        retry!(10, {
-            let mut app: TestApp = App::new()
-                .with_entity(DeltaTime::build())
-                .with_entity(UpdatesPerSecond::build(1))
-                .into();
-            assert_correct_update(&mut app, 500, 1000, 1200);
-        });
-    }
-
-    #[test]
-    fn update_with_rate_limit_greater_than_one() {
-        retry!(10, {
-            let mut app: TestApp = App::new()
-                .with_entity(DeltaTime::build())
-                .with_entity(UpdatesPerSecond::build(5))
-                .into();
-            assert_correct_update(&mut app, 100, 200, 300);
-        });
-    }
-
-    fn assert_correct_update(
-        app: &mut TestApp,
-        external_sleep_millis: u64,
-        min_millis: u64,
-        max_millis: u64,
-    ) {
-        let update_start = Instant::now();
-        thread::sleep(Duration::from_millis(external_sleep_millis));
-        app.update();
-        let update_end = Instant::now();
-        app.assert_singleton::<DeltaTime>()
-            .has::<DeltaTime, _>(|d| assert!(d.get() >= Duration::from_millis(min_millis)))
-            .has::<DeltaTime, _>(|d| assert!(d.get() <= Duration::from_millis(max_millis)));
-        assert!(update_end.duration_since(update_start) >= Duration::from_millis(min_millis));
-        assert!(update_end.duration_since(update_start) <= Duration::from_millis(max_millis));
+        assert_eq!(delta_time.get(), Duration::ZERO);
+        delta_time.set(Duration::from_millis(10));
+        assert_eq!(delta_time.get(), Duration::from_millis(10));
     }
 }

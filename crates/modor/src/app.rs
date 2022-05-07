@@ -1,5 +1,6 @@
 use crate::storages::core::CoreStorage;
-use crate::{Built, EntityMainComponent};
+use crate::{Built, EntityMainComponent, Singleton};
+use std::any::TypeId;
 
 /// The entrypoint of the engine.
 ///
@@ -44,12 +45,14 @@ impl App {
     ///
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
+    #[must_use]
     pub fn with_thread_count(mut self, count: u32) -> Self {
         self.core.set_thread_count(count);
         self
     }
 
     /// Creates a new entity with main component of type `E`.
+    #[must_use]
     pub fn with_entity<E, B>(mut self, entity: B) -> Self
     where
         E: EntityMainComponent,
@@ -64,9 +67,33 @@ impl App {
         self.core.systems().thread_count()
     }
 
+    /// Runs `f` if the singleton of type `E` exists.
+    pub fn run_for_singleton<E, F>(&mut self, f: F)
+    where
+        E: EntityMainComponent<Type = Singleton>,
+        F: FnOnce(&mut E),
+    {
+        let location = self
+            .core
+            .components()
+            .type_idx(TypeId::of::<E>())
+            .and_then(|t| self.core.components().singleton_location(t));
+        if let Some(location) = location {
+            f(&mut self.core.components().write_components()[location.idx][location.pos]);
+        }
+    }
+
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
         self.core.update();
+    }
+
+    /// Execute a `runner` that consumes the `App`.
+    pub fn run<R>(self, runner: R)
+    where
+        R: FnOnce(Self),
+    {
+        runner(self);
     }
 }
 
@@ -74,7 +101,8 @@ impl App {
 mod app_tests {
     use crate::storages::systems::SystemProperties;
     use crate::{
-        App, EntityBuilder, EntityMainComponent, NotSingleton, SystemBuilder, SystemRunner,
+        App, EntityBuilder, EntityMainComponent, NotSingleton, Singleton, SystemBuilder,
+        SystemRunner,
     };
 
     #[derive(Debug, PartialEq, Clone)]
@@ -95,13 +123,17 @@ mod app_tests {
         }
     }
 
+    create_entity_type!(SingletonEntity1, Singleton);
+    create_entity_type!(SingletonEntity2, Singleton);
+
     assert_impl_all!(App: Send, Unpin);
 
     #[test]
     fn configure_app() {
         let mut app = App::new()
             .with_thread_count(2)
-            .with_entity(EntityBuilder::new(TestEntity(10)));
+            .with_entity(EntityBuilder::new(TestEntity(10)))
+            .with_entity(EntityBuilder::new(SingletonEntity1(20)));
         assert_eq!(app.thread_count(), 2);
         let components = (&*app.core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![TestEntity(10)]];
@@ -110,5 +142,12 @@ mod app_tests {
         let components = (&*app.core.components().read_components::<TestEntity>()).clone();
         let expected_components = ti_vec![ti_vec![], ti_vec![]];
         assert_eq!(components, expected_components);
+        let mut value = 0;
+        app.run_for_singleton::<SingletonEntity1, _>(|s| value = s.0);
+        assert_eq!(value, 20);
+        app.run_for_singleton::<SingletonEntity2, _>(|_| panic!("shouldn't be executed"));
+        let mut thread_count = 0;
+        app.run(|a| thread_count = a.thread_count());
+        assert_eq!(thread_count, 2);
     }
 }

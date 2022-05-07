@@ -1,12 +1,14 @@
-/// A component storing the acceleration of an entity.
-///
-/// This component is effective only if the entity also has a [`Velocity`](crate::Velocity).<br>
-/// [`PhysicsModule`](crate::PhysicsModule) automatically updates the velocity from the
-/// acceleration.
+/// The acceleration of an entity.
 ///
 /// The acceleration is measured in distance units per second squared.<br>
 /// A distance unit of 1 on an axis corresponds to the size along this axis of the first
 /// parent having a position.
+///
+/// # Modor
+///
+/// - **Type**: component
+/// - **Required components**: [`Velocity`](crate::Velocity)
+/// - **Default if missing**: `Acceleration::xyz(0., 0., 0.)`
 ///
 /// # Examples
 ///
@@ -23,14 +25,14 @@ pub struct Acceleration {
 
 impl Acceleration {
     /// Creates a 3D acceleration.
-    pub fn xyz(x: f32, y: f32, z: f32) -> Self {
+    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
     /// Creates a 2D acceleration.
     ///
     /// Z-coordinate is set to zero.
-    pub fn xy(x: f32, y: f32) -> Self {
+    pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 

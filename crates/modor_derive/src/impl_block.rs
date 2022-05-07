@@ -17,7 +17,7 @@ fn clean_impl_item(mut item: ImplItem) -> ImplItem {
             .attrs
             .clone()
             .into_iter()
-            .filter(|a| !attributes::is_supported(a))
+            .filter(|a| attributes::parse_type(a).is_none())
             .collect();
     }
     item

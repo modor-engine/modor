@@ -1,50 +1,6 @@
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
-macro_rules! ti_vec {
-   () => (
-        ::typed_index_collections::TiVec::<_, _>::from(vec![])
-    );
-    ($elem:expr; $n:expr) => (
-        ::typed_index_collections::TiVec::<_, _>::from(vec![$elem; $n])
-    );
-    ($($x:expr),+ $(,)?) => (
-        ::typed_index_collections::TiVec::<_, _>::from(vec![$($x),+])
-    );
-}
-
-macro_rules! idx_type {
-    ($visibility:vis $name:ident) => {
-        #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-        $visibility struct $name($visibility usize);
-
-        impl From<usize> for $name {
-            #[inline]
-            fn from(idx: usize) -> Self {
-                Self(idx)
-            }
-        }
-
-        impl From<$name> for usize {
-            #[inline]
-            fn from(idx: $name) -> Self {
-                idx.0
-            }
-        }
-    };
-}
-
-pub(crate) fn set_value<K, V>(vec: &mut TiVec<K, V>, idx: K, value: V)
-where
-    usize: From<K>,
-    K: From<usize>,
-    V: Default,
-{
-    let idx = usize::from(idx);
-    (vec.len()..=idx).for_each(|_| vec.push(V::default()));
-    vec[K::from(idx)] = value;
-}
-
 pub(crate) fn get_both_mut<K, T>(
     data: &mut TiVec<K, T>,
     key1: K,
@@ -173,16 +129,8 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{get_both_mut, merge, set_value};
+    use crate::utils::{get_both_mut, merge};
     use typed_index_collections::TiVec;
-
-    #[test]
-    fn set_values() {
-        let mut vec = TiVec::<usize, usize>::new();
-        set_value(&mut vec, 2, 10);
-        set_value(&mut vec, 1, 20);
-        assert_eq!(vec, ti_vec![0, 20, 10]);
-    }
 
     #[test]
     fn retrieve_both_mut() {
