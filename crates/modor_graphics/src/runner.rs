@@ -20,6 +20,10 @@ use winit::event_loop::{ControlFlow, EventLoop};
 /// This will panic if [`GraphicsModule`](crate::GraphicsModule) does not exist or has been created
 /// in windowless mode.
 ///
+/// # Platform-specific
+///
+/// - Web: a canvas with id `modor` is automatically added to the HTML body.
+///
 /// # Examples
 ///
 /// ```rust

@@ -144,8 +144,9 @@ impl WindowInit {
                 .and_then(|win| win.document())
                 .and_then(|doc| doc.body())
                 .and_then(|body| {
-                    body.append_child(&web_sys::Element::from(window.canvas()))
-                        .ok()
+                    let canvas = window.canvas();
+                    canvas.set_id("modor");
+                    body.append_child(&web_sys::Element::from(canvas)).ok()
                 })
                 .expect("cannot append canvas to document body");
         }
