@@ -2,8 +2,8 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -29,12 +29,13 @@ fn create_invalid_entity() {
     compiletest_rs::run_tests(&config);
 }
 
-pub fn clean_rmeta(config: &Config) {
+#[allow(clippy::case_sensitive_file_extension_comparisons)]
+fn clean_rmeta(config: &Config) {
     if config.target_rustcflags.is_some() {
         for directory in config
             .target_rustcflags
             .as_ref()
-            .unwrap()
+            .expect("cannot retrieve rustc flags")
             .split_whitespace()
             .filter(|s| s.ends_with("/deps"))
         {
@@ -51,7 +52,7 @@ pub fn clean_rmeta(config: &Config) {
                         .as_ref()
                         .starts_with("libmodor");
                     if has_rmeta_extension && is_modor {
-                        let _ = fs::remove_file(entry.path());
+                        let _result = fs::remove_file(entry.path());
                     }
                 }
             }

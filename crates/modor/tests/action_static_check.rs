@@ -28,12 +28,13 @@ fn create_invalid_actions() {
     compiletest_rs::run_tests(&config);
 }
 
-pub fn clean_rmeta(config: &Config) {
+#[allow(clippy::case_sensitive_file_extension_comparisons)]
+fn clean_rmeta(config: &Config) {
     if config.target_rustcflags.is_some() {
         for directory in config
             .target_rustcflags
             .as_ref()
-            .unwrap()
+            .expect("cannot retrieve rustc flags")
             .split_whitespace()
             .filter(|s| s.ends_with("/deps"))
         {
@@ -50,7 +51,7 @@ pub fn clean_rmeta(config: &Config) {
                         .as_ref()
                         .starts_with("libmodor");
                     if has_rmeta_extension && is_modor {
-                        let _ = fs::remove_file(entry.path());
+                        let _result = fs::remove_file(entry.path());
                     }
                 }
             }
