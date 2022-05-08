@@ -31,6 +31,12 @@ add_mutation_annotations() {
     set -x
 }
 
+git clone https://github.com/llogiq/mutagen
+cd mutagen
+git checkout "$MUTAGEN_COMMIT"
+cd ..
+cargo install --path ./mutagen/mutagen-runner --debug
+
 IFS=";"
 for crate_path in ./crates/*; do
     echo "$NOT_MUTATED_CRATES" | grep -E "(^| )$(basename "$crate_path")($| )" && continue
