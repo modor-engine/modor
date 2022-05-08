@@ -43,6 +43,7 @@ impl Incrementer {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_singletons() {
     let mut app = TestApp::new();
     app.create_entity(MainModule::build(vec![5, 1, 2]));

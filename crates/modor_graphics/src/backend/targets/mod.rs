@@ -1,6 +1,7 @@
 pub(crate) mod texture;
 pub(crate) mod window;
 
+use crate::utils;
 use std::any::Any;
 use wgpu::{
     Adapter, CommandEncoder, Device, DeviceDescriptor, Features, Limits, Queue, TextureFormat,
@@ -30,10 +31,10 @@ pub(crate) struct CreatedTarget<T> {
 }
 
 fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
-    pollster::block_on(adapter.request_device(
+    utils::block_on(adapter.request_device(
         &DeviceDescriptor {
             features: Features::empty(),
-            limits: Limits::default(),
+            limits: Limits::downlevel_webgl2_defaults(),
             label: None,
         },
         None,

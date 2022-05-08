@@ -64,6 +64,7 @@ impl ExitButton {
 struct ExitState(bool);
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn run_entity_systems() {
     let mut app = TestApp::new();
     let other_button_id = app.create_entity(Button::build("New game".into()));
@@ -81,6 +82,7 @@ fn run_entity_systems() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn run_inherited_systems() {
     let mut app = TestApp::new();
     let other_button_id = app.create_entity(Button::build("New game".into()));

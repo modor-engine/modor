@@ -84,6 +84,35 @@ jobs:
           args: --all-targets
       # Tests are disabled because there is no available software renderer
 
+  test-web:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          target: wasm32-unknown-unknown
+          components: clippy
+          profile: minimal
+          override: true
+      - name: List clippy lints
+        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        id: list_lints
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --target wasm32-unknown-unknown -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --debug
+      - name: Test
+        run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
+
   check-coverage:
     runs-on: ubuntu-20.04
     steps:

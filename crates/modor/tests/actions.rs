@@ -75,6 +75,7 @@ struct PositionDisplayAction;
 struct EnemyPositionUpdateAction;
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn run_ordered_systems() {
     let mut app = TestApp::new();
     let enemy_id = app.create_entity(Enemy::build(Position(0, 0)));

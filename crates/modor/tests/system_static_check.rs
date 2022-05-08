@@ -1,4 +1,5 @@
 #![allow(clippy::trivially_copy_pass_by_ref)]
+#![cfg(not(target_arch = "wasm32"))]
 
 #[macro_use]
 extern crate modor;

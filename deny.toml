@@ -8,14 +8,7 @@ ignore = [
 ]
 
 [bans]
-multiple-versions = "deny"
-skip = [
-    { name = "cfg-if", version = "0.1.10" },
-    { name = "core-foundation", version = "0.7.0" },
-    { name = "core-foundation-sys", version = "0.7.0" },
-    { name = "core-graphics", version = "0.19.2" },
-    { name = "wasi", version = "0.10.2+wasi-snapshot-preview1" },
-]
+multiple-versions = "allow"
 
 [sources]
 unknown-registry = "deny"
@@ -26,4 +19,12 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 unlicensed = "deny"
 copyleft = "deny"
 default = "deny"
-allow = ["Apache-2.0", "BSD-3-Clause", "CC0-1.0", "ISC", "MIT", "Zlib"]
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "Zlib"
+]

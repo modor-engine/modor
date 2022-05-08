@@ -24,6 +24,7 @@ It also makes extensive use of compile-time checks. For example:
 
 - Windows
 - Linux
+- Web
 
 Not tested but should also work on:
 
@@ -44,54 +45,14 @@ You can also include the modules you want, like:
 - [physics](crates/modor_physics/README.md)
 - [graphics](crates/modor_graphics/README.md)
 
-## Example
+## Examples
 
- ```rust
-#[macro_use]
-extern crate modor;
+Examples are located in `examples/modor_examples/examples`.
 
-use modor::*;
+You can use the following command to run them:
 
-fn main() {
-    App::new()
-        .with_entity(Character::build(Position(45., 65.), CharacterType::Main))
-        .with_entity(Character::build(Position(98., 12.), CharacterType::Enemy))
-        .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
-        .update();
-}
-
-#[derive(Debug)]
-struct Position(f32, f32);
-
-enum CharacterType {
-    Main,
-    Neutral,
-    Enemy,
-}
-
-struct Enemy;
-
-struct Character {
-    ammunition: u32,
-}
-
-#[entity]
-impl Character {
-    fn build(position: Position, type_: CharacterType) -> impl Built<Self> {
-        EntityBuilder::new(Self { ammunition: 10 })
-            .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
-            .with(position)
-    }
-
-    #[run]
-    fn fire_when_enemy(&mut self, position: &Position, _: &Enemy) {
-        if self.ammunition > 0 {
-            self.ammunition -= 1;
-            println!("Enemy at {:?} has fired", position);
-        }
-    }
-}
-```
+- Desktop: `cargo run --example <name>`
+- Web: `cargo run-wasm --example <name>`
 
 ## License
 

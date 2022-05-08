@@ -43,6 +43,7 @@ impl Node {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_component_hierarchically() {
     let mut app = TestApp::new();
     let root_id = app.create_entity(Node::build(5));

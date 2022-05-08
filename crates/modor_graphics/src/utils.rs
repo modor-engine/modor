@@ -1,5 +1,7 @@
 use crate::FrameRate;
-use std::time::{Duration, Instant};
+use instant::Instant;
+use std::future::Future;
+use std::time::Duration;
 
 pub(crate) fn nearest_multiple(value: u64, multiple: u64) -> u64 {
     let align_mask = multiple - 1;
@@ -20,23 +22,42 @@ pub(crate) fn normalize(
     }
 }
 
+#[allow(unused_variables)]
 pub(crate) fn run_with_frame_rate<F>(start: Instant, frame_rate: FrameRate, f: F)
 where
     F: FnOnce(),
 {
     f();
-    if let FrameRate::FPS(frames_per_second) = frame_rate {
-        if frames_per_second > 0 {
-            let update_time = Duration::from_secs_f32(1. / f32::from(frames_per_second));
-            let current_update_time = Instant::now().duration_since(start);
-            if let Some(remaining_time) = update_time.checked_sub(current_update_time) {
-                spin_sleep::sleep(remaining_time);
+    {
+        if let FrameRate::FPS(frames_per_second) = frame_rate {
+            if frames_per_second > 0 {
+                let update_time = Duration::from_secs_f32(1. / f32::from(frames_per_second));
+                let current_update_time = Instant::now().duration_since(start);
+                if let Some(remaining_time) = update_time.checked_sub(current_update_time) {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    spin_sleep::sleep(remaining_time);
+                }
             }
         }
     }
 }
 
+pub(crate) fn block_on<F>(future: F) -> F::Output
+where
+    F: Future + 'static,
+{
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        pollster::block_on(future)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        futures::executor::block_on(future)
+    }
+}
+
 #[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod utils_tests {
     use crate::FrameRate;
     use approx::assert_abs_diff_eq;

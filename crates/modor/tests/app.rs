@@ -25,6 +25,7 @@ impl Text {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn configure_app() {
     let app = App::new()
         .with_thread_count(2)
