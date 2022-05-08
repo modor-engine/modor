@@ -213,12 +213,6 @@ jobs:
         with:
           command: fmt
           args: -- --check
-      - name: Clean project
-        uses: actions-rs/cargo@v1
-        with:
-          command: clean
-      - name: Remove dev-dependencies for cargo-deny
-        run: bash .github/workflows/scripts/remove_dev_dependencies.sh
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
 
