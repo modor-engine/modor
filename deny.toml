@@ -8,14 +8,7 @@ ignore = [
 ]
 
 [bans]
-multiple-versions = "deny"
-skip = [
-    { name = "cfg-if", version = "0.1.10" },
-    { name = "core-foundation", version = "0.7.0" },
-    { name = "core-foundation-sys", version = "0.7.0" },
-    { name = "core-graphics", version = "0.19.2" },
-    { name = "wasi", version = "0.10.2+wasi-snapshot-preview1" },
-]
+multiple-versions = "allow"
 
 [sources]
 unknown-registry = "deny"
