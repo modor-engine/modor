@@ -7,6 +7,7 @@ extern crate modor;
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
 use modor::{Query, Single, SingleMut, World};
+use std::fs;
 use std::path::PathBuf;
 
 struct SingletonEntity1;
@@ -109,6 +110,36 @@ fn create_invalid_systems() {
         )),
         ..Config::default()
     };
-    config.clean_rmeta();
+    clean_rmeta(&config);
     compiletest_rs::run_tests(&config);
+}
+
+pub fn clean_rmeta(config: &Config) {
+    if config.target_rustcflags.is_some() {
+        for directory in config
+            .target_rustcflags
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .filter(|s| s.ends_with("/deps"))
+        {
+            if let Ok(mut entries) = fs::read_dir(directory) {
+                while let Some(Ok(entry)) = entries.next() {
+                    let has_rmeta_extension = entry
+                        .file_name()
+                        .to_string_lossy()
+                        .as_ref()
+                        .ends_with(".rmeta");
+                    let is_modor = entry
+                        .file_name()
+                        .to_string_lossy()
+                        .as_ref()
+                        .starts_with("libmodor");
+                    if has_rmeta_extension && is_modor {
+                        let _ = fs::remove_file(entry.path());
+                    }
+                }
+            }
+        }
+    }
 }

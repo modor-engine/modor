@@ -4,6 +4,8 @@ on: workflow_dispatch
 
 env:
   CARGO_TERM_COLOR: always
+
+  # CI settings
   RUST_VERSION_STABLE: 1.60.0
   PUBLISHED_CRATES: modor_derive;modor;modor_physics;modor_graphics
 
