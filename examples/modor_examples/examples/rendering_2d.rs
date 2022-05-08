@@ -1,3 +1,6 @@
+//! Example of 2D rendering.
+#![allow(clippy::cast_precision_loss, clippy::print_stdout)]
+
 use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
 use modor_graphics::{
@@ -28,7 +31,7 @@ impl MainModule {
             .with_child(Fps::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
-                    b.add(Sprite::build())
+                    b.add(Sprite::build());
                 }
             })
     }
@@ -72,7 +75,7 @@ impl Sprite {
 
     fn random_f32(rng: &mut ThreadRng) -> f32 {
         // Random number between -0.5 and 0.5
-        (rng.gen_range(-1000000..1000000) as f32) / 2000000.
+        (rng.gen_range(-1_000_000..1_000_000) as f32) / 2_000_000.
     }
 }
 
@@ -86,7 +89,7 @@ impl Fps {
 
     #[run]
     fn update_frame_rate(delta_time: Single<'_, DeltaTime>) {
-        let fps = (1. / delta_time.get().as_secs_f32()) as u32;
+        let fps = (1. / delta_time.get().as_secs_f32()).round();
         println!("FPS: {}", fps);
     }
 }
