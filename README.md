@@ -5,9 +5,8 @@
 [![License](https://img.shields.io/crates/l/modor)](https://github.com/modor-engine/modor)
 [![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
-[![Mutation tested with mutagen](https://img.shields.io/badge/mutation%20tested-mutagen-blue.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Lines of code](https://tokei.rs/b1/github/modor-engine/modor?category=code)](https://github.com/modor-engine/modor)
-[![Safe Rust](https://img.shields.io/badge/safe%20Rust-%E2%9C%94%EF%B8%8F-green.svg)](https://github.com/modor-engine/modor/search?q=unsafe)
+[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-0-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor+extension%3Ars+unsafe)
 
 Modor is a modular and kind of object-oriented game engine. It is based on
 the [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but provides an API that
@@ -24,11 +23,8 @@ It also makes extensive use of compile-time checks. For example:
 
 - Windows
 - Linux
-- Web
-
-Not tested but should also work on:
-
 - macOS
+- Web
 
 ## Usage
 

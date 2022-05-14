@@ -42,7 +42,7 @@ impl Renderer {
     }
 
     pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
-        no_mutation!(self.target.toggle_vsync(enabled, &self.device)); // window cannot be tested
+        self.target.toggle_vsync(enabled, &self.device);
     }
 
     pub(crate) fn prepare_texture(&mut self) -> TextureView {
@@ -81,7 +81,7 @@ impl Renderer {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: DEPTH_TEXTURE_FORMAT,
-            usage: no_mutation!(TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING),
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
         };
         let texture = device.create_texture(&desc);
         texture.create_view(&TextureViewDescriptor::default())

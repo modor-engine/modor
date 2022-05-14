@@ -1,4 +1,3 @@
-#![allow(clippy::trivially_copy_pass_by_ref)]
 #![cfg(not(target_arch = "wasm32"))]
 
 #[macro_use]
@@ -92,7 +91,7 @@ impl EntityWithValidSystems {
 }
 
 #[test]
-fn create_invalid_systems() {
+fn check_compilation_failures() {
     let root_path = env!("CARGO_MANIFEST_DIR");
     let lib_path_1 = [root_path, "..", "..", "target", "debug"]
         .iter()
@@ -102,7 +101,9 @@ fn create_invalid_systems() {
         .collect::<PathBuf>();
     let config = Config {
         mode: Mode::CompileFail,
-        src_base: [root_path, "tests", "system_static_check"].iter().collect(),
+        src_base: [root_path, "tests", "compilation", "compile_fail"]
+            .iter()
+            .collect(),
         target_rustcflags: Some(format!(
             "-L {} -L {}",
             lib_path_1.display(),
@@ -122,7 +123,7 @@ fn clean_rmeta(config: &Config) {
             .as_ref()
             .expect("cannot retrieve rustc flags")
             .split_whitespace()
-            .filter(|s| s.ends_with("/deps"))
+            .filter(|s| s.ends_with("deps"))
         {
             if let Ok(mut entries) = fs::read_dir(directory) {
                 while let Some(Ok(entry)) = entries.next() {

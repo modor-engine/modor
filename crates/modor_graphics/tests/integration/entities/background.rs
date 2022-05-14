@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{entity, App, Built, EntityBuilder, SingleMut};
+use modor::{App, Built, EntityBuilder, SingleMut};
 use modor_graphics::{testing, BackgroundColor, Color, GraphicsModule, SurfaceSize};
 
 struct BackgroundUpdater;

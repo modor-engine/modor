@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{entity, App, Built, EntityBuilder};
+use modor::{App, Built, EntityBuilder};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor_physics::{Position, Scale};
 
@@ -21,7 +21,7 @@ impl Rectangle {
 }
 
 #[test]
-fn update_components() {
+fn update_shape_color() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Rectangle::build())

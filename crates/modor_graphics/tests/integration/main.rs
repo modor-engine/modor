@@ -1,9 +1,7 @@
-pub mod background;
-pub mod camera;
-pub mod capture;
+#[macro_use]
+extern crate modor;
+
+pub mod backend;
 pub mod components;
-pub mod frame_rate;
-pub mod hierarchy;
-pub mod shapes;
+pub mod entities;
 pub mod testing;
-pub mod transparency;

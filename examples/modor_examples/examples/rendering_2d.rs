@@ -16,8 +16,6 @@ const TITLE: &str = "Modor - rendering 2D";
 fn main() {
     App::new()
         .with_entity(GraphicsModule::build(SurfaceSize::new(800, 600), TITLE))
-        .with_entity(FrameRateLimit::build(FrameRate::VSync))
-        .with_entity(Camera2D::build(Position::xy(0., 0.), Scale::xy(1.5, 1.5)))
         .with_entity(MainModule::build(1000))
         .run(modor_graphics::runner);
 }
@@ -28,7 +26,9 @@ struct MainModule;
 impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with_child(Fps::build())
+            .with_child(FrameRateLimit::build(FrameRate::VSync))
+            .with_child(Camera2D::build(Position::xy(0., 0.), Scale::xy(1.5, 1.5)))
+            .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
                     b.add(Sprite::build());
@@ -79,10 +79,10 @@ impl Sprite {
     }
 }
 
-struct Fps;
+struct FrameRateDisplay;
 
 #[singleton]
-impl Fps {
+impl FrameRateDisplay {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
     }

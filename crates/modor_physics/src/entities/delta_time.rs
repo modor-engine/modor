@@ -45,19 +45,3 @@ impl DeltaTime {
         })
     }
 }
-
-#[cfg(test)]
-mod updates_per_second_tests {
-    use crate::DeltaTime;
-    use std::time::Duration;
-
-    #[test]
-    fn use_delta_time() {
-        let mut delta_time = DeltaTime {
-            duration: Duration::ZERO,
-        };
-        assert_eq!(delta_time.get(), Duration::ZERO);
-        delta_time.set(Duration::from_millis(10));
-        assert_eq!(delta_time.get(), Duration::from_millis(10));
-    }
-}

@@ -1,5 +1,5 @@
 use modor::testing::TestApp;
-use modor::{entity, App, Built, Entity, EntityBuilder, World};
+use modor::{App, Built, Entity, EntityBuilder, World};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
 use modor_physics::{Position, Scale, Shape};
 
