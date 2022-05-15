@@ -33,7 +33,7 @@ impl QueryTester {
         assert_eq!(right.map(|v| v.map(|v| v.0)), Some(Some(1)));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
-            spin_sleep::sleep(std::time::Duration::from_millis(200));
+        spin_sleep::sleep(std::time::Duration::from_millis(200));
     }
 }
 
@@ -70,7 +70,7 @@ impl Number {
     fn collect(value: Option<&Value>, mut collector: SingleMut<'_, StreamCollector>) {
         collector.0.push(value.map(|v| v.0));
         #[cfg(not(target_arch = "wasm32"))]
-            spin_sleep::sleep(std::time::Duration::from_millis(50));
+        spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 }
 
