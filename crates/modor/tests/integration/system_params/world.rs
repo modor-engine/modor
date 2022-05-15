@@ -21,6 +21,7 @@ impl EntityToDelete {
     #[run]
     fn delete(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_entity(entity.id());
+        world.delete_entity(100); // not existing entity
     }
 }
 
@@ -71,6 +72,7 @@ impl EntityWithMissingComponentAdded {
     #[run]
     fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
         world.add_component(entity.id(), format!("id: {}", parent.0));
+        world.add_component(101, format!("id: {}", parent.0)); // not existing entity
     }
 }
 

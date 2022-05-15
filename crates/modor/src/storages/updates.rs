@@ -116,18 +116,21 @@ impl Iterator for DeletedEntityDrain<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         (&mut self.modified_entity_positions)
-            .find(|p| {
-                matches!(
-                    self.entity_updates[self.modified_entity_idxs[*p]],
-                    EntityUpdate::Deletion
-                )
-            })
+            .find(|p| Self::is_deletion(&self.entity_updates[self.modified_entity_idxs[*p]]))
             .map(|p| {
                 let entity_idx = self.modified_entity_idxs.swap_remove(p);
                 self.entity_updates[entity_idx] = EntityUpdate::default();
                 entity_idx
             })
     }
+}
+
+impl DeletedEntityDrain<'_> {
+    // coverage: off (always a deletion in practice)
+    fn is_deletion(update: &EntityUpdate) -> bool {
+        matches!(update, EntityUpdate::Deletion)
+    }
+    // coverage: on
 }
 
 pub(crate) struct ChangedEntityDrain<'a> {
@@ -164,13 +167,13 @@ enum EntityUpdate {
     Deletion,
 }
 
-pub(crate) struct AddComponentFns {
-    pub(crate) add_type_fn: AddComponentTypeFn,
-    pub(crate) add_fn: AddComponentFn,
-}
-
 impl Default for EntityUpdate {
     fn default() -> Self {
         Self::Change(vec![], vec![])
     }
+}
+
+pub(crate) struct AddComponentFns {
+    pub(crate) add_type_fn: AddComponentTypeFn,
+    pub(crate) add_fn: AddComponentFn,
 }
