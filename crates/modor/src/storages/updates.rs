@@ -115,15 +115,18 @@ impl Iterator for DeletedEntityDrain<'_> {
     type Item = EntityIdx;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for pos in &mut self.modified_entity_positions {
-            let update = &self.entity_updates[self.modified_entity_idxs[pos]];
-            if matches!(update, EntityUpdate::Deletion) {
-                let entity_idx = self.modified_entity_idxs.swap_remove(pos);
+        (&mut self.modified_entity_positions)
+            .find(|p| {
+                matches!(
+                    self.entity_updates[self.modified_entity_idxs[*p]],
+                    EntityUpdate::Deletion
+                )
+            })
+            .map(|p| {
+                let entity_idx = self.modified_entity_idxs.swap_remove(p);
                 self.entity_updates[entity_idx] = EntityUpdate::default();
-                return Some(entity_idx);
-            }
-        }
-        None
+                entity_idx
+            })
     }
 }
 

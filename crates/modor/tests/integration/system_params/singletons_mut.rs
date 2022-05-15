@@ -18,6 +18,7 @@ impl Tester {
     #[run]
     fn run_existing(&mut self, number: SingleMut<'_, Number>) {
         assert_eq!(number.0, 10);
+        assert_eq!(number.entity().id(), 0);
         self.done_existing = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(100));

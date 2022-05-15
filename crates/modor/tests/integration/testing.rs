@@ -58,6 +58,13 @@ fn create_child_and_assert() {
 }
 
 #[test]
+#[should_panic]
+fn assert_child_with_missing_parent() {
+    let mut app = TestApp::new();
+    app.create_child(0, EntityExample::build(10));
+}
+
+#[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_singleton() {
     let app: TestApp = App::new().with_entity(SingletonExample::build(30)).into();
@@ -70,7 +77,6 @@ fn assert_singleton() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_exists_for_missing_entity() {
     let app = TestApp::new();
     app.assert_entity(0).exists();
@@ -78,7 +84,6 @@ fn assert_exists_for_missing_entity() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_existing_entity_does_not_exist() {
     let mut app = TestApp::new();
     let entity_id = app.create_entity(EntityExample::build_child(10));
@@ -87,7 +92,6 @@ fn assert_existing_entity_does_not_exist() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_missing_entity_has_component() {
     let app = TestApp::new();
     app.assert_entity(0).has(|_: &Value| ());
@@ -95,7 +99,6 @@ fn assert_missing_entity_has_component() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_has_missing_component() {
     let mut app = TestApp::new();
     let entity_id = app.create_entity(EntityExample::build_child(10));
@@ -104,7 +107,6 @@ fn assert_has_missing_component() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_has_component_with_wrong_assertion() {
     let mut app = TestApp::new();
     let entity_id = app.create_entity(EntityExample::build_child(10));
@@ -114,7 +116,6 @@ fn assert_has_component_with_wrong_assertion() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_missing_entity_has_not_component() {
     let app = TestApp::new();
     app.assert_entity(0).has_not::<Value>();
@@ -122,7 +123,6 @@ fn assert_missing_entity_has_not_component() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_has_not_existing_component() {
     let mut app = TestApp::new();
     let entity_id = app.create_entity(EntityExample::build_child(10));
@@ -131,7 +131,6 @@ fn assert_has_not_existing_component() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_missing_entity_has_children() {
     let app = TestApp::new();
     app.assert_entity(0).has_children(|_| ());
@@ -139,7 +138,6 @@ fn assert_missing_entity_has_children() {
 
 #[test]
 #[should_panic]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_has_children_with_wrong_assertion() {
     let mut app = TestApp::new();
     let entity_id = app.create_entity(EntityExample::build_child(10));

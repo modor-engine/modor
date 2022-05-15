@@ -47,6 +47,9 @@ impl Tester {
         let (left, right) = query.get_both_mut(1, 4);
         assert_eq!(left.map(|v| v.0), None);
         assert_eq!(right.map(|v| v.0), None);
+        let (left, right) = query.get_both_mut(3, 3);
+        assert_eq!(left.map(|v| v.0), Some(10));
+        assert_eq!(right.map(|v| v.0), None);
         self.done_count += 1;
     }
 

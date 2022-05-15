@@ -51,11 +51,13 @@ where
 /// This trait is used by the [`entity`](macro@crate::entity) and
 /// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
 pub trait SystemWithParamMutabilityIssue<S, Z>: Sized + SealedChecker {
+    // coverage: off (method only used for compile time checking)
     #[doc(hidden)]
     #[must_use]
     fn check_param_mutability(self) -> Self {
         self
     }
+    // coverage: on
 }
 
 impl<S, P, Z> SystemWithParamMutabilityIssue<S, Z> for SystemParamMutabilityChecker<S, P>

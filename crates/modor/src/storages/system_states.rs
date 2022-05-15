@@ -156,3 +156,33 @@ pub(super) enum LockedSystem {
     Remaining(Option<SystemIdx>),
     Done,
 }
+
+#[cfg(test)]
+mod lock_state_tests {
+    use crate::storages::system_states::LockState;
+    use crate::storages::systems::Access;
+
+    #[test]
+    #[should_panic]
+    fn lock_write_for_read_resource() {
+        LockState::Read(0).lock(Access::Write);
+    }
+
+    #[test]
+    #[should_panic]
+    fn lock_read_for_written_resource() {
+        LockState::Written.lock(Access::Read);
+    }
+
+    #[test]
+    #[should_panic]
+    fn lock_write_for_written_resource() {
+        LockState::Written.lock(Access::Write);
+    }
+
+    #[test]
+    #[should_panic]
+    fn unlock_unlocked_resource() {
+        LockState::Free.unlock();
+    }
+}

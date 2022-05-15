@@ -22,10 +22,10 @@ impl QueryTester {
 
     #[run]
     fn run_empty(&mut self, mut query: Query<'_, (), With<Values>>) {
-        assert_eq!(query.iter().len(), 3);
-        assert_eq!(query.iter_mut().len(), 3);
-        assert_eq!(query.iter().rev().len(), 3);
-        assert_eq!(query.iter_mut().rev().len(), 3);
+        assert_iter(query.iter(), [(), (), ()]);
+        assert_iter(query.iter_mut(), [(), (), ()]);
+        assert_iter(query.iter().rev(), [(), (), ()]);
+        assert_iter(query.iter_mut().rev(), [(), (), ()]);
         assert_eq!(query.get(10), None);
         assert_eq!(query.get_mut(10), None);
         assert_eq!(query.get(0), None);

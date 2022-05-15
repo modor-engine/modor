@@ -24,12 +24,94 @@ impl EntityToDelete {
     }
 }
 
-struct EntityWithAddedComponent;
+struct DeletedChild;
 
 #[entity]
-impl EntityWithAddedComponent {
+impl DeletedChild {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+    }
+}
+
+struct ParentEntityToDelete;
+
+#[entity]
+impl ParentEntityToDelete {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Parent::build(id))
+            .with_child(DeletedChild::build())
+    }
+
+    #[run]
+    fn delete(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_entity(entity.id());
+    }
+}
+
+struct ParentOfEntityToDelete;
+
+#[entity]
+impl ParentOfEntityToDelete {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Parent::build(id))
+            .with_child(EntityToDelete::build(id))
+    }
+}
+
+struct EntityWithMissingComponentAdded;
+
+#[entity]
+impl EntityWithMissingComponentAdded {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
+    #[run]
+    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
+        world.add_component(entity.id(), format!("id: {}", parent.0));
+    }
+}
+
+struct EntityWithExistingComponentAdded;
+
+#[entity]
+impl EntityWithExistingComponentAdded {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .with(String::from("empty"))
+            .inherit_from(Parent::build(id))
+    }
+
+    #[run]
+    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
+        world.add_component(entity.id(), format!("id: {}", parent.0));
+    }
+}
+
+struct SingletonWithComponentAdded;
+
+#[singleton]
+impl SingletonWithComponentAdded {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Parent::build(id))
+    }
+
+    #[run]
+    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
+        world.add_component(entity.id(), format!("id: {}", parent.0));
+    }
+}
+
+struct UnregisteredSingletonWithComponentAdded;
+
+#[singleton]
+impl UnregisteredSingletonWithComponentAdded {
+    fn build(id: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .with(SingletonWithComponentAdded)
+            .inherit_from(Parent::build(id))
     }
 
     #[run]
@@ -127,37 +209,61 @@ impl NewChildEntity {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_world() {
     let mut app = TestApp::new();
-    let entity1_id = app.create_entity(EntityToDelete::build(10));
-    let entity2_id = app.create_entity(EntityToDelete::build(11));
-    let entity3_id = app.create_entity(EntityWithAddedComponent::build(20));
-    let entity4_id = app.create_entity(EntityWithExistingComponentDeleted::build(30));
-    let entity5_id = app.create_entity(EntityWithMissingComponentDeleted::build(40));
-    let entity6_id = app.create_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50));
-    let entity7_id = app.create_entity(EntityWithAddedChild::build(60));
+    let entity10_id = app.create_entity(EntityToDelete::build(10));
+    let entity11_id = app.create_entity(ParentEntityToDelete::build(11));
+    let entity12_id = app.create_entity(ParentOfEntityToDelete::build(12));
+    let entity20_id = app.create_entity(EntityWithMissingComponentAdded::build(20));
+    let entity21_id = app.create_entity(EntityWithExistingComponentAdded::build(21));
+    let entity22_id = app.create_entity(SingletonWithComponentAdded::build(22));
+    let entity23_id = app.create_entity(UnregisteredSingletonWithComponentAdded::build(23));
+    let entity30_id = app.create_entity(EntityWithExistingComponentDeleted::build(30));
+    let entity31_id = app.create_entity(EntityWithExistingComponentDeleted::build(31));
+    let entity40_id = app.create_entity(EntityWithMissingComponentDeleted::build(40));
+    let entity50_id = app.create_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50));
+    let entity60_id = app.create_entity(EntityWithAddedChild::build(60));
     app.update();
-    app.assert_entity(entity1_id).does_not_exist();
-    app.assert_entity(entity2_id).does_not_exist();
-    app.assert_entity(entity3_id)
+    app.assert_entity(entity10_id).does_not_exist();
+    app.assert_entity(entity11_id).does_not_exist();
+    app.assert_entity(entity11_id + 1).does_not_exist();
+    app.assert_entity(entity12_id)
+        .has_children(|c| assert_eq!(c, []));
+    app.assert_entity(entity12_id + 1).does_not_exist();
+    app.assert_entity(entity20_id)
         .has(|c: &Parent| assert_eq!(c.0, 20))
         .has(|c: &String| assert_eq!(c, "id: 20"));
-    app.assert_entity(entity4_id)
+    app.assert_entity(entity21_id)
+        .has(|c: &Parent| assert_eq!(c.0, 21))
+        .has(|c: &String| assert_eq!(c, "id: 21"));
+    app.assert_entity(entity22_id)
+        .has(|c: &Parent| assert_eq!(c.0, 22))
+        .has(|c: &String| assert_eq!(c, "id: 22"));
+    app.assert_singleton::<SingletonWithComponentAdded>()
+        .has(|c: &Parent| assert_eq!(c.0, 22))
+        .has(|c: &String| assert_eq!(c, "id: 22"));
+    app.assert_entity(entity23_id)
+        .has(|c: &Parent| assert_eq!(c.0, 23))
+        .has(|c: &String| assert_eq!(c, "id: 23"));
+    app.assert_entity(entity30_id)
         .has(|c: &Parent| assert_eq!(c.0, 30))
         .has_not::<String>();
-    app.assert_entity(entity5_id)
+    app.assert_entity(entity31_id)
+        .has(|c: &Parent| assert_eq!(c.0, 31))
+        .has_not::<String>();
+    app.assert_entity(entity40_id)
         .has(|c: &Parent| assert_eq!(c.0, 40))
         .has_not::<String>();
-    app.assert_entity(entity6_id)
+    app.assert_entity(entity50_id)
         .has(|c: &Parent| assert_eq!(c.0, 50))
         .has_not::<String>();
-    app.assert_entity(entity7_id)
+    app.assert_entity(entity60_id)
         .has(|c: &Parent| assert_eq!(c.0, 60))
         .has_not::<String>()
         .has_children(|c| {
-            assert_eq!(c, vec![entity7_id + 1]);
+            assert_eq!(c, vec![entity60_id + 1]);
             app.assert_entity(c[0])
                 .has(|e: &NewChildEntity| assert_eq!(e.0, 70));
         });
-    app.assert_entity(entity7_id + 2)
+    app.assert_entity(entity60_id + 2)
         .has(|e: &NewRootEntity| assert_eq!(e.0, 80));
 }
 

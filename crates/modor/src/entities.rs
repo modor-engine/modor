@@ -19,9 +19,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     type Type: EntityType;
 
     #[doc(hidden)]
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-    }
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_>;
 }
 
 #[doc(hidden)]
