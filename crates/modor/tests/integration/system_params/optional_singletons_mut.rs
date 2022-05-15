@@ -78,5 +78,5 @@ fn run_systems_in_parallel() {
         .into();
     let start = Instant::now();
     app.update();
-    assert!(Instant::now() - start > Duration::from_millis(200))
+    assert!(Instant::now() - start > Duration::from_millis(200));
 }

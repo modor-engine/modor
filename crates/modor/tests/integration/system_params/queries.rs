@@ -14,13 +14,13 @@ impl Tester {
 
     #[run]
     fn iter_with_no_filter(&mut self, query: Query<'_, Entity<'_>>) {
-        assert_iter(query.iter().map(|e| e.id()), [0, 1, 4, 2, 5, 3, 6]);
+        assert_iter(query.iter().map(Entity::id), [0, 1, 4, 2, 5, 3, 6]);
         self.done_count += 1;
     }
 
     #[run]
     fn iter_with_one_filter(&mut self, query: Query<'_, Entity<'_>, With<Value1>>) {
-        assert_iter(query.iter().map(|e| e.id()), [1, 4, 3, 6]);
+        assert_iter(query.iter().map(Entity::id), [1, 4, 3, 6]);
         self.done_count += 1;
     }
 
@@ -29,7 +29,7 @@ impl Tester {
         &mut self,
         query: Query<'_, Entity<'_>, (With<Value1>, With<Value2>)>,
     ) {
-        assert_iter(query.iter().map(|e| e.id()), [3, 6]);
+        assert_iter(query.iter().map(Entity::id), [3, 6]);
         self.done_count += 1;
     }
 

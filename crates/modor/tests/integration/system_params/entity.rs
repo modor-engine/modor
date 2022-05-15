@@ -16,19 +16,19 @@ impl QueryTester {
 
     #[run]
     fn collect(&mut self, mut query: Query<'_, Entity<'_>, With<Number>>) {
-        assert_iter(query.iter().map(|v| v.id()), [5, 2, 4, 6]);
-        assert_iter(query.iter_mut().map(|v| v.id()), [5, 2, 4, 6]);
-        assert_iter(query.iter().rev().map(|v| v.id()), [6, 4, 2, 5]);
-        assert_iter(query.iter_mut().rev().map(|v| v.id()), [6, 4, 2, 5]);
-        assert_eq!(query.get(10).map(|v| v.id()), None);
-        assert_eq!(query.get_mut(10).map(|v| v.id()), None);
-        assert_eq!(query.get(3).map(|v| v.id()), None);
-        assert_eq!(query.get_mut(3).map(|v| v.id()), None);
-        assert_eq!(query.get(4).map(|v| v.id()), Some(4));
-        assert_eq!(query.get_mut(4).map(|v| v.id()), Some(4));
+        assert_iter(query.iter().map(Entity::id), [5, 2, 4, 6]);
+        assert_iter(query.iter_mut().map(Entity::id), [5, 2, 4, 6]);
+        assert_iter(query.iter().rev().map(Entity::id), [6, 4, 2, 5]);
+        assert_iter(query.iter_mut().rev().map(Entity::id), [6, 4, 2, 5]);
+        assert_eq!(query.get(10).map(Entity::id), None);
+        assert_eq!(query.get_mut(10).map(Entity::id), None);
+        assert_eq!(query.get(3).map(Entity::id), None);
+        assert_eq!(query.get_mut(3).map(Entity::id), None);
+        assert_eq!(query.get(4).map(Entity::id), Some(4));
+        assert_eq!(query.get_mut(4).map(Entity::id), Some(4));
         let (left, right) = query.get_both_mut(4, 2);
-        assert_eq!(left.map(|v| v.id()), Some(4));
-        assert_eq!(right.map(|v| v.id()), Some(2));
+        assert_eq!(left.map(Entity::id), Some(4));
+        assert_eq!(right.map(Entity::id), Some(2));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(Duration::from_millis(200));
@@ -65,7 +65,7 @@ impl Number {
     }
 
     #[run]
-    fn collect(entity: Entity, mut collector: SingleMut<'_, StreamCollector>) {
+    fn collect(entity: Entity<'_>, mut collector: SingleMut<'_, StreamCollector>) {
         collector.0.push(entity.id());
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(Duration::from_millis(50));
@@ -140,7 +140,7 @@ fn run_systems_in_parallel() {
             .into();
         let start = Instant::now();
         app.update();
-        assert!(Instant::now() - start < Duration::from_millis(250))
+        assert!(Instant::now() - start < Duration::from_millis(250));
     });
 }
 

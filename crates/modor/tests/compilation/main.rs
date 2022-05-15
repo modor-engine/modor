@@ -27,6 +27,7 @@ impl EntityWithValidSystems {
     fn no_param() {}
 
     #[run]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn mandatory_component(_: &u32) {}
 
     #[run]
@@ -45,6 +46,7 @@ impl EntityWithValidSystems {
     fn mandatory_component_in_sub_tuple_in_query(_: Query<'_, (&u32, (&mut i64,))>) {}
 
     #[run]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn same_const_component(_: &u32, _: &u32) {}
 
     #[run]
@@ -81,6 +83,7 @@ impl EntityWithValidSystems {
     }
 
     #[run]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn all_entity_param_types(_: &mut u32, _: Option<&mut i64>, _: &i16, _: Option<&i16>) {}
 
     #[run]
