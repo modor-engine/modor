@@ -181,7 +181,7 @@ impl EntityAssertion<'_> {
             .unwrap_or_else(|| panic!("assertion failed: entity expected to exist",));
         assert!(
             self.test_component_exists::<C, F>(location, f).is_some(),
-            "assertion failed: component expected to exist in entity)",
+            "assertion failed: component expected to exist in entity",
         );
         self
     }
@@ -240,84 +240,5 @@ impl EntityAssertion<'_> {
         let component = components.get(location.idx)?.get(location.pos)?;
         f(component);
         Some(())
-    }
-}
-
-#[cfg(test)]
-mod test_app_tests {
-    use crate::testing::TestApp;
-    use crate::{App, EntityBuilder, Singleton};
-    use std::ptr;
-
-    create_entity_type!(TestEntity);
-    create_entity_type!(ChildEntity);
-    create_entity_type!(SingletonEntity1, Singleton);
-    create_entity_type!(SingletonEntity2, Singleton);
-
-    #[test]
-    fn deref() {
-        let mut app = TestApp::from(App::new());
-        assert!(ptr::eq(ptr::addr_of!(*app), ptr::addr_of!(app.app)));
-        assert!(ptr::eq(ptr::addr_of_mut!(*app), ptr::addr_of_mut!(app.app)));
-    }
-
-    #[test]
-    fn assert_on_entities_from_new_app() {
-        let mut app = TestApp::new();
-        let entity_id = app.create_entity(
-            EntityBuilder::new(TestEntity(10))
-                .with_child(EntityBuilder::new(ChildEntity(20)))
-                .with_child(EntityBuilder::new(ChildEntity(30))),
-        );
-        app.assert_entity(entity_id)
-            .exists()
-            .has::<TestEntity, _>(|c| assert_eq!(c.0, 10))
-            .has_not::<String>()
-            .has_children(|c| assert_eq!(c, [1, 2]));
-        assert_panics!(app.assert_entity(entity_id).does_not_exist());
-        assert_panics!(app.assert_entity(entity_id).has::<String, _>(|_| ()));
-        assert_panics!(app
-            .assert_entity(entity_id)
-            .has::<TestEntity, _>(|_| panic!()));
-        assert_panics!(app.assert_entity(entity_id).has_children(|_| panic!()));
-        let missing_id = 10;
-        app.assert_entity(missing_id).does_not_exist();
-        assert_panics!(app.assert_entity(entity_id).has_not::<TestEntity>());
-        assert_panics!(app.assert_entity(missing_id).exists());
-        assert_panics!(app.assert_entity(missing_id).has::<String, _>(|_| ()));
-        assert_panics!(app.assert_entity(missing_id).has_not::<String>());
-        assert_panics!(app.assert_entity(missing_id).has_children(|_| ()));
-    }
-
-    #[test]
-    fn create_child_entity() {
-        let mut app = TestApp::new();
-        let parent_id = app.create_entity(EntityBuilder::new(TestEntity(10)));
-        let child_id = app.create_child(parent_id, EntityBuilder::new(TestEntity(20)));
-        app.assert_entity(parent_id)
-            .has_children(|c| assert_eq!(c, vec![child_id]));
-        app.assert_entity(child_id)
-            .has::<TestEntity, _>(|c| assert_eq!(c.0, 20));
-        let missing_id = 10;
-        assert_panics!(app.create_child(missing_id, EntityBuilder::new(TestEntity(30))));
-    }
-
-    #[test]
-    fn assert_on_singleton_from_new_app() {
-        let mut app = TestApp::new();
-        app.create_entity(EntityBuilder::new(SingletonEntity1(10)));
-        app.assert_singleton::<SingletonEntity2>().does_not_exist();
-        app.assert_singleton::<SingletonEntity1>().exists();
-        assert_panics!(app.assert_singleton::<SingletonEntity1>().does_not_exist());
-        assert_panics!(app.assert_singleton::<SingletonEntity2>().exists());
-    }
-
-    #[test]
-    fn assert_from_existing_app() {
-        let existing_app = App::new().with_entity(EntityBuilder::new(TestEntity(10)));
-        let mut app = TestApp::from(existing_app);
-        app.assert_entity(0).exists();
-        assert!(ptr::eq(ptr::addr_of!(*app), ptr::addr_of!(app.app)));
-        assert!(ptr::eq(ptr::addr_of_mut!(*app), ptr::addr_of_mut!(app.app)));
     }
 }

@@ -56,9 +56,6 @@
 #[macro_use]
 extern crate modor_internal;
 
-#[cfg(test)]
-#[macro_use]
-extern crate static_assertions;
 #[cfg(doctest)]
 #[macro_use]
 extern crate doc_comment;
