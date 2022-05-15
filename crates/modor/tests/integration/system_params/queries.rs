@@ -131,6 +131,7 @@ impl Level3 {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_query() {
     let mut app: TestApp = App::new()
         .with_entity(Tester::build())

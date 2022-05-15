@@ -1,7 +1,5 @@
-use instant::Instant;
 use modor::testing::TestApp;
-use modor::{App, Built, Entity, EntityBuilder, World};
-use std::time::Duration;
+use modor::{Built, Entity, EntityBuilder, World};
 
 struct Parent(u32);
 
@@ -95,14 +93,14 @@ impl EntityWithAddedChild {
     #[run]
     fn create_root_entity(mut world: World<'_>) {
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(100));
+        spin_sleep::sleep(std::time::Duration::from_millis(100));
         world.create_root_entity(NewRootEntity::build(80));
     }
 
     #[run]
     fn create_child_entity(entity: Entity<'_>, mut world: World<'_>) {
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(100));
+        spin_sleep::sleep(std::time::Duration::from_millis(100));
         world.create_child_entity(entity.id(), NewChildEntity::build(70));
     }
 }
@@ -164,12 +162,13 @@ fn use_world() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn run_systems_in_parallel() {
-    let mut app: TestApp = App::new()
+    let mut app: TestApp = modor::App::new()
         .with_thread_count(2)
         .with_entity(EntityWithAddedChild::build(60))
         .into();
-    let start = Instant::now();
+    let start = instant::Instant::now();
     app.update();
-    assert!(Instant::now() - start > Duration::from_millis(200));
+    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
 }

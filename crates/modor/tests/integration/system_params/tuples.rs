@@ -1,8 +1,6 @@
 use crate::system_params::assert_iter;
-use instant::Instant;
 use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, Query, With};
-use std::time::Duration;
 
 struct QueryTester {
     empty_done: bool,
@@ -75,7 +73,7 @@ impl QueryTester {
         assert_eq!(right.map(|v| v.0.id()), Some(2));
         self.two_item_done = true;
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(100));
+        spin_sleep::sleep(std::time::Duration::from_millis(100));
     }
 
     #[run]
@@ -142,7 +140,7 @@ impl Values {
         assert_eq!(value1.0, 10);
         self_.two_item_done = true;
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(50));
+        spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
     #[run]
@@ -191,6 +189,7 @@ fn iteration_on_tuple() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn run_systems_in_parallel() {
     modor_internal::retry!(10, {
         let mut app: TestApp = App::new()
@@ -201,8 +200,8 @@ fn run_systems_in_parallel() {
         app.create_entity(Values::build(true, false));
         app.create_entity(Values::build(false, true));
         app.update();
-        let start = Instant::now();
+        let start = instant::Instant::now();
         app.update();
-        assert!(Instant::now() - start < Duration::from_millis(150));
+        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(150));
     });
 }

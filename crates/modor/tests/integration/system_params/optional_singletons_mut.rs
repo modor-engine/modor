@@ -1,7 +1,5 @@
-use instant::Instant;
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder, SingleMut};
-use std::time::Duration;
 
 struct Tester {
     done_existing: bool,
@@ -22,13 +20,13 @@ impl Tester {
         assert_eq!(number.map(|n| n.0), Some(10));
         self.done_existing = true;
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(100));
+        spin_sleep::sleep(std::time::Duration::from_millis(100));
     }
 
     #[run]
     fn run_other_existing(_: Option<SingleMut<'_, Number>>) {
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(100));
+        spin_sleep::sleep(std::time::Duration::from_millis(100));
     }
 
     #[run]
@@ -70,13 +68,14 @@ fn use_single_mut() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn run_systems_in_parallel() {
     let mut app: TestApp = App::new()
         .with_thread_count(2)
         .with_entity(Number::build(10))
         .with_entity(Tester::build())
         .into();
-    let start = Instant::now();
+    let start = instant::Instant::now();
     app.update();
-    assert!(Instant::now() - start > Duration::from_millis(200));
+    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
 }

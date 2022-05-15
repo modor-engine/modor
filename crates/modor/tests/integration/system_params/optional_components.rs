@@ -1,8 +1,6 @@
 use crate::system_params::assert_iter;
-use instant::Instant;
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder, Query, SingleMut, With};
-use std::time::Duration;
 
 struct QueryTester {
     done: bool,
@@ -35,7 +33,7 @@ impl QueryTester {
         assert_eq!(right.map(|v| v.map(|v| v.0)), Some(Some(1)));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(200));
+            spin_sleep::sleep(std::time::Duration::from_millis(200));
     }
 }
 
@@ -72,7 +70,7 @@ impl Number {
     fn collect(value: Option<&Value>, mut collector: SingleMut<'_, StreamCollector>) {
         collector.0.push(value.map(|v| v.0));
         #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(Duration::from_millis(50));
+            spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 }
 
@@ -105,6 +103,7 @@ fn iterate_on_component_reference() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn run_systems_in_parallel() {
     modor_internal::retry!(10, {
         let mut app: TestApp = App::new()
@@ -117,8 +116,8 @@ fn run_systems_in_parallel() {
             .with_entity(Number::build_without_value())
             .with_entity(Number::build_with_additional_component(3))
             .into();
-        let start = Instant::now();
+        let start = instant::Instant::now();
         app.update();
-        assert!(Instant::now() - start < Duration::from_millis(250));
+        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
     });
 }
