@@ -43,7 +43,7 @@ impl CoreStorage {
     }
 
     pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
-        no_mutation!(self.renderer.toggle_vsync(enabled)); // window cannot be tested
+        self.renderer.toggle_vsync(enabled);
     }
 
     pub(crate) fn update_instances(
@@ -59,7 +59,7 @@ impl CoreStorage {
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
-            if Self::is_transparent(color.0.a) {
+            if color.0.a > 0. && color.0.a < 1. {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -115,12 +115,6 @@ impl CoreStorage {
             color: [color.0.r, color.0.g, color.0.b, color.0.a],
         }
     }
-
-    // coverage: off (optimization that cannot pass mutation tests)
-    fn is_transparent(transparency: f32) -> bool {
-        transparency > 0. && transparency < 1.
-    }
-    // coverage: on
 
     #[allow(clippy::cast_precision_loss)]
     fn create_camera_data(camera: CameraProperties, renderer: &Renderer) -> Camera {

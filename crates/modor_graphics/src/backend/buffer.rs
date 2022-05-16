@@ -87,10 +87,8 @@ impl From<DynamicBufferUsage> for BufferUsages {
         match usage {
             DynamicBufferUsage::Vertex => Self::VERTEX,
             DynamicBufferUsage::Index => Self::INDEX,
-            DynamicBufferUsage::Instance => {
-                no_mutation!(Self::VERTEX | Self::COPY_DST)
-            }
-            DynamicBufferUsage::Uniform => no_mutation!(Self::UNIFORM | Self::COPY_DST),
+            DynamicBufferUsage::Instance => Self::VERTEX | Self::COPY_DST,
+            DynamicBufferUsage::Uniform => Self::UNIFORM | Self::COPY_DST,
         }
     }
 }

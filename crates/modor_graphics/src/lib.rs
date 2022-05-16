@@ -40,7 +40,7 @@ pub mod testing;
 
 pub use components::shape_color::*;
 pub use data::*;
-pub use entities::background_color::*;
+pub use entities::background::*;
 pub use entities::camera::*;
 pub use entities::frame_rate::*;
 pub use entities::module::*;

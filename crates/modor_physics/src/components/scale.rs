@@ -70,31 +70,3 @@ pub struct Size {
     /// The Z-coordinate.
     pub z: f32,
 }
-
-#[cfg(test)]
-mod scale_tests {
-    use crate::Scale;
-    use approx::assert_abs_diff_eq;
-
-    #[test]
-    fn create_2d() {
-        let scale = Scale::xy(4., 2.);
-        assert_abs_diff_eq!(scale.x, 4.);
-        assert_abs_diff_eq!(scale.y, 2.);
-        assert_abs_diff_eq!(scale.z, 1.);
-        assert_abs_diff_eq!(scale.abs().x, 4.);
-        assert_abs_diff_eq!(scale.abs().y, 2.);
-        assert_abs_diff_eq!(scale.abs().z, 1.);
-    }
-
-    #[test]
-    fn create_3d() {
-        let scale = Scale::xyz(1., 2., 3.);
-        assert_abs_diff_eq!(scale.x, 1.);
-        assert_abs_diff_eq!(scale.y, 2.);
-        assert_abs_diff_eq!(scale.z, 3.);
-        assert_abs_diff_eq!(scale.abs().x, 1.);
-        assert_abs_diff_eq!(scale.abs().y, 2.);
-        assert_abs_diff_eq!(scale.abs().z, 3.);
-    }
-}

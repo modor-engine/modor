@@ -19,9 +19,7 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     type Type: EntityType;
 
     #[doc(hidden)]
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_> {
-        runner
-    }
+    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_>;
 }
 
 #[doc(hidden)]
@@ -492,113 +490,5 @@ mod internal {
 
     pub trait BuildEntity: BuildEntityPart {
         fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
-    }
-}
-
-#[cfg(test)]
-mod entity_builder_tests {
-    use crate::entities::internal::BuildEntity;
-    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
-    use crate::storages::core::CoreStorage;
-    use crate::{EntityBuilder, Singleton};
-    use std::any::Any;
-    use std::fmt::Debug;
-
-    create_entity_type!(ParentEntity);
-    create_entity_type!(TestEntity);
-    create_entity_type!(ChildEntity);
-    create_entity_type!(Singleton1, Singleton);
-    create_entity_type!(Singleton2, Singleton);
-
-    #[test]
-    fn build_entity() {
-        let mut core = CoreStorage::default();
-        EntityBuilder::new(Singleton1(10)).build(&mut core, None);
-        EntityBuilder::new(TestEntity(20))
-            .with(30_u32)
-            .with_option(Some(0_i64))
-            .with_dependency(EntityBuilder::new(Singleton1(40)))
-            .inherit_from(
-                EntityBuilder::new(ParentEntity(50))
-                    .with("A".to_string())
-                    .with_child(EntityBuilder::new(ChildEntity(140))),
-            )
-            .with_option(Some(60_i64))
-            .with_child(
-                EntityBuilder::new(ChildEntity(70))
-                    .with("B".to_string())
-                    .with_child(EntityBuilder::new(ChildEntity(90))),
-            )
-            .with_children(|b| {
-                b.add(EntityBuilder::new(ChildEntity(110)));
-                b.add(EntityBuilder::new(ChildEntity(120)));
-            })
-            .with_children(|b| b.add(EntityBuilder::new(ChildEntity(130))))
-            .with_option::<i8>(None)
-            .with_dependency(
-                EntityBuilder::new(Singleton2(80))
-                    .with("C".to_string())
-                    .with_child(EntityBuilder::new(ChildEntity(100))),
-            )
-            .build(&mut core, None);
-        core.register_component_type::<i8>();
-        let location = core.entities().location(0.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&Singleton1(10)));
-        let location = core.entities().location(1.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&TestEntity(20)));
-        assert_component_eq(&core, location.idx, location.pos, Some(&30_u32));
-        assert_component_eq(&core, location.idx, location.pos, Some(&ParentEntity(50)));
-        assert_component_eq(&core, location.idx, location.pos, Some(&60_i64));
-        assert_component_eq::<i8>(&core, location.idx, location.pos, None);
-        assert_component_eq(&core, location.idx, location.pos, Some(&"A".to_string()));
-        let location = core.entities().location(2.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(140)));
-        let location = core.entities().location(3.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(70)));
-        assert_component_eq(&core, location.idx, location.pos, Some(&"B".to_string()));
-        let location = core.entities().location(4.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(90)));
-        let location = core.entities().location(5.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(110)));
-        let location = core.entities().location(6.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(120)));
-        let location = core.entities().location(7.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(130)));
-        let location = core.entities().location(8.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&Singleton2(80)));
-        assert_component_eq(&core, location.idx, location.pos, Some(&"C".to_string()));
-        let location = core.entities().location(9.into()).unwrap();
-        assert_component_eq(&core, location.idx, location.pos, Some(&ChildEntity(100)));
-        assert_eq!(
-            core.entities().child_idxs(1.into()),
-            [2.into(), 3.into(), 5.into(), 6.into(), 7.into()]
-        );
-        assert_eq!(core.entities().child_idxs(3.into()), [4.into()]);
-        assert_eq!(core.entities().child_idxs(8.into()), [9.into()]);
-    }
-
-    #[test]
-    fn build_existing_singleton() {
-        let mut core = CoreStorage::default();
-        EntityBuilder::new(Singleton1(10)).build(&mut core, None);
-        EntityBuilder::new(Singleton1(20)).build(&mut core, None);
-        assert_component_eq(&core, 1.into(), 0.into(), Some(&Singleton1(20)));
-    }
-
-    fn assert_component_eq<C>(
-        core: &CoreStorage,
-        archetype_idx: ArchetypeIdx,
-        archetype_pos: ArchetypeEntityPos,
-        expected_component: Option<&C>,
-    ) where
-        C: Any + PartialEq + Debug,
-    {
-        assert_eq!(
-            core.components()
-                .read_components::<C>()
-                .get(archetype_idx)
-                .and_then(|c| c.get(archetype_pos)),
-            expected_component
-        );
     }
 }

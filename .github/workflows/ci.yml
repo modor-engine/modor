@@ -11,9 +11,11 @@ on:
     - cron: 0 2 * * SAT
 
 env:
+  XDG_RUNTIME_DIR: "~"
   CARGO_TERM_COLOR: always
+
+  # CI settings
   RUST_VERSION_STABLE: 1.60.0
-  RUST_VERSION_NIGHTLY: nightly-2022-04-17
   MUTAGEN_COMMIT: b1886fa1a343b95c86a836ceb0fd233980924c2a
   COV_THRESHOLD: 100.0
   MUTAGEN_THRESHOLD: 100.0
@@ -33,6 +35,10 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           profile: minimal
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -56,6 +62,10 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           profile: minimal
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -77,6 +87,10 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           profile: minimal
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -97,6 +111,17 @@ jobs:
           components: clippy
           profile: minimal
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --debug
+      - name: Test
+        run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
@@ -105,13 +130,6 @@ jobs:
         with:
           command: clippy
           args: --all-targets --target wasm32-unknown-unknown -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --debug
-      - name: Test
-        run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
 
   check-coverage:
     runs-on: ubuntu-20.04
@@ -127,6 +145,10 @@ jobs:
           profile: minimal
           components: llvm-tools-preview
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
@@ -164,24 +186,6 @@ jobs:
       - name: Check coverage threshold
         run: bash .github/workflows/scripts/check_coverage.sh
 
-  check-mutations:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
-          profile: minimal
-          override: true
-      - name: Install graphics dependencies
-        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
-      - name: Install mutagen
-        run: bash .github/workflows/scripts/install_mutagen.sh
-      - name: Run mutation tests
-        run: bash .github/workflows/scripts/check_mutations.sh
-
   lint-rust:
     runs-on: ubuntu-20.04
     steps:
@@ -194,6 +198,10 @@ jobs:
           profile: minimal
           components: rustfmt, clippy
           override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
@@ -207,12 +215,6 @@ jobs:
         with:
           command: fmt
           args: -- --check
-      - name: Clean project
-        uses: actions-rs/cargo@v1
-        with:
-          command: clean
-      - name: Remove dev-dependencies for cargo-deny
-        run: bash .github/workflows/scripts/remove_dev_dependencies.sh
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
 

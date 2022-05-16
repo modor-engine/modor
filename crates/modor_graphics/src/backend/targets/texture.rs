@@ -57,7 +57,7 @@ impl TextureTarget {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: TEXTURE_FORMAT,
-            usage: no_mutation!(TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC),
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
         };
         device.create_texture(&desc)
     }
@@ -66,7 +66,7 @@ impl TextureTarget {
         device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("modor_target_output_buffer"),
             size: (padded_bytes_per_row * u64::from(height)),
-            usage: no_mutation!(wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST),
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         })
     }

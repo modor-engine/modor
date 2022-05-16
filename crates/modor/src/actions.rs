@@ -8,7 +8,7 @@ use std::any::{Any, TypeId};
 ///
 /// ## Examples
 ///
-/// See [`SystemRunner`](crate::SystemRunner).
+/// See [`entity`](macro@crate::entity).
 pub trait Action: Any {
     /// The constraint definition of the action.
     type Constraint: ActionConstraint;
@@ -49,59 +49,5 @@ where
 {
     fn dependency_types() -> Vec<TypeId> {
         vec![TypeId::of::<A>()]
-    }
-}
-
-#[cfg(test)]
-mod depends_on_tests {
-    use crate::{Action, ActionConstraint, DependsOn};
-    use std::any::TypeId;
-    use std::panic::{RefUnwindSafe, UnwindSafe};
-
-    struct TestAction;
-
-    impl Action for TestAction {
-        type Constraint = ();
-    }
-
-    assert_impl_all!(DependsOn<TestAction>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
-
-    #[test]
-    fn retrieve_dependency_types() {
-        let dependency_types = DependsOn::<TestAction>::dependency_types();
-        assert_eq!(dependency_types, vec![TypeId::of::<TestAction>()]);
-    }
-}
-
-#[cfg(test)]
-mod tuple_action_constraint_tests {
-    use crate::{Action, ActionConstraint, DependsOn};
-    use std::any::TypeId;
-
-    macro_rules! define_actions {
-        ($($types:ident),*) => {
-            $(
-                struct $types;
-
-                impl Action for $types {
-                    type Constraint = ();
-                }
-            )*
-        };
-    }
-
-    define_actions!(A, B, C, D, E, F, G, H, I, J);
-
-    macro_rules! test_tuple_dependency_types {
-        ($(($params:ident, $indexes:tt)),*) => {{
-            let dependency_types = <($(DependsOn<$params>,)*)>::dependency_types();
-            assert_eq!(dependency_types, vec![$(TypeId::of::<$params>()),*]);
-        }};
-    }
-
-    #[test]
-    fn retrieve_dependency_types() {
-        test_tuple_dependency_types!();
-        run_for_tuples_with_idxs!(test_tuple_dependency_types);
     }
 }

@@ -51,11 +51,13 @@ where
 /// This trait is used by the [`entity`](macro@crate::entity) and
 /// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
 pub trait SystemWithParamMutabilityIssue<S, Z>: Sized + SealedChecker {
+    // coverage: off (method only used for compile time checking)
     #[doc(hidden)]
     #[must_use]
     fn check_param_mutability(self) -> Self {
         self
     }
+    // coverage: on
 }
 
 impl<S, P, Z> SystemWithParamMutabilityIssue<S, Z> for SystemParamMutabilityChecker<S, P>
@@ -170,33 +172,4 @@ mod internal {
     }
 
     run_for_tuples_with_idxs!(impl_incompatible_system_param);
-}
-
-#[cfg(test)]
-mod system_param_mutability_checker_tests {
-    use crate::{SystemParamMutabilityChecker, SystemWithParamMutabilityIssue, SystemWithParams};
-
-    #[test]
-    fn convert_into_inner() {
-        let system = || ();
-        let checker = SystemParamMutabilityChecker::new(system);
-        assert_eq!(checker.into_inner() as fn(), system as fn());
-    }
-
-    #[test]
-    fn check_param_mutability_of_system_with_params() {
-        let system = || ();
-        let checker = SystemParamMutabilityChecker::new(system);
-        let checker = SystemWithParams::check_param_mutability(checker);
-        assert_eq!(system as fn(), checker.into_inner() as fn());
-    }
-
-    #[test]
-    fn check_param_mutability_of_system_with_mutability_issue() {
-        let system = |_: &u32, _: &mut u32| ();
-        let checker = SystemParamMutabilityChecker::new(system);
-        let checker = SystemWithParamMutabilityIssue::check_param_mutability(checker);
-        let inner_system = checker.into_inner() as fn(&'static u32, &'static mut u32);
-        assert_eq!(system as fn(&'static u32, &'static mut u32), inner_system);
-    }
 }

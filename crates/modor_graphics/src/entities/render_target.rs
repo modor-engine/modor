@@ -1,7 +1,7 @@
 use crate::backend::renderer::Renderer;
 use crate::backend::targets::texture::TextureTarget;
 use crate::backend::targets::window::WindowTarget;
-use crate::entities::background_color::BackgroundColor;
+use crate::entities::background::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::{CameraProperties, CoreStorage};
@@ -56,7 +56,7 @@ impl RenderTarget {
     ) {
         let background_color = background_color.map_or(DEFAULT_BACKGROUND_COLOR, |c| **c);
         let enable_vsync = matches!(frame_rate_limit.map(|l| l.get()), Some(FrameRate::VSync));
-        no_mutation!(self.core.toggle_vsync(enable_vsync)); // window cannot be tested
+        self.core.toggle_vsync(enable_vsync);
         self.core.render(background_color);
     }
 

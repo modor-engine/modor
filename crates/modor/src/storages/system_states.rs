@@ -158,117 +158,31 @@ pub(super) enum LockedSystem {
 }
 
 #[cfg(test)]
-mod system_state_storage_tests {
-    use crate::storages::actions::{ActionDependencies, ActionStorage};
-    use crate::storages::system_states::{LockedSystem, SystemStateStorage};
-    use crate::storages::systems::{Access, ComponentTypeAccess};
-    use std::any::TypeId;
-
-    #[test]
-    fn lock_systems_that_can_update() {
-        let mut actions = ActionStorage::default();
-        let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
-        let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![], true, action_idx);
-        storage.add_system(vec![], true, action_idx);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Done);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-    }
-
-    #[test]
-    fn lock_systems_with_components() {
-        let mut actions = ActionStorage::default();
-        let action_idx = actions.idx_or_create(None, ActionDependencies::Types(vec![]));
-        let access = ComponentTypeAccess {
-            access: Access::Write,
-            type_idx: 10.into(),
-        };
-        let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![access], false, action_idx);
-        storage.add_system(vec![access], false, action_idx);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Done);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![2]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-    }
-
-    #[test]
-    fn lock_systems_with_action_dependencies() {
-        let mut actions = ActionStorage::default();
-        let action1_idx =
-            actions.idx_or_create(Some(TypeId::of::<u32>()), ActionDependencies::Types(vec![]));
-        let action2_idx =
-            actions.idx_or_create(None, ActionDependencies::Types(vec![TypeId::of::<u32>()]));
-        let mut storage = SystemStateStorage::default();
-        storage.add_system(vec![], false, action1_idx);
-        storage.add_system(vec![], false, action2_idx);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(None));
-        let locked_system = storage.lock_next_system(Some(0.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(1.into())));
-        let locked_system = storage.lock_next_system(Some(1.into()), &actions);
-        assert_eq!(locked_system, LockedSystem::Done);
-        storage.reset([0.into(), 1.into()].into_iter(), ti_vec![1, 1]);
-        let locked_system = storage.lock_next_system(None, &actions);
-        assert_eq!(locked_system, LockedSystem::Remaining(Some(0.into())));
-    }
-}
-
-#[cfg(test)]
 mod lock_state_tests {
     use crate::storages::system_states::LockState;
     use crate::storages::systems::Access;
 
     #[test]
-    fn retrieve_whether_is_lockable() {
-        assert!(LockState::Free.is_lockable(Access::Read));
-        assert!(LockState::Free.is_lockable(Access::Write));
-        assert!(LockState::Read(0).is_lockable(Access::Read));
-        assert!(!LockState::Read(0).is_lockable(Access::Write));
-        assert!(!LockState::Written.is_lockable(Access::Read));
-        assert!(!LockState::Written.is_lockable(Access::Write));
+    #[should_panic]
+    fn lock_write_for_read_resource() {
+        LockState::Read(0).lock(Access::Write);
     }
 
     #[test]
-    fn lock() {
-        assert_eq!(LockState::Free.lock(Access::Read), LockState::Read(0));
-        assert_eq!(LockState::Free.lock(Access::Write), LockState::Written);
-        assert_eq!(LockState::Read(0).lock(Access::Read), LockState::Read(1));
-        assert_eq!(LockState::Read(1).lock(Access::Read), LockState::Read(2));
-        assert_panics!(LockState::Read(0).lock(Access::Write));
-        assert_panics!(LockState::Written.lock(Access::Read));
-        assert_panics!(LockState::Written.lock(Access::Write));
+    #[should_panic]
+    fn lock_read_for_written_resource() {
+        LockState::Written.lock(Access::Read);
     }
 
     #[test]
-    fn unlock() {
-        assert_panics!(LockState::Free.unlock());
-        assert_eq!(LockState::Read(0).unlock(), LockState::Free);
-        assert_eq!(LockState::Read(1).unlock(), LockState::Read(0));
-        assert_eq!(LockState::Written.unlock(), LockState::Free);
+    #[should_panic]
+    fn lock_write_for_written_resource() {
+        LockState::Written.lock(Access::Write);
+    }
+
+    #[test]
+    #[should_panic]
+    fn unlock_unlocked_resource() {
+        LockState::Free.unlock();
     }
 }

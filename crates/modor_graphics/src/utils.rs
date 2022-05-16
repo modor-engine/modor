@@ -61,25 +61,7 @@ where
 mod utils_tests {
     use crate::FrameRate;
     use approx::assert_abs_diff_eq;
-    use std::thread;
     use std::time::{Duration, Instant};
-
-    macro_rules! retry {
-        ($count:literal, $expr:expr) => {
-            for i in 0..$count {
-                println!("Try #{}...", i);
-                let r = std::panic::catch_unwind(|| $expr);
-                if r.is_ok() {
-                    break;
-                }
-                if i == $count - 1 {
-                    std::panic::resume_unwind(r.unwrap_err());
-                } else {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                }
-            }
-        };
-    }
 
     #[test]
     fn calculate_nearest_multiple() {
@@ -99,11 +81,11 @@ mod utils_tests {
 
     #[test]
     fn run_with_frame_rate() {
-        retry!(10, assert_duration(FrameRate::Unlimited, 100, 100, 150));
-        retry!(10, assert_duration(FrameRate::VSync, 100, 100, 150));
-        retry!(10, assert_duration(FrameRate::FPS(0), 100, 100, 150));
-        retry!(10, assert_duration(FrameRate::FPS(1), 500, 1000, 1200));
-        retry!(10, assert_duration(FrameRate::FPS(5), 100, 200, 300));
+        modor_internal::retry!(10, assert_duration(FrameRate::Unlimited, 100, 100, 150));
+        modor_internal::retry!(10, assert_duration(FrameRate::VSync, 100, 100, 150));
+        modor_internal::retry!(10, assert_duration(FrameRate::FPS(0), 100, 100, 150));
+        modor_internal::retry!(10, assert_duration(FrameRate::FPS(1), 500, 1000, 1200));
+        modor_internal::retry!(10, assert_duration(FrameRate::FPS(5), 100, 200, 300));
     }
 
     fn assert_duration(
@@ -114,7 +96,7 @@ mod utils_tests {
     ) {
         let update_start = Instant::now();
         super::run_with_frame_rate(Instant::now(), frame_rate, || {
-            thread::sleep(Duration::from_millis(external_sleep_millis));
+            spin_sleep::sleep(Duration::from_millis(external_sleep_millis));
         });
         let update_end = Instant::now();
         assert!(update_end.duration_since(update_start) >= Duration::from_millis(min_millis));
