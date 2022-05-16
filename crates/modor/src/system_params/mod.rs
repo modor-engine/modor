@@ -150,7 +150,6 @@ pub(crate) mod internal {
 
 pub(crate) mod utils {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
-    use crate::utils;
     use typed_index_collections::TiVec;
 
     pub(crate) fn get_both_mut<T>(
@@ -162,14 +161,36 @@ pub(crate) mod utils {
             if location1.idx >= data.next_key() {
                 (None, None)
             } else {
-                utils::get_both_mut(&mut data[location1.idx], location1.pos, location2.pos)
+                get_both_mut_internal(&mut data[location1.idx], location1.pos, location2.pos)
             }
         } else {
-            let (sub_data1, sub_data2) = utils::get_both_mut(data, location1.idx, location2.idx);
+            let (sub_data1, sub_data2) = get_both_mut_internal(data, location1.idx, location2.idx);
             (
                 sub_data1.and_then(|d| d.get_mut(location1.pos)),
                 sub_data2.and_then(|d| d.get_mut(location2.pos)),
             )
+        }
+    }
+
+    fn get_both_mut_internal<K, T>(
+        data: &mut TiVec<K, T>,
+        key1: K,
+        key2: K,
+    ) -> (Option<&mut T>, Option<&mut T>)
+    where
+        K: Ord + From<usize> + Copy,
+        usize: From<K>,
+    {
+        if key2 >= data.next_key() {
+            (data.get_mut(key1), None)
+        } else if key1 >= data.next_key() {
+            (None, data.get_mut(key2))
+        } else if key1 > key2 {
+            let (left, right) = data.split_at_mut(key1);
+            (Some(&mut right[K::from(0)]), Some(&mut left[key2]))
+        } else {
+            let (left, right) = data.split_at_mut(key2);
+            (Some(&mut left[key1]), Some(&mut right[K::from(0)]))
         }
     }
 }

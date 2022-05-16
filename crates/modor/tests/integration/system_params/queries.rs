@@ -54,6 +54,20 @@ impl Tester {
     }
 
     #[run]
+    fn get_both_mut_with_other_query(&mut self, mut query: Query<'_, Option<&mut Value3>>) {
+        let (left, right) = query.get_both_mut(3, 6);
+        assert_eq!(left.flatten().map(|v| v.0), None);
+        assert_eq!(right.flatten().map(|v| v.0), None);
+        let (left, right) = query.get_both_mut(4, 3);
+        assert_eq!(left.flatten().map(|v| v.0), Some(32));
+        assert_eq!(right.flatten().map(|v| v.0), None);
+        let (left, right) = query.get_both_mut(3, 4);
+        assert_eq!(left.flatten().map(|v| v.0), None);
+        assert_eq!(right.flatten().map(|v| v.0), Some(32));
+        self.done_count += 1;
+    }
+
+    #[run]
     fn get_with_first_parent(
         &mut self,
         query1: Query<'_, &Value1>,
@@ -100,6 +114,8 @@ struct Value1(u32);
 
 struct Value2(u32);
 
+struct Value3(u32);
+
 struct Level1;
 
 #[entity]
@@ -107,6 +123,7 @@ impl Level1 {
     fn build(value1: u32, value2: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value1(value1 + 2))
+            .with(Value3(value1 + 2))
             .with_child(Level2::build(value1, value2))
     }
 }
@@ -143,5 +160,5 @@ fn use_query() {
         .into();
     app.update();
     app.assert_singleton::<Tester>()
-        .has(|t: &Tester| assert_eq!(t.done_count, 6));
+        .has(|t: &Tester| assert_eq!(t.done_count, 7));
 }
