@@ -173,35 +173,3 @@ pub(crate) mod utils {
         }
     }
 }
-
-#[cfg(test)]
-mod system_param_utils_tests {
-    use crate::storages::archetypes::EntityLocation;
-    use crate::system_params::utils::get_both_mut;
-
-    #[test]
-    fn retrieve_both_mut() {
-        let mut data = ti_vec![ti_vec![10_u32, 20], ti_vec![30, 40]];
-        let location1 = EntityLocation::new(0.into(), 1.into());
-        let location2 = EntityLocation::new(1.into(), 0.into());
-        let location3 = EntityLocation::new(1.into(), 1.into());
-        let wrong_idx_location = EntityLocation::new(2.into(), 1.into());
-        let wrong_pos_location = EntityLocation::new(0.into(), 2.into());
-        let result = get_both_mut(&mut data, location1, location2);
-        assert_eq!(result, (Some(&mut 20), Some(&mut 30)));
-        let result = get_both_mut(&mut data, location2, location1);
-        assert_eq!(result, (Some(&mut 30), Some(&mut 20)));
-        let result = get_both_mut(&mut data, location2, location3);
-        assert_eq!(result, (Some(&mut 30), Some(&mut 40)));
-        let result = get_both_mut(&mut data, location3, location2);
-        assert_eq!(result, (Some(&mut 40), Some(&mut 30)));
-        let result = get_both_mut(&mut data, location1, location1);
-        assert_eq!(result, (Some(&mut 20), None));
-        let result = get_both_mut(&mut data, location1, wrong_idx_location);
-        assert_eq!(result, (Some(&mut 20), None));
-        let result = get_both_mut(&mut data, wrong_pos_location, location1);
-        assert_eq!(result, (None, Some(&mut 20)));
-        let result = get_both_mut(&mut data, wrong_idx_location, wrong_idx_location);
-        assert_eq!(result, (None, None));
-    }
-}

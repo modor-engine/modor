@@ -208,14 +208,3 @@ pub(super) struct MissingComponentError;
 
 #[derive(PartialEq, Eq, Debug)]
 pub(super) struct ExistingComponentError;
-
-#[cfg(test)]
-mod entity_location_in_archetype_tests {
-    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
-
-    impl EntityLocation {
-        pub(crate) fn new(idx: ArchetypeIdx, pos: ArchetypeEntityPos) -> Self {
-            Self { idx, pos }
-        }
-    }
-}
