@@ -107,7 +107,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          target: armv7-linux-androideabi
+          target: aarch64-linux-android
           components: clippy
           profile: minimal
           override: true
@@ -121,7 +121,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all-targets --target armv7-linux-androideabi
+          args: --all-targets --target aarch64-linux-android
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
@@ -129,7 +129,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --target armv7-linux-androideabi -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+          args: --all-targets --target aarch64-linux-android -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   test-web:
     runs-on: ubuntu-20.04
