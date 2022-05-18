@@ -145,6 +145,7 @@ impl WindowInit {
         self.renderer = Some(Renderer::new(WindowTarget::new(window)));
     }
 
+    #[allow(clippy::let_and_return)]
     pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> WinitWindow {
         let window = WindowBuilder::new()
             .with_title(self.title.clone())
