@@ -1,9 +1,9 @@
 [package]
-name = "android_example"
+name = "rendering_2d"
 version = "0.1.0"
 authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
 edition = "2021"
-description = "Examples using the Modor game engine with Android"
+description = "Examples using the Modor game engine"
 license = "MIT OR Apache-2.0"
 publish = false
 
@@ -15,19 +15,17 @@ instant = "0.1"
 rand = "0.8"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue= "0.5"
+ndk-glue = "0.5"
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
 [package.metadata.android]
 apk_name = "modor_rendering_2d_example"
-build_targets = [ "armv7-linux-androideabi" ]
+build_targets = ["armv7-linux-androideabi"]
 
-[[package.metadata.android.uses_feature]]
-name = "android.hardware.vulkan.level"
-required = true
-version = 1
+[package.metadata.android.application]
+label = "Rendering 2D - Modor example"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31

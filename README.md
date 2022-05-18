@@ -24,6 +24,7 @@ It also makes extensive use of compile-time checks. For example:
 - Windows
 - Linux
 - macOS
+- Android
 - Web
 
 ## Usage
@@ -43,12 +44,11 @@ You can also include the modules you want, like:
 
 ## Examples
 
-Examples are located in `examples/modor_examples/examples`.
-
 You can use the following command to run them:
 
-- Desktop: `cargo run --example <name>`
-- Web: `cargo run-wasm --example <name>`
+- Desktop: `cargo run --example <name> --release`
+- Android: `cargo apk run --package <name> --release` (requires [cargo-apk](https://crates.io/crates/cargo-apk))
+- Web: `cargo run-wasm --example <name> --release`
 
 ## License
 

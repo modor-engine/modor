@@ -1,5 +1,4 @@
-//! Example of 2D rendering.
-#![allow(clippy::cast_precision_loss, clippy::print_stdout)]
+#![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
@@ -13,10 +12,12 @@ use std::time::Duration;
 
 const TITLE: &str = "Modor - rendering 2D";
 
-fn main() {
+#[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
+pub fn main() {
     App::new()
+        .with_thread_count(2)
         .with_entity(GraphicsModule::build(SurfaceSize::new(800, 600), TITLE))
-        .with_entity(MainModule::build(1000))
+        .with_entity(MainModule::build(10000))
         .run(modor_graphics::runner);
 }
 
