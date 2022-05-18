@@ -115,6 +115,8 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
+      - name: Configure Android SDK
+        run: echo "$ANDROID_HOME/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
       - name: Build
         uses: actions-rs/cargo@v1
         with:

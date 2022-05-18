@@ -142,7 +142,7 @@ impl WindowInit {
     }
 
     pub(crate) fn create_renderer(&mut self, window: &WinitWindow) {
-        self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
+        self.renderer = Some(Renderer::new(WindowTarget::new(window)));
     }
 
     pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> WinitWindow {
