@@ -88,6 +88,7 @@ impl RenderTarget {
 /// See [`GraphicsModule`](crate::GraphicsModule).
 pub struct Window {
     size: SurfaceSize,
+    refreshed_renderer: Option<Renderer>,
 }
 
 #[singleton]
@@ -101,6 +102,7 @@ impl Window {
         let (width, height) = renderer.target_size();
         EntityBuilder::new(Self {
             size: SurfaceSize { width, height },
+            refreshed_renderer: None,
         })
         .inherit_from(RenderTarget::build(renderer))
     }
@@ -109,9 +111,17 @@ impl Window {
         self.size = size;
     }
 
+    pub(crate) fn update_renderer(&mut self, window: &WinitWindow) {
+        self.refreshed_renderer = Some(Renderer::new(WindowTarget::new(window)));
+    }
+
     #[run]
     fn update_size(&mut self, surface: &mut RenderTarget) {
-        surface.core.set_size(self.size());
+        if let Some(renderer) = self.refreshed_renderer.take() {
+            surface.core = CoreStorage::new(renderer);
+        } else {
+            surface.core.set_size(self.size());
+        }
     }
 }
 
@@ -129,6 +139,10 @@ impl WindowInit {
             title,
             renderer: None,
         })
+    }
+
+    pub(crate) fn create_renderer(&mut self, window: &WinitWindow) {
+        self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
     }
 
     pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> WinitWindow {
@@ -150,7 +164,10 @@ impl WindowInit {
                 })
                 .expect("cannot append canvas to document body");
         }
-        self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
+        #[cfg(not(target_os = "android"))]
+        {
+            self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
+        }
         window
     }
 
@@ -161,10 +178,11 @@ impl WindowInit {
         graphics: Single<'_, GraphicsModule>,
         mut world: World<'_>,
     ) {
-        let renderer = self
-            .renderer
-            .take()
-            .expect("internal error: renderer not initialized");
+        let renderer = if let Some(renderer) = self.renderer.take() {
+            renderer
+        } else {
+            Renderer::new(TextureTarget::new(self.size.width, self.size.height))
+        };
         world.create_child_entity(graphics.entity().id(), Window::build(renderer));
         world.delete_entity(entity.id());
     }
