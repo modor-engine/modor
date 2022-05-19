@@ -100,8 +100,6 @@ jobs:
 
   test-android:
     runs-on: ubuntu-20.04
-    env:
-      PKG_CONFIG_ALLOW_CROSS: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -117,13 +115,6 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
-      - name: Configure Android SDK
-        run: echo "$ANDROID_HOME/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
-#      - name: Build
-#        uses: actions-rs/cargo@v1
-#        with:
-#          command: build
-#          args: --all-targets --target aarch64-linux-android
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
