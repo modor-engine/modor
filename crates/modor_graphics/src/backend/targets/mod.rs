@@ -34,7 +34,16 @@ fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
     utils::block_on(adapter.request_device(
         &DeviceDescriptor {
             features: Features::empty(),
-            limits: Limits::downlevel_webgl2_defaults(),
+            limits: {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    Limits::downlevel_webgl2_defaults()
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    Limits::default()
+                }
+            },
             label: None,
         },
         None,

@@ -45,6 +45,10 @@ pub fn runner(mut app: App) {
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     let mut previous_update_end = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
+        Event::Resumed => {
+            app.run_for_singleton(|w: &mut WindowInit| w.create_renderer(&window));
+            app.run_for_singleton(|w: &mut Window| w.update_renderer(&window));
+        }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
             let mut frame_rate = FrameRate::Unlimited;

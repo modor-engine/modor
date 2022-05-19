@@ -47,19 +47,17 @@ impl FrameRateLimit {
 }
 
 /// A frame rate.
+///
+/// On some platforms like web and mobile, the frame rate might be limited in any case.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameRate {
     /// A limit in frames per second.
     ///
     /// `FrameRate::FPS(0)` is equivalent to `FrameRate::Unlimited`.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Web: this is equivalent to `FrameRate::Unlimited`.
     FPS(u16),
     /// A limit based on vertical synchronization.
     ///
-    /// This is the most optimal mode for mobile.
+    /// This is the most optimal mode for mobile and web.
     VSync,
     /// No limitation.
     Unlimited,
