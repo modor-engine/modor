@@ -9,7 +9,7 @@ use modor::{Built, EntityBuilder};
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-/// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputActidon)
+/// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputAction)
 ///
 /// # Examples
 ///
