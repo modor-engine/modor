@@ -43,10 +43,13 @@ impl Camera2D {
     }
 
     /// Returns the 2D world position of the mouse.
+    ///
+    /// Does not work in windowless mode.
     pub fn mouse_position(&self) -> Mouse2DWorldPosition {
         self.mouse_position
     }
 
+    // coverage: off (window cannot be tested)
     #[allow(clippy::cast_precision_loss)]
     #[run_as(UpdateCamera2DAction)]
     fn update_from_mouse(
@@ -56,7 +59,7 @@ impl Camera2D {
         mouse: Single<'_, Mouse>,
         window: Single<'_, Window>,
     ) {
-        // TODO: avoid code duplication
+        // TODO: avoid code duplication + test this part
         let x_scale = f32::min(window.size().height as f32 / window.size().width as f32, 1.);
         let y_scale = f32::min(window.size().width as f32 / window.size().height as f32, 1.);
         self.mouse_position.x = (mouse.position().x / window.size().width as f32 - 0.5 / x_scale)
@@ -64,6 +67,7 @@ impl Camera2D {
         self.mouse_position.y = (0.5 - mouse.position().y / window.size().height as f32 / y_scale)
             .mul_add(scale.abs().y, position.abs().y);
     }
+    // coverage: on
 }
 
 /// The 2D world position of the mouse.

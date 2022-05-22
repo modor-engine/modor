@@ -9,7 +9,7 @@ use modor::{Built, EntityBuilder};
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-/// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputAction)
+/// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputActidon)
 ///
 /// # Examples
 ///
@@ -45,9 +45,6 @@ impl Keyboard {
     /// Returns a normalized delta indicating a direction from left, right, up and down keys.
     ///
     /// If none of the keys are pressed, the returned delta has all components equal to zero.
-    ///
-    /// For X-axis, `right` corresponds to positive coordinate.<br>
-    /// For Y-axis, `up` corresponds to positive coordinate.
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> InputDelta {
         let mut delta = InputDelta::xy(0., 0.);
         if self.key(left).is_pressed() {

@@ -79,6 +79,14 @@ impl Mouse {
         self.position
     }
 
+    /// Returns the mouse delta.
+    ///
+    /// The delta does not take into account a possible acceleration created by the system,
+    /// in contrary to [`Mouse::position`](crate::Mouse::position).
+    pub fn delta(&self) -> InputDelta {
+        self.delta
+    }
+
     pub(crate) fn build() -> impl Built<Self> {
         EntityBuilder::new(Self {
             buttons: FxHashMap::default(),

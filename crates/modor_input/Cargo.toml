@@ -14,3 +14,7 @@ exclude = [".github", "README.md"]
 [dependencies]
 fxhash = "0.2"
 modor = { version = "0.1.0", path = "../modor" }
+
+[dev-dependencies]
+approx = "0.5"
+

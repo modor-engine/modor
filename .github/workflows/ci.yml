@@ -217,6 +217,28 @@ jobs:
       - name: Check coverage threshold
         run: bash .github/workflows/scripts/check_coverage.sh
 
+  generate-doc:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+
   lint-rust:
     runs-on: ubuntu-20.04
     steps:

@@ -52,6 +52,9 @@ impl InputState {
 
 /// The delta of a movable input.
 ///
+/// For X-axis, right corresponds to positive coordinate.<br>
+/// For Y-axis, up corresponds to positive coordinate.
+///
 /// # Examples
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
