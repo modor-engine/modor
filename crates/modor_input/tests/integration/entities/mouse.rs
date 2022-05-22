@@ -8,7 +8,7 @@ use modor_input::{
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_and_use_mouse() {
+fn update_pressed_buttons() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(InputEvent::Mouse(MouseEvent::PressedButton(
@@ -23,16 +23,6 @@ fn update_and_use_mouse() {
         c.push(InputEvent::Mouse(MouseEvent::ReleasedButton(
             MouseButton::Middle,
         )));
-        c.push(InputEvent::Mouse(MouseEvent::Scroll(
-            InputDelta::xy(1., 2.),
-            MouseScrollUnit::Line,
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::UpdatedPosition(
-            MousePosition::xy(150., 320.),
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::Moved(InputDelta::xy(
-            18., 15.,
-        ))));
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -46,22 +36,10 @@ fn update_and_use_mouse() {
         assert!(m.button(MouseButton::Right).is_pressed());
         assert!(m.button(MouseButton::Right).is_just_pressed());
         assert!(!m.button(MouseButton::Right).is_just_released());
-        assert_abs_diff_eq!(m.scroll_delta_in_lines(2., 3.).x, 1.);
-        assert_abs_diff_eq!(m.scroll_delta_in_lines(2., 3.).y, 2.);
-        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).x, 2.);
-        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 6.);
-        assert_abs_diff_eq!(m.position().x, 150.);
-        assert_abs_diff_eq!(m.position().y, 320.);
-        assert_abs_diff_eq!(m.delta().x, 18.);
-        assert_abs_diff_eq!(m.delta().y, 15.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(InputEvent::Mouse(MouseEvent::ReleasedButton(
             MouseButton::Right,
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::Scroll(
-            InputDelta::xy(10., 20.),
-            MouseScrollUnit::Pixel,
         )));
     });
     app.update();
@@ -73,14 +51,6 @@ fn update_and_use_mouse() {
         assert!(!m.button(MouseButton::Right).is_pressed());
         assert!(!m.button(MouseButton::Right).is_just_pressed());
         assert!(m.button(MouseButton::Right).is_just_released());
-        assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).x, 2.);
-        assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).y, 10.);
-        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).x, 10.);
-        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 20.);
-        assert_abs_diff_eq!(m.position().x, 150.);
-        assert_abs_diff_eq!(m.position().y, 320.);
-        assert_abs_diff_eq!(m.delta().x, 0.);
-        assert_abs_diff_eq!(m.delta().y, 0.);
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -91,11 +61,86 @@ fn update_and_use_mouse() {
         assert!(!m.button(MouseButton::Right).is_pressed());
         assert!(!m.button(MouseButton::Right).is_just_pressed());
         assert!(!m.button(MouseButton::Right).is_just_released());
+    });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_scroll() {
+    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
+    app.run_for_singleton(|c: &mut InputEventCollector| {
+        c.push(InputEvent::Mouse(MouseEvent::Scroll(
+            InputDelta::xy(1., 2.),
+            MouseScrollUnit::Line,
+        )));
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
+        assert_abs_diff_eq!(m.scroll_delta_in_lines(2., 3.).x, 1.);
+        assert_abs_diff_eq!(m.scroll_delta_in_lines(2., 3.).y, 2.);
+        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).x, 2.);
+        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 6.);
+    });
+    app.run_for_singleton(|c: &mut InputEventCollector| {
+        c.push(InputEvent::Mouse(MouseEvent::Scroll(
+            InputDelta::xy(10., 20.),
+            MouseScrollUnit::Pixel,
+        )));
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
+        assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).x, 2.);
+        assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).y, 10.);
+        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).x, 10.);
+        assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 20.);
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
         assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).x, 0.);
         assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.).y, 0.);
         assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).x, 0.);
         assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 0.);
+    });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_position() {
+    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
+    app.run_for_singleton(|c: &mut InputEventCollector| {
+        c.push(InputEvent::Mouse(MouseEvent::UpdatedPosition(
+            MousePosition::xy(150., 320.),
+        )));
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
         assert_abs_diff_eq!(m.position().x, 150.);
         assert_abs_diff_eq!(m.position().y, 320.);
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
+        assert_abs_diff_eq!(m.position().x, 150.);
+        assert_abs_diff_eq!(m.position().y, 320.);
+    });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_delta() {
+    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
+    app.run_for_singleton(|c: &mut InputEventCollector| {
+        c.push(InputEvent::Mouse(MouseEvent::Moved(InputDelta::xy(
+            18., 15.,
+        ))));
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
+        assert_abs_diff_eq!(m.delta().x, 18.);
+        assert_abs_diff_eq!(m.delta().y, 15.);
+    });
+    app.update();
+    app.assert_singleton::<Mouse>().has(|m: &Mouse| {
+        assert_abs_diff_eq!(m.delta().x, 0.);
+        assert_abs_diff_eq!(m.delta().y, 0.);
     });
 }
