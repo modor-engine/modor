@@ -14,12 +14,16 @@ use modor::{Built, EntityBuilder};
 ///
 /// ```rust
 /// # use modor::App;
-/// # use modor_graphics::{FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize};
+/// # use modor_graphics::{FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, WindowSettings};
 /// # use modor_physics::PhysicsModule;
 /// #
 /// # fn no_run() {
 /// let mut app = App::new()
-///     .with_entity(GraphicsModule::build(SurfaceSize::new(800, 600), "title"))
+///      .with_entity(GraphicsModule::build(
+///          WindowSettings::default()
+///              .size(SurfaceSize::new(800, 600))
+///              .title("title"),
+///      ))
 ///     .with_entity(FrameRateLimit::build(FrameRate::FPS(60)))
 ///     .run(modor_graphics::runner);
 /// # }

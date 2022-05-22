@@ -4,19 +4,22 @@ use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
 use modor_graphics::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
+    WindowSettings,
 };
 use modor_physics::{DeltaTime, Position, Scale, Shape, Velocity};
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::Duration;
 
-const TITLE: &str = "Modor - rendering 2D";
-
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_thread_count(2)
-        .with_entity(GraphicsModule::build(SurfaceSize::new(800, 600), TITLE))
+        .with_entity(GraphicsModule::build(
+            WindowSettings::default()
+                .size(SurfaceSize::new(800, 600))
+                .title("Modor - rendering 2D"),
+        ))
         .with_entity(MainModule::build(10000))
         .run(modor_graphics::runner);
 }

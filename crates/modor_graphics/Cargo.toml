@@ -7,7 +7,7 @@ description = "Graphics module of Modor game engine"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
-keywords = ["modor", "graphics", "display", "game", "engine"]
+keywords = ["modor", "graphics", "display", "rendering", "game"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
 
@@ -22,6 +22,7 @@ winit = "0.26"
 modor = { version = "0.1.0", path = "../modor" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
 modor_physics = { version = "0.1.0", path = "../modor_physics" }
+modor_input = { version = "0.1.0", path = "../modor_input" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
@@ -30,6 +31,7 @@ wgpu = "0.12"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
 console_log = "0.1"
+log = "0.4"
 futures = "0.3"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Location"] }

@@ -1,0 +1,16 @@
+[package]
+name = "modor_input"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Input module of Modor game engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "../../README.md"
+keywords = ["modor", "input", "keyword", "mouse", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+
+[dependencies]
+fxhash = "0.2"
+modor = { version = "0.1.0", path = "../modor" }

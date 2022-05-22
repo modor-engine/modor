@@ -82,7 +82,7 @@ impl Position {
 }
 
 /// An absolute position corresponding to a relative [`Position`](crate::Position).
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct AbsolutePosition {
     /// The X-coordinate.
     pub x: f32,

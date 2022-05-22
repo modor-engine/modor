@@ -1,9 +1,9 @@
 [package]
-name = "rendering_2d"
+name = "input"
 version = "0.1.0"
 authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
 edition = "2021"
-description = "2D rendering example of the Modor game engine"
+description = "Input example of the Modor game engine"
 license = "MIT OR Apache-2.0"
 publish = false
 
@@ -11,8 +11,7 @@ publish = false
 modor = { version = "0.1.0", path = "../../crates/modor" }
 modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
 modor_graphics = { version = "0.1.0", path = "../../crates/modor_graphics" }
-instant = "0.1"
-rand = "0.8"
+modor_input = { version = "0.1.0", path = "../../crates/modor_input" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk-glue = "0.5"
@@ -21,7 +20,7 @@ ndk-glue = "0.5"
 crate-type = ["lib", "cdylib"]
 
 [package.metadata.android]
-apk_name = "modor_rendering_2d_example"
+apk_name = "modor_input_example"
 build_targets = ["armv7-linux-androideabi"]
 
 [package.metadata.android.application]
