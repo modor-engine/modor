@@ -10,10 +10,10 @@ use modor_physics::{Position, Scale, Velocity};
 use std::io;
 use std::io::Write;
 
-// TODO: add tests
 // TODO: create common module modor_math to create Vec2 and Vec3 traits
 // TODO: support multi-touch
 // TODO: support game pads
+// TODO: add tests + doc
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {

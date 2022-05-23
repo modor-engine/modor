@@ -13,6 +13,7 @@ exclude = [".github", "README.md"]
 
 [dependencies]
 modor = { version = "0.1.0", path = "../modor" }
+modor_math = { version = "0.1.0", path = "../modor_math" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
 
 [dev-dependencies]

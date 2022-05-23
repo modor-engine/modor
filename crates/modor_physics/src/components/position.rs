@@ -81,6 +81,8 @@ impl Position {
     }
 }
 
+// TODO: split in RelativePosition and Position
+
 /// An absolute position corresponding to a relative [`Position`](crate::Position).
 #[derive(Clone, Copy, Debug)]
 pub struct AbsolutePosition {
