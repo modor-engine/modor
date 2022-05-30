@@ -8,7 +8,7 @@ use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
-use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
+use modor_physics::{Position, Shape, Size};
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
@@ -48,14 +48,14 @@ impl CoreStorage {
 
     pub(crate) fn update_instances(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Size, Option<&Shape>)>,
         camera: CameraProperties,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _)| p.abs().z));
+        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _)| p.z));
         for (color, position, scale, shape) in shapes.iter() {
-            let instance = Self::create_instance(color, position.abs(), scale.abs(), depth_bounds);
+            let instance = Self::create_instance(*color, *position, *scale, depth_bounds);
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
@@ -98,9 +98,9 @@ impl CoreStorage {
     }
 
     fn create_instance(
-        color: &ShapeColor,
-        position: &AbsolutePosition,
-        size: &Size,
+        color: ShapeColor,
+        position: Position,
+        size: Size,
         depth_bounds: (f32, f32),
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
@@ -138,6 +138,6 @@ impl CoreStorage {
 }
 
 pub(crate) struct CameraProperties {
-    pub(crate) position: AbsolutePosition,
+    pub(crate) position: Position,
     pub(crate) size: Size,
 }

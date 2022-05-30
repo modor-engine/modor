@@ -10,14 +10,14 @@ use crate::{
     WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
-use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
+use modor_physics::{Position, Shape, Size};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
 const DEFAULT_CAMERA: CameraProperties = CameraProperties {
-    position: AbsolutePosition {
+    position: Position {
         x: 0.,
         y: 0.,
         z: 0.,
@@ -44,8 +44,8 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
-        cameras: Query<'_, (&Position, &Scale), With<Camera2D>>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Size, Option<&Shape>)>,
+        cameras: Query<'_, (&Position, &Size), With<Camera2D>>,
     ) {
         let camera = Self::extract_camera(cameras);
         self.core.update_instances(shapes, camera);
@@ -66,13 +66,13 @@ impl RenderTarget {
     #[run_as(UpdateGraphicsAction)]
     fn finish_update() {}
 
-    fn extract_camera(cameras: Query<'_, (&Position, &Scale), With<Camera2D>>) -> CameraProperties {
+    fn extract_camera(cameras: Query<'_, (&Position, &Size), With<Camera2D>>) -> CameraProperties {
         cameras
             .iter()
             .next()
             .map_or(DEFAULT_CAMERA, |(p, s)| CameraProperties {
-                position: *p.abs(),
-                size: s.abs().clone(),
+                position: *p,
+                size: *s,
             })
     }
 }

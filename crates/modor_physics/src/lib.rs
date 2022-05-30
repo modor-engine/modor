@@ -30,8 +30,8 @@ mod entities;
 
 pub use components::acceleration::*;
 pub use components::position::*;
-pub use components::scale::*;
 pub use components::shape::*;
+pub use components::size::*;
 pub use components::velocity::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;

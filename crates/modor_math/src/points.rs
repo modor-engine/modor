@@ -33,3 +33,4 @@ pub trait Point3D {
 
 // TODO: distance between rel and abs position cannot be calculated with Point2D/Point3D
 //  -> define a `type Unit;` in the traits.
+// TODO: avoid references for Point/Vector traits ?

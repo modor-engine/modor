@@ -6,7 +6,7 @@ use modor_graphics::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
     WindowSettings,
 };
-use modor_physics::{DeltaTime, Position, Scale, Shape, Velocity};
+use modor_physics::{DeltaTime, Position, Shape, Size, Velocity};
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::Duration;
@@ -31,7 +31,7 @@ impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(Position::xy(0., 0.), Scale::xy(1.5, 1.5)))
+            .with_child(Camera2D::build(Position::xy(0., 0.), Size::xy(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -56,7 +56,7 @@ impl Sprite {
             Self::random_f32(&mut rng),
             Self::random_f32(&mut rng),
         ))
-        .with(Scale::xy(0.01, 0.01))
+        .with(Size::xy(0.01, 0.01))
         .with(Velocity::xy(0., 0.))
         .with(Shape::Circle2D)
         .with(ShapeColor(Color::rgb(

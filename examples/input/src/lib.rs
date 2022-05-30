@@ -6,10 +6,11 @@ use modor_graphics::{
     WindowSettings,
 };
 use modor_input::{Key, Keyboard, Mouse, MouseButton};
-use modor_physics::{Position, Scale, Velocity};
+use modor_physics::{Position, Size, Velocity};
 use std::io;
 use std::io::Write;
 
+// TODO: fix issue with mouse position (without window resize: right part of window + with resize)
 // TODO: create common module modor_math to create Vec2 and Vec3 traits
 // TODO: support multi-touch
 // TODO: support game pads
@@ -25,7 +26,7 @@ pub fn main() {
                 .has_visible_cursor(false),
         ))
         .with_entity(FrameRateLimit::build(FrameRate::VSync))
-        .with_entity(Camera2D::build(Position::xy(0.5, 0.5), Scale::xy(1.5, 1.5)))
+        .with_entity(Camera2D::build(Position::xy(0.5, 0.5), Size::xy(1.5, 1.5)))
         .with_entity(MouseState::build())
         .with_entity(KeyboardState::build())
         .run(modor_graphics::runner);
@@ -38,7 +39,7 @@ impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::xy(0., 0.))
-            .with(Scale::xy(0.25, 0.25))
+            .with(Size::xy(0.25, 0.25))
             .with(ShapeColor(Color::DARK_GRAY))
     }
 
@@ -69,7 +70,7 @@ impl KeyboardState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::xy(0., 0.))
-            .with(Scale::xy(0.25, 0.25))
+            .with(Size::xy(0.25, 0.25))
             .with(Velocity::xy(0., 0.))
             .with(ShapeColor(Color::DARK_GRAY))
     }
