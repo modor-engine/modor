@@ -1,13 +1,13 @@
-# modor_internal
+# modor_math
 
-[![Crates.io](https://img.shields.io/crates/v/modor_internal.svg)](https://crates.io/crates/modor_internal)
-[![Docs.rs](https://img.shields.io/docsrs/modor_internal)](https://docs.rs/crate/modor_internal)
-[![License](https://img.shields.io/crates/l/modor_internal)](https://github.com/modor-engine/modor_internal)
+[![Crates.io](https://img.shields.io/crates/v/modor_math.svg)](https://crates.io/crates/modor_math)
+[![Docs.rs](https://img.shields.io/docsrs/modor_math)](https://docs.rs/crate/modor_math)
+[![License](https://img.shields.io/crates/l/modor_math)](https://github.com/modor-engine/modor_math)
 [![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
-[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-0-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor_internal+extension%3Ars+unsafe)
+[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-0-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor_math+extension%3Ars+unsafe)
 
-Internal module of Modor for common utils.
+Math module of Modor.
 
 ## License
 

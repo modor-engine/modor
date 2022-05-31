@@ -1,3 +1,5 @@
+//! Math module of modor.
+
 mod points;
 mod vectors;
 

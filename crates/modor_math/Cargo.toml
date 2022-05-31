@@ -10,3 +10,9 @@ readme = "./README.md"
 keywords = ["modor", "math", "vector"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
+
+[dev-dependencies]
+approx = "0.5"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"

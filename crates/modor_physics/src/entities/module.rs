@@ -105,10 +105,10 @@ impl PhysicsModule {
         for entity in Self::entities_sorted_by_depth(entities.iter()) {
             match components.get_with_first_parent_mut(entity.id()) {
                 (Some((size, Some(relative_size))), Some((parent_size, _))) => {
-                    size.update_with_relative(*relative_size, *parent_size)
+                    size.update_with_relative(*relative_size, *parent_size);
                 }
                 (Some((size, Some(relative_size))), None) => {
-                    size.update_with_relative(*relative_size, ROOT_SIZE)
+                    size.update_with_relative(*relative_size, ROOT_SIZE);
                 }
                 _ => {}
             }
@@ -131,7 +131,7 @@ impl PhysicsModule {
                     *parent_size,
                 ),
                 (Some((size, Some(relative_size), _)), None) => {
-                    size.update_with_relative(*relative_size, ROOT_POSITION, ROOT_SIZE)
+                    size.update_with_relative(*relative_size, ROOT_POSITION, ROOT_SIZE);
                 }
                 _ => {}
             }
