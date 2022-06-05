@@ -1,4 +1,5 @@
 use crate::{Acceleration, RelativeAcceleration};
+use modor_math::Vector3D;
 use std::time::Duration;
 
 /// The absolute velocity of an entity.
@@ -17,7 +18,7 @@ use std::time::Duration;
 /// # Examples
 ///
 /// See [`Position`](crate::Position).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
 pub struct Velocity {
     /// The X-coordinate.
     pub x: f32,
@@ -43,30 +44,20 @@ impl Velocity {
         Self::xyz(x, y, 0.)
     }
 
-    /// Returns the magnitude.
-    pub fn magnitude(&self) -> f32 {
-        self.x
-            .mul_add(self.x, self.y.mul_add(self.y, self.z.powi(2)))
-            .sqrt()
-    }
-
-    /// Set the magnitude.
-    ///
-    /// If the current magnitude of the acceleration is zero, the magnitude is unchanged.
-    pub fn set_magnitude(&mut self, magnitude: f32) -> &mut Self {
-        let factor = magnitude / self.magnitude();
-        if factor.is_finite() {
-            self.x *= factor;
-            self.y *= factor;
-            self.z *= factor;
-        }
-        self
-    }
-
     pub(crate) fn update(&mut self, acceleration: Acceleration, delta_time: Duration) {
         self.x += acceleration.x * delta_time.as_secs_f32();
         self.y += acceleration.y * delta_time.as_secs_f32();
         self.z += acceleration.z * delta_time.as_secs_f32();
+    }
+}
+
+impl Vector3D for Velocity {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self::xyz(x, y, z)
+    }
+
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
     }
 }
 
@@ -89,7 +80,7 @@ impl Velocity {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
 pub struct RelativeVelocity {
     /// The X-coordinate.
     pub x: f32,
@@ -115,29 +106,19 @@ impl RelativeVelocity {
         Self::xyz(x, y, 0.)
     }
 
-    /// Returns the magnitude.
-    pub fn magnitude(&self) -> f32 {
-        self.x
-            .mul_add(self.x, self.y.mul_add(self.y, self.z.powi(2)))
-            .sqrt()
-    }
-
-    /// Set the magnitude.
-    ///
-    /// If the current magnitude of the acceleration is zero, the magnitude is unchanged.
-    pub fn set_magnitude(&mut self, magnitude: f32) -> &mut Self {
-        let factor = magnitude / self.magnitude();
-        if factor.is_finite() {
-            self.x *= factor;
-            self.y *= factor;
-            self.z *= factor;
-        }
-        self
-    }
-
     pub(crate) fn update(&mut self, acceleration: RelativeAcceleration, delta_time: Duration) {
         self.x += acceleration.x * delta_time.as_secs_f32();
         self.y += acceleration.y * delta_time.as_secs_f32();
         self.z += acceleration.z * delta_time.as_secs_f32();
+    }
+}
+
+impl Vector3D for RelativeVelocity {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self::xyz(x, y, z)
+    }
+
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
     }
 }

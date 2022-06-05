@@ -6,6 +6,7 @@
 //! ```toml
 //! modor = "0.1"
 //! modor_graphics = "0.1"
+//! modor_math = "0.1"
 //! ```
 //!
 //! You can then create a window with the following code:

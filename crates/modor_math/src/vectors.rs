@@ -1,5 +1,7 @@
+use std::ops::{Add, AddAssign, Sub, SubAssign};
+
 /// A trait for defining a vector in a 2D space.
-pub trait Vector2D: Copy {
+pub trait Vector2D: Copy + Add + Sub + AddAssign + SubAssign {
     /// Creates a new vector.
     fn create(x: f32, y: f32) -> Self;
 
@@ -13,6 +15,8 @@ pub trait Vector2D: Copy {
     }
 
     /// Returns the vector with the same direction but another `magnitude`.
+    ///
+    /// If all components of the initial vector are equal to zero, the returned vector is the same.
     #[must_use]
     fn with_magnitude(self, magnitude: f32) -> Self {
         let (x, y) = self.components();
@@ -25,8 +29,17 @@ pub trait Vector2D: Copy {
     }
 }
 
+// impl<V> AddAssign for V
+// where
+//     V: Vector2D,
+// {
+//     fn add_assign(&mut self, rhs: Self) {
+//         *self = Self::create(self.x + rhs.x, self.y + rhs.y);
+//     }
+// }
+
 /// A trait for defining a vector in a 3D space.
-pub trait Vector3D: Copy {
+pub trait Vector3D: Copy + Add + Sub + AddAssign + SubAssign {
     /// Creates a new vector.
     fn create(x: f32, y: f32, z: f32) -> Self;
 
@@ -40,6 +53,8 @@ pub trait Vector3D: Copy {
     }
 
     /// Returns the vector with the same direction but another `magnitude`.
+    ///
+    /// If all components of the initial vector are equal to zero, the returned vector is the same.
     #[must_use]
     fn with_magnitude(self, magnitude: f32) -> Self {
         let (x, y, z) = self.components();

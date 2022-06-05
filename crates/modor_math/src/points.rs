@@ -1,16 +1,10 @@
 /// A trait for defining a point in a 2D space.
 pub trait Point2D: Copy {
-    /// Unit of the components.
-    type Unit;
-
     /// Returns components of the point.
     fn components(self) -> (f32, f32);
 
     /// Returns the Euclidean distance with `other_point`.
-    fn distance<P>(self, other_point: P) -> f32
-    where
-        P: Point2D<Unit = Self::Unit>,
-    {
+    fn distance(self, other_point: Self) -> f32 {
         let (x, y) = self.components();
         let (other_x, other_y) = other_point.components();
         let x_diff = x - other_x;
@@ -21,17 +15,11 @@ pub trait Point2D: Copy {
 
 /// A trait for defining a point in a 3D space.
 pub trait Point3D: Copy {
-    /// Unit of the components.
-    type Unit;
-
     /// Returns components of the point.
     fn components(self) -> (f32, f32, f32);
 
     /// Returns the Euclidean distance with `other_point`.
-    fn distance<P>(self, other_point: P) -> f32
-    where
-        P: Point3D<Unit = Self::Unit>,
-    {
+    fn distance(self, other_point: Self) -> f32 {
         let (x, y, z) = self.components();
         let (other_x, other_y, other_z) = other_point.components();
         let x_diff = x - other_x;
@@ -42,6 +30,3 @@ pub trait Point3D: Copy {
             .sqrt()
     }
 }
-
-// TODO: distance between rel and abs position cannot be calculated with Point2D/Point3D
-//  -> define a `type Unit;` in the traits.

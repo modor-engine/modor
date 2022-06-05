@@ -18,6 +18,7 @@ To include this library in your project, just add the following line in your `Ca
 ```toml
 modor = "0.1"
 modor_input = "0.1"
+modor_math = "0.1"
 ```
 
 ## License

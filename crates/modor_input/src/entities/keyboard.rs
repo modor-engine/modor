@@ -2,6 +2,7 @@ use crate::data::{InputState, DEFAULT_INPUT_STATE};
 use crate::InputDelta;
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
+use modor_math::Vector2D;
 
 /// The state of the keyboard.
 ///
@@ -59,7 +60,7 @@ impl Keyboard {
         if self.key(down).is_pressed() {
             delta.y -= 1.;
         }
-        delta.normalize()
+        delta.with_magnitude(1.)
     }
 
     /// Returns the entered text.

@@ -9,8 +9,9 @@ publish = false
 
 [dependencies]
 modor = { version = "0.1.0", path = "../../crates/modor" }
-modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
+modor_math = { version = "0.1.0", path = "../../crates/modor_math" }
 modor_graphics = { version = "0.1.0", path = "../../crates/modor_graphics" }
+modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
 instant = "0.1"
 rand = "0.8"
 

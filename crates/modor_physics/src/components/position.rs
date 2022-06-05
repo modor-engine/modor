@@ -1,4 +1,5 @@
 use crate::{RelativeVelocity, Size, Velocity};
+use modor_math::Point3D;
 use std::time::Duration;
 
 /// The absolute position of an entity.
@@ -93,6 +94,12 @@ impl Position {
     }
 }
 
+impl Point3D for Position {
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
+    }
+}
+
 /// The relative position of an entity.
 ///
 /// The position is relative to the first parent entity with a position and a size.<br>
@@ -166,5 +173,11 @@ impl RelativePosition {
         self.x += velocity.x * delta_time.as_secs_f32();
         self.y += velocity.y * delta_time.as_secs_f32();
         self.z += velocity.z * delta_time.as_secs_f32();
+    }
+}
+
+impl Point3D for RelativePosition {
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
     }
 }

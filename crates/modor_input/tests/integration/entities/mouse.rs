@@ -3,7 +3,7 @@ use modor::testing::TestApp;
 use modor::App;
 use modor_input::{
     InputDelta, InputEvent, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent,
-    MousePosition, MouseScrollUnit,
+    MouseScrollUnit, WindowPosition,
 };
 
 #[test]
@@ -109,7 +109,7 @@ fn update_position() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(InputEvent::Mouse(MouseEvent::UpdatedPosition(
-            MousePosition::xy(150., 320.),
+            WindowPosition::xy(150., 320.),
         )));
     });
     app.update();

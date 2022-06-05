@@ -3,7 +3,7 @@ use instant::Instant;
 use modor::App;
 use modor_input::{
     InputDelta, InputEvent, InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent,
-    MousePosition, MouseScrollUnit,
+    MouseScrollUnit, WindowPosition,
 };
 use modor_physics::DeltaTime;
 use winit::event;
@@ -120,7 +120,7 @@ pub fn runner(mut app: App) {
             WindowEvent::CursorMoved { position, .. } => {
                 send_input_event(
                     &mut app,
-                    InputEvent::Mouse(MouseEvent::UpdatedPosition(MousePosition::xy(
+                    InputEvent::Mouse(MouseEvent::UpdatedPosition(WindowPosition::xy(
                         position.x as f32,
                         position.y as f32,
                     ))),

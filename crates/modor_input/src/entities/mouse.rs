@@ -1,6 +1,7 @@
 use crate::data::{InputDelta, InputState, DEFAULT_INPUT_STATE};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
+use modor_math::Vector2D;
 
 /// The state of the mouse.
 ///
@@ -25,7 +26,7 @@ pub struct Mouse {
     buttons: FxHashMap<MouseButton, InputState>,
     scroll_delta: InputDelta,
     scroll_unit: MouseScrollUnit,
-    position: MousePosition,
+    position: WindowPosition,
     delta: InputDelta,
 }
 
@@ -75,7 +76,7 @@ impl Mouse {
     }
 
     /// Returns the position of the mouse.
-    pub fn position(&self) -> MousePosition {
+    pub fn position(&self) -> WindowPosition {
         self.position
     }
 
@@ -92,7 +93,7 @@ impl Mouse {
             buttons: FxHashMap::default(),
             scroll_delta: InputDelta::default(),
             scroll_unit: MouseScrollUnit::Pixel,
-            position: MousePosition::default(),
+            position: WindowPosition::default(),
             delta: InputDelta::default(),
         })
     }
@@ -133,28 +134,38 @@ pub enum MouseEvent {
     /// Scroll of the mouse detected.
     Scroll(InputDelta, MouseScrollUnit),
     /// Mouse position updated.
-    UpdatedPosition(MousePosition),
+    UpdatedPosition(WindowPosition),
     /// Mouse moved.
     Moved(InputDelta),
 }
 
-/// The position of the mouse in pixels from the top-left corner of the app window.
+/// A position in pixels from the top-left corner of the app window.
 ///
 /// # Examples
 ///
 /// See [`Mouse`](crate::Mouse).
-#[derive(Default, Clone, Copy, Debug)]
-pub struct MousePosition {
+#[derive(Default, Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
+pub struct WindowPosition {
     /// The X-coordinate.
     pub x: f32,
     /// The Y-coordinate.
     pub y: f32,
 }
 
-impl MousePosition {
-    /// Creates a new mouse position.
+impl WindowPosition {
+    /// Creates a new position.
     pub fn xy(x: f32, y: f32) -> Self {
         Self { x, y }
+    }
+}
+
+impl Vector2D for WindowPosition {
+    fn create(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+
+    fn components(self) -> (f32, f32) {
+        (self.x, self.y)
     }
 }
 

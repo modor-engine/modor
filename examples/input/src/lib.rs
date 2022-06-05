@@ -6,12 +6,12 @@ use modor_graphics::{
     WindowSettings,
 };
 use modor_input::{Key, Keyboard, Mouse, MouseButton};
+use modor_math::Vector3D;
 use modor_physics::{Position, Size, Velocity};
 use std::io;
 use std::io::Write;
 
 // TODO: fix issue with mouse position (without window resize: right part of window + with resize)
-// TODO: create common module modor_math to create Vec2 and Vec3 traits
 // TODO: support multi-touch
 // TODO: support game pads
 // TODO: add tests + doc

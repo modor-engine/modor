@@ -1,4 +1,4 @@
-use std::ops::AddAssign;
+use modor_math::Vector2D;
 
 pub(crate) const DEFAULT_INPUT_STATE: InputState = InputState {
     is_pressed: false,
@@ -58,7 +58,7 @@ impl InputState {
 /// # Examples
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
 pub struct InputDelta {
     /// The X-coordinate.
     pub x: f32,
@@ -71,23 +71,14 @@ impl InputDelta {
     pub fn xy(x: f32, y: f32) -> Self {
         Self { x, y }
     }
-
-    pub(crate) fn normalize(self) -> Self {
-        let magnitude = self.x.mul_add(self.x, self.y.powi(2)).sqrt();
-        if magnitude == 0. {
-            Self::default()
-        } else {
-            Self {
-                x: self.x / magnitude,
-                y: self.y / magnitude,
-            }
-        }
-    }
 }
 
-impl AddAssign for InputDelta {
-    fn add_assign(&mut self, rhs: Self) {
-        self.x += rhs.x;
-        self.y += rhs.y;
+impl Vector2D for InputDelta {
+    fn create(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+
+    fn components(self) -> (f32, f32) {
+        (self.x, self.y)
     }
 }

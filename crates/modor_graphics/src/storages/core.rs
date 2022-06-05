@@ -119,8 +119,7 @@ impl CoreStorage {
     #[allow(clippy::cast_precision_loss)]
     fn create_camera_data(camera: CameraProperties, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
-        let x_scale = f32::min(size.1 as f32 / size.0 as f32, 1.);
-        let y_scale = f32::min(size.0 as f32 / size.1 as f32, 1.);
+        let (x_scale, y_scale) = utils::world_scale(size);
         Camera {
             transform: [
                 [2. * x_scale / camera.size.x, 0., 0., 0.],

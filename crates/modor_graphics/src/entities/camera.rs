@@ -1,4 +1,4 @@
-use crate::Window;
+use crate::{utils, Window};
 use modor::{Built, EntityBuilder, Single};
 use modor_input::{Mouse, UpdateInputAction};
 use modor_physics::{Position, Size, UpdatePhysicsAction};
@@ -29,7 +29,7 @@ use modor_physics::{Position, Size, UpdatePhysicsAction};
 /// }
 /// ```
 pub struct Camera2D {
-    mouse_position: Mouse2DWorldPosition,
+    mouse_position: Position,
 }
 
 #[singleton]
@@ -37,7 +37,7 @@ impl Camera2D {
     /// Builds the entity.
     pub fn build(position: Position, size: Size) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            mouse_position: Mouse2DWorldPosition { x: 0., y: 0. },
+            mouse_position: Position::xy(0., 0.),
         })
         .with(position)
         .with(size)
@@ -47,7 +47,7 @@ impl Camera2D {
     /// Returns the 2D world position of the mouse.
     ///
     /// Does not work in windowless mode.
-    pub fn mouse_position(&self) -> Mouse2DWorldPosition {
+    pub fn mouse_position(&self) -> Position {
         self.mouse_position
     }
     // coverage: on
@@ -62,28 +62,13 @@ impl Camera2D {
         mouse: Single<'_, Mouse>,
         window: Single<'_, Window>,
     ) {
-        // TODO: avoid code duplication + test this part + Self::mouse_position
-        let x_size = f32::min(window.size().height as f32 / window.size().width as f32, 1.);
-        let y_size = f32::min(window.size().width as f32 / window.size().height as f32, 1.);
-        self.mouse_position.x = (mouse.position().x / window.size().width as f32 - 0.5 / x_size)
+        let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
+        self.mouse_position.x = (mouse.position().x / window.size().width as f32 - 0.5 / x_scale)
             .mul_add(size.x, position.x);
-        self.mouse_position.y = (0.5 - mouse.position().y / window.size().height as f32 / y_size)
+        self.mouse_position.y = (0.5 - mouse.position().y / window.size().height as f32 / y_scale)
             .mul_add(size.y, position.y);
     }
     // coverage: on
-}
-
-/// The 2D world position of the mouse.
-///
-/// # Examples
-///
-/// See [`Camera2D`](crate::Camera2D).
-#[derive(Clone, Copy, Debug)]
-pub struct Mouse2DWorldPosition {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
 }
 
 /// An action done when the [`Camera2D`](crate::Camera2D) has been updated.

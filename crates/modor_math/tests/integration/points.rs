@@ -5,8 +5,6 @@ use modor_math::{Point2D, Point3D};
 struct Position2D(f32, f32);
 
 impl Point2D for Position2D {
-    type Unit = ();
-
     fn components(self) -> (f32, f32) {
         (self.0, self.1)
     }
@@ -16,8 +14,6 @@ impl Point2D for Position2D {
 struct Position3D(f32, f32, f32);
 
 impl Point3D for Position3D {
-    type Unit = ();
-
     fn components(self) -> (f32, f32, f32) {
         (self.0, self.1, self.2)
     }

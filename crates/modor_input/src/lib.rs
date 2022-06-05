@@ -6,6 +6,7 @@
 //! ```toml
 //! modor = "0.1"
 //! modor_input = "0.1"
+//! modor_math = "0.1"
 //! ```
 //!
 //! You can then start to use this module:
@@ -44,6 +45,8 @@
 
 #[macro_use]
 extern crate modor;
+#[macro_use]
+extern crate derive_more;
 
 mod data;
 mod entities;

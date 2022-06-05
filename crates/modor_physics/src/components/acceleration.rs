@@ -1,3 +1,5 @@
+use modor_math::Vector3D;
+
 /// The absolute acceleration of an entity.
 ///
 /// The acceleration is measured in distance units per second squared.
@@ -11,7 +13,7 @@
 /// # Examples
 ///
 /// See [`Position`](crate::Position).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
 pub struct Acceleration {
     /// The X-coordinate.
     pub x: f32,
@@ -36,25 +38,15 @@ impl Acceleration {
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
+}
 
-    /// Returns the magnitude.
-    pub fn magnitude(&self) -> f32 {
-        self.x
-            .mul_add(self.x, self.y.mul_add(self.y, self.z.powi(2)))
-            .sqrt()
+impl Vector3D for Acceleration {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self::xyz(x, y, z)
     }
 
-    /// Set the magnitude.
-    ///
-    /// If the current magnitude of the acceleration is zero, the magnitude is unchanged.
-    pub fn set_magnitude(&mut self, magnitude: f32) -> &mut Self {
-        let factor = magnitude / self.magnitude();
-        if factor.is_finite() {
-            self.x *= factor;
-            self.y *= factor;
-            self.z *= factor;
-        }
-        self
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
     }
 }
 
@@ -73,7 +65,7 @@ impl Acceleration {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
 pub struct RelativeAcceleration {
     /// The X-coordinate.
     pub x: f32,
@@ -97,5 +89,15 @@ impl RelativeAcceleration {
     /// Z-coordinate is set to zero.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
+    }
+}
+
+impl Vector3D for RelativeAcceleration {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self::xyz(x, y, z)
+    }
+
+    fn components(self) -> (f32, f32, f32) {
+        (self.x, self.y, self.z)
     }
 }
