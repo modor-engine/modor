@@ -60,16 +60,6 @@ impl Position {
         Self::xyz(x, y, 0.)
     }
 
-    /// Returns the distance between the position and `other_position`.
-    pub fn distance(self, other_position: Self) -> f32 {
-        let x_diff = self.x - other_position.x;
-        let y_diff = self.y - other_position.y;
-        let z_diff = self.z - other_position.z;
-        x_diff
-            .mul_add(x_diff, y_diff.mul_add(y_diff, z_diff.powi(2)))
-            .sqrt()
-    }
-
     pub(crate) fn update_with_velocity(&mut self, velocity: Velocity, delta_time: Duration) {
         self.x += velocity.x * delta_time.as_secs_f32();
         self.y += velocity.y * delta_time.as_secs_f32();
