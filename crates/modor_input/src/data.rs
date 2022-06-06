@@ -1,4 +1,4 @@
-use modor_math::Vector2D;
+use modor_math::{Point2D, Vector2D};
 
 pub(crate) const DEFAULT_INPUT_STATE: InputState = InputState {
     is_pressed: false,
@@ -78,6 +78,32 @@ impl Vector2D for InputDelta {
         Self { x, y }
     }
 
+    fn components(self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+}
+
+/// A position in pixels from the top-left corner of the app window.
+///
+/// # Examples
+///
+/// See [`Mouse`](crate::Mouse).
+#[derive(Default, Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
+pub struct WindowPosition {
+    /// The X-coordinate.
+    pub x: f32,
+    /// The Y-coordinate.
+    pub y: f32,
+}
+
+impl WindowPosition {
+    /// Creates a new position.
+    pub fn xy(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+impl Point2D for WindowPosition {
     fn components(self) -> (f32, f32) {
         (self.x, self.y)
     }

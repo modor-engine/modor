@@ -1,7 +1,7 @@
 use crate::data::{InputDelta, InputState, DEFAULT_INPUT_STATE};
+use crate::WindowPosition;
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
-use modor_math::Vector2D;
 
 /// The state of the mouse.
 ///
@@ -137,36 +137,6 @@ pub enum MouseEvent {
     UpdatedPosition(WindowPosition),
     /// Mouse moved.
     Moved(InputDelta),
-}
-
-/// A position in pixels from the top-left corner of the app window.
-///
-/// # Examples
-///
-/// See [`Mouse`](crate::Mouse).
-#[derive(Default, Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct WindowPosition {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-}
-
-impl WindowPosition {
-    /// Creates a new position.
-    pub fn xy(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
-}
-
-impl Vector2D for WindowPosition {
-    fn create(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
-
-    fn components(self) -> (f32, f32) {
-        (self.x, self.y)
-    }
 }
 
 /// A mouse button.
