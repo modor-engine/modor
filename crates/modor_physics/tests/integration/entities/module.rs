@@ -85,7 +85,10 @@ fn update_absolute_position_from_relative_position() {
             .with(Position::xyz(0., 0., 0.))
             .with(Size::xyz(1., 1., 1.)),
     );
-    let entity2_id = app.create_child(entity1_id, EntityBuilder::new(TestEntity));
+    let entity2_id = app.create_child(
+        entity1_id,
+        EntityBuilder::new(TestEntity).with(Position::xyz(3., 2., 1.)),
+    );
     let entity3_id = app.create_child(
         entity2_id,
         EntityBuilder::new(TestEntity)

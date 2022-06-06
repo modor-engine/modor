@@ -11,8 +11,8 @@ use std::time::Duration;
 /// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 /// - **Updated using**:
 ///     - [`Velocity`](crate::Velocity), [`DeltaTime`](crate::DeltaTime)
-///     - [`RelativePosition`](crate::RelativePosition), [`Position`](crate::Position)
-///         of parent entity, [`Size`](crate::Size) of parent entity
+///     - [`RelativePosition`](crate::RelativePosition), [`Size`](crate::Size),
+///         [`Position`](crate::Position) of parent entity, [`Size`](crate::Size) of parent entity
 ///
 /// # Examples
 ///

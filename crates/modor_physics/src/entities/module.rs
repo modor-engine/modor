@@ -110,7 +110,7 @@ impl PhysicsModule {
                 (Some((size, Some(relative_size))), None) => {
                     size.update_with_relative(*relative_size, ROOT_SIZE);
                 }
-                _ => {}
+                _ => unreachable!("internal error: unexpected case when updating absolute sizes"),
             }
         }
     }
@@ -118,20 +118,20 @@ impl PhysicsModule {
     #[run_as(UpdateAbsolutePositionsFromRelativePositionsAction)]
     fn update_absolute_positions_from_relative_positions(
         entities: Query<'_, Entity<'_>, (With<Position>, With<RelativePosition>)>,
-        mut components: Query<'_, (&mut Position, Option<&RelativePosition>, Option<&Size>)>,
+        mut components: Query<'_, (&mut Position, &Size, Option<&RelativePosition>)>,
     ) {
         for entity in Self::entities_sorted_by_depth(entities.iter()) {
             match components.get_with_first_parent_mut(entity.id()) {
                 (
-                    Some((position, Some(relative_position), _)),
-                    Some((parent_position, _, Some(parent_size))),
+                    Some((position, _, Some(relative_position))),
+                    Some((parent_position, parent_size, _)),
                 ) => position.update_with_relative(
                     *relative_position,
                     *parent_position,
                     *parent_size,
                 ),
-                (Some((size, Some(relative_size), _)), None) => {
-                    size.update_with_relative(*relative_size, ROOT_POSITION, ROOT_SIZE);
+                (Some((position, _, Some(relative_position))), None) => {
+                    position.update_with_relative(*relative_position, ROOT_POSITION, ROOT_SIZE);
                 }
                 _ => {}
             }
