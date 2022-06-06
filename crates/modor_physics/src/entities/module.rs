@@ -110,7 +110,7 @@ impl PhysicsModule {
                 (Some((size, Some(relative_size))), None) => {
                     size.update_with_relative(*relative_size, ROOT_SIZE);
                 }
-                _ => unreachable!("internal error: unexpected case when updating absolute sizes"),
+                _ => unreachable!("internal error: unreachable size update case"),
             }
         }
     }
@@ -133,7 +133,7 @@ impl PhysicsModule {
                 (Some((position, _, Some(relative_position))), None) => {
                     position.update_with_relative(*relative_position, ROOT_POSITION, ROOT_SIZE);
                 }
-                _ => {}
+                _ => unreachable!("internal error: unreachable position update case"),
             }
         }
     }
