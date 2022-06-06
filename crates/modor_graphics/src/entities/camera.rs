@@ -63,9 +63,10 @@ impl Camera2D {
         window: Single<'_, Window>,
     ) {
         let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
-        self.mouse_position.x = (mouse.position().x / window.size().width as f32 - 0.5 / x_scale)
+        self.mouse_position.x = ((mouse.position().x / window.size().width as f32 - 0.5) / x_scale)
             .mul_add(size.x, position.x);
-        self.mouse_position.y = (0.5 - mouse.position().y / window.size().height as f32 / y_scale)
+        self.mouse_position.y = ((0.5 - mouse.position().y / window.size().height as f32)
+            / y_scale)
             .mul_add(size.y, position.y);
     }
     // coverage: on

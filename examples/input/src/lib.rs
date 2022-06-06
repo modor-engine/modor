@@ -11,7 +11,6 @@ use modor_physics::{Position, Size, Velocity};
 use std::io;
 use std::io::Write;
 
-// TODO: fix issue with mouse position (without window resize: right part of window + with resize)
 // TODO: support multi-touch
 // TODO: support game pads
 // TODO: add tests + doc
@@ -78,8 +77,8 @@ impl KeyboardState {
     #[run]
     fn update(velocity: &mut Velocity, color: &mut ShapeColor, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Left, Key::Right, Key::Up, Key::Down);
-        velocity.x = direction.x;
-        velocity.y = direction.y;
+        velocity.x = direction.x * 3.;
+        velocity.y = direction.y * 3.;
         color.0 = if velocity.magnitude() > 0. {
             Color::RED
         } else {
