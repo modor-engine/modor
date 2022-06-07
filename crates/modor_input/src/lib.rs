@@ -56,3 +56,4 @@ pub use entities::events::*;
 pub use entities::keyboard::*;
 pub use entities::module::*;
 pub use entities::mouse::*;
+pub use entities::touch::*;

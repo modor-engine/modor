@@ -3,12 +3,12 @@ use instant::Instant;
 use modor::App;
 use modor_input::{
     InputDelta, InputEvent, InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent,
-    MouseScrollUnit, WindowPosition,
+    MouseScrollUnit, TouchEvent, WindowPosition,
 };
 use modor_physics::DeltaTime;
 use winit::event;
 use winit::event::{
-    DeviceEvent, ElementState, Event, MouseScrollDelta, VirtualKeyCode, WindowEvent,
+    DeviceEvent, ElementState, Event, MouseScrollDelta, TouchPhase, VirtualKeyCode, WindowEvent,
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 
@@ -85,62 +85,90 @@ pub fn runner(mut app: App) {
             let delta = InputDelta::xy(delta.0 as f32, -delta.1 as f32);
             send_input_event(&mut app, InputEvent::Mouse(MouseEvent::Moved(delta)));
         }
-        Event::WindowEvent { event, window_id } if window_id == window.id() => match event {
-            WindowEvent::Resized(size)
-            | WindowEvent::ScaleFactorChanged {
-                new_inner_size: &mut size,
-                ..
-            } => {
-                app.run_for_singleton(|w: &mut Window| {
-                    w.set_size(SurfaceSize {
-                        width: size.width,
-                        height: size.height,
-                    });
-                });
-            }
-            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-            WindowEvent::MouseInput { button, state, .. } => {
-                send_input_event(&mut app, convert_mouse_button_event(button, state));
-            }
-            WindowEvent::MouseWheel { delta, .. } => {
-                send_input_event(
-                    &mut app,
-                    InputEvent::Mouse(match delta {
-                        MouseScrollDelta::LineDelta(columns, rows) => MouseEvent::Scroll(
-                            InputDelta::xy(columns, -rows),
-                            MouseScrollUnit::Line,
-                        ),
-                        MouseScrollDelta::PixelDelta(delta) => MouseEvent::Scroll(
-                            InputDelta::xy(delta.x as f32, -delta.y as f32),
-                            MouseScrollUnit::Pixel,
-                        ),
-                    }),
-                );
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                send_input_event(
-                    &mut app,
-                    InputEvent::Mouse(MouseEvent::UpdatedPosition(WindowPosition::xy(
-                        position.x as f32,
-                        position.y as f32,
-                    ))),
-                );
-            }
-            WindowEvent::KeyboardInput { input, .. } => {
-                if let Some(code) = input.virtual_keycode {
-                    send_input_event(&mut app, convert_keyboard_key_event(code, input.state));
-                }
-            }
-            WindowEvent::ReceivedCharacter(character) => {
-                send_input_event(
-                    &mut app,
-                    InputEvent::Keyboard(KeyboardEvent::EnteredText(character.into())),
-                );
-            }
-            _ => {}
-        },
+        Event::WindowEvent { event, window_id } if window_id == window.id() => {
+            treat_window_event(&mut app, event, control_flow);
+        }
         _ => {}
     });
+}
+
+#[allow(clippy::wildcard_enum_match_arm, clippy::cast_possible_truncation)]
+fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut ControlFlow) {
+    match event {
+        WindowEvent::Resized(size)
+        | WindowEvent::ScaleFactorChanged {
+            new_inner_size: &mut size,
+            ..
+        } => {
+            app.run_for_singleton(|w: &mut Window| {
+                w.set_size(SurfaceSize {
+                    width: size.width,
+                    height: size.height,
+                });
+            });
+        }
+        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+        WindowEvent::MouseInput { button, state, .. } => {
+            send_input_event(app, convert_mouse_button_event(button, state));
+        }
+        WindowEvent::MouseWheel { delta, .. } => {
+            send_input_event(
+                app,
+                InputEvent::Mouse(match delta {
+                    MouseScrollDelta::LineDelta(columns, rows) => {
+                        MouseEvent::Scroll(InputDelta::xy(columns, -rows), MouseScrollUnit::Line)
+                    }
+                    MouseScrollDelta::PixelDelta(delta) => MouseEvent::Scroll(
+                        InputDelta::xy(delta.x as f32, -delta.y as f32),
+                        MouseScrollUnit::Pixel,
+                    ),
+                }),
+            );
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+            send_input_event(
+                app,
+                InputEvent::Mouse(MouseEvent::UpdatedPosition(WindowPosition::xy(
+                    position.x as f32,
+                    position.y as f32,
+                ))),
+            );
+        }
+        WindowEvent::KeyboardInput { input, .. } => {
+            if let Some(code) = input.virtual_keycode {
+                send_input_event(app, convert_keyboard_key_event(code, input.state));
+            }
+        }
+        WindowEvent::ReceivedCharacter(character) => {
+            send_input_event(
+                app,
+                InputEvent::Keyboard(KeyboardEvent::EnteredText(character.into())),
+            );
+        }
+        WindowEvent::Touch(touch) => match touch.phase {
+            TouchPhase::Started => {
+                send_input_event(app, InputEvent::Touch(TouchEvent::Start(touch.id)));
+                send_input_event(
+                    app,
+                    InputEvent::Touch(TouchEvent::UpdatedPosition(
+                        touch.id,
+                        WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
+                    )),
+                );
+            }
+            TouchPhase::Moved => send_input_event(
+                app,
+                InputEvent::Touch(TouchEvent::UpdatedPosition(
+                    touch.id,
+                    WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
+                )),
+            ),
+            TouchPhase::Ended | TouchPhase::Cancelled => {
+                send_input_event(app, InputEvent::Touch(TouchEvent::End(touch.id)));
+            }
+        },
+        _ => {}
+    }
 }
 
 fn configure_logging() {

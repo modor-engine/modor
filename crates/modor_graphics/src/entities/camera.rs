@@ -1,6 +1,7 @@
 use crate::{utils, Window};
-use modor::{Built, EntityBuilder, Single};
-use modor_input::{Mouse, UpdateInputAction};
+use fxhash::FxHashMap;
+use modor::{Built, EntityBuilder, Query, Single};
+use modor_input::{Finger, Mouse, UpdateInputAction, WindowPosition};
 use modor_physics::{Position, Size, UpdatePhysicsAction};
 
 /// The camera used for 2D rendering.
@@ -30,6 +31,7 @@ use modor_physics::{Position, Size, UpdatePhysicsAction};
 /// ```
 pub struct Camera2D {
     mouse_position: Position,
+    finger_positions: FxHashMap<u64, Position>,
 }
 
 #[singleton]
@@ -38,6 +40,7 @@ impl Camera2D {
     pub fn build(position: Position, size: Size) -> impl Built<Self> {
         EntityBuilder::new(Self {
             mouse_position: Position::xy(0., 0.),
+            finger_positions: FxHashMap::default(),
         })
         .with(position)
         .with(size)
@@ -50,10 +53,21 @@ impl Camera2D {
     pub fn mouse_position(&self) -> Position {
         self.mouse_position
     }
+
+    /// Returns the 2D world position of the finger with ID `ìd`.
+    ///
+    /// Does not work in windowless mode.
+    pub fn finger_position(&self, id: u64) -> Option<Position> {
+        self.finger_positions.get(&id).copied()
+    }
     // coverage: on
 
+    /// Returns an iterator on all finger positions.
+    pub fn finger_positions(&self) -> impl Iterator<Item = Position> + '_ {
+        self.finger_positions.values().copied()
+    }
+
     // coverage: off (window cannot be tested)
-    #[allow(clippy::cast_precision_loss)]
     #[run_as(UpdateCamera2DAction)]
     fn update_from_mouse(
         &mut self,
@@ -62,12 +76,41 @@ impl Camera2D {
         mouse: Single<'_, Mouse>,
         window: Single<'_, Window>,
     ) {
+        self.mouse_position =
+            Self::window_to_world_position(mouse.position(), &*window, position, size);
+    }
+
+    #[run_as(UpdateCamera2DAction)]
+    fn update_from_fingers(
+        &mut self,
+        position: &Position,
+        size: &Size,
+        fingers: Query<'_, &Finger>,
+        window: Single<'_, Window>,
+    ) {
+        self.finger_positions.clear();
+        self.finger_positions.extend(fingers.iter().map(|f| {
+            (
+                f.id(),
+                Self::window_to_world_position(f.position(), &*window, position, size),
+            )
+        }));
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn window_to_world_position(
+        position: WindowPosition,
+        window: &Window,
+        camera_position: &Position,
+        camera_size: &Size,
+    ) -> Position {
         let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
-        self.mouse_position.x = ((mouse.position().x / window.size().width as f32 - 0.5) / x_scale)
-            .mul_add(size.x, position.x);
-        self.mouse_position.y = ((0.5 - mouse.position().y / window.size().height as f32)
-            / y_scale)
-            .mul_add(size.y, position.y);
+        Position::xy(
+            ((position.x / window.size().width as f32 - 0.5) / x_scale)
+                .mul_add(camera_size.x, camera_position.x),
+            ((0.5 - position.y / window.size().height as f32) / y_scale)
+                .mul_add(camera_size.y, camera_position.y),
+        )
     }
     // coverage: on
 }
