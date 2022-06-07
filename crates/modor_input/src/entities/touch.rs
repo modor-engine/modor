@@ -4,9 +4,12 @@ use modor::{Built, EntityBuilder};
 
 /// The state of a finger.
 ///
+/// The entity only exists if the finger is pressed.<br>
+/// Once released, the entity remains during one update before being deleted.
+///
 /// # Modor
 ///
-/// - **Type**: singleton entity
+/// - **Type**: entity
 /// - **Lifetime**: same as [`InputModule`](crate::InputModule)
 /// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputAction)
 ///

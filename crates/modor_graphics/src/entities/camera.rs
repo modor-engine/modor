@@ -60,12 +60,12 @@ impl Camera2D {
     pub fn finger_position(&self, id: u64) -> Option<Position> {
         self.finger_positions.get(&id).copied()
     }
-    // coverage: on
 
     /// Returns an iterator on all finger positions.
     pub fn finger_positions(&self) -> impl Iterator<Item = Position> + '_ {
         self.finger_positions.values().copied()
     }
+    // coverage: on
 
     // coverage: off (window cannot be tested)
     #[run_as(UpdateCamera2DAction)]
