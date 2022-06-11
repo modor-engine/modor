@@ -13,7 +13,6 @@ use modor_physics::{Position, Size, Velocity};
 use std::io;
 use std::io::Write;
 
-// TODO: support game pads for android
 // TODO: add/check tests + doc
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]

@@ -32,6 +32,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 /// # Platform-specific
 ///
 /// - Web: a canvas with id `modor` is automatically added to the HTML body.
+/// - Android: gamepads are not supported.
 ///
 /// # Examples
 ///

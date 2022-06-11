@@ -14,8 +14,6 @@ exclude = [".github", "README.md"]
 [dependencies]
 bytemuck = { version = "1.8", features = ["derive"] }
 env_logger = "0.9"
-gilrs = "0.9"
-gilrs-core = "0.4"
 fxhash = "0.2"
 image = "0.24"
 instant = "0.1"
@@ -27,7 +25,12 @@ modor_internal = { version = "0.1.0", path = "../modor_internal" }
 modor_physics = { version = "0.1.0", path = "../modor_physics" }
 modor_input = { version = "0.1.0", path = "../modor_input" }
 
-[target.'cfg(not(all(target_os = "android", target_arch = "wasm32")))'.dependencies]
+[target.'cfg(not(target_os = "android"))'.dependencies]
+gilrs = "0.9"
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk = "0.5"
+ndk-glue = "0.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
