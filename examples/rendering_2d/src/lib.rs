@@ -4,19 +4,23 @@ use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
 use modor_graphics::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
+    WindowSettings,
 };
-use modor_physics::{DeltaTime, Position, Scale, Shape, Velocity};
+use modor_math::Vector3D;
+use modor_physics::{DeltaTime, Position, Shape, Size, Velocity};
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::Duration;
-
-const TITLE: &str = "Modor - rendering 2D";
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_thread_count(2)
-        .with_entity(GraphicsModule::build(SurfaceSize::new(800, 600), TITLE))
+        .with_entity(GraphicsModule::build(
+            WindowSettings::default()
+                .size(SurfaceSize::new(800, 600))
+                .title("Modor - rendering 2D"),
+        ))
         .with_entity(MainModule::build(10000))
         .run(modor_graphics::runner);
 }
@@ -28,7 +32,7 @@ impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(Position::xy(0., 0.), Scale::xy(1.5, 1.5)))
+            .with_child(Camera2D::build(Position::xy(0., 0.), Size::xy(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -53,7 +57,7 @@ impl Sprite {
             Self::random_f32(&mut rng),
             Self::random_f32(&mut rng),
         ))
-        .with(Scale::xy(0.01, 0.01))
+        .with(Size::xy(0.01, 0.01))
         .with(Velocity::xy(0., 0.))
         .with(Shape::Circle2D)
         .with(ShapeColor(Color::rgb(
@@ -67,9 +71,8 @@ impl Sprite {
     fn update_velocity(&mut self, velocity: &mut Velocity) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            velocity.x = Self::random_f32(&mut rng);
-            velocity.y = Self::random_f32(&mut rng);
-            velocity.set_magnitude(0.05);
+            *velocity = Velocity::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+                .with_magnitude(0.05);
             self.next_update = Instant::now() + Duration::from_millis(200);
         }
     }

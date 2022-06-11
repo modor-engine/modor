@@ -39,6 +39,8 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
+      - name: Install general dependencies
+        run: sudo apt-get install libudev-dev
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -180,6 +182,8 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
+      - name: Install general dependencies
+        run: sudo apt-get install libudev-dev
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
@@ -217,6 +221,30 @@ jobs:
       - name: Check coverage threshold
         run: bash .github/workflows/scripts/check_coverage.sh
 
+  generate-doc:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          profile: minimal
+          override: true
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
+      - name: Install general dependencies
+        run: sudo apt-get install libudev-dev
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+
   lint-rust:
     runs-on: ubuntu-20.04
     steps:
@@ -233,6 +261,8 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: true
+      - name: Install general dependencies
+        run: sudo apt-get install libudev-dev
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints

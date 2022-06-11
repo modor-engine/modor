@@ -6,6 +6,7 @@
 //! ```toml
 //! modor = "0.1"
 //! modor_physics = "0.1"
+//! modor_math = "0.1"
 //! ```
 //!
 //! You can start to use this module by creating an entity of type
@@ -24,14 +25,16 @@
 
 #[macro_use]
 extern crate modor;
+#[macro_use]
+extern crate derive_more;
 
 mod components;
 mod entities;
 
 pub use components::acceleration::*;
 pub use components::position::*;
-pub use components::scale::*;
 pub use components::shape::*;
+pub use components::size::*;
 pub use components::velocity::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;

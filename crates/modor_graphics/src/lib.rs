@@ -6,17 +6,22 @@
 //! ```toml
 //! modor = "0.1"
 //! modor_graphics = "0.1"
+//! modor_math = "0.1"
 //! ```
 //!
 //! You can then create a window with the following code:
 //!
 //! ```rust
 //! use modor::App;
-//! use modor_graphics::{GraphicsModule, SurfaceSize};
+//! use modor_graphics::{GraphicsModule, SurfaceSize, WindowSettings};
 //!
 //! # fn no_run() {
 //! let mut app = App::new()
-//!     .with_entity(GraphicsModule::build(SurfaceSize::new(640, 480), "Title"))
+//!      .with_entity(GraphicsModule::build(
+//!          WindowSettings::default()
+//!              .size(SurfaceSize::new(640, 480))
+//!              .title("Title"),
+//!      ))
 //!     .run(modor_graphics::runner);
 //! # }
 //! ```

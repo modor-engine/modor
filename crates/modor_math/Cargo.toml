@@ -1,0 +1,19 @@
+[package]
+name = "modor_math"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Math module of Modor game engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+readme = "./README.md"
+keywords = ["modor", "math", "vector"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+
+[dev-dependencies]
+approx = "0.5"
+derive_more = "0.99"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"

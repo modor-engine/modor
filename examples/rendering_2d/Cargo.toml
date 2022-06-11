@@ -3,14 +3,15 @@ name = "rendering_2d"
 version = "0.1.0"
 authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
 edition = "2021"
-description = "Examples using the Modor game engine"
+description = "2D rendering example of the Modor game engine"
 license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
 modor = { version = "0.1.0", path = "../../crates/modor" }
-modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
+modor_math = { version = "0.1.0", path = "../../crates/modor_math" }
 modor_graphics = { version = "0.1.0", path = "../../crates/modor_graphics" }
+modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
 instant = "0.1"
 rand = "0.8"
 

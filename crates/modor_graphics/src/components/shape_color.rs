@@ -8,15 +8,15 @@ use std::ops::{Deref, DerefMut};
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Required components**: [`Position`](modor_physics::Position),
-///     [`Scale`](modor_physics::Scale)
+/// - **Required components**: [`Position`](modor_physics::Position), [`Size`](modor_physics::Size)
+/// - **Optional components**: [`Shape`](modor_physics::Shape)
 ///
 /// # Examples
 ///
 /// ```rust
 /// # use modor::{entity, EntityBuilder, Built};
 /// # use modor_graphics::{Color, ShapeColor};
-/// # use modor_physics::{Position, Scale, Shape};
+/// # use modor_physics::{Position, Size, Shape};
 /// #
 /// struct Rectangle;
 ///
@@ -25,13 +25,13 @@ use std::ops::{Deref, DerefMut};
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
 ///             .with(Position::xy(-0.25, 0.25))
-///             .with(Scale::xy(0.5, 0.5))
+///             .with(Size::xy(0.5, 0.5))
 ///             .with(Shape::Rectangle2D)
 ///             .with(ShapeColor(Color::rgba(1., 0.25, 0.75, 0.5)))
 ///     }
 /// }
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct ShapeColor(pub Color);
 
 impl Deref for ShapeColor {

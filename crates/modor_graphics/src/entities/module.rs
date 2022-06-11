@@ -1,6 +1,7 @@
 use crate::entities::render_target::WindowInit;
 use crate::{Capture, SurfaceSize};
 use modor::{Built, EntityBuilder};
+use modor_input::InputModule;
 use modor_physics::PhysicsModule;
 use std::marker::PhantomData;
 
@@ -10,18 +11,23 @@ use std::marker::PhantomData;
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: custom (same as parent entity)
-/// - **Dependencies (created if not found)**: [`PhysicsModule`](modor_physics::PhysicsModule)
+/// - **Dependencies (created if not found)**: [`PhysicsModule`](modor_physics::PhysicsModule),
+///     [`InputModule`](modor_input::InputModule)
 ///
 /// # Examples
 ///
 /// With window:
 /// ```rust
 /// # use modor::{App, Single};
-/// # use modor_graphics::{GraphicsModule, SurfaceSize, Window};
+/// # use modor_graphics::{GraphicsModule, SurfaceSize, Window, WindowSettings};
 /// #
 /// # fn no_run() {
 /// let app = App::new()
-///     .with_entity(GraphicsModule::build(SurfaceSize::new(640, 480), "window title"));
+///      .with_entity(GraphicsModule::build(
+///          WindowSettings::default()
+///              .size(SurfaceSize::new(640, 480))
+///              .title("window title"),
+///      ));
 /// # }
 ///
 /// fn print_window_size(window: Single<'_, Window>) {
@@ -51,17 +57,15 @@ pub struct GraphicsModule(PhantomData<()>);
 
 #[singleton]
 impl GraphicsModule {
+    // coverage: off (window cannot be tested)
     /// Builds the module with a window.
     ///
     /// Window properties can be accessed using the [`Window`](crate::Window) entity.
-    // coverage: off (window cannot be tested)
-    pub fn build<T>(window_size: SurfaceSize, window_title: T) -> impl Built<Self>
-    where
-        T: Into<String>,
-    {
+    pub fn build(settings: WindowSettings) -> impl Built<Self> {
         EntityBuilder::new(Self(PhantomData))
-            .with_child(WindowInit::build(window_size, window_title.into()))
+            .with_child(WindowInit::build(settings))
             .with_dependency(PhysicsModule::build())
+            .with_dependency(InputModule::build())
     }
     // coverage: on
 
@@ -77,3 +81,51 @@ impl GraphicsModule {
             .with_dependency(PhysicsModule::build())
     }
 }
+
+// coverage: off (window cannot be tested)
+/// The settings of a window to create.
+pub struct WindowSettings {
+    pub(crate) size: SurfaceSize,
+    pub(crate) title: String,
+    pub(crate) has_visible_cursor: bool,
+}
+
+impl Default for WindowSettings {
+    fn default() -> Self {
+        Self {
+            size: SurfaceSize {
+                width: 800,
+                height: 600,
+            },
+            title: "My app".into(),
+            has_visible_cursor: true,
+        }
+    }
+}
+
+impl WindowSettings {
+    /// Defines the window size (800x600 by default).
+    #[must_use]
+    pub fn size(mut self, size: SurfaceSize) -> Self {
+        self.size = size;
+        self
+    }
+
+    /// Defines the window title (`"My app"` by default).
+    #[must_use]
+    pub fn title<T>(mut self, title: T) -> Self
+    where
+        T: Into<String>,
+    {
+        self.title = title.into();
+        self
+    }
+
+    /// Defines whether the mouse cursor is visible in the window (`true` by default).
+    #[must_use]
+    pub fn has_visible_cursor(mut self, has_visible_cursor: bool) -> Self {
+        self.has_visible_cursor = has_visible_cursor;
+        self
+    }
+}
+// coverage: on

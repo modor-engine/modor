@@ -5,7 +5,6 @@
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Required components**: [`Position`](crate::Position)
 /// - **Default if missing**: `Shape::Rectangle2D`
 ///
 /// # Examples

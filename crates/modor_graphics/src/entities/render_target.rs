@@ -5,25 +5,20 @@ use crate::entities::background::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::{CameraProperties, CoreStorage};
-use crate::{Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize};
+use crate::{
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
+    WindowSettings,
+};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
-use modor_physics::{AbsolutePosition, Position, Scale, Shape, Size};
+use modor_physics::{Position, Shape, Size};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
 const DEFAULT_CAMERA: CameraProperties = CameraProperties {
-    position: AbsolutePosition {
-        x: 0.,
-        y: 0.,
-        z: 0.,
-    },
-    size: Size {
-        x: 1.,
-        y: 1.,
-        z: 1.,
-    },
+    position: Position::ZERO,
+    size: Size::ONE,
 };
 
 pub(crate) struct RenderTarget {
@@ -41,8 +36,8 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Scale, Option<&Shape>)>,
-        cameras: Query<'_, (&Position, &Scale), With<Camera2D>>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Size, Option<&Shape>)>,
+        cameras: Query<'_, (&Position, &Size), With<Camera2D>>,
     ) {
         let camera = Self::extract_camera(cameras);
         self.core.update_instances(shapes, camera);
@@ -63,13 +58,13 @@ impl RenderTarget {
     #[run_as(UpdateGraphicsAction)]
     fn finish_update() {}
 
-    fn extract_camera(cameras: Query<'_, (&Position, &Scale), With<Camera2D>>) -> CameraProperties {
+    fn extract_camera(cameras: Query<'_, (&Position, &Size), With<Camera2D>>) -> CameraProperties {
         cameras
             .iter()
             .next()
             .map_or(DEFAULT_CAMERA, |(p, s)| CameraProperties {
-                position: p.abs().clone(),
-                size: s.abs().clone(),
+                position: *p,
+                size: *s,
             })
     }
 }
@@ -126,17 +121,15 @@ impl Window {
 }
 
 pub(crate) struct WindowInit {
-    size: SurfaceSize,
-    title: String,
+    settings: WindowSettings,
     renderer: Option<Renderer>,
 }
 
 #[singleton]
 impl WindowInit {
-    pub(crate) fn build(size: SurfaceSize, title: String) -> impl Built<Self> {
+    pub(crate) fn build(settings: WindowSettings) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            size,
-            title,
+            settings,
             renderer: None,
         })
     }
@@ -148,21 +141,29 @@ impl WindowInit {
     #[allow(clippy::let_and_return)]
     pub(crate) fn create_window(&mut self, event_loop: &EventLoop<()>) -> WinitWindow {
         let window = WindowBuilder::new()
-            .with_title(self.title.clone())
-            .with_inner_size(PhysicalSize::new(self.size.width, self.size.height))
+            .with_title(self.settings.title.clone())
+            .with_inner_size(PhysicalSize::new(
+                self.settings.size.width,
+                self.settings.size.height,
+            ))
             .build(event_loop)
             .expect("failed to create window");
+        window.set_cursor_visible(self.settings.has_visible_cursor);
         #[cfg(target_arch = "wasm32")]
         {
             use winit::platform::web::WindowExtWebSys;
+            let canvas = window.canvas();
+            canvas.set_id("modor");
+            if !self.settings.has_visible_cursor {
+                canvas
+                    .style()
+                    .set_property("cursor", "none")
+                    .expect("cannot setup canvas");
+            }
             web_sys::window()
                 .and_then(|win| win.document())
                 .and_then(|doc| doc.body())
-                .and_then(|body| {
-                    let canvas = window.canvas();
-                    canvas.set_id("modor");
-                    body.append_child(&web_sys::Element::from(canvas)).ok()
-                })
+                .and_then(|body| body.append_child(&web_sys::Element::from(canvas)).ok())
                 .expect("cannot append canvas to document body");
         }
         #[cfg(not(target_os = "android"))]
@@ -182,7 +183,10 @@ impl WindowInit {
         let renderer = if let Some(renderer) = self.renderer.take() {
             renderer
         } else {
-            Renderer::new(TextureTarget::new(self.size.width, self.size.height))
+            Renderer::new(TextureTarget::new(
+                self.settings.size.width,
+                self.settings.size.height,
+            ))
         };
         world.create_child_entity(graphics.entity().id(), Window::build(renderer));
         world.delete_entity(entity.id());
@@ -266,12 +270,19 @@ pub struct UpdateGraphicsAction;
 pub struct UpdateCaptureBufferAction;
 
 pub(crate) mod internal {
+    use crate::UpdateCamera2DAction;
+    use modor_input::UpdateInputAction;
     use modor_physics::UpdatePhysicsAction;
 
     #[action]
     pub struct PrepareCaptureAction;
 
-    #[action(UpdatePhysicsAction, PrepareCaptureAction)]
+    #[action(
+        UpdatePhysicsAction,
+        UpdateInputAction,
+        UpdateCamera2DAction,
+        PrepareCaptureAction
+    )]
     pub struct PrepareRenderingAction;
 
     #[action(PrepareRenderingAction)]

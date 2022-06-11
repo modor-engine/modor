@@ -44,11 +44,13 @@ You can also include the modules you want, like:
 
 ## Examples
 
-You can use the following command to run them:
+You can use one of the following commands to run an example:
 
 - Desktop: `cargo run --example <name> --release`
 - Android: `cargo apk run --package <name> --release` (requires [cargo-apk](https://crates.io/crates/cargo-apk))
 - Web: `cargo run-wasm --example <name> --release`
+
+For example: `cargo run --example rendering_2d --release`
 
 ## License
 

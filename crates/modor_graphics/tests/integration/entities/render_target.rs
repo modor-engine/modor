@@ -4,7 +4,7 @@ use modor_graphics::{
     testing, BackgroundColor, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize,
     UpdateCaptureBufferAction,
 };
-use modor_physics::{Position, Scale};
+use modor_physics::{Position, RelativePosition, RelativeSize, Size};
 
 struct CaptureResizer {
     new_size: SurfaceSize,
@@ -29,7 +29,7 @@ impl Rectangle {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::xy(0., 0.))
-            .with(Scale::xy(0.9, 0.9))
+            .with(Size::xy(0.9, 0.9))
             .with(ShapeColor(Color::RED))
             .with_child(Quarter::build())
     }
@@ -41,8 +41,10 @@ struct Quarter;
 impl Quarter {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xyz(0.25, 0.25, 1.))
-            .with(Scale::xy(0.5, 0.5))
+            .with(RelativePosition::xyz(0.25, 0.25, 1.))
+            .with(RelativeSize::xy(0.5, 0.5))
+            .with(Position::xy(0., 0.))
+            .with(Size::xy(0., 0.))
             .with(ShapeColor(Color::MAROON))
     }
 }

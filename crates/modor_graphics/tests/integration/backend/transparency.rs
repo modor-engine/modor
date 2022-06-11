@@ -1,7 +1,7 @@
 use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, World};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
-use modor_physics::{Position, Scale, Shape};
+use modor_physics::{Position, Shape, Size};
 
 struct Object;
 
@@ -10,14 +10,14 @@ impl Object {
     fn build_rectangle(position: Position, color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(position)
-            .with(Scale::xy(0.2, 0.2))
+            .with(Size::xy(0.2, 0.2))
             .with(ShapeColor(color))
     }
 
     fn build_circle(position: Position, color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(position)
-            .with(Scale::xy(0.2, 0.2))
+            .with(Size::xy(0.2, 0.2))
             .with(Shape::Circle2D)
             .with(ShapeColor(color))
     }

@@ -3,6 +3,14 @@ use instant::Instant;
 use std::future::Future;
 use std::time::Duration;
 
+#[allow(clippy::cast_precision_loss)]
+pub(crate) fn world_scale(window_size: (u32, u32)) -> (f32, f32) {
+    (
+        f32::min(window_size.1 as f32 / window_size.0 as f32, 1.),
+        f32::min(window_size.0 as f32 / window_size.1 as f32, 1.),
+    )
+}
+
 pub(crate) fn nearest_multiple(value: u64, multiple: u64) -> u64 {
     let align_mask = multiple - 1;
     (value + align_mask) & !align_mask
@@ -62,6 +70,16 @@ mod utils_tests {
     use crate::FrameRate;
     use approx::assert_abs_diff_eq;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn calculate_world_scale() {
+        assert_abs_diff_eq!(super::world_scale((800, 600)).0, 0.75);
+        assert_abs_diff_eq!(super::world_scale((800, 600)).1, 1.);
+        assert_abs_diff_eq!(super::world_scale((600, 800)).0, 1.);
+        assert_abs_diff_eq!(super::world_scale((600, 800)).1, 0.75);
+        assert_abs_diff_eq!(super::world_scale((800, 800)).0, 1.);
+        assert_abs_diff_eq!(super::world_scale((800, 800)).1, 1.);
+    }
 
     #[test]
     fn calculate_nearest_multiple() {
