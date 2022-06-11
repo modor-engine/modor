@@ -94,7 +94,9 @@ impl Gamepad {
 
     pub(crate) fn apply_event(&mut self, event: &GamepadEvent) {
         match event {
-            GamepadEvent::Plugged(_) | GamepadEvent::Unplugged(_) => {}
+            GamepadEvent::Plugged(_) | GamepadEvent::Unplugged(_) => {
+                unreachable!("internal error: unreachable gamepad event to apply")
+            }
             GamepadEvent::PressedButton(_, button) => {
                 self.buttons.entry(*button).or_default().state.press();
             }
@@ -195,12 +197,13 @@ pub enum GamepadEvent {
 impl GamepadEvent {
     pub(crate) fn id(&self) -> u64 {
         *match self {
-            Self::Plugged(id)
-            | Self::Unplugged(id)
-            | Self::PressedButton(id, _)
+            Self::PressedButton(id, _)
             | Self::ReleasedButton(id, _)
             | Self::UpdatedButtonValue(id, _, _)
             | Self::UpdatedAxisValue(id, _, _) => id,
+            GamepadEvent::Plugged(_) | GamepadEvent::Unplugged(_) => {
+                unreachable!("internal error: unreachable gamepad event without ID")
+            }
         }
     }
 }

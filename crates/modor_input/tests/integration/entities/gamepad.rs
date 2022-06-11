@@ -16,19 +16,19 @@ fn handle_gamepads() {
     });
     app.update();
     app.assert_entity(4)
-        .has(|f: &Gamepad| assert_eq!(f.id(), 0));
+        .has(|g: &Gamepad| assert_eq!(g.id(), 0));
     app.assert_entity(5)
-        .has(|f: &Gamepad| assert_eq!(f.id(), 1));
+        .has(|g: &Gamepad| assert_eq!(g.id(), 1));
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::Unplugged(1).into());
         c.push(GamepadEvent::Plugged(2).into());
     });
     app.update();
     app.assert_entity(4)
-        .has(|f: &Gamepad| assert_eq!(f.id(), 0));
+        .has(|g: &Gamepad| assert_eq!(g.id(), 0));
     app.assert_entity(5).does_not_exist();
     app.assert_entity(6)
-        .has(|f: &Gamepad| assert_eq!(f.id(), 2));
+        .has(|g: &Gamepad| assert_eq!(g.id(), 2));
 }
 
 #[test]
@@ -37,40 +37,51 @@ fn update_button_state() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(GamepadEvent::Plugged(0).into()));
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert!(!f.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!f.button(GamepadButton::Start).state().is_just_released());
-        assert!(!f.button(GamepadButton::Start).state().is_pressed());
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_released());
+        assert!(!g.button(GamepadButton::Start).state().is_pressed());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::PressedButton(0, GamepadButton::Start).into());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert!(f.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!f.button(GamepadButton::Start).state().is_just_released());
-        assert!(f.button(GamepadButton::Start).state().is_pressed());
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_eq!(
+            g.pressed_buttons().collect::<Vec<_>>(),
+            [GamepadButton::Start]
+        );
+        assert!(g.button(GamepadButton::Start).state().is_just_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_released());
+        assert!(g.button(GamepadButton::Start).state().is_pressed());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert!(!f.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!f.button(GamepadButton::Start).state().is_just_released());
-        assert!(f.button(GamepadButton::Start).state().is_pressed());
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_eq!(
+            g.pressed_buttons().collect::<Vec<_>>(),
+            [GamepadButton::Start]
+        );
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_released());
+        assert!(g.button(GamepadButton::Start).state().is_pressed());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::ReleasedButton(0, GamepadButton::Start).into());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert!(!f.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(f.button(GamepadButton::Start).state().is_just_released());
-        assert!(!f.button(GamepadButton::Start).state().is_pressed());
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
+        assert!(g.button(GamepadButton::Start).state().is_just_released());
+        assert!(!g.button(GamepadButton::Start).state().is_pressed());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert!(!f.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!f.button(GamepadButton::Start).state().is_just_released());
-        assert!(!f.button(GamepadButton::Start).state().is_pressed());
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_released());
+        assert!(!g.button(GamepadButton::Start).state().is_pressed());
     });
 }
 
@@ -80,19 +91,19 @@ fn update_button_value() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(GamepadEvent::Plugged(0).into()));
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.button(GamepadButton::BackLeftTrigger).value(), 0.);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.button(GamepadButton::BackLeftTrigger).value(), 0.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::UpdatedButtonValue(0, GamepadButton::BackLeftTrigger, 0.5).into());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.button(GamepadButton::BackLeftTrigger).value(), 0.5);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.button(GamepadButton::BackLeftTrigger).value(), 0.5);
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.button(GamepadButton::BackLeftTrigger).value(), 0.5);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.button(GamepadButton::BackLeftTrigger).value(), 0.5);
     });
 }
 
@@ -102,15 +113,15 @@ fn update_axis() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(GamepadEvent::Plugged(0).into()));
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::LeftStick).x, 0.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::LeftStick).y, 0.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::RightStick).x, 0.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::RightStick).y, 0.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).x, 0.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).y, 0.);
-        assert_abs_diff_eq!(f.left_z_axis_value(), 0.);
-        assert_abs_diff_eq!(f.right_z_axis_value(), 0.);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).x, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).y, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).x, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).y, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.);
+        assert_abs_diff_eq!(g.left_z_axis_value(), 0.);
+        assert_abs_diff_eq!(g.right_z_axis_value(), 0.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::UpdatedAxisValue(0, GamepadAxis::LeftStickX, 0.1).into());
@@ -124,22 +135,22 @@ fn update_axis() {
     });
     app.update();
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::LeftStick).x, 0.1);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::LeftStick).y, 0.2);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::RightStick).x, 0.3);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::RightStick).y, 0.4);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).x, 0.5);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).y, 0.6);
-        assert_abs_diff_eq!(f.left_z_axis_value(), 0.7);
-        assert_abs_diff_eq!(f.right_z_axis_value(), 0.8);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).x, 0.1);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).y, 0.2);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).x, 0.3);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).y, 0.4);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 0.5);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.6);
+        assert_abs_diff_eq!(g.left_z_axis_value(), 0.7);
+        assert_abs_diff_eq!(g.right_z_axis_value(), 0.8);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::PressedButton(0, GamepadButton::DPadRight).into());
     });
     app.update();
-    app.assert_entity(4).has(|f: &Gamepad| {
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).x, 1.);
-        assert_abs_diff_eq!(f.stick_direction(GamepadStick::DPad).y, 0.);
+    app.assert_entity(4).has(|g: &Gamepad| {
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 1.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.);
     });
 }
