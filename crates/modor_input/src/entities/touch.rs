@@ -17,7 +17,7 @@ use modor::{Built, EntityBuilder};
 ///
 /// ```rust
 /// # use modor::{Single, Query};
-/// # use modor_input::{Finger, MouseButton};
+/// # use modor_input::Finger;
 /// #
 /// fn access_touch(fingers: Query<'_, &Finger>) {
 ///     for finger in fingers.iter() {

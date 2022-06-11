@@ -17,7 +17,7 @@ use modor_math::Vector2D;
 ///
 /// ```rust
 /// # use modor::{Single, Query};
-/// # use modor_input::{Finger, Gamepad, GamepadButton, GamepadStick, MouseButton};
+/// # use modor_input::{Gamepad, GamepadButton, GamepadStick};
 /// #
 /// fn access_gamepads(gamepads: Query<'_, &Gamepad>) {
 ///     for gamepad in gamepads.iter() {

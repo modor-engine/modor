@@ -15,7 +15,7 @@ use modor::{Built, EntityBuilder};
 ///
 /// ```rust
 /// # use modor::Single;
-/// # use modor_input::{Key, Keyboard, Mouse};
+/// # use modor_input::{Key, Keyboard};
 /// #
 /// fn access_keyboard(keyboard: Single<'_, Keyboard>) {
 ///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed());
