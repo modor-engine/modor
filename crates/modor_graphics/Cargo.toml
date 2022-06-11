@@ -29,7 +29,7 @@ modor_input = { version = "0.1.0", path = "../modor_input" }
 gilrs = "0.9"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.5"
+ndk = "0.6"
 ndk-glue = "0.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
