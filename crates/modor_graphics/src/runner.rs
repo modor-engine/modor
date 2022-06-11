@@ -2,8 +2,8 @@ use crate::{utils, FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{
-    GamepadAxis, GamepadButton, GamepadEvent, InputDelta, InputEventCollector, Key, KeyboardEvent,
-    MouseButton, MouseEvent, MouseScrollUnit, TouchEvent, WindowPosition,
+    InputDelta, InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent, MouseScrollUnit,
+    TouchEvent, WindowPosition,
 };
 use modor_physics::DeltaTime;
 use winit::event;
@@ -53,8 +53,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 pub fn runner(mut app: App) {
     configure_logging();
     #[cfg(not(target_os = "android"))]
-    let mut gilrs = gilrs::Gilrs::new().expect("cannot retrieve gamepad information");
-    init_gamepads(&mut app, &gilrs);
+    let mut gilrs = init_gamepads(&mut app);
     let event_loop = EventLoop::new();
     let mut window = None;
     app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
@@ -197,20 +196,24 @@ fn send_touch_event(app: &mut App, event: TouchEvent) {
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
-fn send_gamepad_event(app: &mut App, event: GamepadEvent) {
+#[cfg(not(target_os = "android"))]
+fn send_gamepad_event(app: &mut App, event: modor_input::GamepadEvent) {
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
 #[cfg(not(target_os = "android"))]
-fn init_gamepads(app: &mut App, gilrs: &gilrs::Gilrs) {
+fn init_gamepads(app: &mut App) -> gilrs::Gilrs {
+    let gilrs = gilrs::Gilrs::new().expect("cannot retrieve gamepad information");
     for (gamepad_id, _) in gilrs.gamepads() {
         let gamepad_id = <_ as Into<usize>>::into(gamepad_id) as u64;
-        send_gamepad_event(app, GamepadEvent::Plugged(gamepad_id));
+        send_gamepad_event(app, modor_input::GamepadEvent::Plugged(gamepad_id));
     }
+    gilrs
 }
 
 #[cfg(not(target_os = "android"))]
 fn update_gamepads(app: &mut App, gilrs: &mut gilrs::Gilrs) {
+    use modor_input::GamepadEvent;
     while let Some(gilrs::Event { id, event, .. }) = gilrs.next_event() {
         let gamepad_id = <_ as Into<usize>>::into(id) as u64;
         match event {
@@ -252,42 +255,42 @@ fn update_gamepads(app: &mut App, gilrs: &mut gilrs::Gilrs) {
 }
 
 #[cfg(not(target_os = "android"))]
-fn convert_gamepad_button(button: gilrs::Button) -> Option<GamepadButton> {
+fn convert_gamepad_button(button: gilrs::Button) -> Option<modor_input::GamepadButton> {
     match button {
-        gilrs::Button::South => Some(GamepadButton::South),
-        gilrs::Button::East => Some(GamepadButton::East),
-        gilrs::Button::North => Some(GamepadButton::North),
-        gilrs::Button::West => Some(GamepadButton::West),
-        gilrs::Button::C => Some(GamepadButton::C),
-        gilrs::Button::Z => Some(GamepadButton::Z),
-        gilrs::Button::LeftTrigger => Some(GamepadButton::FrontLeftTrigger),
-        gilrs::Button::LeftTrigger2 => Some(GamepadButton::BackLeftTrigger),
-        gilrs::Button::RightTrigger => Some(GamepadButton::FrontRightTrigger),
-        gilrs::Button::RightTrigger2 => Some(GamepadButton::BackRightTrigger),
-        gilrs::Button::Select => Some(GamepadButton::Select),
-        gilrs::Button::Start => Some(GamepadButton::Start),
-        gilrs::Button::Mode => Some(GamepadButton::Mode),
-        gilrs::Button::LeftThumb => Some(GamepadButton::LeftStick),
-        gilrs::Button::RightThumb => Some(GamepadButton::RightStick),
-        gilrs::Button::DPadUp => Some(GamepadButton::DPadUp),
-        gilrs::Button::DPadDown => Some(GamepadButton::DPadDown),
-        gilrs::Button::DPadLeft => Some(GamepadButton::DPadLeft),
-        gilrs::Button::DPadRight => Some(GamepadButton::DPadRight),
+        gilrs::Button::South => Some(modor_input::GamepadButton::South),
+        gilrs::Button::East => Some(modor_input::GamepadButton::East),
+        gilrs::Button::North => Some(modor_input::GamepadButton::North),
+        gilrs::Button::West => Some(modor_input::GamepadButton::West),
+        gilrs::Button::C => Some(modor_input::GamepadButton::C),
+        gilrs::Button::Z => Some(modor_input::GamepadButton::Z),
+        gilrs::Button::LeftTrigger => Some(modor_input::GamepadButton::FrontLeftTrigger),
+        gilrs::Button::LeftTrigger2 => Some(modor_input::GamepadButton::BackLeftTrigger),
+        gilrs::Button::RightTrigger => Some(modor_input::GamepadButton::FrontRightTrigger),
+        gilrs::Button::RightTrigger2 => Some(modor_input::GamepadButton::BackRightTrigger),
+        gilrs::Button::Select => Some(modor_input::GamepadButton::Select),
+        gilrs::Button::Start => Some(modor_input::GamepadButton::Start),
+        gilrs::Button::Mode => Some(modor_input::GamepadButton::Mode),
+        gilrs::Button::LeftThumb => Some(modor_input::GamepadButton::LeftStick),
+        gilrs::Button::RightThumb => Some(modor_input::GamepadButton::RightStick),
+        gilrs::Button::DPadUp => Some(modor_input::GamepadButton::DPadUp),
+        gilrs::Button::DPadDown => Some(modor_input::GamepadButton::DPadDown),
+        gilrs::Button::DPadLeft => Some(modor_input::GamepadButton::DPadLeft),
+        gilrs::Button::DPadRight => Some(modor_input::GamepadButton::DPadRight),
         gilrs::Button::Unknown => None,
     }
 }
 
 #[cfg(not(target_os = "android"))]
-fn convert_gamepad_axis(button: gilrs::Axis) -> Option<GamepadAxis> {
+fn convert_gamepad_axis(button: gilrs::Axis) -> Option<modor_input::GamepadAxis> {
     match button {
-        gilrs::Axis::LeftStickX => Some(GamepadAxis::LeftStickX),
-        gilrs::Axis::LeftStickY => Some(GamepadAxis::LeftStickY),
-        gilrs::Axis::RightStickX => Some(GamepadAxis::RightStickX),
-        gilrs::Axis::RightStickY => Some(GamepadAxis::RightStickY),
-        gilrs::Axis::DPadX => Some(GamepadAxis::DPadX),
-        gilrs::Axis::DPadY => Some(GamepadAxis::DPadY),
-        gilrs::Axis::LeftZ => Some(GamepadAxis::LeftZ),
-        gilrs::Axis::RightZ => Some(GamepadAxis::RightZ),
+        gilrs::Axis::LeftStickX => Some(modor_input::GamepadAxis::LeftStickX),
+        gilrs::Axis::LeftStickY => Some(modor_input::GamepadAxis::LeftStickY),
+        gilrs::Axis::RightStickX => Some(modor_input::GamepadAxis::RightStickX),
+        gilrs::Axis::RightStickY => Some(modor_input::GamepadAxis::RightStickY),
+        gilrs::Axis::DPadX => Some(modor_input::GamepadAxis::DPadX),
+        gilrs::Axis::DPadY => Some(modor_input::GamepadAxis::DPadY),
+        gilrs::Axis::LeftZ => Some(modor_input::GamepadAxis::LeftZ),
+        gilrs::Axis::RightZ => Some(modor_input::GamepadAxis::RightZ),
         gilrs::Axis::Unknown => None,
     }
 }
