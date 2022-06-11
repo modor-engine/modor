@@ -40,7 +40,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: apt-get install libudev-dev
+        run: sudo apt-get install libudev-dev
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -183,7 +183,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: apt-get install libudev-dev
+        run: sudo apt-get install libudev-dev
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
@@ -237,7 +237,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: apt-get install libudev-dev
+        run: sudo apt-get install libudev-dev
       - name: Generate documentation
         uses: actions-rs/cargo@v1
         with:
@@ -262,7 +262,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: apt-get install libudev-dev
+        run: sudo apt-get install libudev-dev
       - name: List clippy lints
         run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
         id: list_lints
