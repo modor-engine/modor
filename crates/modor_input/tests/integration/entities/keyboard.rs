@@ -1,17 +1,17 @@
 use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
-use modor_input::{InputEvent, InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
+use modor_input::{InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_pressed_keys() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Keyboard(KeyboardEvent::PressedKey(Key::A)));
-        c.push(InputEvent::Keyboard(KeyboardEvent::PressedKey(Key::B)));
-        c.push(InputEvent::Keyboard(KeyboardEvent::PressedKey(Key::C)));
-        c.push(InputEvent::Keyboard(KeyboardEvent::ReleasedKey(Key::C)));
+        c.push(KeyboardEvent::PressedKey(Key::A).into());
+        c.push(KeyboardEvent::PressedKey(Key::B).into());
+        c.push(KeyboardEvent::PressedKey(Key::C).into());
+        c.push(KeyboardEvent::ReleasedKey(Key::C).into());
     });
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
@@ -24,7 +24,7 @@ fn update_pressed_keys() {
         assert!(!k.key(Key::B).is_just_released());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Keyboard(KeyboardEvent::ReleasedKey(Key::B)));
+        c.push(KeyboardEvent::ReleasedKey(Key::B).into());
     });
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
@@ -52,18 +52,14 @@ fn update_pressed_keys() {
 fn update_text() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Keyboard(KeyboardEvent::EnteredText(
-            "abc".into(),
-        )));
-        c.push(InputEvent::Keyboard(KeyboardEvent::EnteredText(
-            "def".into(),
-        )));
+        c.push(KeyboardEvent::EnteredText("abc".into()).into());
+        c.push(KeyboardEvent::EnteredText("def".into()).into());
     });
     app.update();
     app.assert_singleton::<Keyboard>()
         .has(|k: &Keyboard| assert_eq!(k.text(), "abcdef"));
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Keyboard(KeyboardEvent::ReleasedKey(Key::B)));
+        c.push(KeyboardEvent::ReleasedKey(Key::B).into());
     });
     app.update();
     app.assert_singleton::<Keyboard>()
@@ -95,7 +91,7 @@ fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
         for key in keys {
-            c.push(InputEvent::Keyboard(KeyboardEvent::PressedKey(*key)));
+            c.push(KeyboardEvent::PressedKey(*key).into());
         }
     });
     app.update();

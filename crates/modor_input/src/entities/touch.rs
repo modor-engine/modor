@@ -21,7 +21,7 @@ use modor::{Built, EntityBuilder};
 /// #
 /// fn access_touch(fingers: Query<'_, &Finger>) {
 ///     for finger in fingers.iter() {
-///        println!("Position of finger {}: {:?}", finger.id(), finger.position());
+///         println!("Position of finger {}: {:?}", finger.id(), finger.position());
 ///     }
 /// }
 /// ```
@@ -91,9 +91,9 @@ impl Finger {
 #[derive(Debug, Clone)]
 pub enum TouchEvent {
     /// Finger added.
-    Start(u64),
+    Started(u64),
     /// Finger removed.
-    End(u64),
+    Ended(u64),
     /// Finger position updated.
     UpdatedPosition(u64, WindowPosition),
 }

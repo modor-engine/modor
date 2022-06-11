@@ -1,4 +1,4 @@
-use crate::data::{InputDelta, InputState, DEFAULT_INPUT_STATE};
+use crate::data::{InputDelta, InputState};
 use crate::WindowPosition;
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
@@ -42,7 +42,7 @@ impl Mouse {
 
     /// Returns the state of a button.
     pub fn button(&self, button: MouseButton) -> InputState {
-        *self.buttons.get(&button).unwrap_or(&DEFAULT_INPUT_STATE)
+        self.buttons.get(&button).copied().unwrap_or_default()
     }
 
     /// Returns the scroll delta in pixels.

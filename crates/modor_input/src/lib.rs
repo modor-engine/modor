@@ -50,9 +50,11 @@ extern crate derive_more;
 
 mod data;
 mod entities;
+mod utils;
 
 pub use data::*;
 pub use entities::events::*;
+pub use entities::gamepads::*;
 pub use entities::keyboard::*;
 pub use entities::module::*;
 pub use entities::mouse::*;

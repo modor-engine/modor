@@ -1,3 +1,4 @@
+use crate::entities::gamepads::{Gamepad, GamepadEvent};
 use crate::{
     Finger, InputModule, Keyboard, KeyboardEvent, Mouse, MouseEvent, TouchEvent, WindowPosition,
 };
@@ -16,13 +17,17 @@ use modor::{Built, Entity, EntityBuilder, Query, Single, SingleMut, World};
 /// # use modor::SingleMut;
 /// # use modor_input::{
 /// #    InputDelta, InputEvent, InputEventCollector, Key, KeyboardEvent, MouseEvent,
-/// #    MouseScrollUnit
+/// #    MouseScrollUnit, TouchEvent, WindowPosition, GamepadEvent, GamepadAxis
 /// # };
 /// #
 /// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
 ///     let scroll_delta = InputDelta::xy(0., 0.5);
-///     collector.push(InputEvent::Mouse(MouseEvent::Scroll(scroll_delta, MouseScrollUnit::Line)));
-///     collector.push(InputEvent::Keyboard(KeyboardEvent::ReleasedKey(Key::Left)))
+///     collector.push(MouseEvent::Scroll(scroll_delta, MouseScrollUnit::Line).into());
+///     collector.push(KeyboardEvent::ReleasedKey(Key::Left).into());
+///     collector.push(TouchEvent::Started(10).into());
+///     collector.push(TouchEvent::UpdatedPosition(10, WindowPosition::xy(20., 42.)).into());
+///     collector.push(GamepadEvent::Plugged(5).into());
+///     collector.push(GamepadEvent::UpdatedAxisValue(5, GamepadAxis::LeftStickX, 0.68).into());
 /// }
 /// ```
 pub struct InputEventCollector {
@@ -47,26 +52,39 @@ impl InputEventCollector {
         mut mouse: SingleMut<'_, Mouse>,
         mut keyboard: SingleMut<'_, Keyboard>,
         mut fingers: Query<'_, (Entity<'_>, &mut Finger)>,
+        mut gamepads: Query<'_, (Entity<'_>, &mut Gamepad)>,
         mut world: World<'_>,
     ) {
         Self::delete_released_fingers(&fingers, &mut world);
         mouse.reset();
         keyboard.reset();
         fingers.iter_mut().for_each(|(_, f)| f.reset());
+        gamepads.iter_mut().for_each(|(_, g)| g.reset());
         let module_id = module.entity().id();
         for event in self.events.drain(..) {
             match event {
                 InputEvent::Mouse(event) => mouse.apply_event(event),
                 InputEvent::Keyboard(event) => keyboard.apply_event(event),
                 InputEvent::Touch(event) => match event {
-                    TouchEvent::Start(id) => Self::create_finger(id, module_id, &mut world),
-                    TouchEvent::End(id) => Self::release_finger(id, &mut fingers),
+                    TouchEvent::Started(id) => Self::create_finger(id, module_id, &mut world),
+                    TouchEvent::Ended(id) => Self::release_finger(id, &mut fingers),
                     TouchEvent::UpdatedPosition(id, position) => {
                         Self::update_finger(id, position, &mut fingers);
                     }
                 },
+                InputEvent::Gamepad(event) => match event {
+                    GamepadEvent::Plugged(id) => Self::create_gamepad(id, module_id, &mut world),
+                    GamepadEvent::Unplugged(id) => Self::delete_gamepad(id, &gamepads, &mut world),
+                    event @ (GamepadEvent::PressedButton(..)
+                    | GamepadEvent::ReleasedButton(..)
+                    | GamepadEvent::UpdatedButtonValue(..)
+                    | GamepadEvent::UpdatedAxisValue(..)) => {
+                        Self::apply_gamepad_event(event, &mut gamepads);
+                    }
+                },
             }
         }
+        gamepads.iter_mut().for_each(|(_, g)| g.normalize());
     }
 
     fn create_finger(id: u64, module_id: usize, world: &mut World<'_>) {
@@ -100,6 +118,32 @@ impl InputEventCollector {
             .filter(|(_, t)| t.state().is_just_released())
             .for_each(|(e, _)| world.delete_entity(e.id()));
     }
+
+    fn create_gamepad(id: u64, module_id: usize, world: &mut World<'_>) {
+        world.create_child_entity(module_id, Gamepad::build(id));
+    }
+
+    fn delete_gamepad(
+        id: u64,
+        gamepads: &Query<'_, (Entity<'_>, &mut Gamepad)>,
+        world: &mut World<'_>,
+    ) {
+        gamepads
+            .iter()
+            .filter(|(_, t)| t.id() == id)
+            .for_each(|(e, _)| world.delete_entity(e.id()));
+    }
+
+    fn apply_gamepad_event(
+        event: GamepadEvent,
+        gamepads: &mut Query<'_, (Entity<'_>, &mut Gamepad)>,
+    ) {
+        let gamepad_id = event.id();
+        gamepads
+            .iter_mut()
+            .filter(|(_, f)| f.id() == gamepad_id)
+            .for_each(|(_, f)| f.apply_event(&event));
+    }
 }
 
 /// An action done when the input module has treated all events.
@@ -119,4 +163,30 @@ pub enum InputEvent {
     Keyboard(KeyboardEvent),
     /// Touch event.
     Touch(TouchEvent),
+    /// Gamepad event.
+    Gamepad(GamepadEvent),
+}
+
+impl From<MouseEvent> for InputEvent {
+    fn from(event: MouseEvent) -> Self {
+        Self::Mouse(event)
+    }
+}
+
+impl From<KeyboardEvent> for InputEvent {
+    fn from(event: KeyboardEvent) -> Self {
+        Self::Keyboard(event)
+    }
+}
+
+impl From<TouchEvent> for InputEvent {
+    fn from(event: TouchEvent) -> Self {
+        Self::Touch(event)
+    }
+}
+
+impl From<GamepadEvent> for InputEvent {
+    fn from(event: GamepadEvent) -> Self {
+        Self::Gamepad(event)
+    }
 }

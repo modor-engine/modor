@@ -1,8 +1,7 @@
-use crate::data::{InputState, DEFAULT_INPUT_STATE};
-use crate::InputDelta;
+use crate::data::InputState;
+use crate::{utils, InputDelta};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
-use modor_math::Vector2D;
 
 /// The state of the keyboard.
 ///
@@ -40,27 +39,19 @@ impl Keyboard {
 
     /// Returns the state of a key.
     pub fn key(&self, key: Key) -> InputState {
-        *self.keys.get(&key).unwrap_or(&DEFAULT_INPUT_STATE)
+        self.keys.get(&key).copied().unwrap_or_default()
     }
 
     /// Returns a normalized delta indicating a direction from left, right, up and down keys.
     ///
     /// If none of the keys are pressed, the returned delta has all components equal to zero.
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> InputDelta {
-        let mut delta = InputDelta::xy(0., 0.);
-        if self.key(left).is_pressed() {
-            delta.x -= 1.;
-        }
-        if self.key(right).is_pressed() {
-            delta.x += 1.;
-        }
-        if self.key(up).is_pressed() {
-            delta.y += 1.;
-        }
-        if self.key(down).is_pressed() {
-            delta.y -= 1.;
-        }
-        delta.with_magnitude(1.)
+        utils::normalized_direction(
+            self.key(left).is_pressed(),
+            self.key(right).is_pressed(),
+            self.key(up).is_pressed(),
+            self.key(down).is_pressed(),
+        )
     }
 
     /// Returns the entered text.

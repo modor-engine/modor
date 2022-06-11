@@ -5,8 +5,33 @@ pub trait Vector2D: Copy + Add + Sub + AddAssign + SubAssign {
     /// Creates a new vector.
     fn create(x: f32, y: f32) -> Self;
 
-    /// Returns components of the point.
+    /// Returns components of the vector.
     fn components(self) -> (f32, f32);
+
+    /// Returns whether all components are `0.0`.
+    fn is_zero(self) -> bool {
+        self.components() == (0., 0.)
+    }
+
+    /// Converts the vector to another type `V`.
+    fn into_vec2<V>(self) -> V
+    where
+        V: Vector2D,
+    {
+        let (x, y) = self.components();
+        V::create(x, y)
+    }
+
+    /// Converts the vector to another type `V`.
+    ///
+    /// The 3rd component of the new vector is set to `0.0`.
+    fn into_vec3<V>(self) -> V
+    where
+        V: Vector3D,
+    {
+        let (x, y) = self.components();
+        V::create(x, y, 0.)
+    }
 
     /// Returns the magnitude of the vector.
     fn magnitude(self) -> f32 {
@@ -43,8 +68,24 @@ pub trait Vector3D: Copy + Add + Sub + AddAssign + SubAssign {
     /// Creates a new vector.
     fn create(x: f32, y: f32, z: f32) -> Self;
 
-    /// Returns components of the point.
+    /// Returns components of the vector.
     fn components(self) -> (f32, f32, f32);
+
+    /// Returns whether all components are `0.0`.
+    fn is_zero(self) -> bool {
+        self.components() == (0., 0., 0.)
+    }
+
+    /// Converts the vector to another type `V`.
+    ///
+    /// The 3rd component of the new vector is set to `0.0`.
+    fn into_vec3<V>(self) -> V
+    where
+        V: Vector3D,
+    {
+        let (x, y, z) = self.components();
+        V::create(x, y, z)
+    }
 
     /// Returns the magnitude of the vector.
     fn magnitude(self) -> f32 {

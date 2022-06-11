@@ -2,8 +2,8 @@ use crate::{utils, FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{
-    InputDelta, InputEvent, InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent,
-    MouseScrollUnit, TouchEvent, WindowPosition,
+    GamepadAxis, GamepadButton, GamepadEvent, InputDelta, InputEventCollector, Key, KeyboardEvent,
+    MouseButton, MouseEvent, MouseScrollUnit, TouchEvent, WindowPosition,
 };
 use modor_physics::DeltaTime;
 use winit::event;
@@ -52,6 +52,9 @@ use winit::event_loop::{ControlFlow, EventLoop};
 #[allow(clippy::wildcard_enum_match_arm, clippy::cast_possible_truncation)]
 pub fn runner(mut app: App) {
     configure_logging();
+    #[cfg(not(target_os = "android"))]
+    let mut gilrs = gilrs::Gilrs::new().expect("cannot retrieve gamepad information");
+    init_gamepads(&mut app, &gilrs);
     let event_loop = EventLoop::new();
     let mut window = None;
     app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
@@ -73,6 +76,8 @@ pub fn runner(mut app: App) {
                     height: size.height,
                 });
             });
+            #[cfg(not(target_os = "android"))]
+            update_gamepads(&mut app, &mut gilrs);
             utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
             let update_end = Instant::now();
             app.run_for_singleton(|t: &mut DeltaTime| t.set(update_end - previous_update_end));
@@ -83,7 +88,7 @@ pub fn runner(mut app: App) {
             ..
         } => {
             let delta = InputDelta::xy(delta.0 as f32, -delta.1 as f32);
-            send_input_event(&mut app, InputEvent::Mouse(MouseEvent::Moved(delta)));
+            send_mouse_event(&mut app, MouseEvent::Moved(delta));
         }
         Event::WindowEvent { event, window_id } if window_id == window.id() => {
             treat_window_event(&mut app, event, control_flow);
@@ -109,12 +114,12 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
         }
         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
         WindowEvent::MouseInput { button, state, .. } => {
-            send_input_event(app, convert_mouse_button_event(button, state));
+            send_mouse_event(app, convert_mouse_button_event(button, state));
         }
         WindowEvent::MouseWheel { delta, .. } => {
-            send_input_event(
+            send_mouse_event(
                 app,
-                InputEvent::Mouse(match delta {
+                match delta {
                     MouseScrollDelta::LineDelta(columns, rows) => {
                         MouseEvent::Scroll(InputDelta::xy(columns, -rows), MouseScrollUnit::Line)
                     }
@@ -122,49 +127,46 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                         InputDelta::xy(delta.x as f32, -delta.y as f32),
                         MouseScrollUnit::Pixel,
                     ),
-                }),
+                },
             );
         }
         WindowEvent::CursorMoved { position, .. } => {
-            send_input_event(
+            send_mouse_event(
                 app,
-                InputEvent::Mouse(MouseEvent::UpdatedPosition(WindowPosition::xy(
+                MouseEvent::UpdatedPosition(WindowPosition::xy(
                     position.x as f32,
                     position.y as f32,
-                ))),
+                )),
             );
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(code) = input.virtual_keycode {
-                send_input_event(app, convert_keyboard_key_event(code, input.state));
+                send_keyboard_event(app, convert_keyboard_key_event(code, input.state));
             }
         }
         WindowEvent::ReceivedCharacter(character) => {
-            send_input_event(
-                app,
-                InputEvent::Keyboard(KeyboardEvent::EnteredText(character.into())),
-            );
+            send_keyboard_event(app, KeyboardEvent::EnteredText(character.into()));
         }
         WindowEvent::Touch(touch) => match touch.phase {
             TouchPhase::Started => {
-                send_input_event(app, InputEvent::Touch(TouchEvent::Start(touch.id)));
-                send_input_event(
+                send_touch_event(app, TouchEvent::Started(touch.id));
+                send_touch_event(
                     app,
-                    InputEvent::Touch(TouchEvent::UpdatedPosition(
+                    TouchEvent::UpdatedPosition(
                         touch.id,
                         WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
-                    )),
+                    ),
                 );
             }
-            TouchPhase::Moved => send_input_event(
+            TouchPhase::Moved => send_touch_event(
                 app,
-                InputEvent::Touch(TouchEvent::UpdatedPosition(
+                TouchEvent::UpdatedPosition(
                     touch.id,
                     WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
-                )),
+                ),
             ),
             TouchPhase::Ended | TouchPhase::Cancelled => {
-                send_input_event(app, InputEvent::Touch(TouchEvent::End(touch.id)));
+                send_touch_event(app, TouchEvent::Ended(touch.id));
             }
         },
         _ => {}
@@ -183,11 +185,114 @@ fn configure_logging() {
     }
 }
 
-fn send_input_event(app: &mut App, event: InputEvent) {
-    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event));
+fn send_keyboard_event(app: &mut App, event: KeyboardEvent) {
+    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
-fn convert_mouse_button_event(button: event::MouseButton, state: ElementState) -> InputEvent {
+fn send_mouse_event(app: &mut App, event: MouseEvent) {
+    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+}
+
+fn send_touch_event(app: &mut App, event: TouchEvent) {
+    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+}
+
+fn send_gamepad_event(app: &mut App, event: GamepadEvent) {
+    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+}
+
+#[cfg(not(target_os = "android"))]
+fn init_gamepads(app: &mut App, gilrs: &gilrs::Gilrs) {
+    for (gamepad_id, _) in gilrs.gamepads() {
+        let gamepad_id = <_ as Into<usize>>::into(gamepad_id) as u64;
+        send_gamepad_event(app, GamepadEvent::Plugged(gamepad_id));
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn update_gamepads(app: &mut App, gilrs: &mut gilrs::Gilrs) {
+    while let Some(gilrs::Event { id, event, .. }) = gilrs.next_event() {
+        let gamepad_id = <_ as Into<usize>>::into(id) as u64;
+        match event {
+            gilrs::EventType::Connected => {
+                send_gamepad_event(app, GamepadEvent::Plugged(gamepad_id));
+            }
+            gilrs::EventType::Disconnected => {
+                send_gamepad_event(app, GamepadEvent::Unplugged(gamepad_id));
+            }
+            gilrs::EventType::ButtonPressed(button, _) => {
+                if let Some(button) = convert_gamepad_button(button) {
+                    send_gamepad_event(app, GamepadEvent::PressedButton(gamepad_id, button));
+                }
+            }
+            gilrs::EventType::ButtonReleased(button, _) => {
+                if let Some(button) = convert_gamepad_button(button) {
+                    send_gamepad_event(app, GamepadEvent::ReleasedButton(gamepad_id, button));
+                }
+            }
+            gilrs::EventType::ButtonChanged(button, value, _) => {
+                if let Some(button) = convert_gamepad_button(button) {
+                    send_gamepad_event(
+                        app,
+                        GamepadEvent::UpdatedButtonValue(gamepad_id, button, value),
+                    );
+                }
+            }
+            gilrs::EventType::AxisChanged(axis, value, _) => {
+                if let Some(axis) = convert_gamepad_axis(axis) {
+                    send_gamepad_event(
+                        app,
+                        GamepadEvent::UpdatedAxisValue(gamepad_id, axis, value),
+                    );
+                }
+            }
+            gilrs::EventType::Dropped | gilrs::EventType::ButtonRepeated(_, _) => {}
+        }
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn convert_gamepad_button(button: gilrs::Button) -> Option<GamepadButton> {
+    match button {
+        gilrs::Button::South => Some(GamepadButton::South),
+        gilrs::Button::East => Some(GamepadButton::East),
+        gilrs::Button::North => Some(GamepadButton::North),
+        gilrs::Button::West => Some(GamepadButton::West),
+        gilrs::Button::C => Some(GamepadButton::C),
+        gilrs::Button::Z => Some(GamepadButton::Z),
+        gilrs::Button::LeftTrigger => Some(GamepadButton::FrontLeftTrigger),
+        gilrs::Button::LeftTrigger2 => Some(GamepadButton::BackLeftTrigger),
+        gilrs::Button::RightTrigger => Some(GamepadButton::FrontRightTrigger),
+        gilrs::Button::RightTrigger2 => Some(GamepadButton::BackRightTrigger),
+        gilrs::Button::Select => Some(GamepadButton::Select),
+        gilrs::Button::Start => Some(GamepadButton::Start),
+        gilrs::Button::Mode => Some(GamepadButton::Mode),
+        gilrs::Button::LeftThumb => Some(GamepadButton::LeftStick),
+        gilrs::Button::RightThumb => Some(GamepadButton::RightStick),
+        gilrs::Button::DPadUp => Some(GamepadButton::DPadUp),
+        gilrs::Button::DPadDown => Some(GamepadButton::DPadDown),
+        gilrs::Button::DPadLeft => Some(GamepadButton::DPadLeft),
+        gilrs::Button::DPadRight => Some(GamepadButton::DPadRight),
+        gilrs::Button::Unknown => None,
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn convert_gamepad_axis(button: gilrs::Axis) -> Option<GamepadAxis> {
+    match button {
+        gilrs::Axis::LeftStickX => Some(GamepadAxis::LeftStickX),
+        gilrs::Axis::LeftStickY => Some(GamepadAxis::LeftStickY),
+        gilrs::Axis::RightStickX => Some(GamepadAxis::RightStickX),
+        gilrs::Axis::RightStickY => Some(GamepadAxis::RightStickY),
+        gilrs::Axis::DPadX => Some(GamepadAxis::DPadX),
+        gilrs::Axis::DPadY => Some(GamepadAxis::DPadY),
+        gilrs::Axis::LeftZ => Some(GamepadAxis::LeftZ),
+        gilrs::Axis::RightZ => Some(GamepadAxis::RightZ),
+        gilrs::Axis::Unknown => None,
+    }
+}
+
+fn convert_mouse_button_event(button: event::MouseButton, state: ElementState) -> MouseEvent {
     let button = match button {
         event::MouseButton::Left => MouseButton::Left,
         event::MouseButton::Right => MouseButton::Right,
@@ -195,13 +300,13 @@ fn convert_mouse_button_event(button: event::MouseButton, state: ElementState) -
         event::MouseButton::Other(id) => MouseButton::Other(id),
     };
     match state {
-        ElementState::Pressed => InputEvent::Mouse(MouseEvent::PressedButton(button)),
-        ElementState::Released => InputEvent::Mouse(MouseEvent::ReleasedButton(button)),
+        ElementState::Pressed => MouseEvent::PressedButton(button),
+        ElementState::Released => MouseEvent::ReleasedButton(button),
     }
 }
 
 #[allow(clippy::too_many_lines)]
-fn convert_keyboard_key_event(code: VirtualKeyCode, state: ElementState) -> InputEvent {
+fn convert_keyboard_key_event(code: VirtualKeyCode, state: ElementState) -> KeyboardEvent {
     let key = match code {
         VirtualKeyCode::Key1 => Key::Key1,
         VirtualKeyCode::Key2 => Key::Key2,
@@ -368,7 +473,7 @@ fn convert_keyboard_key_event(code: VirtualKeyCode, state: ElementState) -> Inpu
         VirtualKeyCode::Cut => Key::Cut,
     };
     match state {
-        ElementState::Pressed => InputEvent::Keyboard(KeyboardEvent::PressedKey(key)),
-        ElementState::Released => InputEvent::Keyboard(KeyboardEvent::ReleasedKey(key)),
+        ElementState::Pressed => KeyboardEvent::PressedKey(key),
+        ElementState::Released => KeyboardEvent::ReleasedKey(key),
     }
 }

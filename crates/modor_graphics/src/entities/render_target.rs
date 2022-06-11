@@ -17,16 +17,8 @@ use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
 const DEFAULT_CAMERA: CameraProperties = CameraProperties {
-    position: Position {
-        x: 0.,
-        y: 0.,
-        z: 0.,
-    },
-    size: Size {
-        x: 1.,
-        y: 1.,
-        z: 1.,
-    },
+    position: Position::ZERO,
+    size: Size::ONE,
 };
 
 pub(crate) struct RenderTarget {

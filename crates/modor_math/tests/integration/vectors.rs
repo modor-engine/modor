@@ -35,9 +35,18 @@ fn use_vector2d() {
     let point2 = point1.with_magnitude(20_f32.sqrt());
     assert_abs_diff_eq!(point2.0, 2.);
     assert_abs_diff_eq!(point2.1, 4.);
+    assert!(!point2.is_zero());
     let point3 = Movement2D(0., 0.).with_magnitude(2.);
     assert_abs_diff_eq!(point3.0, 0.);
     assert_abs_diff_eq!(point3.1, 0.);
+    assert!(point3.is_zero());
+    let point4 = point2.into_vec2::<Movement2D>();
+    assert_abs_diff_eq!(point4.0, 2.);
+    assert_abs_diff_eq!(point4.1, 4.);
+    let point5 = point2.into_vec3::<Movement3D>();
+    assert_abs_diff_eq!(point5.0, 2.);
+    assert_abs_diff_eq!(point5.1, 4.);
+    assert_abs_diff_eq!(point5.2, 0.);
 }
 
 #[test]
@@ -49,8 +58,14 @@ fn use_vector3d() {
     assert_abs_diff_eq!(point2.0, 2.);
     assert_abs_diff_eq!(point2.1, 4.);
     assert_abs_diff_eq!(point2.2, 6.);
+    assert!(!point2.is_zero());
     let point3 = Movement3D(0., 0., 0.).with_magnitude(2.);
     assert_abs_diff_eq!(point3.0, 0.);
     assert_abs_diff_eq!(point3.1, 0.);
     assert_abs_diff_eq!(point3.2, 0.);
+    assert!(point3.is_zero());
+    let point5 = point2.into_vec3::<Movement3D>();
+    assert_abs_diff_eq!(point5.0, 2.);
+    assert_abs_diff_eq!(point5.1, 4.);
+    assert_abs_diff_eq!(point5.2, 6.);
 }

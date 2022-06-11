@@ -1,11 +1,5 @@
 use modor_math::{Point2D, Vector2D};
 
-pub(crate) const DEFAULT_INPUT_STATE: InputState = InputState {
-    is_pressed: false,
-    is_just_pressed: false,
-    is_just_released: false,
-};
-
 /// The state of a pressable input.
 ///
 /// # Examples

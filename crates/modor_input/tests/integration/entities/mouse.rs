@@ -2,8 +2,8 @@ use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
 use modor_input::{
-    InputDelta, InputEvent, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent,
-    MouseScrollUnit, WindowPosition,
+    InputDelta, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent, MouseScrollUnit,
+    WindowPosition,
 };
 
 #[test]
@@ -11,18 +11,10 @@ use modor_input::{
 fn update_pressed_buttons() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::PressedButton(
-            MouseButton::Left,
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::PressedButton(
-            MouseButton::Right,
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::PressedButton(
-            MouseButton::Middle,
-        )));
-        c.push(InputEvent::Mouse(MouseEvent::ReleasedButton(
-            MouseButton::Middle,
-        )));
+        c.push(MouseEvent::PressedButton(MouseButton::Left).into());
+        c.push(MouseEvent::PressedButton(MouseButton::Right).into());
+        c.push(MouseEvent::PressedButton(MouseButton::Middle).into());
+        c.push(MouseEvent::ReleasedButton(MouseButton::Middle).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -38,9 +30,7 @@ fn update_pressed_buttons() {
         assert!(!m.button(MouseButton::Right).is_just_released());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::ReleasedButton(
-            MouseButton::Right,
-        )));
+        c.push(MouseEvent::ReleasedButton(MouseButton::Right).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -69,10 +59,7 @@ fn update_pressed_buttons() {
 fn update_scroll() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::Scroll(
-            InputDelta::xy(1., 2.),
-            MouseScrollUnit::Line,
-        )));
+        c.push(MouseEvent::Scroll(InputDelta::xy(1., 2.), MouseScrollUnit::Line).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -82,10 +69,7 @@ fn update_scroll() {
         assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 6.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::Scroll(
-            InputDelta::xy(10., 20.),
-            MouseScrollUnit::Pixel,
-        )));
+        c.push(MouseEvent::Scroll(InputDelta::xy(10., 20.), MouseScrollUnit::Pixel).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -108,9 +92,7 @@ fn update_scroll() {
 fn update_position() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::UpdatedPosition(
-            WindowPosition::xy(150., 320.),
-        )));
+        c.push(MouseEvent::UpdatedPosition(WindowPosition::xy(150., 320.)).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -129,9 +111,7 @@ fn update_position() {
 fn update_delta() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Mouse(MouseEvent::Moved(InputDelta::xy(
-            18., 15.,
-        ))));
+        c.push(MouseEvent::Moved(InputDelta::xy(18., 15.)).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {

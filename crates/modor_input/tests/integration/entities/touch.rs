@@ -1,18 +1,16 @@
 use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
-use modor_input::{
-    Finger, InputEvent, InputEventCollector, InputModule, TouchEvent, WindowPosition,
-};
+use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent, WindowPosition};
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_state() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Touch(TouchEvent::Start(0)));
-        c.push(InputEvent::Touch(TouchEvent::Start(1)));
-        c.push(InputEvent::Touch(TouchEvent::Start(2)));
+        c.push(TouchEvent::Started(0).into());
+        c.push(TouchEvent::Started(1).into());
+        c.push(TouchEvent::Started(2).into());
     });
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
@@ -35,8 +33,8 @@ fn update_state() {
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         let position = WindowPosition::xy(2., 5.);
-        c.push(InputEvent::Touch(TouchEvent::UpdatedPosition(1, position)));
-        c.push(InputEvent::Touch(TouchEvent::End(2)));
+        c.push(TouchEvent::UpdatedPosition(1, position).into());
+        c.push(TouchEvent::Ended(2).into());
     });
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
@@ -66,7 +64,7 @@ fn update_state() {
 fn update_position() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(InputEvent::Touch(TouchEvent::Start(0)));
+        c.push(TouchEvent::Started(0).into());
     });
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
@@ -78,7 +76,7 @@ fn update_position() {
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         let position = WindowPosition::xy(2., 5.);
-        c.push(InputEvent::Touch(TouchEvent::UpdatedPosition(0, position)));
+        c.push(TouchEvent::UpdatedPosition(0, position).into());
     });
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
