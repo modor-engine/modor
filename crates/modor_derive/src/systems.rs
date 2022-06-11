@@ -1,5 +1,5 @@
-use crate::attributes;
 use crate::attributes::{AttributeType, ParsedAttribute};
+use crate::{attributes, crate_name};
 use proc_macro2::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned};
@@ -42,21 +42,22 @@ fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
 }
 
 fn generate_system_call(method: &ImplItemMethod, attribute: &AttributeType) -> Option<TokenStream> {
+    let crate_ident = crate_name::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
     Some(match attributes::parse(attribute)? {
         ParsedAttribute::Run => quote_spanned! { attribute.span() =>
-            .run(::modor::system!(Self::#system_name))
+            .run(#crate_ident::system!(Self::#system_name))
         },
         ParsedAttribute::RunAs(action) => quote_spanned! { attribute.span() =>
-            .run_as::<#action>(::modor::system!(Self::#system_name))
+            .run_as::<#action>(#crate_ident::system!(Self::#system_name))
         },
         ParsedAttribute::RunAfter(actions) => quote_spanned! { attribute.span() =>
-            .run_constrained::<(#(::modor::DependsOn<#actions>,)*)>(
-                ::modor::system!(Self::#system_name)
+            .run_constrained::<(#(#crate_ident::DependsOn<#actions>,)*)>(
+                #crate_ident::system!(Self::#system_name)
             )
         },
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
-            .and_then(::modor::system!(Self::#system_name))
+            .and_then(#crate_ident::system!(Self::#system_name))
         },
     })
 }
