@@ -76,13 +76,9 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
     output.into()
 }
 
-#[allow(clippy::expect_fun_call)]
 fn find_crate_ident() -> Ident {
-    let found_crate = proc_macro_crate::crate_name(CORE_CRATE_NAME).expect(&format!(
-        "`{CORE_CRATE_NAME}` crate not found in Cargo.toml"
-    ));
-    match found_crate {
-        FoundCrate::Itself => Ident::new(CORE_CRATE_NAME, Span::call_site()),
-        FoundCrate::Name(name) => Ident::new(&name, Span::call_site()),
+    match proc_macro_crate::crate_name(CORE_CRATE_NAME) {
+        Ok(FoundCrate::Itself) | Err(_) => Ident::new(CORE_CRATE_NAME, Span::call_site()),
+        Ok(FoundCrate::Name(name)) => Ident::new(&name, Span::call_site()),
     }
 }
