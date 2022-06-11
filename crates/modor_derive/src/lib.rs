@@ -1,19 +1,18 @@
 //! Procedural macros of modor.
 
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
-use proc_macro_crate::FoundCrate;
+use proc_macro2::Ident;
 use proc_macro_error::ResultExt;
 use quote::quote;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
 use syn::{parse_macro_input, ItemImpl, ItemStruct, Token};
 
 mod attributes;
+mod crate_name;
 mod impl_block;
 mod systems;
-
-const CORE_CRATE_NAME: &str = "modor";
 
 #[allow(missing_docs)]
 #[proc_macro_attribute]
@@ -33,8 +32,8 @@ pub fn singleton(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
 pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let crate_ident = find_crate_ident();
     let item = parse_macro_input!(item as ItemStruct);
+    let crate_ident = crate_name::find_crate_ident(item.span());
     let type_name = &item.ident;
     let actions: Vec<_> = Punctuated::<Ident, Token![,]>::parse_terminated
         .parse(attr)
@@ -52,8 +51,8 @@ pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> TokenStream {
-    let crate_ident = find_crate_ident();
     let item = parse_macro_input!(item as ItemImpl);
+    let crate_ident = crate_name::find_crate_ident(item.span());
     let cleaned_block = impl_block::clean(&item);
     let type_name = &item.self_ty;
     let entity_type = if is_singleton {
@@ -61,7 +60,7 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
     } else {
         quote!(#crate_ident::NotSingleton)
     };
-    let update_statement = systems::generate_update_statement(&item, &crate_ident);
+    let update_statement = systems::generate_update_statement(&item);
     let output = quote! {
         #cleaned_block
 
@@ -74,11 +73,4 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
         }
     };
     output.into()
-}
-
-fn find_crate_ident() -> Ident {
-    match proc_macro_crate::crate_name(CORE_CRATE_NAME) {
-        Ok(FoundCrate::Itself) | Err(_) => Ident::new(CORE_CRATE_NAME, Span::call_site()),
-        Ok(FoundCrate::Name(name)) => Ident::new(&name, Span::call_site()),
-    }
 }

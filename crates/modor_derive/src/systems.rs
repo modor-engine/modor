@@ -1,22 +1,19 @@
-use crate::attributes;
 use crate::attributes::{AttributeType, ParsedAttribute};
-use proc_macro2::{Ident, TokenStream};
+use crate::{attributes, crate_name};
+use proc_macro2::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned};
 use std::cmp::Ordering;
 use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
-pub(crate) fn generate_update_statement(impl_block: &ItemImpl, crate_ident: &Ident) -> TokenStream {
-    let system_calls = system_call_iter(impl_block, crate_ident);
+pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
+    let system_calls = system_call_iter(impl_block);
     quote! {
         runner #(#system_calls)*
     }
 }
 
-fn system_call_iter<'a>(
-    impl_block: &'a ItemImpl,
-    crate_ident: &'a Ident,
-) -> impl Iterator<Item = TokenStream> + 'a {
+fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> + '_ {
     impl_block
         .items
         .iter()
@@ -24,9 +21,7 @@ fn system_call_iter<'a>(
             if let ImplItem::Method(method) = i {
                 let attributes = supported_attributes(&method.attrs);
                 return match attributes.len().cmp(&1) {
-                    Ordering::Equal => {
-                        Some(generate_system_call(method, &attributes[0], crate_ident))
-                    }
+                    Ordering::Equal => Some(generate_system_call(method, &attributes[0])),
                     Ordering::Less => None,
                     Ordering::Greater => {
                         emit_error!(attributes[1].span(), "found more than one `run*` attribute");
@@ -46,11 +41,8 @@ fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
         .collect()
 }
 
-fn generate_system_call(
-    method: &ImplItemMethod,
-    attribute: &AttributeType,
-    crate_ident: &Ident,
-) -> Option<TokenStream> {
+fn generate_system_call(method: &ImplItemMethod, attribute: &AttributeType) -> Option<TokenStream> {
+    let crate_ident = crate_name::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
     Some(match attributes::parse(attribute)? {
         ParsedAttribute::Run => quote_spanned! { attribute.span() =>
