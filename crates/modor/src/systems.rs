@@ -14,19 +14,19 @@ use std::sync::Mutex;
 #[macro_export]
 macro_rules! system {
     ($system:expr) => {{
-        use ::modor::{SystemWithParamMutabilityIssue, SystemWithParams};
+        use $crate::{SystemWithParamMutabilityIssue, SystemWithParams};
 
         #[allow(clippy::semicolon_if_nothing_returned)]
-        ::modor::SystemBuilder {
-            properties_fn: ::modor::System::properties_fn(&$system),
-            wrapper: |data: ::modor::SystemData<'_>, info: ::modor::SystemInfo<'_>| {
-                let checker = ::modor::SystemParamMutabilityChecker::new($system);
+        $crate::SystemBuilder {
+            properties_fn: $crate::System::properties_fn(&$system),
+            wrapper: |data: $crate::SystemData<'_>, info: $crate::SystemInfo<'_>| {
+                let checker = $crate::SystemParamMutabilityChecker::new($system);
                 let mut system = checker.check_param_mutability().into_inner();
-                let mut guard = ::modor::System::lock(&system, data, info);
-                let mut guard_borrow = ::modor::System::borrow_guard(&system, &mut guard);
-                let mut stream = ::modor::System::stream(&system, &mut guard_borrow);
-                while let Some(item) = ::modor::System::stream_next(&system, &mut stream) {
-                    ::modor::System::apply(&mut system, item);
+                let mut guard = $crate::System::lock(&system, data, info);
+                let mut guard_borrow = $crate::System::borrow_guard(&system, &mut guard);
+                let mut stream = $crate::System::stream(&system, &mut guard_borrow);
+                while let Some(item) = $crate::System::stream_next(&system, &mut stream) {
+                    $crate::System::apply(&mut system, item);
                 }
             },
         }
