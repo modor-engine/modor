@@ -14,6 +14,10 @@ impl Point2D for Position2D {
 struct Position3D(f32, f32, f32);
 
 impl Point3D for Position3D {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self(x, y, z)
+    }
+
     fn components(self) -> (f32, f32, f32) {
         (self.0, self.1, self.2)
     }

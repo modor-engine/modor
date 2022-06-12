@@ -35,7 +35,7 @@ impl Size {
 
     /// Creates a 2D size.
     ///
-    /// Z-coordinate is set to one.
+    /// Z-coordinate is set to `1.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 1.)
     }
@@ -83,7 +83,7 @@ impl RelativeSize {
 
     /// Creates a 2D size.
     ///
-    /// Z-coordinate is set to one.
+    /// Z-coordinate is set to `1.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 1.)
     }

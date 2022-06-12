@@ -1,6 +1,7 @@
+use crate::entities::module::internal::UpdateAbsoluteRotationsFromRelativePositionsAction;
 use crate::{
-    Acceleration, DeltaTime, Position, RelativeAcceleration, RelativePosition, RelativeSize,
-    RelativeVelocity, Size, Velocity,
+    Acceleration, DeltaTime, Position, RelativeAcceleration, RelativePosition, RelativeRotation,
+    RelativeSize, RelativeVelocity, Rotation, Size, Velocity,
 };
 use internal::{
     UpdateAbsolutePositionsFromRelativePositionsAction,
@@ -10,8 +11,9 @@ use internal::{
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 use std::marker::PhantomData;
 
-const ROOT_POSITION: Position = Position::xyz(0., 0., 0.);
-const ROOT_SIZE: Size = Size::xyz(1., 1., 1.);
+const ROOT_POSITION: Position = Position::ZERO;
+const ROOT_SIZE: Size = Size::ONE;
+const ROOT_ROTATION: Rotation = Rotation::ZERO;
 
 /// The main entity of the physics module.
 ///
@@ -115,23 +117,62 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(UpdateAbsoluteRotationsFromRelativePositionsAction)]
+    fn update_absolute_rotations_from_relative_rotations(
+        entities: Query<'_, Entity<'_>, (With<Position>, With<Rotation>, With<RelativeRotation>)>,
+        mut components: Query<
+            '_,
+            (Option<&mut Rotation>, Option<&RelativeRotation>),
+            With<Position>,
+        >,
+    ) {
+        for entity in Self::entities_sorted_by_depth(entities.iter()) {
+            match components.get_with_first_parent_mut(entity.id()) {
+                (Some((Some(rotation), Some(relative_rotation))), Some((parent_rotation, _))) => {
+                    rotation.update_with_relative(
+                        *relative_rotation,
+                        parent_rotation.copied().unwrap_or(Rotation::ZERO),
+                    )
+                }
+                (Some((Some(rotation), Some(relative_rotation))), None) => {
+                    rotation.update_with_relative(*relative_rotation, ROOT_ROTATION);
+                }
+                _ => unreachable!("internal error: unreachable position update case"),
+            }
+        }
+    }
+
     #[run_as(UpdateAbsolutePositionsFromRelativePositionsAction)]
     fn update_absolute_positions_from_relative_positions(
         entities: Query<'_, Entity<'_>, (With<Position>, With<RelativePosition>)>,
-        mut components: Query<'_, (&mut Position, &Size, Option<&RelativePosition>)>,
+        mut components: Query<
+            '_,
+            (
+                &mut Position,
+                &Size,
+                Option<&Rotation>,
+                Option<&RelativePosition>,
+            ),
+        >,
     ) {
         for entity in Self::entities_sorted_by_depth(entities.iter()) {
             match components.get_with_first_parent_mut(entity.id()) {
                 (
-                    Some((position, _, Some(relative_position))),
-                    Some((parent_position, parent_size, _)),
+                    Some((position, _, _, Some(relative_position))),
+                    Some((parent_position, parent_size, parent_rotation, _)),
                 ) => position.update_with_relative(
                     *relative_position,
                     *parent_position,
                     *parent_size,
+                    parent_rotation.copied().unwrap_or(Rotation::ZERO),
                 ),
-                (Some((position, _, Some(relative_position))), None) => {
-                    position.update_with_relative(*relative_position, ROOT_POSITION, ROOT_SIZE);
+                (Some((position, _, _, Some(relative_position))), None) => {
+                    position.update_with_relative(
+                        *relative_position,
+                        ROOT_POSITION,
+                        ROOT_SIZE,
+                        ROOT_ROTATION,
+                    );
                 }
                 _ => unreachable!("internal error: unreachable position update case"),
             }
@@ -171,10 +212,14 @@ mod internal {
     #[action]
     pub struct UpdateAbsoluteSizesAction;
 
+    #[action()]
+    pub struct UpdateAbsoluteRotationsFromRelativePositionsAction;
+
     #[action(
         UpdateAbsolutePositionsFromVelocitiesAction,
         UpdateRelativePositionsAction,
-        UpdateAbsoluteSizesAction
+        UpdateAbsoluteSizesAction,
+        UpdateAbsoluteRotationsFromRelativePositionsAction
     )]
     pub struct UpdateAbsolutePositionsFromRelativePositionsAction;
 }

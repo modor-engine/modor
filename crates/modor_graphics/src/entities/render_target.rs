@@ -10,7 +10,7 @@ use crate::{
     WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
-use modor_physics::{Position, Shape, Size};
+use modor_physics::{Position, Rotation, Shape, Size};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
@@ -36,7 +36,7 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Size, Option<&Shape>)>,
+        shapes: Query<'_, (&ShapeColor, &Position, &Size, &Rotation, Option<&Shape>)>,
         cameras: Query<'_, (&Position, &Size), With<Camera2D>>,
     ) {
         let camera = Self::extract_camera(cameras);

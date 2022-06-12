@@ -39,7 +39,7 @@ impl Velocity {
 
     /// Creates a 2D velocity.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
@@ -101,7 +101,7 @@ impl RelativeVelocity {
 
     /// Creates a 2D velocity.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }

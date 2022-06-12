@@ -25,13 +25,13 @@ impl SurfaceSize {
 /// See [`ShapeColor`](crate::ShapeColor).
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
-    /// Red component between `0.` and `1.`.
+    /// Red component between `0.0` and `1.0`.
     pub r: f32,
-    /// Green component between `0.` and `1.`.
+    /// Green component between `0.0` and `1.0`.
     pub g: f32,
-    /// Blue component between `0.` and `1.`.
+    /// Blue component between `0.0` and `1.0`.
     pub b: f32,
-    /// Alpha component between `0.` and `1.`.
+    /// Alpha component between `0.0` and `1.0`.
     pub a: f32,
 }
 
@@ -84,12 +84,12 @@ impl Color {
     /// No color
     pub const INVISIBLE: Self = Self::rgba(0., 0., 0., 0.);
 
-    /// Creates a new translucent color from components between `0.` and `1.`.
+    /// Creates a new translucent color from components between `0.0` and `1.0`.
     pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
-    /// Creates a new opaque color from components between `0.` and `1.`.
+    /// Creates a new opaque color from components between `0.0` and `1.0`.
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self::rgba(r, g, b, 1.0)
     }

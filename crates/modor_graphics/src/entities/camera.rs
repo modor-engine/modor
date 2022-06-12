@@ -4,6 +4,8 @@ use modor::{Built, EntityBuilder, Query, Single};
 use modor_input::{Finger, Mouse, UpdateInputAction, WindowPosition};
 use modor_physics::{Position, Size, UpdatePhysicsAction};
 
+// TODO: add rotation + apply in render_target
+
 /// The camera used for 2D rendering.
 ///
 /// # Modor

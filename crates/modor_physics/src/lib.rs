@@ -33,6 +33,7 @@ mod entities;
 
 pub use components::acceleration::*;
 pub use components::position::*;
+pub use components::rotation::*;
 pub use components::shape::*;
 pub use components::size::*;
 pub use components::velocity::*;

@@ -34,7 +34,7 @@ impl Acceleration {
 
     /// Creates a 2D acceleration.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
@@ -86,7 +86,7 @@ impl RelativeAcceleration {
 
     /// Creates a 2D acceleration.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }

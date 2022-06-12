@@ -15,6 +15,10 @@ pub trait Point2D: Copy {
 
 /// A trait for defining a point in a 3D space.
 pub trait Point3D: Copy {
+    // TODO: transform in associated constant ?
+    /// Creates a new point.
+    fn create(x: f32, y: f32, z: f32) -> Self;
+
     /// Returns components of the point.
     fn components(self) -> (f32, f32, f32);
 

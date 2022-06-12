@@ -1,5 +1,5 @@
-use crate::{RelativeVelocity, Size, Velocity};
-use modor_math::Point3D;
+use crate::{RelativeVelocity, Rotation, Size, Velocity};
+use modor_math::{Point3D, Quaternion};
 use std::time::Duration;
 
 /// The absolute position of an entity.
@@ -55,7 +55,7 @@ impl Position {
 
     /// Creates a 2D position.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
@@ -71,20 +71,32 @@ impl Position {
         relative_position: RelativePosition,
         parent_position: Self,
         parent_size: Size,
+        parent_rotation: Rotation,
     ) {
         self.x = relative_position
             .x
-            .mul_add(parent_size.x, parent_position.x);
+            .mul_add(parent_size.x, parent_position.x)
+            - parent_position.x;
         self.y = relative_position
             .y
-            .mul_add(parent_size.y, parent_position.y);
+            .mul_add(parent_size.y, parent_position.y)
+            - parent_position.y;
         self.z = relative_position
             .z
-            .mul_add(parent_size.z, parent_position.z);
+            .mul_add(parent_size.z, parent_position.z)
+            - parent_position.z;
+        *self = modor_math::multiply_matrix_and_point_3d(*self, parent_rotation.matrix());
+        self.x += parent_position.x;
+        self.y += parent_position.y;
+        self.z += parent_position.z;
     }
 }
 
 impl Point3D for Position {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+
     fn components(self) -> (f32, f32, f32) {
         (self.x, self.y, self.z)
     }
@@ -154,7 +166,7 @@ impl RelativePosition {
 
     /// Creates a 2D position.
     ///
-    /// Z-coordinate is set to zero.
+    /// Z-coordinate is set to `0.0`.
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
@@ -167,6 +179,10 @@ impl RelativePosition {
 }
 
 impl Point3D for RelativePosition {
+    fn create(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+
     fn components(self) -> (f32, f32, f32) {
         (self.x, self.y, self.z)
     }
