@@ -11,9 +11,12 @@ keywords = ["modor", "math", "vector"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
 
+[dependencies]
+nalgebra = "0.31"
+num-traits = "0.2"
+
 [dev-dependencies]
 approx = "0.5"
-derive_more = "0.99"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"

@@ -6,7 +6,7 @@ use modor_graphics::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
     WindowSettings,
 };
-use modor_math::Vector3D;
+use modor_math::Vec3D;
 use modor_physics::{DeltaTime, Position, Shape, Size, Velocity};
 use rand::prelude::ThreadRng;
 use rand::Rng;
@@ -71,8 +71,9 @@ impl Sprite {
     fn update_velocity(&mut self, velocity: &mut Velocity) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            *velocity = Velocity::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
-                .with_magnitude(0.05);
+            **velocity = Velocity::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+                .with_magnitude(0.05)
+                .unwrap_or(Vec3D::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(200);
         }
     }

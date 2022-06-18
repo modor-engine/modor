@@ -1,85 +1,95 @@
-use crate::Vector3D;
+use crate::{Mat4, Vec3D};
 use std::f32::consts::PI;
 
-// TODO: document + test
+#[derive(Clone, Copy, Debug)]
+pub struct Quaternion {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
+}
 
-pub trait Quaternion: Copy {
-    type Axis: Vector3D;
+impl Default for Quaternion {
+    fn default() -> Self {
+        Self::from_components(0., 0., 0., 1.)
+    }
+}
 
-    fn create(x: f32, y: f32, z: f32, w: f32) -> Self;
+impl Quaternion {
+    #[inline]
+    pub const fn from_components(x: f32, y: f32, z: f32, w: f32) -> Self {
+        Self { x, y, z, w }
+    }
 
-    fn components(self) -> (f32, f32, f32, f32);
+    pub fn from_axis_angle<U>(axis: Vec3D<U>, angle: f32) -> Self {
+        let axis = axis.with_magnitude(1.).unwrap_or(Vec3D::ZERO);
+        let angle = Self::normalize_angle(angle);
+        Self {
+            x: axis.x * (angle / 2.).sin(),
+            y: axis.y * (angle / 2.).sin(),
+            z: axis.z * (angle / 2.).sin(),
+            w: (angle / 2.).cos(),
+        }
+    }
 
-    fn create_from_axis_angle(axis: Self::Axis, mut angle: f32) -> Self {
+    pub fn axis<U>(self) -> Vec3D<U> {
+        if self.w == 1. {
+            Vec3D::X
+        } else {
+            Vec3D::xyz(
+                self.x / (1. - self.w.powi(2)).sqrt(),
+                self.y / (1. - self.w.powi(2)).sqrt(),
+                self.z / (1. - self.w.powi(2)).sqrt(),
+            )
+        }
+    }
+
+    #[inline]
+    pub fn angle(self) -> f32 {
+        2. * self.w.acos()
+    }
+
+    pub fn matrix<U>(self) -> Mat4<U> {
+        Mat4::from_array([
+            [
+                1. - 2. * self.y * self.y - 2. * self.z * self.z,
+                2. * self.x * self.y - 2. * self.w * self.z,
+                2. * self.x * self.z + 2. * self.w * self.y,
+                0.,
+            ],
+            [
+                2. * self.x * self.y + 2. * self.w * self.z,
+                1. - 2. * self.x * self.x - 2. * self.z * self.z,
+                2. * self.y * self.z - 2. * self.w * self.x,
+                0.,
+            ],
+            [
+                2. * self.x * self.z - 2. * self.w * self.y,
+                2. * self.y * self.z + 2. * self.w * self.x,
+                1. - 2. * self.x * self.x - 2. * self.y * self.y,
+                0.,
+            ],
+            [0., 0., 0., 1.],
+        ])
+    }
+
+    pub fn with_rotation(self, rotation: Self) -> Self {
+        let other = rotation;
+        Self {
+            x: self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
+            y: self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x,
+            z: self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w,
+            w: self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z,
+        }
+    }
+
+    fn normalize_angle(mut angle: f32) -> f32 {
         while angle > 2. * PI {
             angle -= 2. * PI;
         }
         while angle < 0. {
             angle += 2. * PI;
         }
-        let (axis_x, axis_y, axis_z) = axis.with_magnitude(1.).components();
-        Self::create(
-            axis_x * (angle / 2.).sin(),
-            axis_y * (angle / 2.).sin(),
-            axis_z * (angle / 2.).sin(),
-            (angle / 2.).cos(),
-        )
-    }
-
-    fn axis(self) -> Self::Axis {
-        let (x, y, z, w) = self.components();
-        if w == 1. {
-            Self::Axis::create(1., 0., 0.)
-        } else {
-            Self::Axis::create(
-                x / (1. - w * w).sqrt(),
-                y / (1. - w * w).sqrt(),
-                z / (1. - w * w).sqrt(),
-            )
-        }
-    }
-
-    fn angle(self) -> f32 {
-        let (_, _, _, w) = self.components();
-        2. * w.acos()
-    }
-
-    fn matrix(self) -> [[f32; 4]; 4] {
-        let (x, y, z, w) = self.components();
-        [
-            [
-                1. - 2. * y * y - 2. * z * z,
-                2. * x * y - 2. * w * z,
-                2. * x * z + 2. * w * y,
-                0.,
-            ],
-            [
-                2. * x * y + 2. * w * z,
-                1. - 2. * x * x - 2. * z * z,
-                2. * y * z - 2. * w * x,
-                0.,
-            ],
-            [
-                2. * x * z - 2. * w * y,
-                2. * y * z + 2. * w * x,
-                1. - 2. * x * x - 2. * y * y,
-                0.,
-            ],
-            [0., 0., 0., 1.],
-        ]
-    }
-
-    fn with_rotation<Q>(self, quaternion: Q) -> Self
-    where
-        Q: Quaternion,
-    {
-        let (d, a, b, c) = quaternion.components();
-        let (h, e, f, g) = self.components();
-        Self::create(
-            b * e + a * f + c * h - d * g,
-            a * g - b * h + c * e + d * f,
-            a * h + b * g - c * f + d * e,
-            a * e - b * f - c * g - d * h,
-        )
+        angle
     }
 }

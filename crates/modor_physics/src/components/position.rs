@@ -1,5 +1,6 @@
-use crate::{RelativeVelocity, Rotation, Size, Velocity};
-use modor_math::{Point3D, Quaternion};
+use crate::{RelativeVelocity, RelativeWorldUnit, Rotation, Size, Velocity, WorldUnit};
+use modor_math::Point3D;
+use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 /// The absolute position of an entity.
@@ -34,36 +35,29 @@ use std::time::Duration;
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug)]
-pub struct Position {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Position(Point3D<WorldUnit>);
 
 impl Position {
-    /// A position with all components equal to zero.
+    /// An position with all components equal to `0.0`.
     pub const ZERO: Self = Self::xyz(0., 0., 0.);
 
-    /// Creates a 3D position.
+    /// Creates a new position.
+    #[inline]
     pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
+        Self(Point3D::xyz(x, y, z))
     }
 
-    /// Creates a 2D position.
+    /// Creates a new position from 2D coordinates.
     ///
-    /// Z-coordinate is set to `0.0`.
+    /// Z-coordinate is initialized to `0.0`.
+    #[inline]
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 
     pub(crate) fn update_with_velocity(&mut self, velocity: Velocity, delta_time: Duration) {
-        self.x += velocity.x * delta_time.as_secs_f32();
-        self.y += velocity.y * delta_time.as_secs_f32();
-        self.z += velocity.z * delta_time.as_secs_f32();
+        **self += *velocity * crate::Duration::from(delta_time);
     }
 
     pub(crate) fn update_with_relative(
@@ -73,32 +67,27 @@ impl Position {
         parent_size: Size,
         parent_rotation: Rotation,
     ) {
-        self.x = relative_position
-            .x
-            .mul_add(parent_size.x, parent_position.x)
-            - parent_position.x;
-        self.y = relative_position
-            .y
-            .mul_add(parent_size.y, parent_position.y)
-            - parent_position.y;
-        self.z = relative_position
-            .z
-            .mul_add(parent_size.z, parent_position.z)
-            - parent_position.z;
-        *self = modor_math::multiply_matrix_and_point_3d(*self, parent_rotation.matrix());
+        self.x = relative_position.x * parent_size.x;
+        self.y = relative_position.y * parent_size.y;
+        self.z = relative_position.z * parent_size.z;
+        **self = parent_rotation.matrix() * **self;
         self.x += parent_position.x;
         self.y += parent_position.y;
         self.z += parent_position.z;
     }
 }
 
-impl Point3D for Position {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
+impl Deref for Position {
+    type Target = Point3D<WorldUnit>;
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Position {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -108,7 +97,7 @@ impl Point3D for Position {
 /// In case the entity does not have any parent with a position and a size, the relative position is
 /// equal to the absolute position.
 ///
-/// A distance of 1 along an axis corresponds to the size along this axis of the first
+/// A distance of `1.0` along an axis corresponds to the size along this axis of the first
 /// parent having a position and a size.
 ///
 /// # Modor
@@ -145,45 +134,42 @@ impl Point3D for Position {
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy, Debug)]
-pub struct RelativePosition {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct RelativePosition(Point3D<RelativeWorldUnit>);
 
 impl RelativePosition {
-    /// A position with all components equal to zero.
+    /// An position with all components equal to `0.0`.
     pub const ZERO: Self = Self::xyz(0., 0., 0.);
 
-    /// Creates a 3D position.
+    /// Creates a new position.
+    #[inline]
     pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
+        Self(Point3D::xyz(x, y, z))
     }
 
-    /// Creates a 2D position.
+    /// Creates a new position from 2D coordinates.
     ///
-    /// Z-coordinate is set to `0.0`.
+    /// Z-coordinate is initialized to `0.0`.
+    #[inline]
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
 
     pub(crate) fn update(&mut self, velocity: RelativeVelocity, delta_time: Duration) {
-        self.x += velocity.x * delta_time.as_secs_f32();
-        self.y += velocity.y * delta_time.as_secs_f32();
-        self.z += velocity.z * delta_time.as_secs_f32();
+        **self += *velocity * crate::Duration::from(delta_time);
     }
 }
 
-impl Point3D for RelativePosition {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
+impl Deref for RelativePosition {
+    type Target = Point3D<RelativeWorldUnit>;
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RelativePosition {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

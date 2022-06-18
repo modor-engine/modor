@@ -25,10 +25,9 @@
 
 #[macro_use]
 extern crate modor;
-#[macro_use]
-extern crate derive_more;
 
 mod components;
+mod data;
 mod entities;
 
 pub use components::acceleration::*;
@@ -37,5 +36,6 @@ pub use components::rotation::*;
 pub use components::shape::*;
 pub use components::size::*;
 pub use components::velocity::*;
+pub use data::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;

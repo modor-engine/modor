@@ -8,8 +8,8 @@ use modor_graphics::{
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
 };
-use modor_math::{Vector2D, Vector3D};
-use modor_physics::{Position, Size, Velocity};
+use modor_math::Vec3D;
+use modor_physics::{Position, Size, Velocity, WorldUnitPerSecond};
 use std::io;
 use std::io::Write;
 
@@ -212,13 +212,20 @@ impl GamepadState {
                 .then(|| 0.)
                 .unwrap_or(1.);
             color.0 = Color::rgb(red, green, blue);
-            let velocity1: Velocity = gamepad.stick_direction(GamepadStick::LeftStick).into_vec3();
+            let velocity1 = gamepad
+                .stick_direction(GamepadStick::LeftStick)
+                .with_z(0.)
+                .with_unit::<WorldUnitPerSecond>();
             let velocity2 = gamepad
                 .stick_direction(GamepadStick::RightStick)
-                .into_vec3();
-            let velocity3 = gamepad.stick_direction(GamepadStick::DPad).into_vec3();
-            let velocity4 = Velocity::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
-            *velocity = velocity1 + velocity2 + velocity3 + velocity4;
+                .with_z(0.)
+                .with_unit::<WorldUnitPerSecond>();
+            let velocity3 = gamepad
+                .stick_direction(GamepadStick::DPad)
+                .with_z(0.)
+                .with_unit::<WorldUnitPerSecond>();
+            let velocity4 = Vec3D::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
+            **velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }
 

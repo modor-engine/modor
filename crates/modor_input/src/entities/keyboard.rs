@@ -44,7 +44,7 @@ impl Keyboard {
 
     /// Returns a normalized delta indicating a direction from left, right, up and down keys.
     ///
-    /// If none of the keys are pressed, the returned delta has all components equal to zero.
+    /// If none of the keys are pressed, the returned delta has all components equal to `0.0`.
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> InputDelta {
         utils::normalized_direction(
             self.key(left).is_pressed(),

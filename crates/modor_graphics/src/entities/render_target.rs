@@ -36,7 +36,16 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Size, &Rotation, Option<&Shape>)>,
+        shapes: Query<
+            '_,
+            (
+                &ShapeColor,
+                &Position,
+                &Size,
+                Option<&Rotation>,
+                Option<&Shape>,
+            ),
+        >,
         cameras: Query<'_, (&Position, &Size), With<Camera2D>>,
     ) {
         let camera = Self::extract_camera(cameras);

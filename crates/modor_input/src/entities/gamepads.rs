@@ -1,7 +1,6 @@
 use crate::{utils, InputDelta, InputState};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
-use modor_math::Vector2D;
 
 /// The state of a gamepad.
 ///
@@ -98,6 +97,15 @@ impl Gamepad {
                 unreachable!("internal error: unreachable gamepad event to apply")
             }
             GamepadEvent::PressedButton(_, button) => {
+                if matches!(
+                    button,
+                    GamepadButton::DPadUp
+                        | GamepadButton::DPadDown
+                        | GamepadButton::DPadLeft
+                        | GamepadButton::DPadRight
+                ) {
+                    self.has_d_pad_buttons = true;
+                }
                 self.buttons.entry(*button).or_default().state.press();
             }
             GamepadEvent::ReleasedButton(_, button) => {
@@ -164,9 +172,6 @@ impl Gamepad {
                 .get(&GamepadButton::DPadDown)
                 .map_or(false, |b| b.state().is_pressed()),
         );
-        if !d_pad_direction.is_zero() {
-            self.has_d_pad_buttons = true;
-        }
         if self.has_d_pad_buttons {
             *self.stick_directions.entry(GamepadStick::DPad).or_default() = d_pad_direction;
         }

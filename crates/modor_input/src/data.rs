@@ -1,4 +1,5 @@
-use modor_math::{Point2D, Vector2D};
+use modor_math::{Point2D, Vec2D};
+use std::ops::{Deref, DerefMut};
 
 /// The state of a pressable input.
 ///
@@ -44,6 +45,14 @@ impl InputState {
     }
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+pub struct InputUnit;
+
+#[derive(Default, Debug, Clone, Copy)]
+pub struct Pixels;
+
+// TODO: delete following types ?
+
 /// The delta of a movable input.
 ///
 /// For X-axis, right corresponds to positive coordinate.<br>
@@ -52,28 +61,27 @@ impl InputState {
 /// # Examples
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
-#[derive(Default, Debug, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
-pub struct InputDelta {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-}
+#[derive(Default, Debug, Clone, Copy)]
+pub struct InputDelta(Vec2D<InputUnit>);
 
 impl InputDelta {
     /// Creates a new input delta.
     pub fn xy(x: f32, y: f32) -> Self {
-        Self { x, y }
+        Self(Vec2D::xy(x, y))
     }
 }
 
-impl Vector2D for InputDelta {
-    fn create(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
+impl Deref for InputDelta {
+    type Target = Vec2D<InputUnit>;
 
-    fn components(self) -> (f32, f32) {
-        (self.x, self.y)
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for InputDelta {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -82,23 +90,26 @@ impl Vector2D for InputDelta {
 /// # Examples
 ///
 /// See [`Mouse`](crate::Mouse).
-#[derive(Default, Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct WindowPosition {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct WindowPosition(Point2D<Pixels>);
 
 impl WindowPosition {
     /// Creates a new position.
     pub fn xy(x: f32, y: f32) -> Self {
-        Self { x, y }
+        Self(Point2D::xy(x, y))
     }
 }
 
-impl Point2D for WindowPosition {
-    fn components(self) -> (f32, f32) {
-        (self.x, self.y)
+impl Deref for WindowPosition {
+    type Target = Point2D<Pixels>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for WindowPosition {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

@@ -111,11 +111,11 @@ impl Mouse {
             MouseEvent::PressedButton(button) => self.buttons.entry(button).or_default().press(),
             MouseEvent::ReleasedButton(button) => self.buttons.entry(button).or_default().release(),
             MouseEvent::Scroll(delta, unit) => {
-                self.scroll_delta += delta;
+                *self.scroll_delta += *delta;
                 self.scroll_unit = unit;
             }
             MouseEvent::UpdatedPosition(position) => self.position = position,
-            MouseEvent::Moved(delta) => self.delta += delta,
+            MouseEvent::Moved(delta) => *self.delta += *delta,
         }
     }
 }

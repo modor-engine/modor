@@ -8,8 +8,8 @@ use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
-use modor_math::Quaternion;
-use modor_physics::{Position, Rotation, Shape, Size};
+use modor_math::Mat4;
+use modor_physics::{Position, Rotation, Shape, Size, WorldUnit};
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
@@ -49,14 +49,24 @@ impl CoreStorage {
 
     pub(crate) fn update_instances(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Size, &Rotation, Option<&Shape>)>,
+        shapes: Query<
+            '_,
+            (
+                &ShapeColor,
+                &Position,
+                &Size,
+                Option<&Rotation>,
+                Option<&Shape>,
+            ),
+        >,
         camera: CameraProperties,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
         let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _, _)| p.z));
         for (color, position, size, rotation, shape) in shapes.iter() {
-            let instance = Self::create_instance(*color, *position, *rotation, *size, depth_bounds);
+            let instance =
+                Self::create_instance(*color, *position, rotation.copied(), *size, depth_bounds);
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
@@ -101,21 +111,26 @@ impl CoreStorage {
     fn create_instance(
         color: ShapeColor,
         position: Position,
-        rotation: Rotation,
+        rotation: Option<Rotation>,
         size: Size,
         depth_bounds: (f32, f32),
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
-        let position_scale_matrix = [
+        let position_scale_matrix = Mat4::<WorldUnit>::from_array([
             [size.x, 0., 0., 0.],
             [0., size.y, 0., 0.],
             [0., 0., 0., 0.],
             [position.x, position.y, z_position, 1.],
-        ];
-        let rotation_matrix = rotation.matrix();
+        ]);
+        let transform_matrix = if let Some(rotation) = rotation {
+            let rotation_matrix = rotation.matrix::<WorldUnit>();
+            rotation_matrix * position_scale_matrix
+        } else {
+            position_scale_matrix
+        };
         Instance {
-            transform: modor_math::multiply_matrices(rotation_matrix, position_scale_matrix),
+            transform: transform_matrix.to_array(),
             color: [color.0.r, color.0.g, color.0.b, color.0.a],
         }
     }

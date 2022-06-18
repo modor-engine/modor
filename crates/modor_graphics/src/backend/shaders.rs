@@ -84,7 +84,7 @@ impl Shader {
                     topology: PrimitiveTopology::TriangleList,
                     strip_index_format: None,
                     front_face: FrontFace::Ccw,
-                    cull_mode: Some(Face::Back),
+                    cull_mode: Some(Face::Back), // TODO: make it configurable
                     polygon_mode: PolygonMode::Fill,
                     unclipped_depth: false,
                     conservative: false,
