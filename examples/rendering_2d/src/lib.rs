@@ -6,7 +6,7 @@ use modor_graphics::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
     WindowSettings,
 };
-use modor_math::Vec3D;
+use modor_math::Vec3;
 use modor_physics::{DeltaTime, Position, Shape, Size, Velocity};
 use rand::prelude::ThreadRng;
 use rand::Rng;
@@ -32,7 +32,10 @@ impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(Position::xy(0., 0.), Size::xy(1.5, 1.5)))
+            .with_child(Camera2D::build(
+                Position::from(Vec3::xy(0., 0.)),
+                Size::from(Vec3::xy(1.5, 1.5)),
+            ))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -53,12 +56,12 @@ impl Sprite {
         EntityBuilder::new(Self {
             next_update: Instant::now(),
         })
-        .with(Position::xy(
+        .with(Position::from(Vec3::xy(
             Self::random_f32(&mut rng),
             Self::random_f32(&mut rng),
-        ))
-        .with(Size::xy(0.01, 0.01))
-        .with(Velocity::xy(0., 0.))
+        )))
+        .with(Size::from(Vec3::xy(0.01, 0.01)))
+        .with(Velocity::from(Vec3::xy(0., 0.)))
         .with(Shape::Circle2D)
         .with(ShapeColor(Color::rgb(
             Self::random_f32(&mut rng) + 0.5,
@@ -71,9 +74,9 @@ impl Sprite {
     fn update_velocity(&mut self, velocity: &mut Velocity) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            **velocity = Velocity::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+            **velocity = Vec3::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
                 .with_magnitude(0.05)
-                .unwrap_or(Vec3D::ZERO);
+                .unwrap_or(Vec3::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(200);
         }
     }

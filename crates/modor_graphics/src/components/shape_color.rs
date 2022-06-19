@@ -9,7 +9,7 @@ use std::ops::{Deref, DerefMut};
 ///
 /// - **Type**: component
 /// - **Required components**: [`Position`](modor_physics::Position), [`Size`](modor_physics::Size)
-/// - **Optional components**: [`Shape`](modor_physics::Shape)
+/// - **Optional components**: [`Rotation`](modor_physics::Rotation), [`Shape`](modor_physics::Shape)
 ///
 /// # Examples
 ///
@@ -17,6 +17,7 @@ use std::ops::{Deref, DerefMut};
 /// # use modor::{entity, EntityBuilder, Built};
 /// # use modor_graphics::{Color, ShapeColor};
 /// # use modor_physics::{Position, Size, Shape};
+/// # use modor_math::Vec3;
 /// #
 /// struct Rectangle;
 ///
@@ -24,8 +25,8 @@ use std::ops::{Deref, DerefMut};
 /// impl Rectangle {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
-///             .with(Position::xy(-0.25, 0.25))
-///             .with(Size::xy(0.5, 0.5))
+///             .with(Position::from(Vec3::xy(-0.25, 0.25)))
+///             .with(Size::from(Vec3::xy(0.5, 0.5)))
 ///             .with(Shape::Rectangle2D)
 ///             .with(ShapeColor(Color::rgba(1., 0.25, 0.75, 0.5)))
 ///     }

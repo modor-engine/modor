@@ -1,8 +1,7 @@
 use crate::entities::gamepads::{Gamepad, GamepadEvent};
-use crate::{
-    Finger, InputModule, Keyboard, KeyboardEvent, Mouse, MouseEvent, TouchEvent, WindowPosition,
-};
+use crate::{Finger, InputModule, Keyboard, KeyboardEvent, Mouse, MouseEvent, TouchEvent};
 use modor::{Built, Entity, EntityBuilder, Query, Single, SingleMut, World};
+use modor_math::Vec2;
 
 /// The input event collector.
 ///
@@ -15,17 +14,17 @@ use modor::{Built, Entity, EntityBuilder, Query, Single, SingleMut, World};
 ///
 /// ```rust
 /// # use modor::SingleMut;
+/// # use modor_math::Vec2;
 /// # use modor_input::{
-/// #    InputDelta, InputEvent, InputEventCollector, Key, KeyboardEvent, MouseEvent,
-/// #    MouseScrollUnit, TouchEvent, WindowPosition, GamepadEvent, GamepadAxis
+/// #    InputEvent, InputEventCollector, Key, KeyboardEvent, MouseEvent,
+/// #    MouseScrollUnit, TouchEvent, GamepadEvent, GamepadAxis
 /// # };
 /// #
 /// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
-///     let scroll_delta = InputDelta::xy(0., 0.5);
-///     collector.push(MouseEvent::Scroll(scroll_delta, MouseScrollUnit::Line).into());
+///     collector.push(MouseEvent::Scroll(Vec2::xy(0., 0.5), MouseScrollUnit::Line).into());
 ///     collector.push(KeyboardEvent::ReleasedKey(Key::Left).into());
 ///     collector.push(TouchEvent::Started(10).into());
-///     collector.push(TouchEvent::UpdatedPosition(10, WindowPosition::xy(20., 42.)).into());
+///     collector.push(TouchEvent::UpdatedPosition(10, Vec2::xy(20., 42.)).into());
 ///     collector.push(GamepadEvent::Plugged(5).into());
 ///     collector.push(GamepadEvent::UpdatedAxisValue(5, GamepadAxis::LeftStickX, 0.68).into());
 /// }
@@ -98,11 +97,7 @@ impl InputEventCollector {
             .for_each(|(_, t)| t.release());
     }
 
-    fn update_finger(
-        id: u64,
-        position: WindowPosition,
-        fingers: &mut Query<'_, (Entity<'_>, &mut Finger)>,
-    ) {
+    fn update_finger(id: u64, position: Vec2, fingers: &mut Query<'_, (Entity<'_>, &mut Finger)>) {
         fingers
             .iter_mut()
             .filter(|(_, f)| f.id() == id)

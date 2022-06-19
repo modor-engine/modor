@@ -1,6 +1,7 @@
 use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::{App, EntityBuilder};
+use modor_math::Vec3;
 use modor_physics::{
     Acceleration, DeltaTime, PhysicsModule, Position, RelativeAcceleration, RelativePosition,
     RelativeSize, RelativeVelocity, Shape, Size, Velocity,
@@ -18,9 +19,9 @@ fn update_absolute_velocity_and_position() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(Position::xyz(1., 2., 3.))
-            .with(Velocity::xyz(4., 5., 6.))
-            .with(Acceleration::xyz(7., 8., 9.)),
+            .with(Position::from(Vec3::xyz(1., 2., 3.)))
+            .with(Velocity::from(Vec3::xyz(4., 5., 6.)))
+            .with(Acceleration::from(Vec3::xyz(7., 8., 9.))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
@@ -49,9 +50,9 @@ fn update_relative_velocity_and_position() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::xyz(1., 2., 3.))
-            .with(RelativeVelocity::xyz(4., 5., 6.))
-            .with(RelativeAcceleration::xyz(7., 8., 9.)),
+            .with(RelativePosition::from(Vec3::xyz(1., 2., 3.)))
+            .with(RelativeVelocity::from(Vec3::xyz(4., 5., 6.)))
+            .with(RelativeAcceleration::from(Vec3::xyz(7., 8., 9.))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
@@ -80,28 +81,28 @@ fn update_absolute_position_from_relative_position() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity1_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::xyz(1., 2., 3.))
-            .with(Velocity::xyz(0.1, 0.2, 0.3))
-            .with(Position::xyz(0., 0., 0.))
-            .with(Size::xyz(1., 1., 1.)),
+            .with(RelativePosition::from(Vec3::xyz(1., 2., 3.)))
+            .with(Velocity::from(Vec3::xyz(0.1, 0.2, 0.3)))
+            .with(Position::from(Vec3::xyz(0., 0., 0.)))
+            .with(Size::from(Vec3::xyz(1., 1., 1.))),
     );
     let entity2_id = app.create_child(
         entity1_id,
-        EntityBuilder::new(TestEntity).with(Position::xyz(3., 2., 1.)),
+        EntityBuilder::new(TestEntity).with(Position::from(Vec3::xyz(3., 2., 1.))),
     );
     let entity3_id = app.create_child(
         entity2_id,
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::xyz(4., 5., 6.))
-            .with(Position::xyz(0., 0., 0.))
-            .with(Size::xyz(0.1, 0.2, 0.5)),
+            .with(RelativePosition::from(Vec3::xyz(4., 5., 6.)))
+            .with(Position::from(Vec3::xyz(0., 0., 0.)))
+            .with(Size::from(Vec3::xyz(0.1, 0.2, 0.5))),
     );
     let entity4_id = app.create_child(
         entity3_id,
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::xyz(7., 8., 9.))
-            .with(Position::xyz(0., 0., 0.))
-            .with(Size::xyz(1., 1., 1.)),
+            .with(RelativePosition::from(Vec3::xyz(7., 8., 9.)))
+            .with(Position::from(Vec3::xyz(0., 0., 0.)))
+            .with(Size::from(Vec3::xyz(1., 1., 1.))),
     );
     app.update();
     app.assert_entity(entity1_id)
@@ -133,22 +134,22 @@ fn update_absolute_size() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity1_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(Size::xyz(0., 0., 0.))
-            .with(RelativeSize::xyz(1., 2., 3.)),
+            .with(Size::from(Vec3::xyz(0., 0., 0.)))
+            .with(RelativeSize::from(Vec3::xyz(1., 2., 3.))),
     );
     let entity2_id = app.create_child(entity1_id, EntityBuilder::new(TestEntity));
     let entity3_id = app.create_child(
         entity2_id,
         EntityBuilder::new(TestEntity)
-            .with(Size::xyz(0., 0., 0.))
-            .with(RelativeSize::xyz(0.1, 0.2, 0.5))
+            .with(Size::from(Vec3::xyz(0., 0., 0.)))
+            .with(RelativeSize::from(Vec3::xyz(0.1, 0.2, 0.5)))
             .with(Shape::Rectangle2D),
     );
     let entity4_id = app.create_child(
         entity3_id,
         EntityBuilder::new(TestEntity)
-            .with(Size::xyz(0., 0., 0.))
-            .with(RelativeSize::xyz(0.5, 0.2, 0.1)),
+            .with(Size::from(Vec3::xyz(0., 0., 0.)))
+            .with(RelativeSize::from(Vec3::xyz(0.5, 0.2, 0.1))),
     );
     app.update();
     app.assert_entity(entity1_id)

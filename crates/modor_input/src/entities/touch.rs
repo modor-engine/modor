@@ -1,6 +1,6 @@
-use crate::data::InputDelta;
-use crate::{InputState, WindowPosition};
+use crate::InputState;
 use modor::{Built, EntityBuilder};
+use modor_math::Vec2;
 
 /// The state of a finger.
 ///
@@ -28,8 +28,8 @@ use modor::{Built, EntityBuilder};
 pub struct Finger {
     id: u64,
     state: InputState,
-    position: WindowPosition,
-    delta: InputDelta,
+    position: Vec2,
+    delta: Vec2,
 }
 
 #[entity]
@@ -44,13 +44,13 @@ impl Finger {
         self.state
     }
 
-    /// Returns the position of the finger.
-    pub fn position(&self) -> WindowPosition {
+    /// Returns the position of the finger in pixels from the top-left corner of the app window.
+    pub fn position(&self) -> Vec2 {
         self.position
     }
 
-    /// Returns the finger position delta.
-    pub fn delta(&self) -> InputDelta {
+    /// Returns the finger position delta in pixels.
+    pub fn delta(&self) -> Vec2 {
         self.delta
     }
 
@@ -62,17 +62,17 @@ impl Finger {
                 state.press();
                 state
             },
-            position: WindowPosition::default(),
-            delta: InputDelta::default(),
+            position: Vec2::ZERO,
+            delta: Vec2::ZERO,
         })
     }
 
     pub(crate) fn reset(&mut self) {
         self.state.refresh();
-        self.delta = InputDelta::default();
+        self.delta = Vec2::ZERO;
     }
 
-    pub(crate) fn update(&mut self, position: WindowPosition) {
+    pub(crate) fn update(&mut self, position: Vec2) {
         self.delta.x = position.x - self.position.x;
         self.delta.y = position.y - self.position.y;
         self.position = position;
@@ -94,6 +94,6 @@ pub enum TouchEvent {
     Started(u64),
     /// Finger removed.
     Ended(u64),
-    /// Finger position updated.
-    UpdatedPosition(u64, WindowPosition),
+    /// Finger position in pixels from the top-left corner of the app window updated.
+    UpdatedPosition(u64, Vec2),
 }

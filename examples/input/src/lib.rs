@@ -8,8 +8,8 @@ use modor_graphics::{
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
 };
-use modor_math::Vec3D;
-use modor_physics::{Position, Size, Velocity, WorldUnitPerSecond};
+use modor_math::Vec3;
+use modor_physics::{Position, Size, Velocity};
 use std::io;
 use std::io::Write;
 
@@ -23,7 +23,10 @@ pub fn main() {
                 .has_visible_cursor(false),
         ))
         .with_entity(FrameRateLimit::build(FrameRate::VSync))
-        .with_entity(Camera2D::build(Position::xy(0.5, 0.5), Size::xy(1.5, 1.5)))
+        .with_entity(Camera2D::build(
+            Position::from(Vec3::xy(0.5, 0.5)),
+            Size::from(Vec3::xy(1.5, 1.5)),
+        ))
         .with_entity(MouseState::build())
         .with_entity(KeyboardState::build())
         .with_entity(TouchState::build())
@@ -37,8 +40,8 @@ struct MouseState;
 impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0.25, 0.25))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
             .with(ShapeColor(Color::DARK_GRAY))
     }
 
@@ -68,9 +71,9 @@ struct KeyboardState;
 impl KeyboardState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0.25, 0.25))
-            .with(Velocity::xy(0., 0.))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Velocity::from(Vec3::xy(0., 0.)))
             .with(ShapeColor(Color::DARK_GRAY))
     }
 
@@ -131,8 +134,8 @@ struct FingerState {
 impl FingerState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::xy(0.5, 0.5))
-            .with(Size::xy(0.25, 0.25))
+            .with(Position::from(Vec3::xy(0.5, 0.5)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
             .with(ShapeColor(Color::DARK_GRAY))
     }
 
@@ -145,7 +148,7 @@ impl FingerState {
     ) {
         if let Some(finger) = fingers.iter().find(|f| f.id() == self.id) {
             if let Some(finger_position) = camera.finger_position(finger.id()) {
-                *position = finger_position;
+                **position = finger_position.with_z(0.);
             }
         }
     }
@@ -189,9 +192,9 @@ struct GamepadState {
 impl GamepadState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::xy(0.5, 0.5))
-            .with(Size::xy(0.25, 0.25))
-            .with(Velocity::ZERO)
+            .with(Position::from(Vec3::xy(0.5, 0.5)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Velocity::from(Vec3::ZERO))
             .with(ShapeColor(Color::MAROON))
     }
 
@@ -212,19 +215,10 @@ impl GamepadState {
                 .then(|| 0.)
                 .unwrap_or(1.);
             color.0 = Color::rgb(red, green, blue);
-            let velocity1 = gamepad
-                .stick_direction(GamepadStick::LeftStick)
-                .with_z(0.)
-                .with_unit::<WorldUnitPerSecond>();
-            let velocity2 = gamepad
-                .stick_direction(GamepadStick::RightStick)
-                .with_z(0.)
-                .with_unit::<WorldUnitPerSecond>();
-            let velocity3 = gamepad
-                .stick_direction(GamepadStick::DPad)
-                .with_z(0.)
-                .with_unit::<WorldUnitPerSecond>();
-            let velocity4 = Vec3D::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
+            let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick).with_z(0.);
+            let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
+            let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);
+            let velocity4 = Vec3::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
             **velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }

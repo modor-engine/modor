@@ -1,4 +1,4 @@
-use crate::entities::module::internal::UpdateAbsoluteRotationsFromRelativePositionsAction;
+use crate::entities::module::internal::UpdateAbsoluteRotationsFromRelativeRotationsAction;
 use crate::{
     Acceleration, DeltaTime, Position, RelativeAcceleration, RelativePosition, RelativeRotation,
     RelativeSize, RelativeVelocity, Rotation, Size, Velocity,
@@ -9,11 +9,17 @@ use internal::{
     UpdateAbsoluteVelocitiesAction, UpdateRelativePositionsAction, UpdateRelativeVelocitiesAction,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
+use modor_math::{Quat, Vec3};
 use std::marker::PhantomData;
 
-const ROOT_POSITION: Position = Position::ZERO;
-const ROOT_SIZE: Size = Size::ONE;
-const ROOT_ROTATION: Rotation = Rotation::ZERO;
+type AbsToRelRotationsEntityFilter = (
+    With<Position>,
+    With<Rotation>,
+    With<Size>,
+    With<RelativeRotation>,
+);
+type AbsToRelRotationsComponentFilter = (With<Position>, With<Size>);
+type AbsToRelPositionsEntityFilter = (With<Position>, With<Size>, With<RelativePosition>);
 
 /// The main entity of the physics module.
 ///
@@ -26,6 +32,7 @@ const ROOT_ROTATION: Rotation = Rotation::ZERO;
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
+/// # use modor_math::Vec3;
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity};
 /// #
 /// let mut app = App::new()
@@ -42,10 +49,10 @@ const ROOT_ROTATION: Rotation = Rotation::ZERO;
 /// impl Object {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
-///             .with(Position::xy(0.2, 0.3))
-///             .with(Velocity::xy(-0.01, 0.02))
-///             .with(Acceleration::xy(0.5, -0.1))
-///             .with(Size::xy(0.25, 0.5))
+///             .with(Position::from(Vec3::xy(0.2, 0.3)))
+///             .with(Velocity::from(Vec3::xy(-0.01, 0.02)))
+///             .with(Acceleration::from(Vec3::xy(0.5, -0.1)))
+///             .with(Size::from(Vec3::xy(0.25, 0.5)))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
@@ -110,20 +117,20 @@ impl PhysicsModule {
                     size.update_with_relative(*relative_size, *parent_size);
                 }
                 (Some((size, Some(relative_size))), None) => {
-                    size.update_with_relative(*relative_size, ROOT_SIZE);
+                    size.update_with_relative(*relative_size, Vec3::ONE.into());
                 }
                 _ => unreachable!("internal error: unreachable size update case"),
             }
         }
     }
 
-    #[run_as(UpdateAbsoluteRotationsFromRelativePositionsAction)]
+    #[run_as(UpdateAbsoluteRotationsFromRelativeRotationsAction)]
     fn update_absolute_rotations_from_relative_rotations(
-        entities: Query<'_, Entity<'_>, (With<Position>, With<Rotation>, With<RelativeRotation>)>,
+        entities: Query<'_, Entity<'_>, AbsToRelRotationsEntityFilter>,
         mut components: Query<
             '_,
             (Option<&mut Rotation>, Option<&RelativeRotation>),
-            With<Position>,
+            AbsToRelRotationsComponentFilter,
         >,
     ) {
         for entity in Self::entities_sorted_by_depth(entities.iter()) {
@@ -131,11 +138,13 @@ impl PhysicsModule {
                 (Some((Some(rotation), Some(relative_rotation))), Some((parent_rotation, _))) => {
                     rotation.update_with_relative(
                         *relative_rotation,
-                        parent_rotation.copied().unwrap_or(Rotation::ZERO),
-                    )
+                        parent_rotation
+                            .copied()
+                            .unwrap_or_else(|| Quat::ZERO.into()),
+                    );
                 }
                 (Some((Some(rotation), Some(relative_rotation))), None) => {
-                    rotation.update_with_relative(*relative_rotation, ROOT_ROTATION);
+                    rotation.update_with_relative(*relative_rotation, Quat::ZERO.into());
                 }
                 _ => unreachable!("internal error: unreachable position update case"),
             }
@@ -144,7 +153,7 @@ impl PhysicsModule {
 
     #[run_as(UpdateAbsolutePositionsFromRelativePositionsAction)]
     fn update_absolute_positions_from_relative_positions(
-        entities: Query<'_, Entity<'_>, (With<Position>, With<RelativePosition>)>,
+        entities: Query<'_, Entity<'_>, AbsToRelPositionsEntityFilter>,
         mut components: Query<
             '_,
             (
@@ -164,14 +173,16 @@ impl PhysicsModule {
                     *relative_position,
                     *parent_position,
                     *parent_size,
-                    parent_rotation.copied().unwrap_or(Rotation::ZERO),
+                    parent_rotation
+                        .copied()
+                        .unwrap_or_else(|| Quat::ZERO.into()),
                 ),
                 (Some((position, _, _, Some(relative_position))), None) => {
                     position.update_with_relative(
                         *relative_position,
-                        ROOT_POSITION,
-                        ROOT_SIZE,
-                        ROOT_ROTATION,
+                        Vec3::ZERO.into(),
+                        Vec3::ONE.into(),
+                        Quat::ZERO.into(),
                     );
                 }
                 _ => unreachable!("internal error: unreachable position update case"),
@@ -213,13 +224,13 @@ mod internal {
     pub struct UpdateAbsoluteSizesAction;
 
     #[action()]
-    pub struct UpdateAbsoluteRotationsFromRelativePositionsAction;
+    pub struct UpdateAbsoluteRotationsFromRelativeRotationsAction;
 
     #[action(
         UpdateAbsolutePositionsFromVelocitiesAction,
         UpdateRelativePositionsAction,
         UpdateAbsoluteSizesAction,
-        UpdateAbsoluteRotationsFromRelativePositionsAction
+        UpdateAbsoluteRotationsFromRelativeRotationsAction
     )]
     pub struct UpdateAbsolutePositionsFromRelativePositionsAction;
 }

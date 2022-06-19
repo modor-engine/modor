@@ -1,5 +1,5 @@
-use crate::{RelativeVelocity, RelativeWorldUnit, Rotation, Size, Velocity, WorldUnit};
-use modor_math::Point3D;
+use crate::{RelativeVelocity, Rotation, Size, Velocity};
+use modor_math::Vec3;
 use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
@@ -19,6 +19,7 @@ use std::time::Duration;
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
+/// # use modor_math::Vec3;
 /// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity};
 /// #
 /// struct Object;
@@ -27,37 +28,20 @@ use std::time::Duration;
 /// impl Object {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
-///             .with(Position::xy(0.2, 0.3))
-///             .with(Velocity::xy(-0.01, 0.02))
-///             .with(Acceleration::xy(0.5, -0.1))
-///             .with(Size::xy(0.25, 0.5))
+///             .with(Position::from(Vec3::xy(0.2, 0.3)))
+///             .with(Velocity::from(Vec3::xy(-0.01, 0.02)))
+///             .with(Acceleration::from(Vec3::xy(0.5, -0.1)))
+///             .with(Size::from(Vec3::xy(0.25, 0.5)))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
 /// ```
 #[derive(Default, Clone, Copy, Debug)]
-pub struct Position(Point3D<WorldUnit>);
+pub struct Position(Vec3);
 
 impl Position {
-    /// An position with all components equal to `0.0`.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a new position.
-    #[inline]
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self(Point3D::xyz(x, y, z))
-    }
-
-    /// Creates a new position from 2D coordinates.
-    ///
-    /// Z-coordinate is initialized to `0.0`.
-    #[inline]
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
-    }
-
     pub(crate) fn update_with_velocity(&mut self, velocity: Velocity, delta_time: Duration) {
-        **self += *velocity * crate::Duration::from(delta_time);
+        **self += *velocity * delta_time.as_secs_f32();
     }
 
     pub(crate) fn update_with_relative(
@@ -67,18 +51,26 @@ impl Position {
         parent_size: Size,
         parent_rotation: Rotation,
     ) {
-        self.x = relative_position.x * parent_size.x;
-        self.y = relative_position.y * parent_size.y;
-        self.z = relative_position.z * parent_size.z;
+        **self = relative_position.with_scale(*parent_size);
         **self = parent_rotation.matrix() * **self;
-        self.x += parent_position.x;
-        self.y += parent_position.y;
-        self.z += parent_position.z;
+        **self += *parent_position;
+    }
+}
+
+impl From<Vec3> for Position {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
+    }
+}
+
+impl From<Position> for Vec3 {
+    fn from(position: Position) -> Self {
+        position.0
     }
 }
 
 impl Deref for Position {
-    type Target = Point3D<WorldUnit>;
+    type Target = Vec3;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -103,7 +95,7 @@ impl DerefMut for Position {
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Required components**: [`Position`](crate::Position)
+/// - **Required components**: [`Position`](crate::Position), [`Size`](crate::Size)
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 /// - **Updated using**: [`RelativeVelocity`](crate::RelativeVelocity),
@@ -113,6 +105,7 @@ impl DerefMut for Position {
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
+/// # use modor_math::Vec3;
 /// # use modor_physics::{
 /// #     Acceleration, PhysicsModule, Position, Size, Shape, Velocity, RelativeAcceleration,
 /// #     RelativeVelocity, RelativePosition, RelativeSize
@@ -124,44 +117,39 @@ impl DerefMut for Position {
 /// impl Object {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
-///             .with(Position::ZERO)
-///             .with(Size::ONE)
-///             .with(RelativePosition::xy(0.2, 0.3))
-///             .with(RelativeVelocity::xy(-0.01, 0.02))
-///             .with(RelativeAcceleration::xy(0.5, -0.1))
-///             .with(RelativeSize::xy(0.25, 0.5))
+///             .with(Position::from(Vec3::ZERO))
+///             .with(Size::from(Vec3::ONE))
+///             .with(RelativePosition::from(Vec3::xy(0.2, 0.3)))
+///             .with(RelativeVelocity::from(Vec3::xy(-0.01, 0.02)))
+///             .with(RelativeAcceleration::from(Vec3::xy(0.5, -0.1)))
+///             .with(RelativeSize::from(Vec3::xy(0.25, 0.5)))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
 /// ```
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RelativePosition(Point3D<RelativeWorldUnit>);
+pub struct RelativePosition(Vec3);
 
 impl RelativePosition {
-    /// An position with all components equal to `0.0`.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a new position.
-    #[inline]
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self(Point3D::xyz(x, y, z))
-    }
-
-    /// Creates a new position from 2D coordinates.
-    ///
-    /// Z-coordinate is initialized to `0.0`.
-    #[inline]
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
-    }
-
     pub(crate) fn update(&mut self, velocity: RelativeVelocity, delta_time: Duration) {
-        **self += *velocity * crate::Duration::from(delta_time);
+        **self += *velocity * delta_time.as_secs_f32();
+    }
+}
+
+impl From<Vec3> for RelativePosition {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
+    }
+}
+
+impl From<RelativePosition> for Vec3 {
+    fn from(position: RelativePosition) -> Self {
+        position.0
     }
 }
 
 impl Deref for RelativePosition {
-    type Target = Point3D<RelativeWorldUnit>;
+    type Target = Vec3;
 
     fn deref(&self) -> &Self::Target {
         &self.0

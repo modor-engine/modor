@@ -1,30 +1,34 @@
-use crate::{Point3D, Vec3D};
-use std::marker::PhantomData;
+use crate::Vec3;
 use std::ops::Mul;
 
-pub struct Mat4<U> {
+/// A 4x4 matrix.
+#[derive(Clone, Debug)]
+pub struct Mat4 {
     elements: [[f32; 4]; 4],
-    phantom: PhantomData<U>,
 }
 
-impl<U> Mat4<U> {
+impl Mat4 {
+    /// Creates a new matrix from `elements` in an array of arrays.
+    ///
+    /// Each array of `elements` corresponds to a line of the matrix.
     #[inline]
     pub fn from_array(elements: [[f32; 4]; 4]) -> Self {
-        Self {
-            elements,
-            phantom: PhantomData,
-        }
+        Self { elements }
     }
 
-    pub fn from_position_scale(position: Vec3D<U>, size: Vec3D<U>) -> Self {
+    /// Creates a new transform matrix from a `position` and a `size`.
+    pub fn from_position_scale(position: Vec3, scale: Vec3) -> Self {
         Self::from_array([
-            [size.x, 0., 0., 0.],
-            [0., size.y, 0., 0.],
-            [0., 0., size.z, 0.],
+            [scale.x, 0., 0., 0.],
+            [0., scale.y, 0., 0.],
+            [0., 0., scale.z, 0.],
             [position.x, position.y, position.z, 1.],
         ])
     }
 
+    /// Returns the array of arrays containing the elements of the matrix.
+    ///
+    /// Each array of the array corresponds to a line of the matrix.
     pub fn to_array(&self) -> [[f32; 4]; 4] {
         self.elements
     }
@@ -37,12 +41,12 @@ impl<U> Mat4<U> {
     }
 }
 
-impl<U> Mul<Point3D<U>> for Mat4<U> {
-    type Output = Point3D<U>;
+impl Mul<Vec3> for Mat4 {
+    type Output = Vec3;
 
-    fn mul(self, rhs: Point3D<U>) -> Self::Output {
+    fn mul(self, rhs: Vec3) -> Self::Output {
         let point = [rhs.x, rhs.y, rhs.z, 1.];
-        Point3D::xyz(
+        Vec3::xyz(
             Self::multiply_matrix_part(&point, &self.elements, 0),
             Self::multiply_matrix_part(&point, &self.elements, 1),
             Self::multiply_matrix_part(&point, &self.elements, 2),
@@ -50,11 +54,11 @@ impl<U> Mul<Point3D<U>> for Mat4<U> {
     }
 }
 
-impl<U> Mul<Mat4<U>> for Mat4<U> {
-    type Output = Mat4<U>;
+impl Mul<Self> for Mat4 {
+    type Output = Self;
 
-    fn mul(self, rhs: Mat4<U>) -> Self::Output {
-        Mat4::from_array([
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::from_array([
             [
                 Self::multiply_matrix_part(&self.elements[0], &rhs.elements, 0),
                 Self::multiply_matrix_part(&self.elements[0], &rhs.elements, 1),

@@ -2,9 +2,9 @@ use crate::{utils, FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{
-    InputDelta, InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent, MouseScrollUnit,
-    TouchEvent, WindowPosition,
+    InputEventCollector, Key, KeyboardEvent, MouseButton, MouseEvent, MouseScrollUnit, TouchEvent,
 };
+use modor_math::Vec2;
 use modor_physics::DeltaTime;
 use winit::event;
 use winit::event::{
@@ -87,7 +87,7 @@ pub fn runner(mut app: App) {
             event: DeviceEvent::MouseMotion { delta },
             ..
         } => {
-            let delta = InputDelta::xy(delta.0 as f32, -delta.1 as f32);
+            let delta = Vec2::xy(delta.0 as f32, -delta.1 as f32);
             send_mouse_event(&mut app, MouseEvent::Moved(delta));
         }
         Event::WindowEvent { event, window_id } if window_id == window.id() => {
@@ -121,10 +121,10 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                 app,
                 match delta {
                     MouseScrollDelta::LineDelta(columns, rows) => {
-                        MouseEvent::Scroll(InputDelta::xy(columns, -rows), MouseScrollUnit::Line)
+                        MouseEvent::Scroll(Vec2::xy(columns, -rows), MouseScrollUnit::Line)
                     }
                     MouseScrollDelta::PixelDelta(delta) => MouseEvent::Scroll(
-                        InputDelta::xy(delta.x as f32, -delta.y as f32),
+                        Vec2::xy(delta.x as f32, -delta.y as f32),
                         MouseScrollUnit::Pixel,
                     ),
                 },
@@ -133,10 +133,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
         WindowEvent::CursorMoved { position, .. } => {
             send_mouse_event(
                 app,
-                MouseEvent::UpdatedPosition(WindowPosition::xy(
-                    position.x as f32,
-                    position.y as f32,
-                )),
+                MouseEvent::UpdatedPosition(Vec2::xy(position.x as f32, position.y as f32)),
             );
         }
         WindowEvent::KeyboardInput { input, .. } => {
@@ -154,7 +151,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                     app,
                     TouchEvent::UpdatedPosition(
                         touch.id,
-                        WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
+                        Vec2::xy(touch.location.x as f32, touch.location.y as f32),
                     ),
                 );
             }
@@ -162,7 +159,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                 app,
                 TouchEvent::UpdatedPosition(
                     touch.id,
-                    WindowPosition::xy(touch.location.x as f32, touch.location.y as f32),
+                    Vec2::xy(touch.location.x as f32, touch.location.y as f32),
                 ),
             ),
             TouchPhase::Ended | TouchPhase::Cancelled => {

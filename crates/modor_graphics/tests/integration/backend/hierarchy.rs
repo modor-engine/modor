@@ -1,6 +1,7 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
+use modor_math::Vec3;
 use modor_physics::{Position, RelativePosition, RelativeSize, Shape, Size};
 
 struct Character;
@@ -22,10 +23,10 @@ struct CharacterHead;
 impl CharacterHead {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(RelativePosition::xy(0., 0.4))
-            .with(RelativeSize::xy(0.2, 0.2))
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0., 0.))
+            .with(RelativePosition::from(Vec3::xy(0., 0.4)))
+            .with(RelativeSize::from(Vec3::xy(0.2, 0.2)))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0., 0.)))
             .with(ShapeColor(Color::BLUE))
     }
 }
@@ -36,10 +37,10 @@ struct CharacterBody;
 impl CharacterBody {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(RelativePosition::xy(0., -0.1))
-            .with(RelativeSize::xy(0.4, 0.8))
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0., 0.))
+            .with(RelativePosition::from(Vec3::xy(0., -0.1)))
+            .with(RelativeSize::from(Vec3::xy(0.4, 0.8)))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0., 0.)))
             .with(ShapeColor(Color::GREEN))
     }
 }
@@ -50,8 +51,8 @@ struct Center;
 impl Center {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0.05, 0.05))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0.05, 0.05)))
             .with(ShapeColor(Color::WHITE))
             .with(Shape::Circle2D)
     }
@@ -63,12 +64,12 @@ fn display_hierarchy() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Center::build())
         .with_entity(Character::build(
-            Position::xy(0.25, 0.25),
-            Size::xy(0.5, 0.5),
+            Position::from(Vec3::xy(0.25, 0.25)),
+            Size::from(Vec3::xy(0.5, 0.5)),
         ))
         .with_entity(Character::build(
-            Position::xy(-0.1, -0.1),
-            Size::xy(0.3, 0.1),
+            Position::from(Vec3::xy(-0.1, -0.1)),
+            Size::from(Vec3::xy(0.3, 0.1)),
         ))
         .into();
     app.update();

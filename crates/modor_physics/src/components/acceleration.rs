@@ -1,5 +1,4 @@
-use crate::{RelativeWorldUnitPerSecondSquared, WorldUnitPerSecondSquared};
-use modor_math::Vec3D;
+use modor_math::Vec3;
 use std::ops::{Deref, DerefMut};
 
 /// The absolute acceleration of an entity.
@@ -16,27 +15,22 @@ use std::ops::{Deref, DerefMut};
 ///
 /// See [`Position`](crate::Position).
 #[derive(Default, Clone, Copy, Debug)]
-pub struct Acceleration(Vec3D<WorldUnitPerSecondSquared>);
+pub struct Acceleration(Vec3);
 
-impl Acceleration {
-    /// An acceleration with all components equal to `0.0`.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D acceleration.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self(Vec3D::xyz(x, y, z))
+impl From<Vec3> for Acceleration {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
+}
 
-    /// Creates a new acceleration from 2D coordinates.
-    ///
-    /// Z-coordinate is initialized to `0.0`.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+impl From<Acceleration> for Vec3 {
+    fn from(acceleration: Acceleration) -> Self {
+        acceleration.0
     }
 }
 
 impl Deref for Acceleration {
-    type Target = Vec3D<WorldUnitPerSecondSquared>;
+    type Target = Vec3;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -65,27 +59,22 @@ impl DerefMut for Acceleration {
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RelativeAcceleration(Vec3D<RelativeWorldUnitPerSecondSquared>);
+pub struct RelativeAcceleration(Vec3);
 
-impl RelativeAcceleration {
-    /// An acceleration with all components equal to `0.0`.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D acceleration.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self(Vec3D::xyz(x, y, z))
+impl From<Vec3> for RelativeAcceleration {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
+}
 
-    /// Creates a new acceleration from 2D coordinates.
-    ///
-    /// Z-coordinate is initialized to `0.0`.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+impl From<RelativeAcceleration> for Vec3 {
+    fn from(acceleration: RelativeAcceleration) -> Self {
+        acceleration.0
     }
 }
 
 impl Deref for RelativeAcceleration {
-    type Target = Vec3D<RelativeWorldUnitPerSecondSquared>;
+    type Target = Vec3;
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -1,10 +1,12 @@
 use crate::{utils, Window};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder, Query, Single};
-use modor_input::{Finger, Mouse, UpdateInputAction, WindowPosition};
+use modor_input::{Finger, Mouse, UpdateInputAction};
+use modor_math::Vec2;
 use modor_physics::{Position, Size, UpdatePhysicsAction};
 
 // TODO: add rotation + apply in render_target
+// TODO: see if vec2 operators can be applicable here
 
 /// The camera used for 2D rendering.
 ///
@@ -21,19 +23,23 @@ use modor_physics::{Position, Size, UpdatePhysicsAction};
 /// # Examples
 /// ```rust
 /// # use modor::{App, Single};
+/// # use modor_math::Vec3;
 /// # use modor_physics::{Position, Size};
 /// # use modor_graphics::Camera2D;
 /// #
 /// App::new()
-///     .with_entity(Camera2D::build(Position::xy(0.5, 0.7), Size::xy(2., 2.)));
+///     .with_entity(Camera2D::build(
+///         Position::from(Vec3::xy(0.5, 0.7)),
+///         Size::from(Vec3::xy(2., 2.)))
+///     );
 ///
 /// fn access_mouse_position(camera: Single<'_, Camera2D>) {
 ///     println!("Mouse position in 2D world: {:?}", camera.mouse_position());
 /// }
 /// ```
 pub struct Camera2D {
-    mouse_position: Position,
-    finger_positions: FxHashMap<u64, Position>,
+    mouse_position: Vec2,
+    finger_positions: FxHashMap<u64, Vec2>,
 }
 
 #[singleton]
@@ -41,7 +47,7 @@ impl Camera2D {
     /// Builds the entity.
     pub fn build(position: Position, size: Size) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            mouse_position: Position::xy(0., 0.),
+            mouse_position: Vec2::xy(0., 0.),
             finger_positions: FxHashMap::default(),
         })
         .with(position)
@@ -52,19 +58,19 @@ impl Camera2D {
     /// Returns the 2D world position of the mouse.
     ///
     /// Does not work in windowless mode.
-    pub fn mouse_position(&self) -> Position {
+    pub fn mouse_position(&self) -> Vec2 {
         self.mouse_position
     }
 
     /// Returns the 2D world position of the finger with ID `ìd`.
     ///
     /// Does not work in windowless mode.
-    pub fn finger_position(&self, id: u64) -> Option<Position> {
+    pub fn finger_position(&self, id: u64) -> Option<Vec2> {
         self.finger_positions.get(&id).copied()
     }
 
     /// Returns an iterator on all finger positions.
-    pub fn finger_positions(&self) -> impl Iterator<Item = Position> + '_ {
+    pub fn finger_positions(&self) -> impl Iterator<Item = Vec2> + '_ {
         self.finger_positions.values().copied()
     }
     // coverage: on
@@ -101,13 +107,13 @@ impl Camera2D {
 
     #[allow(clippy::cast_precision_loss)]
     fn window_to_world_position(
-        position: WindowPosition,
+        position: Vec2,
         window: &Window,
         camera_position: &Position,
         camera_size: &Size,
-    ) -> Position {
+    ) -> Vec2 {
         let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
-        Position::xy(
+        Vec2::xy(
             ((position.x / window.size().width as f32 - 0.5) / x_scale)
                 .mul_add(camera_size.x, camera_position.x),
             ((0.5 - position.y / window.size().height as f32) / y_scale)

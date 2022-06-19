@@ -9,9 +9,17 @@ use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
 use modor_math::Mat4;
-use modor_physics::{Position, Rotation, Shape, Size, WorldUnit};
+use modor_physics::{Position, Rotation, Shape, Size};
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
+
+pub(crate) type ShapeComponents<'a> = (
+    &'a ShapeColor,
+    &'a Position,
+    &'a Size,
+    Option<&'a Rotation>,
+    Option<&'a Shape>,
+);
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -49,16 +57,7 @@ impl CoreStorage {
 
     pub(crate) fn update_instances(
         &mut self,
-        shapes: Query<
-            '_,
-            (
-                &ShapeColor,
-                &Position,
-                &Size,
-                Option<&Rotation>,
-                Option<&Shape>,
-            ),
-        >,
+        shapes: Query<'_, ShapeComponents<'_>>,
         camera: CameraProperties,
     ) {
         self.opaque_instances.reset();
@@ -117,14 +116,14 @@ impl CoreStorage {
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
-        let position_scale_matrix = Mat4::<WorldUnit>::from_array([
+        let position_scale_matrix = Mat4::from_array([
             [size.x, 0., 0., 0.],
             [0., size.y, 0., 0.],
             [0., 0., 0., 0.],
             [position.x, position.y, z_position, 1.],
         ]);
         let transform_matrix = if let Some(rotation) = rotation {
-            let rotation_matrix = rotation.matrix::<WorldUnit>();
+            let rotation_matrix = rotation.matrix();
             rotation_matrix * position_scale_matrix
         } else {
             position_scale_matrix

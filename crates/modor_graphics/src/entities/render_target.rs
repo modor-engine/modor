@@ -4,22 +4,18 @@ use crate::backend::targets::window::WindowTarget;
 use crate::entities::background::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
-use crate::storages::core::{CameraProperties, CoreStorage};
+use crate::storages::core::{CameraProperties, CoreStorage, ShapeComponents};
 use crate::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
-    WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
-use modor_physics::{Position, Rotation, Shape, Size};
+use modor_math::Vec3;
+use modor_physics::{Position, Size};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
-const DEFAULT_CAMERA: CameraProperties = CameraProperties {
-    position: Position::ZERO,
-    size: Size::ONE,
-};
 
 pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
@@ -36,16 +32,7 @@ impl RenderTarget {
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
-        shapes: Query<
-            '_,
-            (
-                &ShapeColor,
-                &Position,
-                &Size,
-                Option<&Rotation>,
-                Option<&Shape>,
-            ),
-        >,
+        shapes: Query<'_, ShapeComponents<'_>>,
         cameras: Query<'_, (&Position, &Size), With<Camera2D>>,
     ) {
         let camera = Self::extract_camera(cameras);
@@ -68,13 +55,16 @@ impl RenderTarget {
     fn finish_update() {}
 
     fn extract_camera(cameras: Query<'_, (&Position, &Size), With<Camera2D>>) -> CameraProperties {
-        cameras
-            .iter()
-            .next()
-            .map_or(DEFAULT_CAMERA, |(p, s)| CameraProperties {
+        cameras.iter().next().map_or(
+            CameraProperties {
+                position: Position::from(Vec3::ZERO),
+                size: Size::from(Vec3::ONE),
+            },
+            |(p, s)| CameraProperties {
                 position: *p,
                 size: *s,
-            })
+            },
+        )
     }
 }
 

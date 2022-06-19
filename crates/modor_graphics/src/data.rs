@@ -18,6 +18,8 @@ impl SurfaceSize {
     }
 }
 
+// TODO: improve interface of ShapeColor
+
 /// A color.
 ///
 /// # Examples

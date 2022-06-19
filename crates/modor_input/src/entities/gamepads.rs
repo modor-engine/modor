@@ -1,6 +1,7 @@
-use crate::{utils, InputDelta, InputState};
+use crate::{utils, InputState};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
+use modor_math::Vec2;
 
 /// The state of a gamepad.
 ///
@@ -30,7 +31,7 @@ use modor::{Built, EntityBuilder};
 pub struct Gamepad {
     id: u64,
     buttons: FxHashMap<GamepadButton, GamepadButtonState>,
-    stick_directions: FxHashMap<GamepadStick, InputDelta>,
+    stick_directions: FxHashMap<GamepadStick, Vec2>,
     left_z_axis_value: f32,
     right_z_axis_value: f32,
     has_d_pad_buttons: bool,
@@ -56,8 +57,10 @@ impl Gamepad {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
 
-    /// Returns the normalized direction of a stick, with components between `-1.0` and `1.0`.
-    pub fn stick_direction(&self, stick: GamepadStick) -> InputDelta {
+    /// Returns the normalized direction of a stick.
+    ///
+    /// If the stick is not used, the returned direction has all components equal to `0.0`.
+    pub fn stick_direction(&self, stick: GamepadStick) -> Vec2 {
         self.stick_directions
             .get(&stick)
             .copied()
