@@ -108,11 +108,21 @@ fn mul_vec() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_mat() {
-    let rotation = Quat::from_axis_angle(Vec3::X, FRAC_PI_2).matrix();
     let translation_scale =
         Mat4::from_position_scale(Vec3::xyz(2., 4., 6.), Vec3::xyz(0.1, 0.2, 0.3));
-    let vec = rotation * translation_scale * Vec3::xyz(1., 1., 1.);
+    let rotation = Quat::from_axis_angle(Vec3::X, FRAC_PI_2).matrix();
+    let vec = rotation * translation_scale.clone() * Vec3::xyz(1., 1., 1.);
     assert_abs_diff_eq!(vec.x, 2.1);
     assert_abs_diff_eq!(vec.y, 4.2);
     assert_abs_diff_eq!(vec.z, 5.7);
+    let rotation = Quat::from_axis_angle(Vec3::Y, FRAC_PI_2).matrix();
+    let vec = rotation * translation_scale.clone() * Vec3::xyz(1., 1., 1.);
+    assert_abs_diff_eq!(vec.x, 1.9);
+    assert_abs_diff_eq!(vec.y, 4.2);
+    assert_abs_diff_eq!(vec.z, 6.3);
+    let rotation = Quat::from_axis_angle(Vec3::Z, FRAC_PI_2).matrix();
+    let vec = rotation * translation_scale * Vec3::xyz(1., 1., 1.);
+    assert_abs_diff_eq!(vec.x, 2.1);
+    assert_abs_diff_eq!(vec.y, 3.8);
+    assert_abs_diff_eq!(vec.z, 6.3);
 }

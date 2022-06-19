@@ -59,21 +59,21 @@ impl Quat {
     pub fn matrix(self) -> Mat4 {
         Mat4::from_array([
             [
-                1. - 2. * self.y * self.y - 2. * self.z * self.z,
-                2. * self.x * self.y - 2. * self.w * self.z,
+                1. - (2. * self.y).mul_add(self.y, 2. * self.z * self.z),
+                (2. * self.x).mul_add(self.y, -2. * self.w * self.z),
                 (2. * self.x).mul_add(self.z, 2. * self.w * self.y),
                 0.,
             ],
             [
                 (2. * self.x).mul_add(self.y, 2. * self.w * self.z),
-                1. - 2. * self.x * self.x - 2. * self.z * self.z,
-                2. * self.y * self.z - 2. * self.w * self.x,
+                1. - (2. * self.x).mul_add(self.x, 2. * self.z * self.z),
+                (2. * self.y).mul_add(self.z, -2. * self.w * self.x),
                 0.,
             ],
             [
-                2. * self.x * self.z - 2. * self.w * self.y,
+                (2. * self.x).mul_add(self.z, -2. * self.w * self.y),
                 (2. * self.y).mul_add(self.z, 2. * self.w * self.x),
-                1. - 2. * self.x * self.x - 2. * self.y * self.y,
+                1. - (2. * self.x).mul_add(self.x, 2. * self.y * self.y),
                 0.,
             ],
             [0., 0., 0., 1.],
@@ -86,16 +86,23 @@ impl Quat {
         Self {
             x: self.y.mul_add(
                 other.z,
-                self.w.mul_add(other.x, self.x * other.w) - self.z * other.y,
+                self.w
+                    .mul_add(other.x, self.x.mul_add(other.w, -self.z * other.y)),
             ),
             y: self.z.mul_add(
                 other.x,
-                self.y.mul_add(other.w, self.w * other.y) - self.x * other.z,
+                self.y
+                    .mul_add(other.w, self.w.mul_add(other.y, -self.x * other.z)),
             ),
             z: self
                 .z
                 .mul_add(other.w, self.w.mul_add(other.z, self.x * other.y)),
-            w: self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z,
+            w: self.w.mul_add(
+                other.w,
+                -self
+                    .x
+                    .mul_add(other.x, self.y.mul_add(other.y, self.z * other.z)),
+            ),
         }
     }
 

@@ -5,9 +5,7 @@ use modor_graphics::{
     Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize, WindowSettings,
 };
 use modor_math::{Quat, Vec3};
-use modor_physics::{
-    DeltaTime, Position, RelativePosition, RelativeRotation, RelativeSize, Rotation, Size,
-};
+use modor_physics::{DeltaTime, Position, RelativePosition, RelativeRotation, Rotation, Size};
 use std::f32::consts::FRAC_PI_2;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]

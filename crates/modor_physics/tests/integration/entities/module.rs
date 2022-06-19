@@ -197,10 +197,10 @@ fn update_absolute_rotations_from_relative_rotations() {
         .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
         .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
         .has::<RelativeRotation, _>(|p| {
-            assert_abs_diff_eq!(p.axis().unwrap().z, 1., epsilon = 0.000_001)
+            assert_abs_diff_eq!(p.axis().unwrap().z, 1., epsilon = 0.000_001);
         })
         .has::<RelativeRotation, _>(|p| {
-            assert_abs_diff_eq!(p.angle(), -FRAC_PI_8 + 2. * PI, epsilon = 0.000_001)
+            assert_abs_diff_eq!(p.angle(), PI.mul_add(2., -FRAC_PI_8), epsilon = 0.000_001);
         });
 }
 

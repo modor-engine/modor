@@ -117,11 +117,10 @@ impl CoreStorage {
         let (min_z, max_z) = depth_bounds;
         let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
         let position = Vec3::xyz(position.x, position.y, z_position);
-        let transform_matrix = if let Some(rotation) = rotation {
-            Mat4::from_scale(*size) * rotation.matrix() * Mat4::from_position(position)
-        } else {
-            Mat4::from_position_scale(position, *size)
-        };
+        let transform_matrix = rotation.map_or_else(
+            || Mat4::from_position_scale(position, *size),
+            |r| Mat4::from_scale(*size) * r.matrix() * Mat4::from_position(position),
+        );
         Instance {
             transform: transform_matrix.to_array(),
             color: [color.0.r, color.0.g, color.0.b, color.0.a],
