@@ -1,17 +1,23 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
-use modor_math::Vec3;
-use modor_physics::{Position, RelativePosition, RelativeSize, Shape, Size};
+use modor_math::{Quat, Vec3};
+use modor_physics::{
+    Position, RelativePosition, RelativeRotation, RelativeSize, Rotation, Shape, Size,
+};
 
 struct Character;
 
 #[entity]
 impl Character {
-    fn build(position: Position, size: Size) -> impl Built<Self> {
+    fn build(position: Position, size: Size, angle: f32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(position)
             .with(size)
+            .with(Rotation::from(Quat::from_axis_angle(
+                Vec3::Z,
+                angle.to_radians(),
+            )))
             .with_child(CharacterHead::build())
             .with_child(CharacterBody::build())
     }
@@ -25,8 +31,10 @@ impl CharacterHead {
         EntityBuilder::new(Self)
             .with(RelativePosition::from(Vec3::xy(0., 0.4)))
             .with(RelativeSize::from(Vec3::xy(0.2, 0.2)))
-            .with(Position::from(Vec3::xy(0., 0.)))
-            .with(Size::from(Vec3::xy(0., 0.)))
+            .with(RelativeRotation::from(Quat::ZERO))
+            .with(Position::from(Vec3::ZERO))
+            .with(Size::from(Vec3::ZERO))
+            .with(Rotation::from(Quat::ZERO))
             .with(ShapeColor(Color::BLUE))
     }
 }
@@ -39,8 +47,10 @@ impl CharacterBody {
         EntityBuilder::new(Self)
             .with(RelativePosition::from(Vec3::xy(0., -0.1)))
             .with(RelativeSize::from(Vec3::xy(0.4, 0.8)))
-            .with(Position::from(Vec3::xy(0., 0.)))
-            .with(Size::from(Vec3::xy(0., 0.)))
+            .with(RelativeRotation::from(Quat::from_axis_angle(Vec3::Z, 0.)))
+            .with(Position::from(Vec3::ZERO))
+            .with(Size::from(Vec3::ZERO))
+            .with(Rotation::from(Quat::ZERO))
             .with(ShapeColor(Color::GREEN))
     }
 }
@@ -66,10 +76,12 @@ fn display_hierarchy() {
         .with_entity(Character::build(
             Position::from(Vec3::xy(0.25, 0.25)),
             Size::from(Vec3::xy(0.5, 0.5)),
+            20.,
         ))
         .with_entity(Character::build(
             Position::from(Vec3::xy(-0.1, -0.1)),
             Size::from(Vec3::xy(0.3, 0.1)),
+            0.,
         ))
         .into();
     app.update();

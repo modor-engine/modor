@@ -8,7 +8,7 @@ use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
-use modor_math::Mat4;
+use modor_math::{Mat4, Vec3};
 use modor_physics::{Position, Rotation, Shape, Size};
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
@@ -116,17 +116,11 @@ impl CoreStorage {
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
-        let position_scale_matrix = Mat4::from_array([
-            [size.x, 0., 0., 0.],
-            [0., size.y, 0., 0.],
-            [0., 0., 0., 0.],
-            [position.x, position.y, z_position, 1.],
-        ]);
+        let position = Vec3::xyz(position.x, position.y, z_position);
         let transform_matrix = if let Some(rotation) = rotation {
-            let rotation_matrix = rotation.matrix();
-            rotation_matrix * position_scale_matrix
+            Mat4::from_scale(*size) * rotation.matrix() * Mat4::from_position(position)
         } else {
-            position_scale_matrix
+            Mat4::from_position_scale(position, *size)
         };
         Instance {
             transform: transform_matrix.to_array(),

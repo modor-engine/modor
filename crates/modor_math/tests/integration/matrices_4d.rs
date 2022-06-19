@@ -53,6 +53,50 @@ fn create_from_position_scale() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn create_from_position() {
+    let mat = Mat4::from_position(Vec3::xyz(1., 2., 3.));
+    assert_abs_diff_eq!(mat.to_array()[0][0], 1.);
+    assert_abs_diff_eq!(mat.to_array()[0][1], 0.);
+    assert_abs_diff_eq!(mat.to_array()[0][2], 0.);
+    assert_abs_diff_eq!(mat.to_array()[0][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][0], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][1], 1.);
+    assert_abs_diff_eq!(mat.to_array()[1][2], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][0], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][1], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][2], 1.);
+    assert_abs_diff_eq!(mat.to_array()[2][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[3][0], 1.);
+    assert_abs_diff_eq!(mat.to_array()[3][1], 2.);
+    assert_abs_diff_eq!(mat.to_array()[3][2], 3.);
+    assert_abs_diff_eq!(mat.to_array()[3][3], 1.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn create_from_scale() {
+    let mat = Mat4::from_scale(Vec3::xyz(4., 5., 6.));
+    assert_abs_diff_eq!(mat.to_array()[0][0], 4.);
+    assert_abs_diff_eq!(mat.to_array()[0][1], 0.);
+    assert_abs_diff_eq!(mat.to_array()[0][2], 0.);
+    assert_abs_diff_eq!(mat.to_array()[0][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][0], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][1], 5.);
+    assert_abs_diff_eq!(mat.to_array()[1][2], 0.);
+    assert_abs_diff_eq!(mat.to_array()[1][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][0], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][1], 0.);
+    assert_abs_diff_eq!(mat.to_array()[2][2], 6.);
+    assert_abs_diff_eq!(mat.to_array()[2][3], 0.);
+    assert_abs_diff_eq!(mat.to_array()[3][0], 0.);
+    assert_abs_diff_eq!(mat.to_array()[3][1], 0.);
+    assert_abs_diff_eq!(mat.to_array()[3][2], 0.);
+    assert_abs_diff_eq!(mat.to_array()[3][3], 1.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_vec() {
     let rotation = Quat::from_axis_angle(Vec3::X, FRAC_PI_2).matrix();
     let vec = rotation * Vec3::xyz(1., 1., 1.);

@@ -19,8 +19,8 @@ use std::time::Duration;
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_math::Vec3;
-/// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity};
+/// # use modor_math::{Vec3, Quat};
+/// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity, Rotation};
 /// #
 /// struct Object;
 ///
@@ -32,6 +32,7 @@ use std::time::Duration;
 ///             .with(Velocity::from(Vec3::xy(-0.01, 0.02)))
 ///             .with(Acceleration::from(Vec3::xy(0.5, -0.1)))
 ///             .with(Size::from(Vec3::xy(0.25, 0.5)))
+///             .with(Rotation::from(Quat::from_axis_angle(Vec3::Z, 20_f32.to_radians())))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
@@ -105,10 +106,10 @@ impl DerefMut for Position {
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_math::Vec3;
+/// # use modor_math::{Vec3, Quat};
 /// # use modor_physics::{
 /// #     Acceleration, PhysicsModule, Position, Size, Shape, Velocity, RelativeAcceleration,
-/// #     RelativeVelocity, RelativePosition, RelativeSize
+/// #     RelativeVelocity, RelativePosition, RelativeSize, Rotation, RelativeRotation
 /// # };
 /// #
 /// struct Object;
@@ -118,11 +119,13 @@ impl DerefMut for Position {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
 ///             .with(Position::from(Vec3::ZERO))
-///             .with(Size::from(Vec3::ONE))
+///             .with(Size::from(Vec3::ZERO))
+///             .with(Rotation::from(Quat::ZERO))
 ///             .with(RelativePosition::from(Vec3::xy(0.2, 0.3)))
 ///             .with(RelativeVelocity::from(Vec3::xy(-0.01, 0.02)))
 ///             .with(RelativeAcceleration::from(Vec3::xy(0.5, -0.1)))
 ///             .with(RelativeSize::from(Vec3::xy(0.25, 0.5)))
+///             .with(RelativeRotation::from(Quat::from_axis_angle(Vec3::Z, 20_f32.to_radians())))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }

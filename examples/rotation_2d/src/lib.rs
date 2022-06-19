@@ -30,7 +30,7 @@ impl Object {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0.15, 0.15)))
-            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Size::from(Vec3::xyz(0.25, 0.5, 1.)))
             .with(ShapeColor(Color::rgb(1., 1., 0.)))
             .with(Rotation::from(Quat::from_axis_angle(
                 Vec3::Z,
@@ -55,9 +55,8 @@ impl Child {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::default()))
-            .with(RelativePosition::from(Vec3::xy(-0.7, -0.7)))
-            .with(Size::from(Vec3::default()))
-            .with(RelativeSize::from(Vec3::xyz(0.5, 0.5, 1.)))
+            .with(RelativePosition::from(Vec3::xyz(0.5, 0.5, 0.5)))
+            .with(Size::from(Vec3::xyz(0.1, 0.2, 1.)))
             .with(ShapeColor(Color::rgb(1., 0., 1.)))
             .with(Rotation::from(Quat::from_axis_angle(Vec3::Z, 0.)))
             .with(RelativeRotation::from(Quat::from_axis_angle(
