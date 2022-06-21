@@ -5,7 +5,7 @@ use image::ColorType;
 use modor::testing::TestApp;
 use std::path::Path;
 
-const COLOR_EPSILON: u8 = 10;
+const COLOR_EPSILON: u8 = 1;
 
 /// Asserts the generated [`Capture`](crate::Capture) is the same as the image saved at
 /// `capture_path`.

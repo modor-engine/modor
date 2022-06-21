@@ -72,7 +72,7 @@ fn add_rotated_camera() {
         .with_entity(Camera2D::build_rotated(
             Position::from(Vec3::xy(0.5, 0.5)),
             Size::from(Vec3::xy(3., 3.)),
-            Rotation::from(Quat::from_z(20_f32.to_radians())),
+            Rotation::from(Quat::from_z(45_f32.to_radians())),
         ))
         .with_entity(Object::build_center())
         .with_entity(Object::build_circle())
