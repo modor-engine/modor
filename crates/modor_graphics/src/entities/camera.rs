@@ -18,7 +18,7 @@ use modor_physics::{Position, Rotation, Size, UpdatePhysicsAction};
 /// - **Updated during**: [`UpdateCamera2DAction`](crate::UpdateCamera2DAction)
 /// - **Updated using**: [`Position`](modor_physics::Position), [`Size`](modor_physics::Size),
 ///     [`Rotation`](modor_physics::Rotation), [`Mouse`](modor_input::Mouse),
-///     [`Touch`](modor_input::Touch), [`Window`](crate::Window)
+///     [`Finger`](modor_input::Finger), [`Window`](crate::Window)
 ///
 /// # Examples
 /// ```rust
