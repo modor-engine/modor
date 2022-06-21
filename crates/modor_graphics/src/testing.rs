@@ -5,6 +5,8 @@ use image::ColorType;
 use modor::testing::TestApp;
 use std::path::Path;
 
+const COLOR_EPSILON: u8 = 10;
+
 /// Asserts the generated [`Capture`](crate::Capture) is the same as the image saved at
 /// `capture_path`.
 ///
@@ -42,7 +44,7 @@ where
             !buffer
                 .iter()
                 .zip(image.as_bytes())
-                .any(|(a, b)| a.abs_diff(*b) > 2),
+                .any(|(a, b)| a.abs_diff(*b) > COLOR_EPSILON),
             "captures are different"
         );
     });

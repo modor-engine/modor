@@ -57,7 +57,7 @@ impl Camera2D {
         .with(Rotation::from(Quat::ZERO))
     }
 
-    /// Builds the rotated entity.
+    /// Builds the entity with a rotation.
     pub fn build_rotated(position: Position, size: Size, rotation: Rotation) -> impl Built<Self> {
         EntityBuilder::new(Self {
             transformation_matrix: Mat4::IDENTITY,
