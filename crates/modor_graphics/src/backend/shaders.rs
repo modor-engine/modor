@@ -1,7 +1,7 @@
 use crate::backend::renderer::{Renderer, DEPTH_TEXTURE_FORMAT};
 use wgpu::{
     BindGroupLayout, BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
-    DepthStencilState, Face, FragmentState, FrontFace, MultisampleState, PipelineLayout,
+    DepthStencilState, FragmentState, FrontFace, MultisampleState, PipelineLayout,
     PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline,
     RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderSource, StencilState,
     VertexBufferLayout, VertexState,
@@ -84,7 +84,7 @@ impl Shader {
                     topology: PrimitiveTopology::TriangleList,
                     strip_index_format: None,
                     front_face: FrontFace::Ccw,
-                    cull_mode: Some(Face::Back), // TODO: make it configurable
+                    cull_mode: None,
                     polygon_mode: PolygonMode::Fill,
                     unclipped_depth: false,
                     conservative: false,

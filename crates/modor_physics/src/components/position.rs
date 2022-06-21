@@ -20,7 +20,10 @@ use std::time::Duration;
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
 /// # use modor_math::{Vec3, Quat};
-/// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity, Rotation};
+/// # use modor_physics::{
+/// #     Acceleration, PhysicsModule, Position, Size, Shape, Velocity, Rotation, AngularVelocity,
+/// #     AngularAcceleration
+/// # };
 /// #
 /// struct Object;
 ///
@@ -32,7 +35,9 @@ use std::time::Duration;
 ///             .with(Velocity::from(Vec3::xy(-0.01, 0.02)))
 ///             .with(Acceleration::from(Vec3::xy(0.5, -0.1)))
 ///             .with(Size::from(Vec3::xy(0.25, 0.5)))
-///             .with(Rotation::from(Quat::from_axis_angle(Vec3::Z, 20_f32.to_radians())))
+///             .with(Rotation::from(Quat::from_z(20_f32.to_radians())))
+///             .with(AngularVelocity::from(Quat::from_z(5_f32.to_radians())))
+///             .with(AngularAcceleration::from(Quat::from_z(1_f32.to_radians())))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }
@@ -109,7 +114,8 @@ impl DerefMut for Position {
 /// # use modor_math::{Vec3, Quat};
 /// # use modor_physics::{
 /// #     Acceleration, PhysicsModule, Position, Size, Shape, Velocity, RelativeAcceleration,
-/// #     RelativeVelocity, RelativePosition, RelativeSize, Rotation, RelativeRotation
+/// #     RelativeVelocity, RelativePosition, RelativeSize, Rotation, RelativeRotation,
+/// #     RelativeAngularVelocity, RelativeAngularAcceleration
 /// # };
 /// #
 /// struct Object;
@@ -125,7 +131,9 @@ impl DerefMut for Position {
 ///             .with(RelativeVelocity::from(Vec3::xy(-0.01, 0.02)))
 ///             .with(RelativeAcceleration::from(Vec3::xy(0.5, -0.1)))
 ///             .with(RelativeSize::from(Vec3::xy(0.25, 0.5)))
-///             .with(RelativeRotation::from(Quat::from_axis_angle(Vec3::Z, 20_f32.to_radians())))
+///             .with(RelativeRotation::from(Quat::from_z(20_f32.to_radians())))
+///             .with(RelativeAngularVelocity::from(Quat::from_z(5_f32.to_radians())))
+///             .with(RelativeAngularAcceleration::from(Quat::from_z(1_f32.to_radians())))
 ///             .with(Shape::Rectangle2D)
 ///     }
 /// }

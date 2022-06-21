@@ -1,11 +1,14 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, App, Built, EntityBuilder, Single};
+use modor::{entity, App, Built, EntityBuilder};
 use modor_graphics::{
     Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize, WindowSettings,
 };
 use modor_math::{Quat, Vec3};
-use modor_physics::{DeltaTime, Position, RelativePosition, RelativeRotation, Rotation, Size};
+use modor_physics::{
+    AngularVelocity, Position, RelativeAngularVelocity, RelativePosition, RelativeRotation,
+    Rotation, Size,
+};
 use std::f32::consts::FRAC_PI_2;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -29,20 +32,10 @@ impl Object {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0.15, 0.15)))
             .with(Size::from(Vec3::xyz(0.25, 0.5, 1.)))
-            .with(ShapeColor(Color::rgb(1., 1., 0.)))
-            .with(Rotation::from(Quat::from_axis_angle(
-                Vec3::Z,
-                0_f32.to_radians(),
-            )))
+            .with(ShapeColor::from(Color::rgb(1., 1., 0.)))
+            .with(Rotation::from(Quat::from_z(0_f32.to_radians())))
+            .with(AngularVelocity::from(Quat::from_z(FRAC_PI_2)))
             .with_child(Child::build())
-    }
-
-    #[run]
-    fn rotate(rotation: &mut Rotation, delta_time: Single<'_, DeltaTime>) {
-        **rotation = rotation.with_rotation(Quat::from_axis_angle(
-            Vec3::Z,
-            delta_time.get().as_secs_f32() * FRAC_PI_2,
-        ));
     }
 }
 
@@ -55,19 +48,9 @@ impl Child {
             .with(Position::from(Vec3::default()))
             .with(RelativePosition::from(Vec3::xyz(0.5, 0.5, 0.5)))
             .with(Size::from(Vec3::xyz(0.1, 0.2, 1.)))
-            .with(ShapeColor(Color::rgb(1., 0., 1.)))
-            .with(Rotation::from(Quat::from_axis_angle(Vec3::Z, 0.)))
-            .with(RelativeRotation::from(Quat::from_axis_angle(
-                Vec3::Z,
-                0_f32.to_radians(),
-            )))
-    }
-
-    #[run]
-    fn rotate(rotation: &mut RelativeRotation, delta_time: Single<'_, DeltaTime>) {
-        **rotation = rotation.with_rotation(Quat::from_axis_angle(
-            Vec3::Z,
-            delta_time.get().as_secs_f32() * FRAC_PI_2,
-        ));
+            .with(ShapeColor::from(Color::rgb(1., 0., 1.)))
+            .with(Rotation::from(Quat::from_z(0.)))
+            .with(RelativeRotation::from(Quat::from_z(0_f32.to_radians())))
+            .with(RelativeAngularVelocity::from(Quat::from_z(FRAC_PI_2)))
     }
 }

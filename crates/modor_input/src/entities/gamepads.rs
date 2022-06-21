@@ -40,6 +40,7 @@ pub struct Gamepad {
 #[entity]
 impl Gamepad {
     /// Unique identifier of the gamepad.
+    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -53,6 +54,7 @@ impl Gamepad {
     }
 
     /// Returns the state of a button.
+    #[must_use]
     pub fn button(&self, button: GamepadButton) -> GamepadButtonState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
@@ -60,6 +62,7 @@ impl Gamepad {
     /// Returns the normalized direction of a stick.
     ///
     /// If the stick is not used, the returned direction has all components equal to `0.0`.
+    #[must_use]
     pub fn stick_direction(&self, stick: GamepadStick) -> Vec2 {
         self.stick_directions
             .get(&stick)
@@ -68,11 +71,13 @@ impl Gamepad {
     }
 
     /// Returns the value between `-1.0` and `1.0` of the left Z axis.
+    #[must_use]
     pub fn left_z_axis_value(&self) -> f32 {
         self.left_z_axis_value
     }
 
     /// Returns the value between `-1.0` and `1.0` of the right Z axis.
+    #[must_use]
     pub fn right_z_axis_value(&self) -> f32 {
         self.right_z_axis_value
     }
@@ -229,11 +234,13 @@ pub struct GamepadButtonState {
 
 impl GamepadButtonState {
     /// Returns the state of the button.
+    #[must_use]
     pub fn state(&self) -> InputState {
         self.state
     }
 
     /// Returns the value between `0.0` and `1.0` of the button.
+    #[must_use]
     pub fn value(&self) -> f32 {
         self.value
     }

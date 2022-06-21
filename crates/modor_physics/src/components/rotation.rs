@@ -1,13 +1,14 @@
-use modor_math::Quat;
+use crate::{AngularVelocity, RelativeAngularVelocity};
+use modor_math::{Quat, Vec3};
 use std::ops::{Deref, DerefMut};
-
-// TODO: add AngularVelocity, AngularAcceleration + relative equivalents
+use std::time::Duration;
 
 /// The absolute rotation of an entity.
 ///
 /// # Modor
 ///
 /// - **Type**: component
+/// - **Default if missing**: `Rotation::from(Quat::ZERO)`
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
 /// - **Updated using**:
@@ -22,6 +23,13 @@ use std::ops::{Deref, DerefMut};
 pub struct Rotation(Quat);
 
 impl Rotation {
+    pub(crate) fn update_with_velocity(&mut self, velocity: AngularVelocity, delta_time: Duration) {
+        let axis = velocity.axis().unwrap_or(Vec3::ZERO);
+        let angle = velocity.angle();
+        let rotation = Quat::from_axis_angle(axis, angle * delta_time.as_secs_f32());
+        **self = self.with_rotation(rotation);
+    }
+
     pub(crate) fn update_with_relative(
         &mut self,
         relative_rotation: RelativeRotation,
@@ -78,6 +86,15 @@ impl DerefMut for Rotation {
 /// ```
 #[derive(Default, Clone, Copy, Debug)]
 pub struct RelativeRotation(Quat);
+
+impl RelativeRotation {
+    pub(crate) fn update(&mut self, velocity: RelativeAngularVelocity, delta_time: Duration) {
+        let axis = velocity.axis().unwrap_or(Vec3::ZERO);
+        let angle = velocity.angle();
+        let rotation = Quat::from_axis_angle(axis, angle * delta_time.as_secs_f32());
+        **self = self.with_rotation(rotation);
+    }
+}
 
 impl From<Quat> for RelativeRotation {
     fn from(quaternion: Quat) -> Self {

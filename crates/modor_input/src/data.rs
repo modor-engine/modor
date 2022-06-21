@@ -12,16 +12,19 @@ pub struct InputState {
 
 impl InputState {
     /// Returns whether the input is pressed.
+    #[must_use]
     pub fn is_pressed(&self) -> bool {
         self.is_pressed
     }
 
     /// Returns whether has just been pressed.
+    #[must_use]
     pub fn is_just_pressed(&self) -> bool {
         self.is_just_pressed
     }
 
     /// Returns whether has just been released.
+    #[must_use]
     pub fn is_just_released(&self) -> bool {
         self.is_just_released
     }

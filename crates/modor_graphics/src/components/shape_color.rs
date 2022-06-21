@@ -28,12 +28,24 @@ use std::ops::{Deref, DerefMut};
 ///             .with(Position::from(Vec3::xy(-0.25, 0.25)))
 ///             .with(Size::from(Vec3::xy(0.5, 0.5)))
 ///             .with(Shape::Rectangle2D)
-///             .with(ShapeColor(Color::rgba(1., 0.25, 0.75, 0.5)))
+///             .with(ShapeColor::from(Color::rgba(1., 0.25, 0.75, 0.5)))
 ///     }
 /// }
 /// ```
 #[derive(Clone, Copy, Debug)]
-pub struct ShapeColor(pub Color);
+pub struct ShapeColor(Color);
+
+impl From<Color> for ShapeColor {
+    fn from(color: Color) -> Self {
+        Self(color)
+    }
+}
+
+impl From<ShapeColor> for Color {
+    fn from(color: ShapeColor) -> Self {
+        color.0
+    }
+}
 
 impl Deref for ShapeColor {
     type Target = Color;

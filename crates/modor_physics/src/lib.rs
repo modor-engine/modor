@@ -30,6 +30,8 @@ mod components;
 mod entities;
 
 pub use components::acceleration::*;
+pub use components::angular_acceleration::*;
+pub use components::angular_velocity::*;
 pub use components::position::*;
 pub use components::rotation::*;
 pub use components::shape::*;

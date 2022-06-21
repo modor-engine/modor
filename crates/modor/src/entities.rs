@@ -46,6 +46,7 @@ impl EntityType for Singleton {}
 /// # Examples
 ///
 /// See [`EntityBuilder`](crate::EntityBuilder).
+#[must_use]
 pub trait Built<E>: BuildEntity
 where
     E: EntityMainComponent,

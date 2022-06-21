@@ -69,7 +69,7 @@ impl CoreStorage {
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
-            if color.0.a > 0. && color.0.a < 1. {
+            if color.a > 0. && color.a < 1. {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -123,7 +123,7 @@ impl CoreStorage {
         );
         Instance {
             transform: transform_matrix.to_array(),
-            color: [color.0.r, color.0.g, color.0.b, color.0.a],
+            color: [color.r, color.g, color.b, color.a],
         }
     }
 
@@ -131,18 +131,17 @@ impl CoreStorage {
     fn create_camera_data(camera: CameraProperties, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
         let (x_scale, y_scale) = utils::world_scale(size);
+        let position = Vec3::xy(-camera.position.x, -camera.position.y);
+        let scale = Vec3::xyz(
+            2. * x_scale / camera.size.x,
+            2. * y_scale / camera.size.y,
+            1.,
+        );
         Camera {
-            transform: [
-                [2. * x_scale / camera.size.x, 0., 0., 0.],
-                [0., 2. * y_scale / camera.size.y, 0., 0.],
-                [0., 0., 1., 0.],
-                [
-                    -camera.position.x * 2. * x_scale / camera.size.x,
-                    -camera.position.y * 2. * y_scale / camera.size.y,
-                    0.,
-                    1.,
-                ],
-            ],
+            transform: (Mat4::from_position(position)
+                * camera.rotation.matrix()
+                * Mat4::from_scale(scale))
+            .to_array(),
         }
     }
 }
@@ -150,4 +149,5 @@ impl CoreStorage {
 pub(crate) struct CameraProperties {
     pub(crate) position: Position,
     pub(crate) size: Size,
+    pub(crate) rotation: Rotation,
 }

@@ -12,14 +12,14 @@ impl Object {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(-0.25, 0.25)))
             .with(Size::from(Vec3::xy(0.4, 0.25)))
-            .with(ShapeColor(Color::RED))
+            .with(ShapeColor::from(Color::RED))
     }
 
     fn build_rectangle() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0.25, 0.25)))
             .with(Size::from(Vec3::xy(0.4, 0.25)))
-            .with(ShapeColor(Color::GREEN))
+            .with(ShapeColor::from(Color::GREEN))
             .with(Shape::Rectangle2D)
     }
 
@@ -27,7 +27,7 @@ impl Object {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(-0.25, -0.25)))
             .with(Size::from(Vec3::xy(0.4, 0.25)))
-            .with(ShapeColor(Color::BLUE))
+            .with(ShapeColor::from(Color::BLUE))
             .with(Shape::Circle2D)
     }
 }

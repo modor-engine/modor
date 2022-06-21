@@ -41,6 +41,7 @@ impl Mouse {
     }
 
     /// Returns the state of a button.
+    #[must_use]
     pub fn button(&self, button: MouseButton) -> InputState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
@@ -50,6 +51,7 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in lines, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
+    #[must_use]
     pub fn scroll_delta_in_pixels(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => self.scroll_delta,
@@ -65,6 +67,7 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in pixels, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
+    #[must_use]
     pub fn scroll_delta_in_lines(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => Vec2::xy(
@@ -76,6 +79,7 @@ impl Mouse {
     }
 
     /// Returns the position of the mouse in pixels from the top-left corner of the app window.
+    #[must_use]
     pub fn position(&self) -> Vec2 {
         self.position
     }
@@ -84,6 +88,7 @@ impl Mouse {
     ///
     /// The delta does not take into account a possible acceleration created by the system,
     /// in contrary to [`Mouse::position()`](crate::Mouse::position).
+    #[must_use]
     pub fn delta(&self) -> Vec2 {
         self.delta
     }

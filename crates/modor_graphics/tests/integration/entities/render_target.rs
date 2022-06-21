@@ -31,7 +31,7 @@ impl Rectangle {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0., 0.)))
             .with(Size::from(Vec3::xyz(0.9, 0.9, 1.)))
-            .with(ShapeColor(Color::RED))
+            .with(ShapeColor::from(Color::RED))
             .with_child(Quarter::build())
     }
 }
@@ -46,7 +46,7 @@ impl Quarter {
             .with(RelativeSize::from(Vec3::xy(0.5, 0.5)))
             .with(Position::from(Vec3::xy(0., 0.)))
             .with(Size::from(Vec3::xy(0., 0.)))
-            .with(ShapeColor(Color::MAROON))
+            .with(ShapeColor::from(Color::MAROON))
     }
 }
 

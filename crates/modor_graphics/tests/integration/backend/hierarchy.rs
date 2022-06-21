@@ -14,10 +14,7 @@ impl Character {
         EntityBuilder::new(Self)
             .with(position)
             .with(size)
-            .with(Rotation::from(Quat::from_axis_angle(
-                Vec3::Z,
-                angle.to_radians(),
-            )))
+            .with(Rotation::from(Quat::from_z(angle.to_radians())))
             .with_child(CharacterHead::build())
             .with_child(CharacterBody::build())
     }
@@ -35,7 +32,7 @@ impl CharacterHead {
             .with(Position::from(Vec3::ZERO))
             .with(Size::from(Vec3::ZERO))
             .with(Rotation::from(Quat::ZERO))
-            .with(ShapeColor(Color::BLUE))
+            .with(ShapeColor::from(Color::BLUE))
     }
 }
 
@@ -47,11 +44,11 @@ impl CharacterBody {
         EntityBuilder::new(Self)
             .with(RelativePosition::from(Vec3::xy(0., -0.1)))
             .with(RelativeSize::from(Vec3::xy(0.4, 0.8)))
-            .with(RelativeRotation::from(Quat::from_axis_angle(Vec3::Z, 0.)))
+            .with(RelativeRotation::from(Quat::from_z(0.)))
             .with(Position::from(Vec3::ZERO))
             .with(Size::from(Vec3::ZERO))
             .with(Rotation::from(Quat::ZERO))
-            .with(ShapeColor(Color::GREEN))
+            .with(ShapeColor::from(Color::GREEN))
     }
 }
 
@@ -63,7 +60,7 @@ impl Center {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0., 0.)))
             .with(Size::from(Vec3::xy(0.05, 0.05)))
-            .with(ShapeColor(Color::WHITE))
+            .with(ShapeColor::from(Color::WHITE))
             .with(Shape::Circle2D)
     }
 }

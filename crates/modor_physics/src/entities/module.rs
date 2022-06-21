@@ -1,12 +1,15 @@
 use crate::entities::module::internal::UpdateAbsoluteRotationsFromRelativeRotationsAction;
 use crate::{
-    Acceleration, DeltaTime, Position, RelativeAcceleration, RelativePosition, RelativeRotation,
+    Acceleration, AngularAcceleration, AngularVelocity, DeltaTime, Position, RelativeAcceleration,
+    RelativeAngularAcceleration, RelativeAngularVelocity, RelativePosition, RelativeRotation,
     RelativeSize, RelativeVelocity, Rotation, Size, Velocity,
 };
 use internal::{
-    UpdateAbsolutePositionsFromRelativePositionsAction,
-    UpdateAbsolutePositionsFromVelocitiesAction, UpdateAbsoluteSizesAction,
-    UpdateAbsoluteVelocitiesAction, UpdateRelativePositionsAction, UpdateRelativeVelocitiesAction,
+    UpdateAbsoluteAngularVelocitiesAction, UpdateAbsolutePositionsFromRelativePositionsAction,
+    UpdateAbsolutePositionsFromVelocitiesAction,
+    UpdateAbsoluteRotationsFromAngularVelocitiesAction, UpdateAbsoluteSizesAction,
+    UpdateAbsoluteVelocitiesAction, UpdateRelativeAngularVelocitiesAction,
+    UpdateRelativePositionsAction, UpdateRelativeRotationsAction, UpdateRelativeVelocitiesAction,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 use modor_math::{Quat, Vec3};
@@ -86,6 +89,26 @@ impl PhysicsModule {
         }
     }
 
+    #[run_as(UpdateRelativeAngularVelocitiesAction)]
+    fn update_relative_angular_velocities(
+        delta_time: Single<'_, DeltaTime>,
+        mut components: Query<'_, (&mut RelativeAngularVelocity, &RelativeAngularAcceleration)>,
+    ) {
+        for (velocity, acceleration) in components.iter_mut() {
+            velocity.update(*acceleration, delta_time.get());
+        }
+    }
+
+    #[run_as(UpdateRelativeRotationsAction)]
+    fn update_relative_rotations(
+        delta_time: Single<'_, DeltaTime>,
+        mut components: Query<'_, (&mut RelativeRotation, &RelativeAngularVelocity)>,
+    ) {
+        for (position, velocity) in components.iter_mut() {
+            position.update(*velocity, delta_time.get());
+        }
+    }
+
     #[run_as(UpdateAbsoluteVelocitiesAction)]
     fn update_absolute_velocities(
         delta_time: Single<'_, DeltaTime>,
@@ -100,6 +123,26 @@ impl PhysicsModule {
     fn update_absolute_positions_from_velocities(
         delta_time: Single<'_, DeltaTime>,
         mut components: Query<'_, (&mut Position, &Velocity)>,
+    ) {
+        for (position, velocity) in components.iter_mut() {
+            position.update_with_velocity(*velocity, delta_time.get());
+        }
+    }
+
+    #[run_as(UpdateAbsoluteAngularVelocitiesAction)]
+    fn update_absolute_angular_velocities(
+        delta_time: Single<'_, DeltaTime>,
+        mut components: Query<'_, (&mut AngularVelocity, &AngularAcceleration)>,
+    ) {
+        for (velocity, acceleration) in components.iter_mut() {
+            velocity.update(*acceleration, delta_time.get());
+        }
+    }
+
+    #[run_as(UpdateAbsoluteRotationsFromAngularVelocitiesAction)]
+    fn update_absolute_rotations_from_angular_velocities(
+        delta_time: Single<'_, DeltaTime>,
+        mut components: Query<'_, (&mut Rotation, &AngularVelocity)>,
     ) {
         for (position, velocity) in components.iter_mut() {
             position.update_with_velocity(*velocity, delta_time.get());
@@ -215,15 +258,30 @@ mod internal {
     pub struct UpdateRelativePositionsAction;
 
     #[action]
+    pub struct UpdateRelativeAngularVelocitiesAction;
+
+    #[action(UpdateRelativeAngularVelocitiesAction)]
+    pub struct UpdateRelativeRotationsAction;
+
+    #[action]
     pub struct UpdateAbsoluteVelocitiesAction;
 
     #[action(UpdateAbsoluteVelocitiesAction)]
     pub struct UpdateAbsolutePositionsFromVelocitiesAction;
 
     #[action]
+    pub struct UpdateAbsoluteAngularVelocitiesAction;
+
+    #[action(UpdateAbsoluteAngularVelocitiesAction)]
+    pub struct UpdateAbsoluteRotationsFromAngularVelocitiesAction;
+
+    #[action]
     pub struct UpdateAbsoluteSizesAction;
 
-    #[action()]
+    #[action(
+        UpdateRelativeRotationsAction,
+        UpdateAbsoluteRotationsFromAngularVelocitiesAction
+    )]
     pub struct UpdateAbsoluteRotationsFromRelativeRotationsAction;
 
     #[action(

@@ -63,7 +63,7 @@ impl Sprite {
         .with(Size::from(Vec3::xy(0.01, 0.01)))
         .with(Velocity::from(Vec3::xy(0., 0.)))
         .with(Shape::Circle2D)
-        .with(ShapeColor(Color::rgb(
+        .with(ShapeColor::from(Color::rgb(
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,

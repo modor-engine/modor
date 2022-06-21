@@ -12,7 +12,7 @@ impl Object {
         EntityBuilder::new(Self)
             .with(position)
             .with(Size::from(Vec3::xy(0.2, 0.2)))
-            .with(ShapeColor(color))
+            .with(ShapeColor::from(color))
     }
 
     fn build_circle(position: Position, color: Color) -> impl Built<Self> {
@@ -20,7 +20,7 @@ impl Object {
             .with(position)
             .with(Size::from(Vec3::xy(0.2, 0.2)))
             .with(Shape::Circle2D)
-            .with(ShapeColor(color))
+            .with(ShapeColor::from(color))
     }
 
     #[run]

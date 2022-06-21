@@ -30,6 +30,7 @@ pub struct DeltaTime {
 #[singleton]
 impl DeltaTime {
     /// Returns the duration of the last update.
+    #[must_use]
     pub fn get(&self) -> Duration {
         self.duration
     }

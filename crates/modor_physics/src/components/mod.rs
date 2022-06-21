@@ -1,4 +1,6 @@
 pub(crate) mod acceleration;
+pub(crate) mod angular_acceleration;
+pub(crate) mod angular_velocity;
 pub(crate) mod position;
 pub(crate) mod rotation;
 pub(crate) mod shape;

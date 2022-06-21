@@ -56,6 +56,7 @@ impl Vec3 {
 
     /// Creates a new vector.
     #[inline]
+    #[must_use]
     pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
@@ -64,6 +65,7 @@ impl Vec3 {
     ///
     /// Z-coordinate is initialized to `0.0`.
     #[inline]
+    #[must_use]
     pub const fn xy(x: f32, y: f32) -> Self {
         Self::xyz(x, y, 0.)
     }
@@ -79,6 +81,7 @@ impl Vec3 {
     /// Returns the vector with the same direction and but a different `magnitude`.
     ///
     /// If all components of the vector are equal to `0.0`, `None` is returned.
+    #[must_use]
     pub fn with_magnitude(self, magnitude: f32) -> Option<Self> {
         let (x, y, z) = (self.x, self.y, self.z);
         let factor = magnitude / self.magnitude();
@@ -88,6 +91,7 @@ impl Vec3 {
     }
 
     /// Returns the magnitude of the vector.
+    #[must_use]
     pub fn magnitude(self) -> f32 {
         self.x
             .mul_add(self.x, self.y.mul_add(self.y, self.z.powi(2)))
@@ -95,6 +99,7 @@ impl Vec3 {
     }
 
     /// Returns the Euclidean distance with `other`.
+    #[must_use]
     pub fn distance(self, other: Self) -> f32 {
         let x_diff = self.x - other.x;
         let y_diff = self.y - other.y;

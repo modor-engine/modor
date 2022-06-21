@@ -12,7 +12,7 @@ impl Rectangle {
         EntityBuilder::new(Self)
             .with(Position::from(Vec3::xy(0., 0.)))
             .with(Size::from(Vec3::xy(0.9, 0.9)))
-            .with(ShapeColor(Color::RED))
+            .with(ShapeColor::from(Color::RED))
     }
 
     #[run]

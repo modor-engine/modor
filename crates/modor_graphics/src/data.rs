@@ -13,12 +13,11 @@ pub struct SurfaceSize {
 
 impl SurfaceSize {
     /// Creates a new size.
+    #[must_use]
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
     }
 }
-
-// TODO: improve interface of ShapeColor
 
 /// A color.
 ///
@@ -87,11 +86,13 @@ impl Color {
     pub const INVISIBLE: Self = Self::rgba(0., 0., 0., 0.);
 
     /// Creates a new translucent color from components between `0.0` and `1.0`.
+    #[must_use]
     pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
     /// Creates a new opaque color from components between `0.0` and `1.0`.
+    #[must_use]
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self::rgba(r, g, b, 1.0)
     }
