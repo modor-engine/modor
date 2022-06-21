@@ -44,6 +44,7 @@ where
     C: EntityMainComponent<Type = Singleton>,
 {
     /// Returns entity information.
+    #[must_use]
     pub fn entity(&self) -> Entity<'_> {
         self.entity
     }

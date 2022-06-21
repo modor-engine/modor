@@ -1,3 +1,6 @@
+use modor_math::Vec3;
+use std::ops::{Deref, DerefMut};
+
 /// The absolute size of an entity.
 ///
 /// # Modor
@@ -12,38 +15,38 @@
 /// # Examples
 ///
 /// See [`Position`](crate::Position).
-#[derive(Clone, Copy, Debug)]
-pub struct Size {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Size(Vec3);
 
 impl Size {
-    /// A size with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-    /// A size with all components equal to one.
-    pub const ONE: Self = Self::xyz(1., 1., 1.);
-
-    /// Creates a 3D size.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    /// Creates a 2D size.
-    ///
-    /// Z-coordinate is set to one.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 1.)
-    }
-
     pub(crate) fn update_with_relative(&mut self, relative_size: RelativeSize, parent_size: Self) {
-        self.x = relative_size.x * parent_size.x;
-        self.y = relative_size.y * parent_size.y;
-        self.z = relative_size.z * parent_size.z;
+        **self = relative_size.with_scale(*parent_size);
+    }
+}
+
+impl From<Vec3> for Size {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
+    }
+}
+
+impl From<Size> for Vec3 {
+    fn from(size: Size) -> Self {
+        size.0
+    }
+}
+
+impl Deref for Size {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Size {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -60,31 +63,31 @@ impl Size {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-#[derive(Clone, Copy, Debug)]
-pub struct RelativeSize {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
+#[derive(Default, Clone, Copy, Debug)]
+pub struct RelativeSize(Vec3);
+
+impl From<Vec3> for RelativeSize {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
+    }
 }
 
-impl RelativeSize {
-    /// A size with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-    /// A size with all components equal to one.
-    pub const ONE: Self = Self::xyz(1., 1., 1.);
-
-    /// Creates a 3D size.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
+impl From<RelativeSize> for Vec3 {
+    fn from(size: RelativeSize) -> Self {
+        size.0
     }
+}
 
-    /// Creates a 2D size.
-    ///
-    /// Z-coordinate is set to one.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 1.)
+impl Deref for RelativeSize {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RelativeSize {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

@@ -1,5 +1,6 @@
 use crate::{Acceleration, RelativeAcceleration};
-use modor_math::Vector3D;
+use modor_math::Vec3;
+use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 /// The absolute velocity of an entity.
@@ -18,46 +19,38 @@ use std::time::Duration;
 /// # Examples
 ///
 /// See [`Position`](crate::Position).
-#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct Velocity {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Velocity(Vec3);
 
 impl Velocity {
-    /// A velocity with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D velocity.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    /// Creates a 2D velocity.
-    ///
-    /// Z-coordinate is set to zero.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
-    }
-
     pub(crate) fn update(&mut self, acceleration: Acceleration, delta_time: Duration) {
-        self.x += acceleration.x * delta_time.as_secs_f32();
-        self.y += acceleration.y * delta_time.as_secs_f32();
-        self.z += acceleration.z * delta_time.as_secs_f32();
+        **self += *acceleration * delta_time.as_secs_f32();
     }
 }
 
-impl Vector3D for Velocity {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self::xyz(x, y, z)
+impl From<Vec3> for Velocity {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
+}
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+impl From<Velocity> for Vec3 {
+    fn from(velocity: Velocity) -> Self {
+        velocity.0
+    }
+}
+
+impl Deref for Velocity {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Velocity {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -80,45 +73,37 @@ impl Vector3D for Velocity {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct RelativeVelocity {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct RelativeVelocity(Vec3);
 
 impl RelativeVelocity {
-    /// A velocity with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D velocity.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    /// Creates a 2D velocity.
-    ///
-    /// Z-coordinate is set to zero.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
-    }
-
     pub(crate) fn update(&mut self, acceleration: RelativeAcceleration, delta_time: Duration) {
-        self.x += acceleration.x * delta_time.as_secs_f32();
-        self.y += acceleration.y * delta_time.as_secs_f32();
-        self.z += acceleration.z * delta_time.as_secs_f32();
+        **self += *acceleration * delta_time.as_secs_f32();
     }
 }
 
-impl Vector3D for RelativeVelocity {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self::xyz(x, y, z)
+impl From<Vec3> for RelativeVelocity {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
+}
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+impl From<RelativeVelocity> for Vec3 {
+    fn from(velocity: RelativeVelocity) -> Self {
+        velocity.0
+    }
+}
+
+impl Deref for RelativeVelocity {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RelativeVelocity {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

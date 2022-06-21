@@ -40,6 +40,7 @@ impl FrameRateLimit {
     }
 
     /// Get the frame rate limit.
+    #[must_use]
     pub fn get(&self) -> FrameRate {
         self.frame_rate
     }

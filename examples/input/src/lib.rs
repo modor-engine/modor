@@ -8,8 +8,8 @@ use modor_graphics::{
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
 };
-use modor_math::{Vector2D, Vector3D};
-use modor_physics::{Position, Size, Velocity};
+use modor_math::{Quat, Vec3};
+use modor_physics::{Position, Rotation, Size, Velocity};
 use std::io;
 use std::io::Write;
 
@@ -23,12 +23,33 @@ pub fn main() {
                 .has_visible_cursor(false),
         ))
         .with_entity(FrameRateLimit::build(FrameRate::VSync))
-        .with_entity(Camera2D::build(Position::xy(0.5, 0.5), Size::xy(1.5, 1.5)))
+        .with_entity(CustomCamera::build())
         .with_entity(MouseState::build())
         .with_entity(KeyboardState::build())
         .with_entity(TouchState::build())
         .with_entity(GamepadsState::build())
         .run(modor_graphics::runner);
+}
+
+struct CustomCamera;
+
+#[singleton]
+impl CustomCamera {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Camera2D::build_rotated(
+                Position::from(Vec3::xy(0.5, 0.5)),
+                Size::from(Vec3::xy(1.5, 1.5)),
+                Rotation::from(Quat::from_z(20_f32.to_radians())),
+            ))
+            .with(Velocity::from(Vec3::ZERO))
+    }
+
+    #[run]
+    fn update(velocity: &mut Velocity, keyboard: Single<'_, Keyboard>) {
+        let direction = keyboard.direction(Key::Numpad4, Key::Numpad6, Key::Numpad8, Key::Numpad2);
+        **velocity = direction.with_z(0.);
+    }
 }
 
 struct MouseState;
@@ -37,27 +58,26 @@ struct MouseState;
 impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0.25, 0.25))
-            .with(ShapeColor(Color::DARK_GRAY))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
     fn update_position(position: &mut Position, camera: Single<'_, Camera2D>) {
-        position.x = camera.mouse_position().x;
-        position.y = camera.mouse_position().y;
+        **position = camera.mouse_position().with_z(0.);
     }
 
     #[run]
     fn update_color(color: &mut ShapeColor, mouse: Single<'_, Mouse>) {
-        color.0.r += mouse.scroll_delta_in_lines(30., 30.).x / 50.;
-        color.0.g += mouse.scroll_delta_in_lines(30., 30.).y / 50.;
+        color.r += mouse.scroll_delta_in_lines(30., 30.).x / 50.;
+        color.g += mouse.scroll_delta_in_lines(30., 30.).y / 50.;
         if mouse.button(MouseButton::Left).is_pressed() {
-            color.0 = Color::BLUE;
+            **color = Color::BLUE;
         } else if mouse.button(MouseButton::Right).is_pressed() {
-            color.0 = Color::DARK_GREEN;
+            **color = Color::DARK_GREEN;
         } else if mouse.button(MouseButton::Middle).is_pressed() {
-            color.0 = Color::RED;
+            **color = Color::RED;
         }
     }
 }
@@ -68,18 +88,17 @@ struct KeyboardState;
 impl KeyboardState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::xy(0., 0.))
-            .with(Size::xy(0.25, 0.25))
-            .with(Velocity::xy(0., 0.))
-            .with(ShapeColor(Color::DARK_GRAY))
+            .with(Position::from(Vec3::xy(0., 0.)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Velocity::from(Vec3::xy(0., 0.)))
+            .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
     fn update(velocity: &mut Velocity, color: &mut ShapeColor, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Left, Key::Right, Key::Up, Key::Down);
-        velocity.x = direction.x * 3.;
-        velocity.y = direction.y * 3.;
-        color.0 = if velocity.magnitude() > 0. {
+        **velocity = direction.with_z(0.) * 3.;
+        **color = if velocity.magnitude() > 0. {
             Color::RED
         } else {
             Color::DARK_GRAY
@@ -131,9 +150,9 @@ struct FingerState {
 impl FingerState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::xy(0.5, 0.5))
-            .with(Size::xy(0.25, 0.25))
-            .with(ShapeColor(Color::DARK_GRAY))
+            .with(Position::from(Vec3::xy(0.5, 0.5)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
@@ -145,7 +164,7 @@ impl FingerState {
     ) {
         if let Some(finger) = fingers.iter().find(|f| f.id() == self.id) {
             if let Some(finger_position) = camera.finger_position(finger.id()) {
-                *position = finger_position;
+                **position = finger_position.with_z(0.);
             }
         }
     }
@@ -189,10 +208,10 @@ struct GamepadState {
 impl GamepadState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::xy(0.5, 0.5))
-            .with(Size::xy(0.25, 0.25))
-            .with(Velocity::ZERO)
-            .with(ShapeColor(Color::MAROON))
+            .with(Position::from(Vec3::xy(0.5, 0.5)))
+            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Velocity::from(Vec3::ZERO))
+            .with(ShapeColor::from(Color::MAROON))
     }
 
     #[run]
@@ -211,14 +230,12 @@ impl GamepadState {
                 .is_pressed()
                 .then(|| 0.)
                 .unwrap_or(1.);
-            color.0 = Color::rgb(red, green, blue);
-            let velocity1: Velocity = gamepad.stick_direction(GamepadStick::LeftStick).into_vec3();
-            let velocity2 = gamepad
-                .stick_direction(GamepadStick::RightStick)
-                .into_vec3();
-            let velocity3 = gamepad.stick_direction(GamepadStick::DPad).into_vec3();
-            let velocity4 = Velocity::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
-            *velocity = velocity1 + velocity2 + velocity3 + velocity4;
+            **color = Color::rgb(red, green, blue);
+            let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick).with_z(0.);
+            let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
+            let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);
+            let velocity4 = Vec3::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
+            **velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }
 

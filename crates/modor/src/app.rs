@@ -37,6 +37,7 @@ pub struct App {
 
 impl App {
     /// Creates a new empty `App`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -67,6 +68,7 @@ impl App {
     }
 
     /// Returns the number of threads used by the `App` during update.
+    #[must_use]
     pub fn thread_count(&self) -> u32 {
         self.core.systems().thread_count()
     }

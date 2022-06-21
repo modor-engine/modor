@@ -45,8 +45,6 @@
 
 #[macro_use]
 extern crate modor;
-#[macro_use]
-extern crate derive_more;
 
 mod data;
 mod entities;

@@ -1,7 +1,7 @@
-use crate::data::{InputDelta, InputState};
-use crate::WindowPosition;
+use crate::data::InputState;
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
+use modor_math::Vec2;
 
 /// The state of the mouse.
 ///
@@ -24,10 +24,10 @@ use modor::{Built, EntityBuilder};
 /// ```
 pub struct Mouse {
     buttons: FxHashMap<MouseButton, InputState>,
-    scroll_delta: InputDelta,
+    scroll_delta: Vec2,
     scroll_unit: MouseScrollUnit,
-    position: WindowPosition,
-    delta: InputDelta,
+    position: Vec2,
+    delta: Vec2,
 }
 
 #[singleton]
@@ -41,6 +41,7 @@ impl Mouse {
     }
 
     /// Returns the state of a button.
+    #[must_use]
     pub fn button(&self, button: MouseButton) -> InputState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
@@ -50,10 +51,11 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in lines, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
-    pub fn scroll_delta_in_pixels(&self, row_pixels: f32, column_pixels: f32) -> InputDelta {
+    #[must_use]
+    pub fn scroll_delta_in_pixels(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => self.scroll_delta,
-            MouseScrollUnit::Line => InputDelta::xy(
+            MouseScrollUnit::Line => Vec2::xy(
                 self.scroll_delta.x * row_pixels,
                 self.scroll_delta.y * column_pixels,
             ),
@@ -65,9 +67,10 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in pixels, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
-    pub fn scroll_delta_in_lines(&self, row_pixels: f32, column_pixels: f32) -> InputDelta {
+    #[must_use]
+    pub fn scroll_delta_in_lines(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
-            MouseScrollUnit::Pixel => InputDelta::xy(
+            MouseScrollUnit::Pixel => Vec2::xy(
                 self.scroll_delta.x / row_pixels,
                 self.scroll_delta.y / column_pixels,
             ),
@@ -75,26 +78,28 @@ impl Mouse {
         }
     }
 
-    /// Returns the position of the mouse.
-    pub fn position(&self) -> WindowPosition {
+    /// Returns the position of the mouse in pixels from the top-left corner of the app window.
+    #[must_use]
+    pub fn position(&self) -> Vec2 {
         self.position
     }
 
-    /// Returns the mouse delta.
+    /// Returns the mouse delta in pixels.
     ///
     /// The delta does not take into account a possible acceleration created by the system,
-    /// in contrary to [`Mouse::position`](crate::Mouse::position).
-    pub fn delta(&self) -> InputDelta {
+    /// in contrary to [`Mouse::position()`](crate::Mouse::position).
+    #[must_use]
+    pub fn delta(&self) -> Vec2 {
         self.delta
     }
 
     pub(crate) fn build() -> impl Built<Self> {
         EntityBuilder::new(Self {
             buttons: FxHashMap::default(),
-            scroll_delta: InputDelta::default(),
+            scroll_delta: Vec2::ZERO,
             scroll_unit: MouseScrollUnit::Pixel,
-            position: WindowPosition::default(),
-            delta: InputDelta::default(),
+            position: Vec2::ZERO,
+            delta: Vec2::ZERO,
         })
     }
 
@@ -102,8 +107,8 @@ impl Mouse {
         for button in self.buttons.values_mut() {
             button.refresh();
         }
-        self.scroll_delta = InputDelta::default();
-        self.delta = InputDelta::default();
+        self.scroll_delta = Vec2::ZERO;
+        self.delta = Vec2::ZERO;
     }
 
     pub(crate) fn apply_event(&mut self, event: MouseEvent) {
@@ -132,11 +137,13 @@ pub enum MouseEvent {
     /// Button of the mouse released.
     ReleasedButton(MouseButton),
     /// Scroll of the mouse detected.
-    Scroll(InputDelta, MouseScrollUnit),
-    /// Mouse position updated.
-    UpdatedPosition(WindowPosition),
+    Scroll(Vec2, MouseScrollUnit),
+    /// Mouse position in pixels from the top-left corner of the app window updated.
+    UpdatedPosition(Vec2),
     /// Mouse moved.
-    Moved(InputDelta),
+    ///
+    /// The mouse delta is in pixels.
+    Moved(Vec2),
 }
 
 /// A mouse button.

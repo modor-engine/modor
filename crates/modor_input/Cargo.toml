@@ -12,7 +12,6 @@ categories = ["game-engines"]
 exclude = [".github", "README.md"]
 
 [dependencies]
-derive_more = { version = "0.99" }
 fxhash = "0.2"
 modor = { version = "0.1.0", path = "../modor" }
 modor_math = { version = "0.1.0", path = "../modor_math" }

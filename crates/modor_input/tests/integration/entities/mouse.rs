@@ -2,9 +2,9 @@ use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
 use modor_input::{
-    InputDelta, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent, MouseScrollUnit,
-    WindowPosition,
+    InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent, MouseScrollUnit,
 };
+use modor_math::Vec2;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -59,7 +59,7 @@ fn update_pressed_buttons() {
 fn update_scroll() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(MouseEvent::Scroll(InputDelta::xy(1., 2.), MouseScrollUnit::Line).into());
+        c.push(MouseEvent::Scroll(Vec2::xy(1., 2.), MouseScrollUnit::Line).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -69,7 +69,7 @@ fn update_scroll() {
         assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.).y, 6.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(MouseEvent::Scroll(InputDelta::xy(10., 20.), MouseScrollUnit::Pixel).into());
+        c.push(MouseEvent::Scroll(Vec2::xy(10., 20.), MouseScrollUnit::Pixel).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -92,7 +92,7 @@ fn update_scroll() {
 fn update_position() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(MouseEvent::UpdatedPosition(WindowPosition::xy(150., 320.)).into());
+        c.push(MouseEvent::UpdatedPosition(Vec2::xy(150., 320.)).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
@@ -111,7 +111,7 @@ fn update_position() {
 fn update_delta() {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(MouseEvent::Moved(InputDelta::xy(18., 15.)).into());
+        c.push(MouseEvent::Moved(Vec2::xy(18., 15.)).into());
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {

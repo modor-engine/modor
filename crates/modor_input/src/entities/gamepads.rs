@@ -1,7 +1,7 @@
-use crate::{utils, InputDelta, InputState};
+use crate::{utils, InputState};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder};
-use modor_math::Vector2D;
+use modor_math::Vec2;
 
 /// The state of a gamepad.
 ///
@@ -31,7 +31,7 @@ use modor_math::Vector2D;
 pub struct Gamepad {
     id: u64,
     buttons: FxHashMap<GamepadButton, GamepadButtonState>,
-    stick_directions: FxHashMap<GamepadStick, InputDelta>,
+    stick_directions: FxHashMap<GamepadStick, Vec2>,
     left_z_axis_value: f32,
     right_z_axis_value: f32,
     has_d_pad_buttons: bool,
@@ -40,6 +40,7 @@ pub struct Gamepad {
 #[entity]
 impl Gamepad {
     /// Unique identifier of the gamepad.
+    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -53,12 +54,16 @@ impl Gamepad {
     }
 
     /// Returns the state of a button.
+    #[must_use]
     pub fn button(&self, button: GamepadButton) -> GamepadButtonState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
 
-    /// Returns the normalized direction of a stick, with components between `-1.0` and `1.0`.
-    pub fn stick_direction(&self, stick: GamepadStick) -> InputDelta {
+    /// Returns the normalized direction of a stick.
+    ///
+    /// If the stick is not used, the returned direction has all components equal to `0.0`.
+    #[must_use]
+    pub fn stick_direction(&self, stick: GamepadStick) -> Vec2 {
         self.stick_directions
             .get(&stick)
             .copied()
@@ -66,11 +71,13 @@ impl Gamepad {
     }
 
     /// Returns the value between `-1.0` and `1.0` of the left Z axis.
+    #[must_use]
     pub fn left_z_axis_value(&self) -> f32 {
         self.left_z_axis_value
     }
 
     /// Returns the value between `-1.0` and `1.0` of the right Z axis.
+    #[must_use]
     pub fn right_z_axis_value(&self) -> f32 {
         self.right_z_axis_value
     }
@@ -98,6 +105,15 @@ impl Gamepad {
                 unreachable!("internal error: unreachable gamepad event to apply")
             }
             GamepadEvent::PressedButton(_, button) => {
+                if matches!(
+                    button,
+                    GamepadButton::DPadUp
+                        | GamepadButton::DPadDown
+                        | GamepadButton::DPadLeft
+                        | GamepadButton::DPadRight
+                ) {
+                    self.has_d_pad_buttons = true;
+                }
                 self.buttons.entry(*button).or_default().state.press();
             }
             GamepadEvent::ReleasedButton(_, button) => {
@@ -164,9 +180,6 @@ impl Gamepad {
                 .get(&GamepadButton::DPadDown)
                 .map_or(false, |b| b.state().is_pressed()),
         );
-        if !d_pad_direction.is_zero() {
-            self.has_d_pad_buttons = true;
-        }
         if self.has_d_pad_buttons {
             *self.stick_directions.entry(GamepadStick::DPad).or_default() = d_pad_direction;
         }
@@ -221,11 +234,13 @@ pub struct GamepadButtonState {
 
 impl GamepadButtonState {
     /// Returns the state of the button.
+    #[must_use]
     pub fn state(&self) -> InputState {
         self.state
     }
 
     /// Returns the value between `0.0` and `1.0` of the button.
+    #[must_use]
     pub fn value(&self) -> f32 {
         self.value
     }

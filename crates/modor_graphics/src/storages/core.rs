@@ -8,9 +8,18 @@ use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
 use crate::{utils, Color, ShapeColor, SurfaceSize};
 use modor::Query;
-use modor_physics::{Position, Shape, Size};
+use modor_math::{Mat4, Vec3};
+use modor_physics::{Position, Rotation, Shape, Size};
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
+
+pub(crate) type ShapeComponents<'a> = (
+    &'a ShapeColor,
+    &'a Position,
+    &'a Size,
+    Option<&'a Rotation>,
+    Option<&'a Shape>,
+);
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -48,18 +57,19 @@ impl CoreStorage {
 
     pub(crate) fn update_instances(
         &mut self,
-        shapes: Query<'_, (&ShapeColor, &Position, &Size, Option<&Shape>)>,
+        shapes: Query<'_, ShapeComponents<'_>>,
         camera: CameraProperties,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _)| p.z));
-        for (color, position, scale, shape) in shapes.iter() {
-            let instance = Self::create_instance(*color, *position, *scale, depth_bounds);
+        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _, _)| p.z));
+        for (color, position, size, rotation, shape) in shapes.iter() {
+            let instance =
+                Self::create_instance(*color, *position, rotation.copied(), *size, depth_bounds);
             let shape = shape.unwrap_or(&Shape::Rectangle2D);
             let shader_idx = self.shaders.idx(shape);
             let model_idx = self.models.idx(shape);
-            if color.0.a > 0. && color.0.a < 1. {
+            if color.a > 0. && color.a < 1. {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -100,19 +110,20 @@ impl CoreStorage {
     fn create_instance(
         color: ShapeColor,
         position: Position,
+        rotation: Option<Rotation>,
         size: Size,
         depth_bounds: (f32, f32),
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
+        let position = Vec3::xyz(position.x, position.y, z_position);
+        let transform_matrix = rotation.map_or_else(
+            || Mat4::from_position_scale(position, *size),
+            |r| Mat4::from_scale(*size) * r.matrix() * Mat4::from_position(position),
+        );
         Instance {
-            transform: [
-                [size.x, 0., 0., 0.],
-                [0., size.y, 0., 0.],
-                [0., 0., 0., 0.],
-                [position.x, position.y, z_position, 1.],
-            ],
-            color: [color.0.r, color.0.g, color.0.b, color.0.a],
+            transform: transform_matrix.to_array(),
+            color: [color.r, color.g, color.b, color.a],
         }
     }
 
@@ -120,18 +131,17 @@ impl CoreStorage {
     fn create_camera_data(camera: CameraProperties, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
         let (x_scale, y_scale) = utils::world_scale(size);
+        let position = Vec3::xy(-camera.position.x, -camera.position.y);
+        let scale = Vec3::xyz(
+            2. * x_scale / camera.size.x,
+            2. * y_scale / camera.size.y,
+            1.,
+        );
         Camera {
-            transform: [
-                [2. * x_scale / camera.size.x, 0., 0., 0.],
-                [0., 2. * y_scale / camera.size.y, 0., 0.],
-                [0., 0., 1., 0.],
-                [
-                    -camera.position.x * 2. * x_scale / camera.size.x,
-                    -camera.position.y * 2. * y_scale / camera.size.y,
-                    0.,
-                    1.,
-                ],
-            ],
+            transform: (Mat4::from_position(position)
+                * camera.rotation.matrix()
+                * Mat4::from_scale(scale))
+            .to_array(),
         }
     }
 }
@@ -139,4 +149,5 @@ impl CoreStorage {
 pub(crate) struct CameraProperties {
     pub(crate) position: Position,
     pub(crate) size: Size,
+    pub(crate) rotation: Rotation,
 }

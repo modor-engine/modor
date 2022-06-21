@@ -41,6 +41,7 @@ pub struct TestApp {
 
 impl TestApp {
     /// Creates a new empty `TestApp`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -146,6 +147,7 @@ impl EntityAssertion<'_> {
     /// # Panics
     ///
     /// This will panic if the entity does not exist.
+    #[allow(clippy::must_use_candidate)]
     pub fn exists(self) -> Self {
         assert!(
             self.location.is_some(),
@@ -191,6 +193,7 @@ impl EntityAssertion<'_> {
     /// # Panics
     ///
     /// This will panic if the entity does not exist or has a component of type `C`.
+    #[allow(clippy::must_use_candidate)]
     pub fn has_not<C>(self) -> Self
     where
         C: Any,

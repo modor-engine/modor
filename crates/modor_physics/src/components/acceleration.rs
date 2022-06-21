@@ -1,4 +1,5 @@
-use modor_math::Vector3D;
+use modor_math::Vec3;
+use std::ops::{Deref, DerefMut};
 
 /// The absolute acceleration of an entity.
 ///
@@ -13,40 +14,32 @@ use modor_math::Vector3D;
 /// # Examples
 ///
 /// See [`Position`](crate::Position).
-#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct Acceleration {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Acceleration(Vec3);
 
-impl Acceleration {
-    /// An acceleration with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D acceleration.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    /// Creates a 2D acceleration.
-    ///
-    /// Z-coordinate is set to zero.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+impl From<Vec3> for Acceleration {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
 }
 
-impl Vector3D for Acceleration {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self::xyz(x, y, z)
+impl From<Acceleration> for Vec3 {
+    fn from(acceleration: Acceleration) -> Self {
+        acceleration.0
     }
+}
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+impl Deref for Acceleration {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Acceleration {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -65,39 +58,31 @@ impl Vector3D for Acceleration {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-#[derive(Clone, Copy, Debug, Add, Sub, AddAssign, SubAssign)]
-pub struct RelativeAcceleration {
-    /// The X-coordinate.
-    pub x: f32,
-    /// The Y-coordinate.
-    pub y: f32,
-    /// The Z-coordinate.
-    pub z: f32,
-}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct RelativeAcceleration(Vec3);
 
-impl RelativeAcceleration {
-    /// An acceleration with all components equal to zero.
-    pub const ZERO: Self = Self::xyz(0., 0., 0.);
-
-    /// Creates a 3D acceleration.
-    pub const fn xyz(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    /// Creates a 2D acceleration.
-    ///
-    /// Z-coordinate is set to zero.
-    pub const fn xy(x: f32, y: f32) -> Self {
-        Self::xyz(x, y, 0.)
+impl From<Vec3> for RelativeAcceleration {
+    fn from(vector: Vec3) -> Self {
+        Self(vector)
     }
 }
 
-impl Vector3D for RelativeAcceleration {
-    fn create(x: f32, y: f32, z: f32) -> Self {
-        Self::xyz(x, y, z)
+impl From<RelativeAcceleration> for Vec3 {
+    fn from(acceleration: RelativeAcceleration) -> Self {
+        acceleration.0
     }
+}
 
-    fn components(self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
+impl Deref for RelativeAcceleration {
+    type Target = Vec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RelativeAcceleration {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

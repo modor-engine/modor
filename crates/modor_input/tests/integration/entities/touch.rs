@@ -1,7 +1,8 @@
 use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
-use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent, WindowPosition};
+use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent};
+use modor_math::Vec2;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -32,7 +33,7 @@ fn update_state() {
         assert!(!f.state().is_just_released());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        let position = WindowPosition::xy(2., 5.);
+        let position = Vec2::xy(2., 5.);
         c.push(TouchEvent::UpdatedPosition(1, position).into());
         c.push(TouchEvent::Ended(2).into());
     });
@@ -75,7 +76,7 @@ fn update_position() {
         assert_abs_diff_eq!(f.delta().y, 0.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        let position = WindowPosition::xy(2., 5.);
+        let position = Vec2::xy(2., 5.);
         c.push(TouchEvent::UpdatedPosition(0, position).into());
     });
     app.update();

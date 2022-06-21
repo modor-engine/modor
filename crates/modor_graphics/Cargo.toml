@@ -21,9 +21,10 @@ spin_sleep = "1.1.1"
 typed-index-collections = "3.0"
 winit = "0.26"
 modor = { version = "0.1.0", path = "../modor" }
-modor_internal = { version = "0.1.0", path = "../modor_internal" }
-modor_physics = { version = "0.1.0", path = "../modor_physics" }
 modor_input = { version = "0.1.0", path = "../modor_input" }
+modor_internal = { version = "0.1.0", path = "../modor_internal" }
+modor_math = { version = "0.1.0", path = "../modor_math" }
+modor_physics = { version = "0.1.0", path = "../modor_physics" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 gilrs = "0.9"
