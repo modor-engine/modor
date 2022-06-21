@@ -1,3 +1,4 @@
+use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder};
 use modor_graphics::{testing, Color, GraphicsModule, ShapeColor, SurfaceSize};
@@ -16,8 +17,12 @@ impl Rectangle {
     }
 
     #[run]
-    fn update_shape_color(shape: &mut ShapeColor) {
-        shape.g = shape.r;
+    fn update_shape_color(shape_color: &mut ShapeColor) {
+        shape_color.g = shape_color.r;
+        let color: Color = (*shape_color).into();
+        assert_abs_diff_eq!(color.r, 1.);
+        assert_abs_diff_eq!(color.g, 1.);
+        assert_abs_diff_eq!(color.b, 0.);
     }
 }
 
