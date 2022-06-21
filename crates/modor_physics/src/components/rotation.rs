@@ -83,7 +83,6 @@ impl DerefMut for Rotation {
 /// # Examples
 ///
 /// See [`RelativePosition`](crate::RelativePosition).
-/// ```
 #[derive(Default, Clone, Copy, Debug)]
 pub struct RelativeRotation(Quat);
 

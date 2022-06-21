@@ -42,7 +42,7 @@ where
             !buffer
                 .iter()
                 .zip(image.as_bytes())
-                .any(|(a, b)| a.abs_diff(*b) > 1),
+                .any(|(a, b)| a.abs_diff(*b) > 2),
             "captures are different"
         );
     });

@@ -69,7 +69,7 @@ impl DerefMut for AngularVelocity {
 /// - **Required components**: [`RelativeRotation`](crate::RelativeRotation)
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
-/// - **Updated using**: [`RelativeAngularAcceleration`](crate::RelativeRotationAcceleration),
+/// - **Updated using**: [`RelativeAngularAcceleration`](crate::RelativeAngularAcceleration),
 ///     [`DeltaTime`](crate::DeltaTime)
 ///
 /// # Examples
