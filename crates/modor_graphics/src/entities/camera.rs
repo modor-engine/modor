@@ -4,7 +4,7 @@ use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder, Query, Single};
 use modor_input::{Finger, Mouse, UpdateInputAction};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
-use modor_physics::{Position, Rotation, Size, UpdatePhysicsAction};
+use modor_physics::{Transform, UpdatePhysicsAction};
 
 /// The camera used for 2D rendering.
 ///
@@ -13,32 +13,26 @@ use modor_physics::{Position, Rotation, Size, UpdatePhysicsAction};
 /// - **Type**: singleton entity
 /// - **Lifetime**: custom (same as parent entity)
 /// - **Default if missing**: `Camera2D::build(Position::xy(0., 0.), Size::xy(1., 1.))`
-/// - **Inner components**: [`Position`](modor_physics::Position), [`Size`](modor_physics::Size),
-///     [`Rotation`](modor_physics::Rotation)
+/// - **Inner components**: [`Transform`](modor_physics::Transform)
 /// - **Updated during**: [`UpdateCamera2DAction`](crate::UpdateCamera2DAction)
-/// - **Updated using**: [`Position`](modor_physics::Position), [`Size`](modor_physics::Size),
-///     [`Rotation`](modor_physics::Rotation), [`Mouse`](modor_input::Mouse),
+/// - **Updated using**: [`Transform`](modor_physics::Transform), [`Mouse`](modor_input::Mouse),
 ///     [`Finger`](modor_input::Finger), [`Window`](crate::Window)
 ///
 /// # Examples
 /// ```rust
 /// # use modor::{App, Single};
 /// # use modor_math::Vec3;
-/// # use modor_physics::{Position, Size};
 /// # use modor_graphics::Camera2D;
 /// #
 /// App::new()
-///     .with_entity(Camera2D::build(
-///         Position::from(Vec3::xy(0.5, 0.7)),
-///         Size::from(Vec3::xy(2., 2.)))
-///     );
+///     .with_entity(Camera2D::build(Vec3::xy(0.5, 0.7), Vec3::xy(2., 2.)));
 ///
 /// fn access_mouse_position(camera: Single<'_, Camera2D>) {
 ///     println!("Mouse position in 2D world: {:?}", camera.mouse_position());
 /// }
 /// ```
 pub struct Camera2D {
-    transformation_matrix: Mat4,
+    transform_matrix: Mat4,
     mouse_position: Vec2,
     finger_positions: FxHashMap<u64, Vec2>,
 }
@@ -46,27 +40,28 @@ pub struct Camera2D {
 #[singleton]
 impl Camera2D {
     /// Builds the entity.
-    pub fn build(position: Position, size: Size) -> impl Built<Self> {
+    pub fn build(position: Vec3, size: Vec3) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            transformation_matrix: Mat4::IDENTITY,
+            transform_matrix: Mat4::IDENTITY,
             mouse_position: Vec2::xy(0., 0.),
             finger_positions: FxHashMap::default(),
         })
-        .with(position)
-        .with(size)
-        .with(Rotation::from(Quat::ZERO))
+        .with(Transform::new().with_position(position).with_size(size))
     }
 
     /// Builds the entity with a rotation.
-    pub fn build_rotated(position: Position, size: Size, rotation: Rotation) -> impl Built<Self> {
+    pub fn build_rotated(position: Vec3, size: Vec3, rotation: Quat) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            transformation_matrix: Mat4::IDENTITY,
+            transform_matrix: Mat4::IDENTITY,
             mouse_position: Vec2::xy(0., 0.),
             finger_positions: FxHashMap::default(),
         })
-        .with(position)
-        .with(size)
-        .with(rotation)
+        .with(
+            Transform::new()
+                .with_position(position)
+                .with_size(size)
+                .with_rotation(rotation),
+        )
     }
 
     // coverage: off (window cannot be tested)
@@ -93,26 +88,19 @@ impl Camera2D {
     }
 
     #[run_as(UpdateCamera2DMatrixAction)]
-    fn update_matrix(
-        &mut self,
-        position: &Position,
-        size: &Size,
-        rotation: &Rotation,
-        window: Single<'_, Window>,
-    ) {
+    fn update_matrix(&mut self, transform: &Transform, window: Single<'_, Window>) {
         let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
-        let position = Vec3::xy(position.x, position.y);
-        let scale = Vec3::xyz(size.x / x_scale, size.y / y_scale, 1.);
-        let rotation =
-            Quat::from_axis_angle(rotation.axis().unwrap_or(Vec3::ZERO), -rotation.angle());
-        self.transformation_matrix =
+        let position = Vec3::xy(transform.position.x, transform.position.y);
+        let scale = Vec3::xyz(transform.size.x / x_scale, transform.size.y / y_scale, 1.);
+        let rotation = transform.rotation.with_scale(-1.);
+        self.transform_matrix =
             Mat4::from_scale(scale) * rotation.matrix() * Mat4::from_position(position);
     }
 
     #[run_as(UpdateCamera2DAction)]
     fn update_from_mouse(&mut self, mouse: Single<'_, Mouse>, window: Single<'_, Window>) {
-        self.mouse_position = self.transformation_matrix
-            * Self::window_to_backend_coordinates(mouse.position(), &*window);
+        self.mouse_position =
+            self.transform_matrix * Self::window_to_backend_coordinates(mouse.position(), &*window);
     }
 
     #[run_as(UpdateCamera2DAction)]
@@ -121,8 +109,7 @@ impl Camera2D {
         self.finger_positions.extend(fingers.iter().map(|f| {
             (
                 f.id(),
-                self.transformation_matrix
-                    * Self::window_to_backend_coordinates(f.position(), &*window),
+                self.transform_matrix * Self::window_to_backend_coordinates(f.position(), &*window),
             )
         }));
     }

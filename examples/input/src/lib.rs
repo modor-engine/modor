@@ -9,7 +9,7 @@ use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
 };
 use modor_math::{Quat, Vec3};
-use modor_physics::{Position, Rotation, Size, Velocity};
+use modor_physics::{DynamicBody, Transform};
 use std::io;
 use std::io::Write;
 
@@ -38,17 +38,17 @@ impl CustomCamera {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .inherit_from(Camera2D::build_rotated(
-                Position::from(Vec3::xy(0.5, 0.5)),
-                Size::from(Vec3::xy(1.5, 1.5)),
-                Rotation::from(Quat::from_z(20_f32.to_radians())),
+                Vec3::xy(0.5, 0.5),
+                Vec3::xy(1.5, 1.5),
+                Quat::from_z(20_f32.to_radians()),
             ))
-            .with(Velocity::from(Vec3::ZERO))
+            .with(DynamicBody::new())
     }
 
     #[run]
-    fn update(velocity: &mut Velocity, keyboard: Single<'_, Keyboard>) {
+    fn update(body: &mut DynamicBody, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Numpad4, Key::Numpad6, Key::Numpad8, Key::Numpad2);
-        **velocity = direction.with_z(0.);
+        body.velocity = direction.with_z(0.);
     }
 }
 
@@ -58,14 +58,13 @@ struct MouseState;
 impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::from(Vec3::xy(0., 0.)))
-            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(Transform::new().with_size(Vec3::ONE * 0.25))
             .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
-    fn update_position(position: &mut Position, camera: Single<'_, Camera2D>) {
-        **position = camera.mouse_position().with_z(0.);
+    fn update_position(transform: &mut Transform, camera: Single<'_, Camera2D>) {
+        transform.position = camera.mouse_position().with_z(0.);
     }
 
     #[run]
@@ -88,17 +87,16 @@ struct KeyboardState;
 impl KeyboardState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Position::from(Vec3::xy(0., 0.)))
-            .with(Size::from(Vec3::xy(0.25, 0.25)))
-            .with(Velocity::from(Vec3::xy(0., 0.)))
+            .with(Transform::new().with_size(Vec3::ONE * 0.25))
+            .with(DynamicBody::new())
             .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
-    fn update(velocity: &mut Velocity, color: &mut ShapeColor, keyboard: Single<'_, Keyboard>) {
+    fn update(body: &mut DynamicBody, color: &mut ShapeColor, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Left, Key::Right, Key::Up, Key::Down);
-        **velocity = direction.with_z(0.) * 3.;
-        **color = if velocity.magnitude() > 0. {
+        body.velocity = direction.with_z(0.) * 3.;
+        **color = if body.velocity.magnitude() > 0. {
             Color::RED
         } else {
             Color::DARK_GRAY
@@ -150,21 +148,24 @@ struct FingerState {
 impl FingerState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::from(Vec3::xy(0.5, 0.5)))
-            .with(Size::from(Vec3::xy(0.25, 0.25)))
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xy(0.5, 0.5))
+                    .with_size(Vec3::ONE * 0.25),
+            )
             .with(ShapeColor::from(Color::DARK_GRAY))
     }
 
     #[run]
     fn update(
         &self,
-        position: &mut Position,
+        transform: &mut Transform,
         fingers: Query<'_, &Finger>,
         camera: Single<'_, Camera2D>,
     ) {
         if let Some(finger) = fingers.iter().find(|f| f.id() == self.id) {
             if let Some(finger_position) = camera.finger_position(finger.id()) {
-                **position = finger_position.with_z(0.);
+                transform.position = finger_position.with_z(0.);
             }
         }
     }
@@ -208,9 +209,12 @@ struct GamepadState {
 impl GamepadState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
-            .with(Position::from(Vec3::xy(0.5, 0.5)))
-            .with(Size::from(Vec3::xy(0.25, 0.25)))
-            .with(Velocity::from(Vec3::ZERO))
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xy(0.5, 0.5))
+                    .with_size(Vec3::ONE * 0.25),
+            )
+            .with(DynamicBody::new())
             .with(ShapeColor::from(Color::MAROON))
     }
 
@@ -218,7 +222,7 @@ impl GamepadState {
     fn update(
         &self,
         color: &mut ShapeColor,
-        velocity: &mut Velocity,
+        body: &mut DynamicBody,
         gamepads: Query<'_, &Gamepad>,
     ) {
         if let Some(gamepad) = gamepads.iter().find(|f| f.id() == self.id) {
@@ -235,7 +239,7 @@ impl GamepadState {
             let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
             let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);
             let velocity4 = Vec3::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
-            **velocity = velocity1 + velocity2 + velocity3 + velocity4;
+            body.velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }
 

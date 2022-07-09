@@ -5,19 +5,19 @@
 /// # Modor
 ///
 /// - **Type**: component
-/// - **Default if missing**: `Shape::Rectangle2D`
+/// - **Default if missing**: `Shape::Rectangle`
 ///
 /// # Examples
 ///
-/// See [`PhysicsModule`](crate::PhysicsModule).
+/// See [`PhysicsModule`](modor_physics::PhysicsModule).
 pub enum Shape {
-    /// A 2D rectangle.
+    /// A rectangle.
     ///
     /// Z-axis corresponds to the depth of the shape.
-    Rectangle2D,
-    /// A 2D circle.
+    Rectangle,
+    /// A circle.
     ///
     /// Z-axis corresponds to the depth of the shape.<br>
     /// If the width and the height of the entity are different, the shape is an ellipse.
-    Circle2D,
+    Circle,
 }

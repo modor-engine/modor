@@ -1,8 +1,3 @@
-pub(crate) mod acceleration;
-pub(crate) mod angular_acceleration;
-pub(crate) mod angular_velocity;
-pub(crate) mod position;
-pub(crate) mod rotation;
-pub(crate) mod shape;
-pub(crate) mod size;
-pub(crate) mod velocity;
+pub(crate) mod dynamic_body;
+pub(crate) mod relative_transform;
+pub(crate) mod transform;

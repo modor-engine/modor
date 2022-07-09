@@ -2,7 +2,7 @@ use crate::backend::data::{Camera, GpuData, Instance, Vertex};
 use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
 use crate::backend::uniforms::Uniform;
-use modor_physics::Shape;
+use crate::Shape;
 use typed_index_collections::TiVec;
 
 const FIRST_VERTEX_BUFFER_LOCATION: u32 = 0;
@@ -41,8 +41,8 @@ impl ShaderStorage {
     #[allow(clippy::unused_self)] // will be used in the future
     pub(super) fn idx(&self, shape: &Shape) -> ShaderIdx {
         match shape {
-            Shape::Rectangle2D => ShaderIdx(0),
-            Shape::Circle2D => ShaderIdx(1),
+            Shape::Rectangle => ShaderIdx(0),
+            Shape::Circle => ShaderIdx(1),
         }
     }
 

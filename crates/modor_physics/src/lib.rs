@@ -29,13 +29,8 @@ extern crate modor;
 mod components;
 mod entities;
 
-pub use components::acceleration::*;
-pub use components::angular_acceleration::*;
-pub use components::angular_velocity::*;
-pub use components::position::*;
-pub use components::rotation::*;
-pub use components::shape::*;
-pub use components::size::*;
-pub use components::velocity::*;
+pub use components::dynamic_body::*;
+pub use components::relative_transform::*;
+pub use components::transform::*;
 pub use entities::delta_time::*;
 pub use entities::module::*;
