@@ -66,7 +66,7 @@ fn create_from_z() {
 fn create_with_scale() {
     let quat = Quat::from_x(FRAC_PI_4).with_scale(2.);
     let axis = quat.axis().unwrap();
-    assert_abs_diff_eq!(quat.angle(), FRAC_PI_2);
+    assert_abs_diff_eq!(quat.angle(), FRAC_PI_2, epsilon = 0.000_001);
     assert_abs_diff_eq!(axis.x, 1.);
     assert_abs_diff_eq!(axis.y, 0.);
     assert_abs_diff_eq!(axis.z, 0.);
