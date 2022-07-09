@@ -44,6 +44,7 @@ impl Mesh {
     ///
     /// The rectangle size is driven by the [`Transform`](modor_physics::Transform) size along
     /// X-axis and Y-axis.
+    #[must_use]
     pub const fn rectangle() -> Self {
         Self {
             color: Color::WHITE,
@@ -56,6 +57,7 @@ impl Mesh {
     ///
     /// The ellipse major and minor radii are driven by the [`Transform`](modor_physics::Transform)
     /// size along X-axis and Y-axis.
+    #[must_use]
     pub const fn ellipse() -> Self {
         Self {
             color: Color::WHITE,
