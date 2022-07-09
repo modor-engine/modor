@@ -47,6 +47,12 @@ impl From<Color> for wgpu::Color {
     }
 }
 
+impl From<Color> for [f32; 4] {
+    fn from(color: Color) -> Self {
+        [color.r, color.g, color.b, color.a]
+    }
+}
+
 impl Color {
     /// <span style="color:black">█</span>
     pub const BLACK: Self = Self::rgb(0., 0., 0.);

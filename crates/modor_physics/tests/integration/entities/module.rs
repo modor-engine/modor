@@ -117,7 +117,9 @@ fn update_with_absolute_angular_acceleration() {
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2))
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2, epsilon = 0.000_001);
+        })
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().x, 0.))
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().y, 0.))
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().z, 1.))
@@ -145,7 +147,9 @@ fn update_with_relative_angular_acceleration_without_parent() {
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2))
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2, epsilon = 0.000_001);
+        })
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().x, 0.))
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().y, 0.))
         .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().z, 1.))

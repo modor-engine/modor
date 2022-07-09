@@ -2,7 +2,7 @@ use crate::backend::data::{Camera, GpuData, Instance, Vertex};
 use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
 use crate::backend::uniforms::Uniform;
-use crate::Shape;
+use crate::{Mesh, Shape};
 use typed_index_collections::TiVec;
 
 const FIRST_VERTEX_BUFFER_LOCATION: u32 = 0;
@@ -28,21 +28,20 @@ impl ShaderStorage {
                     renderer,
                 ),
                 Shader::new(
-                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/circle.wgsl")),
+                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
                     vertex_buffer_layouts,
                     &[camera_2d.bind_group_layout()],
-                    "circle_2d",
+                    "ellipse_2d",
                     renderer,
                 )
             ],
         }
     }
 
-    #[allow(clippy::unused_self)] // will be used in the future
-    pub(super) fn idx(&self, shape: &Shape) -> ShaderIdx {
-        match shape {
+    pub(super) fn idx(mesh: &Mesh) -> ShaderIdx {
+        match mesh.shape {
             Shape::Rectangle => ShaderIdx(0),
-            Shape::Circle => ShaderIdx(1),
+            Shape::Ellipse => ShaderIdx(1),
         }
     }
 

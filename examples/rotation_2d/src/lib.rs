@@ -2,7 +2,7 @@
 
 use modor::{entity, App, Built, EntityBuilder};
 use modor_graphics::{
-    Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize, WindowSettings,
+    Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
 };
 use modor_math::{Quat, Vec3};
 use modor_physics::{DynamicBody, RelativeTransform, Transform};
@@ -33,7 +33,7 @@ impl Object {
                     .with_size(Vec3::xyz(0.25, 0.5, 1.)),
             )
             .with(DynamicBody::new().with_angular_velocity(Quat::from_z(FRAC_PI_2)))
-            .with(ShapeColor::from(Color::rgb(1., 1., 0.)))
+            .with(Mesh::rectangle().with_color(Color::YELLOW))
             .with_child(Child::build())
     }
 }
@@ -51,6 +51,6 @@ impl Child {
                     .with_rotation(Quat::ZERO),
             )
             .with(DynamicBody::new().with_angular_velocity(Quat::from_z(FRAC_PI_2)))
-            .with(ShapeColor::from(Color::rgb(1., 0., 1.)))
+            .with(Mesh::rectangle().with_color(Color::MAGENTA))
     }
 }

@@ -1,7 +1,7 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder, SingleMut};
 use modor_graphics::{
-    testing, BackgroundColor, Capture, Color, GraphicsModule, ShapeColor, SurfaceSize,
+    testing, BackgroundColor, Capture, Color, GraphicsModule, Mesh, SurfaceSize,
     UpdateCaptureBufferAction,
 };
 use modor_math::Vec3;
@@ -30,7 +30,7 @@ impl Rectangle {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Transform::new().with_size(Vec3::ONE * 0.9))
-            .with(ShapeColor::from(Color::RED))
+            .with(Mesh::rectangle().with_color(Color::RED))
             .with_child(Quarter::build())
     }
 }
@@ -47,7 +47,7 @@ impl Quarter {
                     .with_position(Vec3::xyz(0.25, 0.25, 1.))
                     .with_size(Vec3::ONE * 0.5),
             )
-            .with(ShapeColor::from(Color::MAROON))
+            .with(Mesh::rectangle().with_color(Color::MAROON))
     }
 }
 

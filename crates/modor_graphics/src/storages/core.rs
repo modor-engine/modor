@@ -6,14 +6,14 @@ use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{utils, Color, Shape, ShapeColor, SurfaceSize};
+use crate::{utils, Color, Mesh, SurfaceSize};
 use modor::Query;
 use modor_math::{Mat4, Vec3};
 use modor_physics::Transform;
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
-pub(crate) type ShapeComponents<'a> = (&'a Transform, &'a ShapeColor, Option<&'a Shape>);
+pub(crate) type ShapeComponents<'a> = (&'a Transform, &'a Mesh);
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -56,13 +56,12 @@ impl CoreStorage {
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(t, _, _)| t.position.z));
-        for (transform, color, shape) in shapes.iter() {
-            let instance = Self::create_instance(transform, *color, depth_bounds);
-            let shape = shape.unwrap_or(&Shape::Rectangle);
-            let shader_idx = self.shaders.idx(shape);
-            let model_idx = self.models.idx(shape);
-            if color.a > 0. && color.a < 1. {
+        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(t, _)| t.position.z));
+        for (transform, mesh) in shapes.iter() {
+            let instance = Self::create_instance(transform, mesh, depth_bounds);
+            let shader_idx = ShaderStorage::idx(mesh);
+            let model_idx = ModelStorage::idx(mesh);
+            if mesh.color.a > 0. && mesh.color.a < 1. {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -100,11 +99,7 @@ impl CoreStorage {
         })
     }
 
-    fn create_instance(
-        transform: &Transform,
-        color: ShapeColor,
-        depth_bounds: (f32, f32),
-    ) -> Instance {
+    fn create_instance(transform: &Transform, mesh: &Mesh, depth_bounds: (f32, f32)) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z_position =
             MAX_DEPTH - utils::normalize(transform.position.z, min_z, max_z, 0., MAX_DEPTH);
@@ -112,7 +107,7 @@ impl CoreStorage {
         transform.position.z = z_position;
         Instance {
             transform: transform.create_matrix().to_array(),
-            color: [color.r, color.g, color.b, color.a],
+            color: mesh.color.into(),
         }
     }
 

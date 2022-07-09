@@ -3,8 +3,7 @@
 use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
 use modor_graphics::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Shape, ShapeColor, SurfaceSize,
-    WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
 };
 use modor_math::Vec3;
 use modor_physics::{DeltaTime, DynamicBody, Transform};
@@ -62,8 +61,7 @@ impl Sprite {
                 .with_size(Vec3::ONE * 0.01),
         )
         .with(DynamicBody::new())
-        .with(Shape::Circle)
-        .with(ShapeColor::from(Color::rgb(
+        .with(Mesh::ellipse().with_color(Color::rgb(
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,

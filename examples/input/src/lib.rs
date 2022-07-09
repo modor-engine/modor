@@ -2,8 +2,7 @@
 
 use modor::{entity, singleton, App, Built, Entity, EntityBuilder, Query, Single, World};
 use modor_graphics::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
-    WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
 };
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
@@ -59,7 +58,7 @@ impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Transform::new().with_size(Vec3::ONE * 0.25))
-            .with(ShapeColor::from(Color::DARK_GRAY))
+            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
@@ -68,15 +67,15 @@ impl MouseState {
     }
 
     #[run]
-    fn update_color(color: &mut ShapeColor, mouse: Single<'_, Mouse>) {
-        color.r += mouse.scroll_delta_in_lines(30., 30.).x / 50.;
-        color.g += mouse.scroll_delta_in_lines(30., 30.).y / 50.;
+    fn update_color(mesh: &mut Mesh, mouse: Single<'_, Mouse>) {
+        mesh.color.r += mouse.scroll_delta_in_lines(30., 30.).x / 50.;
+        mesh.color.g += mouse.scroll_delta_in_lines(30., 30.).y / 50.;
         if mouse.button(MouseButton::Left).is_pressed() {
-            **color = Color::BLUE;
+            mesh.color = Color::BLUE;
         } else if mouse.button(MouseButton::Right).is_pressed() {
-            **color = Color::DARK_GREEN;
+            mesh.color = Color::DARK_GREEN;
         } else if mouse.button(MouseButton::Middle).is_pressed() {
-            **color = Color::RED;
+            mesh.color = Color::RED;
         }
     }
 }
@@ -89,14 +88,14 @@ impl KeyboardState {
         EntityBuilder::new(Self)
             .with(Transform::new().with_size(Vec3::ONE * 0.25))
             .with(DynamicBody::new())
-            .with(ShapeColor::from(Color::DARK_GRAY))
+            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
-    fn update(body: &mut DynamicBody, color: &mut ShapeColor, keyboard: Single<'_, Keyboard>) {
+    fn update(body: &mut DynamicBody, mesh: &mut Mesh, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Left, Key::Right, Key::Up, Key::Down);
         body.velocity = direction.with_z(0.) * 3.;
-        **color = if body.velocity.magnitude() > 0. {
+        mesh.color = if body.velocity.magnitude() > 0. {
             Color::RED
         } else {
             Color::DARK_GRAY
@@ -153,7 +152,7 @@ impl FingerState {
                     .with_position(Vec3::xy(0.5, 0.5))
                     .with_size(Vec3::ONE * 0.25),
             )
-            .with(ShapeColor::from(Color::DARK_GRAY))
+            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
@@ -215,16 +214,11 @@ impl GamepadState {
                     .with_size(Vec3::ONE * 0.25),
             )
             .with(DynamicBody::new())
-            .with(ShapeColor::from(Color::MAROON))
+            .with(Mesh::rectangle().with_color(Color::MAROON))
     }
 
     #[run]
-    fn update(
-        &self,
-        color: &mut ShapeColor,
-        body: &mut DynamicBody,
-        gamepads: Query<'_, &Gamepad>,
-    ) {
+    fn update(&self, mesh: &mut Mesh, body: &mut DynamicBody, gamepads: Query<'_, &Gamepad>) {
         if let Some(gamepad) = gamepads.iter().find(|f| f.id() == self.id) {
             let red = 1. - gamepad.button(GamepadButton::BackLeftTrigger).value();
             let green = 1. - gamepad.button(GamepadButton::BackRightTrigger).value();
@@ -234,7 +228,7 @@ impl GamepadState {
                 .is_pressed()
                 .then(|| 0.)
                 .unwrap_or(1.);
-            **color = Color::rgb(red, green, blue);
+            mesh.color = Color::rgb(red, green, blue);
             let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick).with_z(0.);
             let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
             let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);

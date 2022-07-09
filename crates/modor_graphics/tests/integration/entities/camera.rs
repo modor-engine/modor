@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder};
-use modor_graphics::{testing, Camera2D, Color, GraphicsModule, Shape, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Camera2D, Color, GraphicsModule, Mesh, SurfaceSize};
 use modor_math::{Quat, Vec3};
 use modor_physics::Transform;
 
@@ -15,8 +15,7 @@ impl Object {
                     .with_position(Vec3::xyz(0.5, 0.5, 1.))
                     .with_size(Vec3::ONE * 0.1),
             )
-            .with(ShapeColor::from(Color::WHITE))
-            .with(Shape::Circle)
+            .with(Mesh::ellipse())
     }
 
     fn build_rectangle() -> impl Built<Self> {
@@ -26,19 +25,17 @@ impl Object {
                     .with_position(Vec3::xy(0.25, 0.25))
                     .with_size(Vec3::xy(0.4, 0.25)),
             )
-            .with(ShapeColor::from(Color::GREEN))
-            .with(Shape::Rectangle)
+            .with(Mesh::rectangle().with_color(Color::GREEN))
     }
 
-    fn build_circle() -> impl Built<Self> {
+    fn build_ellipse() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
                     .with_position(Vec3::xy(-0.25, 0.25))
                     .with_size(Vec3::xy(0.4, 0.25)),
             )
-            .with(ShapeColor::from(Color::BLUE))
-            .with(Shape::Circle)
+            .with(Mesh::ellipse().with_color(Color::BLUE))
     }
 }
 
@@ -48,7 +45,7 @@ fn add_camera_with_horizontal_surface() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Camera2D::build(Vec3::xy(0.5, 0.5), Vec3::xy(3., 3.)))
         .with_entity(Object::build_center())
-        .with_entity(Object::build_circle())
+        .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
         .into();
     app.update();
@@ -61,7 +58,7 @@ fn add_camera_with_vertical_surface() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(200, 300)))
         .with_entity(Camera2D::build(Vec3::xy(0.5, 0.5), Vec3::xy(3., 3.)))
         .with_entity(Object::build_center())
-        .with_entity(Object::build_circle())
+        .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
         .into();
     app.update();
@@ -78,7 +75,7 @@ fn add_rotated_camera() {
             Quat::from_z(45_f32.to_radians()),
         ))
         .with_entity(Object::build_center())
-        .with_entity(Object::build_circle())
+        .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
         .into();
     app.update();

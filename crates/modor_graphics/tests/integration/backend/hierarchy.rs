@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder};
-use modor_graphics::{testing, Color, GraphicsModule, Shape, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Color, GraphicsModule, Mesh, SurfaceSize};
 use modor_math::{Quat, Vec3};
 use modor_physics::{RelativeTransform, Transform};
 
@@ -34,7 +34,7 @@ impl CharacterHead {
                     .with_size(Vec3::xy(0.2, 0.2))
                     .with_rotation(Quat::ZERO),
             )
-            .with(ShapeColor::from(Color::BLUE))
+            .with(Mesh::rectangle().with_color(Color::BLUE))
     }
 }
 
@@ -51,7 +51,7 @@ impl CharacterBody {
                     .with_size(Vec3::xy(0.4, 0.8))
                     .with_rotation(Quat::ZERO),
             )
-            .with(ShapeColor::from(Color::GREEN))
+            .with(Mesh::rectangle().with_color(Color::GREEN))
     }
 }
 
@@ -62,8 +62,7 @@ impl Center {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Transform::new().with_size(Vec3::ONE * 0.05))
-            .with(ShapeColor::from(Color::WHITE))
-            .with(Shape::Circle)
+            .with(Mesh::ellipse())
     }
 }
 

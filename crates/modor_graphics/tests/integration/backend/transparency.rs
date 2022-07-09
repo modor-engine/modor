@@ -1,6 +1,6 @@
 use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, World};
-use modor_graphics::{testing, Color, GraphicsModule, Shape, ShapeColor, SurfaceSize};
+use modor_graphics::{testing, Color, GraphicsModule, Mesh, SurfaceSize};
 use modor_math::Vec3;
 use modor_physics::Transform;
 
@@ -15,18 +15,17 @@ impl Object {
                     .with_position(position)
                     .with_size(Vec3::ONE * 0.2),
             )
-            .with(ShapeColor::from(color))
+            .with(Mesh::rectangle().with_color(color))
     }
 
-    fn build_circle(position: Vec3, color: Color) -> impl Built<Self> {
+    fn build_ellipse(position: Vec3, color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
                     .with_position(position)
                     .with_size(Vec3::ONE * 0.2),
             )
-            .with(Shape::Circle)
-            .with(ShapeColor::from(color))
+            .with(Mesh::ellipse().with_color(color))
     }
 
     #[run]
@@ -89,7 +88,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
 fn display_different_transparent_shapes() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Object::build_circle(
+        .with_entity(Object::build_ellipse(
             Vec3::xyz(0.15, 0.15, 3.),
             Color::rgba(1., 0., 0., 0.5),
         ))
@@ -101,7 +100,7 @@ fn display_different_transparent_shapes() {
             Vec3::xyz(0., 0., 0.),
             Color::rgba(0., 0., 1., 0.5),
         ))
-        .with_entity(Object::build_circle(
+        .with_entity(Object::build_ellipse(
             Vec3::xyz(0.05, 0.05, 1.),
             Color::rgba(1., 1., 1., 0.5),
         ))

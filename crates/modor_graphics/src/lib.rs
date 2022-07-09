@@ -43,8 +43,7 @@ mod utils;
 
 pub mod testing;
 
-pub use components::shape::*;
-pub use components::shape_color::*;
+pub use components::mesh::*;
 pub use data::*;
 pub use entities::background::*;
 pub use entities::camera::*;
