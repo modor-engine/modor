@@ -1,28 +1,12 @@
-use crate::entities::module::internal::UpdateAbsoluteRotationsFromRelativeRotationsAction;
-use crate::{
-    Acceleration, AngularAcceleration, AngularVelocity, DeltaTime, Position, RelativeAcceleration,
-    RelativeAngularAcceleration, RelativeAngularVelocity, RelativePosition, RelativeRotation,
-    RelativeSize, RelativeVelocity, Rotation, Size, Velocity,
+use crate::components::dynamic_body::DynamicBody;
+use crate::components::relative_transform::RelativeTransform;
+use crate::components::transform::Transform;
+use crate::entities::module::internal::{
+    UpdateDynamicBodiesAction, UpdateTransformsFromRelativeAction,
 };
-use internal::{
-    UpdateAbsoluteAngularVelocitiesAction, UpdateAbsolutePositionsFromRelativePositionsAction,
-    UpdateAbsolutePositionsFromVelocitiesAction,
-    UpdateAbsoluteRotationsFromAngularVelocitiesAction, UpdateAbsoluteSizesAction,
-    UpdateAbsoluteVelocitiesAction, UpdateRelativeAngularVelocitiesAction,
-    UpdateRelativePositionsAction, UpdateRelativeRotationsAction, UpdateRelativeVelocitiesAction,
-};
+use crate::{DeltaTime, ROOT_TRANSFORM};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
-use modor_math::{Quat, Vec3};
 use std::marker::PhantomData;
-
-type AbsToRelRotationsEntityFilter = (
-    With<Position>,
-    With<Rotation>,
-    With<Size>,
-    With<RelativeRotation>,
-);
-type AbsToRelRotationsComponentFilter = (With<Position>, With<Size>);
-type AbsToRelPositionsEntityFilter = (With<Position>, With<Size>, With<RelativePosition>);
 
 /// The main entity of the physics module.
 ///
@@ -34,9 +18,10 @@ type AbsToRelPositionsEntityFilter = (With<Position>, With<Size>, With<RelativeP
 /// # Examples
 ///
 /// ```rust
+/// # use std::f32::consts::PI;
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_math::Vec3;
-/// # use modor_physics::{Acceleration, PhysicsModule, Position, Size, Shape, Velocity};
+/// # use modor_math::{Quat, Vec3};
+/// # use modor_physics::{Transform, PhysicsModule, DynamicBody, RelativeTransform};
 /// #
 /// let mut app = App::new()
 ///     .with_entity(PhysicsModule::build())
@@ -52,11 +37,14 @@ type AbsToRelPositionsEntityFilter = (With<Position>, With<Size>, With<RelativeP
 /// impl Object {
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self)
-///             .with(Position::from(Vec3::xy(0.2, 0.3)))
-///             .with(Velocity::from(Vec3::xy(-0.01, 0.02)))
-///             .with(Acceleration::from(Vec3::xy(0.5, -0.1)))
-///             .with(Size::from(Vec3::xy(0.25, 0.5)))
-///             .with(Shape::Rectangle2D)
+///             .with(
+///                 Transform::new()
+///                     .with_position(Vec3::xy(0.2, 0.3))
+///                     .with_size(Vec3::xyz(0.25, 0.5, 1.))
+///                     .with_rotation(Quat::from_z(20_f32.to_radians()))
+///             )
+///             .with(RelativeTransform::new().with_rotation(Quat::from_z(PI / 2.)))
+///             .with(DynamicBody::new().with_velocity(Vec3::xy(-0.01, 0.02)))
 ///     }
 /// }
 /// ```
@@ -69,164 +57,35 @@ impl PhysicsModule {
         EntityBuilder::new(Self(PhantomData)).with_child(DeltaTime::build())
     }
 
-    #[run_as(UpdateRelativeVelocitiesAction)]
-    fn update_relative_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut RelativeVelocity, &RelativeAcceleration)>,
-    ) {
-        for (velocity, acceleration) in components.iter_mut() {
-            velocity.update(*acceleration, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateRelativePositionsAction)]
-    fn update_relative_positions(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut RelativePosition, &RelativeVelocity)>,
-    ) {
-        for (position, velocity) in components.iter_mut() {
-            position.update(*velocity, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateRelativeAngularVelocitiesAction)]
-    fn update_relative_angular_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut RelativeAngularVelocity, &RelativeAngularAcceleration)>,
-    ) {
-        for (velocity, acceleration) in components.iter_mut() {
-            velocity.update(*acceleration, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateRelativeRotationsAction)]
-    fn update_relative_rotations(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut RelativeRotation, &RelativeAngularVelocity)>,
-    ) {
-        for (position, velocity) in components.iter_mut() {
-            position.update(*velocity, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateAbsoluteVelocitiesAction)]
-    fn update_absolute_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut Velocity, &Acceleration)>,
-    ) {
-        for (velocity, acceleration) in components.iter_mut() {
-            velocity.update(*acceleration, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateAbsolutePositionsFromVelocitiesAction)]
-    fn update_absolute_positions_from_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut Position, &Velocity)>,
-    ) {
-        for (position, velocity) in components.iter_mut() {
-            position.update_with_velocity(*velocity, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateAbsoluteAngularVelocitiesAction)]
-    fn update_absolute_angular_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut AngularVelocity, &AngularAcceleration)>,
-    ) {
-        for (velocity, acceleration) in components.iter_mut() {
-            velocity.update(*acceleration, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateAbsoluteRotationsFromAngularVelocitiesAction)]
-    fn update_absolute_rotations_from_angular_velocities(
-        delta_time: Single<'_, DeltaTime>,
-        mut components: Query<'_, (&mut Rotation, &AngularVelocity)>,
-    ) {
-        for (position, velocity) in components.iter_mut() {
-            position.update_with_velocity(*velocity, delta_time.get());
-        }
-    }
-
-    #[run_as(UpdateAbsoluteSizesAction)]
-    fn update_absolute_sizes(
-        entities: Query<'_, Entity<'_>, (With<Size>, With<RelativeSize>)>,
-        mut components: Query<'_, (&mut Size, Option<&RelativeSize>)>,
-    ) {
-        for entity in Self::entities_sorted_by_depth(entities.iter()) {
-            match components.get_with_first_parent_mut(entity.id()) {
-                (Some((size, Some(relative_size))), Some((parent_size, _))) => {
-                    size.update_with_relative(*relative_size, *parent_size);
-                }
-                (Some((size, Some(relative_size))), None) => {
-                    size.update_with_relative(*relative_size, Vec3::ONE.into());
-                }
-                _ => unreachable!("internal error: unreachable size update case"),
-            }
-        }
-    }
-
-    #[run_as(UpdateAbsoluteRotationsFromRelativeRotationsAction)]
-    fn update_absolute_rotations_from_relative_rotations(
-        entities: Query<'_, Entity<'_>, AbsToRelRotationsEntityFilter>,
-        mut components: Query<
-            '_,
-            (Option<&mut Rotation>, Option<&RelativeRotation>),
-            AbsToRelRotationsComponentFilter,
-        >,
-    ) {
-        for entity in Self::entities_sorted_by_depth(entities.iter()) {
-            match components.get_with_first_parent_mut(entity.id()) {
-                (Some((Some(rotation), Some(relative_rotation))), Some((parent_rotation, _))) => {
-                    rotation.update_with_relative(
-                        *relative_rotation,
-                        parent_rotation
-                            .copied()
-                            .unwrap_or_else(|| Quat::ZERO.into()),
-                    );
-                }
-                (Some((Some(rotation), Some(relative_rotation))), None) => {
-                    rotation.update_with_relative(*relative_rotation, Quat::ZERO.into());
-                }
-                _ => unreachable!("internal error: unreachable position update case"),
-            }
-        }
-    }
-
-    #[run_as(UpdateAbsolutePositionsFromRelativePositionsAction)]
-    fn update_absolute_positions_from_relative_positions(
-        entities: Query<'_, Entity<'_>, AbsToRelPositionsEntityFilter>,
-        mut components: Query<
+    #[run_as(UpdateDynamicBodiesAction)]
+    fn update_dynamic_bodies(
+        mut bodies: Query<
             '_,
             (
-                &mut Position,
-                &Size,
-                Option<&Rotation>,
-                Option<&RelativePosition>,
+                &mut DynamicBody,
+                &mut Transform,
+                Option<&mut RelativeTransform>,
             ),
         >,
+        delta_time: Single<'_, DeltaTime>,
+    ) {
+        for (dynamic, transform, relative) in bodies.iter_mut() {
+            dynamic.update(transform, relative, &*delta_time);
+        }
+    }
+
+    #[run_as(UpdateTransformsFromRelativeAction)]
+    fn update_transforms_from_relative(
+        entities: Query<'_, Entity<'_>, (With<Transform>, With<RelativeTransform>)>,
+        mut components: Query<'_, (&mut Transform, Option<&RelativeTransform>)>,
     ) {
         for entity in Self::entities_sorted_by_depth(entities.iter()) {
             match components.get_with_first_parent_mut(entity.id()) {
-                (
-                    Some((position, _, _, Some(relative_position))),
-                    Some((parent_position, parent_size, parent_rotation, _)),
-                ) => position.update_with_relative(
-                    *relative_position,
-                    *parent_position,
-                    *parent_size,
-                    parent_rotation
-                        .copied()
-                        .unwrap_or_else(|| Quat::ZERO.into()),
-                ),
-                (Some((position, _, _, Some(relative_position))), None) => {
-                    position.update_with_relative(
-                        *relative_position,
-                        Vec3::ZERO.into(),
-                        Vec3::ONE.into(),
-                        Quat::ZERO.into(),
-                    );
+                (Some((transform, Some(relative))), Some((parent, _))) => {
+                    transform.update(relative, parent);
+                }
+                (Some((transform, Some(relative))), None) => {
+                    transform.update(relative, &ROOT_TRANSFORM);
                 }
                 _ => unreachable!("internal error: unreachable position update case"),
             }
@@ -247,48 +106,13 @@ impl PhysicsModule {
 }
 
 /// An action done when the positions and sizes have been updated.
-#[action(UpdateAbsolutePositionsFromRelativePositionsAction)]
+#[action(UpdateTransformsFromRelativeAction)]
 pub struct UpdatePhysicsAction;
 
 mod internal {
     #[action]
-    pub struct UpdateRelativeVelocitiesAction;
+    pub struct UpdateDynamicBodiesAction;
 
-    #[action(UpdateRelativeVelocitiesAction)]
-    pub struct UpdateRelativePositionsAction;
-
-    #[action]
-    pub struct UpdateRelativeAngularVelocitiesAction;
-
-    #[action(UpdateRelativeAngularVelocitiesAction)]
-    pub struct UpdateRelativeRotationsAction;
-
-    #[action]
-    pub struct UpdateAbsoluteVelocitiesAction;
-
-    #[action(UpdateAbsoluteVelocitiesAction)]
-    pub struct UpdateAbsolutePositionsFromVelocitiesAction;
-
-    #[action]
-    pub struct UpdateAbsoluteAngularVelocitiesAction;
-
-    #[action(UpdateAbsoluteAngularVelocitiesAction)]
-    pub struct UpdateAbsoluteRotationsFromAngularVelocitiesAction;
-
-    #[action]
-    pub struct UpdateAbsoluteSizesAction;
-
-    #[action(
-        UpdateRelativeRotationsAction,
-        UpdateAbsoluteRotationsFromAngularVelocitiesAction
-    )]
-    pub struct UpdateAbsoluteRotationsFromRelativeRotationsAction;
-
-    #[action(
-        UpdateAbsolutePositionsFromVelocitiesAction,
-        UpdateRelativePositionsAction,
-        UpdateAbsoluteSizesAction,
-        UpdateAbsoluteRotationsFromRelativeRotationsAction
-    )]
-    pub struct UpdateAbsolutePositionsFromRelativePositionsAction;
+    #[action(UpdateDynamicBodiesAction)]
+    pub struct UpdateTransformsFromRelativeAction;
 }

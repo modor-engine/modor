@@ -1,6 +1,7 @@
 use crate::{Mat4, Vec3};
 use num_traits::One;
 use std::f32::consts::PI;
+use std::ops::{Mul, MulAssign};
 
 /// A quaternion used to store a rotation.
 #[derive(Clone, Copy, Debug)]
@@ -105,30 +106,22 @@ impl Quat {
         ])
     }
 
+    #[must_use]
+    /// Returns the quaternion with a scaled angle.
+    ///
+    /// Axis is unchanged.
+    pub fn with_scale(self, scale: f32) -> Self {
+        let axis = self.axis().unwrap_or(Vec3::ZERO);
+        let angle = self.angle();
+        Self::from_axis_angle(axis, angle * scale)
+    }
+
     /// Returns the quaternion rotated with `other`.
+    ///
+    /// The same operation can be done using multiplication of both quaternions.
     #[must_use]
     pub fn with_rotation(self, other: Self) -> Self {
-        Self {
-            x: self.y.mul_add(
-                other.z,
-                self.w
-                    .mul_add(other.x, self.x.mul_add(other.w, -self.z * other.y)),
-            ),
-            y: self.z.mul_add(
-                other.x,
-                self.y
-                    .mul_add(other.w, self.w.mul_add(other.y, -self.x * other.z)),
-            ),
-            z: self
-                .z
-                .mul_add(other.w, self.w.mul_add(other.z, self.x * other.y)),
-            w: self.w.mul_add(
-                other.w,
-                -self
-                    .x
-                    .mul_add(other.x, self.y.mul_add(other.y, self.z * other.z)),
-            ),
-        }
+        self * other
     }
 
     fn normalize_angle(mut angle: f32) -> f32 {
@@ -139,5 +132,35 @@ impl Quat {
             angle += 2. * PI;
         }
         angle
+    }
+}
+
+impl Mul<Self> for Quat {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.y.mul_add(
+                rhs.z,
+                self.w
+                    .mul_add(rhs.x, self.x.mul_add(rhs.w, -self.z * rhs.y)),
+            ),
+            y: self.z.mul_add(
+                rhs.x,
+                self.y
+                    .mul_add(rhs.w, self.w.mul_add(rhs.y, -self.x * rhs.z)),
+            ),
+            z: self.z.mul_add(rhs.w, self.w.mul_add(rhs.z, self.x * rhs.y)),
+            w: self.w.mul_add(
+                rhs.w,
+                -self.x.mul_add(rhs.x, self.y.mul_add(rhs.y, self.z * rhs.z)),
+            ),
+        }
+    }
+}
+
+impl MulAssign<Self> for Quat {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }

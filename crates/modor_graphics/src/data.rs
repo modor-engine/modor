@@ -20,10 +20,6 @@ impl SurfaceSize {
 }
 
 /// A color.
-///
-/// # Examples
-///
-/// See [`ShapeColor`](crate::ShapeColor).
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
     /// Red component between `0.0` and `1.0`.
@@ -44,6 +40,12 @@ impl From<Color> for wgpu::Color {
             b: color.b.into(),
             a: color.a.into(),
         }
+    }
+}
+
+impl From<Color> for [f32; 4] {
+    fn from(color: Color) -> Self {
+        [color.r, color.g, color.b, color.a]
     }
 }
 

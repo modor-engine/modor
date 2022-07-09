@@ -25,17 +25,6 @@ impl Mat4 {
         Self { elements }
     }
 
-    /// Creates a new transform matrix from a `position` and a `scale`.
-    #[must_use]
-    pub const fn from_position_scale(position: Vec3, scale: Vec3) -> Self {
-        Self::from_array([
-            [scale.x, 0., 0., 0.],
-            [0., scale.y, 0., 0.],
-            [0., 0., scale.z, 0.],
-            [position.x, position.y, position.z, 1.],
-        ])
-    }
-
     /// Creates a new transform matrix from a `position`.
     #[must_use]
     pub const fn from_position(position: Vec3) -> Self {

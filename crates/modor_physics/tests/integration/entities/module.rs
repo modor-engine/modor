@@ -2,11 +2,7 @@ use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::{App, EntityBuilder};
 use modor_math::{Quat, Vec3};
-use modor_physics::{
-    Acceleration, AngularAcceleration, AngularVelocity, DeltaTime, PhysicsModule, Position,
-    RelativeAcceleration, RelativeAngularAcceleration, RelativeAngularVelocity, RelativePosition,
-    RelativeRotation, RelativeSize, RelativeVelocity, Rotation, Shape, Size, Velocity,
-};
+use modor_physics::{DeltaTime, DynamicBody, PhysicsModule, RelativeTransform, Transform};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use std::time::Duration;
 
@@ -17,294 +13,252 @@ impl TestEntity {}
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_absolute_velocity_and_position() {
+fn update_with_absolute_acceleration() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(Position::from(Vec3::xyz(1., 2., 3.)))
-            .with(Velocity::from(Vec3::xyz(4., 5., 6.)))
-            .with(Acceleration::from(Vec3::xyz(7., 8., 9.))),
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(1., 2., 3.))
+                    .with_size(Vec3::xyz(4., 5., 6.)),
+            )
+            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.x, 7.))
-        .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.y, 8.))
-        .has::<Acceleration, _>(|a| assert_abs_diff_eq!(a.z, 9.))
-        .has::<Velocity, _>(|v| assert_abs_diff_eq!(v.x, 7.0_f32.mul_add(delta_time, 4.)))
-        .has::<Velocity, _>(|v| assert_abs_diff_eq!(v.y, 8.0_f32.mul_add(delta_time, 5.)))
-        .has::<Velocity, _>(|v| assert_abs_diff_eq!(v.z, 9.0_f32.mul_add(delta_time, 6.)))
-        .has::<Position, _>(|p| {
-            assert_abs_diff_eq!(p.x, 7.0_f32.mul_add(delta_time, 4.).mul_add(delta_time, 1.));
-        })
-        .has::<Position, _>(|p| {
-            assert_abs_diff_eq!(p.y, 8.0_f32.mul_add(delta_time, 5.).mul_add(delta_time, 2.));
-        })
-        .has::<Position, _>(|p| {
-            assert_abs_diff_eq!(p.z, 9.0_f32.mul_add(delta_time, 6.).mul_add(delta_time, 3.));
-        });
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.x, 0.2))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.y, 0.4))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.z, 0.6))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, 1.4))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, 2.8))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 4.2));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_relative_velocity_and_position() {
+fn update_with_relative_acceleration_without_parent() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::from(Vec3::xyz(1., 2., 3.)))
-            .with(RelativeVelocity::from(Vec3::xyz(4., 5., 6.)))
-            .with(RelativeAcceleration::from(Vec3::xyz(7., 8., 9.))),
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(5., 5., 5.))
+                    .with_size(Vec3::xyz(5., 5., 5.)),
+            )
+            .with(RelativeTransform::new().with_position(Vec3::xyz(7., 8., 9.)))
+            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has::<RelativeAcceleration, _>(|a| assert_abs_diff_eq!(a.x, 7.))
-        .has::<RelativeAcceleration, _>(|a| assert_abs_diff_eq!(a.y, 8.))
-        .has::<RelativeAcceleration, _>(|a| assert_abs_diff_eq!(a.z, 9.))
-        .has::<RelativeVelocity, _>(|v| assert_abs_diff_eq!(v.x, 7.0_f32.mul_add(delta_time, 4.)))
-        .has::<RelativeVelocity, _>(|v| assert_abs_diff_eq!(v.y, 8.0_f32.mul_add(delta_time, 5.)))
-        .has::<RelativeVelocity, _>(|v| assert_abs_diff_eq!(v.z, 9.0_f32.mul_add(delta_time, 6.)))
-        .has::<RelativePosition, _>(|p| {
-            assert_abs_diff_eq!(p.x, 7.0_f32.mul_add(delta_time, 4.).mul_add(delta_time, 1.));
-        })
-        .has::<RelativePosition, _>(|p| {
-            assert_abs_diff_eq!(p.y, 8.0_f32.mul_add(delta_time, 5.).mul_add(delta_time, 2.));
-        })
-        .has::<RelativePosition, _>(|p| {
-            assert_abs_diff_eq!(p.z, 9.0_f32.mul_add(delta_time, 6.).mul_add(delta_time, 3.));
-        });
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.x, 0.2))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.y, 0.4))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.z, 0.6))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, 7.4))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, 8.8))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 10.2));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_absolute_angular_velocity_and_rotation() {
+fn update_with_relative_acceleration_with_parent() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
-    let entity_id = app.create_entity(
+    let parent_id = app.create_entity(
+        EntityBuilder::new(TestEntity).with(
+            Transform::new()
+                .with_position(Vec3::xyz(1., 2., 3.))
+                .with_size(Vec3::xyz(4., 5., 6.))
+                .with_rotation(Quat::from_z(PI)),
+        ),
+    );
+    let entity_id = app.create_child(
+        parent_id,
         EntityBuilder::new(TestEntity)
-            .with(Rotation::from(Quat::from_z(FRAC_PI_2)))
-            .with(AngularVelocity::from(Quat::from_z(FRAC_PI_4)))
-            .with(AngularAcceleration::from(Quat::from_z(FRAC_PI_8))),
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(5., 5., 5.))
+                    .with_size(Vec3::xyz(5., 5., 5.)),
+            )
+            .with(RelativeTransform::new().with_position(Vec3::xyz(7., 8., 9.)))
+            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has::<AngularAcceleration, _>(|a| {
-            assert_abs_diff_eq!(a.axis().unwrap().z, 1., epsilon = 0.000_01);
-        })
-        .has::<AngularAcceleration, _>(|a| {
-            assert_abs_diff_eq!(a.angle(), FRAC_PI_8, epsilon = 0.000_001);
-        })
-        .has::<AngularVelocity, _>(|v| {
-            assert_abs_diff_eq!(v.axis().unwrap().z, 1., epsilon = 0.000_01);
-        })
-        .has::<AngularVelocity, _>(|v| {
-            assert_abs_diff_eq!(v.angle(), FRAC_PI_2, epsilon = 0.000_001);
-        })
-        .has::<Rotation, _>(|r| assert_abs_diff_eq!(r.axis().unwrap().z, 1., epsilon = 0.000_01))
-        .has::<Rotation, _>(|r| {
-            assert_abs_diff_eq!(r.angle(), 3. * FRAC_PI_2, epsilon = 0.000_01);
-        });
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.x, 0.2))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.y, 0.4))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.velocity.z, 0.6))
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.position.unwrap().x, 7.4))
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.position.unwrap().y, 8.8))
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.position.unwrap().z, 10.2))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, -28.6, epsilon = 0.000_01))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, -42., epsilon = 0.000_01))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 64.2, epsilon = 0.000_01));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_relative_angular_velocity_and_rotation() {
+fn update_with_absolute_angular_acceleration() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(RelativeRotation::from(Quat::from_z(FRAC_PI_2)))
-            .with(RelativeAngularVelocity::from(Quat::from_z(FRAC_PI_4)))
-            .with(RelativeAngularAcceleration::from(Quat::from_z(FRAC_PI_8))),
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(1., 2., 3.))
+                    .with_size(Vec3::xyz(4., 5., 6.)),
+            )
+            .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_4))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
     app.update();
     app.assert_entity(entity_id)
-        .has::<RelativeAngularAcceleration, _>(|a| {
-            assert_abs_diff_eq!(a.axis().unwrap().z, 1., epsilon = 0.000_01);
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2, epsilon = 0.000_001);
         })
-        .has::<RelativeAngularAcceleration, _>(|a| {
-            assert_abs_diff_eq!(a.angle(), FRAC_PI_8, epsilon = 0.000_001);
-        })
-        .has::<RelativeAngularVelocity, _>(|v| {
-            assert_abs_diff_eq!(v.axis().unwrap().z, 1., epsilon = 0.000_01);
-        })
-        .has::<RelativeAngularVelocity, _>(|v| {
-            assert_abs_diff_eq!(v.angle(), FRAC_PI_2, epsilon = 0.000_001);
-        })
-        .has::<RelativeRotation, _>(|r| {
-            assert_abs_diff_eq!(r.axis().unwrap().z, 1., epsilon = 0.000_01);
-        })
-        .has::<RelativeRotation, _>(|r| {
-            assert_abs_diff_eq!(r.angle(), 3. * FRAC_PI_2, epsilon = 0.000_01);
-        });
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().x, 0.))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().y, 0.))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().z, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.angle(), PI, epsilon = 0.000_01))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().x, 0.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().y, 0.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().z, 1.));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_absolute_position_from_relative_position() {
+fn update_with_relative_angular_acceleration_without_parent() {
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let entity_id = app.create_entity(
+        EntityBuilder::new(TestEntity)
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(5., 5., 5.))
+                    .with_size(Vec3::xyz(5., 5., 5.)),
+            )
+            .with(RelativeTransform::new().with_rotation(Quat::from_z(FRAC_PI_2)))
+            .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_4))),
+    );
+    let delta_time = 2.;
+    app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
+    app.update();
+    app.assert_entity(entity_id)
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_2, epsilon = 0.000_001);
+        })
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().x, 0.))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().y, 0.))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().z, 1.))
+        .has(|t: &Transform| {
+            assert_abs_diff_eq!(t.rotation.angle(), 3. * FRAC_PI_2, epsilon = 0.000_01);
+        })
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().x, 0.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().y, 0.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.axis().unwrap().z, 1.));
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_with_relative_angular_acceleration_with_parent() {
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let parent_id = app.create_entity(
+        EntityBuilder::new(TestEntity).with(
+            Transform::new()
+                .with_position(Vec3::xyz(1., 2., 3.))
+                .with_size(Vec3::xyz(4., 5., 6.))
+                .with_rotation(Quat::from_z(PI)),
+        ),
+    );
+    let entity_id = app.create_child(
+        parent_id,
+        EntityBuilder::new(TestEntity)
+            .with(
+                Transform::new()
+                    .with_position(Vec3::xyz(5., 5., 5.))
+                    .with_size(Vec3::xyz(5., 5., 5.)),
+            )
+            .with(RelativeTransform::new().with_rotation(Quat::from_z(FRAC_PI_2)))
+            .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_8))),
+    );
+    let delta_time = 2.;
+    app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
+    app.update();
+    app.assert_entity(entity_id)
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.angle(), FRAC_PI_4, epsilon = 0.000_01);
+        })
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().x, 0.))
+        .has(|b: &DynamicBody| assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().y, 0.))
+        .has(|b: &DynamicBody| {
+            assert_abs_diff_eq!(b.angular_velocity.axis().unwrap().z, 1., epsilon = 0.000_01);
+        })
+        .has(|t: &RelativeTransform| {
+            assert_abs_diff_eq!(t.rotation.unwrap().angle(), PI, epsilon = 0.000_01);
+        })
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.rotation.unwrap().axis().unwrap().x, 0.))
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.rotation.unwrap().axis().unwrap().y, 0.))
+        .has(|t: &RelativeTransform| assert_abs_diff_eq!(t.rotation.unwrap().axis().unwrap().z, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.rotation.angle(), 2. * PI, epsilon = 0.000_01))
+        .has(|t: &Transform| assert!(t.rotation.axis().is_none()));
+}
+
+#[test]
+fn update_hierarchically() {
     let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
     let entity1_id = app.create_entity(
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::from(Vec3::xyz(1., 2., 3.)))
-            .with(Velocity::from(Vec3::xyz(0.1, 0.2, 0.3)))
-            .with(Position::from(Vec3::xyz(0., 0., 0.)))
-            .with(Size::from(Vec3::xyz(1., 1., 1.))),
+            .with(Transform::default())
+            .with(
+                RelativeTransform::new()
+                    .with_position(Vec3::xyz(1., 2., 3.))
+                    .with_size(Vec3::xyz(1., 1., 1.)),
+            ),
     );
     let entity2_id = app.create_child(
         entity1_id,
-        EntityBuilder::new(TestEntity).with(Position::from(Vec3::xyz(3., 2., 1.))),
-    );
-    let entity3_id = app.create_child(
-        entity2_id,
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::from(Vec3::xyz(4., 5., 6.)))
-            .with(Position::from(Vec3::xyz(0., 0., 0.)))
-            .with(Size::from(Vec3::xyz(0.1, 0.2, 0.5)))
-            .with(Rotation::from(Quat::from_z(FRAC_PI_2))),
+            .with(Transform::default())
+            .with(
+                RelativeTransform::new()
+                    .with_position(Vec3::xyz(0.1, 0.2, 0.3))
+                    .with_size(Vec3::xyz(1., 1., 1.)),
+            ),
     );
+    let entity3_id = app.create_child(entity2_id, EntityBuilder::new(TestEntity));
     let entity4_id = app.create_child(
         entity3_id,
         EntityBuilder::new(TestEntity)
-            .with(RelativePosition::from(Vec3::xyz(7., 8., 9.)))
-            .with(Position::from(Vec3::xyz(0., 0., 0.)))
-            .with(Size::from(Vec3::xyz(1., 1., 1.))),
+            .with(Transform::default())
+            .with(
+                RelativeTransform::new()
+                    .with_position(Vec3::xyz(0., 0., 0.))
+                    .with_size(Vec3::xyz(0.1, 0.2, 0.3)),
+            ),
     );
     app.update();
     app.assert_entity(entity1_id)
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.x, 1.))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.y, 2.))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.z, 3.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.x, 1.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.y, 2.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.z, 3.));
-    app.assert_entity(entity3_id)
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.x, 5.))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.y, 7.))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.z, 9.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.x, 4.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.y, 5.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.z, 6.));
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, 2.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 3.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.x, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.y, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.z, 1.));
+    app.assert_entity(entity2_id)
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, 1.1))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, 2.2))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 3.3))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.x, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.y, 1.))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.z, 1.));
     app.assert_entity(entity4_id)
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.x, 6.6))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.y, 6.3))
-        .has::<Position, _>(|p| assert_abs_diff_eq!(p.z, 13.5))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.x, 7.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.y, 8.))
-        .has::<RelativePosition, _>(|p| assert_abs_diff_eq!(p.z, 9.));
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_absolute_rotations_from_relative_rotations() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
-    let entity1_id = app.create_entity(
-        EntityBuilder::new(TestEntity)
-            .with(Position::from(Vec3::xyz(0., 0., 0.)))
-            .with(Size::from(Vec3::ONE))
-            .with(Rotation::from(Quat::ZERO))
-            .with(RelativeRotation::from(Quat::from_z(FRAC_PI_2))),
-    );
-    let entity2_id = app.create_child(
-        entity1_id,
-        EntityBuilder::new(TestEntity).with(Position::from(Vec3::xyz(3., 2., 1.))),
-    );
-    let entity3_id = app.create_child(
-        entity2_id,
-        EntityBuilder::new(TestEntity)
-            .with(Position::from(Vec3::ZERO))
-            .with(Size::from(Vec3::ONE))
-            .with(Rotation::from(Quat::ZERO))
-            .with(RelativeRotation::from(Quat::from_z(FRAC_PI_4))),
-    );
-    let entity4_id = app.create_child(
-        entity3_id,
-        EntityBuilder::new(TestEntity)
-            .with(Position::from(Vec3::ZERO))
-            .with(Size::from(Vec3::ONE))
-            .with(Rotation::from(Quat::ZERO))
-            .with(RelativeRotation::from(Quat::from_z(-FRAC_PI_8))),
-    );
-    app.update();
-    app.assert_entity(entity1_id)
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().z, 1.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.angle(), FRAC_PI_2))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().z, 1.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.angle(), FRAC_PI_2));
-    app.assert_entity(entity3_id)
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().z, 1.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.angle(), 3. * FRAC_PI_4))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().z, 1.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.angle(), FRAC_PI_4));
-    app.assert_entity(entity4_id)
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().z, -1.))
-        .has::<Rotation, _>(|p| assert_abs_diff_eq!(p.angle(), 11. * FRAC_PI_8, epsilon = 0.000_01))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().x, 0.))
-        .has::<RelativeRotation, _>(|p| assert_abs_diff_eq!(p.axis().unwrap().y, 0.))
-        .has::<RelativeRotation, _>(|p| {
-            assert_abs_diff_eq!(p.axis().unwrap().z, 1., epsilon = 0.000_001);
-        })
-        .has::<RelativeRotation, _>(|p| {
-            assert_abs_diff_eq!(p.angle(), PI.mul_add(2., -FRAC_PI_8), epsilon = 0.000_001);
-        });
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_absolute_size() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
-    let entity1_id = app.create_entity(
-        EntityBuilder::new(TestEntity)
-            .with(Size::from(Vec3::xyz(0., 0., 0.)))
-            .with(RelativeSize::from(Vec3::xyz(1., 2., 3.))),
-    );
-    let entity2_id = app.create_child(entity1_id, EntityBuilder::new(TestEntity));
-    let entity3_id = app.create_child(
-        entity2_id,
-        EntityBuilder::new(TestEntity)
-            .with(Size::from(Vec3::xyz(0., 0., 0.)))
-            .with(RelativeSize::from(Vec3::xyz(0.1, 0.2, 0.5)))
-            .with(Shape::Rectangle2D),
-    );
-    let entity4_id = app.create_child(
-        entity3_id,
-        EntityBuilder::new(TestEntity)
-            .with(Size::from(Vec3::xyz(0., 0., 0.)))
-            .with(RelativeSize::from(Vec3::xyz(0.5, 0.2, 0.1))),
-    );
-    app.update();
-    app.assert_entity(entity1_id)
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.x, 1.))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.y, 2.))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.z, 3.))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.x, 1.))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.y, 2.))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.z, 3.));
-    app.assert_entity(entity3_id)
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.x, 0.1))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.y, 0.4))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.z, 1.5))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.x, 0.1))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.y, 0.2))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.z, 0.5));
-    app.assert_entity(entity4_id)
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.x, 0.05))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.y, 0.08))
-        .has::<Size, _>(|s| assert_abs_diff_eq!(s.z, 0.15))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.x, 0.5))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.y, 0.2))
-        .has::<RelativeSize, _>(|s| assert_abs_diff_eq!(s.z, 0.1));
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.x, 1.1))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.y, 2.2))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.position.z, 3.3))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.x, 0.1))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.y, 0.2))
+        .has(|t: &Transform| assert_abs_diff_eq!(t.size.z, 0.3));
 }

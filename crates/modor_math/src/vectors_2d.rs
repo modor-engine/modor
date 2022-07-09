@@ -41,7 +41,7 @@ impl Vec2 {
 
     /// Converts to a 3D vector with the same x and y coordinates, and a chosen `z` coordinate.
     #[must_use]
-    pub fn with_z(self, z: f32) -> Vec3 {
+    pub const fn with_z(self, z: f32) -> Vec3 {
         Vec3::xyz(self.x, self.y, z)
     }
 

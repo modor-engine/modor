@@ -1,7 +1,7 @@
 use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Vertex;
 use crate::backend::renderer::Renderer;
-use modor_physics::Shape;
+use crate::{Mesh, Shape};
 use typed_index_collections::TiVec;
 
 const RECTANGLE_VERTICES: [Vertex; 4] = [
@@ -36,10 +36,9 @@ impl ModelStorage {
         }
     }
 
-    #[allow(clippy::unused_self)] // will be used in the future
-    pub(super) fn idx(&self, shape: &Shape) -> ModelIdx {
-        match shape {
-            Shape::Rectangle2D | Shape::Circle2D => ModelIdx(0),
+    pub(super) fn idx(mesh: &Mesh) -> ModelIdx {
+        match mesh.shape {
+            Shape::Rectangle | Shape::Ellipse => ModelIdx(0),
         }
     }
 

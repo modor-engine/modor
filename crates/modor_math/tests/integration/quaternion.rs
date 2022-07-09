@@ -63,6 +63,17 @@ fn create_from_z() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn create_with_scale() {
+    let quat = Quat::from_x(FRAC_PI_4).with_scale(2.);
+    let axis = quat.axis().unwrap();
+    assert_abs_diff_eq!(quat.angle(), FRAC_PI_2, epsilon = 0.000_001);
+    assert_abs_diff_eq!(axis.x, 1.);
+    assert_abs_diff_eq!(axis.y, 0.);
+    assert_abs_diff_eq!(axis.z, 0.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_with_rotation() {
     let quat = Quat::from_axis_angle(Vec3::xyz(1., 0., 0.), FRAC_PI_2);
     let new_quat = quat.with_rotation(Quat::from_axis_angle(Vec3::xyz(1., 0., 0.), FRAC_PI_4));

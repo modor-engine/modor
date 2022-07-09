@@ -3,11 +3,10 @@
 use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
 use modor_graphics::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, ShapeColor, SurfaceSize,
-    WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
 };
 use modor_math::Vec3;
-use modor_physics::{DeltaTime, Position, Shape, Size, Velocity};
+use modor_physics::{DeltaTime, DynamicBody, Transform};
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::Duration;
@@ -32,10 +31,7 @@ impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(
-                Position::from(Vec3::xy(0., 0.)),
-                Size::from(Vec3::xy(1.5, 1.5)),
-            ))
+            .with_child(Camera2D::build(Vec3::xy(0., 0.), Vec3::xy(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -56,14 +52,16 @@ impl Sprite {
         EntityBuilder::new(Self {
             next_update: Instant::now(),
         })
-        .with(Position::from(Vec3::xy(
-            Self::random_f32(&mut rng),
-            Self::random_f32(&mut rng),
-        )))
-        .with(Size::from(Vec3::xy(0.01, 0.01)))
-        .with(Velocity::from(Vec3::xy(0., 0.)))
-        .with(Shape::Circle2D)
-        .with(ShapeColor::from(Color::rgb(
+        .with(
+            Transform::new()
+                .with_position(Vec3::xy(
+                    Self::random_f32(&mut rng),
+                    Self::random_f32(&mut rng),
+                ))
+                .with_size(Vec3::ONE * 0.01),
+        )
+        .with(DynamicBody::new())
+        .with(Mesh::ellipse().with_color(Color::rgb(
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
@@ -71,10 +69,10 @@ impl Sprite {
     }
 
     #[run]
-    fn update_velocity(&mut self, velocity: &mut Velocity) {
+    fn update_velocity(&mut self, body: &mut DynamicBody) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            **velocity = Vec3::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+            body.velocity = Vec3::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
                 .with_magnitude(0.05)
                 .unwrap_or(Vec3::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(200);

@@ -26,7 +26,7 @@
 //! # }
 //! ```
 //!
-//! Examples of [`ShapeColor`](crate::ShapeColor) show how to create renderable shapes.
+//! Examples of [`Mesh`](crate::Mesh) show how to create renderable shapes.
 
 #[macro_use]
 extern crate modor;
@@ -43,7 +43,7 @@ mod utils;
 
 pub mod testing;
 
-pub use components::shape_color::*;
+pub use components::mesh::*;
 pub use data::*;
 pub use entities::background::*;
 pub use entities::camera::*;

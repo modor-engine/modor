@@ -29,6 +29,9 @@ impl QueryTester {
         let (left, right) = query.get_both_mut(4, 2);
         assert_eq!(left.map(|v| v.0), Some(2));
         assert_eq!(right.map(|v| v.0), Some(1));
+        let (left, right) = query.get_both_mut(2, 4);
+        assert_eq!(left.map(|v| v.0), Some(1));
+        assert_eq!(right.map(|v| v.0), Some(2));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(150));

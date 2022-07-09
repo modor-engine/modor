@@ -6,20 +6,14 @@ use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{utils, Color, ShapeColor, SurfaceSize};
+use crate::{utils, Color, Mesh, SurfaceSize};
 use modor::Query;
 use modor_math::{Mat4, Vec3};
-use modor_physics::{Position, Rotation, Shape, Size};
+use modor_physics::Transform;
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
-pub(crate) type ShapeComponents<'a> = (
-    &'a ShapeColor,
-    &'a Position,
-    &'a Size,
-    Option<&'a Rotation>,
-    Option<&'a Shape>,
-);
+pub(crate) type ShapeComponents<'a> = (&'a Transform, &'a Mesh);
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -58,18 +52,16 @@ impl CoreStorage {
     pub(crate) fn update_instances(
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
-        camera: CameraProperties,
+        camera_transform: &Transform,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, p, _, _, _)| p.z));
-        for (color, position, size, rotation, shape) in shapes.iter() {
-            let instance =
-                Self::create_instance(*color, *position, rotation.copied(), *size, depth_bounds);
-            let shape = shape.unwrap_or(&Shape::Rectangle2D);
-            let shader_idx = self.shaders.idx(shape);
-            let model_idx = self.models.idx(shape);
-            if color.a > 0. && color.a < 1. {
+        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(t, _)| t.position.z));
+        for (transform, mesh) in shapes.iter() {
+            let instance = Self::create_instance(transform, mesh, depth_bounds);
+            let shader_idx = ShaderStorage::idx(mesh);
+            let model_idx = ModelStorage::idx(mesh);
+            if mesh.color.a > 0. && mesh.color.a < 1. {
                 self.transparent_instances
                     .add(instance, shader_idx, model_idx);
             } else {
@@ -79,7 +71,7 @@ impl CoreStorage {
         }
         self.transparent_instances.sort();
         self.camera_2d.buffer_mut().data_mut()[0] =
-            Self::create_camera_data(camera, &self.renderer);
+            Self::create_camera_data(camera_transform, &self.renderer);
     }
 
     pub(crate) fn render(&mut self, background_color: Color) {
@@ -107,47 +99,33 @@ impl CoreStorage {
         })
     }
 
-    fn create_instance(
-        color: ShapeColor,
-        position: Position,
-        rotation: Option<Rotation>,
-        size: Size,
-        depth_bounds: (f32, f32),
-    ) -> Instance {
+    fn create_instance(transform: &Transform, mesh: &Mesh, depth_bounds: (f32, f32)) -> Instance {
         let (min_z, max_z) = depth_bounds;
-        let z_position = MAX_DEPTH - utils::normalize(position.z, min_z, max_z, 0., MAX_DEPTH);
-        let position = Vec3::xyz(position.x, position.y, z_position);
-        let transform_matrix = rotation.map_or_else(
-            || Mat4::from_position_scale(position, *size),
-            |r| Mat4::from_scale(*size) * r.matrix() * Mat4::from_position(position),
-        );
+        let z_position =
+            MAX_DEPTH - utils::normalize(transform.position.z, min_z, max_z, 0., MAX_DEPTH);
+        let mut transform = transform.clone();
+        transform.position.z = z_position;
         Instance {
-            transform: transform_matrix.to_array(),
-            color: [color.r, color.g, color.b, color.a],
+            transform: transform.create_matrix().to_array(),
+            color: mesh.color.into(),
         }
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn create_camera_data(camera: CameraProperties, renderer: &Renderer) -> Camera {
+    fn create_camera_data(camera_transform: &Transform, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
         let (x_scale, y_scale) = utils::world_scale(size);
-        let position = Vec3::xy(-camera.position.x, -camera.position.y);
+        let position = Vec3::xy(-camera_transform.position.x, -camera_transform.position.y);
         let scale = Vec3::xyz(
-            2. * x_scale / camera.size.x,
-            2. * y_scale / camera.size.y,
+            2. * x_scale / camera_transform.size.x,
+            2. * y_scale / camera_transform.size.y,
             1.,
         );
         Camera {
             transform: (Mat4::from_position(position)
-                * camera.rotation.matrix()
+                * camera_transform.rotation.matrix()
                 * Mat4::from_scale(scale))
             .to_array(),
         }
     }
-}
-
-pub(crate) struct CameraProperties {
-    pub(crate) position: Position,
-    pub(crate) size: Size,
-    pub(crate) rotation: Rotation,
 }
