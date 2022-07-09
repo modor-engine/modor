@@ -20,10 +20,6 @@ impl SurfaceSize {
 }
 
 /// A color.
-///
-/// # Examples
-///
-/// See [`ShapeColor`](crate::ShapeColor).
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
     /// Red component between `0.0` and `1.0`.
