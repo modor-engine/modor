@@ -1,3 +1,4 @@
+use crate::Quat;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 /// A vector in a 3D space.
@@ -101,12 +102,50 @@ impl Vec3 {
     /// Returns the Euclidean distance with `other`.
     #[must_use]
     pub fn distance(self, other: Self) -> f32 {
-        let x_diff = self.x - other.x;
-        let y_diff = self.y - other.y;
-        let z_diff = self.z - other.z;
-        x_diff
-            .mul_add(x_diff, y_diff.mul_add(y_diff, z_diff.powi(2)))
-            .sqrt()
+        (self - other).magnitude()
+    }
+
+    // TODO: add below methods also for Vec2
+
+    #[must_use]
+    pub fn rotation(self, other: Self) -> Quat {
+        let cross = self.cross(other);
+        let w = self.magnitude() * other.magnitude() + self.dot(other);
+        let magnitude = cross
+            .x
+            .mul_add(
+                cross.x,
+                cross
+                    .y
+                    .mul_add(cross.y, cross.z.mul_add(cross.z, w.powi(2))),
+            )
+            .sqrt();
+        Quat {
+            x: cross.x / magnitude,
+            y: cross.y / magnitude,
+            z: cross.z / magnitude,
+            w: w / magnitude,
+        }
+    }
+
+    #[must_use]
+    pub fn dot(self, other: Self) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    #[must_use]
+    pub fn cross(self, other: Self) -> Vec3 {
+        Vec3::xyz(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    }
+
+    #[must_use]
+    pub fn mirror(self, axis_direction: Self) -> Vec3 {
+        let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec3::ZERO);
+        self - axis * self.dot(axis) * 2.
     }
 }
 

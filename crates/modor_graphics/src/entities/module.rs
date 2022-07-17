@@ -64,7 +64,7 @@ impl GraphicsModule {
     pub fn build(settings: WindowSettings) -> impl Built<Self> {
         EntityBuilder::new(Self(PhantomData))
             .with_child(WindowInit::build(settings))
-            .with_dependency(PhysicsModule::build())
+            .with_dependency(PhysicsModule::build::<()>())
             .with_dependency(InputModule::build())
     }
     // coverage: on
@@ -78,7 +78,7 @@ impl GraphicsModule {
     pub fn build_windowless(capture_size: SurfaceSize) -> impl Built<Self> {
         EntityBuilder::new(Self(PhantomData))
             .with_child(Capture::build(capture_size))
-            .with_dependency(PhysicsModule::build())
+            .with_dependency(PhysicsModule::build::<()>())
     }
 }
 

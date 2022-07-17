@@ -32,6 +32,7 @@ use std::marker::PhantomData;
 ///     }
 /// }
 /// ```
+#[derive(Clone, Debug)]
 pub struct Mesh {
     /// Color of the entity.
     pub color: Color,
@@ -74,6 +75,7 @@ impl Mesh {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum Shape {
     Rectangle,
     Ellipse,

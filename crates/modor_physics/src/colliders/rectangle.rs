@@ -1,0 +1,48 @@
+use crate::colliders::convex_shape::{ConvexShape, ConvexShapeProperties};
+use crate::colliders::{CollisionCheck, CollisionDetails, ShapeCollider};
+use crate::entities::collisions::CollisionGroupRelationship;
+use crate::Transform;
+use modor_math::{Mat4, Vec3};
+use smallvec::smallvec;
+
+pub(crate) struct RectangleCollider {
+    matrix: Mat4,
+    ignore_z: bool,
+}
+
+impl RectangleCollider {
+    pub(crate) fn new(transform: &Transform, relationship: &CollisionGroupRelationship) -> Self {
+        Self {
+            matrix: transform.create_matrix(),
+            ignore_z: relationship.ignore_z,
+        }
+    }
+}
+
+impl ConvexShape for RectangleCollider {
+    fn properties(&self) -> ConvexShapeProperties {
+        let point1 = self.matrix * Vec3::xy(-0.5, 0.5);
+        let point2 = self.matrix * Vec3::xy(-0.5, -0.5);
+        let point3 = self.matrix * Vec3::xy(0.5, -0.5);
+        let point4 = self.matrix * Vec3::xy(0.5, 0.5);
+        let x_axis = point3 - point2;
+        let y_axis = point1 - point2;
+        ConvexShapeProperties {
+            axes: if self.ignore_z {
+                smallvec![x_axis, y_axis]
+            } else {
+                smallvec![x_axis, y_axis, x_axis.cross(y_axis)]
+            },
+            points: smallvec![point1, point2, point3, point4],
+        }
+    }
+}
+
+impl CollisionCheck for RectangleCollider {
+    fn check_collision(&self, other: &ShapeCollider) -> Option<CollisionDetails> {
+        match other {
+            ShapeCollider::Rectangle(other) => ConvexShape::check_collision(self, other),
+            ShapeCollider::Circle(other) => ConvexShape::check_collision(self, other),
+        }
+    }
+}

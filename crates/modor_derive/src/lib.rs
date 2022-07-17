@@ -35,6 +35,8 @@ pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemStruct);
     let crate_ident = crate_name::find_crate_ident(item.span());
     let type_name = &item.ident;
+    let generics = &item.generics;
+    let (impl_generics, _generics, where_clause) = generics.split_for_impl();
     let actions: Vec<_> = Punctuated::<Ident, Token![,]>::parse_terminated
         .parse(attr)
         .unwrap_or_abort()
@@ -43,7 +45,7 @@ pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
     let output = quote! {
         #item
 
-        impl #crate_ident::Action for #type_name {
+        impl #impl_generics #crate_ident::Action for #type_name #where_clause {
             type Constraint = (#(#crate_ident::DependsOn<#actions>,)*);
         }
     };
@@ -55,6 +57,8 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
     let crate_ident = crate_name::find_crate_ident(item.span());
     let cleaned_block = impl_block::clean(&item);
     let type_name = &item.self_ty;
+    let generics = &item.generics;
+    let (impl_generics, _generics, where_clause) = generics.split_for_impl();
     let entity_type = if is_singleton {
         quote!(#crate_ident::Singleton)
     } else {
@@ -64,7 +68,7 @@ fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> Tok
     let output = quote! {
         #cleaned_block
 
-        impl #crate_ident::EntityMainComponent for #type_name {
+        impl #impl_generics #crate_ident::EntityMainComponent for #type_name #where_clause {
             type Type = #entity_type;
 
             fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::SystemRunner<'_> {

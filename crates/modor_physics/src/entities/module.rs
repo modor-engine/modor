@@ -1,10 +1,12 @@
 use crate::components::dynamic_body::DynamicBody;
 use crate::components::relative_transform::RelativeTransform;
 use crate::components::transform::Transform;
+use crate::entities::collisions::internal::UpdateCollidersAction;
+use crate::entities::collisions::Collisions;
 use crate::entities::module::internal::{
     UpdateDynamicBodiesAction, UpdateTransformsFromRelativeAction,
 };
-use crate::{DeltaTime, ROOT_TRANSFORM};
+use crate::{CollisionGroup, DeltaTime, ROOT_TRANSFORM};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 use std::marker::PhantomData;
 
@@ -24,7 +26,7 @@ use std::marker::PhantomData;
 /// # use modor_physics::{Transform, PhysicsModule, DynamicBody, RelativeTransform};
 /// #
 /// let mut app = App::new()
-///     .with_entity(PhysicsModule::build())
+///     .with_entity(PhysicsModule::build::<()>())
 ///     .with_entity(Object::build());
 /// loop {
 ///     app.update();
@@ -52,9 +54,16 @@ pub struct PhysicsModule(PhantomData<()>);
 
 #[singleton]
 impl PhysicsModule {
-    /// Builds the module.
-    pub fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(PhantomData)).with_child(DeltaTime::build())
+    /// Builds the module with a [`CollisionGroup`](crate::CollisionGroup) type `G`.
+    ///
+    /// `()` can be used as collision group type if collisions are not needed.
+    pub fn build<G>() -> impl Built<Self>
+    where
+        G: CollisionGroup,
+    {
+        EntityBuilder::new(Self(PhantomData))
+            .with_child(DeltaTime::build())
+            .with_child(Collisions::build::<G>())
     }
 
     #[run_as(UpdateDynamicBodiesAction)]
@@ -105,11 +114,11 @@ impl PhysicsModule {
     }
 }
 
-/// An action done when the positions and sizes have been updated.
-#[action(UpdateTransformsFromRelativeAction)]
+/// An action done when the positions, sizes, rotations and colliders have been updated.
+#[action(UpdateTransformsFromRelativeAction, UpdateCollidersAction)]
 pub struct UpdatePhysicsAction;
 
-mod internal {
+pub(crate) mod internal {
     #[action]
     pub struct UpdateDynamicBodiesAction;
 

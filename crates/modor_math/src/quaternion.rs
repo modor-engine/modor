@@ -6,10 +6,10 @@ use std::ops::{Mul, MulAssign};
 /// A quaternion used to store a rotation.
 #[derive(Clone, Copy, Debug)]
 pub struct Quat {
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) z: f32,
+    pub(crate) w: f32,
 }
 
 impl Default for Quat {

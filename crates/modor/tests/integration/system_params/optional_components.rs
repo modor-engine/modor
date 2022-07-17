@@ -4,12 +4,16 @@ use modor::{App, Built, EntityBuilder, Query, SingleMut, With};
 
 struct QueryTester {
     done: bool,
+    done_complex: bool,
 }
 
 #[singleton]
 impl QueryTester {
     fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self { done: false })
+        EntityBuilder::new(Self {
+            done: false,
+            done_complex: false,
+        })
     }
 
     #[run]
@@ -35,6 +39,17 @@ impl QueryTester {
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(200));
     }
+
+    #[run]
+    fn collect_complex(&mut self, mut query: Query<'_, (&Value, Option<&u32>), With<Number>>) {
+        let values = [Some(1), Some(2), None];
+        assert_iter(query.iter().map(|v| v.1.map(|v| *v)), values);
+        assert_iter(query.iter_mut().map(|v| v.1.map(|v| *v)), values);
+        let rev_values = [None, Some(2), Some(1)];
+        assert_iter(query.iter().rev().map(|v| v.1.map(|v| *v)), rev_values);
+        assert_iter(query.iter_mut().rev().map(|v| v.1.map(|v| *v)), rev_values);
+        self.done_complex = true;
+    }
 }
 
 struct StreamCollector(Vec<Option<u32>>);
@@ -53,7 +68,7 @@ struct Number;
 #[entity]
 impl Number {
     fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Value(value))
+        EntityBuilder::new(Self).with(Value(value)).with(value)
     }
 
     fn build_without_value() -> impl Built<Self> {
@@ -99,25 +114,26 @@ fn iterate_on_component_reference() {
     app.assert_singleton::<StreamCollector>()
         .has(|c: &StreamCollector| assert_eq!(c.0, [None, Some(1), Some(2), Some(3)]));
     app.assert_singleton::<QueryTester>()
-        .has(|c: &QueryTester| assert!(c.done));
+        .has(|c: &QueryTester| assert!(c.done))
+        .has(|c: &QueryTester| assert!(c.done_complex));
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
-fn run_systems_in_parallel() {
-    modor_internal::retry!(10, {
-        let mut app: TestApp = App::new()
-            .with_thread_count(2)
-            .with_entity(QueryTester::build())
-            .with_entity(StreamCollector::build())
-            .with_entity(Number::build(1))
-            .with_entity(OtherNumber::build(10))
-            .with_entity(Number::build(2))
-            .with_entity(Number::build_without_value())
-            .with_entity(Number::build_with_additional_component(3))
-            .into();
-        let start = instant::Instant::now();
-        app.update();
-        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
-    });
-}
+// #[test]
+// #[cfg(not(target_arch = "wasm32"))]
+// fn run_systems_in_parallel() {
+//     modor_internal::retry!(10, {
+//         let mut app: TestApp = App::new()
+//             .with_thread_count(2)
+//             .with_entity(QueryTester::build())
+//             .with_entity(StreamCollector::build())
+//             .with_entity(Number::build(1))
+//             .with_entity(OtherNumber::build(10))
+//             .with_entity(Number::build(2))
+//             .with_entity(Number::build_without_value())
+//             .with_entity(Number::build_with_additional_component(3))
+//             .into();
+//         let start = instant::Instant::now();
+//         app.update();
+//         assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
+//     });
+// }

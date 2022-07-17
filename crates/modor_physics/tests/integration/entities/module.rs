@@ -14,7 +14,7 @@ impl TestEntity {}
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_absolute_acceleration() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
             .with(
@@ -39,7 +39,7 @@ fn update_with_absolute_acceleration() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_relative_acceleration_without_parent() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
             .with(
@@ -65,7 +65,7 @@ fn update_with_relative_acceleration_without_parent() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_relative_acceleration_with_parent() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let parent_id = app.create_entity(
         EntityBuilder::new(TestEntity).with(
             Transform::new()
@@ -103,7 +103,7 @@ fn update_with_relative_acceleration_with_parent() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_absolute_angular_acceleration() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
             .with(
@@ -132,7 +132,7 @@ fn update_with_absolute_angular_acceleration() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_relative_angular_acceleration_without_parent() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let entity_id = app.create_entity(
         EntityBuilder::new(TestEntity)
             .with(
@@ -164,7 +164,7 @@ fn update_with_relative_angular_acceleration_without_parent() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_with_relative_angular_acceleration_with_parent() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let parent_id = app.create_entity(
         EntityBuilder::new(TestEntity).with(
             Transform::new()
@@ -208,7 +208,7 @@ fn update_with_relative_angular_acceleration_with_parent() {
 
 #[test]
 fn update_hierarchically() {
-    let mut app: TestApp = App::new().with_entity(PhysicsModule::build()).into();
+    let mut app: TestApp = App::new().with_entity(PhysicsModule::build::<()>()).into();
     let entity1_id = app.create_entity(
         EntityBuilder::new(TestEntity)
             .with(Transform::default())

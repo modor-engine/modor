@@ -35,6 +35,7 @@ macro_rules! ti_vec {
     );
 }
 
+// TODO: replace by TiVecSafeOperations
 pub fn set_value<K, V>(vec: &mut TiVec<K, V>, idx: K, value: V)
 where
     usize: From<K>,
@@ -44,4 +45,25 @@ where
     let idx = usize::from(idx);
     (vec.len()..=idx).for_each(|_| vec.push(V::default()));
     vec[K::from(idx)] = value;
+}
+
+pub trait TiVecSafeOperations<K, V>
+where
+    usize: From<K>,
+    K: From<usize> + Copy,
+    V: Default,
+{
+    fn get_mut_or_create(&mut self, idx: K) -> &mut V;
+}
+
+impl<K, V> TiVecSafeOperations<K, V> for TiVec<K, V>
+where
+    usize: From<K>,
+    K: From<usize> + Copy,
+    V: Default,
+{
+    fn get_mut_or_create(&mut self, idx: K) -> &mut V {
+        (self.len()..=idx.into()).for_each(|_| self.push(V::default()));
+        &mut self[idx]
+    }
 }

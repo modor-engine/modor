@@ -41,6 +41,7 @@ fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
         .collect()
 }
 
+// TODO: used span are incorrect (e.g. when there is the same mut parameter)
 fn generate_system_call(method: &ImplItemMethod, attribute: &AttributeType) -> Option<TokenStream> {
     let crate_ident = crate_name::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
