@@ -17,7 +17,7 @@ impl AttributeType {
             AttributeType::Run(attribute)
             | AttributeType::RunAs(attribute)
             | AttributeType::RunAfter(attribute)
-            | AttributeType::RunAfterPrevious(attribute) => attribute.tokens.span(),
+            | AttributeType::RunAfterPrevious(attribute) => attribute.path.span(),
         }
     }
 }
