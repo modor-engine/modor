@@ -27,8 +27,10 @@
 extern crate modor;
 #[macro_use]
 extern crate modor_internal;
+extern crate core;
 
 mod colliders;
+mod collision_check;
 mod components;
 mod data;
 mod entities;

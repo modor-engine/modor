@@ -6,6 +6,8 @@ use modor_math::{Mat4, Vec3};
 use smallvec::smallvec;
 
 pub(crate) struct RectangleCollider {
+    position: Vec3,
+    size: Vec3,
     matrix: Mat4,
     ignore_z: bool,
 }
@@ -13,6 +15,8 @@ pub(crate) struct RectangleCollider {
 impl RectangleCollider {
     pub(crate) fn new(transform: &Transform, relationship: &CollisionGroupRelationship) -> Self {
         Self {
+            position: transform.position,
+            size: transform.size,
             matrix: transform.create_matrix(),
             ignore_z: relationship.ignore_z,
         }
@@ -28,6 +32,8 @@ impl ConvexShape for RectangleCollider {
         let x_axis = point3 - point2;
         let y_axis = point1 - point2;
         ConvexShapeProperties {
+            position: self.position,
+            size: self.size,
             normals: if self.ignore_z {
                 smallvec![x_axis, y_axis]
             } else {
