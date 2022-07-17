@@ -31,7 +31,7 @@ impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(Vec3::xy(0., 0.), Vec3::xy(1.5, 1.5)))
+            .with_child(Camera2D::build(Vec3::from_xy(0., 0.), Vec3::from_xy(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -54,7 +54,7 @@ impl Sprite {
         })
         .with(
             Transform::new()
-                .with_position(Vec3::xy(
+                .with_position(Vec3::from_xy(
                     Self::random_f32(&mut rng),
                     Self::random_f32(&mut rng),
                 ))
@@ -72,7 +72,7 @@ impl Sprite {
     fn update_velocity(&mut self, body: &mut DynamicBody) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            body.velocity = Vec3::xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+            body.velocity = Vec3::from_xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
                 .with_magnitude(0.05)
                 .unwrap_or(Vec3::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(200);

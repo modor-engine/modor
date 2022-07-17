@@ -1,6 +1,6 @@
 use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
 use fxhash::FxHashMap;
-use modor_internal::ti_vec;
+use modor_internal::ti_vec::TiVecSafeOperations;
 use std::any::{Any, TypeId};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use typed_index_collections::TiVec;
@@ -105,15 +105,11 @@ impl ComponentStorage {
             .expect("internal error: wrong component type when adding component")
             .get_mut()
             .expect("internal error: cannot write archetypes when adding component");
-        if let Some(archetype) = archetypes.get_mut(location.idx) {
-            if let Some(existing_component) = archetype.get_mut(location.pos) {
-                *existing_component = component;
-            } else {
-                archetype.push(component);
-                self.add_archetype(type_idx, location.idx);
-            }
+        let archetype = archetypes.get_mut_or_create(location.idx);
+        if let Some(existing_component) = archetype.get_mut(location.pos) {
+            *existing_component = component;
         } else {
-            ti_vec::set_value(archetypes, location.idx, ti_vec![component]);
+            archetype.push(component);
             self.add_archetype(type_idx, location.idx);
         }
         if is_singleton {
@@ -185,11 +181,9 @@ where
             .get_mut()
             .expect("internal error: cannot write archetypes when moving component");
         let component = archetypes[src_location.idx].swap_remove(src_location.pos);
-        if let Some(archetype) = archetypes.get_mut(dst_archetype_idx) {
-            archetype.push(component);
-        } else {
-            ti_vec::set_value(&mut *archetypes, dst_archetype_idx, ti_vec![component]);
-        }
+        archetypes
+            .get_mut_or_create(dst_archetype_idx)
+            .push(component);
     }
 
     fn delete_component(&mut self, location: EntityLocation) {

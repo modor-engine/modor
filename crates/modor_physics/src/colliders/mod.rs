@@ -38,22 +38,7 @@ trait CollisionCheck {
     fn check_collision(&self, other: &ShapeCollider) -> Option<CollisionDetails>;
 }
 
-// TODO: add also collision position
 pub(crate) struct CollisionDetails {
     pub(crate) penetration_depth: Vec3,
-}
-
-impl CollisionDetails {
-    fn is_more_accurate_than(&self, other: &Option<Self>) -> bool {
-        other
-            .as_ref()
-            .map(|o| self.penetration_depth.magnitude() < o.penetration_depth.magnitude())
-            .unwrap_or(true)
-    }
-
-    fn to_opposite(&self) -> Self {
-        Self {
-            penetration_depth: self.penetration_depth * -1.,
-        }
-    }
+    pub(crate) contact_centroid: Vec3,
 }

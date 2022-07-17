@@ -4,12 +4,13 @@ use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
-use modor_internal::ti_vec;
+use modor_internal::ti_vec::TiVecSafeOperations;
 use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(super) struct OpaqueInstanceStorage {
     instances: TiVec<ShaderIdx, TiVec<ModelIdx, Option<DynamicBuffer<Instance>>>>,
+    buffer_count: usize,
 }
 
 impl OpaqueInstanceStorage {
@@ -28,19 +29,21 @@ impl OpaqueInstanceStorage {
         model_idx: ModelIdx,
         renderer: &Renderer,
     ) {
-        if self.instances.get(shader_idx).is_none() {
-            ti_vec::set_value(&mut self.instances, shader_idx, ti_vec![]);
-        }
-        if let Some(Some(instances)) = self.instances[shader_idx].get_mut(model_idx) {
+        let instances = self
+            .instances
+            .get_mut_or_create(shader_idx)
+            .get_mut_or_create(model_idx);
+        if let Some(instances) = instances {
             instances.data_mut().push(instance);
         } else {
             let instance = DynamicBuffer::new(
                 vec![instance],
                 DynamicBufferUsage::Instance,
-                format!("modor_instance_buffer_opaque_{}", self.instances.len()),
+                format!("modor_instance_buffer_opaque_{}", self.buffer_count),
                 renderer,
             );
-            ti_vec::set_value(&mut self.instances[shader_idx], model_idx, Some(instance));
+            *instances = Some(instance);
+            self.buffer_count += 1;
         }
     }
 

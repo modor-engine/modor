@@ -30,8 +30,8 @@ impl CharacterHead {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xy(0., 0.4))
-                    .with_size(Vec3::xy(0.2, 0.2))
+                    .with_position(Vec3::from_xy(0., 0.4))
+                    .with_size(Vec3::from_xy(0.2, 0.2))
                     .with_rotation(Quat::ZERO),
             )
             .with(Mesh::rectangle().with_color(Color::BLUE))
@@ -47,8 +47,8 @@ impl CharacterBody {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xy(0., -0.1))
-                    .with_size(Vec3::xy(0.4, 0.8))
+                    .with_position(Vec3::from_xy(0., -0.1))
+                    .with_size(Vec3::from_xy(0.4, 0.8))
                     .with_rotation(Quat::ZERO),
             )
             .with(Mesh::rectangle().with_color(Color::GREEN))
@@ -72,13 +72,13 @@ fn display_hierarchy() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Center::build())
         .with_entity(Character::build(
-            Vec3::xy(0.25, 0.25),
-            Vec3::xy(0.5, 0.5),
+            Vec3::from_xy(0.25, 0.25),
+            Vec3::from_xy(0.5, 0.5),
             20.,
         ))
         .with_entity(Character::build(
-            Vec3::xy(-0.1, -0.1),
-            Vec3::xy(0.3, 0.1),
+            Vec3::from_xy(-0.1, -0.1),
+            Vec3::from_xy(0.3, 0.1),
             0.,
         ))
         .into();

@@ -21,10 +21,10 @@ use modor_math::Vec2;
 /// # };
 /// #
 /// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
-///     collector.push(MouseEvent::Scroll(Vec2::xy(0., 0.5), MouseScrollUnit::Line).into());
+///     collector.push(MouseEvent::Scroll(Vec2::new(0., 0.5), MouseScrollUnit::Line).into());
 ///     collector.push(KeyboardEvent::ReleasedKey(Key::Left).into());
 ///     collector.push(TouchEvent::Started(10).into());
-///     collector.push(TouchEvent::UpdatedPosition(10, Vec2::xy(20., 42.)).into());
+///     collector.push(TouchEvent::UpdatedPosition(10, Vec2::new(20., 42.)).into());
 ///     collector.push(GamepadEvent::Plugged(5).into());
 ///     collector.push(GamepadEvent::UpdatedAxisValue(5, GamepadAxis::LeftStickX, 0.68).into());
 /// }

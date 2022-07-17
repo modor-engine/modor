@@ -1,6 +1,7 @@
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::entities::EntityIdx;
 use modor_internal::ti_vec;
+use modor_internal::ti_vec::TiVecSafeOperations;
 use std::slice::Iter;
 use typed_index_collections::{TiSlice, TiVec};
 
@@ -89,7 +90,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let next_idxs = &mut self.next_idxs[src_archetype_idx];
-        ti_vec::set_value(next_idxs, type_idx, Some(dst_archetype_idx));
+        *next_idxs.get_mut_or_create(type_idx) = Some(dst_archetype_idx);
         Ok(dst_archetype_idx)
     }
 
@@ -110,7 +111,7 @@ impl ArchetypeStorage {
             .search_idx(&dst_type_idxs)
             .unwrap_or_else(|| self.create_archetype(dst_type_idxs));
         let previous_idxs = &mut self.previous_idxs[src_archetype_idx];
-        ti_vec::set_value(previous_idxs, type_idx, Some(dst_archetype_idx));
+        *previous_idxs.get_mut_or_create(type_idx) = Some(dst_archetype_idx);
         Ok(dst_archetype_idx)
     }
 

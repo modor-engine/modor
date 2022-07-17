@@ -44,7 +44,7 @@ impl Quarter {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xyz(0.25, 0.25, 1.))
+                    .with_position(Vec3::new(0.25, 0.25, 1.))
                     .with_size(Vec3::ONE * 0.5),
             )
             .with(Mesh::rectangle().with_color(Color::MAROON))

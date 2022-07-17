@@ -36,6 +36,7 @@ pub struct Collision {
     pub(crate) other_entity_id: usize,
     pub(crate) other_entity_group_idx: GroupIdx,
     pub(crate) normal: Vec3,
+    pub(crate) contact_centroid: Vec3,
 }
 
 impl Collision {
@@ -52,6 +53,10 @@ impl Collision {
 
     pub fn normal(&self) -> Vec3 {
         self.normal
+    }
+
+    pub fn contact_centroid(&self) -> Vec3 {
+        self.contact_centroid
     }
 }
 

@@ -65,7 +65,7 @@ impl Quat {
     #[must_use]
     pub fn axis(self) -> Option<Vec3> {
         (!self.w.powi(2).is_one()).then(|| {
-            Vec3::xyz(
+            Vec3::new(
                 self.x / (1. - self.w.powi(2)).sqrt(),
                 self.y / (1. - self.w.powi(2)).sqrt(),
                 self.z / (1. - self.w.powi(2)).sqrt(),

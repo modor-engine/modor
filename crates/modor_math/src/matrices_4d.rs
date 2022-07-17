@@ -68,7 +68,7 @@ impl Mul<Vec2> for Mat4 {
 
     fn mul(self, rhs: Vec2) -> Self::Output {
         let point = [rhs.x, rhs.y, 0., 1.];
-        Vec2::xy(
+        Vec2::new(
             Self::multiply_matrix_part(&point, &self.elements, 0),
             Self::multiply_matrix_part(&point, &self.elements, 1),
         )
@@ -80,7 +80,7 @@ impl Mul<Vec3> for Mat4 {
 
     fn mul(self, rhs: Vec3) -> Self::Output {
         let point = [rhs.x, rhs.y, rhs.z, 1.];
-        Vec3::xyz(
+        Vec3::new(
             Self::multiply_matrix_part(&point, &self.elements, 0),
             Self::multiply_matrix_part(&point, &self.elements, 1),
             Self::multiply_matrix_part(&point, &self.elements, 2),
@@ -118,5 +118,21 @@ impl Mul<Self> for Mat4 {
                 Self::multiply_matrix_part(&self.elements[3], &rhs.elements, 3),
             ],
         ])
+    }
+}
+
+impl Mul<Mat4> for Vec2 {
+    type Output = Self;
+
+    fn mul(self, rhs: Mat4) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Mul<Mat4> for Vec3 {
+    type Output = Self;
+
+    fn mul(self, rhs: Mat4) -> Self::Output {
+        rhs * self
     }
 }

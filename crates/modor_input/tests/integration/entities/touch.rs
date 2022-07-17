@@ -33,7 +33,7 @@ fn update_state() {
         assert!(!f.state().is_just_released());
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        let position = Vec2::xy(2., 5.);
+        let position = Vec2::new(2., 5.);
         c.push(TouchEvent::UpdatedPosition(1, position).into());
         c.push(TouchEvent::Ended(2).into());
     });
@@ -76,7 +76,7 @@ fn update_position() {
         assert_abs_diff_eq!(f.delta().y, 0.);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
-        let position = Vec2::xy(2., 5.);
+        let position = Vec2::new(2., 5.);
         c.push(TouchEvent::UpdatedPosition(0, position).into());
     });
     app.update();

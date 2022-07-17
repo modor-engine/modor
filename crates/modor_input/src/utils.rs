@@ -2,7 +2,7 @@ use modor_math::Vec2;
 
 #[allow(clippy::fn_params_excessive_bools)]
 pub(crate) fn normalized_direction(left: bool, right: bool, up: bool, down: bool) -> Vec2 {
-    let mut delta = Vec2::xy(0., 0.);
+    let mut delta = Vec2::new(0., 0.);
     if left {
         delta.x -= 1.;
     }

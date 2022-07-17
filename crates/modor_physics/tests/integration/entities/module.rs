@@ -19,10 +19,10 @@ fn update_with_absolute_acceleration() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(1., 2., 3.))
-                    .with_size(Vec3::xyz(4., 5., 6.)),
+                    .with_position(Vec3::new(1., 2., 3.))
+                    .with_size(Vec3::new(4., 5., 6.)),
             )
-            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
+            .with(DynamicBody::new().with_acceleration(Vec3::new(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
@@ -44,11 +44,11 @@ fn update_with_relative_acceleration_without_parent() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(5., 5., 5.))
-                    .with_size(Vec3::xyz(5., 5., 5.)),
+                    .with_position(Vec3::new(5., 5., 5.))
+                    .with_size(Vec3::new(5., 5., 5.)),
             )
-            .with(RelativeTransform::new().with_position(Vec3::xyz(7., 8., 9.)))
-            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
+            .with(RelativeTransform::new().with_position(Vec3::new(7., 8., 9.)))
+            .with(DynamicBody::new().with_acceleration(Vec3::new(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
@@ -69,8 +69,8 @@ fn update_with_relative_acceleration_with_parent() {
     let parent_id = app.create_entity(
         EntityBuilder::new(TestEntity).with(
             Transform::new()
-                .with_position(Vec3::xyz(1., 2., 3.))
-                .with_size(Vec3::xyz(4., 5., 6.))
+                .with_position(Vec3::new(1., 2., 3.))
+                .with_size(Vec3::new(4., 5., 6.))
                 .with_rotation(Quat::from_z(PI)),
         ),
     );
@@ -79,11 +79,11 @@ fn update_with_relative_acceleration_with_parent() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(5., 5., 5.))
-                    .with_size(Vec3::xyz(5., 5., 5.)),
+                    .with_position(Vec3::new(5., 5., 5.))
+                    .with_size(Vec3::new(5., 5., 5.)),
             )
-            .with(RelativeTransform::new().with_position(Vec3::xyz(7., 8., 9.)))
-            .with(DynamicBody::new().with_acceleration(Vec3::xyz(0.1, 0.2, 0.3))),
+            .with(RelativeTransform::new().with_position(Vec3::new(7., 8., 9.)))
+            .with(DynamicBody::new().with_acceleration(Vec3::new(0.1, 0.2, 0.3))),
     );
     let delta_time = 2.;
     app.run_for_singleton(|t: &mut DeltaTime| t.set(Duration::from_secs_f32(delta_time)));
@@ -108,8 +108,8 @@ fn update_with_absolute_angular_acceleration() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(1., 2., 3.))
-                    .with_size(Vec3::xyz(4., 5., 6.)),
+                    .with_position(Vec3::new(1., 2., 3.))
+                    .with_size(Vec3::new(4., 5., 6.)),
             )
             .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_4))),
     );
@@ -137,8 +137,8 @@ fn update_with_relative_angular_acceleration_without_parent() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(5., 5., 5.))
-                    .with_size(Vec3::xyz(5., 5., 5.)),
+                    .with_position(Vec3::new(5., 5., 5.))
+                    .with_size(Vec3::new(5., 5., 5.)),
             )
             .with(RelativeTransform::new().with_rotation(Quat::from_z(FRAC_PI_2)))
             .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_4))),
@@ -168,8 +168,8 @@ fn update_with_relative_angular_acceleration_with_parent() {
     let parent_id = app.create_entity(
         EntityBuilder::new(TestEntity).with(
             Transform::new()
-                .with_position(Vec3::xyz(1., 2., 3.))
-                .with_size(Vec3::xyz(4., 5., 6.))
+                .with_position(Vec3::new(1., 2., 3.))
+                .with_size(Vec3::new(4., 5., 6.))
                 .with_rotation(Quat::from_z(PI)),
         ),
     );
@@ -178,8 +178,8 @@ fn update_with_relative_angular_acceleration_with_parent() {
         EntityBuilder::new(TestEntity)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(5., 5., 5.))
-                    .with_size(Vec3::xyz(5., 5., 5.)),
+                    .with_position(Vec3::new(5., 5., 5.))
+                    .with_size(Vec3::new(5., 5., 5.)),
             )
             .with(RelativeTransform::new().with_rotation(Quat::from_z(FRAC_PI_2)))
             .with(DynamicBody::new().with_angular_acceleration(Quat::from_z(FRAC_PI_8))),
@@ -214,8 +214,8 @@ fn update_hierarchically() {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xyz(1., 2., 3.))
-                    .with_size(Vec3::xyz(1., 1., 1.)),
+                    .with_position(Vec3::new(1., 2., 3.))
+                    .with_size(Vec3::new(1., 1., 1.)),
             ),
     );
     let entity2_id = app.create_child(
@@ -224,8 +224,8 @@ fn update_hierarchically() {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xyz(0.1, 0.2, 0.3))
-                    .with_size(Vec3::xyz(1., 1., 1.)),
+                    .with_position(Vec3::new(0.1, 0.2, 0.3))
+                    .with_size(Vec3::new(1., 1., 1.)),
             ),
     );
     let entity3_id = app.create_child(entity2_id, EntityBuilder::new(TestEntity));
@@ -235,8 +235,8 @@ fn update_hierarchically() {
             .with(Transform::default())
             .with(
                 RelativeTransform::new()
-                    .with_position(Vec3::xyz(0., 0., 0.))
-                    .with_size(Vec3::xyz(0.1, 0.2, 0.3)),
+                    .with_position(Vec3::new(0., 0., 0.))
+                    .with_size(Vec3::new(0.1, 0.2, 0.3)),
             ),
     );
     app.update();

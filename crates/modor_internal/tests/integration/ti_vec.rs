@@ -1,3 +1,4 @@
+use modor_internal::ti_vec::TiVecSafeOperations;
 use modor_internal::{idx_type, ti_vec};
 use typed_index_collections::TiVec;
 
@@ -21,9 +22,9 @@ fn create_ti_vec() {
 }
 
 #[test]
-fn set_ti_vec_values() {
+fn get_mut_or_create() {
     let mut vec = TiVec::<usize, usize>::new();
-    ti_vec::set_value(&mut vec, 2, 10);
-    ti_vec::set_value(&mut vec, 1, 20);
+    *vec.get_mut_or_create(2) = 10;
+    *vec.get_mut_or_create(1) = 20;
     assert_eq!(vec, ti_vec![0, 20, 10]);
 }

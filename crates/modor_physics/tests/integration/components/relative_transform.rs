@@ -16,8 +16,8 @@ fn create_new_transform() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_customized_transform() {
     let body = RelativeTransform::new()
-        .with_position(Vec3::xyz(1., 2., 3.))
-        .with_size(Vec3::xyz(4., 5., 6.))
+        .with_position(Vec3::new(1., 2., 3.))
+        .with_size(Vec3::new(4., 5., 6.))
         .with_rotation(Quat::from_z(PI));
     assert_abs_diff_eq!(body.position.unwrap().x, 1.);
     assert_abs_diff_eq!(body.position.unwrap().y, 2.);

@@ -12,7 +12,7 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xyz(0.5, 0.5, 1.))
+                    .with_position(Vec3::new(0.5, 0.5, 1.))
                     .with_size(Vec3::ONE * 0.1),
             )
             .with(Mesh::ellipse())
@@ -22,8 +22,8 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(0.25, 0.25))
-                    .with_size(Vec3::xy(0.4, 0.25)),
+                    .with_position(Vec3::from_xy(0.25, 0.25))
+                    .with_size(Vec3::from_xy(0.4, 0.25)),
             )
             .with(Mesh::rectangle().with_color(Color::GREEN))
     }
@@ -32,8 +32,8 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(-0.25, 0.25))
-                    .with_size(Vec3::xy(0.4, 0.25)),
+                    .with_position(Vec3::from_xy(-0.25, 0.25))
+                    .with_size(Vec3::from_xy(0.4, 0.25)),
             )
             .with(Mesh::ellipse().with_color(Color::BLUE))
     }
@@ -43,7 +43,7 @@ impl Object {
 fn add_camera_with_horizontal_surface() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Camera2D::build(Vec3::xy(0.5, 0.5), Vec3::xy(3., 3.)))
+        .with_entity(Camera2D::build(Vec3::from_xy(0.5, 0.5), Vec3::from_xy(3., 3.)))
         .with_entity(Object::build_center())
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
@@ -56,7 +56,7 @@ fn add_camera_with_horizontal_surface() {
 fn add_camera_with_vertical_surface() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(200, 300)))
-        .with_entity(Camera2D::build(Vec3::xy(0.5, 0.5), Vec3::xy(3., 3.)))
+        .with_entity(Camera2D::build(Vec3::from_xy(0.5, 0.5), Vec3::from_xy(3., 3.)))
         .with_entity(Object::build_center())
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
@@ -70,8 +70,8 @@ fn add_rotated_camera() {
     let mut app: TestApp = App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Camera2D::build_rotated(
-            Vec3::xy(0.5, 0.5),
-            Vec3::xy(3., 3.),
+            Vec3::from_xy(0.5, 0.5),
+            Vec3::from_xy(3., 3.),
             Quat::from_z(45_f32.to_radians()),
         ))
         .with_entity(Object::build_center())

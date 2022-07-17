@@ -2,9 +2,38 @@ use crate::colliders::{utils, CollisionDetails};
 use modor_math::Vec3;
 use smallvec::SmallVec;
 
+pub(crate) enum Surface {
+    Segment(Vec3, Vec3),
+    Triangle(Vec3, Vec3, Vec3),
+}
+
 pub(crate) struct ConvexShapeProperties {
-    pub(crate) axes: SmallVec<[Vec3; 4]>,
+    pub(crate) normals: SmallVec<[Vec3; 4]>,
     pub(crate) points: SmallVec<[Vec3; 4]>,
+    pub(crate) surfaces: SmallVec<[Surface; 4]>,
+}
+
+pub(crate) struct ConvexShapeAxisDetails {
+    pub(crate) penetration_depth: Vec3,
+    pub(crate) ref_inside_other: bool,
+    pub(crate) other_inside_ref: bool,
+}
+
+impl ConvexShapeAxisDetails {
+    fn to_opposite(self) -> Self {
+        Self {
+            penetration_depth: -1. * self.penetration_depth,
+            ref_inside_other: self.other_inside_ref,
+            other_inside_ref: self.ref_inside_other,
+        }
+    }
+
+    fn is_more_accurate_than(&self, other: &Option<Self>) -> bool {
+        other
+            .as_ref()
+            .map(|o| self.penetration_depth.magnitude() < o.penetration_depth.magnitude())
+            .unwrap_or(true)
+    }
 }
 
 pub(crate) trait ConvexShape: Sized {
@@ -17,23 +46,37 @@ pub(crate) trait ConvexShape: Sized {
         let ref_properties = self.properties();
         let other_properties = other.properties();
         let mut best_collision = None;
-        for axis in ref_properties.axes {
+        let mut ref_inside_other = true;
+        let mut other_inside_ref = true;
+        for axis in ref_properties.normals {
             let collision = collision(axis, &ref_properties.points, &other_properties.points)?;
+            ref_inside_other =
+                ref_inside_other && collision.ref_inside_other && !collision.other_inside_ref;
             if collision.is_more_accurate_than(&best_collision) {
                 best_collision = Some(collision);
             }
         }
-        for axis in other_properties.axes {
-            let collision = collision(axis, &other_properties.points, &ref_properties.points)?;
+        for axis in other_properties.normals {
+            let collision =
+                collision(axis, &other_properties.points, &ref_properties.points)?.to_opposite();
+            other_inside_ref =
+                other_inside_ref && collision.other_inside_ref && !collision.ref_inside_other;
             if collision.is_more_accurate_than(&best_collision) {
-                best_collision = Some(collision.to_opposite());
+                best_collision = Some(collision);
             }
         }
-        best_collision
+        best_collision.map(|c| CollisionDetails {
+            penetration_depth: c.penetration_depth,
+            contact_centroid: Vec3::ZERO, // TODO: implement
+        })
     }
 }
 
-fn collision(axis: Vec3, ref_points: &[Vec3], other_points: &[Vec3]) -> Option<CollisionDetails> {
+fn collision(
+    axis: Vec3,
+    ref_points: &[Vec3],
+    other_points: &[Vec3],
+) -> Option<ConvexShapeAxisDetails> {
     let ref_min = min_projection_factor(axis, ref_points);
     let ref_max = max_projection_factor(axis, ref_points);
     let other_min = min_projection_factor(axis, other_points);
@@ -43,9 +86,11 @@ fn collision(axis: Vec3, ref_points: &[Vec3], other_points: &[Vec3]) -> Option<C
     let other_min_inside = utils::is_between(other_min, ref_min, ref_max);
     let other_max_inside = utils::is_between(other_max, ref_min, ref_max);
     if other_min_inside && other_max_inside {
-        Some(full_collision(axis, other_min, other_max, ref_min, ref_max).to_opposite())
+        Some(full_collision(axis, other_min, other_max, ref_min, ref_max, false).to_opposite())
     } else if ref_min_inside && ref_max_inside {
-        Some(full_collision(axis, ref_min, ref_max, other_min, other_max))
+        Some(full_collision(
+            axis, ref_min, ref_max, other_min, other_max, true,
+        ))
     } else if other_min_inside && ref_min_inside {
         Some(partial_collision(axis, ref_min, other_min))
     } else if other_min_inside && ref_max_inside {
@@ -59,9 +104,11 @@ fn collision(axis: Vec3, ref_points: &[Vec3], other_points: &[Vec3]) -> Option<C
     }
 }
 
-fn partial_collision(axis: Vec3, ref_factor: f32, other_factor: f32) -> CollisionDetails {
-    CollisionDetails {
+fn partial_collision(axis: Vec3, ref_factor: f32, other_factor: f32) -> ConvexShapeAxisDetails {
+    ConvexShapeAxisDetails {
         penetration_depth: axis * (other_factor - ref_factor),
+        ref_inside_other: false,
+        other_inside_ref: false,
     }
 }
 
@@ -71,7 +118,8 @@ fn full_collision(
     inner_factor2: f32,
     outer_factor1: f32,
     outer_factor2: f32,
-) -> CollisionDetails {
+    reference_inside_other: bool,
+) -> ConvexShapeAxisDetails {
     let (diff1, diff2) = if utils::is_between(inner_factor1, outer_factor1, inner_factor2) {
         (outer_factor1 - inner_factor1, outer_factor2 - inner_factor2)
     } else {
@@ -92,8 +140,10 @@ fn full_collision(
     };
     let diff_sign = if inner_outer_diff < 0. { -1. } else { 1. };
     let inner_diff = diff_sign * (inner_factor1 - inner_factor2).abs();
-    CollisionDetails {
+    ConvexShapeAxisDetails {
         penetration_depth: axis * (inner_diff + inner_outer_diff),
+        ref_inside_other: reference_inside_other,
+        other_inside_ref: !reference_inside_other,
     }
 }
 

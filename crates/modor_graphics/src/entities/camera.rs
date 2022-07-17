@@ -25,7 +25,7 @@ use modor_physics::{Transform, UpdatePhysicsAction};
 /// # use modor_graphics::Camera2D;
 /// #
 /// App::new()
-///     .with_entity(Camera2D::build(Vec3::xy(0.5, 0.7), Vec3::xy(2., 2.)));
+///     .with_entity(Camera2D::build(Vec3::from_xy(0.5, 0.7), Vec3::from_xy(2., 2.)));
 ///
 /// fn access_mouse_position(camera: Single<'_, Camera2D>) {
 ///     println!("Mouse position in 2D world: {:?}", camera.mouse_position());
@@ -43,7 +43,7 @@ impl Camera2D {
     pub fn build(position: Vec3, size: Vec3) -> impl Built<Self> {
         EntityBuilder::new(Self {
             transform_matrix: Mat4::IDENTITY,
-            mouse_position: Vec2::xy(0., 0.),
+            mouse_position: Vec2::new(0., 0.),
             finger_positions: FxHashMap::default(),
         })
         .with(Transform::new().with_position(position).with_size(size))
@@ -53,7 +53,7 @@ impl Camera2D {
     pub fn build_rotated(position: Vec3, size: Vec3, rotation: Quat) -> impl Built<Self> {
         EntityBuilder::new(Self {
             transform_matrix: Mat4::IDENTITY,
-            mouse_position: Vec2::xy(0., 0.),
+            mouse_position: Vec2::new(0., 0.),
             finger_positions: FxHashMap::default(),
         })
         .with(
@@ -90,8 +90,8 @@ impl Camera2D {
     #[run_as(UpdateCamera2DMatrixAction)]
     fn update_matrix(&mut self, transform: &Transform, window: Single<'_, Window>) {
         let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
-        let position = Vec3::xy(transform.position.x, transform.position.y);
-        let scale = Vec3::xyz(transform.size.x / x_scale, transform.size.y / y_scale, 1.);
+        let position = Vec3::from_xy(transform.position.x, transform.position.y);
+        let scale = Vec3::new(transform.size.x / x_scale, transform.size.y / y_scale, 1.);
         let rotation = transform.rotation.with_scale(-1.);
         self.transform_matrix =
             Mat4::from_scale(scale) * rotation.matrix() * Mat4::from_position(position);
@@ -116,7 +116,7 @@ impl Camera2D {
 
     #[allow(clippy::cast_precision_loss)]
     fn window_to_backend_coordinates(position: Vec2, window: &Window) -> Vec2 {
-        Vec2::xy(
+        Vec2::new(
             position.x / window.size().width as f32 - 0.5,
             0.5 - position.y / window.size().height as f32,
         )

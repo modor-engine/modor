@@ -21,8 +21,8 @@ fn create_new_body() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_customized_body() {
     let body = DynamicBody::new()
-        .with_velocity(Vec3::xyz(1., 2., 3.))
-        .with_acceleration(Vec3::xyz(4., 5., 6.))
+        .with_velocity(Vec3::new(1., 2., 3.))
+        .with_acceleration(Vec3::new(4., 5., 6.))
         .with_angular_velocity(Quat::from_z(PI))
         .with_angular_acceleration(Quat::from_z(FRAC_PI_2));
     assert_abs_diff_eq!(body.velocity.x, 1.);

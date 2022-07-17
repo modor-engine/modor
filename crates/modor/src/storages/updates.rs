@@ -2,7 +2,7 @@ use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use modor_internal::ti_vec;
+use modor_internal::ti_vec::TiVecSafeOperations;
 use std::iter::Rev;
 use std::mem;
 use std::ops::Range;
@@ -50,7 +50,7 @@ impl UpdateStorage {
 
     pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {
         self.add_modified_entity(entity_idx);
-        ti_vec::set_value(&mut self.entity_updates, entity_idx, EntityUpdate::Deletion);
+        *self.entity_updates.get_mut_or_create(entity_idx) = EntityUpdate::Deletion;
     }
 
     pub(crate) fn create_entity(
@@ -96,11 +96,7 @@ impl UpdateStorage {
             }
         } else if update.is_none() {
             self.modified_entity_idxs.push(entity_idx);
-            ti_vec::set_value(
-                &mut self.entity_updates,
-                entity_idx,
-                EntityUpdate::default(),
-            );
+            *self.entity_updates.get_mut_or_create(entity_idx) = EntityUpdate::default();
         }
     }
 }

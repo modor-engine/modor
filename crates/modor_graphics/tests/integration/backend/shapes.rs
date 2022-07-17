@@ -12,8 +12,8 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(0.25, 0.25))
-                    .with_size(Vec3::xy(0.4, 0.25)),
+                    .with_position(Vec3::from_xy(0.25, 0.25))
+                    .with_size(Vec3::from_xy(0.4, 0.25)),
             )
             .with(Mesh::rectangle().with_color(Color::GREEN))
     }
@@ -22,8 +22,8 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(-0.25, -0.25))
-                    .with_size(Vec3::xy(0.4, 0.25)),
+                    .with_position(Vec3::from_xy(-0.25, -0.25))
+                    .with_size(Vec3::from_xy(0.4, 0.25)),
             )
             .with(Mesh::ellipse().with_color(Color::BLUE))
     }

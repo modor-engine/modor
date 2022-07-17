@@ -29,8 +29,8 @@ impl Object {
         EntityBuilder::new(Self)
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(0.15, 0.15))
-                    .with_size(Vec3::xyz(0.25, 0.5, 1.)),
+                    .with_position(Vec3::from_xy(0.15, 0.15))
+                    .with_size(Vec3::new(0.25, 0.5, 1.)),
             )
             .with(DynamicBody::new().with_angular_velocity(Quat::from_z(FRAC_PI_2)))
             .with(Mesh::rectangle().with_color(Color::YELLOW))
@@ -44,7 +44,7 @@ struct Child;
 impl Child {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::new().with_size(Vec3::xyz(0.1, 0.2, 1.)))
+            .with(Transform::new().with_size(Vec3::new(0.1, 0.2, 1.)))
             .with(
                 RelativeTransform::new()
                     .with_position(Vec3::ONE * 0.5)

@@ -41,12 +41,12 @@ use std::marker::PhantomData;
 ///         EntityBuilder::new(Self)
 ///             .with(
 ///                 Transform::new()
-///                     .with_position(Vec3::xy(0.2, 0.3))
-///                     .with_size(Vec3::xyz(0.25, 0.5, 1.))
+///                     .with_position(Vec3::from_xy(0.2, 0.3))
+///                     .with_size(Vec3::new(0.25, 0.5, 1.))
 ///                     .with_rotation(Quat::from_z(20_f32.to_radians()))
 ///             )
 ///             .with(RelativeTransform::new().with_rotation(Quat::from_z(PI / 2.)))
-///             .with(DynamicBody::new().with_velocity(Vec3::xy(-0.01, 0.02)))
+///             .with(DynamicBody::new().with_velocity(Vec3::from_xy(-0.01, 0.02)))
 ///     }
 /// }
 /// ```

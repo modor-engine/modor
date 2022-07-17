@@ -54,7 +54,6 @@ impl Collisions {
                 }
             }
         }
-        println!("{relationships:?}");
         EntityBuilder::new(Self { relationships })
     }
 
@@ -80,8 +79,8 @@ impl Collisions {
                     // TODO: use circle collider ?
                     let (position1, position2) = if relationship.ignore_z {
                         (
-                            Vec3::xy(transform1.position.x, transform1.position.y),
-                            Vec3::xy(transform2.position.x, transform2.position.y),
+                            Vec3::from_xy(transform1.position.x, transform1.position.y),
+                            Vec3::from_xy(transform2.position.x, transform2.position.y),
                         )
                     } else {
                         (transform1.position, transform2.position)
@@ -99,12 +98,14 @@ impl Collisions {
                             other_entity_id: entity2.id(),
                             other_entity_group_idx: collider2.group_idx,
                             normal: collision.penetration_depth,
+                            contact_centroid: collision.contact_centroid
                         });
                         collisions.push(Collision {
                             entity_id: entity2.id(),
                             other_entity_id: entity1.id(),
                             other_entity_group_idx: collider1.group_idx,
                             normal: collision.penetration_depth * -1.,
+                            contact_centroid: collision.contact_centroid
                         });
                     }
                 }

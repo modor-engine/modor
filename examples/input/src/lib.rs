@@ -37,8 +37,8 @@ impl CustomCamera {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .inherit_from(Camera2D::build_rotated(
-                Vec3::xy(0.5, 0.5),
-                Vec3::xy(1.5, 1.5),
+                Vec3::from_xy(0.5, 0.5),
+                Vec3::from_xy(1.5, 1.5),
                 Quat::from_z(20_f32.to_radians()),
             ))
             .with(DynamicBody::new())
@@ -149,7 +149,7 @@ impl FingerState {
         EntityBuilder::new(Self { id })
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(0.5, 0.5))
+                    .with_position(Vec3::from_xy(0.5, 0.5))
                     .with_size(Vec3::ONE * 0.25),
             )
             .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
@@ -210,7 +210,7 @@ impl GamepadState {
         EntityBuilder::new(Self { id })
             .with(
                 Transform::new()
-                    .with_position(Vec3::xy(0.5, 0.5))
+                    .with_position(Vec3::from_xy(0.5, 0.5))
                     .with_size(Vec3::ONE * 0.25),
             )
             .with(DynamicBody::new())
@@ -232,7 +232,7 @@ impl GamepadState {
             let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick).with_z(0.);
             let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
             let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);
-            let velocity4 = Vec3::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
+            let velocity4 = Vec3::from_xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
             body.velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }

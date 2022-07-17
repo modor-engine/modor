@@ -115,8 +115,8 @@ impl CoreStorage {
     fn create_camera_data(camera_transform: &Transform, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
         let (x_scale, y_scale) = utils::world_scale(size);
-        let position = Vec3::xy(-camera_transform.position.x, -camera_transform.position.y);
-        let scale = Vec3::xyz(
+        let position = Vec3::from_xy(-camera_transform.position.x, -camera_transform.position.y);
+        let scale = Vec3::new(
             2. * x_scale / camera_transform.size.x,
             2. * y_scale / camera_transform.size.y,
             1.,

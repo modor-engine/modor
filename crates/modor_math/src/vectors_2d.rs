@@ -1,5 +1,7 @@
-use crate::Vec3;
+use crate::{Quat, Vec3};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
+// TODO: add support of unary operator "-" for Vec2 and Vec3
 
 /// A vector in a 2D space with `U` as unit of distance.
 #[derive(Default, Clone, Copy, Debug)]
@@ -12,37 +14,38 @@ pub struct Vec2 {
 
 impl Vec2 {
     /// A vector with all components equal to `0.0`.
-    pub const ZERO: Self = Self::xy(0., 0.);
+    pub const ZERO: Self = Self::new(0., 0.);
 
     /// A vector with all components equal to `1.0`.
-    pub const ONE: Self = Self::xy(1., 1.);
+    pub const ONE: Self = Self::new(1., 1.);
 
     /// A vector with all components equal to `-1.0`.
-    pub const NEG_ONE: Self = Self::xy(-1., -1.);
+    pub const NEG_ONE: Self = Self::new(-1., -1.);
 
     /// A vector with X component equal to `1.0`.
-    pub const X: Self = Self::xy(1., 0.);
+    pub const X: Self = Self::new(1., 0.);
 
     /// A vector with Y component equal to `1.0`.
-    pub const Y: Self = Self::xy(0., 1.);
+    pub const Y: Self = Self::new(0., 1.);
 
     /// A vector with X component equal to `-1.0`.
-    pub const NEG_X: Self = Self::xy(-1., 0.);
+    pub const NEG_X: Self = Self::new(-1., 0.);
 
     /// A vector with Y component equal to `-1.0`.
-    pub const NEG_Y: Self = Self::xy(0., -1.);
+    pub const NEG_Y: Self = Self::new(0., -1.);
 
     /// Creates a new vector.
     #[inline]
     #[must_use]
-    pub const fn xy(x: f32, y: f32) -> Self {
+    pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
     /// Converts to a 3D vector with the same x and y coordinates, and a chosen `z` coordinate.
+    #[inline]
     #[must_use]
     pub const fn with_z(self, z: f32) -> Vec3 {
-        Vec3::xyz(self.x, self.y, z)
+        Vec3::new(self.x, self.y, z)
     }
 
     /// Returned the vector rescaled using `scale`.
@@ -50,7 +53,7 @@ impl Vec2 {
     /// The returned vector is the coordinate-wise multiplication of `self` and `scale`.
     #[must_use]
     pub fn with_scale(self, scale: Self) -> Self {
-        Self::xy(self.x * scale.x, self.y * scale.y)
+        Self::new(self.x * scale.x, self.y * scale.y)
     }
 
     /// Returns the vector with the same direction and but a different `magnitude`.
@@ -60,7 +63,9 @@ impl Vec2 {
     pub fn with_magnitude(self, magnitude: f32) -> Option<Self> {
         let (x, y) = (self.x, self.y);
         let factor = magnitude / self.magnitude();
-        factor.is_finite().then(|| Self::xy(x * factor, y * factor))
+        factor
+            .is_finite()
+            .then(|| Self::new(x * factor, y * factor))
     }
 
     /// Returns the magnitude of the vector.
@@ -76,13 +81,29 @@ impl Vec2 {
         let y_diff = self.y - other.y;
         x_diff.mul_add(x_diff, y_diff.powi(2)).sqrt()
     }
+
+    #[must_use]
+    pub fn rotation(self, other: Self) -> Quat {
+        self.with_z(0.).rotation(other.with_z(0.))
+    }
+
+    #[must_use]
+    pub fn dot(self, other: Self) -> f32 {
+        self.x * other.x + self.y * other.y
+    }
+
+    #[must_use]
+    pub fn mirror(self, axis_direction: Self) -> Self {
+        let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec2::ZERO);
+        axis * self.dot(axis) * 2. - self
+    }
 }
 
 impl Add<Self> for Vec2 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self::xy(self.x + rhs.x, self.y + rhs.y)
+        Self::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
@@ -90,7 +111,7 @@ impl Sub<Self> for Vec2 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self::xy(self.x - rhs.x, self.y - rhs.y)
+        Self::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
@@ -98,7 +119,7 @@ impl Mul<f32> for Vec2 {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
-        Self::xy(self.x * rhs, self.y * rhs)
+        Self::new(self.x * rhs, self.y * rhs)
     }
 }
 
@@ -106,7 +127,7 @@ impl Div<f32> for Vec2 {
     type Output = Self;
 
     fn div(self, rhs: f32) -> Self::Output {
-        Self::xy(self.x / rhs, self.y / rhs)
+        Self::new(self.x / rhs, self.y / rhs)
     }
 }
 
@@ -135,5 +156,13 @@ impl DivAssign<f32> for Vec2 {
     fn div_assign(&mut self, rhs: f32) {
         self.x /= rhs;
         self.y /= rhs;
+    }
+}
+
+impl Mul<Vec2> for f32 {
+    type Output = Vec2;
+
+    fn mul(self, rhs: Vec2) -> Self::Output {
+        rhs * self
     }
 }
