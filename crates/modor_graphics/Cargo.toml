@@ -19,7 +19,7 @@ image = "0.24"
 instant = "0.1"
 spin_sleep = "1.1.1"
 typed-index-collections = "3.0"
-winit = "0.26"
+winit = "0.27"
 modor = { version = "0.1.0", path = "../modor" }
 modor_input = { version = "0.1.0", path = "../modor_input" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
