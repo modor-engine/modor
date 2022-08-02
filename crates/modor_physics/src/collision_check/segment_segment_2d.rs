@@ -1,5 +1,6 @@
 use crate::colliders::utils;
-use modor_math::Vec2;
+use approx::AbsDiffEq;
+use modor_math::{Vec2, Vec3};
 
 #[derive(Debug)]
 pub(crate) enum Segments2DIntersection {
@@ -17,7 +18,12 @@ pub(crate) fn intersection(
     let segment2_vec = segment2.0 - segment2.1;
     let denominator = segment1_vec.x * segment2_vec.y - segment1_vec.y * segment2_vec.x;
     if utils::is_almost_eq(denominator, 0.) {
-        parallel_segments_intersection(segment1, segment2)
+        match (segment_is_point(segment1), segment_is_point(segment2)) {
+            (true, true) => point_point_intersection(segment1.0, segment2.1),
+            (true, false) => point_segment_intersection(segment1.0, segment2),
+            (false, true) => point_segment_intersection(segment2.0, segment1),
+            (false, false) => parallel_segments_intersection(segment1, segment2),
+        }
     } else {
         let segments_vec = segment1.0 - segment2.0;
         let t = (segments_vec.x * segment2_vec.y - segments_vec.y * segment2_vec.x) / denominator;
@@ -34,6 +40,12 @@ fn parallel_segments_intersection(
     segment1: (Vec2, Vec2),
     segment2: (Vec2, Vec2),
 ) -> Segments2DIntersection {
+    // TODO: use cross product instead => https://lucidar.me/fr/mathematics/check-if-a-point-belongs-on-a-line-segment/
+    let distance = (segment1.1.x - segment1.0.x) * (segment2.0.y - segment1.0.y)
+        - (segment1.1.y - segment1.0.y) * (segment2.0.x - segment1.0.x);
+    if !utils::is_almost_eq(distance, 0.) {
+        return Segments2DIntersection::None;
+    }
     let direction = segment1.0 - segment1.1;
     let segment1_proj = (
         vec_projection(direction, segment1.0),
@@ -70,4 +82,34 @@ fn parallel_segments_intersection(
 
 fn vec_projection(axis: Vec2, point: Vec2) -> f32 {
     point.dot(axis)
+}
+
+fn segment_is_point(segment: (Vec2, Vec2)) -> bool {
+    segment.0.abs_diff_eq(&segment.1, f32::EPSILON)
+}
+
+fn point_segment_intersection(point: Vec2, segment: (Vec2, Vec2)) -> Segments2DIntersection {
+    if (point - segment.0)
+        .with_z(0.)
+        .cross((segment.1 - segment.0).with_z(0.))
+        .abs_diff_eq(&Vec3::ZERO, f32::EPSILON)
+    {
+        let a = (point - segment.0).dot(segment.1 - segment.0);
+        let b = (point - segment.0).dot(point - segment.0);
+        if 0. <= a && a <= b {
+            Segments2DIntersection::Point(point)
+        } else {
+            Segments2DIntersection::None
+        }
+    } else {
+        Segments2DIntersection::None
+    }
+}
+
+fn point_point_intersection(point1: Vec2, point2: Vec2) -> Segments2DIntersection {
+    if point1.abs_diff_eq(&point2, f32::EPSILON) {
+        Segments2DIntersection::Point(point1)
+    } else {
+        Segments2DIntersection::None
+    }
 }

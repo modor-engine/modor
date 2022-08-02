@@ -134,6 +134,15 @@ fn div_float() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn neg_vec() {
+    let new_vec = -Vec3::new(1., 2., 3.);
+    assert_abs_diff_eq!(new_vec.x, -1.);
+    assert_abs_diff_eq!(new_vec.y, -2.);
+    assert_abs_diff_eq!(new_vec.z, -3.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_vector() {
     let vec = Vec3::new(1., 2., 3.);
     assert_abs_diff_eq!(vec.magnitude(), 14_f32.sqrt());

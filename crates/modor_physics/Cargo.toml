@@ -12,6 +12,7 @@ categories = ["game-engines"]
 exclude = [".github", "README.md"]
 
 [dependencies]
+approx = "0.5"
 smallvec = "1.9"
 typed-index-collections = "3.0"
 modor = { version = "0.1.0", path = "../modor" }

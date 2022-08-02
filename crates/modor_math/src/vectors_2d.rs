@@ -1,10 +1,11 @@
 use crate::{Quat, Vec3};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-// TODO: add support of unary operator "-" for Vec2 and Vec3
+// TODO: implement approx create traits for Vec2 and Vec3, and use it everywhere
 
 /// A vector in a 2D space with `U` as unit of distance.
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Vec2 {
     /// The X-coordinate.
     pub x: f32,
@@ -164,5 +165,52 @@ impl Mul<Vec2> for f32 {
 
     fn mul(self, rhs: Vec2) -> Self::Output {
         rhs * self
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.x, -self.y)
+    }
+}
+
+// TODO: test
+impl AbsDiffEq for Vec2 {
+    type Epsilon = <f32 as AbsDiffEq>::Epsilon;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f32::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.x.abs_diff_eq(&other.x, epsilon) && self.y.abs_diff_eq(&other.y, epsilon)
+    }
+}
+
+impl RelativeEq for Vec2 {
+    fn default_max_relative() -> Self::Epsilon {
+        f32::default_max_relative()
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.x.relative_eq(&other.x, epsilon, max_relative)
+            && self.y.relative_eq(&other.y, epsilon, max_relative)
+    }
+}
+
+impl UlpsEq for Vec2 {
+    fn default_max_ulps() -> u32 {
+        f32::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        self.x.ulps_eq(&other.x, epsilon, max_ulps) && self.y.ulps_eq(&other.y, epsilon, max_ulps)
     }
 }

@@ -35,7 +35,7 @@ pub struct Collision {
     pub(crate) entity_id: usize,
     pub(crate) other_entity_id: usize,
     pub(crate) other_entity_group_idx: GroupIdx,
-    pub(crate) normal: Vec3,
+    pub(crate) penetration: Vec3,
     pub(crate) contact_centroid: Vec3,
 }
 
@@ -51,8 +51,8 @@ impl Collision {
         self.other_entity_group_idx == group.index().into()
     }
 
-    pub fn normal(&self) -> Vec3 {
-        self.normal
+    pub fn penetration(&self) -> Vec3 {
+        self.penetration
     }
 
     pub fn contact_centroid(&self) -> Vec3 {

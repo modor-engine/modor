@@ -39,6 +39,6 @@ trait CollisionCheck {
 }
 
 pub(crate) struct CollisionDetails {
-    pub(crate) penetration_depth: Vec3,
+    pub(crate) penetration: Vec3,
     pub(crate) contact_centroid: Vec3,
 }

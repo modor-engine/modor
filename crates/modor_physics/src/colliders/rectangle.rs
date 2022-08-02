@@ -1,4 +1,5 @@
 use crate::colliders::convex_shape::{ConvexShape, ConvexShapeProperties, Surface};
+use crate::colliders::utils::is_almost_eq;
 use crate::colliders::{CollisionCheck, CollisionDetails, ShapeCollider};
 use crate::entities::collisions::CollisionGroupRelationship;
 use crate::Transform;
@@ -29,8 +30,13 @@ impl ConvexShape for RectangleCollider {
         let point2 = self.matrix * Vec3::from_xy(-0.5, -0.5);
         let point3 = self.matrix * Vec3::from_xy(0.5, -0.5);
         let point4 = self.matrix * Vec3::from_xy(0.5, 0.5);
-        let x_axis = point3 - point2;
-        let y_axis = point1 - point2;
+        let (x_axis, y_axis) = match (is_almost_eq(self.size.x, 0.), is_almost_eq(self.size.y, 0.))
+        {
+            (true, true) => (Vec3::X, Vec3::Y),
+            (true, false) => ((point1 - point2).cross(Vec3::Z), point1 - point2),
+            (false, true) => (point3 - point2, (point3 - point2).cross(Vec3::Z)),
+            (false, false) => (point3 - point2, point1 - point2),
+        };
         ConvexShapeProperties {
             position: self.position,
             size: self.size,

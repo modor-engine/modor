@@ -97,15 +97,15 @@ impl Collisions {
                             entity_id: entity1.id(),
                             other_entity_id: entity2.id(),
                             other_entity_group_idx: collider2.group_idx,
-                            normal: collision.penetration_depth,
-                            contact_centroid: collision.contact_centroid
+                            penetration: collision.penetration,
+                            contact_centroid: collision.contact_centroid,
                         });
                         collisions.push(Collision {
                             entity_id: entity2.id(),
                             other_entity_id: entity1.id(),
                             other_entity_group_idx: collider1.group_idx,
-                            normal: collision.penetration_depth * -1.,
-                            contact_centroid: collision.contact_centroid
+                            penetration: collision.penetration * -1.,
+                            contact_centroid: collision.contact_centroid,
                         });
                     }
                 }

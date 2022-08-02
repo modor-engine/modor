@@ -19,20 +19,20 @@ pub(crate) struct ConvexShapeProperties {
 }
 
 pub(crate) struct ConvexShapeAxisDetails {
-    pub(crate) penetration_depth: Vec3,
+    pub(crate) penetration: Vec3,
 }
 
 impl ConvexShapeAxisDetails {
     fn to_opposite(self) -> Self {
         Self {
-            penetration_depth: -1. * self.penetration_depth,
+            penetration: -1. * self.penetration,
         }
     }
 
     fn is_more_accurate_than(&self, other: &Option<Self>) -> bool {
         other
             .as_ref()
-            .map(|o| self.penetration_depth.magnitude() < o.penetration_depth.magnitude())
+            .map(|o| self.penetration.magnitude() < o.penetration.magnitude())
             .unwrap_or(true)
     }
 }
@@ -61,7 +61,7 @@ pub(crate) trait ConvexShape: Sized {
             }
         }
         best_collision.map(|c| CollisionDetails {
-            penetration_depth: c.penetration_depth,
+            penetration: c.penetration,
             contact_centroid: calculate_contact_centroid(&ref_properties, &other_properties),
         })
     }
@@ -99,7 +99,7 @@ fn collision(
 
 fn partial_collision(axis: Vec3, ref_factor: f32, other_factor: f32) -> ConvexShapeAxisDetails {
     ConvexShapeAxisDetails {
-        penetration_depth: axis * (other_factor - ref_factor),
+        penetration: axis * (ref_factor - other_factor),
     }
 }
 
@@ -131,7 +131,7 @@ fn full_collision(
     let diff_sign = if inner_outer_diff < 0. { -1. } else { 1. };
     let inner_diff = diff_sign * (inner_factor1 - inner_factor2).abs();
     ConvexShapeAxisDetails {
-        penetration_depth: axis * (inner_diff + inner_outer_diff),
+        penetration: -axis * (inner_diff + inner_outer_diff), // TODO: cleaner application of -1. *
     }
 }
 
