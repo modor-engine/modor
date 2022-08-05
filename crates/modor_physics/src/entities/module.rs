@@ -1,7 +1,7 @@
 use crate::components::dynamic_body::DynamicBody;
 use crate::components::relative_transform::RelativeTransform;
 use crate::components::transform::Transform;
-use crate::entities::collisions::internal::UpdateCollidersAction;
+use crate::entities::collisions::internal::CheckCollisionsAction;
 use crate::entities::collisions::Collisions;
 use crate::entities::module::internal::{
     UpdateDynamicBodiesAction, UpdateTransformsFromRelativeAction,
@@ -115,7 +115,7 @@ impl PhysicsModule {
 }
 
 /// An action done when the positions, sizes, rotations and colliders have been updated.
-#[action(UpdateTransformsFromRelativeAction, UpdateCollidersAction)]
+#[action(UpdateTransformsFromRelativeAction, CheckCollisionsAction)]
 pub struct UpdatePhysicsAction;
 
 pub(crate) mod internal {

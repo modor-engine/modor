@@ -30,7 +30,7 @@ extern crate modor_internal;
 extern crate core;
 
 mod colliders;
-mod collision_check;
+mod collisions;
 mod components;
 mod data;
 mod entities;

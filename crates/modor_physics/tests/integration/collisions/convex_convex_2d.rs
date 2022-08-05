@@ -1,4 +1,4 @@
-use crate::colliders::CollisionGroup;
+use crate::collisions::CollisionGroup;
 use modor::{Built, EntityBuilder};
 use modor_math::{Quat, Vec3};
 use modor_physics::{Collider, Transform};
@@ -16,7 +16,7 @@ impl Rectangle {
                     .with_size(size)
                     .with_rotation(rotation),
             )
-            .with(Collider::rectangle(CollisionGroup::MAIN))
+            .with(Collider::rectangle_2d(CollisionGroup::MAIN))
     }
 }
 
@@ -135,4 +135,4 @@ fn check_with_different_3d_rotations() {
     );
 }
 
-// TODO: finish ()
+// TODO: assert no collision

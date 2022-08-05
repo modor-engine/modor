@@ -83,20 +83,35 @@ impl Vec2 {
         x_diff.mul_add(x_diff, y_diff.powi(2)).sqrt()
     }
 
+    // TODO: test + doc
     #[must_use]
     pub fn rotation(self, other: Self) -> Quat {
         self.with_z(0.).rotation(other.with_z(0.))
     }
 
+    // TODO: test + doc
     #[must_use]
     pub fn dot(self, other: Self) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
+    // TODO: test + doc
     #[must_use]
     pub fn mirror(self, axis_direction: Self) -> Self {
         let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec2::ZERO);
         axis * self.dot(axis) * 2. - self
+    }
+
+    // TODO: test + doc
+    #[must_use]
+    pub fn perpendicular_cw(self) -> Self {
+        Self::new(self.y, -self.x)
+    }
+
+    // TODO: test + doc
+    #[must_use]
+    pub fn perpendicular_ccw(self) -> Self {
+        Self::new(-self.y, self.x)
     }
 }
 

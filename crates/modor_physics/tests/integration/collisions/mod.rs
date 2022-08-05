@@ -1,4 +1,4 @@
-pub mod rectangle_rectangle;
+pub mod convex_convex_2d;
 
 use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
@@ -16,7 +16,7 @@ impl modor_physics::CollisionGroup for CollisionGroup {
     }
 
     fn layers() -> Vec<CollisionLayer<Self>> {
-        vec![CollisionLayer::new_2d(vec![
+        vec![CollisionLayer::new(vec![
             CollisionGroup::MAIN,
             CollisionGroup::MAIN,
         ])]

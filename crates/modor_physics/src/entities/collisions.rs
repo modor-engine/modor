@@ -1,15 +1,13 @@
-use crate::colliders::ShapeCollider;
-use crate::entities::collisions::internal::UpdateCollidersAction;
+use crate::entities::collisions::internal::{CheckCollisionsAction, UpdateCollidersAction};
 use crate::{Collider, Collision, CollisionGroup, Transform};
 use modor::{Built, Entity, EntityBuilder, Query};
 use modor_internal::ti_vec::TiVecSafeOperations;
-use modor_math::Vec3;
 use typed_index_collections::TiVec;
 
 idx_type!(pub(crate) GroupIdx);
 
 pub(crate) struct Collisions {
-    relationships: TiVec<GroupIdx, TiVec<GroupIdx, Option<CollisionGroupRelationship>>>,
+    can_collide: TiVec<GroupIdx, TiVec<GroupIdx, bool>>,
 }
 
 #[singleton]
@@ -18,7 +16,7 @@ impl Collisions {
     where
         G: CollisionGroup,
     {
-        let mut relationships = TiVec::<GroupIdx, TiVec<_, _>>::new();
+        let mut groups_can_collide = TiVec::<GroupIdx, TiVec<_, _>>::new();
         for layer in G::layers() {
             let groups: Vec<_> = layer
                 .groups
@@ -31,68 +29,50 @@ impl Collisions {
                     if index1 == index2 {
                         break;
                     }
-                    let relationship: &mut Option<CollisionGroupRelationship> = relationships
+                    *groups_can_collide
                         .get_mut_or_create(group1_idx)
-                        .get_mut_or_create(group2_idx);
-                    if let Some(relationship) = relationship {
-                        relationship.ignore_z = relationship.ignore_z || layer.ignore_z;
-                    } else {
-                        relationship.replace(CollisionGroupRelationship {
-                            ignore_z: layer.ignore_z,
-                        });
-                    }
-                    let relationship: &mut Option<CollisionGroupRelationship> = relationships
+                        .get_mut_or_create(group2_idx) = true;
+                    *groups_can_collide
                         .get_mut_or_create(group2_idx)
-                        .get_mut_or_create(group1_idx);
-                    if let Some(relationship) = relationship {
-                        relationship.ignore_z = relationship.ignore_z || layer.ignore_z;
-                    } else {
-                        relationship.replace(CollisionGroupRelationship {
-                            ignore_z: layer.ignore_z,
-                        });
-                    }
+                        .get_mut_or_create(group1_idx) = true;
                 }
             }
         }
-        EntityBuilder::new(Self { relationships })
+        EntityBuilder::new(Self {
+            can_collide: groups_can_collide,
+        })
     }
 
     #[run_as(UpdateCollidersAction)]
-    fn update_colliders(
-        &self,
-        mut entities: Query<'_, (&mut Collider, &mut Transform, Entity<'_>)>,
-    ) {
+    fn update_colliders(&self, mut entities: Query<'_, (&mut Collider, &Transform)>) {
+        for (collider, transform) in entities.iter_mut() {
+            collider.update(transform);
+        }
+    }
+
+    #[run_as(CheckCollisionsAction)]
+    fn check_collisions(&self, mut entities: Query<'_, (&mut Collider, Entity<'_>)>) {
         let mut collisions = vec![];
-        for (collider1, _, _) in entities.iter_mut() {
+        for (collider1, _) in entities.iter_mut() {
             collider1.collisions.clear();
         }
-        for (collider1, transform1, entity1) in entities.iter().rev() {
-            for (collider2, transform2, entity2) in entities.iter() {
+        for (collider1, entity1) in entities.iter().rev() {
+            for (collider2, entity2) in entities.iter() {
                 if entity1.id() == entity2.id() {
                     break;
                 }
-                if let Some(Some(relationship)) = self
-                    .relationships
+                if let Some(true) = self
+                    .can_collide
                     .get(collider1.group_idx)
                     .and_then(|r| r.get(collider2.group_idx))
                 {
-                    // TODO: use circle collider ?
-                    let (position1, position2) = if relationship.ignore_z {
-                        (
-                            Vec3::from_xy(transform1.position.x, transform1.position.y),
-                            Vec3::from_xy(transform2.position.x, transform2.position.y),
-                        )
-                    } else {
-                        (transform1.position, transform2.position)
-                    };
-                    if position1.distance(position2)
-                        > transform1.size.magnitude() + transform2.size.magnitude()
+                    if !collider1
+                        .simplified_shape
+                        .is_colliding_with(&collider2.simplified_shape)
                     {
                         continue;
                     }
-                    let object1 = ShapeCollider::new(collider1, transform1, relationship);
-                    let object2 = ShapeCollider::new(collider2, transform2, relationship);
-                    if let Some(collision) = object1.check_collision(&object2) {
+                    if let Some(collision) = collider1.shape.check_collision(&collider2.shape) {
                         collisions.push(Collision {
                             entity_id: entity1.id(),
                             other_entity_id: entity2.id(),
@@ -112,16 +92,11 @@ impl Collisions {
             }
         }
         for collision in collisions {
-            if let Some((collider, _, _)) = entities.get_mut(collision.entity_id) {
+            if let Some((collider, _)) = entities.get_mut(collision.entity_id) {
                 collider.collisions.push(collision);
             }
         }
     }
-}
-
-#[derive(Debug)]
-pub(crate) struct CollisionGroupRelationship {
-    pub(crate) ignore_z: bool,
 }
 
 pub(crate) mod internal {
@@ -129,4 +104,7 @@ pub(crate) mod internal {
 
     #[action(UpdateTransformsFromRelativeAction)]
     pub struct UpdateCollidersAction;
+
+    #[action(UpdateCollidersAction)]
+    pub struct CheckCollisionsAction;
 }

@@ -18,21 +18,11 @@ impl CollisionGroup for () {
 
 pub struct CollisionLayer<G> {
     pub(crate) groups: Vec<G>,
-    pub(crate) ignore_z: bool,
 }
 
 impl<G> CollisionLayer<G> {
-    pub const fn new_2d(groups: Vec<G>) -> Self {
-        Self {
-            groups,
-            ignore_z: true,
-        }
-    }
-
-    pub const fn new_3d(groups: Vec<G>) -> Self {
-        Self {
-            groups,
-            ignore_z: false,
-        }
+    // If 2D and 3D shapes in same layer, then they will not collide
+    pub const fn new(groups: Vec<G>) -> Self {
+        Self { groups }
     }
 }
