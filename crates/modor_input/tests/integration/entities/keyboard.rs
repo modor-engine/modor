@@ -2,6 +2,7 @@ use approx::assert_abs_diff_eq;
 use modor::testing::TestApp;
 use modor::App;
 use modor_input::{InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
+use modor_math::Vec2;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -97,12 +98,8 @@ fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
         assert_abs_diff_eq!(
-            k.direction(Key::Left, Key::Right, Key::Up, Key::Down).x,
-            direction_x
-        );
-        assert_abs_diff_eq!(
-            k.direction(Key::Left, Key::Right, Key::Up, Key::Down).y,
-            direction_y
+            k.direction(Key::Left, Key::Right, Key::Up, Key::Down),
+            Vec2::new(direction_x, direction_y)
         );
     });
 }

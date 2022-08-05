@@ -92,6 +92,8 @@ impl Vec3 {
             .then(|| Self::new(x * factor, y * factor, z * factor))
     }
 
+    /// Returns a [`Vec2`](crate::Vec2) containing X and Y coordinates of the vector.
+    #[inline]
     #[must_use]
     pub fn xy(self) -> Vec2 {
         Vec2::new(self.x, self.y)
@@ -111,6 +113,7 @@ impl Vec3 {
         (self - other).magnitude()
     }
 
+    /// Returns the rotation between the vector and `other`.
     #[must_use]
     pub fn rotation(self, other: Self) -> Quat {
         let cross = self.cross(other);
@@ -132,11 +135,13 @@ impl Vec3 {
         }
     }
 
+    /// Returns the dot product between the vector and `other`.
     #[must_use]
     pub fn dot(self, other: Self) -> f32 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
+    /// Returns the cross product between the vector and `other`.
     #[must_use]
     pub fn cross(self, other: Self) -> Vec3 {
         Vec3::new(
@@ -146,6 +151,9 @@ impl Vec3 {
         )
     }
 
+    /// Returns the mirror vector with a line of direction `axis_direction`.
+    ///
+    /// `axis_direction` sense has no impact on the resulting vector.
     #[must_use]
     pub fn mirror(self, axis_direction: Self) -> Vec3 {
         let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec3::ZERO);
@@ -233,7 +241,6 @@ impl Neg for Vec3 {
     }
 }
 
-// TODO: test
 impl AbsDiffEq for Vec3 {
     type Epsilon = <f32 as AbsDiffEq>::Epsilon;
 

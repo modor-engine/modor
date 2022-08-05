@@ -1,4 +1,4 @@
-use approx::assert_abs_diff_eq;
+use approx::{assert_abs_diff_eq, AbsDiffEq, RelativeEq, UlpsEq};
 use modor_math::Vec3;
 use std::f32::consts::FRAC_PI_2;
 
@@ -139,6 +139,63 @@ fn neg_vec() {
     assert_abs_diff_eq!(new_vec.x, -1.);
     assert_abs_diff_eq!(new_vec.y, -2.);
     assert_abs_diff_eq!(new_vec.z, -3.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn abs_diff_eq() {
+    assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1., 2., 3.), f32::EPSILON));
+    assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1. + f32::EPSILON, 2., 3.), f32::EPSILON));
+    assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1., 2. + f32::EPSILON, 3.), f32::EPSILON));
+    assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1., 2., 3.), f32::EPSILON));
+    assert!(!Vec3::new(1., 2., 3.)
+        .abs_diff_eq(&Vec3::new(1. + 2. * f32::EPSILON, 2., 3.), f32::EPSILON));
+    assert!(!Vec3::new(1., 2., 3.)
+        .abs_diff_eq(&Vec3::new(1., 2. + 2. * f32::EPSILON, 3.), f32::EPSILON));
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn relative_eq() {
+    assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 2., 3.), f32::EPSILON, 0.1));
+    assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(0.91, 2., 3.), f32::EPSILON, 0.1));
+    assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 1.81, 3.), f32::EPSILON, 0.1));
+    assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 2., 2.71), f32::EPSILON, 0.1));
+    assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(0.9, 2., 3.), f32::EPSILON, 0.1));
+    assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 1.8, 3.), f32::EPSILON, 0.1));
+    assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 2., 2.69), f32::EPSILON, 0.1));
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn ulps_eq() {
+    assert!(Vec3::new(1., 2., 3.).ulps_eq(&Vec3::new(1., 2., 3.), f32::EPSILON, 1));
+    assert!(Vec3::new(1., 2., 3.).ulps_eq(&Vec3::new(1. + f32::EPSILON, 2., 3.), f32::EPSILON, 1));
+    assert!(Vec3::new(1., 2., 3.).ulps_eq(
+        &Vec3::new(1., 2. + 2. * f32::EPSILON, 3.),
+        f32::EPSILON,
+        1
+    ));
+    assert!(Vec3::new(1., 2., 3.).ulps_eq(
+        &Vec3::new(1., 2., 3. + 2. * f32::EPSILON),
+        f32::EPSILON,
+        1
+    ));
+    assert!(!Vec3::new(1., 2., 3.).ulps_eq(
+        &Vec3::new(1. + 2. * f32::EPSILON, 2., 3.),
+        f32::EPSILON,
+        1
+    ));
+    assert!(!Vec3::new(1., 2., 3.).ulps_eq(
+        &Vec3::new(1., 2. + 3. * f32::EPSILON, 3.),
+        f32::EPSILON,
+        1
+    ));
+    assert!(!Vec3::new(1., 2., 3.).ulps_eq(
+        &Vec3::new(1., 2., 3. + 3. * f32::EPSILON),
+        f32::EPSILON,
+        1
+    ));
 }
 
 #[test]

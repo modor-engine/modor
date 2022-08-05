@@ -30,7 +30,6 @@ fn parallel_segments_intersection(
     segment1: (Vec2, Vec2),
     segment2: (Vec2, Vec2),
 ) -> Intersection2D {
-    // TODO: use cross product instead => https://lucidar.me/fr/mathematics/check-if-a-point-belongs-on-a-line-segment/
     let distance = (segment1.1.x - segment1.0.x) * (segment2.0.y - segment1.0.y)
         - (segment1.1.y - segment1.0.y) * (segment2.0.x - segment1.0.x);
     if !distance.abs_diff_eq(&0., f32::EPSILON) {

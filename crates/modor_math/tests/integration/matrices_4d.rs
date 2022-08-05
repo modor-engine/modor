@@ -77,26 +77,16 @@ fn create_from_scale() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_vec2() {
     let rotation = Quat::from_z(FRAC_PI_2).matrix();
-    let vec = rotation * Vec2::new(1., 1.);
-    assert_abs_diff_eq!(vec.x, 1.);
-    assert_abs_diff_eq!(vec.y, -1.);
-    let vec = Vec2::new(1., 1.) * rotation;
-    assert_abs_diff_eq!(vec.x, 1.);
-    assert_abs_diff_eq!(vec.y, -1.);
+    assert_abs_diff_eq!(rotation * Vec2::new(1., 1.), Vec2::new(1., -1.));
+    assert_abs_diff_eq!(Vec2::new(1., 1.) * rotation, Vec2::new(1., -1.));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_vec3() {
     let rotation = Quat::from_x(FRAC_PI_2).matrix();
-    let vec = rotation * Vec3::new(1., 1., 1.);
-    assert_abs_diff_eq!(vec.x, 1.);
-    assert_abs_diff_eq!(vec.y, 1.);
-    assert_abs_diff_eq!(vec.z, -1.);
-    let vec = Vec3::new(1., 1., 1.) * rotation;
-    assert_abs_diff_eq!(vec.x, 1.);
-    assert_abs_diff_eq!(vec.y, 1.);
-    assert_abs_diff_eq!(vec.z, -1.);
+    assert_abs_diff_eq!(rotation * Vec3::new(1., 1., 1.), Vec3::new(1., 1., -1.));
+    assert_abs_diff_eq!(Vec3::new(1., 1., 1.) * rotation, Vec3::new(1., 1., -1.));
 }
 
 #[test]
@@ -105,18 +95,18 @@ fn mul_mat() {
     let translation = Mat4::from_position(Vec3::new(2., 4., 6.));
     let scale = Mat4::from_scale(Vec3::new(0.1, 0.2, 0.3));
     let rotation = Quat::from_x(FRAC_PI_2).matrix();
-    let vec = rotation * scale * translation * Vec3::new(1., 1., 1.);
-    assert_abs_diff_eq!(vec.x, 2.1);
-    assert_abs_diff_eq!(vec.y, 4.2);
-    assert_abs_diff_eq!(vec.z, 5.7);
+    assert_abs_diff_eq!(
+        rotation * scale * translation * Vec3::new(1., 1., 1.),
+        Vec3::new(2.1, 4.2, 5.7)
+    );
     let rotation = Quat::from_y(FRAC_PI_2).matrix();
-    let vec = rotation * scale * translation * Vec3::new(1., 1., 1.);
-    assert_abs_diff_eq!(vec.x, 1.9);
-    assert_abs_diff_eq!(vec.y, 4.2);
-    assert_abs_diff_eq!(vec.z, 6.3);
+    assert_abs_diff_eq!(
+        rotation * scale * translation * Vec3::new(1., 1., 1.),
+        Vec3::new(1.9, 4.2, 6.3)
+    );
     let rotation = Quat::from_z(FRAC_PI_2).matrix();
-    let vec = rotation * scale * translation * Vec3::new(1., 1., 1.);
-    assert_abs_diff_eq!(vec.x, 2.1);
-    assert_abs_diff_eq!(vec.y, 3.8);
-    assert_abs_diff_eq!(vec.z, 6.3);
+    assert_abs_diff_eq!(
+        rotation * scale * translation * Vec3::new(1., 1., 1.),
+        Vec3::new(2.1, 3.8, 6.3)
+    );
 }

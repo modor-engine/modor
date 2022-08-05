@@ -70,10 +70,8 @@ fn update_position() {
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
         assert_eq!(f.id(), 0);
-        assert_abs_diff_eq!(f.position().x, 0.);
-        assert_abs_diff_eq!(f.position().y, 0.);
-        assert_abs_diff_eq!(f.delta().x, 0.);
-        assert_abs_diff_eq!(f.delta().y, 0.);
+        assert_abs_diff_eq!(f.position(), Vec2::ZERO);
+        assert_abs_diff_eq!(f.delta(), Vec2::ZERO);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         let position = Vec2::new(2., 5.);
@@ -82,17 +80,13 @@ fn update_position() {
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
         assert_eq!(f.id(), 0);
-        assert_abs_diff_eq!(f.position().x, 2.);
-        assert_abs_diff_eq!(f.position().y, 5.);
-        assert_abs_diff_eq!(f.delta().x, 2.);
-        assert_abs_diff_eq!(f.delta().y, 5.);
+        assert_abs_diff_eq!(f.position(), Vec2::new(2., 5.));
+        assert_abs_diff_eq!(f.delta(), Vec2::new(2., 5.));
     });
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
         assert_eq!(f.id(), 0);
-        assert_abs_diff_eq!(f.position().x, 2.);
-        assert_abs_diff_eq!(f.position().y, 5.);
-        assert_abs_diff_eq!(f.delta().x, 0.);
-        assert_abs_diff_eq!(f.delta().y, 0.);
+        assert_abs_diff_eq!(f.position(), Vec2::new(2., 5.));
+        assert_abs_diff_eq!(f.delta(), Vec2::new(0., 0.));
     });
 }

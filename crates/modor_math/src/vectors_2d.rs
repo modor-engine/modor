@@ -2,8 +2,6 @@ use crate::{Quat, Vec3};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-// TODO: implement approx create traits for Vec2 and Vec3, and use it everywhere
-
 /// A vector in a 2D space with `U` as unit of distance.
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Vec2 {
@@ -83,32 +81,34 @@ impl Vec2 {
         x_diff.mul_add(x_diff, y_diff.powi(2)).sqrt()
     }
 
-    // TODO: test + doc
+    /// Returns the rotation between the vector and `other`.
     #[must_use]
     pub fn rotation(self, other: Self) -> Quat {
         self.with_z(0.).rotation(other.with_z(0.))
     }
 
-    // TODO: test + doc
+    /// Returns the dot product between the vector and `other`.
     #[must_use]
     pub fn dot(self, other: Self) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
-    // TODO: test + doc
+    /// Returns the cross product between the vector and `other`.
     #[must_use]
     pub fn mirror(self, axis_direction: Self) -> Self {
         let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec2::ZERO);
         axis * self.dot(axis) * 2. - self
     }
 
-    // TODO: test + doc
+    // TODO: test
+    /// Returns the perpendicular vector clockwise.
     #[must_use]
     pub fn perpendicular_cw(self) -> Self {
         Self::new(self.y, -self.x)
     }
 
-    // TODO: test + doc
+    /// Returns the perpendicular vector counter clockwise.
+    // TODO: test
     #[must_use]
     pub fn perpendicular_ccw(self) -> Self {
         Self::new(-self.y, self.x)
@@ -191,7 +191,6 @@ impl Neg for Vec2 {
     }
 }
 
-// TODO: test
 impl AbsDiffEq for Vec2 {
     type Epsilon = <f32 as AbsDiffEq>::Epsilon;
 

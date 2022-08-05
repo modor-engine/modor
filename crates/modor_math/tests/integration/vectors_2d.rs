@@ -1,4 +1,4 @@
-use approx::assert_abs_diff_eq;
+use approx::{assert_abs_diff_eq, AbsDiffEq, RelativeEq, UlpsEq};
 use modor_math::Vec2;
 use std::f32::consts::FRAC_PI_2;
 
@@ -126,6 +126,36 @@ fn neg_vec() {
     let new_vec = -Vec2::new(1., 2.);
     assert_abs_diff_eq!(new_vec.x, -1.);
     assert_abs_diff_eq!(new_vec.y, -2.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn abs_diff_eq() {
+    assert!(Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1., 2.), f32::EPSILON));
+    assert!(Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1. + f32::EPSILON, 2.), f32::EPSILON));
+    assert!(Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1., 2. + f32::EPSILON), f32::EPSILON));
+    assert!(!Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1. + 2. * f32::EPSILON, 2.), f32::EPSILON));
+    assert!(!Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1., 2. + 2. * f32::EPSILON), f32::EPSILON));
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn relative_eq() {
+    assert!(Vec2::new(1., 2.).relative_eq(&Vec2::new(1., 2.), f32::EPSILON, 0.1));
+    assert!(Vec2::new(1., 2.).relative_eq(&Vec2::new(0.91, 2.), f32::EPSILON, 0.1));
+    assert!(Vec2::new(1., 2.).relative_eq(&Vec2::new(1., 1.81), f32::EPSILON, 0.1));
+    assert!(!Vec2::new(1., 2.).relative_eq(&Vec2::new(0.9, 2.), f32::EPSILON, 0.1));
+    assert!(!Vec2::new(1., 2.).relative_eq(&Vec2::new(1., 1.8), f32::EPSILON, 0.1));
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn ulps_eq() {
+    assert!(Vec2::new(1., 2.).ulps_eq(&Vec2::new(1., 2.), f32::EPSILON, 1));
+    assert!(Vec2::new(1., 2.).ulps_eq(&Vec2::new(1. + f32::EPSILON, 2.), f32::EPSILON, 1));
+    assert!(Vec2::new(1., 2.).ulps_eq(&Vec2::new(1., 2. + 2. * f32::EPSILON), f32::EPSILON, 1));
+    assert!(!Vec2::new(1., 2.).ulps_eq(&Vec2::new(1. + 2. * f32::EPSILON, 2.), f32::EPSILON, 1));
+    assert!(!Vec2::new(1., 2.).ulps_eq(&Vec2::new(1., 2. + 3. * f32::EPSILON), f32::EPSILON, 1));
 }
 
 #[test]

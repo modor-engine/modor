@@ -5,6 +5,7 @@ use modor_input::{
     Gamepad, GamepadAxis, GamepadButton, GamepadEvent, GamepadStick, InputEventCollector,
     InputModule,
 };
+use modor_math::Vec2;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -114,12 +115,9 @@ fn update_axis() {
     app.run_for_singleton(|c: &mut InputEventCollector| c.push(GamepadEvent::Plugged(0).into()));
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).x, 0.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).y, 0.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).x, 0.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).y, 0.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 0.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick), Vec2::ZERO);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick), Vec2::ZERO);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::ZERO);
         assert_abs_diff_eq!(g.left_z_axis_value(), 0.);
         assert_abs_diff_eq!(g.right_z_axis_value(), 0.);
     });
@@ -136,12 +134,15 @@ fn update_axis() {
     app.update();
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).x, 0.1);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick).y, 0.2);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).x, 0.3);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick).y, 0.4);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 0.5);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.6);
+        assert_abs_diff_eq!(
+            g.stick_direction(GamepadStick::LeftStick),
+            Vec2::new(0.1, 0.2)
+        );
+        assert_abs_diff_eq!(
+            g.stick_direction(GamepadStick::RightStick),
+            Vec2::new(0.3, 0.4)
+        );
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(0.5, 0.6));
         assert_abs_diff_eq!(g.left_z_axis_value(), 0.7);
         assert_abs_diff_eq!(g.right_z_axis_value(), 0.8);
     });
@@ -150,7 +151,6 @@ fn update_axis() {
     });
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).x, 1.);
-        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad).y, 0.);
+        assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(1., 0.));
     });
 }
