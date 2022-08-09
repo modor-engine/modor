@@ -164,4 +164,6 @@ fn use_vector() {
     let vec = Vec2::new(1., 2.);
     assert_abs_diff_eq!(vec.magnitude(), 5_f32.sqrt());
     assert_abs_diff_eq!(vec.distance(Vec2::new(4., 3.)), 10_f32.sqrt());
+    assert_abs_diff_eq!(vec.perpendicular_cw(), Vec2::new(2., -1.));
+    assert_abs_diff_eq!(vec.perpendicular_ccw(), Vec2::new(-2., 1.));
 }

@@ -100,7 +100,6 @@ impl Vec2 {
         axis * self.dot(axis) * 2. - self
     }
 
-    // TODO: test
     /// Returns the perpendicular vector clockwise.
     #[must_use]
     pub fn perpendicular_cw(self) -> Self {
@@ -108,7 +107,6 @@ impl Vec2 {
     }
 
     /// Returns the perpendicular vector counter clockwise.
-    // TODO: test
     #[must_use]
     pub fn perpendicular_ccw(self) -> Self {
         Self::new(-self.y, self.x)

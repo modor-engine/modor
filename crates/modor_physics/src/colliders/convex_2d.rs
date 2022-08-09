@@ -1,7 +1,7 @@
-use approx::AbsDiffEq;
-use smallvec::SmallVec;
-use modor_math::Vec2;
 use crate::Transform;
+use approx::AbsDiffEq;
+use modor_math::Vec2;
+use smallvec::SmallVec;
 
 #[derive(Default)]
 pub(crate) struct Convex2DCollider {
@@ -20,8 +20,8 @@ impl Convex2DCollider {
         let point3 = matrix * Vec2::new(0.5, -0.5);
         let point4 = matrix * Vec2::new(0.5, 0.5);
         let (x_axis, y_axis) = match (
-            self.size.x.abs_diff_eq(&0., f32::EPSILON),
-            self.size.y.abs_diff_eq(&0., f32::EPSILON),
+            transform.size.x.abs_diff_eq(&0., f32::EPSILON),
+            transform.size.y.abs_diff_eq(&0., f32::EPSILON),
         ) {
             (true, true) => (Vec2::X, Vec2::Y),
             (true, false) => ((point1 - point2).perpendicular_cw(), point1 - point2),

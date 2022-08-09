@@ -46,11 +46,11 @@ fn parallel_segments_intersection(
     );
     let segment1_inside = (
         utils::is_between(segment1_proj.0, segment2_proj.0, segment2_proj.1),
-        utils::is_between(segment1_proj.0, segment2_proj.0, segment2_proj.1),
+        utils::is_between(segment1_proj.1, segment2_proj.0, segment2_proj.1),
     );
     let segment2_inside = (
         utils::is_between(segment2_proj.0, segment1_proj.0, segment1_proj.1),
-        utils::is_between(segment2_proj.0, segment1_proj.0, segment1_proj.1),
+        utils::is_between(segment2_proj.1, segment1_proj.0, segment1_proj.1),
     );
     if segment1_inside.0 && segment1_inside.1 {
         Intersection2D::Segment(segment1.0, segment1.1)
