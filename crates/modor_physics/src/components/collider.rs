@@ -12,6 +12,7 @@ pub struct Collider {
     pub(crate) collisions: Vec<Collision>,
 }
 
+// TODO: add 3d shapes
 impl Collider {
     pub fn rectangle_2d(group: impl CollisionGroup) -> Self {
         Self {
@@ -22,9 +23,9 @@ impl Collider {
         }
     }
 
-    pub fn circle_2d<G>(group: impl CollisionGroup) -> Self {
+    pub fn circle_2d(group: impl CollisionGroup) -> Self {
         Self {
-            shape: ColliderShape::Circle2D(Convex2DCollider::default()),
+            shape: ColliderShape::Circle2D(Circle2DCollider::default()),
             simplified_shape: ColliderSimplifiedShape::Circle2D(Circle2DCollider::default()),
             group_idx: group.index().into(),
             collisions: vec![],
@@ -38,12 +39,10 @@ impl Collider {
     pub(crate) fn update(&mut self, transform: &Transform) {
         match &mut self.shape {
             ColliderShape::Rectangle2D(shape) => shape.update(transform),
-            ColliderShape::Circle2D(shape) => shape.update(transform),
+            ColliderShape::Circle2D(shape) => shape.update_inside_collider(transform),
         }
         match &mut self.simplified_shape {
-            ColliderSimplifiedShape::Circle2D(shape) => {
-                shape.update(transform.position.xy(), transform.size.xy().magnitude())
-            }
+            ColliderSimplifiedShape::Circle2D(shape) => shape.update_outside_collider(transform),
         }
     }
 }
@@ -80,7 +79,7 @@ impl Collision {
 
 pub(crate) enum ColliderShape {
     Rectangle2D(Convex2DCollider),
-    Circle2D(Convex2DCollider), // TODO: replace by Circle2DCollider
+    Circle2D(Circle2DCollider),
 }
 
 impl ColliderShape {
@@ -88,11 +87,11 @@ impl ColliderShape {
         match self {
             Self::Rectangle2D(shape1) => match other {
                 Self::Rectangle2D(shape2) => convex_convex_2d::collision(shape1, shape2),
-                Self::Circle2D(shape2) => convex_convex_2d::collision(shape1, shape2),
+                Self::Circle2D(shape2) => todo!(),
             },
             Self::Circle2D(shape1) => match other {
-                Self::Rectangle2D(shape2) => convex_convex_2d::collision(shape1, shape2),
-                Self::Circle2D(shape2) => convex_convex_2d::collision(shape1, shape2),
+                Self::Rectangle2D(shape2) => todo!(),
+                Self::Circle2D(shape2) => circle_circle_2d::collision(shape1, shape2),
             },
         }
     }
