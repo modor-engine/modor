@@ -1,6 +1,7 @@
 #!/bin/bash
 set -xeu
 
+cargo update
 for crate_path in crates/*; do
     crate_name=$(basename "$crate_path")
     (cargo search "$crate_name" --limit 1 | grep "^$crate_name = ")\
