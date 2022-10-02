@@ -50,7 +50,7 @@ pub struct Mesh2D {
 impl Mesh2D {
     /// Creates a new white rectangle.
     ///
-    /// The rectangle size is driven by the [`Transform`](modor_physics::Transform) size along
+    /// The rectangle size is driven by the [`Transform2D`](modor_physics::Transform2D) size along
     /// X-axis and Y-axis.
     #[must_use]
     pub const fn rectangle() -> Self {
@@ -63,8 +63,8 @@ impl Mesh2D {
 
     /// Creates a new white ellipse.
     ///
-    /// The ellipse major and minor radii are driven by the [`Transform`](modor_physics::Transform)
-    /// size along X-axis and Y-axis.
+    /// The ellipse major and minor radii are driven by the
+    /// [`Transform2D`](modor_physics::Transform2D) size along X-axis and Y-axis.
     #[must_use]
     pub const fn ellipse() -> Self {
         Self {

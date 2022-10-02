@@ -26,7 +26,7 @@
 //! # }
 //! ```
 //!
-//! Examples of [`Mesh`](crate::Mesh) show how to create renderable shapes.
+//! Examples of [`Mesh2D`](crate::Mesh2D) show how to create renderable shapes.
 
 #[macro_use]
 extern crate modor;

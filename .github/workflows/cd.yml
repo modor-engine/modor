@@ -5,8 +5,8 @@ on: workflow_dispatch
 env:
   CARGO_TERM_COLOR: always
 
-  # CI settings
-  RUST_VERSION_STABLE: 1.60.0
+  # CD settings
+  RUST_VERSION_STABLE: 1.64.0
 
 jobs:
 

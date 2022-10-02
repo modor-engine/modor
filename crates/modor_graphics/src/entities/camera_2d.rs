@@ -11,7 +11,7 @@ use modor_physics::{Transform2D, UpdatePhysicsAction};
 /// # Modor
 ///
 /// - **Type**: singleton entity
-/// - **Lifetime**: same as [`PhysicsModule`](crate::PhysicsModule)
+/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
 /// - **Default if missing**: `Camera2D::build(Position::xy(0., 0.), Size::xy(1., 1.))`
 /// - **Inner components**: [`Transform2D`](modor_physics::Transform2D)
 /// - **Updated during**: [`UpdateCamera2DAction`](crate::UpdateCamera2DAction)
