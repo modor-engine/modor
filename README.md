@@ -29,7 +29,7 @@ It also makes extensive use of compile-time checks. For example:
 
 ## Usage
 
-The minimum supported version of Rust is 1.60.
+The minimum supported version of Rust is 1.64.
 
 To include this library in your project, just add the following dependency in your `Cargo.toml` file:
 

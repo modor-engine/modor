@@ -214,7 +214,7 @@ impl GamepadEvent {
             | Self::ReleasedButton(id, _)
             | Self::UpdatedButtonValue(id, _, _)
             | Self::UpdatedAxisValue(id, _, _) => id,
-            GamepadEvent::Plugged(_) | GamepadEvent::Unplugged(_) => {
+            Self::Plugged(_) | Self::Unplugged(_) => {
                 unreachable!("internal error: unreachable gamepad event without ID")
             }
         }

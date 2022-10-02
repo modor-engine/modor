@@ -111,7 +111,7 @@ impl Iterator for DeletedEntityDrain<'_> {
     type Item = EntityIdx;
 
     fn next(&mut self) -> Option<Self::Item> {
-        (&mut self.modified_entity_positions)
+        self.modified_entity_positions
             .find(|p| Self::is_deletion(&self.entity_updates[self.modified_entity_idxs[*p]]))
             .map(|p| {
                 let entity_idx = self.modified_entity_idxs.swap_remove(p);

@@ -1,4 +1,8 @@
-#![allow(clippy::struct_excessive_bools, clippy::unwrap_used)]
+#![allow(
+    clippy::struct_excessive_bools,
+    clippy::unwrap_used,
+    unused_tuple_struct_fields
+)]
 
 #[macro_use]
 extern crate modor;

@@ -9,6 +9,16 @@
 
 Math module of Modor.
 
+## Usage
+
+The minimum supported version of Rust is 1.64.
+
+To include this library in your project, just add the following line in your `Cargo.toml` file:
+
+```toml
+modor_math = "0.1"
+```
+
 ## License
 
 Licensed under either of

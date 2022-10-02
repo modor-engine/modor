@@ -120,8 +120,8 @@ impl Values {
             two_item_done: false,
             more_than_two_item_done: false,
         })
-        .with_option(value1.then(|| Value1(10)))
-        .with_option(value2.then(|| Value2(20)))
+        .with_option(value1.then_some(Value1(10)))
+        .with_option(value2.then_some(Value2(20)))
     }
 
     #[run]

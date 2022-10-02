@@ -128,8 +128,8 @@ pub(super) enum BodyState {
 impl BodyState {
     pub(super) fn handle(self) -> Option<RigidBodyHandle> {
         match self {
-            BodyState::Created(handle) | BodyState::Existing(handle) => Some(handle),
-            BodyState::Missing => None,
+            Self::Created(handle) | Self::Existing(handle) => Some(handle),
+            Self::Missing => None,
         }
     }
 }

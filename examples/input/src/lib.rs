@@ -219,12 +219,11 @@ impl GamepadState {
         if let Some(gamepad) = gamepads.iter().find(|f| f.id() == self.id) {
             let red = 1. - gamepad.button(GamepadButton::BackLeftTrigger).value();
             let green = 1. - gamepad.button(GamepadButton::BackRightTrigger).value();
-            let blue = gamepad
-                .button(GamepadButton::South)
-                .state()
-                .is_pressed
-                .then(|| 0.)
-                .unwrap_or(1.);
+            let blue = if gamepad.button(GamepadButton::South).state().is_pressed {
+                0.
+            } else {
+                1.
+            };
             mesh.color = Color::rgb(red, green, blue);
             let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick);
             let velocity2 = gamepad.stick_direction(GamepadStick::RightStick);

@@ -157,7 +157,7 @@ impl<T> PhysicsProperty<T> {
     pub(crate) fn consume_ref_if_changed(&mut self) -> Option<&T> {
         let changed = self.is_changed;
         self.is_changed = false;
-        changed.then(|| &self.value)
+        changed.then_some(&self.value)
     }
 
     pub(crate) fn consume_ref(&mut self) -> &T {

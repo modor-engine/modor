@@ -101,7 +101,7 @@ impl Camera2D {
     #[run_as(UpdateCamera2DAction)]
     fn update_from_mouse(&mut self, mouse: Single<'_, Mouse>, window: Single<'_, Window>) {
         self.mouse_position =
-            self.transform_matrix * Self::window_to_backend_coordinates(mouse.position(), &*window);
+            self.transform_matrix * Self::window_to_backend_coordinates(mouse.position(), &window);
     }
 
     #[run_as(UpdateCamera2DAction)]
@@ -110,7 +110,7 @@ impl Camera2D {
         self.finger_positions.extend(fingers.iter().map(|f| {
             (
                 f.id(),
-                self.transform_matrix * Self::window_to_backend_coordinates(f.position(), &*window),
+                self.transform_matrix * Self::window_to_backend_coordinates(f.position(), &window),
             )
         }));
     }

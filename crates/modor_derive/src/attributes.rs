@@ -14,10 +14,10 @@ pub(crate) enum AttributeType {
 impl AttributeType {
     pub(crate) fn span(&self) -> Span {
         match self {
-            AttributeType::Run(attribute)
-            | AttributeType::RunAs(attribute)
-            | AttributeType::RunAfter(attribute)
-            | AttributeType::RunAfterPrevious(attribute) => attribute.path.span(),
+            Self::Run(attribute)
+            | Self::RunAs(attribute)
+            | Self::RunAfter(attribute)
+            | Self::RunAfterPrevious(attribute) => attribute.path.span(),
         }
     }
 }
