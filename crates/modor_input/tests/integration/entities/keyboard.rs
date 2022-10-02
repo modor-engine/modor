@@ -17,12 +17,12 @@ fn update_pressed_keys() {
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
         assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A, Key::B]);
-        assert!(k.key(Key::A).is_pressed());
-        assert!(k.key(Key::A).is_just_pressed());
-        assert!(!k.key(Key::A).is_just_released());
-        assert!(k.key(Key::B).is_pressed());
-        assert!(k.key(Key::B).is_just_pressed());
-        assert!(!k.key(Key::B).is_just_released());
+        assert!(k.key(Key::A).is_pressed);
+        assert!(k.key(Key::A).is_just_pressed);
+        assert!(!k.key(Key::A).is_just_released);
+        assert!(k.key(Key::B).is_pressed);
+        assert!(k.key(Key::B).is_just_pressed);
+        assert!(!k.key(Key::B).is_just_released);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(KeyboardEvent::ReleasedKey(Key::B).into());
@@ -30,21 +30,21 @@ fn update_pressed_keys() {
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
         assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A]);
-        assert!(k.key(Key::A).is_pressed());
-        assert!(!k.key(Key::A).is_just_pressed());
-        assert!(!k.key(Key::A).is_just_released());
-        assert!(!k.key(Key::B).is_pressed());
-        assert!(!k.key(Key::B).is_just_pressed());
-        assert!(k.key(Key::B).is_just_released());
+        assert!(k.key(Key::A).is_pressed);
+        assert!(!k.key(Key::A).is_just_pressed);
+        assert!(!k.key(Key::A).is_just_released);
+        assert!(!k.key(Key::B).is_pressed);
+        assert!(!k.key(Key::B).is_just_pressed);
+        assert!(k.key(Key::B).is_just_released);
     });
     app.update();
     app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
-        assert!(k.key(Key::A).is_pressed());
-        assert!(!k.key(Key::A).is_just_pressed());
-        assert!(!k.key(Key::A).is_just_released());
-        assert!(!k.key(Key::B).is_pressed());
-        assert!(!k.key(Key::B).is_just_pressed());
-        assert!(!k.key(Key::B).is_just_released());
+        assert!(k.key(Key::A).is_pressed);
+        assert!(!k.key(Key::A).is_just_pressed);
+        assert!(!k.key(Key::A).is_just_released);
+        assert!(!k.key(Key::B).is_pressed);
+        assert!(!k.key(Key::B).is_just_pressed);
+        assert!(!k.key(Key::B).is_just_released);
     });
 }
 
@@ -88,6 +88,15 @@ fn calculate_direction() {
     assert_direction(&[Key::Left, Key::Right, Key::Up, Key::Down], 0., 0.);
 }
 
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn calculate_axis() {
+    assert_axis(&[], 0.);
+    assert_axis(&[Key::Left], -1.);
+    assert_axis(&[Key::Right], 1.);
+    assert_axis(&[Key::Left, Key::Right], 0.);
+}
+
 fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
     let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
     app.run_for_singleton(|c: &mut InputEventCollector| {
@@ -102,4 +111,16 @@ fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
             Vec2::new(direction_x, direction_y)
         );
     });
+}
+
+fn assert_axis(keys: &[Key], axis: f32) {
+    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
+    app.run_for_singleton(|c: &mut InputEventCollector| {
+        for key in keys {
+            c.push(KeyboardEvent::PressedKey(*key).into());
+        }
+    });
+    app.update();
+    app.assert_singleton::<Keyboard>()
+        .has(|k: &Keyboard| assert_abs_diff_eq!(k.axis(Key::Left, Key::Right), axis));
 }

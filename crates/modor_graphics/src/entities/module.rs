@@ -1,7 +1,8 @@
 use crate::entities::render_target::WindowInit;
-use crate::{Capture, SurfaceSize};
+use crate::{Camera2D, Capture, SurfaceSize};
 use modor::{Built, EntityBuilder};
 use modor_input::InputModule;
+use modor_math::Vec2;
 use modor_physics::PhysicsModule;
 use std::marker::PhantomData;
 
@@ -64,7 +65,8 @@ impl GraphicsModule {
     pub fn build(settings: WindowSettings) -> impl Built<Self> {
         EntityBuilder::new(Self(PhantomData))
             .with_child(WindowInit::build(settings))
-            .with_dependency(PhysicsModule::build::<()>())
+            .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
+            .with_dependency(PhysicsModule::build())
             .with_dependency(InputModule::build())
     }
     // coverage: on
@@ -78,7 +80,7 @@ impl GraphicsModule {
     pub fn build_windowless(capture_size: SurfaceSize) -> impl Built<Self> {
         EntityBuilder::new(Self(PhantomData))
             .with_child(Capture::build(capture_size))
-            .with_dependency(PhysicsModule::build::<()>())
+            .with_dependency(PhysicsModule::build())
     }
 }
 

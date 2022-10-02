@@ -41,6 +41,7 @@ You can also include the modules you want, like:
 
 - [physics](crates/modor_physics/README.md)
 - [graphics](crates/modor_graphics/README.md)
+- [input](crates/modor_input/README.md)
 
 ## Examples
 

@@ -143,6 +143,25 @@ fn neg_vec() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn sum_vecs() {
+    let sum: Vec3 = [
+        Vec3::new(1., 2., 3.),
+        Vec3::new(4., 5., 6.),
+        Vec3::new(7., 8., 9.),
+    ]
+    .into_iter()
+    .sum();
+    assert_abs_diff_eq!(sum.x, 12.);
+    assert_abs_diff_eq!(sum.y, 15.);
+    assert_abs_diff_eq!(sum.z, 18.);
+    let sum: Vec3 = [].into_iter().sum();
+    assert_abs_diff_eq!(sum.x, 0.);
+    assert_abs_diff_eq!(sum.y, 0.);
+    assert_abs_diff_eq!(sum.z, 0.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn abs_diff_eq() {
     assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1., 2., 3.), f32::EPSILON));
     assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1. + f32::EPSILON, 2., 3.), f32::EPSILON));

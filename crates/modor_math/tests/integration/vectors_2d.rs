@@ -32,6 +32,14 @@ fn create_with_scale() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn create_with_rotation() {
+    let vec = Vec2::new(1., 2.).with_rotation(FRAC_PI_2);
+    assert_abs_diff_eq!(vec.x, -2.);
+    assert_abs_diff_eq!(vec.y, 1.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_with_magnitude() {
     let vec = Vec2::new(1., 2.).with_magnitude(20_f32.sqrt()).unwrap();
     assert_abs_diff_eq!(vec.x, 2.);
@@ -43,15 +51,9 @@ fn create_with_magnitude() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn calculate_rotation_between_2_vecs() {
     let rotation = Vec2::new(0.5, 0.5).rotation(Vec2::new(0.5, -0.5));
-    assert_abs_diff_eq!(rotation.angle(), FRAC_PI_2);
-    assert_abs_diff_eq!(rotation.axis().unwrap().x, 0.);
-    assert_abs_diff_eq!(rotation.axis().unwrap().y, 0.);
-    assert_abs_diff_eq!(rotation.axis().unwrap().z, -1.);
+    assert_abs_diff_eq!(rotation, -FRAC_PI_2);
     let rotation = Vec2::new(0.5, -0.5).rotation(Vec2::new(0.5, 0.5));
-    assert_abs_diff_eq!(rotation.angle(), FRAC_PI_2);
-    assert_abs_diff_eq!(rotation.axis().unwrap().x, 0.);
-    assert_abs_diff_eq!(rotation.axis().unwrap().y, 0.);
-    assert_abs_diff_eq!(rotation.axis().unwrap().z, 1.);
+    assert_abs_diff_eq!(rotation, FRAC_PI_2);
 }
 
 #[test]
@@ -130,6 +132,19 @@ fn neg_vec() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn sum_vecs() {
+    let sum: Vec2 = [Vec2::new(1., 2.), Vec2::new(3., 4.), Vec2::new(5., 6.)]
+        .into_iter()
+        .sum();
+    assert_abs_diff_eq!(sum.x, 9.);
+    assert_abs_diff_eq!(sum.y, 12.);
+    let sum: Vec2 = [].into_iter().sum();
+    assert_abs_diff_eq!(sum.x, 0.);
+    assert_abs_diff_eq!(sum.y, 0.);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn abs_diff_eq() {
     assert!(Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1., 2.), f32::EPSILON));
     assert!(Vec2::new(1., 2.).abs_diff_eq(&Vec2::new(1. + f32::EPSILON, 2.), f32::EPSILON));
@@ -164,6 +179,4 @@ fn use_vector() {
     let vec = Vec2::new(1., 2.);
     assert_abs_diff_eq!(vec.magnitude(), 5_f32.sqrt());
     assert_abs_diff_eq!(vec.distance(Vec2::new(4., 3.)), 10_f32.sqrt());
-    assert_abs_diff_eq!(vec.perpendicular_cw(), Vec2::new(2., -1.));
-    assert_abs_diff_eq!(vec.perpendicular_ccw(), Vec2::new(-2., 1.));
 }

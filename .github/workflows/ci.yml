@@ -292,3 +292,7 @@ jobs:
         run: bash .github/workflows/scripts/check_line_endings.sh
       - name: Check TODOs
         run: bash .github/workflows/scripts/check_todos.sh
+      - name: Check published crate list
+        run: bash .github/workflows/scripts/check_published_crate_list.sh
+      - name: Check crates are registered on crates.io
+        run: bash .github/workflows/scripts/check_registered_crates.sh

@@ -1,13 +1,14 @@
-use crate::{Quat, Vec3};
+use crate::Vec3;
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A vector in a 2D space with `U` as unit of distance.
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Vec2 {
-    /// The X-coordinate.
+    /// X-coordinate.
     pub x: f32,
-    /// The Y-coordinate.
+    /// Y-coordinate.
     pub y: f32,
 }
 
@@ -55,6 +56,17 @@ impl Vec2 {
         Self::new(self.x * scale.x, self.y * scale.y)
     }
 
+    /// Returns the vector rotated by a counterclockwise `angle` in radians.
+    #[must_use]
+    pub fn with_rotation(self, angle: f32) -> Self {
+        let cos = angle.cos();
+        let sin = angle.sin();
+        Self::new(
+            self.x.mul_add(cos, -self.y * sin),
+            self.x.mul_add(sin, self.y * cos),
+        )
+    }
+
     /// Returns the vector with the same direction and but a different `magnitude`.
     ///
     /// If all components of the vector are equal to `0.0`, `None` is returned.
@@ -81,35 +93,23 @@ impl Vec2 {
         x_diff.mul_add(x_diff, y_diff.powi(2)).sqrt()
     }
 
-    /// Returns the rotation between the vector and `other`.
+    /// Returns the rotation between the vector and `other` in radians.
     #[must_use]
-    pub fn rotation(self, other: Self) -> Quat {
-        self.with_z(0.).rotation(other.with_z(0.))
+    pub fn rotation(self, other: Self) -> f32 {
+        (other.y * self.x - other.x * self.y).atan2(self.dot(other))
     }
 
     /// Returns the dot product between the vector and `other`.
     #[must_use]
     pub fn dot(self, other: Self) -> f32 {
-        self.x * other.x + self.y * other.y
+        self.x.mul_add(other.x, self.y * other.y)
     }
 
     /// Returns the cross product between the vector and `other`.
     #[must_use]
     pub fn mirror(self, axis_direction: Self) -> Self {
-        let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec2::ZERO);
+        let axis = axis_direction.with_magnitude(1.).unwrap_or(Self::ZERO);
         axis * self.dot(axis) * 2. - self
-    }
-
-    /// Returns the perpendicular vector clockwise.
-    #[must_use]
-    pub fn perpendicular_cw(self) -> Self {
-        Self::new(self.y, -self.x)
-    }
-
-    /// Returns the perpendicular vector counter clockwise.
-    #[must_use]
-    pub fn perpendicular_ccw(self) -> Self {
-        Self::new(-self.y, self.x)
     }
 }
 
@@ -186,6 +186,12 @@ impl Neg for Vec2 {
 
     fn neg(self) -> Self::Output {
         Self::new(-self.x, -self.y)
+    }
+}
+
+impl Sum for Vec2 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |a, b| a + b)
     }
 }
 

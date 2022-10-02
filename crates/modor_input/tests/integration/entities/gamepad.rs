@@ -40,9 +40,9 @@ fn update_button_state() {
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
         assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
-        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!g.button(GamepadButton::Start).state().is_just_released());
-        assert!(!g.button(GamepadButton::Start).state().is_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed);
+        assert!(!g.button(GamepadButton::Start).state().is_just_released);
+        assert!(!g.button(GamepadButton::Start).state().is_pressed);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::PressedButton(0, GamepadButton::Start).into());
@@ -53,9 +53,9 @@ fn update_button_state() {
             g.pressed_buttons().collect::<Vec<_>>(),
             [GamepadButton::Start]
         );
-        assert!(g.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!g.button(GamepadButton::Start).state().is_just_released());
-        assert!(g.button(GamepadButton::Start).state().is_pressed());
+        assert!(g.button(GamepadButton::Start).state().is_just_pressed);
+        assert!(!g.button(GamepadButton::Start).state().is_just_released);
+        assert!(g.button(GamepadButton::Start).state().is_pressed);
     });
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
@@ -63,9 +63,9 @@ fn update_button_state() {
             g.pressed_buttons().collect::<Vec<_>>(),
             [GamepadButton::Start]
         );
-        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!g.button(GamepadButton::Start).state().is_just_released());
-        assert!(g.button(GamepadButton::Start).state().is_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed);
+        assert!(!g.button(GamepadButton::Start).state().is_just_released);
+        assert!(g.button(GamepadButton::Start).state().is_pressed);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(GamepadEvent::ReleasedButton(0, GamepadButton::Start).into());
@@ -73,16 +73,16 @@ fn update_button_state() {
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
         assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
-        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(g.button(GamepadButton::Start).state().is_just_released());
-        assert!(!g.button(GamepadButton::Start).state().is_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed);
+        assert!(g.button(GamepadButton::Start).state().is_just_released);
+        assert!(!g.button(GamepadButton::Start).state().is_pressed);
     });
     app.update();
     app.assert_entity(4).has(|g: &Gamepad| {
         assert_eq!(g.pressed_buttons().collect::<Vec<_>>(), []);
-        assert!(!g.button(GamepadButton::Start).state().is_just_pressed());
-        assert!(!g.button(GamepadButton::Start).state().is_just_released());
-        assert!(!g.button(GamepadButton::Start).state().is_pressed());
+        assert!(!g.button(GamepadButton::Start).state().is_just_pressed);
+        assert!(!g.button(GamepadButton::Start).state().is_just_released);
+        assert!(!g.button(GamepadButton::Start).state().is_pressed);
     });
 }
 

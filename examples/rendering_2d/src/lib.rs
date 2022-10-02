@@ -2,11 +2,9 @@
 
 use instant::Instant;
 use modor::{entity, singleton, App, Built, EntityBuilder, Single};
-use modor_graphics::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
-};
-use modor_math::Vec3;
-use modor_physics::{DeltaTime, DynamicBody, Transform};
+use modor_graphics::{Camera2D, Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
+use modor_math::Vec2;
+use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::Duration;
@@ -14,7 +12,6 @@ use std::time::Duration;
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_thread_count(2)
         .with_entity(GraphicsModule::build(
             WindowSettings::default()
                 .size(SurfaceSize::new(800, 600))
@@ -30,8 +27,7 @@ struct MainModule;
 impl MainModule {
     fn build(entity_count: usize) -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with_child(FrameRateLimit::build(FrameRate::VSync))
-            .with_child(Camera2D::build(Vec3::from_xy(0., 0.), Vec3::from_xy(1.5, 1.5)))
+            .with_child(Camera2D::build(Vec2::new(0., 0.), Vec2::new(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
                 for _ in 0..entity_count {
@@ -53,15 +49,15 @@ impl Sprite {
             next_update: Instant::now(),
         })
         .with(
-            Transform::new()
-                .with_position(Vec3::from_xy(
+            Transform2D::new()
+                .with_position(Vec2::new(
                     Self::random_f32(&mut rng),
                     Self::random_f32(&mut rng),
                 ))
-                .with_size(Vec3::ONE * 0.01),
+                .with_size(Vec2::ONE * 0.01),
         )
-        .with(DynamicBody::new())
-        .with(Mesh::ellipse().with_color(Color::rgb(
+        .with(Dynamics2D::new())
+        .with(Mesh2D::ellipse().with_color(Color::rgb(
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
             Self::random_f32(&mut rng) + 0.5,
@@ -69,12 +65,12 @@ impl Sprite {
     }
 
     #[run]
-    fn update_velocity(&mut self, body: &mut DynamicBody) {
+    fn update_velocity(&mut self, dynamics: &mut Dynamics2D) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            body.velocity = Vec3::from_xy(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
+            *dynamics.velocity = Vec2::new(Self::random_f32(&mut rng), Self::random_f32(&mut rng))
                 .with_magnitude(0.05)
-                .unwrap_or(Vec3::ZERO);
+                .unwrap_or(Vec2::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(200);
         }
     }

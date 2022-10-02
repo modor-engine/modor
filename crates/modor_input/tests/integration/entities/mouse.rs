@@ -22,12 +22,12 @@ fn update_pressed_buttons() {
             m.pressed_buttons().collect::<Vec<_>>(),
             [MouseButton::Left, MouseButton::Right]
         );
-        assert!(m.button(MouseButton::Left).is_pressed());
-        assert!(m.button(MouseButton::Left).is_just_pressed());
-        assert!(!m.button(MouseButton::Left).is_just_released());
-        assert!(m.button(MouseButton::Right).is_pressed());
-        assert!(m.button(MouseButton::Right).is_just_pressed());
-        assert!(!m.button(MouseButton::Right).is_just_released());
+        assert!(m.button(MouseButton::Left).is_pressed);
+        assert!(m.button(MouseButton::Left).is_just_pressed);
+        assert!(!m.button(MouseButton::Left).is_just_released);
+        assert!(m.button(MouseButton::Right).is_pressed);
+        assert!(m.button(MouseButton::Right).is_just_pressed);
+        assert!(!m.button(MouseButton::Right).is_just_released);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         c.push(MouseEvent::ReleasedButton(MouseButton::Right).into());
@@ -35,22 +35,22 @@ fn update_pressed_buttons() {
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
         assert_eq!(m.pressed_buttons().collect::<Vec<_>>(), [MouseButton::Left]);
-        assert!(m.button(MouseButton::Left).is_pressed());
-        assert!(!m.button(MouseButton::Left).is_just_pressed());
-        assert!(!m.button(MouseButton::Left).is_just_released());
-        assert!(!m.button(MouseButton::Right).is_pressed());
-        assert!(!m.button(MouseButton::Right).is_just_pressed());
-        assert!(m.button(MouseButton::Right).is_just_released());
+        assert!(m.button(MouseButton::Left).is_pressed);
+        assert!(!m.button(MouseButton::Left).is_just_pressed);
+        assert!(!m.button(MouseButton::Left).is_just_released);
+        assert!(!m.button(MouseButton::Right).is_pressed);
+        assert!(!m.button(MouseButton::Right).is_just_pressed);
+        assert!(m.button(MouseButton::Right).is_just_released);
     });
     app.update();
     app.assert_singleton::<Mouse>().has(|m: &Mouse| {
         assert_eq!(m.pressed_buttons().collect::<Vec<_>>(), [MouseButton::Left]);
-        assert!(m.button(MouseButton::Left).is_pressed());
-        assert!(!m.button(MouseButton::Left).is_just_pressed());
-        assert!(!m.button(MouseButton::Left).is_just_released());
-        assert!(!m.button(MouseButton::Right).is_pressed());
-        assert!(!m.button(MouseButton::Right).is_just_pressed());
-        assert!(!m.button(MouseButton::Right).is_just_released());
+        assert!(m.button(MouseButton::Left).is_pressed);
+        assert!(!m.button(MouseButton::Left).is_just_pressed);
+        assert!(!m.button(MouseButton::Left).is_just_released);
+        assert!(!m.button(MouseButton::Right).is_pressed);
+        assert!(!m.button(MouseButton::Right).is_just_pressed);
+        assert!(!m.button(MouseButton::Right).is_just_released);
     });
 }
 

@@ -6,14 +6,14 @@ use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{utils, Color, Mesh, SurfaceSize};
+use crate::{utils, Color, Mesh2D, SurfaceSize};
 use modor::Query;
-use modor_math::{Mat4, Vec3};
-use modor_physics::Transform;
+use modor_math::{Mat4, Quat, Vec3};
+use modor_physics::Transform2D;
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
-pub(crate) type ShapeComponents<'a> = (&'a Transform, &'a Mesh);
+pub(crate) type ShapeComponents<'a> = (&'a Transform2D, &'a Mesh2D);
 
 pub(crate) struct CoreStorage {
     renderer: Renderer,
@@ -52,11 +52,11 @@ impl CoreStorage {
     pub(crate) fn update_instances(
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
-        camera_transform: &Transform,
+        camera_transform: &Transform2D,
     ) {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(t, _)| t.position.z));
+        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, m)| m.z));
         for (transform, mesh) in shapes.iter() {
             let instance = Self::create_instance(transform, mesh, depth_bounds);
             let shader_idx = ShaderStorage::idx(mesh);
@@ -99,20 +99,24 @@ impl CoreStorage {
         })
     }
 
-    fn create_instance(transform: &Transform, mesh: &Mesh, depth_bounds: (f32, f32)) -> Instance {
+    fn create_instance(
+        transform: &Transform2D,
+        mesh: &Mesh2D,
+        depth_bounds: (f32, f32),
+    ) -> Instance {
         let (min_z, max_z) = depth_bounds;
-        let z_position =
-            MAX_DEPTH - utils::normalize(transform.position.z, min_z, max_z, 0., MAX_DEPTH);
-        let mut transform = transform.clone();
-        transform.position.z = z_position;
+        let z = MAX_DEPTH - utils::normalize(mesh.z, min_z, max_z, 0., MAX_DEPTH);
+        let matrix = Mat4::from_scale(transform.size.with_z(0.))
+            * Quat::from_z(*transform.rotation).matrix()
+            * Mat4::from_position(transform.position.with_z(z));
         Instance {
-            transform: transform.create_matrix().to_array(),
+            transform: matrix.to_array(),
             color: mesh.color.into(),
         }
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn create_camera_data(camera_transform: &Transform, renderer: &Renderer) -> Camera {
+    fn create_camera_data(camera_transform: &Transform2D, renderer: &Renderer) -> Camera {
         let size = renderer.target_size();
         let (x_scale, y_scale) = utils::world_scale(size);
         let position = Vec3::from_xy(-camera_transform.position.x, -camera_transform.position.y);
@@ -123,7 +127,7 @@ impl CoreStorage {
         );
         Camera {
             transform: (Mat4::from_position(position)
-                * camera_transform.rotation.matrix()
+                * Quat::from_z(*camera_transform.rotation).matrix()
                 * Mat4::from_scale(scale))
             .to_array(),
         }

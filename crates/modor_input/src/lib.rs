@@ -38,7 +38,7 @@
 //!
 //!     #[run]
 //!     fn run(mouse: Single<'_, Mouse>) {
-//!         assert!(mouse.button(MouseButton::Left).is_pressed());
+//!         assert!(mouse.button(MouseButton::Left).is_pressed);
 //!     }
 //! }
 //! ```

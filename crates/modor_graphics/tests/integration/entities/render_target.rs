@@ -1,11 +1,11 @@
 use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder, SingleMut};
 use modor_graphics::{
-    testing, BackgroundColor, Capture, Color, GraphicsModule, Mesh, SurfaceSize,
+    testing, BackgroundColor, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize,
     UpdateCaptureBufferAction,
 };
-use modor_math::Vec3;
-use modor_physics::{RelativeTransform, Transform};
+use modor_math::Vec2;
+use modor_physics::{RelativeTransform2D, Transform2D};
 
 struct CaptureResizer {
     new_size: SurfaceSize,
@@ -29,8 +29,8 @@ struct Rectangle;
 impl Rectangle {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::new().with_size(Vec3::ONE * 0.9))
-            .with(Mesh::rectangle().with_color(Color::RED))
+            .with(Transform2D::new().with_size(Vec2::ONE * 0.9))
+            .with(Mesh2D::rectangle().with_color(Color::RED))
             .with_child(Quarter::build())
     }
 }
@@ -41,13 +41,13 @@ struct Quarter;
 impl Quarter {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::default())
+            .with(Transform2D::default())
             .with(
-                RelativeTransform::new()
-                    .with_position(Vec3::new(0.25, 0.25, 1.))
-                    .with_size(Vec3::ONE * 0.5),
+                RelativeTransform2D::new()
+                    .with_position(Vec2::new(0.25, 0.25))
+                    .with_size(Vec2::ONE * 0.5),
             )
-            .with(Mesh::rectangle().with_color(Color::MAROON))
+            .with(Mesh2D::rectangle().with_color(Color::MAROON).with_z(1.))
     }
 }
 

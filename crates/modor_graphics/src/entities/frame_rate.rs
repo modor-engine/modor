@@ -8,7 +8,7 @@ use modor::{Built, EntityBuilder};
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: custom (same as parent entity)
-/// - **Default if missing**: `FrameRateLimit::build(FrameRate::Unlimited)`
+/// - **Default if missing**: `FrameRateLimit::build(FrameRate::VSync)`
 ///
 /// # Examples
 ///

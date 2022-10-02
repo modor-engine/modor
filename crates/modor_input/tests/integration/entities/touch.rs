@@ -16,21 +16,21 @@ fn update_state() {
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
         assert_eq!(f.id(), 0);
-        assert!(f.state().is_pressed());
-        assert!(f.state().is_just_pressed());
-        assert!(!f.state().is_just_released());
+        assert!(f.state().is_pressed);
+        assert!(f.state().is_just_pressed);
+        assert!(!f.state().is_just_released);
     });
     app.assert_entity(5).has(|f: &Finger| {
         assert_eq!(f.id(), 1);
-        assert!(f.state().is_pressed());
-        assert!(f.state().is_just_pressed());
-        assert!(!f.state().is_just_released());
+        assert!(f.state().is_pressed);
+        assert!(f.state().is_just_pressed);
+        assert!(!f.state().is_just_released);
     });
     app.assert_entity(6).has(|f: &Finger| {
         assert_eq!(f.id(), 2);
-        assert!(f.state().is_pressed());
-        assert!(f.state().is_just_pressed());
-        assert!(!f.state().is_just_released());
+        assert!(f.state().is_pressed);
+        assert!(f.state().is_just_pressed);
+        assert!(!f.state().is_just_released);
     });
     app.run_for_singleton(|c: &mut InputEventCollector| {
         let position = Vec2::new(2., 5.);
@@ -40,21 +40,21 @@ fn update_state() {
     app.update();
     app.assert_entity(4).has(|f: &Finger| {
         assert_eq!(f.id(), 0);
-        assert!(f.state().is_pressed());
-        assert!(!f.state().is_just_pressed());
-        assert!(!f.state().is_just_released());
+        assert!(f.state().is_pressed);
+        assert!(!f.state().is_just_pressed);
+        assert!(!f.state().is_just_released);
     });
     app.assert_entity(5).has(|f: &Finger| {
         assert_eq!(f.id(), 1);
-        assert!(f.state().is_pressed());
-        assert!(!f.state().is_just_pressed());
-        assert!(!f.state().is_just_released());
+        assert!(f.state().is_pressed);
+        assert!(!f.state().is_just_pressed);
+        assert!(!f.state().is_just_released);
     });
     app.assert_entity(6).has(|f: &Finger| {
         assert_eq!(f.id(), 2);
-        assert!(!f.state().is_pressed());
-        assert!(!f.state().is_just_pressed());
-        assert!(f.state().is_just_released());
+        assert!(!f.state().is_pressed);
+        assert!(!f.state().is_just_pressed);
+        assert!(f.state().is_just_released);
     });
     app.update();
     app.assert_entity(6).does_not_exist();

@@ -43,11 +43,11 @@ impl QueryTester {
     #[run]
     fn collect_complex(&mut self, mut query: Query<'_, (&Value, Option<&u32>), With<Number>>) {
         let values = [Some(1), Some(2), None];
-        assert_iter(query.iter().map(|v| v.1.map(|v| *v)), values);
-        assert_iter(query.iter_mut().map(|v| v.1.map(|v| *v)), values);
+        assert_iter(query.iter().map(|v| v.1.copied()), values);
+        assert_iter(query.iter_mut().map(|v| v.1.copied()), values);
         let rev_values = [None, Some(2), Some(1)];
-        assert_iter(query.iter().rev().map(|v| v.1.map(|v| *v)), rev_values);
-        assert_iter(query.iter_mut().rev().map(|v| v.1.map(|v| *v)), rev_values);
+        assert_iter(query.iter().rev().map(|v| v.1.copied()), rev_values);
+        assert_iter(query.iter_mut().rev().map(|v| v.1.copied()), rev_values);
         self.done_complex = true;
     }
 }

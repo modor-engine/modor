@@ -2,7 +2,7 @@ use crate::backend::data::{Camera, GpuData, Instance, Vertex};
 use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
 use crate::backend::uniforms::Uniform;
-use crate::{Mesh, Shape};
+use crate::{Mesh2D, Shape};
 use typed_index_collections::TiVec;
 
 const FIRST_VERTEX_BUFFER_LOCATION: u32 = 0;
@@ -38,7 +38,7 @@ impl ShaderStorage {
         }
     }
 
-    pub(super) fn idx(mesh: &Mesh) -> ShaderIdx {
+    pub(super) fn idx(mesh: &Mesh2D) -> ShaderIdx {
         match mesh.shape {
             Shape::Rectangle => ShaderIdx(0),
             Shape::Ellipse => ShaderIdx(1),

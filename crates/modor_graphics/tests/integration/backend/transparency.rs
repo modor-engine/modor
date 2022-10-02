@@ -1,8 +1,8 @@
 use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, World};
-use modor_graphics::{testing, Color, GraphicsModule, Mesh, SurfaceSize};
-use modor_math::Vec3;
-use modor_physics::Transform;
+use modor_graphics::{testing, Color, GraphicsModule, Mesh2D, SurfaceSize};
+use modor_math::{Vec2, Vec3};
+use modor_physics::Transform2D;
 
 struct Object;
 
@@ -11,21 +11,21 @@ impl Object {
     fn build_rectangle(position: Vec3, color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(
-                Transform::new()
-                    .with_position(position)
-                    .with_size(Vec3::ONE * 0.2),
+                Transform2D::new()
+                    .with_position(position.xy())
+                    .with_size(Vec2::ONE * 0.2),
             )
-            .with(Mesh::rectangle().with_color(color))
+            .with(Mesh2D::rectangle().with_color(color).with_z(position.z))
     }
 
     fn build_ellipse(position: Vec3, color: Color) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(
-                Transform::new()
-                    .with_position(position)
-                    .with_size(Vec3::ONE * 0.2),
+                Transform2D::new()
+                    .with_position(position.xy())
+                    .with_size(Vec2::ONE * 0.2),
             )
-            .with(Mesh::ellipse().with_color(color))
+            .with(Mesh2D::ellipse().with_color(color).with_z(position.z))
     }
 
     #[run]

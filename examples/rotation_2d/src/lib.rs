@@ -1,11 +1,9 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use modor::{entity, App, Built, EntityBuilder};
-use modor_graphics::{
-    Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
-};
-use modor_math::{Quat, Vec3};
-use modor_physics::{DynamicBody, RelativeTransform, Transform};
+use modor_graphics::{Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
+use modor_math::Vec2;
+use modor_physics::{Dynamics2D, RelativeTransform2D, Transform2D};
 use std::f32::consts::FRAC_PI_2;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -16,7 +14,6 @@ pub fn main() {
                 .size(SurfaceSize::new(800, 600))
                 .title("Modor - rotation 2D"),
         ))
-        .with_entity(FrameRateLimit::build(FrameRate::VSync))
         .with_entity(Object::build())
         .run(modor_graphics::runner);
 }
@@ -28,12 +25,12 @@ impl Object {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(
-                Transform::new()
-                    .with_position(Vec3::from_xy(0.15, 0.15))
-                    .with_size(Vec3::new(0.25, 0.5, 1.)),
+                Transform2D::new()
+                    .with_position(Vec2::new(0.15, 0.15))
+                    .with_size(Vec2::new(0.25, 0.5)),
             )
-            .with(DynamicBody::new().with_angular_velocity(Quat::from_z(FRAC_PI_2)))
-            .with(Mesh::rectangle().with_color(Color::YELLOW))
+            .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
+            .with(Mesh2D::rectangle().with_color(Color::YELLOW))
             .with_child(Child::build())
     }
 }
@@ -44,13 +41,12 @@ struct Child;
 impl Child {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::new().with_size(Vec3::new(0.1, 0.2, 1.)))
+            .with(Transform2D::new().with_size(Vec2::new(0.1, 0.2)))
             .with(
-                RelativeTransform::new()
-                    .with_position(Vec3::ONE * 0.5)
-                    .with_rotation(Quat::ZERO),
+                RelativeTransform2D::new()
+                    .with_position(Vec2::ONE * 0.5)
+                    .with_rotation(0.),
             )
-            .with(DynamicBody::new().with_angular_velocity(Quat::from_z(FRAC_PI_2)))
-            .with(Mesh::rectangle().with_color(Color::MAGENTA))
+            .with(Mesh2D::rectangle().with_color(Color::MAGENTA).with_z(1.))
     }
 }

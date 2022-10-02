@@ -43,10 +43,10 @@ mod utils;
 
 pub mod testing;
 
-pub use components::mesh::*;
+pub use components::mesh_2d::*;
 pub use data::*;
 pub use entities::background::*;
-pub use entities::camera::*;
+pub use entities::camera_2d::*;
 pub use entities::frame_rate::*;
 pub use entities::module::*;
 pub use entities::render_target::*;

@@ -110,7 +110,7 @@ impl InputEventCollector {
     ) {
         fingers
             .iter()
-            .filter(|(_, t)| t.state().is_just_released())
+            .filter(|(_, t)| t.state().is_just_released)
             .for_each(|(e, _)| world.delete_entity(e.id()));
     }
 

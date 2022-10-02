@@ -67,7 +67,7 @@ pub fn runner(mut app: App) {
         }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            let mut frame_rate = FrameRate::Unlimited;
+            let mut frame_rate = FrameRate::VSync;
             app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
             app.run_for_singleton(|w: &mut Window| {
                 let size = window.inner_size();

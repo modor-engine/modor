@@ -1,15 +1,16 @@
 use crate::{Quat, Vec2};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A vector in a 3D space.
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
-    /// The X-coordinate.
+    /// X-coordinate.
     pub x: f32,
-    /// The Y-coordinate.
+    /// Y-coordinate.
     pub y: f32,
-    /// The Z-coordinate.
+    /// Z-coordinate.
     pub z: f32,
 }
 
@@ -117,7 +118,7 @@ impl Vec3 {
     #[must_use]
     pub fn rotation(self, other: Self) -> Quat {
         let cross = self.cross(other);
-        let w = self.magnitude() * other.magnitude() + self.dot(other);
+        let w = self.magnitude().mul_add(other.magnitude(), self.dot(other));
         let magnitude = cross
             .x
             .mul_add(
@@ -138,13 +139,14 @@ impl Vec3 {
     /// Returns the dot product between the vector and `other`.
     #[must_use]
     pub fn dot(self, other: Self) -> f32 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+        self.x
+            .mul_add(other.x, self.y.mul_add(other.y, self.z * other.z))
     }
 
     /// Returns the cross product between the vector and `other`.
     #[must_use]
-    pub fn cross(self, other: Self) -> Vec3 {
-        Vec3::new(
+    pub fn cross(self, other: Self) -> Self {
+        Self::new(
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x,
@@ -155,8 +157,8 @@ impl Vec3 {
     ///
     /// `axis_direction` sense has no impact on the resulting vector.
     #[must_use]
-    pub fn mirror(self, axis_direction: Self) -> Vec3 {
-        let axis = axis_direction.with_magnitude(1.).unwrap_or(Vec3::ZERO);
+    pub fn mirror(self, axis_direction: Self) -> Self {
+        let axis = axis_direction.with_magnitude(1.).unwrap_or(Self::ZERO);
         axis * self.dot(axis) * 2. - self
     }
 }
@@ -238,6 +240,12 @@ impl Neg for Vec3 {
 
     fn neg(self) -> Self::Output {
         Self::new(-self.x, -self.y, -self.z)
+    }
+}
+
+impl Sum for Vec3 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |a, b| a + b)
     }
 }
 

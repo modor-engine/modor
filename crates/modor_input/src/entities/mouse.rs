@@ -19,7 +19,7 @@ use modor_math::Vec2;
 /// #
 /// fn access_mouse(mouse: Single<'_, Mouse>) {
 ///     println!("Position: {:?}", mouse.position());
-///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed());
+///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed);
 /// }
 /// ```
 pub struct Mouse {
@@ -36,7 +36,7 @@ impl Mouse {
     pub fn pressed_buttons(&self) -> impl Iterator<Item = MouseButton> + '_ {
         self.buttons
             .iter()
-            .filter(|(_, s)| s.is_pressed())
+            .filter(|(_, s)| s.is_pressed)
             .map(|(b, _)| *b)
     }
 

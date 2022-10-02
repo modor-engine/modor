@@ -9,13 +9,13 @@ use crate::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
-use modor_physics::Transform;
+use modor_physics::Transform2D;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
-pub(crate) const DEFAULT_CAMERA_TRANSFORM: Transform = Transform::new();
+pub(crate) const DEFAULT_CAMERA_TRANSFORM: Transform2D = Transform2D::new();
 
 pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
@@ -33,7 +33,7 @@ impl RenderTarget {
     fn prepare_rendering(
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
-        cameras: Query<'_, &Transform, With<Camera2D>>,
+        cameras: Query<'_, &Transform2D, With<Camera2D>>,
     ) {
         let camera_transform = cameras.iter().next().unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
         self.core.update_instances(shapes, camera_transform);

@@ -77,16 +77,16 @@ fn create_from_scale() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_vec2() {
     let rotation = Quat::from_z(FRAC_PI_2).matrix();
-    assert_abs_diff_eq!(rotation * Vec2::new(1., 1.), Vec2::new(1., -1.));
-    assert_abs_diff_eq!(Vec2::new(1., 1.) * rotation, Vec2::new(1., -1.));
+    assert_abs_diff_eq!(rotation * Vec2::new(1., 1.), Vec2::new(-1., 1.));
+    assert_abs_diff_eq!(Vec2::new(1., 1.) * rotation, Vec2::new(-1., 1.));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn mul_vec3() {
     let rotation = Quat::from_x(FRAC_PI_2).matrix();
-    assert_abs_diff_eq!(rotation * Vec3::new(1., 1., 1.), Vec3::new(1., 1., -1.));
-    assert_abs_diff_eq!(Vec3::new(1., 1., 1.) * rotation, Vec3::new(1., 1., -1.));
+    assert_abs_diff_eq!(rotation * Vec3::new(1., 1., 1.), Vec3::new(1., -1., 1.));
+    assert_abs_diff_eq!(Vec3::new(1., 1., 1.) * rotation, Vec3::new(1., -1., 1.));
 }
 
 #[test]
@@ -97,16 +97,16 @@ fn mul_mat() {
     let rotation = Quat::from_x(FRAC_PI_2).matrix();
     assert_abs_diff_eq!(
         rotation * scale * translation * Vec3::new(1., 1., 1.),
-        Vec3::new(2.1, 4.2, 5.7)
+        Vec3::new(2.1, 3.8, 6.3)
     );
     let rotation = Quat::from_y(FRAC_PI_2).matrix();
     assert_abs_diff_eq!(
         rotation * scale * translation * Vec3::new(1., 1., 1.),
-        Vec3::new(1.9, 4.2, 6.3)
+        Vec3::new(2.1, 4.2, 5.7)
     );
     let rotation = Quat::from_z(FRAC_PI_2).matrix();
     assert_abs_diff_eq!(
         rotation * scale * translation * Vec3::new(1., 1., 1.),
-        Vec3::new(2.1, 3.8, 6.3)
+        Vec3::new(1.9, 4.2, 6.3)
     );
 }

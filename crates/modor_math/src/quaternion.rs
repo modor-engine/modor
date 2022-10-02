@@ -86,19 +86,19 @@ impl Quat {
         Mat4::from_array([
             [
                 1. - (2. * self.y).mul_add(self.y, 2. * self.z * self.z),
-                (2. * self.x).mul_add(self.y, -2. * self.w * self.z),
-                (2. * self.x).mul_add(self.z, 2. * self.w * self.y),
-                0.,
-            ],
-            [
                 (2. * self.x).mul_add(self.y, 2. * self.w * self.z),
-                1. - (2. * self.x).mul_add(self.x, 2. * self.z * self.z),
-                (2. * self.y).mul_add(self.z, -2. * self.w * self.x),
+                (2. * self.x).mul_add(self.z, -2. * self.w * self.y),
                 0.,
             ],
             [
-                (2. * self.x).mul_add(self.z, -2. * self.w * self.y),
+                (2. * self.x).mul_add(self.y, -2. * self.w * self.z),
+                1. - (2. * self.x).mul_add(self.x, 2. * self.z * self.z),
                 (2. * self.y).mul_add(self.z, 2. * self.w * self.x),
+                0.,
+            ],
+            [
+                (2. * self.x).mul_add(self.z, 2. * self.w * self.y),
+                (2. * self.y).mul_add(self.z, -2. * self.w * self.x),
                 1. - (2. * self.x).mul_add(self.x, 2. * self.y * self.y),
                 0.,
             ],

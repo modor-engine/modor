@@ -1,7 +1,7 @@
 use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Vertex;
 use crate::backend::renderer::Renderer;
-use crate::{Mesh, Shape};
+use crate::{Mesh2D, Shape};
 use typed_index_collections::TiVec;
 
 const RECTANGLE_VERTICES: [Vertex; 4] = [
@@ -36,7 +36,7 @@ impl ModelStorage {
         }
     }
 
-    pub(super) fn idx(mesh: &Mesh) -> ModelIdx {
+    pub(super) fn idx(mesh: &Mesh2D) -> ModelIdx {
         match mesh.shape {
             Shape::Rectangle | Shape::Ellipse => ModelIdx(0),
         }
