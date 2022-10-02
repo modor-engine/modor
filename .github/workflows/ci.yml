@@ -18,7 +18,6 @@ env:
   RUST_VERSION_STABLE: 1.64.0
   COV_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
-  NOT_MUTATED_CRATES: modor_derive # space-delimited list
 
 jobs:
 
@@ -276,6 +275,8 @@ jobs:
           args: -- --check
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
+      - name: Check crates are registered on crates.io
+        run: bash .github/workflows/scripts/check_registered_crates.sh
 
   lint-generic:
     runs-on: ubuntu-20.04
@@ -292,5 +293,3 @@ jobs:
         run: bash .github/workflows/scripts/check_todos.sh
       - name: Check published crate list
         run: bash .github/workflows/scripts/check_published_crate_list.sh
-      - name: Check crates are registered on crates.io
-        run: bash .github/workflows/scripts/check_registered_crates.sh

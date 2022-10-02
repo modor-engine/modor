@@ -178,15 +178,6 @@ where
     }
 }
 
-impl<T> From<T> for PhysicsProperty<T> {
-    fn from(value: T) -> Self {
-        Self {
-            value,
-            is_changed: true,
-        }
-    }
-}
-
 impl<T> Deref for PhysicsProperty<T> {
     type Target = T;
 

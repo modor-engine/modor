@@ -223,7 +223,7 @@ fn remove_and_put_back_collider_without_dynamics() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn remove_dynamics_and_keep_collider() {
+fn remove_and_put_back_dynamics_with_collider() {
     let mut app: TestApp = App::new()
         .with_entity(PhysicsModule::build_with_layers(layers()))
         .with_entity(DeltaTime::build(DELTA_TIME))
@@ -238,11 +238,16 @@ fn remove_dynamics_and_keep_collider() {
     app.update();
     app.assert_entity(entity2_id)
         .has(|c: &Collider2D| assert_eq!(c.collisions().len(), 1));
+    app.run_for_singleton(|u: &mut Updates| u.actions.push(Action::PutBackDynamics));
+    app.update();
+    app.update();
+    app.assert_entity(entity2_id)
+        .has(|c: &Collider2D| assert_eq!(c.collisions().len(), 1));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn remove_collider_and_keep_dynamics() {
+fn remove_and_put_back_collider_with_dynamics() {
     let mut app: TestApp = App::new()
         .with_entity(PhysicsModule::build_with_layers(layers()))
         .with_entity(DeltaTime::build(DELTA_TIME))
@@ -258,6 +263,11 @@ fn remove_collider_and_keep_dynamics() {
     app.update();
     app.assert_entity(entity2_id)
         .has(|t: &Transform2D| assert_approx_eq!(*t.position, Vec2::new(5., 2.)));
+    app.run_for_singleton(|u: &mut Updates| u.actions.push(Action::PutBackCollider));
+    app.update();
+    app.update();
+    app.assert_entity(entity2_id)
+        .has(|t: &Transform2D| assert_approx_eq!(*t.position, Vec2::new(9., 2.)));
 }
 
 #[test]

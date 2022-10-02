@@ -171,6 +171,7 @@ fn abs_diff_eq() {
         .abs_diff_eq(&Vec3::new(1. + 2. * f32::EPSILON, 2., 3.), f32::EPSILON));
     assert!(!Vec3::new(1., 2., 3.)
         .abs_diff_eq(&Vec3::new(1., 2. + 2. * f32::EPSILON, 3.), f32::EPSILON));
+    assert_abs_diff_eq!(Vec3::default_epsilon(), f32::EPSILON);
 }
 
 #[test]
@@ -183,6 +184,7 @@ fn relative_eq() {
     assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(0.9, 2., 3.), f32::EPSILON, 0.1));
     assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 1.8, 3.), f32::EPSILON, 0.1));
     assert!(!Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 2., 2.69), f32::EPSILON, 0.1));
+    assert_abs_diff_eq!(Vec3::default_max_relative(), f32::EPSILON);
 }
 
 #[test]
@@ -215,6 +217,7 @@ fn ulps_eq() {
         f32::EPSILON,
         1
     ));
+    assert_abs_diff_eq!(Vec3::default_max_ulps(), 4);
 }
 
 #[test]
