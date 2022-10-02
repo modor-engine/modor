@@ -111,6 +111,10 @@ fn mul_float() {
     assert_abs_diff_eq!(new_vec.x, 5.);
     assert_abs_diff_eq!(new_vec.y, 10.);
     assert_abs_diff_eq!(new_vec.z, 15.);
+    let new_vec = 5. * Vec3::new(1., 2., 3.);
+    assert_abs_diff_eq!(new_vec.x, 5.);
+    assert_abs_diff_eq!(new_vec.y, 10.);
+    assert_abs_diff_eq!(new_vec.z, 15.);
     let mut new_vec = Vec3::new(1., 2., 3.);
     new_vec *= 5.;
     assert_abs_diff_eq!(new_vec.x, 5.);
