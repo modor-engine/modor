@@ -25,7 +25,7 @@ apk_name = "modor_input_example"
 build_targets = ["armv7-linux-androideabi"]
 
 [package.metadata.android.application]
-label = "Rendering 2D - Modor example"
+label = "Input - Modor example"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31

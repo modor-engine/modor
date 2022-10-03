@@ -1,4 +1,5 @@
 //! Tests performance of entity creation.
+#![allow(unused_tuple_struct_fields)]
 
 #[macro_use]
 extern crate modor;

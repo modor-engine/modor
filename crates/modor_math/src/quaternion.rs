@@ -6,10 +6,10 @@ use std::ops::{Mul, MulAssign};
 /// A quaternion used to store a rotation.
 #[derive(Clone, Copy, Debug)]
 pub struct Quat {
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) z: f32,
+    pub(crate) w: f32,
 }
 
 impl Default for Quat {
@@ -65,7 +65,7 @@ impl Quat {
     #[must_use]
     pub fn axis(self) -> Option<Vec3> {
         (!self.w.powi(2).is_one()).then(|| {
-            Vec3::xyz(
+            Vec3::new(
                 self.x / (1. - self.w.powi(2)).sqrt(),
                 self.y / (1. - self.w.powi(2)).sqrt(),
                 self.z / (1. - self.w.powi(2)).sqrt(),
@@ -86,19 +86,19 @@ impl Quat {
         Mat4::from_array([
             [
                 1. - (2. * self.y).mul_add(self.y, 2. * self.z * self.z),
-                (2. * self.x).mul_add(self.y, -2. * self.w * self.z),
-                (2. * self.x).mul_add(self.z, 2. * self.w * self.y),
-                0.,
-            ],
-            [
                 (2. * self.x).mul_add(self.y, 2. * self.w * self.z),
-                1. - (2. * self.x).mul_add(self.x, 2. * self.z * self.z),
-                (2. * self.y).mul_add(self.z, -2. * self.w * self.x),
+                (2. * self.x).mul_add(self.z, -2. * self.w * self.y),
                 0.,
             ],
             [
-                (2. * self.x).mul_add(self.z, -2. * self.w * self.y),
+                (2. * self.x).mul_add(self.y, -2. * self.w * self.z),
+                1. - (2. * self.x).mul_add(self.x, 2. * self.z * self.z),
                 (2. * self.y).mul_add(self.z, 2. * self.w * self.x),
+                0.,
+            ],
+            [
+                (2. * self.x).mul_add(self.z, 2. * self.w * self.y),
+                (2. * self.y).mul_add(self.z, -2. * self.w * self.x),
                 1. - (2. * self.x).mul_add(self.x, 2. * self.y * self.y),
                 0.,
             ],

@@ -1,9 +1,8 @@
 #!/bin/bash
 set -xeu
 
-IFS=";"
 version=""
-for crate_name in $PUBLISHED_CRATES; do
+while read -r crate_name; do
     cd "./crates/$crate_name"
     current_version=$(grep -m 1 '^version' Cargo.toml | cut -d '"' -f2 | tr -d '\n')
     if [ "$version" == "" ]; then
@@ -13,7 +12,7 @@ for crate_name in $PUBLISHED_CRATES; do
         exit 1
     fi
     cd - || exit 1
-done
+done <PUBLISHED-CRATES
 
 if [ "$version" == "" ]; then
     echo "Version not found in Cargo.toml files"

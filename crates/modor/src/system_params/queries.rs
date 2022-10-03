@@ -177,7 +177,7 @@ where
             self.data
                 .archetypes
                 .has_types(l.idx, self.filtered_component_type_idxs)
-                .then(|| l)
+                .then_some(l)
         })
     }
 

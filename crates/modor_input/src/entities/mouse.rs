@@ -19,7 +19,7 @@ use modor_math::Vec2;
 /// #
 /// fn access_mouse(mouse: Single<'_, Mouse>) {
 ///     println!("Position: {:?}", mouse.position());
-///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed());
+///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed);
 /// }
 /// ```
 pub struct Mouse {
@@ -36,7 +36,7 @@ impl Mouse {
     pub fn pressed_buttons(&self) -> impl Iterator<Item = MouseButton> + '_ {
         self.buttons
             .iter()
-            .filter(|(_, s)| s.is_pressed())
+            .filter(|(_, s)| s.is_pressed)
             .map(|(b, _)| *b)
     }
 
@@ -55,7 +55,7 @@ impl Mouse {
     pub fn scroll_delta_in_pixels(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => self.scroll_delta,
-            MouseScrollUnit::Line => Vec2::xy(
+            MouseScrollUnit::Line => Vec2::new(
                 self.scroll_delta.x * row_pixels,
                 self.scroll_delta.y * column_pixels,
             ),
@@ -70,7 +70,7 @@ impl Mouse {
     #[must_use]
     pub fn scroll_delta_in_lines(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
-            MouseScrollUnit::Pixel => Vec2::xy(
+            MouseScrollUnit::Pixel => Vec2::new(
                 self.scroll_delta.x / row_pixels,
                 self.scroll_delta.y / column_pixels,
             ),

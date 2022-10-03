@@ -67,7 +67,7 @@ pub fn runner(mut app: App) {
         }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            let mut frame_rate = FrameRate::Unlimited;
+            let mut frame_rate = FrameRate::VSync;
             app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
             app.run_for_singleton(|w: &mut Window| {
                 let size = window.inner_size();
@@ -87,7 +87,7 @@ pub fn runner(mut app: App) {
             event: DeviceEvent::MouseMotion { delta },
             ..
         } => {
-            let delta = Vec2::xy(delta.0 as f32, -delta.1 as f32);
+            let delta = Vec2::new(delta.0 as f32, -delta.1 as f32);
             send_mouse_event(&mut app, MouseEvent::Moved(delta));
         }
         Event::WindowEvent { event, window_id } if window_id == window.id() => {
@@ -121,10 +121,10 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                 app,
                 match delta {
                     MouseScrollDelta::LineDelta(columns, rows) => {
-                        MouseEvent::Scroll(Vec2::xy(columns, -rows), MouseScrollUnit::Line)
+                        MouseEvent::Scroll(Vec2::new(columns, -rows), MouseScrollUnit::Line)
                     }
                     MouseScrollDelta::PixelDelta(delta) => MouseEvent::Scroll(
-                        Vec2::xy(delta.x as f32, -delta.y as f32),
+                        Vec2::new(delta.x as f32, -delta.y as f32),
                         MouseScrollUnit::Pixel,
                     ),
                 },
@@ -133,7 +133,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
         WindowEvent::CursorMoved { position, .. } => {
             send_mouse_event(
                 app,
-                MouseEvent::UpdatedPosition(Vec2::xy(position.x as f32, position.y as f32)),
+                MouseEvent::UpdatedPosition(Vec2::new(position.x as f32, position.y as f32)),
             );
         }
         WindowEvent::KeyboardInput { input, .. } => {
@@ -151,7 +151,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                     app,
                     TouchEvent::UpdatedPosition(
                         touch.id,
-                        Vec2::xy(touch.location.x as f32, touch.location.y as f32),
+                        Vec2::new(touch.location.x as f32, touch.location.y as f32),
                     ),
                 );
             }
@@ -159,7 +159,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
                 app,
                 TouchEvent::UpdatedPosition(
                     touch.id,
-                    Vec2::xy(touch.location.x as f32, touch.location.y as f32),
+                    Vec2::new(touch.location.x as f32, touch.location.y as f32),
                 ),
             ),
             TouchPhase::Ended | TouchPhase::Cancelled => {

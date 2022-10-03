@@ -1,14 +1,12 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use modor::{entity, singleton, App, Built, Entity, EntityBuilder, Query, Single, World};
-use modor_graphics::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, Mesh, SurfaceSize, WindowSettings,
-};
+use modor_graphics::{Camera2D, Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
 };
-use modor_math::{Quat, Vec3};
-use modor_physics::{DynamicBody, Transform};
+use modor_math::Vec2;
+use modor_physics::{Dynamics2D, Transform2D};
 use std::io;
 use std::io::Write;
 
@@ -21,7 +19,6 @@ pub fn main() {
                 .title("Modor - input")
                 .has_visible_cursor(false),
         ))
-        .with_entity(FrameRateLimit::build(FrameRate::VSync))
         .with_entity(CustomCamera::build())
         .with_entity(MouseState::build())
         .with_entity(KeyboardState::build())
@@ -37,17 +34,17 @@ impl CustomCamera {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
             .inherit_from(Camera2D::build_rotated(
-                Vec3::xy(0.5, 0.5),
-                Vec3::xy(1.5, 1.5),
-                Quat::from_z(20_f32.to_radians()),
+                Vec2::new(0.5, 0.5),
+                Vec2::new(1.5, 1.5),
+                20_f32.to_radians(),
             ))
-            .with(DynamicBody::new())
+            .with(Dynamics2D::new())
     }
 
     #[run]
-    fn update(body: &mut DynamicBody, keyboard: Single<'_, Keyboard>) {
+    fn update(dynamics: &mut Dynamics2D, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Numpad4, Key::Numpad6, Key::Numpad8, Key::Numpad2);
-        body.velocity = direction.with_z(0.);
+        *dynamics.velocity = direction;
     }
 }
 
@@ -57,24 +54,24 @@ struct MouseState;
 impl MouseState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::new().with_size(Vec3::ONE * 0.25))
-            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
+            .with(Transform2D::new().with_size(Vec2::ONE * 0.25))
+            .with(Mesh2D::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
-    fn update_position(transform: &mut Transform, camera: Single<'_, Camera2D>) {
-        transform.position = camera.mouse_position().with_z(0.);
+    fn update_position(transform: &mut Transform2D, camera: Single<'_, Camera2D>) {
+        *transform.position = camera.mouse_position();
     }
 
     #[run]
-    fn update_color(mesh: &mut Mesh, mouse: Single<'_, Mouse>) {
+    fn update_color(mesh: &mut Mesh2D, mouse: Single<'_, Mouse>) {
         mesh.color.r += mouse.scroll_delta_in_lines(30., 30.).x / 50.;
         mesh.color.g += mouse.scroll_delta_in_lines(30., 30.).y / 50.;
-        if mouse.button(MouseButton::Left).is_pressed() {
+        if mouse.button(MouseButton::Left).is_pressed {
             mesh.color = Color::BLUE;
-        } else if mouse.button(MouseButton::Right).is_pressed() {
+        } else if mouse.button(MouseButton::Right).is_pressed {
             mesh.color = Color::DARK_GREEN;
-        } else if mouse.button(MouseButton::Middle).is_pressed() {
+        } else if mouse.button(MouseButton::Middle).is_pressed {
             mesh.color = Color::RED;
         }
     }
@@ -86,16 +83,16 @@ struct KeyboardState;
 impl KeyboardState {
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(Transform::new().with_size(Vec3::ONE * 0.25))
-            .with(DynamicBody::new())
-            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
+            .with(Transform2D::new().with_size(Vec2::ONE * 0.25))
+            .with(Dynamics2D::new())
+            .with(Mesh2D::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
-    fn update(body: &mut DynamicBody, mesh: &mut Mesh, keyboard: Single<'_, Keyboard>) {
+    fn update(dynamics: &mut Dynamics2D, mesh: &mut Mesh2D, keyboard: Single<'_, Keyboard>) {
         let direction = keyboard.direction(Key::Left, Key::Right, Key::Up, Key::Down);
-        body.velocity = direction.with_z(0.) * 3.;
-        mesh.color = if body.velocity.magnitude() > 0. {
+        *dynamics.velocity = direction * 3.;
+        mesh.color = if dynamics.velocity.magnitude() > 0. {
             Color::RED
         } else {
             Color::DARK_GRAY
@@ -110,7 +107,7 @@ impl KeyboardState {
                 .flush()
                 .expect("error when displaying text in terminal");
         }
-        if keyboard.key(Key::Return).is_just_released() {
+        if keyboard.key(Key::Return).is_just_released {
             println!();
         }
     }
@@ -148,23 +145,23 @@ impl FingerState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
             .with(
-                Transform::new()
-                    .with_position(Vec3::xy(0.5, 0.5))
-                    .with_size(Vec3::ONE * 0.25),
+                Transform2D::new()
+                    .with_position(Vec2::new(0.5, 0.5))
+                    .with_size(Vec2::ONE * 0.25),
             )
-            .with(Mesh::rectangle().with_color(Color::DARK_GRAY))
+            .with(Mesh2D::rectangle().with_color(Color::DARK_GRAY))
     }
 
     #[run]
     fn update(
         &self,
-        transform: &mut Transform,
+        transform: &mut Transform2D,
         fingers: Query<'_, &Finger>,
         camera: Single<'_, Camera2D>,
     ) {
         if let Some(finger) = fingers.iter().find(|f| f.id() == self.id) {
             if let Some(finger_position) = camera.finger_position(finger.id()) {
-                transform.position = finger_position.with_z(0.);
+                *transform.position = finger_position;
             }
         }
     }
@@ -209,31 +206,30 @@ impl GamepadState {
     fn build(id: u64) -> impl Built<Self> {
         EntityBuilder::new(Self { id })
             .with(
-                Transform::new()
-                    .with_position(Vec3::xy(0.5, 0.5))
-                    .with_size(Vec3::ONE * 0.25),
+                Transform2D::new()
+                    .with_position(Vec2::new(0.5, 0.5))
+                    .with_size(Vec2::ONE * 0.25),
             )
-            .with(DynamicBody::new())
-            .with(Mesh::rectangle().with_color(Color::MAROON))
+            .with(Dynamics2D::new())
+            .with(Mesh2D::rectangle().with_color(Color::MAROON))
     }
 
     #[run]
-    fn update(&self, mesh: &mut Mesh, body: &mut DynamicBody, gamepads: Query<'_, &Gamepad>) {
+    fn update(&self, mesh: &mut Mesh2D, dynamics: &mut Dynamics2D, gamepads: Query<'_, &Gamepad>) {
         if let Some(gamepad) = gamepads.iter().find(|f| f.id() == self.id) {
             let red = 1. - gamepad.button(GamepadButton::BackLeftTrigger).value();
             let green = 1. - gamepad.button(GamepadButton::BackRightTrigger).value();
-            let blue = gamepad
-                .button(GamepadButton::South)
-                .state()
-                .is_pressed()
-                .then(|| 0.)
-                .unwrap_or(1.);
+            let blue = if gamepad.button(GamepadButton::South).state().is_pressed {
+                0.
+            } else {
+                1.
+            };
             mesh.color = Color::rgb(red, green, blue);
-            let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick).with_z(0.);
-            let velocity2 = gamepad.stick_direction(GamepadStick::RightStick).with_z(0.);
-            let velocity3 = gamepad.stick_direction(GamepadStick::DPad).with_z(0.);
-            let velocity4 = Vec3::xy(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
-            body.velocity = velocity1 + velocity2 + velocity3 + velocity4;
+            let velocity1 = gamepad.stick_direction(GamepadStick::LeftStick);
+            let velocity2 = gamepad.stick_direction(GamepadStick::RightStick);
+            let velocity3 = gamepad.stick_direction(GamepadStick::DPad);
+            let velocity4 = Vec2::new(gamepad.left_z_axis_value(), gamepad.right_z_axis_value());
+            *dynamics.velocity = velocity1 + velocity2 + velocity3 + velocity4;
         }
     }
 

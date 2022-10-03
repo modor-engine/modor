@@ -50,9 +50,9 @@ impl<'a> Entity<'a> {
     }
 
     /// Returns an iterator on entity children.
-    pub fn children(
-        &self,
-    ) -> impl Iterator<Item = Entity<'_>> + DoubleEndedIterator + ExactSizeIterator + FusedIterator
+    pub fn children<'b>(
+        &'b self,
+    ) -> impl Iterator<Item = Entity<'a>> + DoubleEndedIterator + ExactSizeIterator + FusedIterator + 'b
     {
         self.data
             .entities

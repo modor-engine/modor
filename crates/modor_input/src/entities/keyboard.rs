@@ -19,7 +19,7 @@ use modor_math::Vec2;
 /// # use modor_input::{Key, Keyboard};
 /// #
 /// fn access_keyboard(keyboard: Single<'_, Keyboard>) {
-///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed());
+///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed);
 ///     println!("Entered text: {:?}", keyboard.text());
 /// }
 /// ```
@@ -34,7 +34,7 @@ impl Keyboard {
     pub fn pressed_keys(&self) -> impl Iterator<Item = Key> + '_ {
         self.keys
             .iter()
-            .filter(|(_, s)| s.is_pressed())
+            .filter(|(_, s)| s.is_pressed)
             .map(|(k, _)| *k)
     }
 
@@ -50,11 +50,19 @@ impl Keyboard {
     #[must_use]
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> Vec2 {
         utils::normalized_direction(
-            self.key(left).is_pressed(),
-            self.key(right).is_pressed(),
-            self.key(up).is_pressed(),
-            self.key(down).is_pressed(),
+            self.key(left).is_pressed,
+            self.key(right).is_pressed,
+            self.key(up).is_pressed,
+            self.key(down).is_pressed,
         )
+    }
+
+    /// Returns a delta between -1. and 1. from left and right keys.
+    ///
+    /// If none of the keys are pressed, the returned delta is `0.0`.
+    #[must_use]
+    pub fn axis(&self, left: Key, right: Key) -> f32 {
+        utils::normalized_axis(self.key(left).is_pressed, self.key(right).is_pressed)
     }
 
     /// Returns the entered text.

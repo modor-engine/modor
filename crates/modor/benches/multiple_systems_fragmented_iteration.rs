@@ -1,4 +1,5 @@
 //! Tests performance of archetype iteration in systems with one system per archetype.
+#![allow(unused_tuple_struct_fields)]
 
 #[macro_use]
 extern crate modor;

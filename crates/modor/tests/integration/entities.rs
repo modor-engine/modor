@@ -64,7 +64,7 @@ impl Level3 {
     fn build(value: u32, add_option: bool) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value(value))
-            .with_option(add_option.then(|| 42_u32))
+            .with_option(add_option.then_some(42_u32))
             .with_dependency(Singleton1::build(10))
             .with_dependency(Singleton2::build(20))
             .with_dependency(Singleton3::build(30))

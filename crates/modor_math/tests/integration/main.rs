@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::suboptimal_flops)]
 
 pub mod matrices_4d;
 pub mod quaternion;

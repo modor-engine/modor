@@ -3,8 +3,6 @@ use std::time::Duration;
 
 /// The duration of the latest update.
 ///
-/// Default value is zero.
-///
 /// The physics module does not update automatically this entity.<br>
 /// Instead, the delta time can be manually set to simulate time, or be automatically updated
 /// by another module.
@@ -13,6 +11,7 @@ use std::time::Duration;
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: same as [`PhysicsModule`](crate::PhysicsModule)
+/// - **Default if missing**: `DeltaTime::build(Duration::ZERO)`
 ///
 /// # Examples
 ///
@@ -29,6 +28,11 @@ pub struct DeltaTime {
 
 #[singleton]
 impl DeltaTime {
+    /// Builds the entity with an initial `duration`.
+    pub fn build(duration: Duration) -> impl Built<Self> {
+        EntityBuilder::new(Self { duration })
+    }
+
     /// Returns the duration of the last update.
     #[must_use]
     pub fn get(&self) -> Duration {
@@ -38,11 +42,5 @@ impl DeltaTime {
     /// Set the duration of the last update.
     pub fn set(&mut self, duration: Duration) {
         self.duration = duration;
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            duration: Duration::ZERO,
-        })
     }
 }

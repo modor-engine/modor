@@ -309,9 +309,13 @@ pub(crate) mod internal {
     impl<'a, C> DoubleEndedIterator for ArchetypeComponentIter<'a, C> {
         fn next_back(&mut self) -> Option<Self::Item> {
             let archetype_idx = self.sorted_archetype_idxs.next_back()?;
-            let nth_back = self.components.len() - usize::from(archetype_idx) - 1;
+            let nth_back = self
+                .components
+                .len()
+                .checked_sub(usize::from(archetype_idx))
+                .and_then(|n| n.checked_sub(1));
             Some(ComponentIter::new(
-                self.components.nth_back(nth_back).map(|c| c.iter()),
+                nth_back.and_then(|n| self.components.nth_back(n).map(|c| c.iter())),
                 self.data.archetypes.entity_idxs(archetype_idx).len(),
             ))
         }

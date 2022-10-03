@@ -7,6 +7,7 @@
 -W unused_extern_crates
 -W unused_import_braces
 -W unused_qualifications
+-W unused_tuple_struct_fields
 -W clippy::all
 -W clippy::pedantic
 -W clippy::nursery

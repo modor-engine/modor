@@ -26,7 +26,7 @@
 //! # }
 //! ```
 //!
-//! Examples of [`Mesh`](crate::Mesh) show how to create renderable shapes.
+//! Examples of [`Mesh2D`](crate::Mesh2D) show how to create renderable shapes.
 
 #[macro_use]
 extern crate modor;
@@ -43,10 +43,10 @@ mod utils;
 
 pub mod testing;
 
-pub use components::mesh::*;
+pub use components::mesh_2d::*;
 pub use data::*;
 pub use entities::background::*;
-pub use entities::camera::*;
+pub use entities::camera_2d::*;
 pub use entities::frame_rate::*;
 pub use entities::module::*;
 pub use entities::render_target::*;

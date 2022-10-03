@@ -15,12 +15,9 @@ env:
   CARGO_TERM_COLOR: always
 
   # CI settings
-  RUST_VERSION_STABLE: 1.60.0
-  MUTAGEN_COMMIT: b1886fa1a343b95c86a836ceb0fd233980924c2a
+  RUST_VERSION_STABLE: 1.64.0
   COV_THRESHOLD: 100.0
-  MUTAGEN_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
-  NOT_MUTATED_CRATES: modor_derive # space-delimited list
 
 jobs:
 
@@ -278,6 +275,10 @@ jobs:
           args: -- --check
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
+      - name: Check crates are registered on crates.io
+        run: bash .github/workflows/scripts/check_registered_crates.sh
+        env:
+          CARGO_TERM_COLOR: never
 
   lint-generic:
     runs-on: ubuntu-20.04
@@ -292,3 +293,5 @@ jobs:
         run: bash .github/workflows/scripts/check_line_endings.sh
       - name: Check TODOs
         run: bash .github/workflows/scripts/check_todos.sh
+      - name: Check published crate list
+        run: bash .github/workflows/scripts/check_published_crate_list.sh

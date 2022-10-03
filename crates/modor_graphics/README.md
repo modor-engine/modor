@@ -11,7 +11,7 @@ Graphics module of Modor.
 
 ## Usage
 
-The minimum supported version of Rust is 1.60.
+The minimum supported version of Rust is 1.64.
 
 To include this library in your project, just add the following line in your `Cargo.toml` file:
 

@@ -21,7 +21,7 @@ use modor_math::Vec2;
 /// #
 /// fn access_gamepads(gamepads: Query<'_, &Gamepad>) {
 ///     for gamepad in gamepads.iter() {
-///         let button_pressed = gamepad.button(GamepadButton::Start).state().is_pressed();
+///         let button_pressed = gamepad.button(GamepadButton::Start).state().is_pressed;
 ///         let stick_direction = gamepad.stick_direction(GamepadStick::LeftStick);
 ///         println!("Button of gamepad {} is pressed: {:?}", gamepad.id(), button_pressed);
 ///         println!("Left stick direction of gamepad {}: {:?}", gamepad.id(), stick_direction);
@@ -49,7 +49,7 @@ impl Gamepad {
     pub fn pressed_buttons(&self) -> impl Iterator<Item = GamepadButton> + '_ {
         self.buttons
             .iter()
-            .filter(|(_, s)| s.state().is_pressed())
+            .filter(|(_, s)| s.state().is_pressed)
             .map(|(b, _)| *b)
     }
 
@@ -169,16 +169,16 @@ impl Gamepad {
         let d_pad_direction = utils::normalized_direction(
             self.buttons
                 .get(&GamepadButton::DPadLeft)
-                .map_or(false, |b| b.state().is_pressed()),
+                .map_or(false, |b| b.state().is_pressed),
             self.buttons
                 .get(&GamepadButton::DPadRight)
-                .map_or(false, |b| b.state().is_pressed()),
+                .map_or(false, |b| b.state().is_pressed),
             self.buttons
                 .get(&GamepadButton::DPadUp)
-                .map_or(false, |b| b.state().is_pressed()),
+                .map_or(false, |b| b.state().is_pressed),
             self.buttons
                 .get(&GamepadButton::DPadDown)
-                .map_or(false, |b| b.state().is_pressed()),
+                .map_or(false, |b| b.state().is_pressed),
         );
         if self.has_d_pad_buttons {
             *self.stick_directions.entry(GamepadStick::DPad).or_default() = d_pad_direction;
@@ -214,7 +214,7 @@ impl GamepadEvent {
             | Self::ReleasedButton(id, _)
             | Self::UpdatedButtonValue(id, _, _)
             | Self::UpdatedAxisValue(id, _, _) => id,
-            GamepadEvent::Plugged(_) | GamepadEvent::Unplugged(_) => {
+            Self::Plugged(_) | Self::Unplugged(_) => {
                 unreachable!("internal error: unreachable gamepad event without ID")
             }
         }
