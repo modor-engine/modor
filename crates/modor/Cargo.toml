@@ -19,7 +19,7 @@ modor_derive = { version = "0.1.0", path = "../modor_derive" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 doc-comment = "0.3"
 static_assertions = "1.1"
 instant = "0.1"
