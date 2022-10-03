@@ -26,7 +26,7 @@ instant = "0.1"
 spin_sleep = "1.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-compiletest_rs = "0.8"
+compiletest_rs = "0.9"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
