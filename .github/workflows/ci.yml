@@ -277,6 +277,8 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v1
       - name: Check crates are registered on crates.io
         run: bash .github/workflows/scripts/check_registered_crates.sh
+        env:
+          CARGO_TERM_COLOR: never
 
   lint-generic:
     runs-on: ubuntu-20.04
