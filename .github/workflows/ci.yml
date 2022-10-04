@@ -49,6 +49,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+        env:
+          WGPU_BACKEND: vulkan
 
   test-windows:
     runs-on: windows-2022
@@ -192,9 +194,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --lib --tests
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
           LLVM_PROFILE_FILE: "%m.profraw"
+          WGPU_BACKEND: vulkan
       - name: Generate HTML coverage report
         run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub

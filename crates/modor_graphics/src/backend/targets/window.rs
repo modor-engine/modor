@@ -19,7 +19,8 @@ pub(crate) struct WindowTarget {
 impl WindowTarget {
     #[allow(unsafe_code)]
     pub(crate) fn new(window: &Window) -> CreatedTarget<Self> {
-        let instance = Instance::new(Backends::all());
+        let instance =
+            Instance::new(wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all));
         let surface = unsafe { instance.create_surface(&window) };
         let adapter = Self::retrieve_adapter(&instance, &surface);
         let (device, queue) = super::retrieve_device(&adapter);
