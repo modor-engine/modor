@@ -94,7 +94,7 @@ impl Target for TextureTarget {
     #[allow(clippy::cast_possible_truncation)]
     fn retrieve_buffer(&self, device: &Device) -> Vec<u8> {
         let slice = self.buffer.slice(..);
-        let _future = slice.map_async(MapMode::Read);
+        let _future = slice.map_async(MapMode::Read, |_| ());
         device.poll(wgpu::Maintain::Wait);
         let content = slice
             .get_mapped_range()

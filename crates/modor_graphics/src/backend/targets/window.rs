@@ -10,6 +10,7 @@ use winit::window::Window;
 // coverage: off (window cannot be tested)
 
 pub(crate) struct WindowTarget {
+    immediate_mode_supported: bool,
     surface: Surface,
     surface_config: SurfaceConfiguration,
     current_texture: Option<SurfaceTexture>,
@@ -28,6 +29,9 @@ impl WindowTarget {
         surface.configure(&device, &surface_config);
         CreatedTarget {
             target: Self {
+                immediate_mode_supported: surface
+                    .get_supported_modes(&adapter)
+                    .contains(&PresentMode::Immediate),
                 surface,
                 surface_config,
                 current_texture: None,
@@ -52,14 +56,18 @@ impl WindowTarget {
         adapter: &Adapter,
     ) -> SurfaceConfiguration {
         let (width, height) = surface_size;
+        let formats = surface.get_supported_formats(adapter);
+
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format: surface
-                .get_preferred_format(adapter)
-                .expect("internal error: surface is incompatible with adapter"),
+            format: if formats.is_empty() {
+                panic!("internal error: surface is incompatible with adapter")
+            } else {
+                formats[0]
+            },
             width: if width == 0 { 1 } else { width },
             height: if height == 0 { 1 } else { height },
-            present_mode: PresentMode::Immediate,
+            present_mode: PresentMode::Fifo,
         }
     }
 }
@@ -85,7 +93,7 @@ impl Target for WindowTarget {
 
     fn toggle_vsync(&mut self, enabled: bool, device: &Device) {
         let previous_mode = self.surface_config.present_mode;
-        self.surface_config.present_mode = if enabled {
+        self.surface_config.present_mode = if enabled || !self.immediate_mode_supported {
             PresentMode::Fifo
         } else {
             PresentMode::Immediate

@@ -16,7 +16,7 @@ modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
 instant = "0.1"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = "0.5"
+ndk-glue = "0.7"
 
 [lib]
 crate-type = ["lib", "cdylib"]
