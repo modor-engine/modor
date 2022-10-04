@@ -4,7 +4,8 @@ unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
 ignore = [
-    "RUSTSEC-2021-0127", # serde_cbor is used by criterion
+    "RUSTSEC-2022-0013", # regex is used by compiletest_rs
+    "RUSTSEC-2022-0041", # crossbeam-utils is used by rapier2d
     "RUSTSEC-2022-0048", # xml-rs is used by winit
 ]
 
@@ -28,7 +29,7 @@ allow = [
     "CC0-1.0",
     "ISC",
     "MIT",
-    "Unicode-DFS-2016",
+    "MPL-2.0",
     "Zlib",
     "0BSD",
 ]
