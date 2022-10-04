@@ -4,8 +4,6 @@ unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
 ignore = [
-    "RUSTSEC-2022-0013", # regex is used by compiletest_rs
-    "RUSTSEC-2022-0041", # crossbeam-utils is used by rapier2d
     "RUSTSEC-2022-0048", # xml-rs is used by winit
 ]
 
@@ -30,6 +28,7 @@ allow = [
     "ISC",
     "MIT",
     "MPL-2.0",
+    "Unicode-DFS-2016",
     "Zlib",
     "0BSD",
 ]
