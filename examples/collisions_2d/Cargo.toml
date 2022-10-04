@@ -1,5 +1,5 @@
 [package]
-name = "collisions"
+name = "collisions_2d"
 version = "0.1.0"
 authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
 edition = "2021"
