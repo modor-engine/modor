@@ -6,6 +6,7 @@ use modor_input::{
 };
 use modor_math::Vec2;
 use modor_physics::DeltaTime;
+use std::time::Duration;
 use winit::event;
 use winit::event::{
     DeviceEvent, ElementState, Event, MouseScrollDelta, TouchPhase, VirtualKeyCode, WindowEvent,
@@ -60,7 +61,9 @@ pub fn runner(mut app: App) {
     app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     let mut previous_update_end = Instant::now();
+    let mut suspended = false;
     event_loop.run(move |event, _, control_flow| match event {
+        Event::Suspended => suspended = true,
         Event::Resumed => {
             app.run_for_singleton(|w: &mut WindowInit| w.create_renderer(&window));
             app.run_for_singleton(|w: &mut Window| w.update_renderer(&window));
@@ -80,7 +83,13 @@ pub fn runner(mut app: App) {
             update_gamepads(&mut app, &mut gilrs);
             utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
             let update_end = Instant::now();
-            app.run_for_singleton(|t: &mut DeltaTime| t.set(update_end - previous_update_end));
+            let delta_time = if suspended {
+                suspended = false;
+                Duration::ZERO
+            } else {
+                update_end - previous_update_end
+            };
+            app.run_for_singleton(|t: &mut DeltaTime| t.set(delta_time));
             previous_update_end = update_end;
         }
         Event::DeviceEvent {
