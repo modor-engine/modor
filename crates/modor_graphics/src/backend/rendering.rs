@@ -43,14 +43,14 @@ impl<'a> RenderCommands<'a> {
     pub(crate) fn new(background_color: Color, rendering: &'a mut Rendering<'_>) -> Self {
         let pass = rendering.encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("modor_render_pass"),
-            color_attachments: &[RenderPassColorAttachment {
+            color_attachments: &[Some(RenderPassColorAttachment {
                 view: &rendering.surface,
                 resolve_target: None,
                 ops: Operations {
                     load: LoadOp::Clear(background_color),
                     store: true,
                 },
-            }],
+            })],
             depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
                 view: rendering.renderer.depth_buffer(),
                 depth_ops: Some(Operations {

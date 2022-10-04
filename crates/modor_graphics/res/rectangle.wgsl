@@ -1,28 +1,37 @@
 struct CameraUniform {
-    transform: mat4x4<f32>;
+    transform: mat4x4<f32>,
 };
 
-[[group(0), binding(0)]]
+@group(0)
+@binding(0)
 var<uniform> camera: CameraUniform;
 
 struct VertexInput {
-    [[location(0)]] position: vec3<f32>;
+    @location(0)
+    position: vec3<f32>,
 };
 
 struct InstanceInput {
-    [[location(1)]] transform_0: vec4<f32>;
-    [[location(2)]] transform_1: vec4<f32>;
-    [[location(3)]] transform_2: vec4<f32>;
-    [[location(4)]] transform_3: vec4<f32>;
-    [[location(5)]] color: vec4<f32>;
+    @location(1)
+    transform_0: vec4<f32>,
+    @location(2)
+    transform_1: vec4<f32>,
+    @location(3)
+    transform_2: vec4<f32>,
+    @location(4)
+    transform_3: vec4<f32>,
+    @location(5)
+    color: vec4<f32>,
 };
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] color: vec4<f32>;
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    color: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
     let transform = mat4x4<f32>(
         instance.transform_0,
@@ -36,8 +45,8 @@ fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
     return out;
 }
 
-[[stage(fragment)]]
-fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     if (in.color.w == 0.) {
         discard;
     }

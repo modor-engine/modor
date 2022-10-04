@@ -23,7 +23,7 @@ impl Shader {
             Self::create_pipeline_layout(bind_group_layouts, label_suffix, renderer);
         let shader = renderer
             .device()
-            .create_shader_module(&ShaderModuleDescriptor {
+            .create_shader_module(ShaderModuleDescriptor {
                 label: Some(&format!("modor_shader_{}", label_suffix)),
                 source: ShaderSource::Wgsl(code.into()),
             });
@@ -74,11 +74,11 @@ impl Shader {
                 fragment: Some(FragmentState {
                     module: shader,
                     entry_point: "fs_main",
-                    targets: &[ColorTargetState {
+                    targets: &[Some(ColorTargetState {
                         format: renderer.target().texture_format(),
                         blend: Some(BlendState::ALPHA_BLENDING),
                         write_mask: ColorWrites::ALL,
-                    }],
+                    })],
                 }),
                 primitive: PrimitiveState {
                     topology: PrimitiveTopology::TriangleList,

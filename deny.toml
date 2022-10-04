@@ -4,7 +4,6 @@ unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
 ignore = [
-    "RUSTSEC-2021-0127", # serde_cbor is used by criterion
     "RUSTSEC-2022-0048", # xml-rs is used by winit
 ]
 
@@ -28,6 +27,7 @@ allow = [
     "CC0-1.0",
     "ISC",
     "MIT",
+    "MPL-2.0",
     "Unicode-DFS-2016",
     "Zlib",
     "0BSD",

@@ -19,7 +19,7 @@ image = "0.24"
 instant = "0.1"
 spin_sleep = "1.1.1"
 typed-index-collections = "3.0"
-winit = "0.26"
+winit = "0.27"
 modor = { version = "0.1.0", path = "../modor" }
 modor_input = { version = "0.1.0", path = "../modor_input" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
@@ -30,12 +30,12 @@ modor_physics = { version = "0.1.0", path = "../modor_physics" }
 gilrs = "0.9"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.5"
-ndk-glue = "0.5"
+ndk = "0.7"
+ndk-glue = "0.7"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
-wgpu = "0.12"
+wgpu = "0.13"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
@@ -44,7 +44,7 @@ log = "0.4"
 futures = "0.3"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Location"] }
-wgpu = { version = "0.12", features = ["webgl"] }
+wgpu = { version = "0.13", features = ["webgl"] }
 
 [dev-dependencies]
 approx = "0.5"
