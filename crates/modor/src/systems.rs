@@ -6,7 +6,7 @@ use crate::storages::entities::EntityStorage;
 use crate::storages::systems::SystemProperties;
 use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
-use crate::systems::internal::{SealedSystem, SystemWrapper};
+use crate::systems::internal::SealedSystem;
 use crate::SystemParam;
 use std::sync::Mutex;
 
@@ -14,6 +14,7 @@ use std::sync::Mutex;
 #[macro_export]
 macro_rules! system {
     ($system:expr) => {{
+        #[allow(unused_imports)] // traits are imported to perform compile time checks
         use $crate::{SystemWithParamMutabilityIssue, SystemWithParams};
 
         #[allow(clippy::semicolon_if_nothing_returned)]
@@ -74,11 +75,14 @@ impl SystemData<'_> {
 }
 
 #[doc(hidden)]
-pub struct SystemBuilder {
+pub struct SystemBuilder<S>
+where
+    S: FnMut(SystemData<'_>, SystemInfo<'_>),
+{
     #[doc(hidden)]
     pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
     #[doc(hidden)]
-    pub wrapper: SystemWrapper,
+    pub wrapper: S,
 }
 
 /// A trait implemented for any system.

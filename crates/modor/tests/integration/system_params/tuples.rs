@@ -1,5 +1,4 @@
 use crate::system_params::assert_iter;
-use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, Query, With};
 
 struct QueryTester {
@@ -105,6 +104,8 @@ struct Value1(u32);
 struct Value2(u32);
 
 struct Values {
+    value1: bool,
+    value2: bool,
     empty_done: bool,
     one_item_done: bool,
     two_item_done: bool,
@@ -115,6 +116,8 @@ struct Values {
 impl Values {
     fn build(value1: bool, value2: bool) -> impl Built<Self> {
         EntityBuilder::new(Self {
+            value1,
+            value2,
             empty_done: false,
             one_item_done: false,
             two_item_done: false,
@@ -156,52 +159,53 @@ impl Values {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn iteration_on_tuple() {
-    let mut app: TestApp = App::new().with_entity(QueryTester::build()).into();
-    let values1_id = app.create_entity(Values::build(true, true));
-    let values2_id = app.create_entity(Values::build(true, false));
-    let values3_id = app.create_entity(Values::build(false, true));
-    app.update();
-    app.assert_entity(values1_id).has(|v: &Values| {
-        assert!(v.empty_done);
-        assert!(v.one_item_done);
-        assert!(v.two_item_done);
-        assert!(v.more_than_two_item_done);
-    });
-    app.assert_entity(values2_id).has(|v: &Values| {
-        assert!(v.empty_done);
-        assert!(v.one_item_done);
-        assert!(v.two_item_done);
-        assert!(!v.more_than_two_item_done);
-    });
-    app.assert_entity(values3_id).has(|v: &Values| {
-        assert!(v.empty_done);
-        assert!(!v.one_item_done);
-        assert!(!v.two_item_done);
-        assert!(!v.more_than_two_item_done);
-    });
-    app.assert_singleton::<QueryTester>()
-        .has(|q: &QueryTester| {
-            assert!(q.empty_done);
-            assert!(q.one_item_done);
-            assert!(q.two_item_done);
-            assert!(q.more_than_two_item_done);
+    App::new()
+        .with_entity(QueryTester::build())
+        .with_entity(Values::build(true, true))
+        .with_entity(Values::build(true, false))
+        .with_entity(Values::build(false, true))
+        .updated()
+        .assert::<With<QueryTester>>(1, |e| {
+            e.has(|q: &QueryTester| {
+                assert!(q.empty_done);
+                assert!(q.one_item_done);
+                assert!(q.two_item_done);
+                assert!(q.more_than_two_item_done);
+            })
+        })
+        .assert::<With<Values>>(3, |e| {
+            e.has(|v: &Values| {
+                assert!(v.empty_done);
+                if v.value1 && v.value2 {
+                    assert!(v.one_item_done);
+                    assert!(v.two_item_done);
+                    assert!(v.more_than_two_item_done);
+                } else if v.value1 && !v.value2 {
+                    assert!(v.one_item_done);
+                    assert!(v.two_item_done);
+                    assert!(!v.more_than_two_item_done);
+                } else {
+                    assert!(!v.one_item_done);
+                    assert!(!v.two_item_done);
+                    assert!(!v.more_than_two_item_done);
+                }
+            })
         });
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
     modor_internal::retry!(10, {
-        let mut app: TestApp = App::new()
+        let start = instant::Instant::now();
+        App::new()
             .with_thread_count(2)
             .with_entity(QueryTester::build())
-            .into();
-        app.create_entity(Values::build(true, true));
-        app.create_entity(Values::build(true, false));
-        app.create_entity(Values::build(false, true));
-        app.update();
-        let start = instant::Instant::now();
-        app.update();
+            .with_entity(Values::build(true, true))
+            .with_entity(Values::build(true, false))
+            .with_entity(Values::build(false, true))
+            .updated();
         assert!(instant::Instant::now() - start < std::time::Duration::from_millis(150));
     });
 }

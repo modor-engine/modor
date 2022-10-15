@@ -1,70 +1,75 @@
 use approx::assert_abs_diff_eq;
-use modor::testing::TestApp;
-use modor::App;
+use modor::{App, With};
 use modor_input::{InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
 use modor_math::Vec2;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_pressed_keys() {
-    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(KeyboardEvent::PressedKey(Key::A).into());
-        c.push(KeyboardEvent::PressedKey(Key::B).into());
-        c.push(KeyboardEvent::PressedKey(Key::C).into());
-        c.push(KeyboardEvent::ReleasedKey(Key::C).into());
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
-        assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A, Key::B]);
-        assert!(k.key(Key::A).is_pressed);
-        assert!(k.key(Key::A).is_just_pressed);
-        assert!(!k.key(Key::A).is_just_released);
-        assert!(k.key(Key::B).is_pressed);
-        assert!(k.key(Key::B).is_just_pressed);
-        assert!(!k.key(Key::B).is_just_released);
-    });
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(KeyboardEvent::ReleasedKey(Key::B).into());
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
-        assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A]);
-        assert!(k.key(Key::A).is_pressed);
-        assert!(!k.key(Key::A).is_just_pressed);
-        assert!(!k.key(Key::A).is_just_released);
-        assert!(!k.key(Key::B).is_pressed);
-        assert!(!k.key(Key::B).is_just_pressed);
-        assert!(k.key(Key::B).is_just_released);
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
-        assert!(k.key(Key::A).is_pressed);
-        assert!(!k.key(Key::A).is_just_pressed);
-        assert!(!k.key(Key::A).is_just_released);
-        assert!(!k.key(Key::B).is_pressed);
-        assert!(!k.key(Key::B).is_just_pressed);
-        assert!(!k.key(Key::B).is_just_released);
-    });
+    App::new()
+        .with_entity(InputModule::build())
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            c.push(KeyboardEvent::PressedKey(Key::A).into());
+            c.push(KeyboardEvent::PressedKey(Key::B).into());
+            c.push(KeyboardEvent::PressedKey(Key::C).into());
+            c.push(KeyboardEvent::ReleasedKey(Key::C).into());
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| {
+            e.has(|k: &Keyboard| {
+                assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A, Key::B]);
+                assert!(k.key(Key::A).is_pressed);
+                assert!(k.key(Key::A).is_just_pressed);
+                assert!(!k.key(Key::A).is_just_released);
+                assert!(k.key(Key::B).is_pressed);
+                assert!(k.key(Key::B).is_just_pressed);
+                assert!(!k.key(Key::B).is_just_released);
+            })
+        })
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            c.push(KeyboardEvent::ReleasedKey(Key::B).into());
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| {
+            e.has(|k: &Keyboard| {
+                assert_eq!(k.pressed_keys().collect::<Vec<_>>(), [Key::A]);
+                assert!(k.key(Key::A).is_pressed);
+                assert!(!k.key(Key::A).is_just_pressed);
+                assert!(!k.key(Key::A).is_just_released);
+                assert!(!k.key(Key::B).is_pressed);
+                assert!(!k.key(Key::B).is_just_pressed);
+                assert!(k.key(Key::B).is_just_released);
+            })
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| {
+            e.has(|k: &Keyboard| {
+                assert!(k.key(Key::A).is_pressed);
+                assert!(!k.key(Key::A).is_just_pressed);
+                assert!(!k.key(Key::A).is_just_released);
+                assert!(!k.key(Key::B).is_pressed);
+                assert!(!k.key(Key::B).is_just_pressed);
+                assert!(!k.key(Key::B).is_just_released);
+            })
+        });
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_text() {
-    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(KeyboardEvent::EnteredText("abc".into()).into());
-        c.push(KeyboardEvent::EnteredText("def".into()).into());
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>()
-        .has(|k: &Keyboard| assert_eq!(k.text(), "abcdef"));
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        c.push(KeyboardEvent::ReleasedKey(Key::B).into());
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>()
-        .has(|k: &Keyboard| assert_eq!(k.text(), ""));
+    App::new()
+        .with_entity(InputModule::build())
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            c.push(KeyboardEvent::EnteredText("abc".into()).into());
+            c.push(KeyboardEvent::EnteredText("def".into()).into());
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| e.has(|k: &Keyboard| assert_eq!(k.text(), "abcdef")))
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            c.push(KeyboardEvent::ReleasedKey(Key::B).into());
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| e.has(|k: &Keyboard| assert_eq!(k.text(), "")));
 }
 
 #[test]
@@ -98,29 +103,34 @@ fn calculate_axis() {
 }
 
 fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
-    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        for key in keys {
-            c.push(KeyboardEvent::PressedKey(*key).into());
-        }
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>().has(|k: &Keyboard| {
-        assert_abs_diff_eq!(
-            k.direction(Key::Left, Key::Right, Key::Up, Key::Down),
-            Vec2::new(direction_x, direction_y)
-        );
-    });
+    App::new()
+        .with_entity(InputModule::build())
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            for key in keys {
+                c.push(KeyboardEvent::PressedKey(*key).into());
+            }
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| {
+            e.has(|k: &Keyboard| {
+                assert_abs_diff_eq!(
+                    k.direction(Key::Left, Key::Right, Key::Up, Key::Down),
+                    Vec2::new(direction_x, direction_y)
+                );
+            })
+        });
 }
 
 fn assert_axis(keys: &[Key], axis: f32) {
-    let mut app: TestApp = App::new().with_entity(InputModule::build()).into();
-    app.run_for_singleton(|c: &mut InputEventCollector| {
-        for key in keys {
-            c.push(KeyboardEvent::PressedKey(*key).into());
-        }
-    });
-    app.update();
-    app.assert_singleton::<Keyboard>()
-        .has(|k: &Keyboard| assert_abs_diff_eq!(k.axis(Key::Left, Key::Right), axis));
+    App::new()
+        .with_entity(InputModule::build())
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            for key in keys {
+                c.push(KeyboardEvent::PressedKey(*key).into());
+            }
+        })
+        .updated()
+        .assert::<With<Keyboard>>(1, |e| {
+            e.has(|k: &Keyboard| assert_abs_diff_eq!(k.axis(Key::Left, Key::Right), axis))
+        });
 }

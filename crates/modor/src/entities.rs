@@ -39,6 +39,33 @@ impl SealedEntityType for Singleton {}
 
 impl EntityType for Singleton {}
 
+#[doc(hidden)]
+pub trait Inheritable<E> {}
+
+impl<E, T> Inheritable<E> for T
+where
+    T: EntityMainComponent,
+    (T, T::Type): InheritableInner<E>,
+{
+}
+
+#[doc(hidden)]
+pub trait InheritableInner<E> {}
+
+impl<T, E> InheritableInner<E> for (T, Singleton)
+where
+    T: EntityMainComponent<Type = Singleton>,
+    E: EntityMainComponent<Type = Singleton>,
+{
+}
+
+impl<T, E> InheritableInner<E> for (T, NotSingleton)
+where
+    T: EntityMainComponent<Type = NotSingleton>,
+    E: EntityMainComponent,
+{
+}
+
 /// A trait implemented for all types able to build an entity.
 ///
 /// This trait is particularly useful when defining a building method for an entity.
@@ -105,7 +132,10 @@ where
     }
 }
 
-impl<E, P, O> EntityBuilder<E, P, O> {
+impl<E, P, O> EntityBuilder<E, P, O>
+where
+    E: EntityMainComponent,
+{
     /// Adds a component of type `C`.
     ///
     /// If a component of type `C` already exists, it is overwritten.
@@ -155,7 +185,7 @@ impl<E, P, O> EntityBuilder<E, P, O> {
         inherited: impl Built<I>,
     ) -> EntityBuilder<E, InheritedPart<impl Built<I>>, Self>
     where
-        I: EntityMainComponent,
+        I: EntityMainComponent + Inheritable<E>,
     {
         EntityBuilder {
             part: InheritedPart { entity: inherited },

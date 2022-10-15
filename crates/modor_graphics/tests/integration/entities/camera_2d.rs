@@ -1,6 +1,5 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder};
-use modor_graphics::{testing, Camera2D, Color, GraphicsModule, Mesh2D, SurfaceSize};
+use modor::{App, Built, EntityBuilder, With};
+use modor_graphics::{testing, Camera2D, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 
@@ -41,33 +40,35 @@ impl Object {
 
 #[test]
 fn add_camera_with_horizontal_surface() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Camera2D::build(Vec2::new(0.5, 0.5), Vec2::new(3., 3.)))
         .with_entity(Object::build_center())
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/camera_horizontal.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/camera_horizontal.png")
+        });
 }
 
 #[test]
 fn add_camera_with_vertical_surface() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(200, 300)))
         .with_entity(Camera2D::build(Vec2::new(0.5, 0.5), Vec2::new(3., 3.)))
         .with_entity(Object::build_center())
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/camera_vertical.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/camera_vertical.png")
+        });
 }
 
 #[test]
 fn add_rotated_camera() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Camera2D::build_rotated(
             Vec2::new(0.5, 0.5),
@@ -77,7 +78,8 @@ fn add_rotated_camera() {
         .with_entity(Object::build_center())
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/camera_rotated.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/camera_rotated.png")
+        });
 }

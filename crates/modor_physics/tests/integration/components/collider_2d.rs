@@ -1,5 +1,6 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder};
+use crate::TestEntity;
+
+use modor::{App, Built, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroupIndex, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
@@ -7,17 +8,28 @@ use modor_physics::{
 use std::f32::consts::FRAC_PI_4;
 use std::time::Duration;
 
-struct TestEntity;
+struct Entity1;
+struct Entity2;
 
-#[entity]
-impl TestEntity {}
-
-fn entity(
+fn entity1(
     transform: Transform2D,
     collider: Collider2D,
     with_dynamics: bool,
 ) -> impl Built<TestEntity> {
     EntityBuilder::new(TestEntity)
+        .with(Entity1)
+        .with(transform)
+        .with_option(with_dynamics.then(Dynamics2D::new))
+        .with(collider)
+}
+
+fn entity2(
+    transform: Transform2D,
+    collider: Collider2D,
+    with_dynamics: bool,
+) -> impl Built<TestEntity> {
+    EntityBuilder::new(TestEntity)
+        .with(Entity2)
         .with(transform)
         .with_option(with_dynamics.then(Dynamics2D::new))
         .with(collider)
@@ -32,20 +44,15 @@ fn assert_collision(
     position1: Vec2,
     position2: Vec2,
 ) {
-    assert_collision_internal(
-        entity(transform1.clone(), collider1.clone(), false),
-        entity(transform2.clone(), collider2.clone(), false),
-        normal_1,
-        position1,
-        position2,
-    );
-    assert_collision_internal(
-        entity(transform1, collider1, true),
-        entity(transform2, collider2, true),
-        normal_1,
-        position1,
-        position2,
-    );
+    for with_dynamics in [true, false] {
+        assert_collision_internal(
+            entity1(transform1.clone(), collider1.clone(), with_dynamics),
+            entity2(transform2.clone(), collider2.clone(), with_dynamics),
+            normal_1,
+            position1,
+            position2,
+        );
+    }
 }
 
 fn assert_collision_internal(
@@ -55,27 +62,33 @@ fn assert_collision_internal(
     position1: Vec2,
     position2: Vec2,
 ) {
-    let mut app: TestApp = App::new()
+    let mut entity2_id = 0;
+    App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .into();
-    let entity1_id = app.create_entity(entity1);
-    let entity2_id = app.create_entity(entity2);
-    app.update();
-    app.assert_entity(entity1_id).has(|c: &Collider2D| {
-        assert_eq!(c.collisions().len(), 1);
-        let collision = &c.collisions()[0];
-        assert_eq!(collision.other_entity_id, entity2_id);
-        assert_approx_eq!(collision.normal, normal_1);
-        assert_approx_eq!(collision.position, position1);
-    });
-    app.assert_entity(entity2_id).has(|c: &Collider2D| {
-        assert_eq!(c.collisions().len(), 1);
-        let collision = &c.collisions()[0];
-        assert_eq!(collision.other_entity_id, entity1_id);
-        assert_approx_eq!(collision.normal, -normal_1);
-        assert_approx_eq!(collision.position, position2);
-    });
+        .with_entity(entity1)
+        .with_entity(entity2)
+        .updated()
+        .with_update::<With<Entity1>, _>(|c: &mut Collider2D| {
+            entity2_id = c.collisions()[0].other_entity_id;
+        })
+        .assert::<With<Entity1>>(1, |e| {
+            e.has(|c: &Collider2D| {
+                assert_eq!(c.collisions().len(), 1);
+                let collision = &c.collisions()[0];
+                assert_approx_eq!(collision.normal, normal_1);
+                assert_approx_eq!(collision.position, position1);
+            })
+        })
+        .assert::<With<Entity2>>(1, |e| {
+            e.has(|c: &Collider2D| {
+                assert_eq!(c.collisions().len(), 1);
+                let collision = &c.collisions()[0];
+                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_approx_eq!(collision.normal, -normal_1);
+                assert_approx_eq!(collision.position, position2);
+            })
+        });
 }
 
 fn assert_no_collision(
@@ -84,28 +97,27 @@ fn assert_no_collision(
     transform2: Transform2D,
     collider2: Collider2D,
 ) {
-    assert_no_collision_internal(
-        entity(transform1.clone(), collider1.clone(), false),
-        entity(transform2.clone(), collider2.clone(), false),
-    );
-    assert_no_collision_internal(
-        entity(transform1, collider1, true),
-        entity(transform2, collider2, true),
-    );
+    for with_dynamics in [true, false] {
+        assert_no_collision_internal(
+            entity1(transform1.clone(), collider1.clone(), with_dynamics),
+            entity2(transform2.clone(), collider2.clone(), with_dynamics),
+        );
+    }
 }
 
 fn assert_no_collision_internal(entity1: impl Built<TestEntity>, entity2: impl Built<TestEntity>) {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .into();
-    let entity1_id = app.create_entity(entity1);
-    let entity2_id = app.create_entity(entity2);
-    app.update();
-    app.assert_entity(entity1_id)
-        .has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0));
-    app.assert_entity(entity2_id)
-        .has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0));
+        .with_entity(entity1)
+        .with_entity(entity2)
+        .updated()
+        .assert::<With<Entity1>>(1, |e| {
+            e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
+        })
+        .assert::<With<Entity2>>(1, |e| {
+            e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
+        });
 }
 
 #[test]

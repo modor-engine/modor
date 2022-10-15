@@ -2,7 +2,8 @@
 
 use crate::Capture;
 use image::ColorType;
-use modor::testing::TestApp;
+use modor::{EntityAssertions, With};
+use std::panic::RefUnwindSafe;
 use std::path::Path;
 
 const COLOR_EPSILON: u8 = 1;
@@ -18,12 +19,26 @@ const COLOR_EPSILON: u8 = 1;
 /// - the generated capture is different than the image located at `capture_path`
 /// - the parent of `capture_path` does not exist or is not a folder
 /// - image located at `capture_path` cannot be read
-/// - [`Capture`](crate::Capture) has not yet been updated
-pub fn assert_capture<P>(app: &TestApp, capture_path: P)
+///
+/// # Examples
+///
+/// ```rust
+/// use modor::{App, With};
+/// use modor_graphics::{Capture, GraphicsModule, SurfaceSize};
+/// use modor_graphics::testing::assert_capture;
+///
+/// App::new()
+///     .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+///     .assert::<With<Capture>>(1, |e| assert_capture(e, "tests/expected/screen.png"));
+/// ```
+pub fn assert_capture<P>(
+    entity: EntityAssertions<'_, With<Capture>>,
+    capture_path: P,
+) -> EntityAssertions<'_, With<Capture>>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + RefUnwindSafe,
 {
-    app.assert_singleton::<Capture>().has(|c: &Capture| {
+    entity.has(|c: &Capture| {
         let buffer = c
             .buffer()
             .expect("capture not yet done (at least one update required)");
@@ -47,5 +62,5 @@ where
                 .any(|(a, b)| a.abs_diff(*b) > COLOR_EPSILON),
             "captures are different"
         );
-    });
+    })
 }

@@ -1,5 +1,4 @@
 use crate::system_params::assert_iter;
-use modor::testing::TestApp;
 use modor::{App, Built, EntityBuilder, Query, SingleMut, With};
 
 struct QueryTester {
@@ -87,7 +86,7 @@ impl OtherNumber {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn iterate_on_component_reference() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(QueryTester::build())
         .with_entity(StreamCollector::build())
         .with_entity(Number::build(1))
@@ -95,18 +94,19 @@ fn iterate_on_component_reference() {
         .with_entity(Number::build(2))
         .with_entity(Number::build_without_value())
         .with_entity(Number::build_with_additional_component(3))
-        .into();
-    app.update();
-    app.assert_singleton::<StreamCollector>()
-        .has(|c: &StreamCollector| assert_eq!(c.0, [1, 2, 3]));
-    app.assert_singleton::<QueryTester>()
-        .has(|c: &QueryTester| assert!(c.done));
+        .updated()
+        .assert::<With<StreamCollector>>(1, |e| {
+            e.has(|c: &StreamCollector| assert_eq!(c.0, [1, 2, 3]))
+        })
+        .assert::<With<QueryTester>>(1, |e| e.has(|c: &QueryTester| assert!(c.done)));
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
-    let mut app: TestApp = App::new()
+    let start = instant::Instant::now();
+    App::new()
         .with_thread_count(2)
         .with_entity(QueryTester::build())
         .with_entity(StreamCollector::build())
@@ -115,8 +115,6 @@ fn run_systems_in_parallel() {
         .with_entity(Number::build(2))
         .with_entity(Number::build_without_value())
         .with_entity(Number::build_with_additional_component(3))
-        .into();
-    let start = instant::Instant::now();
-    app.update();
+        .updated();
     assert!(instant::Instant::now() - start > std::time::Duration::from_millis(300));
 }

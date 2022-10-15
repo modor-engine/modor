@@ -58,21 +58,21 @@ pub fn runner(mut app: App) {
     let mut gilrs = init_gamepads(&mut app);
     let event_loop = EventLoop::new();
     let mut window = None;
-    app.run_for_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
+    app.update_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     let mut previous_update_end = Instant::now();
     let mut suspended = false;
     event_loop.run(move |event, _, control_flow| match event {
         Event::Suspended => suspended = true,
         Event::Resumed => {
-            app.run_for_singleton(|w: &mut WindowInit| w.create_renderer(&window));
-            app.run_for_singleton(|w: &mut Window| w.update_renderer(&window));
+            app.update_singleton(|w: &mut WindowInit| w.create_renderer(&window));
+            app.update_singleton(|w: &mut Window| w.update_renderer(&window));
         }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
             let mut frame_rate = FrameRate::VSync;
-            app.run_for_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
-            app.run_for_singleton(|w: &mut Window| {
+            app.update_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
+            app.update_singleton(|w: &mut Window| {
                 let size = window.inner_size();
                 w.set_size(SurfaceSize {
                     width: size.width,
@@ -89,7 +89,7 @@ pub fn runner(mut app: App) {
             } else {
                 update_end - previous_update_end
             };
-            app.run_for_singleton(|t: &mut DeltaTime| t.set(delta_time));
+            app.update_singleton(|t: &mut DeltaTime| t.set(delta_time));
             previous_update_end = update_end;
         }
         Event::DeviceEvent {
@@ -114,7 +114,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
             new_inner_size: &mut size,
             ..
         } => {
-            app.run_for_singleton(|w: &mut Window| {
+            app.update_singleton(|w: &mut Window| {
                 w.set_size(SurfaceSize {
                     width: size.width,
                     height: size.height,
@@ -192,20 +192,20 @@ fn configure_logging() {
 }
 
 fn send_keyboard_event(app: &mut App, event: KeyboardEvent) {
-    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
 fn send_mouse_event(app: &mut App, event: MouseEvent) {
-    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
 fn send_touch_event(app: &mut App, event: TouchEvent) {
-    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
 #[cfg(not(target_os = "android"))]
 fn send_gamepad_event(app: &mut App, event: modor_input::GamepadEvent) {
-    app.run_for_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
 }
 
 #[cfg(not(target_os = "android"))]

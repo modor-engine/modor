@@ -200,6 +200,7 @@ jobs:
           LLVM_PROFILE_FILE: "%m.profraw"
           WGPU_BACKEND: vulkan
       - name: Generate HTML coverage report
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
         run: bash .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
@@ -209,6 +210,9 @@ jobs:
           path: coverage
           if-no-files-found: error
           retention-days: 7
+      - name: Check coverage threshold
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        run: bash .github/workflows/scripts/check_coverage_html.sh
       - name: Generate LCOV coverage report
         if: ${{ env.CODECOV_UPLOAD == 'true' }}
         run: bash .github/workflows/scripts/generate_coverage.sh lcov ./lcov.info
@@ -220,7 +224,8 @@ jobs:
           fail_ci_if_error: true
           verbose: true
       - name: Check coverage threshold
-        run: bash .github/workflows/scripts/check_coverage.sh
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        run: bash .github/workflows/scripts/check_coverage_lcov.sh
 
   generate-doc:
     runs-on: ubuntu-20.04

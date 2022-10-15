@@ -1,27 +1,9 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder, SingleMut};
+use modor::{App, Built, EntityBuilder, With};
 use modor_graphics::{
     testing, BackgroundColor, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize,
-    UpdateCaptureBufferAction,
 };
 use modor_math::Vec2;
 use modor_physics::{RelativeTransform2D, Transform2D};
-
-struct CaptureResizer {
-    new_size: SurfaceSize,
-}
-
-#[entity]
-impl CaptureResizer {
-    fn build(new_size: SurfaceSize) -> impl Built<Self> {
-        EntityBuilder::new(Self { new_size })
-    }
-
-    #[run_after(UpdateCaptureBufferAction)]
-    fn run(&self, mut capture: SingleMut<'_, Capture>) {
-        capture.set_size(self.new_size);
-    }
-}
 
 struct Rectangle;
 
@@ -52,57 +34,33 @@ impl Quarter {
 }
 
 #[test]
-fn resize_capture_smaller() {
-    let mut app: TestApp = App::new()
+fn resize_capture() {
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(BackgroundColor::build(Color::GREEN))
         .with_entity(Rectangle::build())
-        .with_entity(CaptureResizer::build(SurfaceSize::new(100, 50)))
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_smaller.png");
-}
-
-#[test]
-fn resize_capture_bigger() {
-    let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
-        .with_entity(Rectangle::build())
-        .with_entity(CaptureResizer::build(SurfaceSize::new(400, 300)))
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_bigger.png");
-}
-
-#[test]
-fn resize_capture_to_zero() {
-    let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
-        .with_entity(Rectangle::build())
-        .with_entity(CaptureResizer::build(SurfaceSize::new(0, 0)))
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_zero.png");
-}
-
-#[test]
-fn resize_capture_vertically() {
-    let mut app: TestApp = App::new()
-        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
-        .with_entity(Rectangle::build())
-        .with_entity(CaptureResizer::build(SurfaceSize::new(200, 300)))
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_initial_size.png");
-    app.update();
-    testing::assert_capture(&app, "tests/expected/capture_vertical.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/capture_initial_size.png")
+        })
+        .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(100, 50)))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/capture_smaller.png")
+        })
+        .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(400, 300)))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/capture_bigger.png")
+        })
+        .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(0, 0)))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/capture_zero.png")
+        })
+        .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(200, 300)))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/capture_vertical.png")
+        });
 }
