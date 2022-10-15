@@ -97,7 +97,6 @@ fn assert_valid_entity_count() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: 2 entities matching \
 modor::entity_filters::With<integration::app::Entity>, actual count: 1"]
 fn assert_invalid_entity_count() {
@@ -122,7 +121,6 @@ fn assert_entity_has_existing_component() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: `(left == right)"]
 fn assert_entity_has_invalid_component() {
     App::new()
@@ -139,7 +137,6 @@ fn assert_entity_has_invalid_component_in_any_mode() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component() {
@@ -171,7 +168,6 @@ fn assert_entity_has_not_missing_component() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
@@ -182,7 +178,6 @@ fn assert_entity_has_not_existing_component() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
@@ -204,7 +199,6 @@ fn assert_valid_child_count() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have 3 children, actual count: 2"]
 fn assert_invalid_child_count() {
@@ -214,7 +208,6 @@ fn assert_invalid_child_count() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have 3 children, actual count: 2"]
 fn assert_invalid_child_count_in_any_mode() {
@@ -235,7 +228,6 @@ fn assert_entity_has_matching_parent() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Child1> have parent matching \
 modor::entity_filters::With<integration::app::Singleton>"]
@@ -247,7 +239,6 @@ fn assert_entity_has_not_matching_parent() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Child1> have parent matching \
 modor::entity_filters::With<integration::app::Singleton>"]
@@ -259,7 +250,6 @@ fn assert_entity_has_not_matching_parent_in_any_mode() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have parent matching \
 modor::entity_filters::With<integration::app::Singleton>"]
@@ -271,7 +261,6 @@ fn assert_entity_has_missing_parent() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have parent matching \
 modor::entity_filters::With<integration::app::Singleton>"]
