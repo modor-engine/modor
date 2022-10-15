@@ -6,8 +6,7 @@ use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::queries::internal::QueryStream;
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::any::{Any, TypeId};
+use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo, SystemParam};
 use std::marker::PhantomData;
 
 /// A system parameter for iterating on entities.
@@ -29,7 +28,7 @@ use std::marker::PhantomData;
 pub struct Query<'a, P, F = ()>
 where
     P: 'static + QuerySystemParam,
-    F: QueryFilter,
+    F: EntityFilter,
 {
     guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
     filtered_component_type_idxs: &'a [ComponentTypeIdx],
@@ -40,7 +39,7 @@ where
 impl<'a, P, F> Query<'a, P, F>
 where
     P: 'static + QuerySystemParam,
-    F: QueryFilter,
+    F: EntityFilter,
 {
     fn new(
         guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
@@ -59,7 +58,7 @@ where
 impl<P, F> Query<'_, P, F>
 where
     P: 'static + QuerySystemParam,
-    F: QueryFilter,
+    F: EntityFilter,
 {
     /// Returns an iterator on constant query results.
     pub fn iter(&self) -> <P as QuerySystemParamWithLifetime<'_>>::Iter {
@@ -196,7 +195,7 @@ where
 impl<'a, P, F> SystemParamWithLifetime<'a> for Query<'_, P, F>
 where
     P: 'static + QuerySystemParam,
-    F: QueryFilter,
+    F: EntityFilter,
 {
     type Param = Query<'a, P, F>;
     type Guard = QueryGuard<'a, P, F>;
@@ -207,7 +206,7 @@ where
 impl<P, F> SystemParam for Query<'_, P, F>
 where
     P: 'static + QuerySystemParam,
-    F: QueryFilter,
+    F: EntityFilter,
 {
     type Tuple = (Self,);
     type InnerTuple = P::Tuple;
@@ -264,86 +263,10 @@ where
     }
 }
 
-/// A trait implemented for all valid filters that can be applied to a [`Query`](crate::Query).
-pub trait QueryFilter: 'static {
-    #[doc(hidden)]
-    fn register(core: &mut CoreStorage);
-
-    #[doc(hidden)]
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx>;
-}
-
-/// A filter for restricting a [`Query`](crate::Query) to entities containing an component
-/// of type `C`.
-///
-/// You can group multiple `With` in a tuple to restrict according to multiple component types.<br>
-/// A maximum of 10 filters is supported in tuples.
-/// If you need more filters for a query, you can use nested tuples.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::{Query, With, Entity};
-/// #
-/// struct Position;
-/// struct Velocity;
-///
-/// fn list_movable_entities(query: Query<'_, Entity<'_>, (With<Position>, With<Velocity>)>) {
-///     for entity in query.iter() {
-///         println!("Entity {} is movable", entity.id());
-///     }
-/// }
-/// ```
-pub struct With<C>(PhantomData<C>)
-where
-    C: Any + Sync + Send;
-
-impl<C> QueryFilter for With<C>
-where
-    C: Any + Sync + Send,
-{
-    #[doc(hidden)]
-    fn register(core: &mut CoreStorage) {
-        core.register_component_type::<C>();
-    }
-
-    #[doc(hidden)]
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![data
-            .components
-            .type_idx(TypeId::of::<C>())
-            .expect("internal error: missing component type for query filter")]
-    }
-}
-
-macro_rules! impl_tuple_query_filter {
-    ($(($params:ident, $indexes:tt)),*) => {
-        impl<$($params),*> QueryFilter for ($($params,)*)
-        where
-            $($params: QueryFilter,)*
-        {
-            #[allow(unused_variables)]
-            fn register(core: &mut CoreStorage) {
-                $($params::register(core);)*
-            }
-
-            #[allow(unused_mut, unused_variables)]
-            fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-                let mut types = Vec::new();
-                $(types.extend($params::filtered_component_type_idxs(data));)*
-                types
-            }
-        }
-    };
-}
-
-impl_tuple_query_filter!();
-run_for_tuples_with_idxs!(impl_tuple_query_filter);
-
 mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
-    use crate::{utils, QueryFilter, QuerySystemParam, SystemData, SystemInfo};
+    use crate::{utils, EntityFilter, QuerySystemParam, SystemData, SystemInfo};
     use std::marker::PhantomData;
     use std::ops::Range;
 
@@ -357,7 +280,7 @@ mod internal {
     impl<'a, P, F> QueryGuard<'a, P, F>
     where
         P: QuerySystemParam,
-        F: QueryFilter,
+        F: EntityFilter,
     {
         pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
             Self {

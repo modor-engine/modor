@@ -68,17 +68,19 @@ mod utils;
 mod actions;
 mod app;
 mod entities;
+mod entity_filters;
+mod ranges;
 mod storages;
 mod system_checks;
 mod system_params;
 mod system_runner;
 mod systems;
 
-pub mod testing;
-
 pub use actions::*;
 pub use app::*;
 pub use entities::*;
+pub use entity_filters::*;
+pub use ranges::*;
 pub use system_checks::*;
 pub use system_params::entity::*;
 pub use system_params::queries::*;

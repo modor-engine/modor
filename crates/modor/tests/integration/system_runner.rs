@@ -1,5 +1,4 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder};
+use modor::{App, Built, EntityBuilder, With};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -92,36 +91,40 @@ impl Tester2 {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn run_tester1_and_tester2_sequentially() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(Tester1::build())
         .with_entity(Tester2::build())
-        .into();
-    app.update();
-    app.assert_singleton::<Tester1>()
-        .has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]));
-    app.assert_singleton::<Tester2>().has(|t: &Tester2| {
-        assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-        assert!(t.first_system_run.load(Ordering::Acquire));
-    });
+        .updated()
+        .assert::<With<Tester1>>(1, |e| {
+            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+        })
+        .assert::<With<Tester2>>(1, |e| {
+            e.has(|t: &Tester2| {
+                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                assert!(t.first_system_run.load(Ordering::Acquire));
+            })
+        });
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn run_tester1_and_tester2_in_parallel() {
     modor_internal::retry!(10, {
-        let mut app: TestApp = App::new()
+        let start = instant::Instant::now();
+        App::new()
             .with_thread_count(2)
             .with_entity(Tester1::build())
             .with_entity(Tester2::build())
-            .into();
-        let start = instant::Instant::now();
-        app.update();
-        app.assert_singleton::<Tester1>()
-            .has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]));
-        app.assert_singleton::<Tester2>().has(|t: &Tester2| {
-            assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-            assert!(t.first_system_run.load(Ordering::Acquire));
-        });
+            .updated()
+            .assert::<With<Tester1>>(1, |e| {
+                e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+            })
+            .assert::<With<Tester2>>(1, |e| {
+                e.has(|t: &Tester2| {
+                    assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                    assert!(t.first_system_run.load(Ordering::Acquire));
+                })
+            });
         assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
     });
 }
@@ -129,29 +132,30 @@ fn run_tester1_and_tester2_in_parallel() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn run_tester1_in_parallel() {
-    let mut app: TestApp = App::new()
+    let start = instant::Instant::now();
+    App::new()
         .with_thread_count(2)
         .with_entity(Tester1::build())
-        .into();
-    let start = instant::Instant::now();
-    app.update();
-    app.assert_singleton::<Tester1>()
-        .has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]));
+        .updated()
+        .assert::<With<Tester1>>(1, |e| {
+            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+        });
     assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn run_tester2_in_parallel() {
-    let mut app: TestApp = App::new()
+    let start = instant::Instant::now();
+    App::new()
         .with_thread_count(2)
         .with_entity(Tester2::build())
-        .into();
-    let start = instant::Instant::now();
-    app.update();
-    app.assert_singleton::<Tester2>().has(|t: &Tester2| {
-        assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-        assert!(t.first_system_run.load(Ordering::Acquire));
-    });
+        .updated()
+        .assert::<With<Tester2>>(1, |e| {
+            e.has(|t: &Tester2| {
+                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                assert!(t.first_system_run.load(Ordering::Acquire));
+            })
+        });
     assert!(instant::Instant::now() - start > std::time::Duration::from_millis(100));
 }

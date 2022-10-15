@@ -1,6 +1,5 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder};
-use modor_graphics::{testing, Color, GraphicsModule, Mesh2D, SurfaceSize};
+use modor::{App, Built, EntityBuilder, With};
+use modor_graphics::{testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize};
 use modor_math::Vec2;
 use modor_physics::{RelativeTransform2D, Transform2D};
 
@@ -68,7 +67,7 @@ impl Center {
 
 #[test]
 fn display_hierarchy() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Center::build())
         .with_entity(Character::build(
@@ -81,7 +80,8 @@ fn display_hierarchy() {
             Vec2::new(0.3, 0.1),
             0.,
         ))
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/hierarchy.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/hierarchy.png")
+        });
 }

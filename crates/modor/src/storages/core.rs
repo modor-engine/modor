@@ -9,7 +9,7 @@ use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::{SystemProperties, SystemStorage};
 use crate::storages::updates::UpdateStorage;
 use crate::systems::internal::SystemWrapper;
-use crate::SystemData;
+use crate::{SystemData, SystemInfo};
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -24,10 +24,6 @@ pub struct CoreStorage {
 impl CoreStorage {
     pub(crate) fn archetypes(&self) -> &ArchetypeStorage {
         &self.archetypes
-    }
-
-    pub(crate) fn entities(&self) -> &EntityStorage {
-        &self.entities
     }
 
     pub(crate) fn components(&self) -> &ComponentStorage {
@@ -147,6 +143,28 @@ impl CoreStorage {
         self.actions.add_system(action_idx);
         self.systems.add(wrapper, properties, action_idx);
         action_idx
+    }
+
+    // This is a workaround for App::with_update.
+    // This should be generalized when Filter<F> system param will be added.
+    pub(crate) fn run_system_once<S>(&mut self, mut wrapper: S, properties: SystemProperties)
+    where
+        S: FnMut(SystemData<'_>, SystemInfo<'_>),
+    {
+        let data = SystemData {
+            entities: &self.entities,
+            components: &self.components,
+            archetypes: &self.archetypes,
+            actions: &self.actions,
+            updates: &self.updates,
+        };
+        wrapper(
+            data,
+            SystemInfo {
+                filtered_component_type_idxs: &properties.filtered_component_type_idxs,
+                item_count: 1, // generalized: data.item_count(&properties.filtered_component_type_idxs)
+            },
+        );
     }
 
     pub(crate) fn update(&mut self) {

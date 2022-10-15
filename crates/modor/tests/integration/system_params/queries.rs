@@ -1,5 +1,4 @@
 use crate::system_params::assert_iter;
-use modor::testing::TestApp;
 use modor::{App, Built, Entity, EntityBuilder, Query, With};
 
 struct Tester {
@@ -153,12 +152,10 @@ impl Level3 {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_query() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(Tester::build())
         .with_entity(Level1::build(10, 20))
         .with_entity(Level1::build(30, 40))
-        .into();
-    app.update();
-    app.assert_singleton::<Tester>()
-        .has(|t: &Tester| assert_eq!(t.done_count, 7));
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has(|t: &Tester| assert_eq!(t.done_count, 7)));
 }

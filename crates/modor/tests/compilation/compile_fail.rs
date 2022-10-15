@@ -2,19 +2,51 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{Query, Single, SingleMut, World};
+use modor::{Built, EntityBuilder, Query, Single, SingleMut, World};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-struct SingletonEntity1;
+struct Entity1;
+
+#[entity]
+impl Entity1 {
+    #[allow(unused)]
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+    }
+}
+
+struct Entity2;
+
+#[entity]
+impl Entity2 {
+    #[allow(unused)]
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self).inherit_from(Entity1::build())
+    }
+}
+
+struct Singleton1;
 
 #[singleton]
-impl SingletonEntity1 {}
+impl Singleton1 {
+    #[allow(unused)]
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+    }
+}
 
-struct SingletonEntity2;
+struct Singleton2;
 
 #[singleton]
-impl SingletonEntity2 {}
+impl Singleton2 {
+    #[allow(unused)]
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+            .inherit_from(Entity1::build())
+            .inherit_from(Singleton1::build())
+    }
+}
 
 struct EntityWithValidSystems;
 
@@ -50,32 +82,23 @@ impl EntityWithValidSystems {
     fn different_mut_components(_: &mut u32, _: &mut i64) {}
 
     #[run]
-    fn same_const_singleton(
-        _: Single<'_, SingletonEntity1>,
-        _: Single<'_, SingletonEntity1>,
-        _: &SingletonEntity1,
-    ) {
-    }
+    fn same_const_singleton(_: Single<'_, Singleton1>, _: Single<'_, Singleton1>, _: &Singleton1) {}
 
     #[run]
-    fn different_mut_singletons(
-        _: SingleMut<'_, SingletonEntity1>,
-        _: SingleMut<'_, SingletonEntity2>,
-    ) {
-    }
+    fn different_mut_singletons(_: SingleMut<'_, Singleton1>, _: SingleMut<'_, Singleton2>) {}
 
     #[run]
     fn same_const_singleton_option(
-        _: Option<Single<'_, SingletonEntity1>>,
-        _: Option<Single<'_, SingletonEntity1>>,
-        _: &SingletonEntity1,
+        _: Option<Single<'_, Singleton1>>,
+        _: Option<Single<'_, Singleton1>>,
+        _: &Singleton1,
     ) {
     }
 
     #[run]
     fn different_mut_singleton_options(
-        _: Option<SingleMut<'_, SingletonEntity1>>,
-        _: Option<SingleMut<'_, SingletonEntity2>>,
+        _: Option<SingleMut<'_, Singleton1>>,
+        _: Option<SingleMut<'_, Singleton2>>,
     ) {
     }
 

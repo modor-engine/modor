@@ -2,6 +2,7 @@ use crate::{Collider2D, PhysicsProperty, RelativeTransform2D};
 use modor_math::Vec2;
 use rapier2d::dynamics::{RigidBody, RigidBodyBuilder};
 use rapier2d::geometry::{Collider, ColliderBuilder};
+use rapier2d::math::Rotation;
 use rapier2d::na::Vector2;
 use std::marker::PhantomData;
 
@@ -116,10 +117,10 @@ impl Transform2D {
         }
         if let Some(&rotation) = self.rotation.consume_ref_if_changed() {
             if let Some(body) = body {
-                body.set_rotation(rotation, true);
+                body.set_rotation(Rotation::new(rotation), true);
             }
             if let Some(rapier_collider) = rapier_collider {
-                rapier_collider.set_rotation(rotation);
+                rapier_collider.set_rotation(Rotation::new(rotation));
             }
         }
         if let Some(&size) = self.size.consume_ref_if_changed() {

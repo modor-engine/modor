@@ -1,6 +1,5 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder};
-use modor_graphics::{testing, Color, GraphicsModule, Mesh2D, SurfaceSize};
+use modor::{App, Built, EntityBuilder, With};
+use modor_graphics::{testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 
@@ -31,11 +30,12 @@ impl Object {
 
 #[test]
 fn display_shapes() {
-    let mut app: TestApp = App::new()
+    App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
-        .into();
-    app.update();
-    testing::assert_capture(&app, "tests/expected/shapes.png");
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/shapes.png")
+        });
 }

@@ -1,5 +1,4 @@
-use modor::testing::TestApp;
-use modor::{Built, Entity, EntityBuilder, World};
+use modor::{App, Built, Entity, EntityBuilder, With, World};
 
 struct Parent(u32);
 
@@ -208,75 +207,76 @@ impl NewChildEntity {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_world() {
-    let mut app = TestApp::new();
-    let entity10_id = app.create_entity(EntityToDelete::build(10));
-    let entity11_id = app.create_entity(ParentEntityToDelete::build(11));
-    let entity12_id = app.create_entity(ParentOfEntityToDelete::build(12));
-    let entity20_id = app.create_entity(EntityWithMissingComponentAdded::build(20));
-    let entity21_id = app.create_entity(EntityWithExistingComponentAdded::build(21));
-    let entity22_id = app.create_entity(SingletonWithComponentAdded::build(22));
-    let entity23_id = app.create_entity(UnregisteredSingletonWithComponentAdded::build(23));
-    let entity30_id = app.create_entity(EntityWithExistingComponentDeleted::build(30));
-    let entity31_id = app.create_entity(EntityWithExistingComponentDeleted::build(31));
-    let entity40_id = app.create_entity(EntityWithMissingComponentDeleted::build(40));
-    let entity50_id = app.create_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50));
-    let entity60_id = app.create_entity(EntityWithAddedChild::build(60));
-    app.update();
-    app.assert_entity(entity10_id).does_not_exist();
-    app.assert_entity(entity11_id).does_not_exist();
-    app.assert_entity(entity11_id + 1).does_not_exist();
-    app.assert_entity(entity12_id)
-        .has_children(|c| assert_eq!(c, []));
-    app.assert_entity(entity12_id + 1).does_not_exist();
-    app.assert_entity(entity20_id)
-        .has(|c: &Parent| assert_eq!(c.0, 20))
-        .has(|c: &String| assert_eq!(c, "id: 20"));
-    app.assert_entity(entity21_id)
-        .has(|c: &Parent| assert_eq!(c.0, 21))
-        .has(|c: &String| assert_eq!(c, "id: 21"));
-    app.assert_entity(entity22_id)
-        .has(|c: &Parent| assert_eq!(c.0, 22))
-        .has(|c: &String| assert_eq!(c, "id: 22"));
-    app.assert_singleton::<SingletonWithComponentAdded>()
-        .has(|c: &Parent| assert_eq!(c.0, 22))
-        .has(|c: &String| assert_eq!(c, "id: 22"));
-    app.assert_entity(entity23_id)
-        .has(|c: &Parent| assert_eq!(c.0, 23))
-        .has(|c: &String| assert_eq!(c, "id: 23"));
-    app.assert_entity(entity30_id)
-        .has(|c: &Parent| assert_eq!(c.0, 30))
-        .has_not::<String>();
-    app.assert_entity(entity31_id)
-        .has(|c: &Parent| assert_eq!(c.0, 31))
-        .has_not::<String>();
-    app.assert_entity(entity40_id)
-        .has(|c: &Parent| assert_eq!(c.0, 40))
-        .has_not::<String>();
-    app.assert_entity(entity50_id)
-        .has(|c: &Parent| assert_eq!(c.0, 50))
-        .has_not::<String>();
-    app.assert_entity(entity60_id)
-        .has(|c: &Parent| assert_eq!(c.0, 60))
-        .has_not::<String>()
-        .has_children(|c| {
-            assert_eq!(c, vec![entity60_id + 1]);
-            app.assert_entity(c[0])
-                .has(|e: &NewChildEntity| assert_eq!(e.0, 70));
-        });
-    app.assert_entity(entity60_id + 2)
-        .has(|e: &NewRootEntity| assert_eq!(e.0, 80));
+    App::new()
+        .with_entity(EntityToDelete::build(10))
+        .with_entity(ParentEntityToDelete::build(11))
+        .with_entity(ParentOfEntityToDelete::build(12))
+        .with_entity(EntityWithMissingComponentAdded::build(20))
+        .with_entity(EntityWithExistingComponentAdded::build(21))
+        .with_entity(SingletonWithComponentAdded::build(22))
+        .with_entity(UnregisteredSingletonWithComponentAdded::build(23))
+        .with_entity(EntityWithExistingComponentDeleted::build(30))
+        .with_entity(EntityWithExistingComponentDeleted::build(31))
+        .with_entity(EntityWithMissingComponentDeleted::build(40))
+        .with_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50))
+        .with_entity(EntityWithAddedChild::build(60))
+        .updated()
+        .assert::<With<EntityToDelete>>(0, |e| e)
+        .assert::<With<ParentEntityToDelete>>(0, |e| e)
+        .assert::<With<DeletedChild>>(0, |e| e)
+        .assert::<With<ParentOfEntityToDelete>>(1, |e| e.child_count(0))
+        .assert::<With<EntityWithMissingComponentAdded>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 20))
+                .has(|c: &String| assert_eq!(c, "id: 20"))
+        })
+        .assert::<With<EntityWithExistingComponentAdded>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 21))
+                .has(|c: &String| assert_eq!(c, "id: 21"))
+        })
+        .assert::<With<SingletonWithComponentAdded>>(2, |e| {
+            e.any()
+                .has(|c: &Parent| assert_eq!(c.0, 22))
+                .has(|c: &Parent| assert_eq!(c.0, 23))
+                .has(|c: &String| assert_eq!(c, "id: 22"))
+                .has(|c: &String| assert_eq!(c, "id: 23"))
+        })
+        .assert::<With<UnregisteredSingletonWithComponentAdded>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 23))
+                .has(|c: &String| assert_eq!(c, "id: 23"))
+        })
+        .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| {
+            e.has_not::<String>()
+                .any()
+                .has(|c: &Parent| assert_eq!(c.0, 30))
+                .has(|c: &Parent| assert_eq!(c.0, 31))
+        })
+        .assert::<With<EntityWithMissingComponentDeleted>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 40)).has_not::<String>()
+        })
+        .assert::<With<EntityWithNotRegisteredComponentTypeDeleted>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 50)).has_not::<String>()
+        })
+        .assert::<With<EntityWithAddedChild>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 60))
+                .has_not::<String>()
+                .child_count(1)
+        })
+        .assert::<With<NewChildEntity>>(1, |e| {
+            e.has(|e: &NewChildEntity| assert_eq!(e.0, 70))
+                .has_parent::<With<EntityWithAddedChild>>()
+        })
+        .assert::<With<NewRootEntity>>(1, |e| e.has(|e: &NewRootEntity| assert_eq!(e.0, 80)));
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
-    let mut app: TestApp = modor::App::new()
+    let start = instant::Instant::now();
+    App::new()
         .with_thread_count(2)
         .with_entity(EntityWithAddedChild::build(60))
-        .into();
-    let start = instant::Instant::now();
-    app.update();
+        .updated();
     assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
 }

@@ -9,6 +9,6 @@ extern crate modor;
 
 pub mod app;
 pub mod entities;
+pub mod ranges;
 pub mod system_params;
 pub mod system_runner;
-pub mod testing;

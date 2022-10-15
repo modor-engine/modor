@@ -1,5 +1,6 @@
 use crate::{CollisionGroupIndex, Group, Transform2D};
 use modor_math::Vec2;
+use rapier2d::geometry::Group as RapierGroup;
 use rapier2d::geometry::{Collider, ColliderBuilder, ColliderHandle, ContactManifold};
 use rapier2d::math::{Point, Vector};
 use rapier2d::prelude::InteractionGroups;
@@ -59,8 +60,8 @@ impl Collider2D {
         let group = groups.get(self.group_idx);
         builder
             .collision_groups(InteractionGroups::new(
-                group.map_or(0, |g| g.membership_bits),
-                group.map_or(0, |g| g.interaction_bits),
+                RapierGroup::from_bits_truncate(group.map_or(0, |g| g.membership_bits)),
+                RapierGroup::from_bits_truncate(group.map_or(0, |g| g.interaction_bits)),
             ))
             .solver_groups(InteractionGroups::none())
     }

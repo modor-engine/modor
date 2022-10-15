@@ -1,5 +1,4 @@
-use modor::testing::TestApp;
-use modor::{App, Built, EntityBuilder, SingleMut};
+use modor::{App, Built, EntityBuilder, SingleMut, With};
 
 struct Tester {
     done_existing: bool,
@@ -53,29 +52,28 @@ impl Other {}
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_single_mut() {
-    let mut app: TestApp = App::new().with_entity(Number::build(10)).into();
-    let tester1_id = app.create_entity(Tester::build());
-    let tester2_id = app.create_entity(Tester::build());
-    app.update();
-    app.assert_entity(tester1_id).has(|t: &Tester| {
-        assert!(t.done_existing);
-        assert!(!t.done_missing);
-    });
-    app.assert_entity(tester2_id).has(|t: &Tester| {
-        assert!(t.done_existing);
-        assert!(!t.done_missing);
-    });
+    App::new()
+        .with_entity(Number::build(10))
+        .with_entity(Tester::build())
+        .with_entity(Tester::build())
+        .updated()
+        .assert::<With<Tester>>(2, |e| {
+            e.has(|t: &Tester| {
+                assert!(t.done_existing);
+                assert!(!t.done_missing);
+            })
+        });
 }
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
-    let mut app: TestApp = App::new()
+    let start = instant::Instant::now();
+    App::new()
         .with_thread_count(2)
         .with_entity(Number::build(10))
         .with_entity(Tester::build())
-        .into();
-    let start = instant::Instant::now();
-    app.update();
+        .updated();
     assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
 }

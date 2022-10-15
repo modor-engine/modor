@@ -6,6 +6,11 @@ macro_rules! assert_approx_eq {
     };
 }
 
+struct TestEntity;
+
+#[entity]
+impl TestEntity {}
+
 #[macro_use]
 extern crate modor;
 
