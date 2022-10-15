@@ -31,7 +31,7 @@ impl WindowTarget {
         CreatedTarget {
             target: Self {
                 immediate_mode_supported: surface
-                    .get_supported_modes(&adapter)
+                    .get_supported_present_modes(&adapter)
                     .contains(&PresentMode::Immediate),
                 surface,
                 surface_config,
@@ -58,7 +58,6 @@ impl WindowTarget {
     ) -> SurfaceConfiguration {
         let (width, height) = surface_size;
         let formats = surface.get_supported_formats(adapter);
-
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: if formats.is_empty() {
@@ -69,6 +68,7 @@ impl WindowTarget {
             width: if width == 0 { 1 } else { width },
             height: if height == 0 { 1 } else { height },
             present_mode: PresentMode::Fifo,
+            alpha_mode: surface.get_supported_alpha_modes(adapter)[0],
         }
     }
 }

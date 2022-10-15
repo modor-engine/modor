@@ -58,7 +58,6 @@ impl Collider2D {
             Collider2DShape::Circle => ColliderBuilder::ball(size.x.abs().min(size.y.abs()) / 2.),
         };
         let group = groups.get(self.group_idx);
-        // TODO: improve usage of RapierGroup
         builder
             .collision_groups(InteractionGroups::new(
                 RapierGroup::from_bits_truncate(group.map_or(0, |g| g.membership_bits)),

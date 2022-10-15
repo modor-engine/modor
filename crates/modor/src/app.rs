@@ -360,6 +360,7 @@ where
     }
 
     // coverage: off (platform check)
+    #[cfg(not(target_arch = "wasm32"))]
     #[allow(clippy::unused_self)]
     fn check_platform_for_catch_unwind(&self) {}
 
