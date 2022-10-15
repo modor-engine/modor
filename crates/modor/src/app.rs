@@ -366,9 +366,7 @@ where
 
     #[cfg(target_arch = "wasm32")]
     fn check_platform_for_catch_unwind(&self) {
-        if self.any_mode {
-            panic!("not supported");
-        }
+        assert!(!self.any_mode, "not supported");
     }
     // coverage: on
 }
