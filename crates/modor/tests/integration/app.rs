@@ -107,7 +107,6 @@ fn assert_invalid_entity_count() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn assert_entity_has_existing_component() {
     App::new()
         .with_entity(Entity::build(10))
@@ -132,7 +131,6 @@ fn assert_entity_has_invalid_component() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: `(left == right)"]
 fn assert_entity_has_invalid_component_in_any_mode() {
     App::new()
@@ -151,7 +149,6 @@ fn assert_entity_has_missing_component() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 #[should_panic = "assertion failed: entities matching \
 modor::entity_filters::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component_in_any_mode() {

@@ -4,7 +4,6 @@ use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent};
 use modor_math::Vec2;
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_state() {
     App::new()
         .with_entity(InputModule::build())

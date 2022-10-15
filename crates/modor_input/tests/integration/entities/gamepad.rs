@@ -7,7 +7,6 @@ use modor_input::{
 use modor_math::Vec2;
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn handle_gamepads() {
     App::new()
         .with_entity(InputModule::build())

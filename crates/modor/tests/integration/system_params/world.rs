@@ -207,7 +207,6 @@ impl NewChildEntity {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_world() {
     App::new()
         .with_entity(EntityToDelete::build(10))

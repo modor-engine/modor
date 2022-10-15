@@ -23,13 +23,15 @@ const COLOR_EPSILON: u8 = 1;
 /// # Examples
 ///
 /// ```rust
-/// use modor::{App, With};
-/// use modor_graphics::{Capture, GraphicsModule, SurfaceSize};
-/// use modor_graphics::testing::assert_capture;
-///
+/// # use modor::{App, With};
+/// # use modor_graphics::{Capture, GraphicsModule, SurfaceSize};
+/// # use modor_graphics::testing::assert_capture;
+/// #
+/// # fn f() {
 /// App::new()
 ///     .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
 ///     .assert::<With<Capture>>(1, |e| assert_capture(e, "tests/expected/screen.png"));
+/// # }
 /// ```
 pub fn assert_capture<P>(
     entity: EntityAssertions<'_, With<Capture>>,

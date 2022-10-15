@@ -229,11 +229,17 @@ where
     /// # Panics
     ///
     /// This will panic if the entity does not have a component of type `C` or if `f` panics.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: panics if [`any`](crate::EntityAssertions::any) has been previously called
+    /// because internal call to [`catch_unwind`](std::panic::catch_unwind) is unsupported
     pub fn has<C, A>(self, f: A) -> Self
     where
         C: Any + Sync + Send + RefUnwindSafe,
         A: Fn(&C) + RefUnwindSafe,
     {
+        self.check_platform_for_catch_unwind();
         let any_mode = self.any_mode;
         self.run(system!(|entities: Query<'_, Option<&C>, F>| {
             assert!(
@@ -352,4 +358,16 @@ where
         self.core.run_system_once(system.wrapper, properties);
         self
     }
+
+    // coverage: off (platform check)
+    #[allow(clippy::unused_self)]
+    fn check_platform_for_catch_unwind(&self) {}
+
+    #[cfg(target_arch = "wasm32")]
+    fn check_platform_for_catch_unwind(&self) {
+        if self.any_mode {
+            panic!("not supported");
+        }
+    }
+    // coverage: on
 }
