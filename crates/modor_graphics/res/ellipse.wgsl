@@ -2,10 +2,6 @@ struct CameraUniform {
     transform: mat4x4<f32>,
 };
 
-@group(0)
-@binding(0)
-var<uniform> camera: CameraUniform;
-
 struct VertexInput {
     @location(0)
     position: vec3<f32>,
@@ -22,6 +18,8 @@ struct InstanceInput {
     transform_3: vec4<f32>,
     @location(5)
     color: vec4<f32>,
+    @location(6)
+    has_texture: u32,
 };
 
 struct VertexOutput {
@@ -30,8 +28,24 @@ struct VertexOutput {
     @location(0)
     color: vec4<f32>,
     @location(1)
+    has_texture: u32,
+    @location(2)
     inner_position: vec2<f32>,
+    @location(3)
+    texture_coords: vec2<f32>,
 };
+
+@group(0)
+@binding(0)
+var<uniform> camera: CameraUniform;
+
+@group(1)
+@binding(0)
+var texture: texture_2d<f32>;
+
+@group(1)
+@binding(1)
+var texture_sampler: sampler;
 
 @vertex
 fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
@@ -41,21 +55,24 @@ fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
         instance.transform_2,
         instance.transform_3,
     );
-    var out: VertexOutput;
-    out.position = camera.transform * transform * vec4<f32>(vertex.position, 1.);
-    out.color = instance.color;
-    out.inner_position = vec2<f32>(vertex.position.x, vertex.position.y);
-    return out;
+    return VertexOutput(
+        camera.transform * transform * vec4<f32>(vertex.position, 1.),
+        instance.color,
+        instance.has_texture,
+        vec2<f32>(vertex.position.x, vertex.position.y),
+        (vertex.position.xy + vec2<f32>(0.5, 0.5)) / vec2<f32>(1., -1.),
+    );
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    if (in.color.w == 0.) {
+    let color = textureSample(texture, texture_sampler, in.texture_coords) * in.color;
+    if (color.w == 0.) {
         discard;
     }
     let distance = sqrt(pow(in.inner_position.x, 2.) + pow(in.inner_position.y, 2.));
     if (distance > 0.5) {
         discard;
     }
-    return in.color;
+    return color;
 }

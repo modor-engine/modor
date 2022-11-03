@@ -1,5 +1,5 @@
 use crate::backend::targets::{CreatedTarget, Target};
-use crate::utils;
+use futures::executor;
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -7,6 +7,7 @@ use wgpu::{
     MapMode, Queue, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     TextureView, TextureViewDescriptor,
 };
+use winit::window::Window;
 
 const TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
 
@@ -42,7 +43,7 @@ impl TextureTarget {
     }
 
     fn retrieve_adapter(instance: &Instance) -> Adapter {
-        utils::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+        executor::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
             .expect("no supported graphic adapter found")
     }
 
@@ -146,4 +147,8 @@ impl Target for TextureTarget {
         );
         queue.submit(std::iter::once(encoder.finish()));
     }
+
+    // coverage: off (no surface refresh with capture)
+    fn refresh_surface(&mut self, _window: &Window, _device: &Device) {}
+    // coverage: on
 }

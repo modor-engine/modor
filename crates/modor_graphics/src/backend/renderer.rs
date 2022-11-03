@@ -1,8 +1,12 @@
 use crate::backend::targets::{CreatedTarget, Target};
+use log::warn;
 use wgpu::{
-    CommandEncoder, Device, Extent3d, Queue, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsages, TextureView, TextureViewDescriptor,
+    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, CommandEncoder,
+    Device, Extent3d, Queue, SamplerBindingType, ShaderStages, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
+    TextureViewDimension,
 };
+use winit::window::Window;
 
 pub(super) const DEPTH_TEXTURE_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
@@ -11,6 +15,7 @@ pub(crate) struct Renderer {
     device: Device,
     queue: Queue,
     depth_buffer: TextureView,
+    texture_bind_group_layout: BindGroupLayout,
 }
 
 impl Renderer {
@@ -19,6 +24,7 @@ impl Renderer {
         Self {
             depth_buffer: Self::create_depth_buffer(&target.device, width, height),
             target: Box::new(target.target),
+            texture_bind_group_layout: Self::create_texture_bind_group_layout(&target.device),
             device: target.device,
             queue: target.queue,
         }
@@ -32,9 +38,15 @@ impl Renderer {
         self.target.retrieve_buffer(&self.device)
     }
 
+    pub(crate) fn refresh_surface(&mut self, window: &Window) {
+        self.target.refresh_surface(window, &self.device);
+    }
+
     pub(crate) fn set_size(&mut self, width: u32, height: u32) {
-        let width = u32::max(width, 1);
-        let height = u32::max(height, 1);
+        if width == 0 || height == 0 {
+            warn!("render target size remains unchanged as new width or height is equal to zero");
+            return;
+        }
         if (width, height) != self.target.size() {
             self.depth_buffer = Self::create_depth_buffer(&self.device, width, height);
             self.target.set_size(width, height, &self.device);
@@ -69,6 +81,10 @@ impl Renderer {
         &self.queue
     }
 
+    pub(crate) fn texture_bind_group_layout(&self) -> &BindGroupLayout {
+        &self.texture_bind_group_layout
+    }
+
     fn create_depth_buffer(device: &Device, width: u32, height: u32) -> TextureView {
         let desc = TextureDescriptor {
             label: Some("modor_depth_texture"),
@@ -85,5 +101,29 @@ impl Renderer {
         };
         let texture = device.create_texture(&desc);
         texture.create_view(&TextureViewDescriptor::default())
+    }
+
+    fn create_texture_bind_group_layout(device: &Device) -> BindGroupLayout {
+        device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            entries: &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: TextureViewDimension::D2,
+                        sample_type: TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+            label: Some("modor_texture_bind_group_layout"),
+        })
     }
 }

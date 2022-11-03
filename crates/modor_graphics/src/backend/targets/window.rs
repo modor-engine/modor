@@ -1,5 +1,5 @@
 use crate::backend::targets::{CreatedTarget, Target};
-use crate::utils;
+use futures::executor;
 use wgpu::{
     Adapter, Backends, CommandEncoder, Device, Instance, PowerPreference, PresentMode, Queue,
     RequestAdapterOptions, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
@@ -11,28 +11,29 @@ use winit::window::Window;
 
 pub(crate) struct WindowTarget {
     immediate_mode_supported: bool,
+    instance: Instance,
+    adapter: Adapter,
     surface: Surface,
     surface_config: SurfaceConfiguration,
     current_texture: Option<SurfaceTexture>,
 }
 
 impl WindowTarget {
-    #[allow(unsafe_code)]
     pub(crate) fn new(window: &Window) -> CreatedTarget<Self> {
         let instance =
             Instance::new(wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all));
-        let surface = unsafe { instance.create_surface(&window) };
+        let surface = Self::create_surface(&instance, window);
         let adapter = Self::retrieve_adapter(&instance, &surface);
         let (device, queue) = super::retrieve_device(&adapter);
-        let window_size = window.inner_size();
-        let target_size = (window_size.width, window_size.height);
-        let surface_config = Self::create_surface_config(target_size, &surface, &adapter);
+        let surface_config = Self::create_surface_config(window, &surface, &adapter);
         surface.configure(&device, &surface_config);
         CreatedTarget {
             target: Self {
                 immediate_mode_supported: surface
                     .get_supported_present_modes(&adapter)
                     .contains(&PresentMode::Immediate),
+                instance,
+                adapter,
                 surface,
                 surface_config,
                 current_texture: None,
@@ -43,7 +44,7 @@ impl WindowTarget {
     }
 
     fn retrieve_adapter(instance: &Instance, surface: &Surface) -> Adapter {
-        utils::block_on(instance.request_adapter(&RequestAdapterOptions {
+        executor::block_on(instance.request_adapter(&RequestAdapterOptions {
             power_preference: PowerPreference::default(),
             compatible_surface: Some(surface),
             force_fallback_adapter: false,
@@ -51,12 +52,18 @@ impl WindowTarget {
         .expect("no supported graphic adapter found")
     }
 
+    #[allow(unsafe_code)]
+    fn create_surface(instance: &Instance, window: &Window) -> Surface {
+        unsafe { instance.create_surface(&window) }
+    }
+
     fn create_surface_config(
-        surface_size: (u32, u32),
+        window: &Window,
         surface: &Surface,
         adapter: &Adapter,
     ) -> SurfaceConfiguration {
-        let (width, height) = surface_size;
+        let window_size = window.inner_size();
+        let (width, height) = (window_size.width, window_size.height);
         let formats = surface.get_supported_formats(adapter);
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
@@ -122,5 +129,12 @@ impl Target for WindowTarget {
             .take()
             .expect("internal error: no surface texture to render")
             .present();
+    }
+
+    fn refresh_surface(&mut self, window: &Window, device: &Device) {
+        self.surface = Self::create_surface(&self.instance, window);
+        self.surface_config = Self::create_surface_config(window, &self.surface, &self.adapter);
+        self.surface.configure(device, &self.surface_config);
+        self.current_texture = None;
     }
 }

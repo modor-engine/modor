@@ -39,11 +39,20 @@ use crate::Color;
 pub struct Mesh2D {
     /// Color of the entity.
     ///
+    /// This color will be applied only if there is no texture or if the texture is not loaded.
+    ///
     /// Some optimizations are perform on shapes with alpha component equal to zero.
     pub color: Color,
     /// Z-coordinate of the mesh used to define display order, where smallest Z-coordinates are
     /// displayed first.
     pub z: f32,
+    /// ID of the attached texture, or `None` if no texture should be applied.
+    pub texture_id: Option<usize>,
+    /// Color applied to the attached texture.
+    ///
+    /// The color of each pixel of the texture will be multiplied component-wise by this color.<br>
+    /// This color will be applied only if there is an attached texture that is already loaded.
+    pub texture_color: Color,
     pub(crate) shape: Shape,
 }
 
@@ -58,6 +67,8 @@ impl Mesh2D {
             color: Color::WHITE,
             z: 0.,
             shape: Shape::Rectangle,
+            texture_id: None,
+            texture_color: Color::WHITE,
         }
     }
 
@@ -71,10 +82,14 @@ impl Mesh2D {
             color: Color::WHITE,
             z: 0.,
             shape: Shape::Ellipse,
+            texture_id: None,
+            texture_color: Color::WHITE,
         }
     }
 
     /// Returns the mesh with a different `color`.
+    ///
+    /// Default value is `Color::WHITE`.
     #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
         self.color = color;
@@ -82,9 +97,29 @@ impl Mesh2D {
     }
 
     /// Returns the mesh with a different `z`.
+    ///
+    /// Default value is `0.0`.
     #[must_use]
     pub const fn with_z(mut self, z: f32) -> Self {
         self.z = z;
+        self
+    }
+
+    /// Returns the mesh with an attached texture with ID `texture_id`.
+    ///
+    /// There is no attached texture by default.
+    #[must_use]
+    pub fn with_texture(mut self, texture_id: impl Into<usize>) -> Self {
+        self.texture_id = Some(texture_id.into());
+        self
+    }
+
+    /// Returns the mesh with a different texture `texture_color`.
+    ///
+    /// Default value is `Color::WHITE`.
+    #[must_use]
+    pub const fn with_texture_color(mut self, texture_color: Color) -> Self {
+        self.texture_color = texture_color;
         self
     }
 }

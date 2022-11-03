@@ -1,7 +1,7 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    system, Built, EntityFilter, EntityMainComponent, Singleton, SystemBuilder, SystemData,
-    SystemInfo, UsizeRange,
+    logging, system, Built, EntityFilter, EntityMainComponent, Singleton, SystemBuilder,
+    SystemData, SystemInfo, UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -9,6 +9,8 @@ use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::panic;
 use std::panic::RefUnwindSafe;
+
+pub use log::LevelFilter;
 
 /// The entrypoint of the engine.
 ///
@@ -81,9 +83,25 @@ pub struct App {
 
 impl App {
     /// Creates a new empty `App`.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: logging is initialized with [`console_log`](console_log)
+    /// and panic hook with [`console_error_panic_hook`](console_error_panic_hook::hook).
+    /// - Other: logging is initialized with [`pretty_env_logger`](pretty_env_logger).
     #[must_use]
     pub fn new() -> Self {
+        logging::init();
         Self::default()
+    }
+
+    /// Set minimum log level.
+    ///
+    /// Default minimum log level is [`LevelFilter::Warn`](log::LevelFilter::Warn).
+    #[must_use]
+    pub fn with_log_level(self, level: LevelFilter) -> Self {
+        log::set_max_level(level);
+        self
     }
 
     /// Changes the number of threads used by the `App` during update.
@@ -91,7 +109,7 @@ impl App {
     /// Update is only done in one thread if `count` is `0` or `1`,
     /// which is the default behavior.
     ///
-    /// ## Platform-specific
+    /// # Platform-specific
     ///
     /// - Web: update is done in one thread even if `count` if greater than `1`.
     #[must_use]
@@ -131,6 +149,71 @@ impl App {
     #[must_use]
     pub fn updated(mut self) -> Self {
         self.core.update();
+        self
+    }
+
+    // TODO: test the next 2 methods + use them in job and texture tests
+    /// Runs all systems registered in the `App` until `f` returns `true` for the component of
+    /// type `C` of any entity filtered with `F`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if `max_retry` is reached.
+    #[must_use]
+    pub fn updated_until_any<F, C>(
+        mut self,
+        max_retries: Option<usize>,
+        mut f: impl FnMut(&C) -> bool,
+    ) -> Self
+    where
+        F: EntityFilter,
+        C: Any + Sync + Send,
+    {
+        let mut result = false;
+        for i in 0.. {
+            self.core.update();
+            let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().any(&mut f));
+            let properties = (system.properties_fn)(&mut self.core);
+            self.core.run_system_once(system.wrapper, properties);
+            if result {
+                break;
+            }
+            if let Some(max_retries) = max_retries {
+                assert!(i < max_retries, "max number of retries reached");
+            }
+        }
+        self
+    }
+
+    /// Runs all systems registered in the `App` until `f` returns `true` for the component of
+    /// type `C` of all entity filtered with `F`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if `max_retry` is reached.
+    #[must_use]
+    pub fn updated_until_all<F, C>(
+        mut self,
+        max_retries: Option<usize>,
+        mut f: impl FnMut(&C) -> bool,
+    ) -> Self
+    where
+        F: EntityFilter,
+        C: Any + Sync + Send,
+    {
+        let mut result = false;
+        for i in 0.. {
+            self.core.update();
+            let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().all(&mut f));
+            let properties = (system.properties_fn)(&mut self.core);
+            self.core.run_system_once(system.wrapper, properties);
+            if result {
+                break;
+            }
+            if let Some(max_retries) = max_retries {
+                assert!(i < max_retries, "max number of retries reached");
+            }
+        }
         self
     }
 
@@ -233,7 +316,7 @@ where
     /// # Platform-specific
     ///
     /// - Web: panics if [`any`](crate::EntityAssertions::any) has been previously called
-    /// because internal call to [`catch_unwind`](std::panic::catch_unwind) is unsupported
+    /// because internal call to [`catch_unwind`](std::panic::catch_unwind) is unsupported.
     pub fn has<C, A>(self, f: A) -> Self
     where
         C: Any + Sync + Send + RefUnwindSafe,

@@ -1,6 +1,5 @@
 use crate::FrameRate;
 use instant::Instant;
-use std::future::Future;
 use std::time::Duration;
 
 #[allow(clippy::cast_precision_loss)]
@@ -47,20 +46,6 @@ where
                 }
             }
         }
-    }
-}
-
-pub(crate) fn block_on<F>(future: F) -> F::Output
-where
-    F: Future + 'static,
-{
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        pollster::block_on(future)
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        futures::executor::block_on(future)
     }
 }
 

@@ -23,14 +23,20 @@ impl ShaderStorage {
                 Shader::new(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
                     vertex_buffer_layouts,
-                    &[camera_2d.bind_group_layout()],
+                    &[
+                        camera_2d.bind_group_layout(),
+                        renderer.texture_bind_group_layout()
+                    ],
                     "main_2d",
                     renderer,
                 ),
                 Shader::new(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
                     vertex_buffer_layouts,
-                    &[camera_2d.bind_group_layout()],
+                    &[
+                        camera_2d.bind_group_layout(),
+                        renderer.texture_bind_group_layout()
+                    ],
                     "ellipse_2d",
                     renderer,
                 )

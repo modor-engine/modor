@@ -1,0 +1,31 @@
+[package]
+name = "textures"
+version = "0.1.0"
+authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
+edition = "2021"
+description = "Texture example of the Modor game engine"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+modor = { version = "0.1.0", path = "../../crates/modor" }
+modor_graphics = { version = "0.1.0", path = "../../crates/modor_graphics" }
+modor_math = { version = "0.1.0", path = "../../crates/modor_math" }
+modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-glue = "0.7"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[package.metadata.android]
+apk_name = "modor_textures_example"
+build_targets = ["armv7-linux-androideabi"]
+assets = "assets"
+
+[package.metadata.android.application]
+label = "Textures - Modor example"
+
+[package.metadata.android.sdk]
+target_sdk_version = 31

@@ -1,4 +1,4 @@
-use crate::{utils, FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
+use crate::{utils, FrameRate, FrameRateLimit, RenderTarget, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{
@@ -53,7 +53,6 @@ use winit::event_loop::{ControlFlow, EventLoop};
 /// ```
 #[allow(clippy::wildcard_enum_match_arm, clippy::cast_possible_truncation)]
 pub fn runner(mut app: App) {
-    configure_logging();
     #[cfg(not(target_os = "android"))]
     let mut gilrs = init_gamepads(&mut app);
     let event_loop = EventLoop::new();
@@ -66,7 +65,7 @@ pub fn runner(mut app: App) {
         Event::Suspended => suspended = true,
         Event::Resumed => {
             app.update_singleton(|w: &mut WindowInit| w.create_renderer(&window));
-            app.update_singleton(|w: &mut Window| w.update_renderer(&window));
+            app.update_singleton(|t: &mut RenderTarget| t.refresh_surface(&window));
         }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
@@ -176,18 +175,6 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
             }
         },
         _ => {}
-    }
-}
-
-fn configure_logging() {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        env_logger::init();
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console_log::init().expect("cannot initialize logger");
     }
 }
 

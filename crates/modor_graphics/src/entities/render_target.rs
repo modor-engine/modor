@@ -1,12 +1,14 @@
 use crate::backend::renderer::Renderer;
 use crate::backend::targets::texture::TextureTarget;
 use crate::backend::targets::window::WindowTarget;
+use crate::backend::textures::Image;
 use crate::entities::background::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::{CoreStorage, ShapeComponents};
 use crate::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, Texture,
+    TextureConfig, WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
 use modor_physics::Transform2D;
@@ -21,12 +23,20 @@ pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
 }
 
-#[entity]
+#[singleton]
 impl RenderTarget {
     pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
         EntityBuilder::new(Self {
             core: CoreStorage::new(renderer),
         })
+    }
+
+    pub(crate) fn refresh_surface(&mut self, window: &WinitWindow) {
+        self.core.refresh_surface(window);
+    }
+
+    pub(crate) fn load_texture(&mut self, image: Image, config: &TextureConfig) {
+        self.core.load_texture(image, config);
     }
 
     #[run_as(PrepareRenderingAction)]
@@ -44,10 +54,12 @@ impl RenderTarget {
         &mut self,
         background_color: Option<Single<'_, BackgroundColor>>,
         frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
+        textures: Query<'_, &Texture>,
     ) {
         let background_color = background_color.map_or(DEFAULT_BACKGROUND_COLOR, |c| **c);
         let enable_vsync = matches!(frame_rate_limit.map(|l| l.get()), Some(FrameRate::VSync));
         self.core.toggle_vsync(enable_vsync);
+        self.core.remove_not_found_textures(&textures);
         self.core.render(background_color);
     }
 
@@ -69,7 +81,6 @@ impl RenderTarget {
 /// See [`GraphicsModule`](crate::GraphicsModule).
 pub struct Window {
     size: SurfaceSize,
-    refreshed_renderer: Option<Renderer>,
 }
 
 #[singleton]
@@ -84,7 +95,6 @@ impl Window {
         let (width, height) = renderer.target_size();
         EntityBuilder::new(Self {
             size: SurfaceSize { width, height },
-            refreshed_renderer: None,
         })
         .inherit_from(RenderTarget::build(renderer))
     }
@@ -93,17 +103,9 @@ impl Window {
         self.size = size;
     }
 
-    pub(crate) fn update_renderer(&mut self, window: &WinitWindow) {
-        self.refreshed_renderer = Some(Renderer::new(WindowTarget::new(window)));
-    }
-
     #[run]
-    fn update_size(&mut self, surface: &mut RenderTarget) {
-        if let Some(renderer) = self.refreshed_renderer.take() {
-            surface.core = CoreStorage::new(renderer);
-        } else {
-            surface.core.set_size(self.size());
-        }
+    fn update_size(&mut self, target: &mut RenderTarget) {
+        target.core.set_size(self.size());
     }
 }
 
@@ -153,10 +155,6 @@ impl WindowInit {
                 .and_then(|body| body.append_child(&web_sys::Element::from(canvas)).ok())
                 .expect("cannot append canvas to document body");
         }
-        #[cfg(not(target_os = "android"))]
-        {
-            self.renderer = Some(Renderer::new(WindowTarget::new(&window)));
-        }
         window
     }
 
@@ -167,16 +165,10 @@ impl WindowInit {
         graphics: Single<'_, GraphicsModule>,
         mut world: World<'_>,
     ) {
-        let renderer = if let Some(renderer) = self.renderer.take() {
-            renderer
-        } else {
-            Renderer::new(TextureTarget::new(
-                self.settings.size.width,
-                self.settings.size.height,
-            ))
-        };
-        world.create_child_entity(graphics.entity().id(), Window::build(renderer));
-        world.delete_entity(entity.id());
+        if let Some(renderer) = self.renderer.take() {
+            world.create_child_entity(graphics.entity().id(), Window::build(renderer));
+            world.delete_entity(entity.id());
+        }
     }
 }
 
@@ -209,6 +201,8 @@ impl Capture {
     }
 
     /// Sets the capture size.
+    ///
+    /// If `size` has width or height equal to `0.`, then the capture size is unchanged.
     pub fn set_size(&mut self, size: SurfaceSize) {
         self.updated_size = Some(size);
     }

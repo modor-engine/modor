@@ -1,3 +1,4 @@
+use log::LevelFilter;
 use modor::{App, Built, EntityBuilder, With};
 
 struct Singleton(u32);
@@ -65,9 +66,25 @@ impl Child {
     }
 }
 
+struct Counter(u32);
+
+#[entity]
+impl Counter {
+    fn build(initial_value: u32) -> impl Built<Self> {
+        EntityBuilder::new(Self(initial_value))
+    }
+
+    #[run]
+    fn update(&mut self) {
+        self.0 += 1;
+    }
+}
+
 #[test]
-fn create_app_with_thread_count() {
-    let app = App::new().with_thread_count(2);
+fn create_app_with_thread_count_and_log_level() {
+    let app = App::new()
+        .with_thread_count(2)
+        .with_log_level(LevelFilter::Info);
     assert_eq!(app.thread_count(), 2);
     let app = app.with_thread_count(1);
     assert_eq!(app.thread_count(), 1);
@@ -77,8 +94,10 @@ fn create_app_with_thread_count() {
 
 #[allow(dead_code)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn create_app_with_wasm() {
-    let app = App::new().with_thread_count(2);
+fn create_app_with_thread_count_and_log_level_for_wasm() {
+    let app = App::new()
+        .with_thread_count(2)
+        .with_log_level(LevelFilter::Info);
     assert_eq!(app.thread_count(), 1);
 }
 
@@ -291,6 +310,55 @@ fn update_app() {
         .assert::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 11)));
     app.update();
     app.assert::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 12)));
+}
+
+#[test]
+fn update_app_until_any() {
+    App::new()
+        .with_entity(Counter::build(0))
+        .with_entity(Counter::build(1))
+        .updated_until_any::<(), _>(Some(3), |c: &Counter| c.0 == 5)
+        .assert::<With<Counter>>(2, |e| {
+            e.any()
+                .has(|c: &Counter| assert_eq!(c.0, 4))
+                .has(|c: &Counter| assert_eq!(c.0, 5))
+        })
+        .updated_until_any::<(), _>(None, |c: &Counter| c.0 == 15)
+        .assert::<With<Counter>>(2, |e| {
+            e.any()
+                .has(|c: &Counter| assert_eq!(c.0, 14))
+                .has(|c: &Counter| assert_eq!(c.0, 15))
+        });
+}
+
+#[test]
+#[should_panic = "max number of retries reached"]
+fn update_app_until_any_with_max_retries_reached() {
+    let _app = App::new()
+        .with_entity(Counter::build(0))
+        .with_entity(Counter::build(1))
+        .updated_until_any::<(), _>(Some(2), |c: &Counter| c.0 == 5);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_app_until_all() {
+    App::new()
+        .with_entity(Counter::build(1))
+        .with_entity(Counter::build(1))
+        .updated_until_all::<(), _>(Some(3), |c: &Counter| c.0 == 5)
+        .assert::<With<Counter>>(2, |e| e.has(|c: &Counter| assert_eq!(c.0, 5)))
+        .updated_until_all::<(), _>(None, |c: &Counter| c.0 == 15)
+        .assert::<With<Counter>>(2, |e| e.has(|c: &Counter| assert_eq!(c.0, 15)));
+}
+
+#[test]
+#[should_panic = "max number of retries reached"]
+fn update_app_until_all_with_max_retries_reached() {
+    let _app = App::new()
+        .with_entity(Counter::build(1))
+        .with_entity(Counter::build(2))
+        .updated_until_all::<(), _>(Some(2), |c: &Counter| c.0 == 5);
 }
 
 #[test]

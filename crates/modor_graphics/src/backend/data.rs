@@ -30,6 +30,7 @@ impl<const L: u32> GpuData<L> for Vertex {
 pub(crate) struct Instance {
     pub(crate) transform: [[f32; 4]; 4],
     pub(crate) color: [f32; 4],
+    pub(crate) has_texture: u32,
 }
 
 impl<const L: u32> GpuData<L> for Instance {
@@ -39,6 +40,7 @@ impl<const L: u32> GpuData<L> for Instance {
         L + 2 => Float32x4,
         L + 3 => Float32x4,
         L + 4 => Float32x4,
+        L + 5 => Uint32,
     ];
 
     fn layout() -> VertexBufferLayout<'static> {

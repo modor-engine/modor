@@ -1,15 +1,18 @@
 use crate::backend::data::{Camera, Instance};
 use crate::backend::renderer::Renderer;
 use crate::backend::rendering::{RenderCommands, Rendering};
+use crate::backend::textures::Image;
 use crate::backend::uniforms::Uniform;
 use crate::storages::models::ModelStorage;
 use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
+use crate::storages::textures::TextureStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{utils, Color, Mesh2D, SurfaceSize};
+use crate::{utils, Color, Mesh2D, SurfaceSize, Texture, TextureConfig};
 use modor::Query;
 use modor_math::{Mat4, Quat, Vec3};
 use modor_physics::Transform2D;
+use winit::window::Window;
 
 const MAX_DEPTH: f32 = 0.9; // used to fix shape disappearance when depth is near to 1
 
@@ -20,6 +23,7 @@ pub(crate) struct CoreStorage {
     camera_2d: Uniform<Camera>,
     shaders: ShaderStorage,
     models: ModelStorage,
+    textures: TextureStorage,
     opaque_instances: OpaqueInstanceStorage,
     transparent_instances: TransparentInstanceStorage,
 }
@@ -31,6 +35,7 @@ impl CoreStorage {
             shaders: ShaderStorage::new(&camera_2d, &renderer),
             camera_2d,
             models: ModelStorage::new(&renderer),
+            textures: TextureStorage::new(&renderer),
             opaque_instances: OpaqueInstanceStorage::default(),
             transparent_instances: TransparentInstanceStorage::new(&renderer),
             renderer,
@@ -41,12 +46,25 @@ impl CoreStorage {
         &self.renderer
     }
 
+    pub(crate) fn refresh_surface(&mut self, window: &Window) {
+        self.renderer.refresh_surface(window);
+    }
+
     pub(crate) fn set_size(&mut self, size: SurfaceSize) {
         self.renderer.set_size(size.width, size.height);
     }
 
     pub(crate) fn toggle_vsync(&mut self, enabled: bool) {
         self.renderer.toggle_vsync(enabled);
+    }
+
+    pub(crate) fn load_texture(&mut self, image: Image, config: &TextureConfig) {
+        self.textures.load_texture(image, config, &self.renderer);
+    }
+
+    pub(crate) fn remove_not_found_textures(&mut self, textures: &Query<'_, &Texture>) {
+        self.textures
+            .remove_not_found_textures(textures.iter().map(|t| (t.id + 1).into()));
     }
 
     pub(crate) fn update_instances(
@@ -58,15 +76,27 @@ impl CoreStorage {
         self.transparent_instances.reset();
         let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, m)| m.z));
         for (transform, mesh) in shapes.iter() {
-            let instance = Self::create_instance(transform, mesh, depth_bounds);
+            let color = self.mesh_color(mesh);
+            if color.a <= 0. {
+                continue;
+            }
+            let instance = Self::create_instance(transform, mesh, depth_bounds, color);
             let shader_idx = ShaderStorage::idx(mesh);
             let model_idx = ModelStorage::idx(mesh);
-            if mesh.color.a > 0. && mesh.color.a < 1. {
+            let texture_idx = mesh
+                .texture_id
+                .map_or(TextureStorage::DEFAULT_TEXTURE_IDX, |i| (i + 1).into());
+            if color.a < 1. || self.textures.is_transparent(texture_idx) {
                 self.transparent_instances
-                    .add(instance, shader_idx, model_idx);
+                    .add(instance, shader_idx, texture_idx, model_idx);
             } else {
-                self.opaque_instances
-                    .add(instance, shader_idx, model_idx, &self.renderer);
+                self.opaque_instances.add(
+                    instance,
+                    shader_idx,
+                    texture_idx,
+                    model_idx,
+                    &self.renderer,
+                );
             }
         }
         self.transparent_instances.sort();
@@ -82,12 +112,31 @@ impl CoreStorage {
         {
             let mut commands = RenderCommands::new(background_color.into(), &mut rendering);
             commands.push_uniform_binding(&self.camera_2d, 0);
-            self.opaque_instances
-                .render(&mut commands, &self.shaders, &self.models);
-            self.transparent_instances
-                .render(&mut commands, &self.shaders, &self.models);
+            self.opaque_instances.render(
+                &mut commands,
+                &self.shaders,
+                &self.textures,
+                &self.models,
+            );
+            self.transparent_instances.render(
+                &mut commands,
+                &self.shaders,
+                &self.textures,
+                &self.models,
+            );
         }
         rendering.apply();
+    }
+
+    fn mesh_color(&mut self, mesh: &Mesh2D) -> Color {
+        if mesh
+            .texture_id
+            .map_or(false, |i| self.textures.get((i + 1).into()).is_some())
+        {
+            mesh.texture_color
+        } else {
+            mesh.color
+        }
     }
 
     fn depth_bounds<I>(depths: I) -> (f32, f32)
@@ -103,6 +152,7 @@ impl CoreStorage {
         transform: &Transform2D,
         mesh: &Mesh2D,
         depth_bounds: (f32, f32),
+        color: Color,
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z = MAX_DEPTH - utils::normalize(mesh.z, min_z, max_z, 0., MAX_DEPTH);
@@ -111,7 +161,8 @@ impl CoreStorage {
             * Mat4::from_position(transform.position.with_z(z));
         Instance {
             transform: matrix.to_array(),
-            color: mesh.color.into(),
+            color: color.into(),
+            has_texture: mesh.texture_id.is_some().into(),
         }
     }
 

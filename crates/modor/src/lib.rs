@@ -69,6 +69,7 @@ mod actions;
 mod app;
 mod entities;
 mod entity_filters;
+mod logging;
 mod ranges;
 mod storages;
 mod system_checks;

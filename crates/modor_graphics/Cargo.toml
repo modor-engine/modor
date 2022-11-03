@@ -13,37 +13,29 @@ exclude = [".github", "README.md"]
 
 [dependencies]
 bytemuck = { version = "1.8", features = ["derive"] }
-env_logger = "0.9"
 fxhash = "0.2"
+futures = "0.3"
 image = "0.24"
 instant = "0.1"
+log = "0.4"
 spin_sleep = "1.1.1"
 typed-index-collections = "3.0"
 winit = "0.27"
 modor = { version = "0.1.0", path = "../modor" }
 modor_input = { version = "0.1.0", path = "../modor_input" }
 modor_internal = { version = "0.1.0", path = "../modor_internal" }
+modor_jobs = { version = "0.1.0", path = "../modor_jobs" }
 modor_math = { version = "0.1.0", path = "../modor_math" }
 modor_physics = { version = "0.1.0", path = "../modor_physics" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 gilrs = "0.9"
 
-[target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.7"
-ndk-glue = "0.7"
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pollster = "0.2"
 wgpu = "0.14"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1"
-console_log = "0.2"
-log = "0.4"
-futures = "0.3"
-wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Location"] }
+web-sys = "0.3"
 wgpu = { version = "0.14", features = ["webgl"] }
 
 [dev-dependencies]
