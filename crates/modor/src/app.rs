@@ -152,7 +152,6 @@ impl App {
         self
     }
 
-    // TODO: test the next 2 methods + use them in job and texture tests
     /// Runs all systems registered in the `App` until `f` returns `true` for the component of
     /// type `C` of any entity filtered with `F`.
     ///

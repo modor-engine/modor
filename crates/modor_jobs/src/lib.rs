@@ -18,5 +18,3 @@ mod components;
 
 pub use components::asset_loading::*;
 pub use components::job::*;
-
-// TODO: add doc + tests everywhere
