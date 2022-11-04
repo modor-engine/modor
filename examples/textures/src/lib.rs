@@ -1,9 +1,7 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use modor::{entity, singleton, App, Built, EntityBuilder};
-use modor_graphics::{
-    Color, GraphicsModule, Mesh2D, Texture, TextureConfig, TextureSampling, WindowSettings,
-};
+use modor_graphics::{Color, GraphicsModule, Mesh2D, Texture, TextureConfig, WindowSettings};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
@@ -55,9 +53,7 @@ impl From<TextureLabel> for TextureConfig {
             TextureLabel::Background => "background.png",
             TextureLabel::Smiley => "smiley.png",
         };
-        Self::from_path(label, path)
-            .with_smaller_sampling(TextureSampling::Nearest)
-            .with_larger_sampling(TextureSampling::Linear)
+        Self::from_path(label, path).with_smooth(true)
     }
 }
 

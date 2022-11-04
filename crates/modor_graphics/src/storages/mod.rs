@@ -4,6 +4,7 @@ use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::{TextureIdx, TextureStorage};
+use fxhash::FxHashSet;
 use log::error;
 use std::ops::Range;
 
@@ -30,13 +31,16 @@ fn push_shape_commands<'a>(
     instances: &'a DynamicBuffer<Instance>,
     instance_idxs: Range<usize>,
     details: InstanceDetails,
-    is_missing_texture_logged: &mut bool,
+    logged_missing_texture_idxs: &mut FxHashSet<TextureIdx>,
 ) {
     commands.push_shader_change(shaders.get(details.shader_idx));
     let texture = textures.get(details.texture_idx).unwrap_or_else(|| {
-        if !*is_missing_texture_logged {
-            error!("texture used for shape but not loaded");
-            *is_missing_texture_logged = true;
+        if !logged_missing_texture_idxs.contains(&details.texture_idx) {
+            error!(
+                "texture with ID '{}' used for shape but not loaded",
+                details.texture_idx.0
+            );
+            logged_missing_texture_idxs.insert(details.texture_idx);
         }
         textures.get_default()
     });

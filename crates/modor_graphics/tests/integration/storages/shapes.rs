@@ -1,7 +1,7 @@
 use modor::{App, Built, EntityBuilder, With};
 use modor_graphics::{
     testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureConfig,
-    TextureSampling, TextureState,
+    TextureState,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -72,7 +72,7 @@ fn attach_texture_with_color() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(
             TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_larger_sampling(TextureSampling::Nearest),
+                .with_smooth(false),
         ))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));

@@ -38,9 +38,11 @@ impl Renderer {
         self.target.retrieve_buffer(&self.device)
     }
 
+    // coverage: off (no surface refresh with capture)
     pub(crate) fn refresh_surface(&mut self, window: &Window) {
         self.target.refresh_surface(window, &self.device);
     }
+    // coverage: on
 
     pub(crate) fn set_size(&mut self, width: u32, height: u32) {
         if width == 0 || height == 0 {

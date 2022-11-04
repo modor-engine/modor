@@ -7,8 +7,6 @@ use modor::{Built, EntityBuilder, SingleMut};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 
-// TODO: add texture label in logged errors
-
 /// A texture loaded asynchronously.
 ///
 /// # Modor
@@ -21,7 +19,7 @@ use std::fmt::{Debug, Display, Formatter};
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_graphics::{Color, Mesh2D, Texture, TextureConfig, TextureSampling};
+/// # use modor_graphics::{Color, Mesh2D, Texture, TextureConfig};
 /// # use modor_physics::Transform2D;
 /// #
 /// #
@@ -51,9 +49,7 @@ use std::fmt::{Debug, Display, Formatter};
 ///                 concat!(env!("CARGO_MANIFEST_DIR"), "/assets/circle.png")
 ///             )),
 ///         };
-///         config
-///             .with_smaller_sampling(TextureSampling::Nearest)
-///             .with_larger_sampling(TextureSampling::Linear)
+///         config.with_smooth(true)
 ///     }
 /// }
 ///
@@ -179,8 +175,7 @@ pub struct TextureConfig {
     pub(crate) texture_id: usize,
     pub(crate) label: String,
     pub(crate) location: TextureDataLocation,
-    pub(crate) smaller_sampling: TextureSampling,
-    pub(crate) larger_sampling: TextureSampling,
+    pub(crate) is_smooth: bool,
 }
 
 impl TextureConfig {
@@ -203,8 +198,7 @@ impl TextureConfig {
             texture_id: texture_id.into(),
             label,
             location: TextureDataLocation::FromPath(path.into()),
-            smaller_sampling: TextureSampling::Linear,
-            larger_sampling: TextureSampling::Linear,
+            is_smooth: true,
         }
     }
 
@@ -219,47 +213,21 @@ impl TextureConfig {
             texture_id: texture_id.into(),
             label,
             location: TextureDataLocation::FromMemory(bytes),
-            smaller_sampling: TextureSampling::Linear,
-            larger_sampling: TextureSampling::Linear,
+            is_smooth: true,
         }
     }
 
-    /// Returns the configuration with a different `smaller_sampling`.
+    /// Returns the configuration with a different `is_smooth`.
     ///
-    /// It corresponds to the sampling applied when the texture appears smaller than its
+    /// If `true`, a linear sampling is applied to the texture when it appears larger than its
     /// original size.
     ///
-    /// Default value is `TextureSampling::Linear`.
+    /// Default value is `true`.
     #[must_use]
-    pub fn with_smaller_sampling(mut self, smaller_sampling: TextureSampling) -> Self {
-        self.smaller_sampling = smaller_sampling;
+    pub fn with_smooth(mut self, is_smooth: bool) -> Self {
+        self.is_smooth = is_smooth;
         self
     }
-
-    /// Returns the configuration with a different `larger_sampling`.
-    ///
-    /// It corresponds to the sampling applied when the texture appears larger than its
-    /// original size.
-    ///
-    /// Default value is `TextureSampling::Linear`.
-    #[must_use]
-    pub fn with_larger_sampling(mut self, larger_sampling: TextureSampling) -> Self {
-        self.larger_sampling = larger_sampling;
-        self
-    }
-}
-
-/// The sampling to applied to a texture.
-///
-/// # Examples
-///
-/// See [`Texture`](crate::Texture).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TextureSampling {
-    /// The texture appears smoothed.
-    Linear,
-    /// The texture appears pixelated.
-    Nearest,
 }
 
 /// The state of a texture.
@@ -304,9 +272,10 @@ impl TryFrom<ImageError> for TextureError {
         Ok(match error {
             ImageError::Decoding(_) | ImageError::Encoding(_) => Self::InvalidFormat,
             ImageError::Unsupported(e) => Self::UnsupportedFormat(e.kind()),
+            // coverage: off (internal errors that shouldn't happen)
             ImageError::Limits(_) | ImageError::Parameter(_) | ImageError::IoError(_) => {
                 return Err(format!("error when reading texture: {error}"))
-            }
+            } // coverage: on
         })
     }
 }

@@ -2,7 +2,7 @@ use image::error::{ImageFormatHint, UnsupportedErrorKind};
 use modor::{App, Built, EntityBuilder, With};
 use modor_graphics::{
     testing, Capture, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureConfig, TextureError,
-    TextureSampling, TextureState,
+    TextureState,
 };
 use modor_jobs::AssetLoadingError;
 use modor_math::Vec2;
@@ -31,11 +31,11 @@ fn load_textures_with_different_sampling() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(
             TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_larger_sampling(TextureSampling::Nearest),
+                .with_smooth(false),
         ))
         .with_entity(Texture::build(
             TextureConfig::from_path(1_usize, "../tests/assets/opaque-texture.png")
-                .with_larger_sampling(TextureSampling::Linear),
+                .with_smooth(true),
         ))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
@@ -70,7 +70,7 @@ fn load_valid_texture_from_path() {
 }
 
 #[test]
-fn load_texture_with_unsupported_format() {
+fn load_texture_from_path_with_unsupported_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(TextureConfig::from_path(
@@ -94,7 +94,7 @@ fn load_texture_with_unsupported_format() {
 }
 
 #[test]
-fn load_texture_with_invalid_format() {
+fn load_texture_from_path_with_invalid_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(TextureConfig::from_path(
@@ -113,7 +113,7 @@ fn load_texture_with_invalid_format() {
 }
 
 #[test]
-fn load_texture_with_invalid_path() {
+fn load_texture_from_path_with_invalid_path() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(TextureConfig::from_path(
@@ -130,6 +130,69 @@ fn load_texture_with_invalid_path() {
                     t.state(),
                     TextureState::Error(TextureError::LoadingError(AssetLoadingError::IoError(_)))
                 ));
+            })
+        });
+}
+
+#[test]
+fn load_valid_texture_from_memory() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Texture::build(TextureConfig::from_memory(
+            0_usize,
+            include_bytes!("../../assets/opaque-texture.png"),
+        )))
+        .assert::<With<Texture>>(1, |e| {
+            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loading))
+        })
+        .updated_until_all::<(), _>(Some(100), |t: &Texture| {
+            thread::sleep(Duration::from_millis(10));
+            !matches!(t.state(), TextureState::Loading)
+        })
+        .assert::<With<Texture>>(1, |e| {
+            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loaded))
+        });
+}
+
+#[test]
+fn load_texture_from_memory_with_unsupported_format() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Texture::build(TextureConfig::from_memory(
+            0_usize,
+            include_bytes!("../../assets/text.txt"),
+        )))
+        .updated_until_all::<(), _>(Some(100), |t: &Texture| {
+            thread::sleep(Duration::from_millis(10));
+            !matches!(t.state(), TextureState::Loading)
+        })
+        .assert::<With<Texture>>(1, |e| {
+            e.has(|t: &Texture| {
+                assert_eq!(
+                    t.state(),
+                    &TextureState::Error(TextureError::UnsupportedFormat(
+                        UnsupportedErrorKind::Format(ImageFormatHint::Unknown)
+                    ))
+                );
+            })
+        });
+}
+
+#[test]
+fn load_texture_from_memory_with_invalid_format() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Texture::build(TextureConfig::from_memory(
+            0_usize,
+            include_bytes!("../../assets/invalid-texture-format.png"),
+        )))
+        .updated_until_all::<(), _>(Some(100), |t: &Texture| {
+            thread::sleep(Duration::from_millis(10));
+            !matches!(t.state(), TextureState::Loading)
+        })
+        .assert::<With<Texture>>(1, |e| {
+            e.has(|t: &Texture| {
+                assert_eq!(t.state(), &TextureState::Error(TextureError::InvalidFormat));
             })
         });
 }

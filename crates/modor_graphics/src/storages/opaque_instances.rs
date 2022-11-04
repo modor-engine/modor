@@ -6,12 +6,12 @@ use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::{TextureIdx, TextureStorage};
 use crate::storages::InstanceDetails;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 
 #[derive(Default)]
 pub(super) struct OpaqueInstanceStorage {
     instances: FxHashMap<InstanceDetails, DynamicBuffer<Instance>>,
-    is_missing_texture_logged: bool,
+    logged_missing_texture_idxs: FxHashSet<TextureIdx>,
 }
 
 impl OpaqueInstanceStorage {
@@ -72,7 +72,7 @@ impl OpaqueInstanceStorage {
                 instances,
                 0..instances.len(),
                 details,
-                &mut self.is_missing_texture_logged,
+                &mut self.logged_missing_texture_idxs,
             );
         }
     }

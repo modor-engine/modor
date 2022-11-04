@@ -14,3 +14,10 @@ macro_rules! retry {
         }
     };
 }
+
+#[macro_export]
+macro_rules! assert_approx_eq {
+    ($left:expr, $right:expr) => {
+        approx::assert_abs_diff_eq!($left, $right, epsilon = 0.000_01)
+    };
+}

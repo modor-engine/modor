@@ -6,12 +6,13 @@ use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::{TextureIdx, TextureStorage};
 use crate::storages::InstanceDetails;
+use fxhash::FxHashSet;
 use std::cmp::Ordering;
 
 pub(super) struct TransparentInstanceStorage {
     instances: DynamicBuffer<Instance>,
     instance_details: Vec<TransparentInstanceDetails>,
-    is_missing_texture_logged: bool,
+    logged_missing_texture_idxs: FxHashSet<TextureIdx>,
 }
 
 impl TransparentInstanceStorage {
@@ -24,7 +25,7 @@ impl TransparentInstanceStorage {
                 renderer,
             ),
             instance_details: vec![],
-            is_missing_texture_logged: false,
+            logged_missing_texture_idxs: FxHashSet::default(),
         }
     }
 
@@ -89,7 +90,7 @@ impl TransparentInstanceStorage {
                 &self.instances,
                 next_instance_idx..first_instance_idx_with_different_model,
                 details.inner,
-                &mut self.is_missing_texture_logged,
+                &mut self.logged_missing_texture_idxs,
             );
             next_instance_idx = first_instance_idx_with_different_model;
         }

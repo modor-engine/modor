@@ -1,6 +1,6 @@
 use crate::backend::renderer::Renderer;
 use crate::backend::textures::{Image, Texture};
-use crate::{TextureConfig, TextureSampling};
+use crate::TextureConfig;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use modor_internal::ti_vec::TiVecSafeOperations;
 use typed_index_collections::TiVec;
@@ -57,13 +57,7 @@ impl TextureStorage {
     ) {
         let id = config.texture_id + 1;
         *self.textures.get_mut_or_create(id.into()) = Some(StoredTexture {
-            texture: Texture::new(
-                image,
-                matches!(config.smaller_sampling, TextureSampling::Linear),
-                matches!(config.larger_sampling, TextureSampling::Linear),
-                &id.to_string(),
-                renderer,
-            ),
+            texture: Texture::new(image, false, config.is_smooth, &id.to_string(), renderer),
             should_be_removed: false,
         });
     }

@@ -19,6 +19,7 @@ modor_math = { version = "0.1.0", path = "../modor_math" }
 
 [dev-dependencies]
 approx = "0.5"
+modor_internal = { version = "0.1.0", path = "../modor_internal" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"

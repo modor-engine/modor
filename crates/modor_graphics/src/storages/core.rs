@@ -46,9 +46,11 @@ impl CoreStorage {
         &self.renderer
     }
 
+    // coverage: off (no surface refresh with capture)
     pub(crate) fn refresh_surface(&mut self, window: &Window) {
         self.renderer.refresh_surface(window);
     }
+    // coverage: on
 
     pub(crate) fn set_size(&mut self, size: SurfaceSize) {
         self.renderer.set_size(size.width, size.height);
