@@ -31,9 +31,11 @@ impl RenderTarget {
         })
     }
 
+    // coverage: off (no surface refresh with capture)
     pub(crate) fn refresh_surface(&mut self, window: &WinitWindow) {
         self.core.refresh_surface(window);
     }
+    // coverage: on
 
     pub(crate) fn load_texture(&mut self, image: Image, config: &TextureConfig) {
         self.core.load_texture(image, config);
@@ -44,8 +46,10 @@ impl RenderTarget {
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
         cameras: Query<'_, &Transform2D, With<Camera2D>>,
+        textures: Query<'_, &Texture>,
     ) {
         let camera_transform = cameras.iter().next().unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
+        self.core.remove_not_found_textures(&textures);
         self.core.update_instances(shapes, camera_transform);
     }
 
@@ -54,12 +58,10 @@ impl RenderTarget {
         &mut self,
         background_color: Option<Single<'_, BackgroundColor>>,
         frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
-        textures: Query<'_, &Texture>,
     ) {
         let background_color = background_color.map_or(DEFAULT_BACKGROUND_COLOR, |c| **c);
         let enable_vsync = matches!(frame_rate_limit.map(|l| l.get()), Some(FrameRate::VSync));
         self.core.toggle_vsync(enable_vsync);
-        self.core.remove_not_found_textures(&textures);
         self.core.render(background_color);
     }
 

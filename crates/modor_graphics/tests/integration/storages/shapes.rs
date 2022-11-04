@@ -1,4 +1,4 @@
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, Built, Entity, EntityBuilder, Query, With, World};
 use modor_graphics::{
     testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureConfig,
     TextureState,
@@ -54,6 +54,22 @@ impl Object {
     }
 }
 
+struct TextureRemover;
+
+#[singleton]
+impl TextureRemover {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+    }
+
+    #[run]
+    fn update(textures: Query<'_, Entity<'_>, With<Texture>>, mut world: World<'_>) {
+        for texture in textures.iter() {
+            world.delete_entity(texture.id());
+        }
+    }
+}
+
 #[test]
 fn display_shapes() {
     App::new()
@@ -99,5 +115,11 @@ fn attach_texture_with_color() {
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/texture_with_color.png")
+        })
+        .with_entity(TextureRemover::build())
+        .updated()
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/removed_texture_with_color.png")
         });
 }

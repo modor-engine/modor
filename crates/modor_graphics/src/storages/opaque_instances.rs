@@ -6,12 +6,13 @@ use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::{TextureIdx, TextureStorage};
 use crate::storages::InstanceDetails;
-use fxhash::{FxHashMap, FxHashSet};
+use fxhash::FxHashMap;
+use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(super) struct OpaqueInstanceStorage {
     instances: FxHashMap<InstanceDetails, DynamicBuffer<Instance>>,
-    logged_missing_texture_idxs: FxHashSet<TextureIdx>,
+    logged_missing_textures: TiVec<TextureIdx, bool>,
 }
 
 impl OpaqueInstanceStorage {
@@ -72,7 +73,7 @@ impl OpaqueInstanceStorage {
                 instances,
                 0..instances.len(),
                 details,
-                &mut self.logged_missing_texture_idxs,
+                &mut self.logged_missing_textures,
             );
         }
     }
