@@ -8,7 +8,6 @@ use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 
 // TODO: add texture label in logged errors
-// TODO: try to get ride of usize to allow multiple layers of texture IDs
 
 /// A texture loaded asynchronously.
 ///

@@ -86,9 +86,9 @@ impl App {
     ///
     /// # Platform-specific
     ///
-    /// - Web: logging is initialized with [`console_log`](console_log)
-    /// and panic hook with [`console_error_panic_hook`](console_error_panic_hook::hook).
-    /// - Other: logging is initialized with [`pretty_env_logger`](pretty_env_logger).
+    /// - Web: logging is initialized using the `console_log` crate
+    /// and panic hook using the `console_error_panic_hook` crate.
+    /// - Other: logging is initialized using the `pretty_env_logger` crate.
     #[must_use]
     pub fn new() -> Self {
         logging::init();

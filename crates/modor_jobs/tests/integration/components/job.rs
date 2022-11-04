@@ -1,4 +1,3 @@
-use async_std::fs;
 use modor::{App, Built, EntityBuilder, With};
 use modor_jobs::{Job, JobPanickedError};
 use std::path::PathBuf;
@@ -18,7 +17,9 @@ impl FileSize {
             size: Ok(None),
             should_poll: true,
         })
-        .with(Job::new(async { fs::read(path).await.unwrap().len() }))
+        .with(Job::new(async {
+            async_std::fs::read(path).await.unwrap().len()
+        }))
     }
 
     #[run]
@@ -52,8 +53,6 @@ fn run_successful_job() {
 fn run_failing_job() {
     App::new()
         .with_entity(FileSize::build("not/existing/path"))
-        .updated()
-        .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
         .with_update::<(), _>(|_: &mut FileSize| thread::sleep(Duration::from_millis(100)))
         .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
         .updated()

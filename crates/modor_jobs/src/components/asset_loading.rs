@@ -105,6 +105,7 @@ where
         }
     }
 
+    #[cfg_attr(target_os = "android", allow(clippy::unused_async))]
     async fn load_asset(path: String) -> Result<Vec<u8>, AssetLoadingError> {
         #[cfg(all(not(target_os = "android"), not(target_arch = "wasm32")))]
         {
@@ -133,7 +134,7 @@ where
                 })?
                 .get_buffer()
                 .map_err(|e| AssetLoadingError::IoError(e.to_string()))
-                .map(|b| b.to_vec())
+                .map(<[u8]>::to_vec)
         }
         #[cfg(target_arch = "wasm32")]
         {

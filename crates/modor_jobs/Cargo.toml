@@ -9,7 +9,7 @@ repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
 keywords = ["modor", "job", "task", "async", "game"]
 categories = ["game-engines"]
-exclude = [".github", "README.md"]
+exclude = [".github", "README.md", "assets"]
 
 [dependencies]
 modor = { version = "0.1.0", path = "../modor" }

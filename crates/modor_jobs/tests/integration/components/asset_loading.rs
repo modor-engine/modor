@@ -30,8 +30,8 @@ impl FileSize {
 }
 
 #[test]
-fn load_valid_texture_with_cargo() {
-    // Multiple retries allowed as `load_valid_texture_without_cargo` updates `CARGO_MANIFEST_DIR`.
+fn load_valid_file_with_cargo() {
+    // Multiple retries allowed as `load_valid_file_without_cargo` updates `CARGO_MANIFEST_DIR`.
     modor_internal::retry!(3, {
         App::new()
             .with_entity(FileSize::build("../tests/assets/test.txt"))
@@ -50,7 +50,7 @@ fn load_valid_texture_with_cargo() {
 }
 
 #[test]
-fn load_valid_texture_without_cargo() {
+fn load_valid_file_without_cargo() {
     let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asset_path = PathBuf::from(cargo_manifest_dir).join("tests/assets/test.txt");
     let executable_path: PathBuf = std::env::current_exe().unwrap().parent().unwrap().into();
@@ -74,11 +74,9 @@ fn load_valid_texture_without_cargo() {
 }
 
 #[test]
-fn load_missing_texture() {
+fn load_missing_file() {
     App::new()
         .with_entity(FileSize::build("invalid.txt"))
-        .updated()
-        .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
         .with_update::<(), _>(|_: &mut FileSize| thread::sleep(Duration::from_millis(100)))
         .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
         .updated()

@@ -9,7 +9,7 @@ repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
 keywords = ["modor", "graphics", "display", "rendering", "game"]
 categories = ["game-engines"]
-exclude = [".github", "README.md"]
+exclude = [".github", "README.md", "assets"]
 
 [dependencies]
 bytemuck = { version = "1.8", features = ["derive"] }
