@@ -27,8 +27,6 @@ fn load_valid_file_with_cargo() {
     modor_internal::retry!(3, {
         App::new()
             .with_entity(FileSize::build("../tests/assets/test.txt"))
-            .updated()
-            .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
             .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
                 thread::sleep(Duration::from_millis(10));
                 s.size != Ok(None)
@@ -51,8 +49,6 @@ fn load_valid_file_without_cargo() {
     std::env::remove_var("CARGO_MANIFEST_DIR");
     App::new()
         .with_entity(FileSize::build("copied_test.txt"))
-        .updated()
-        .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));
             s.size != Ok(None)

@@ -27,8 +27,6 @@ impl FileSize {
 fn run_successful_job() {
     App::new()
         .with_entity(FileSize::build(concat!("tests/assets/test.txt")))
-        .updated()
-        .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));
             s.size != Ok(None)
