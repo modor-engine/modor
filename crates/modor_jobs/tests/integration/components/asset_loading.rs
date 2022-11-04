@@ -6,26 +6,18 @@ use std::{fs, thread};
 
 struct FileSize {
     size: Result<Option<usize>, AssetLoadingError>,
-    should_poll: bool,
 }
 
 #[entity]
 impl FileSize {
     fn build(path: impl AsRef<str>) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            size: Ok(None),
-            should_poll: true,
-        })
-        .with(AssetLoadingJob::new(path, |b| async move { b.len() }))
+        EntityBuilder::new(Self { size: Ok(None) })
+            .with(AssetLoadingJob::new(path, |b| async move { b.len() }))
     }
 
     #[run]
     fn poll(&mut self, job: &mut AssetLoadingJob<usize>) {
-        if !self.should_poll {
-            return;
-        }
         self.size = job.try_poll();
-        self.should_poll = false;
     }
 }
 
@@ -37,13 +29,13 @@ fn load_valid_file_with_cargo() {
             .with_entity(FileSize::build("../tests/assets/test.txt"))
             .updated()
             .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
-            .with_update::<(), _>(|_: &mut FileSize| thread::sleep(Duration::from_millis(100)))
-            .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
-            .updated()
+            .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
+                thread::sleep(Duration::from_millis(10));
+                s.size != Ok(None)
+            })
             .assert::<With<FileSize>>(1, |e| {
                 e.has(|s: &FileSize| assert_eq!(s.size, Ok(Some(12))))
             })
-            .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
             .updated()
             .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))));
     });
@@ -61,13 +53,13 @@ fn load_valid_file_without_cargo() {
         .with_entity(FileSize::build("copied_test.txt"))
         .updated()
         .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))))
-        .with_update::<(), _>(|_: &mut FileSize| thread::sleep(Duration::from_millis(100)))
-        .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
-        .updated()
+        .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
+            thread::sleep(Duration::from_millis(10));
+            s.size != Ok(None)
+        })
         .assert::<With<FileSize>>(1, |e| {
             e.has(|s: &FileSize| assert_eq!(s.size, Ok(Some(12))))
         })
-        .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
         .updated()
         .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))));
     std::env::set_var("CARGO_MANIFEST_DIR", cargo_manifest_dir);
@@ -77,13 +69,13 @@ fn load_valid_file_without_cargo() {
 fn load_missing_file() {
     App::new()
         .with_entity(FileSize::build("invalid.txt"))
-        .with_update::<(), _>(|_: &mut FileSize| thread::sleep(Duration::from_millis(100)))
-        .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
-        .updated()
+        .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
+            thread::sleep(Duration::from_millis(10));
+            s.size != Ok(None)
+        })
         .assert::<With<FileSize>>(1, |e| {
             e.has(|s: &FileSize| assert!(matches!(s.size, Err(AssetLoadingError::IoError(_)))))
         })
-        .with_update::<(), _>(|s: &mut FileSize| s.should_poll = true)
         .updated()
         .assert::<With<FileSize>>(1, |e| e.has(|s: &FileSize| assert_eq!(s.size, Ok(None))));
 }

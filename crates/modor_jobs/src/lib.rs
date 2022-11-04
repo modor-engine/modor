@@ -9,7 +9,6 @@
 //! ```
 //!
 //! You can then use the components provided by this crate to start asynchronous jobs.
-//! ```
 
 #[macro_use]
 extern crate modor;

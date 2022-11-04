@@ -33,7 +33,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -64,7 +64,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Build
@@ -89,7 +89,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Build
@@ -113,7 +113,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: List clippy lints
@@ -139,7 +139,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install wasm-pack
@@ -178,7 +178,7 @@ jobs:
           components: llvm-tools-preview
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -239,7 +239,7 @@ jobs:
           profile: minimal
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -264,7 +264,7 @@ jobs:
           components: rustfmt, clippy
           override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
