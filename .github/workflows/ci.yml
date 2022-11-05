@@ -109,7 +109,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
@@ -145,7 +145,7 @@ jobs:
       - name: Test
         run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
@@ -254,7 +254,7 @@ jobs:
       - name: Install general dependencies
         run: sudo apt-get install libudev-dev
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
