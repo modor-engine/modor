@@ -16,7 +16,7 @@ jobs:
       version: ${{ steps.retrieve-version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check CHANGELOG.md file exists
         run: '[ -f CHANGELOG.md ]'
       - name: Check unreleased version is defined in CHANGELOG.md
@@ -30,7 +30,7 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -52,7 +52,7 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -72,7 +72,7 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -112,7 +112,7 @@ jobs:
       - test-macos
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -131,7 +131,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install node-semver -y
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GIT_TOKEN }}
       - name: Apply version and date in CHANGELOG.md file

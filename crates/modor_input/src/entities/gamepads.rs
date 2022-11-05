@@ -192,6 +192,7 @@ impl Gamepad {
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum GamepadEvent {
     /// Gamepad plugged.
     Plugged(u64),
@@ -256,6 +257,7 @@ impl GamepadButtonState {
 ///
 /// See [`Gamepad`](crate::Gamepad).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub enum GamepadButton {
     /// Up button on the right of the gamepad.
     ///
@@ -319,6 +321,7 @@ pub enum GamepadButton {
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub enum GamepadAxis {
     /// The X axis of the left stick.
     LeftStickX,
@@ -344,6 +347,7 @@ pub enum GamepadAxis {
 ///
 /// See [`Gamepad`](crate::Gamepad).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub enum GamepadStick {
     /// The left stick.
     LeftStick,

@@ -4,7 +4,6 @@ use rapier2d::dynamics::{RigidBody, RigidBodyBuilder};
 use rapier2d::geometry::{Collider, ColliderBuilder};
 use rapier2d::math::Rotation;
 use rapier2d::na::Vector2;
-use std::marker::PhantomData;
 
 pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 
@@ -23,6 +22,7 @@ pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct Transform2D {
     /// Position of the entity in world units.
     pub position: PhysicsProperty<Vec2>,
@@ -30,7 +30,6 @@ pub struct Transform2D {
     pub size: PhysicsProperty<Vec2>,
     /// Rotation of the entity in radians.
     pub rotation: PhysicsProperty<f32>,
-    phantom: PhantomData<()>,
 }
 
 impl Transform2D {
@@ -42,7 +41,6 @@ impl Transform2D {
             position: PhysicsProperty::new(Vec2::ZERO),
             size: PhysicsProperty::new(Vec2::ONE),
             rotation: PhysicsProperty::new(0.),
-            phantom: PhantomData,
         }
     }
 

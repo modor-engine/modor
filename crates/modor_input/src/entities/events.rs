@@ -151,6 +151,7 @@ pub struct UpdateInputAction;
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum InputEvent {
     /// Mouse event.
     Mouse(MouseEvent),

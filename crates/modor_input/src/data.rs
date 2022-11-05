@@ -4,6 +4,7 @@
 ///
 /// See [`Mouse`](crate::Mouse).
 #[derive(Default, Clone, Copy)]
+#[non_exhaustive]
 pub struct InputState {
     /// Whether the input is pressed.
     pub is_pressed: bool,

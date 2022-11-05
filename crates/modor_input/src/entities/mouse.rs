@@ -131,6 +131,7 @@ impl Mouse {
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum MouseEvent {
     /// Button of the mouse pressed.
     PressedButton(MouseButton),
@@ -152,6 +153,7 @@ pub enum MouseEvent {
 ///
 /// See [`Mouse`](crate::Mouse).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub enum MouseButton {
     /// Left button.
     Left,

@@ -4,7 +4,6 @@ use modor::{Built, EntityBuilder};
 use modor_input::InputModule;
 use modor_math::Vec2;
 use modor_physics::PhysicsModule;
-use std::marker::PhantomData;
 
 /// The main entity of the graphics module.
 ///
@@ -54,7 +53,8 @@ use std::marker::PhantomData;
 ///     }
 /// }
 /// ```
-pub struct GraphicsModule(PhantomData<()>);
+#[non_exhaustive]
+pub struct GraphicsModule;
 
 #[singleton]
 impl GraphicsModule {
@@ -63,7 +63,7 @@ impl GraphicsModule {
     ///
     /// Window properties can be accessed using the [`Window`](crate::Window) entity.
     pub fn build(settings: WindowSettings) -> impl Built<Self> {
-        EntityBuilder::new(Self(PhantomData))
+        EntityBuilder::new(Self)
             .with_child(WindowInit::build(settings))
             .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
             .with_dependency(PhysicsModule::build())
@@ -78,7 +78,7 @@ impl GraphicsModule {
     /// This mode is particularly useful for testing. You can use the
     /// [`assert_capture`](crate::testing::assert_capture) method to easily compare captures.
     pub fn build_windowless(capture_size: SurfaceSize) -> impl Built<Self> {
-        EntityBuilder::new(Self(PhantomData))
+        EntityBuilder::new(Self)
             .with_child(Capture::build(capture_size))
             .with_dependency(PhysicsModule::build())
     }

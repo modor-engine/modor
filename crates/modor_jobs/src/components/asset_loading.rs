@@ -160,6 +160,7 @@ where
 
 /// An error occurring during an asset loading job.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum AssetLoadingError {
     /// The provided asset path contains unsupported characters.
     InvalidAssetPath,
