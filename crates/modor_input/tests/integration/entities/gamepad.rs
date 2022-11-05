@@ -1,4 +1,3 @@
-use approx::assert_abs_diff_eq;
 use modor::{App, With};
 use modor_input::{
     Gamepad, GamepadAxis, GamepadButton, GamepadEvent, GamepadStick, InputEventCollector,
@@ -102,18 +101,18 @@ fn update_button_value() {
         .with_update::<(), _>(|c: &mut InputEventCollector| c.push(GamepadEvent::Plugged(0).into()))
         .updated()
         .assert::<With<Gamepad>>(1, |e| {
-            e.has(|g: &Gamepad| assert_abs_diff_eq!(g.button(button).value(), 0.))
+            e.has(|g: &Gamepad| assert_approx_eq!(g.button(button).value(), 0.))
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
             c.push(GamepadEvent::UpdatedButtonValue(0, button, 0.5).into());
         })
         .updated()
         .assert::<With<Gamepad>>(1, |e| {
-            e.has(|g: &Gamepad| assert_abs_diff_eq!(g.button(button).value(), 0.5))
+            e.has(|g: &Gamepad| assert_approx_eq!(g.button(button).value(), 0.5))
         })
         .updated()
         .assert::<With<Gamepad>>(1, |e| {
-            e.has(|g: &Gamepad| assert_abs_diff_eq!(g.button(button).value(), 0.5))
+            e.has(|g: &Gamepad| assert_approx_eq!(g.button(button).value(), 0.5))
         });
 }
 
@@ -126,11 +125,11 @@ fn update_axis() {
         .updated()
         .assert::<With<Gamepad>>(1, |e| {
             e.has(|g: &Gamepad| {
-                assert_abs_diff_eq!(g.stick_direction(GamepadStick::LeftStick), Vec2::ZERO);
-                assert_abs_diff_eq!(g.stick_direction(GamepadStick::RightStick), Vec2::ZERO);
-                assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::ZERO);
-                assert_abs_diff_eq!(g.left_z_axis_value(), 0.);
-                assert_abs_diff_eq!(g.right_z_axis_value(), 0.);
+                assert_approx_eq!(g.stick_direction(GamepadStick::LeftStick), Vec2::ZERO);
+                assert_approx_eq!(g.stick_direction(GamepadStick::RightStick), Vec2::ZERO);
+                assert_approx_eq!(g.stick_direction(GamepadStick::DPad), Vec2::ZERO);
+                assert_approx_eq!(g.left_z_axis_value(), 0.);
+                assert_approx_eq!(g.right_z_axis_value(), 0.);
             })
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
@@ -148,12 +147,12 @@ fn update_axis() {
         .assert::<With<Gamepad>>(1, |e| {
             e.has(|g: &Gamepad| {
                 let direction = g.stick_direction(GamepadStick::LeftStick);
-                assert_abs_diff_eq!(direction, Vec2::new(0.1, 0.2));
+                assert_approx_eq!(direction, Vec2::new(0.1, 0.2));
                 let direction = g.stick_direction(GamepadStick::RightStick);
-                assert_abs_diff_eq!(direction, Vec2::new(0.3, 0.4));
-                assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(0.5, 0.6));
-                assert_abs_diff_eq!(g.left_z_axis_value(), 0.7);
-                assert_abs_diff_eq!(g.right_z_axis_value(), 0.8);
+                assert_approx_eq!(direction, Vec2::new(0.3, 0.4));
+                assert_approx_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(0.5, 0.6));
+                assert_approx_eq!(g.left_z_axis_value(), 0.7);
+                assert_approx_eq!(g.right_z_axis_value(), 0.8);
             })
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
@@ -162,7 +161,7 @@ fn update_axis() {
         .updated()
         .assert::<With<Gamepad>>(1, |e| {
             e.has(|g: &Gamepad| {
-                assert_abs_diff_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(1., 0.));
+                assert_approx_eq!(g.stick_direction(GamepadStick::DPad), Vec2::new(1., 0.));
             })
         });
 }

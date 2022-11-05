@@ -1,4 +1,3 @@
-use approx::assert_abs_diff_eq;
 use modor::{App, With};
 use modor_input::{
     InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent, MouseScrollUnit,
@@ -69,8 +68,8 @@ fn update_scroll() {
         .updated()
         .assert::<With<Mouse>>(1, |e| {
             e.has(|m: &Mouse| {
-                assert_abs_diff_eq!(m.scroll_delta_in_lines(2., 3.), Vec2::new(1., 2.));
-                assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::new(2., 6.));
+                assert_approx_eq!(m.scroll_delta_in_lines(2., 3.), Vec2::new(1., 2.));
+                assert_approx_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::new(2., 6.));
             })
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
@@ -79,15 +78,15 @@ fn update_scroll() {
         .updated()
         .assert::<With<Mouse>>(1, |e| {
             e.has(|m: &Mouse| {
-                assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.), Vec2::new(2., 10.));
-                assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::new(10., 20.));
+                assert_approx_eq!(m.scroll_delta_in_lines(5., 2.), Vec2::new(2., 10.));
+                assert_approx_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::new(10., 20.));
             })
         })
         .updated()
         .assert::<With<Mouse>>(1, |e| {
             e.has(|m: &Mouse| {
-                assert_abs_diff_eq!(m.scroll_delta_in_lines(5., 2.), Vec2::ZERO);
-                assert_abs_diff_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::ZERO);
+                assert_approx_eq!(m.scroll_delta_in_lines(5., 2.), Vec2::ZERO);
+                assert_approx_eq!(m.scroll_delta_in_pixels(2., 3.), Vec2::ZERO);
             })
         });
 }
@@ -102,11 +101,11 @@ fn update_position() {
         })
         .updated()
         .assert::<With<Mouse>>(1, |e| {
-            e.has(|m: &Mouse| assert_abs_diff_eq!(m.position(), Vec2::new(150., 320.)))
+            e.has(|m: &Mouse| assert_approx_eq!(m.position(), Vec2::new(150., 320.)))
         })
         .updated()
         .assert::<With<Mouse>>(1, |e| {
-            e.has(|m: &Mouse| assert_abs_diff_eq!(m.position(), Vec2::new(150., 320.)))
+            e.has(|m: &Mouse| assert_approx_eq!(m.position(), Vec2::new(150., 320.)))
         });
 }
 
@@ -120,10 +119,10 @@ fn update_delta() {
         })
         .updated()
         .assert::<With<Mouse>>(1, |e| {
-            e.has(|m: &Mouse| assert_abs_diff_eq!(m.delta(), Vec2::new(18., 15.)))
+            e.has(|m: &Mouse| assert_approx_eq!(m.delta(), Vec2::new(18., 15.)))
         })
         .updated()
         .assert::<With<Mouse>>(1, |e| {
-            e.has(|m: &Mouse| assert_abs_diff_eq!(m.delta(), Vec2::ZERO))
+            e.has(|m: &Mouse| assert_approx_eq!(m.delta(), Vec2::ZERO))
         });
 }

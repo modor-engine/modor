@@ -1,4 +1,3 @@
-use approx::assert_abs_diff_eq;
 use modor::{App, With};
 use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent};
 use modor_math::Vec2;
@@ -79,8 +78,8 @@ fn update_position() {
         .assert::<With<Finger>>(1, |e| {
             e.has(|f: &Finger| {
                 assert_eq!(f.id(), 0);
-                assert_abs_diff_eq!(f.position(), Vec2::ZERO);
-                assert_abs_diff_eq!(f.delta(), Vec2::ZERO);
+                assert_approx_eq!(f.position(), Vec2::ZERO);
+                assert_approx_eq!(f.delta(), Vec2::ZERO);
             })
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
@@ -91,16 +90,16 @@ fn update_position() {
         .assert::<With<Finger>>(1, |e| {
             e.has(|f: &Finger| {
                 assert_eq!(f.id(), 0);
-                assert_abs_diff_eq!(f.position(), Vec2::new(2., 5.));
-                assert_abs_diff_eq!(f.delta(), Vec2::new(2., 5.));
+                assert_approx_eq!(f.position(), Vec2::new(2., 5.));
+                assert_approx_eq!(f.delta(), Vec2::new(2., 5.));
             })
         })
         .updated()
         .assert::<With<Finger>>(1, |e| {
             e.has(|f: &Finger| {
                 assert_eq!(f.id(), 0);
-                assert_abs_diff_eq!(f.position(), Vec2::new(2., 5.));
-                assert_abs_diff_eq!(f.delta(), Vec2::new(0., 0.));
+                assert_approx_eq!(f.position(), Vec2::new(2., 5.));
+                assert_approx_eq!(f.delta(), Vec2::new(0., 0.));
             })
         });
 }

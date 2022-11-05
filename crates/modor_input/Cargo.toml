@@ -19,6 +19,7 @@ modor_math = { workspace = true }
 
 [dev-dependencies]
 approx = { workspace = true }
+modor_internal = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = { workspace = true }

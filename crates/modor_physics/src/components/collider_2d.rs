@@ -165,7 +165,6 @@ pub(crate) enum Collider2DShape {
 #[cfg(test)]
 mod collider_2d_tests {
     use super::*;
-    use approx::assert_abs_diff_eq;
 
     const GROUP: [Group; 1] = [Group::new(0)];
 
@@ -174,12 +173,12 @@ mod collider_2d_tests {
         let collider = Collider2D::rectangle(CollisionGroupIndex::Group0);
         let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.), &GROUP).build();
         let shape = rapier_collider.shape().as_cuboid().unwrap();
-        assert_abs_diff_eq!(shape.half_extents.x, 0.5);
-        assert_abs_diff_eq!(shape.half_extents.y, 1.);
+        assert_approx_eq!(shape.half_extents.x, 0.5);
+        assert_approx_eq!(shape.half_extents.y, 1.);
         collider.update_collider(Vec2::new(4., 3.), &mut rapier_collider);
         let shape = rapier_collider.shape().as_cuboid().unwrap();
-        assert_abs_diff_eq!(shape.half_extents.x, 2.);
-        assert_abs_diff_eq!(shape.half_extents.y, 1.5);
+        assert_approx_eq!(shape.half_extents.x, 2.);
+        assert_approx_eq!(shape.half_extents.y, 1.5);
     }
 
     #[test]
@@ -187,9 +186,9 @@ mod collider_2d_tests {
         let collider = Collider2D::circle(CollisionGroupIndex::Group0);
         let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.), &GROUP).build();
         let shape = rapier_collider.shape().as_ball().unwrap();
-        assert_abs_diff_eq!(shape.radius, 0.5);
+        assert_approx_eq!(shape.radius, 0.5);
         collider.update_collider(Vec2::new(4., 3.), &mut rapier_collider);
         let shape = rapier_collider.shape().as_ball().unwrap();
-        assert_abs_diff_eq!(shape.radius, 1.5);
+        assert_approx_eq!(shape.radius, 1.5);
     }
 }
