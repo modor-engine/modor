@@ -32,11 +32,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -56,11 +54,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -78,11 +74,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -96,13 +90,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           target: wasm32-unknown-unknown
           components: clippy
-          profile: minimal
-          override: true
       - name: Install wasm-pack
         uses: actions-rs/cargo@v1
         with:
@@ -122,11 +114,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Publish
         run: bash .github/workflows/scripts/publish.sh
         env:

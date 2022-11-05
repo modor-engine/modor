@@ -27,13 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -58,13 +56,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Build
@@ -83,13 +79,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Build
@@ -105,19 +99,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           target: aarch64-linux-android
           components: clippy
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
@@ -131,15 +123,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           target: wasm32-unknown-unknown
           components: clippy
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install wasm-pack
@@ -155,7 +145,7 @@ jobs:
       - name: Test
         run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1
@@ -171,14 +161,12 @@ jobs:
         with:
           fetch-depth: 2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
           components: llvm-tools-preview
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -233,13 +221,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
@@ -257,20 +243,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
           components: rustfmt, clippy
-          override: true
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install general dependencies
         run: sudo apt-get install libudev-dev
       - name: List clippy lints
-        run: echo "::set-output name=LINTS::$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')"
+        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
         uses: actions-rs/cargo@v1

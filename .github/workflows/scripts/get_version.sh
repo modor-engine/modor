@@ -18,5 +18,5 @@ if [ "$version" == "" ]; then
     echo "Version not found in Cargo.toml files"
     exit 1
 else
-    echo "::set-output name=version::$version"
+    echo "version=$version" >> "$GITHUB_OUTPUT"
 fi

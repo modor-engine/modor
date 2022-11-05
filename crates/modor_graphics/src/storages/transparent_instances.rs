@@ -4,11 +4,15 @@ use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
+use crate::storages::textures::{TextureIdx, TextureStorage};
+use crate::storages::InstanceDetails;
 use std::cmp::Ordering;
+use typed_index_collections::TiVec;
 
 pub(super) struct TransparentInstanceStorage {
     instances: DynamicBuffer<Instance>,
-    instance_details: Vec<InstanceDetails>,
+    instance_details: Vec<TransparentInstanceDetails>,
+    logged_missing_textures: TiVec<TextureIdx, bool>,
 }
 
 impl TransparentInstanceStorage {
@@ -21,6 +25,7 @@ impl TransparentInstanceStorage {
                 renderer,
             ),
             instance_details: vec![],
+            logged_missing_textures: ti_vec![],
         }
     }
 
@@ -29,13 +34,22 @@ impl TransparentInstanceStorage {
         self.instance_details.clear();
     }
 
-    pub(super) fn add(&mut self, instance: Instance, shader_idx: ShaderIdx, model_idx: ModelIdx) {
+    pub(super) fn add(
+        &mut self,
+        instance: Instance,
+        shader_idx: ShaderIdx,
+        texture_idx: TextureIdx,
+        model_idx: ModelIdx,
+    ) {
         let initial_idx = self.instance_details.len();
         self.instances.data_mut().push(instance);
-        self.instance_details.push(InstanceDetails {
+        self.instance_details.push(TransparentInstanceDetails {
             initial_idx,
-            shader_idx,
-            model_idx,
+            inner: InstanceDetails {
+                shader_idx,
+                texture_idx,
+                model_idx,
+            },
         });
     }
 
@@ -58,27 +72,25 @@ impl TransparentInstanceStorage {
     }
 
     pub(super) fn render<'a>(
-        &'a self,
+        &'a mut self,
         commands: &mut RenderCommands<'a>,
         shaders: &'a ShaderStorage,
+        textures: &'a TextureStorage,
         models: &'a ModelStorage,
     ) {
-        let mut current_shader_idx = None;
         let mut next_instance_idx = 0;
         while let Some(details) = self.instance_details.get(next_instance_idx) {
-            let model_idx = details.model_idx;
             let first_instance_idx_with_different_model =
                 self.first_instance_idx_with_config_change(next_instance_idx, details);
-            let model = models.get(model_idx);
-            if current_shader_idx != Some(details.shader_idx) {
-                current_shader_idx = Some(details.shader_idx);
-                commands.push_shader_change(shaders.get(details.shader_idx));
-            }
-            commands.push_draw(
-                &model.vertex_buffer,
-                &model.index_buffer,
+            super::push_shape_commands(
+                commands,
+                shaders,
+                textures,
+                models,
                 &self.instances,
                 next_instance_idx..first_instance_idx_with_different_model,
+                details.inner,
+                &mut self.logged_missing_textures,
             );
             next_instance_idx = first_instance_idx_with_different_model;
         }
@@ -87,15 +99,13 @@ impl TransparentInstanceStorage {
     fn first_instance_idx_with_config_change(
         &self,
         first_instance_idx: usize,
-        current_details: &InstanceDetails,
+        current_details: &TransparentInstanceDetails,
     ) -> usize {
         for (instance_offset, details) in self.instance_details[first_instance_idx..]
             .iter()
             .enumerate()
         {
-            if details.shader_idx != current_details.shader_idx
-                || details.model_idx != current_details.model_idx
-            {
+            if details.inner != current_details.inner {
                 return first_instance_idx + instance_offset;
             }
         }
@@ -103,8 +113,8 @@ impl TransparentInstanceStorage {
     }
 }
 
-struct InstanceDetails {
+#[derive(Clone, Copy)]
+struct TransparentInstanceDetails {
     initial_idx: usize,
-    shader_idx: ShaderIdx,
-    model_idx: ModelIdx,
+    inner: InstanceDetails,
 }

@@ -1,12 +1,13 @@
 pub(crate) mod texture;
 pub(crate) mod window;
 
-use crate::utils;
+use futures::executor;
 use std::any::Any;
 use wgpu::{
     Adapter, CommandEncoder, Device, DeviceDescriptor, Features, Limits, Queue, TextureFormat,
     TextureView,
 };
+use winit::window::Window;
 
 pub(crate) trait Target: Any + Sync + Send {
     fn size(&self) -> (u32, u32);
@@ -22,6 +23,8 @@ pub(crate) trait Target: Any + Sync + Send {
     fn prepare_texture(&mut self) -> TextureView;
 
     fn render(&mut self, queue: &Queue, encoder: CommandEncoder);
+
+    fn refresh_surface(&mut self, window: &Window, device: &Device);
 }
 
 pub(crate) struct CreatedTarget<T> {
@@ -31,7 +34,7 @@ pub(crate) struct CreatedTarget<T> {
 }
 
 fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
-    utils::block_on(adapter.request_device(
+    executor::block_on(adapter.request_device(
         &DeviceDescriptor {
             features: Features::empty(),
             limits: {

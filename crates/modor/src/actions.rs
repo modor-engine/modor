@@ -6,7 +6,7 @@ use std::any::{Any, TypeId};
 ///
 /// The [`action`](macro@crate::action) proc macro is a convenient way to define an action.
 ///
-/// ## Examples
+/// # Examples
 ///
 /// See [`entity`](macro@crate::entity).
 pub trait Action: Any {

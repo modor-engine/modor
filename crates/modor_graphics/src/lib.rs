@@ -50,4 +50,5 @@ pub use entities::camera_2d::*;
 pub use entities::frame_rate::*;
 pub use entities::module::*;
 pub use entities::render_target::*;
+pub use entities::textures::*;
 pub use runner::*;

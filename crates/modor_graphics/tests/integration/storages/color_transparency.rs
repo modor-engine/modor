@@ -55,7 +55,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/transparency_with_opaque.png")
+            testing::assert_capture(e, "tests/expected/color_transparency_with_opaque.png")
         });
 }
 
@@ -81,7 +81,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/transparency_with_opaque.png")
+            testing::assert_capture(e, "tests/expected/color_transparency_with_opaque.png")
         });
 }
 
@@ -107,7 +107,10 @@ fn display_different_transparent_shapes() {
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/transparency_with_multiple_shapes.png")
+            testing::assert_capture(
+                e,
+                "tests/expected/color_transparency_with_multiple_shapes.png",
+            )
         });
 }
 
@@ -133,7 +136,7 @@ fn hide_shape_after_deletion() {
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/transparency_with_opaque.png")
+            testing::assert_capture(e, "tests/expected/color_transparency_with_opaque.png")
         })
         .with_entity(Object::build_rectangle(
             Vec3::new(0., 0., 1.),
@@ -145,6 +148,6 @@ fn hide_shape_after_deletion() {
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/transparency_cleaned_up.png")
+            testing::assert_capture(e, "tests/expected/color_transparency_cleaned_up.png")
         });
 }

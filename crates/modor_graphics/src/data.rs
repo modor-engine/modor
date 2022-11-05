@@ -98,4 +98,32 @@ impl Color {
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self::rgba(r, g, b, 1.0)
     }
+
+    /// Returns the color with a different `red` component.
+    #[must_use]
+    pub const fn with_red(mut self, red: f32) -> Self {
+        self.r = red;
+        self
+    }
+
+    /// Returns the color with a different `green` component.
+    #[must_use]
+    pub const fn with_green(mut self, green: f32) -> Self {
+        self.g = green;
+        self
+    }
+
+    /// Returns the color with a different `blue` component.
+    #[must_use]
+    pub const fn with_blue(mut self, blue: f32) -> Self {
+        self.b = blue;
+        self
+    }
+
+    /// Returns the color with a different `alpha` component.
+    #[must_use]
+    pub const fn with_alpha(mut self, alpha: f32) -> Self {
+        self.a = alpha;
+        self
+    }
 }

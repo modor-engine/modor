@@ -7,3 +7,5 @@ publish = false
 
 [dependencies]
 cargo-run-wasm = "0.2"
+fs_extra = "1.2"
+pico-args = "0.5"

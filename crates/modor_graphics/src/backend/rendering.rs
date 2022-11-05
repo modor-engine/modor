@@ -1,6 +1,7 @@
 use crate::backend::buffer::DynamicBuffer;
 use crate::backend::renderer::Renderer;
 use crate::backend::shaders::Shader;
+use crate::backend::textures::Texture;
 use crate::backend::uniforms::Uniform;
 use bytemuck::Pod;
 use std::ops::Range;
@@ -68,6 +69,10 @@ impl<'a> RenderCommands<'a> {
         T: Pod,
     {
         self.pass.set_bind_group(group, uniform.bind_group(), &[]);
+    }
+
+    pub(crate) fn push_texture_binding(&mut self, texture: &'a Texture, group: u32) {
+        self.pass.set_bind_group(group, texture.bind_group(), &[]);
     }
 
     pub(crate) fn push_shader_change(&mut self, shader: &'a Shader) {

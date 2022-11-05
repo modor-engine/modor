@@ -56,7 +56,7 @@ fn resize_capture() {
         .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(0, 0)))
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/capture_zero.png")
+            testing::assert_capture(e, "tests/expected/capture_bigger.png")
         })
         .with_update::<(), _>(|c: &mut Capture| c.set_size(SurfaceSize::new(200, 300)))
         .updated()
