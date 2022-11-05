@@ -34,7 +34,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -59,7 +59,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -82,7 +82,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -101,7 +101,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
           target: wasm32-unknown-unknown
           components: clippy
       - name: Install wasm-pack
@@ -128,7 +128,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Publish
         run: bash .github/workflows/scripts/publish.sh
         env:
