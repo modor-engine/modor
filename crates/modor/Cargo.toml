@@ -1,44 +1,45 @@
 [package]
 name = "modor"
-version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Core library of Modor game engine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/modor-engine/modor"
 readme = "../../README.md"
 keywords = ["game", "engine", "modular", "object", "framework"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-fxhash = "0.2"
-log = "0.4"
-scoped_threadpool = "0.1"
-typed-index-collections = "3.0"
-modor_derive = { version = "0.1.0", path = "../modor_derive" }
-modor_internal = { version = "0.1.0", path = "../modor_internal" }
+fxhash = { workspace = true }
+log = { workspace = true }
+scoped_threadpool = { workspace = true }
+typed-index-collections = { workspace = true }
+modor_derive = { workspace = true }
+modor_internal = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pretty_env_logger = "0.4"
+pretty_env_logger = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1"
-console_log = "0.2"
+console_error_panic_hook = { workspace = true }
+console_log = { workspace = true }
 
 [dev-dependencies]
-doc-comment = "0.3"
-static_assertions = "1.1"
-instant = "0.1"
-spin_sleep = "1.1"
+doc-comment = { workspace = true }
+static_assertions = { workspace = true }
+instant = { workspace = true }
+spin_sleep = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-compiletest_rs = "0.9"
-criterion = "0.4"
+compiletest_rs = { workspace = true }
+criterion = { workspace = true, features = ["rayon"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-criterion = { version = "0.4", default-features = false, features = ["plotters", "cargo_bench_support"] }
-wasm-bindgen-test = "0.3"
+criterion = { workspace = true }
+wasm-bindgen-test = { workspace = true }
 
 [[bench]]
 name = "entity_creation"

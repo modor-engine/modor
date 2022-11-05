@@ -1,19 +1,19 @@
 [package]
 name = "modor_math"
-version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Math module of Modor game engine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
 keywords = ["modor", "math", "vector"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-num-traits = "0.2"
-approx = "0.5"
+approx = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = { workspace = true }

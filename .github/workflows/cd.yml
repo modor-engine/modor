@@ -5,9 +5,6 @@ on: workflow_dispatch
 env:
   CARGO_TERM_COLOR: always
 
-  # CD settings
-  RUST_VERSION_STABLE: 1.64.0
-
 jobs:
 
   check-version:
@@ -31,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -53,6 +52,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -73,6 +74,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -89,6 +92,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -113,6 +118,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
