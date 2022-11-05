@@ -3,7 +3,6 @@ use modor_math::Vec2;
 use rapier2d::geometry::{Collider, ColliderBuilder, ColliderHandle, ContactManifold};
 use rapier2d::math::{Point, Vector};
 use rapier2d::prelude::InteractionGroups;
-use std::marker::PhantomData;
 
 /// The collision properties of a 2D entity.
 ///
@@ -95,6 +94,7 @@ impl Collider2D {
 
 /// A collision detected on a [`Collider2D`](`Collider2D`).
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct Collision2D {
     /// ID of the collided entity ID.
     pub other_entity_id: usize,
@@ -110,7 +110,6 @@ pub struct Collision2D {
     /// The position should be in the intersection of both shapes, but this is not always the case
     /// (e.g. when one shape is fully included in the other shape).
     pub position: Vec2,
-    phantom: PhantomData<()>,
 }
 
 impl Collision2D {
@@ -136,7 +135,6 @@ impl Collision2D {
                     .map(|p| Self::local_to_global_position(p.local_p1, transform1))
                     .sum::<Vec2>()
                     / manifold.points.len() as f32,
-                phantom: PhantomData,
             },
             Self {
                 other_entity_id: entity1_id,
@@ -148,7 +146,6 @@ impl Collision2D {
                     .map(|p| Self::local_to_global_position(p.local_p2, transform2))
                     .sum::<Vec2>()
                     / manifold.points.len() as f32,
-                phantom: PhantomData,
             },
         )
     }

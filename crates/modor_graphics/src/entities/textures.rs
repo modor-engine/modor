@@ -243,6 +243,7 @@ pub enum TextureState {
 
 /// An error that occurs during texture loading.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum TextureError {
     /// The image format is unsupported.
     UnsupportedFormat(UnsupportedErrorKind),

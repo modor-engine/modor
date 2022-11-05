@@ -1,6 +1,5 @@
 use crate::{InputEventCollector, Keyboard, Mouse};
 use modor::{Built, EntityBuilder};
-use std::marker::PhantomData;
 
 /// The main entity of the graphics module.
 ///
@@ -22,13 +21,14 @@ use std::marker::PhantomData;
 ///     println!("Mouse position: {:?}", mouse.position());
 /// }
 /// ```
-pub struct InputModule(PhantomData<()>);
+#[non_exhaustive]
+pub struct InputModule;
 
 #[singleton]
 impl InputModule {
     /// Builds the module.
     pub fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(PhantomData))
+        EntityBuilder::new(Self)
             .with_child(InputEventCollector::build())
             .with_child(Mouse::build())
             .with_child(Keyboard::build())

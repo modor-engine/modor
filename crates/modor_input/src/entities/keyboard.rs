@@ -100,6 +100,7 @@ impl Keyboard {
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum KeyboardEvent {
     /// Key pressed.
     PressedKey(Key),
@@ -117,6 +118,7 @@ pub enum KeyboardEvent {
 ///
 /// See [`Keyboard`](crate::Keyboard).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub enum Key {
     /// The `1` key over the letters.
     Key1,

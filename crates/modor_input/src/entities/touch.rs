@@ -93,6 +93,7 @@ impl Finger {
 ///
 /// See [`InputEventCollector`](crate::InputEventCollector).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum TouchEvent {
     /// Finger added.
     Started(u64),

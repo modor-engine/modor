@@ -1,5 +1,4 @@
 use modor_math::Vec2;
-use std::marker::PhantomData;
 
 /// The relative positioning of an entity.
 ///
@@ -20,6 +19,7 @@ use std::marker::PhantomData;
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
 #[derive(Clone, Debug, Default)]
+#[non_exhaustive]
 pub struct RelativeTransform2D {
     /// Relative position of the entity.
     ///
@@ -44,7 +44,6 @@ pub struct RelativeTransform2D {
     /// If `None`, the absolute rotation of the [`Transform2D`](crate::Transform2D) component is
     /// taken into account.
     pub rotation: Option<f32>,
-    phantom: PhantomData<()>,
 }
 
 impl RelativeTransform2D {
@@ -56,7 +55,6 @@ impl RelativeTransform2D {
             position: None,
             size: None,
             rotation: None,
-            phantom: PhantomData,
         }
     }
 
