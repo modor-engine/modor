@@ -13,19 +13,19 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
-futures = { workspace = true }
-modor = { workspace = true }
+futures.workspace = true
+modor.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-async-std = { workspace = true }
+async-std.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { workspace = true }
-wasm-bindgen-futures = { workspace = true }
-web-sys = { workspace = true }
+reqwest.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = { workspace = true }
+ndk-glue.workspace = true
 
 [dev-dependencies]
-modor_internal = { workspace = true }
+modor_internal.workspace = true

@@ -13,13 +13,13 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
-rapier2d = { workspace = true }
-modor = { workspace = true }
-modor_math = { workspace = true }
+rapier2d.workspace = true
+modor.workspace = true
+modor_math.workspace = true
 
 [dev-dependencies]
-approx = { workspace = true }
-modor_internal = { workspace = true }
+approx.workspace = true
+modor_internal.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = { workspace = true }
+wasm-bindgen-test.workspace = true
