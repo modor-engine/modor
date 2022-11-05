@@ -8,8 +8,8 @@ exclude = [".github", "README.md", "assets"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-license.workspace = true
-repository.workspace = true
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]

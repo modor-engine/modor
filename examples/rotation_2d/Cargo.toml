@@ -1,8 +1,8 @@
 [package]
 name = "rotation_2d"
+version = "0.1.0"
 description = "Rotation 2D example of the Modor game engine"
 publish = false
-version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
