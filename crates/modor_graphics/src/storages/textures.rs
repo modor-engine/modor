@@ -22,7 +22,6 @@ impl TextureStorage {
                         is_transparent: false
                     },
                     false,
-                    false,
                     &Self::DEFAULT_TEXTURE_IDX.0.to_string(),
                     renderer,
                 ),
@@ -57,7 +56,7 @@ impl TextureStorage {
     ) {
         let id = config.texture_id + 1;
         *self.textures.get_mut_or_create(id.into()) = Some(StoredTexture {
-            texture: Texture::new(image, false, config.is_smooth, &id.to_string(), renderer),
+            texture: Texture::new(image, config.is_smooth, &id.to_string(), renderer),
             should_be_removed: false,
         });
     }

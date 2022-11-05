@@ -30,8 +30,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -61,8 +59,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -86,8 +82,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -110,8 +104,6 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           target: aarch64-linux-android
           components: clippy
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -136,8 +128,6 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
           target: wasm32-unknown-unknown
           components: clippy
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -174,9 +164,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
           components: llvm-tools-preview
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -236,8 +224,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -260,9 +246,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
           components: rustfmt, clippy
-          override: true
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:

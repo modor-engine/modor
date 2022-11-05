@@ -83,6 +83,22 @@ fn display_shapes() {
 }
 
 #[test]
+fn display_invisible_shape() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Object::build_styled_rectangle(
+            Vec2::ZERO,
+            None,
+            Color::INVISIBLE,
+            Color::WHITE,
+        ))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/invisible_shape.png")
+        });
+}
+
+#[test]
 fn attach_texture_with_color() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

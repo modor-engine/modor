@@ -15,7 +15,6 @@ pub(crate) struct Texture {
 impl Texture {
     pub(crate) fn new(
         image: Image,
-        min_linear: bool,
         mag_linear: bool,
         label_suffix: &str,
         renderer: &Renderer,
@@ -30,7 +29,7 @@ impl Texture {
         let texture = Self::create_texture(label_suffix, size, renderer);
         Self::write_texture(rgba, size, &texture, renderer);
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let sampler = Self::create_sampler(min_linear, mag_linear, label_suffix, renderer);
+        let sampler = Self::create_sampler(mag_linear, label_suffix, renderer);
         let bind_group = Self::create_bind_group(&view, &sampler, label_suffix, renderer);
         Self {
             bind_group,
@@ -81,23 +80,14 @@ impl Texture {
         );
     }
 
-    fn create_sampler(
-        min_linear: bool,
-        mag_linear: bool,
-        label_suffix: &str,
-        renderer: &Renderer,
-    ) -> Sampler {
+    fn create_sampler(mag_linear: bool, label_suffix: &str, renderer: &Renderer) -> Sampler {
         renderer.device().create_sampler(&SamplerDescriptor {
             label: Some(&format!("modor_texture_sampler_{}", label_suffix)),
             address_mode_u: AddressMode::Repeat,
             address_mode_v: AddressMode::Repeat,
             address_mode_w: AddressMode::Repeat,
+            min_filter: FilterMode::Nearest,
             mag_filter: if mag_linear {
-                FilterMode::Linear
-            } else {
-                FilterMode::Nearest
-            },
-            min_filter: if min_linear {
                 FilterMode::Linear
             } else {
                 FilterMode::Nearest

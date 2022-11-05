@@ -306,6 +306,8 @@ where
         self
     }
 
+    // TODO: avoid using set-output in CI
+    // TODO: check if it this still panic for WASM now that a panic hook is used
     /// Asserts the entity has a component of type `C` and run `f` on this component.
     ///
     /// # Panics
