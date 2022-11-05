@@ -1,4 +1,3 @@
-use approx::assert_abs_diff_eq;
 use modor::{App, With};
 use modor_input::{InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
 use modor_math::Vec2;
@@ -113,7 +112,7 @@ fn assert_direction(keys: &[Key], direction_x: f32, direction_y: f32) {
         .updated()
         .assert::<With<Keyboard>>(1, |e| {
             e.has(|k: &Keyboard| {
-                assert_abs_diff_eq!(
+                assert_approx_eq!(
                     k.direction(Key::Left, Key::Right, Key::Up, Key::Down),
                     Vec2::new(direction_x, direction_y)
                 );
@@ -131,6 +130,6 @@ fn assert_axis(keys: &[Key], axis: f32) {
         })
         .updated()
         .assert::<With<Keyboard>>(1, |e| {
-            e.has(|k: &Keyboard| assert_abs_diff_eq!(k.axis(Key::Left, Key::Right), axis))
+            e.has(|k: &Keyboard| assert_approx_eq!(k.axis(Key::Left, Key::Right), axis))
         });
 }

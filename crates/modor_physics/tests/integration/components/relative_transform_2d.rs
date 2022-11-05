@@ -1,4 +1,3 @@
-use approx::assert_abs_diff_eq;
 use modor_math::Vec2;
 use modor_physics::RelativeTransform2D;
 use std::f32::consts::PI;
@@ -28,7 +27,7 @@ fn create_customized_transform() {
         .with_position(Vec2::new(1., 2.))
         .with_size(Vec2::new(3., 4.))
         .with_rotation(PI);
-    assert_abs_diff_eq!(body.position.unwrap(), Vec2::new(1., 2.));
-    assert_abs_diff_eq!(body.size.unwrap(), Vec2::new(3., 4.));
-    assert_abs_diff_eq!(body.rotation.unwrap(), PI);
+    assert_approx_eq!(body.position.unwrap(), Vec2::new(1., 2.));
+    assert_approx_eq!(body.size.unwrap(), Vec2::new(3., 4.));
+    assert_approx_eq!(body.rotation.unwrap(), PI);
 }

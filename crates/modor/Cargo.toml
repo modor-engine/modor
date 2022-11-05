@@ -13,33 +13,33 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
-fxhash = { workspace = true }
-log = { workspace = true }
-scoped_threadpool = { workspace = true }
-typed-index-collections = { workspace = true }
-modor_derive = { workspace = true }
-modor_internal = { workspace = true }
+fxhash.workspace = true
+log.workspace = true
+scoped_threadpool.workspace = true
+typed-index-collections.workspace = true
+modor_derive.workspace = true
+modor_internal.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pretty_env_logger = { workspace = true }
+pretty_env_logger.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = { workspace = true }
-console_log = { workspace = true }
+console_error_panic_hook.workspace = true
+console_log.workspace = true
 
 [dev-dependencies]
-doc-comment = { workspace = true }
-static_assertions = { workspace = true }
-instant = { workspace = true }
-spin_sleep = { workspace = true }
+doc-comment.workspace = true
+static_assertions.workspace = true
+instant.workspace = true
+spin_sleep.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-compiletest_rs = { workspace = true }
+compiletest_rs.workspace = true
 criterion = { workspace = true, features = ["rayon"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-criterion = { workspace = true }
-wasm-bindgen-test = { workspace = true }
+criterion.workspace = true
+wasm-bindgen-test.workspace = true
 
 [[bench]]
 name = "entity_creation"

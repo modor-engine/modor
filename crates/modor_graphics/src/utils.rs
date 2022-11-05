@@ -53,17 +53,16 @@ where
 #[cfg(not(target_arch = "wasm32"))]
 mod utils_tests {
     use crate::FrameRate;
-    use approx::assert_abs_diff_eq;
     use std::time::{Duration, Instant};
 
     #[test]
     fn calculate_world_scale() {
-        assert_abs_diff_eq!(super::world_scale((800, 600)).0, 0.75);
-        assert_abs_diff_eq!(super::world_scale((800, 600)).1, 1.);
-        assert_abs_diff_eq!(super::world_scale((600, 800)).0, 1.);
-        assert_abs_diff_eq!(super::world_scale((600, 800)).1, 0.75);
-        assert_abs_diff_eq!(super::world_scale((800, 800)).0, 1.);
-        assert_abs_diff_eq!(super::world_scale((800, 800)).1, 1.);
+        assert_approx_eq!(super::world_scale((800, 600)).0, 0.75);
+        assert_approx_eq!(super::world_scale((800, 600)).1, 1.);
+        assert_approx_eq!(super::world_scale((600, 800)).0, 1.);
+        assert_approx_eq!(super::world_scale((600, 800)).1, 0.75);
+        assert_approx_eq!(super::world_scale((800, 800)).0, 1.);
+        assert_approx_eq!(super::world_scale((800, 800)).1, 1.);
     }
 
     #[test]
@@ -76,10 +75,10 @@ mod utils_tests {
 
     #[test]
     fn normalize() {
-        assert_abs_diff_eq!(super::normalize(-1., -1., 1., 1., 2.), 1.);
-        assert_abs_diff_eq!(super::normalize(0., -1., 1., 1., 2.), 1.5);
-        assert_abs_diff_eq!(super::normalize(1., -1., 1., 1., 2.), 2.);
-        assert_abs_diff_eq!(super::normalize(0., 0., 0., 1., 2.), 1.);
+        assert_approx_eq!(super::normalize(-1., -1., 1., 1., 2.), 1.);
+        assert_approx_eq!(super::normalize(0., -1., 1., 1., 2.), 1.5);
+        assert_approx_eq!(super::normalize(1., -1., 1., 1., 2.), 2.);
+        assert_approx_eq!(super::normalize(0., 0., 0., 1., 2.), 1.);
     }
 
     #[test]

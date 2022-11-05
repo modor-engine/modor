@@ -26,6 +26,9 @@
 
 #[macro_use]
 extern crate modor;
+#[cfg(test)]
+#[macro_use]
+extern crate modor_internal;
 
 mod components;
 mod data;

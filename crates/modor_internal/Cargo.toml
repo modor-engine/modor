@@ -13,4 +13,4 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
-typed-index-collections = { workspace = true }
+typed-index-collections.workspace = true

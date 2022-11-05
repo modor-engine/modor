@@ -10,15 +10,15 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-modor = { workspace = true }
-modor_graphics = { workspace = true }
-modor_input = { workspace = true }
-modor_math = { workspace = true }
-modor_physics = { workspace = true }
-instant = { workspace = true }
+modor.workspace = true
+modor_graphics.workspace = true
+modor_input.workspace = true
+modor_math.workspace = true
+modor_physics.workspace = true
+instant.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = { workspace = true }
+ndk-glue.workspace = true
 
 [lib]
 crate-type = ["lib", "cdylib"]

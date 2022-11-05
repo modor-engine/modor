@@ -9,6 +9,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-cargo-run-wasm = { workspace = true }
-fs_extra = { workspace = true }
-pico-args = { workspace = true }
+cargo-run-wasm.workspace = true
+fs_extra.workspace = true
+pico-args.workspace = true
