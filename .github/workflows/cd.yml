@@ -29,11 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Retrieve minimal supported rust version
+        id: rust_version
         run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
@@ -53,11 +54,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Retrieve minimal supported rust version
+        id: rust_version
         run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -75,11 +77,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Retrieve minimal supported rust version
+        id: rust_version
         run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -93,11 +96,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Retrieve minimal supported rust version
+        id: rust_version
         run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
           target: wasm32-unknown-unknown
           components: clippy
       - name: Install wasm-pack
@@ -119,11 +123,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Retrieve minimal supported rust version
+        id: rust_version
         run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }
       - name: Publish
         run: bash .github/workflows/scripts/publish.sh
         env:
