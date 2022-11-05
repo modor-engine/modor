@@ -1,45 +1,46 @@
 [package]
 name = "modor_graphics"
-version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Graphics module of Modor game engine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
 keywords = ["modor", "graphics", "display", "rendering", "game"]
 categories = ["game-engines"]
 exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+rust-version.workspace = true
 
 [dependencies]
-bytemuck = { version = "1.8", features = ["derive"] }
-fxhash = "0.2"
-futures = "0.3"
-image = "0.24"
-instant = "0.1"
-log = "0.4"
-spin_sleep = "1.1.1"
-typed-index-collections = "3.0"
-winit = "0.27"
-modor = { version = "0.1.0", path = "../modor" }
-modor_input = { version = "0.1.0", path = "../modor_input" }
-modor_internal = { version = "0.1.0", path = "../modor_internal" }
-modor_jobs = { version = "0.1.0", path = "../modor_jobs" }
-modor_math = { version = "0.1.0", path = "../modor_math" }
-modor_physics = { version = "0.1.0", path = "../modor_physics" }
+bytemuck = { workspace = true }
+fxhash = { workspace = true }
+futures = { workspace = true }
+image = { workspace = true }
+instant = { workspace = true }
+log = { workspace = true }
+spin_sleep = { workspace = true }
+typed-index-collections = { workspace = true }
+winit = { workspace = true }
+modor = { workspace = true }
+modor_input = { workspace = true }
+modor_internal = { workspace = true }
+modor_jobs = { workspace = true }
+modor_math = { workspace = true }
+modor_physics = { workspace = true }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-gilrs = "0.9"
+gilrs = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wgpu = "0.14"
+wgpu = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = "0.3"
-wgpu = { version = "0.14", features = ["webgl"] }
+web-sys = { workspace = true }
+wgpu = { workspace = true, features = ["webgl"] }
 
 [dev-dependencies]
-approx = "0.5"
+approx = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = { workspace = true }

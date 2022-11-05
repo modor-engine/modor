@@ -13,9 +13,6 @@ on:
 env:
   XDG_RUNTIME_DIR: "~"
   CARGO_TERM_COLOR: always
-
-  # CI settings
-  RUST_VERSION_STABLE: 1.64.0
   COV_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
 
@@ -26,10 +23,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -55,10 +55,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -78,10 +81,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -98,10 +104,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
           target: aarch64-linux-android
           components: clippy
       - name: Setup cache
@@ -122,10 +131,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
           target: wasm32-unknown-unknown
           components: clippy
       - name: Setup cache
@@ -160,10 +172,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 2
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
           components: llvm-tools-preview
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
@@ -220,10 +235,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -242,10 +260,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
           components: rustfmt, clippy
       - name: Setup cache
         uses: Swatinem/rust-cache@v2
@@ -269,7 +290,7 @@ jobs:
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v1
         with:
-          rust-version: ${{ env.RUST_VERSION_STABLE }}
+          rust-version: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Check crates are registered on crates.io
         run: bash .github/workflows/scripts/check_registered_crates.sh
         env:

@@ -1,25 +1,25 @@
 [package]
 name = "modor_physics"
-version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Physics module of Modor game engine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/modor-engine/modor"
 readme = "./README.md"
 keywords = ["modor", "physics", "collision", "game", "engine"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+rust-version.workspace = true
 
 [dependencies]
-approx = "0.5"
-rapier2d = "0.16"
-modor = { version = "0.1.0", path = "../modor" }
-modor_math = { version = "0.1.0", path = "../modor_math" }
+rapier2d = { workspace = true }
+modor = { workspace = true }
+modor_math = { workspace = true }
 
 [dev-dependencies]
-approx = "0.5"
-modor_internal = { version = "0.1.0", path = "../modor_internal" }
+approx = { workspace = true }
+modor_internal = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = { workspace = true }

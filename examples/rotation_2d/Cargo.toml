@@ -1,21 +1,23 @@
 [package]
 name = "rotation_2d"
 version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Rotation 2D example of the Modor game engine"
-license = "MIT OR Apache-2.0"
 publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-modor = { version = "0.1.0", path = "../../crates/modor" }
-modor_graphics = { version = "0.1.0", path = "../../crates/modor_graphics" }
-modor_input = { version = "0.1.0", path = "../../crates/modor_input" }
-modor_math = { version = "0.1.0", path = "../../crates/modor_math" }
-modor_physics = { version = "0.1.0", path = "../../crates/modor_physics" }
+modor = { workspace = true }
+modor_graphics = { workspace = true }
+modor_input = { workspace = true }
+modor_math = { workspace = true }
+modor_physics = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = "0.7"
+ndk-glue = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]

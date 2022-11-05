@@ -29,7 +29,8 @@ It also makes extensive use of compile-time checks. For example:
 
 ## Usage
 
-The minimum supported version of Rust is 1.64.
+The minimum supported version of Rust is
+defined [in this file](https://github.com/modor-engine/modor/blob/main/Cargo.toml).
 
 To include this library in your project, just add the following dependency in your `Cargo.toml` file:
 

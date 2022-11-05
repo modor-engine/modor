@@ -11,7 +11,8 @@ Physics module of Modor.
 
 ## Usage
 
-The minimum supported version of Rust is 1.64.
+The minimum supported version of Rust is
+defined [in this file](https://github.com/modor-engine/modor/blob/main/Cargo.toml).
 
 To include this library in your project, just add the following lines in your `Cargo.toml` file:
 

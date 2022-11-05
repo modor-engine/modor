@@ -1,5 +1,4 @@
 use crate::{Mat4, Vec3};
-use num_traits::One;
 use std::f32::consts::PI;
 use std::ops::{Mul, MulAssign};
 
@@ -63,8 +62,9 @@ impl Quat {
 
     /// Returns the normalized axis, or `None` if the angle is `0.0`.
     #[must_use]
+    #[allow(clippy::float_cmp)]
     pub fn axis(self) -> Option<Vec3> {
-        (!self.w.powi(2).is_one()).then(|| {
+        (self.w.powi(2) != 1.).then(|| {
             Vec3::new(
                 self.x / (1. - self.w.powi(2)).sqrt(),
                 self.y / (1. - self.w.powi(2)).sqrt(),

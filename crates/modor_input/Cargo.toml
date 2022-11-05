@@ -1,23 +1,24 @@
 [package]
 name = "modor_input"
-version = "0.1.0"
-authors = ["Nicolas Ferré <nicolas.ferre.public@gmail.com>"]
-edition = "2021"
 description = "Input module of Modor game engine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/modor-engine/modor"
 readme = "../../README.md"
 keywords = ["modor", "input", "keyword", "mouse", "game"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+rust-version.workspace = true
 
 [dependencies]
-fxhash = "0.2"
-modor = { version = "0.1.0", path = "../modor" }
-modor_math = { version = "0.1.0", path = "../modor_math" }
+fxhash = { workspace = true }
+modor = { workspace = true }
+modor_math = { workspace = true }
 
 [dev-dependencies]
-approx = "0.5"
+approx = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = { workspace = true }
