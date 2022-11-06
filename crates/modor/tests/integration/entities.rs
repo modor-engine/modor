@@ -1,4 +1,4 @@
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, Built, EntityBuilder, LevelFilter, With};
 
 struct Singleton1(u32);
 
@@ -92,6 +92,7 @@ impl Inherited {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_complex_entities() {
     App::new()
+        .with_log_level(LevelFilter::Trace)
         .with_entity(Singleton1::build(40))
         .with_entity(Singleton1::build(41))
         .with_entity(Level1::build(100))

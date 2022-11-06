@@ -1,4 +1,4 @@
-use modor::{App, Built, Entity, EntityBuilder, With, World};
+use modor::{App, Built, Entity, EntityBuilder, LevelFilter, With, World};
 
 struct Parent(u32);
 
@@ -214,6 +214,7 @@ impl NewChildEntity {
 #[test]
 fn use_world() {
     App::new()
+        .with_log_level(LevelFilter::Trace)
         .with_entity(EntityToDelete::build(10))
         .with_entity(ParentEntityToDelete::build(11))
         .with_entity(ParentOfEntityToDelete::build(12))
