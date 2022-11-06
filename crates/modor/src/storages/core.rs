@@ -187,24 +187,27 @@ impl CoreStorage {
         for (entity_idx, add_component_fns, deleted_component_type_idxs) in
             updates.changed_entity_drain()
         {
-            if let Some(location) = self.entities.location(entity_idx) {
-                let mut dst_archetype_idx = location.idx;
-                for type_idx in deleted_component_type_idxs {
-                    dst_archetype_idx = self.delete_component_type(type_idx, dst_archetype_idx);
-                }
-                for add_fns in &add_component_fns {
-                    dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
-                }
-                let dst_location = self.move_entity(location, dst_archetype_idx);
-                for add_fns in add_component_fns {
-                    (add_fns.add_fn)(self, dst_location);
-                }
-            } else {
-                warn!(
-                    "components cannot be modified as entity with ID {} doesn't exist",
-                    entity_idx.0
-                );
-            }
+            self.entities.location(entity_idx).map_or_else(
+                || {
+                    warn!(
+                        "components cannot be modified as entity with ID {} doesn't exist",
+                        entity_idx.0
+                    );
+                },
+                |location| {
+                    let mut dst_archetype_idx = location.idx;
+                    for type_idx in deleted_component_type_idxs {
+                        dst_archetype_idx = self.delete_component_type(type_idx, dst_archetype_idx);
+                    }
+                    for add_fns in &add_component_fns {
+                        dst_archetype_idx = (add_fns.add_type_fn)(self, dst_archetype_idx);
+                    }
+                    let dst_location = self.move_entity(location, dst_archetype_idx);
+                    for add_fns in add_component_fns {
+                        (add_fns.add_fn)(self, dst_location);
+                    }
+                },
+            );
         }
         for (create_fn, parent_idx) in updates.created_child_entity_drain() {
             if self.entities.location(parent_idx).is_some() {

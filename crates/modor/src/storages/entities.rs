@@ -28,7 +28,6 @@ impl EntityStorage {
         self.depths[entity_idx]
     }
 
-    #[allow(clippy::option_if_let_else)]
     pub(super) fn create(
         &mut self,
         location: EntityLocation,
