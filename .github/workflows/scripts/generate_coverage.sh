@@ -14,6 +14,6 @@ grcov . \
     --excl-line '(#\[|^[^ ]+!\(|struct |unreachable!)' \
     --excl-start '(#\[cfg\(test\)\]|coverage: off)' \
     --excl-stop 'coverage: on' \
-    --excl-br-start 'trace!\(|debug!\(|info!\(' \
+    --excl-br-start '(trace!\(|debug!\(|info!\()' \
     --excl-br-stop '\);' \
     --keep-only "**/crates/**/src/**/*"
