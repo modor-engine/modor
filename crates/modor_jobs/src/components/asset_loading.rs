@@ -95,14 +95,10 @@ where
     ///
     /// `None` is returned if the result is not yet available or has already been retrieved.
     pub fn try_poll(&mut self) -> Result<Option<T>, AssetLoadingError> {
-        match self
-            .inner
+        self.inner
             .try_poll()
             .expect("internal error: asset loading job has failed")
-        {
-            None => Ok(None),
-            Some(result) => result.map(|r| Some(r)),
-        }
+            .map_or(Ok(None), |result| result.map(|r| Some(r)))
     }
 
     #[cfg_attr(target_os = "android", allow(clippy::unused_async))]

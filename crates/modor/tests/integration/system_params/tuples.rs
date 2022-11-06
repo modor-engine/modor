@@ -206,6 +206,6 @@ fn run_systems_in_parallel() {
             .with_entity(Values::build(true, false))
             .with_entity(Values::build(false, true))
             .updated();
-        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(150));
+        assert!(start.elapsed() < std::time::Duration::from_millis(150));
     });
 }

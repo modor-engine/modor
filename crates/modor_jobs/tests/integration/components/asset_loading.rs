@@ -11,8 +11,13 @@ struct FileSize {
 #[entity]
 impl FileSize {
     fn build(path: impl AsRef<str>) -> impl Built<Self> {
-        EntityBuilder::new(Self { size: Ok(None) })
-            .with(AssetLoadingJob::new(path, |b| async move { b.len() }))
+        EntityBuilder::new(Self { size: Ok(None) }).with(AssetLoadingJob::new(
+            path,
+            |b| async move {
+                async_std::task::sleep(Duration::from_millis(10)).await;
+                b.len()
+            },
+        ))
     }
 
     #[run]

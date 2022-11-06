@@ -284,5 +284,5 @@ fn run_systems_in_parallel() {
         .with_thread_count(2)
         .with_entity(EntityWithAddedChild::build(60))
         .updated();
-    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
+    assert!(start.elapsed() > std::time::Duration::from_millis(200));
 }
