@@ -11,9 +11,7 @@ grcov . \
     --branch \
     --ignore-not-existing \
     --output-path "$output_path" \
-    --excl-line '(#\[|^[^ ]+!\(|struct |unreachable!)' \
+    --excl-line '(#\[|^[^ ]+!\(|struct |unreachable!|trace!)' \
     --excl-start '(#\[cfg\(test\)\]|coverage: off)' \
     --excl-stop 'coverage: on' \
-    --excl-br-start '(trace!\(|debug!\(|info!\()' \
-    --excl-br-stop '\);' \
     --keep-only "**/crates/**/src/**/*"
