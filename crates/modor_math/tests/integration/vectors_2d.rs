@@ -1,6 +1,6 @@
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use modor_math::Vec2;
-use std::f32::consts::FRAC_PI_2;
+use std::{f32::consts::FRAC_PI_2, iter};
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -141,7 +141,7 @@ fn sum_vecs() {
         .sum();
     assert_approx_eq!(sum.x, 9.);
     assert_approx_eq!(sum.y, 12.);
-    let sum: Vec2 = [].into_iter().sum();
+    let sum: Vec2 = iter::empty().sum();
     assert_approx_eq!(sum.x, 0.);
     assert_approx_eq!(sum.y, 0.);
 }

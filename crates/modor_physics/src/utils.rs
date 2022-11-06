@@ -7,11 +7,11 @@ impl UserData {
     }
 
     pub(crate) fn with_entity_id(self, entity_id: usize) -> Self {
-        Self(entity_id as u128 * 10 + if self.has_deletion_flag() { 1 } else { 0 })
+        Self(entity_id as u128 * 10 + u128::from(self.has_deletion_flag()))
     }
 
     pub(crate) fn with_deletion_flag(self, has_deletion_flag: bool) -> Self {
-        Self(self.entity_id() as u128 * 10 + if has_deletion_flag { 1 } else { 0 })
+        Self(self.entity_id() as u128 * 10 + u128::from(has_deletion_flag))
     }
 
     #[allow(clippy::integer_division)]

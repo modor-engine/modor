@@ -137,7 +137,7 @@ fn run_systems_in_parallel() {
             .with_entity(Number::build_without_value())
             .with_entity(Number::build_with_additional_component(3))
             .updated();
-        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
+        assert!(start.elapsed() < std::time::Duration::from_millis(250));
     });
 }
 

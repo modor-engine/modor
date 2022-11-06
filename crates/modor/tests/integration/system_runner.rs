@@ -125,7 +125,7 @@ fn run_tester1_and_tester2_in_parallel() {
                     assert!(t.first_system_run.load(Ordering::Acquire));
                 })
             });
-        assert!(instant::Instant::now() - start < std::time::Duration::from_millis(250));
+        assert!(start.elapsed() < std::time::Duration::from_millis(250));
     });
 }
 
@@ -140,7 +140,7 @@ fn run_tester1_in_parallel() {
         .assert::<With<Tester1>>(1, |e| {
             e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
         });
-    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
+    assert!(start.elapsed() > std::time::Duration::from_millis(200));
 }
 
 #[test]
@@ -157,5 +157,5 @@ fn run_tester2_in_parallel() {
                 assert!(t.first_system_run.load(Ordering::Acquire));
             })
         });
-    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(100));
+    assert!(start.elapsed() > std::time::Duration::from_millis(100));
 }

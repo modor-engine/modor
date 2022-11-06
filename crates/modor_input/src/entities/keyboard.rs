@@ -74,7 +74,7 @@ impl Keyboard {
     pub(crate) fn build() -> impl Built<Self> {
         EntityBuilder::new(Self {
             keys: FxHashMap::default(),
-            text: "".into(),
+            text: String::new(),
         })
     }
 
@@ -82,7 +82,7 @@ impl Keyboard {
         for button in self.keys.values_mut() {
             button.refresh();
         }
-        self.text = "".into();
+        self.text = String::new();
     }
 
     pub(crate) fn apply_event(&mut self, event: KeyboardEvent) {

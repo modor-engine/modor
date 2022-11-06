@@ -60,11 +60,11 @@ impl CoreStorage {
         C: Any + Sync + Send,
     {
         let type_idx = self.components.type_idx_or_create::<C>();
-        if let Ok(dst_archetype_idx) = self.archetypes.add_component(src_archetype_idx, type_idx) {
-            (type_idx, dst_archetype_idx)
-        } else {
-            (type_idx, src_archetype_idx)
-        }
+        self.archetypes
+            .add_component(src_archetype_idx, type_idx)
+            .map_or((type_idx, src_archetype_idx), |dst_archetype_idx| {
+                (type_idx, dst_archetype_idx)
+            })
     }
 
     pub(crate) fn create_entity(
@@ -240,14 +240,9 @@ impl CoreStorage {
         type_idx: ComponentTypeIdx,
         src_archetype_idx: ArchetypeIdx,
     ) -> ArchetypeIdx {
-        if let Ok(dst_archetype_idx) = self
-            .archetypes
+        self.archetypes
             .delete_component(src_archetype_idx, type_idx)
-        {
-            dst_archetype_idx
-        } else {
-            src_archetype_idx
-        }
+            .map_or(src_archetype_idx, |dst_archetype_idx| dst_archetype_idx)
     }
 
     fn update_moved_entity_location(

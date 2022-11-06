@@ -75,5 +75,5 @@ fn run_systems_in_parallel() {
         .with_entity(Number::build(10))
         .with_entity(Tester::build())
         .updated();
-    assert!(instant::Instant::now() - start > std::time::Duration::from_millis(200));
+    assert!(start.elapsed() > std::time::Duration::from_millis(200));
 }
