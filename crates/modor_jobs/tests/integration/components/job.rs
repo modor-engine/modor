@@ -1,3 +1,4 @@
+use log::LevelFilter;
 use modor::{App, Built, EntityBuilder, With};
 use modor_jobs::{Job, JobPanickedError};
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ impl FileSize {
 #[test]
 fn run_successful_job() {
     App::new()
+        .with_log_level(LevelFilter::Trace)
         .with_entity(FileSize::build(concat!("tests/assets/test.txt")))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));
@@ -41,6 +43,7 @@ fn run_successful_job() {
 #[test]
 fn run_failing_job() {
     App::new()
+        .with_log_level(LevelFilter::Trace)
         .with_entity(FileSize::build("not/existing/path"))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));

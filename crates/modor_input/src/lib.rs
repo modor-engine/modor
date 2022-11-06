@@ -45,6 +45,8 @@
 
 #[macro_use]
 extern crate modor;
+#[macro_use]
+extern crate log;
 
 mod data;
 mod entities;

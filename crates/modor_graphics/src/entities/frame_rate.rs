@@ -36,6 +36,7 @@ pub struct FrameRateLimit {
 impl FrameRateLimit {
     /// Builds the entity.
     pub fn build(frame_rate: FrameRate) -> impl Built<Self> {
+        info!("framerate limit initialized to {:?}", frame_rate);
         EntityBuilder::new(Self { frame_rate })
     }
 
@@ -48,6 +49,7 @@ impl FrameRateLimit {
     /// Set the frame rate limit.
     pub fn set(&mut self, frame_rate: FrameRate) {
         self.frame_rate = frame_rate;
+        info!("framerate limit set to {:?}", frame_rate);
     }
 }
 

@@ -92,6 +92,10 @@ where
         let (sender, receiver) = oneshot::channel();
         let job = job_future!(future, sender);
         let join = async_std::task::spawn(job);
+        debug!(
+            "job producing value of type `{}` has started",
+            any::type_name::<T>()
+        );
         Self {
             receiver: Some(receiver),
             _join: join,
@@ -111,6 +115,10 @@ where
         let (sender, receiver) = oneshot::channel();
         let job = job_future!(future, sender);
         wasm_bindgen_futures::spawn_local(job);
+        debug!(
+            "job producing value of type `{}` has started",
+            any::type_name::<T>()
+        );
         Self {
             receiver: Some(receiver),
         }
@@ -128,9 +136,22 @@ where
             let result = receiver.try_recv().map_err(|_| JobPanickedError);
             if let Ok(Some(_)) | Err(_) = &result {
                 self.receiver = None;
+                debug!(
+                    "job producing value of type `{}` has finished",
+                    any::type_name::<T>()
+                );
+            } else {
+                trace!(
+                    "job producing value of type `{}` still in progress",
+                    any::type_name::<T>()
+                );
             }
             result
         } else {
+            debug!(
+                "job result of type `{}` already retrieved",
+                any::type_name::<T>()
+            );
             Ok(None)
         }
     }

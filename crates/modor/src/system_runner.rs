@@ -15,46 +15,58 @@ pub struct SystemRunner<'a> {
 #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 impl<'a> SystemRunner<'a> {
     #[doc(hidden)]
-    pub fn run(self, system: SystemBuilder<SystemWrapper>) -> Self {
-        self.run_with_action(system, None, ActionDependencies::Types(vec![]))
+    pub fn run(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {
+        self.run_with_action(system, label, None, ActionDependencies::Types(vec![]))
     }
 
     #[doc(hidden)]
-    pub fn run_as<A>(self, system: SystemBuilder<SystemWrapper>) -> Self
+    pub fn run_as<A>(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self
     where
         A: Action,
     {
         self.run_with_action(
             system,
+            label,
             Some(TypeId::of::<A>()),
             ActionDependencies::Types(A::Constraint::dependency_types()),
         )
     }
 
     #[doc(hidden)]
-    pub fn run_constrained<C>(self, system: SystemBuilder<SystemWrapper>) -> Self
+    pub fn run_constrained<C>(
+        self,
+        system: SystemBuilder<SystemWrapper>,
+        label: &'static str,
+    ) -> Self
     where
         C: ActionConstraint,
     {
         self.run_with_action(
             system,
+            label,
             None,
             ActionDependencies::Types(C::dependency_types()),
         )
     }
 
     #[doc(hidden)]
-    pub fn and_then(self, system: SystemBuilder<SystemWrapper>) -> Self {
+    pub fn and_then(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {
         if let Some(latest_action_idx) = self.latest_action_idx {
-            self.run_with_action(system, None, ActionDependencies::Action(latest_action_idx))
+            self.run_with_action(
+                system,
+                label,
+                None,
+                ActionDependencies::Action(latest_action_idx),
+            )
         } else {
-            self.run(system)
+            self.run(system, label)
         }
     }
 
     fn run_with_action(
         self,
         system: SystemBuilder<SystemWrapper>,
+        label: &'static str,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> SystemRunner<'a> {
@@ -65,6 +77,7 @@ impl<'a> SystemRunner<'a> {
         SystemRunner {
             latest_action_idx: Some(self.core.add_system(
                 system.wrapper,
+                label,
                 properties,
                 action_type,
                 action_dependencies,

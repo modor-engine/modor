@@ -116,6 +116,7 @@ impl PhysicsModule {
     /// Builds the module where all entities with a [`Collider2D`](crate::Collider2D) component
     /// can collide with each other.
     pub fn build() -> impl Built<Self> {
+        info!("physics module created");
         Self::build_with_layers(vec![CollisionLayer::new(
             CollisionGroupIndex::ALL
                 .into_iter()
@@ -126,6 +127,7 @@ impl PhysicsModule {
 
     /// Builds the module with custom collision layers.
     pub fn build_with_layers(layers: Vec<CollisionLayer>) -> impl Built<Self> {
+        info!("physics module created with layers `{layers:?}`");
         EntityBuilder::new(Self {
             groups: Self::compute_groups(layers),
             core_2d: Core2DStorage::default(),

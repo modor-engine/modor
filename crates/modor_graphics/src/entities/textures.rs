@@ -2,7 +2,6 @@ use crate::backend::textures::Image;
 use crate::RenderTarget;
 use image::error::UnsupportedErrorKind;
 use image::{GenericImageView, ImageError};
-use log::error;
 use modor::{Built, EntityBuilder, SingleMut};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
@@ -115,6 +114,7 @@ impl Texture {
             self.state = match job.try_poll() {
                 Ok(Some(Ok(i))) => {
                     target.load_texture(i, &self.config);
+                    debug!("texture '{}' loaded", self.config.label);
                     TextureState::Loaded
                 }
                 Ok(Some(Err(e))) => {
@@ -144,6 +144,7 @@ impl Texture {
                 self.state = match result {
                     Ok(i) => {
                         target.load_texture(i, &self.config);
+                        debug!("texture '{}' loaded", self.config.label);
                         TextureState::Loaded
                     }
                     Err(e) => {

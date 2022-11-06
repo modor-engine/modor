@@ -347,6 +347,7 @@ mod internal {
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
     use crate::{ChildBuilder, EntityMainComponent, Singleton, SystemRunner};
+    use std::any;
     use std::any::{Any, TypeId};
     use std::marker::PhantomData;
 
@@ -404,6 +405,11 @@ mod internal {
 
         fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
             self.component_part.add_components(core, location);
+            trace!(
+                "component `{}` added to entity of type `{}`",
+                any::type_name::<E>(),
+                any::type_name::<E>()
+            );
         }
     }
 
@@ -440,6 +446,17 @@ mod internal {
                     location,
                     TypeId::of::<C>() == TypeId::of::<E>()
                         && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
+                );
+                trace!(
+                    "component `{}` added to entity of type `{}`",
+                    any::type_name::<C>(),
+                    any::type_name::<E>(),
+                );
+            } else {
+                trace!(
+                    "component `{}` not added to entity of type `{}` as condition is false",
+                    any::type_name::<C>(),
+                    any::type_name::<E>(),
                 );
             }
         }
@@ -513,8 +530,17 @@ mod internal {
                 .type_idx(TypeId::of::<E>())
                 .and_then(|c| core.components().singleton_location(c))
                 .is_some();
-            if !singleton_exists {
+            if singleton_exists {
+                trace!(
+                    "dependency entity of type `{}` not created as already existing",
+                    any::type_name::<E>(),
+                );
+            } else {
                 self.entity.build(core, None);
+                trace!(
+                    "dependency entity of type `{}` created",
+                    any::type_name::<E>(),
+                );
             }
         }
     }
