@@ -14,6 +14,7 @@ impl FileSize {
     fn build(path: impl Into<PathBuf>) -> impl Built<Self> {
         let path = path.into();
         EntityBuilder::new(Self { size: Ok(None) }).with(Job::new(async {
+            async_std::task::sleep(Duration::from_millis(10)).await;
             async_std::fs::read(path).await.unwrap().len()
         }))
     }
