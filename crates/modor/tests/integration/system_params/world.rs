@@ -181,10 +181,15 @@ impl EntityWithAddedChild {
     }
 
     #[run]
-    fn create_child_entity(entity: Entity<'_>, mut world: World<'_>) {
+    fn create_child_entity_from_existing_parent(entity: Entity<'_>, mut world: World<'_>) {
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(100));
         world.create_child_entity(entity.id(), NewChildEntity::build(70));
+    }
+
+    #[run]
+    fn create_child_entity_from_missing_parent(mut world: World<'_>) {
+        world.create_child_entity(99999, NewChildEntity::build(70));
     }
 }
 
