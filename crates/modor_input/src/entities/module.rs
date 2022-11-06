@@ -28,6 +28,7 @@ pub struct InputModule;
 impl InputModule {
     /// Builds the module.
     pub fn build() -> impl Built<Self> {
+        info!("input module created");
         EntityBuilder::new(Self)
             .with_child(InputEventCollector::build())
             .with_child(Mouse::build())

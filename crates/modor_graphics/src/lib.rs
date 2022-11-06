@@ -32,6 +32,8 @@
 extern crate modor;
 #[macro_use]
 extern crate modor_internal;
+#[macro_use]
+extern crate log;
 
 mod backend;
 mod components;

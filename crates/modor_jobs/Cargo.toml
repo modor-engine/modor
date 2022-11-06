@@ -14,6 +14,7 @@ rust-version.workspace = true
 
 [dependencies]
 futures.workspace = true
+log.workspace = true
 modor.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

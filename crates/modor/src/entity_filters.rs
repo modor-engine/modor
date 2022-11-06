@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 /// A trait implemented for all valid entity filters.
 ///
 /// These filters can for example be applied to a [`Query`](crate::Query).
-pub trait EntityFilter: 'static {
+pub trait EntityFilter: Any {
     #[doc(hidden)]
     fn register(core: &mut CoreStorage);
 

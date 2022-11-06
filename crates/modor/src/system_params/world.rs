@@ -4,7 +4,7 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::world::internal::WorldGuardBorrow;
 use crate::{Built, EntityMainComponent, SystemData, SystemInfo, SystemParam};
-use std::any::{Any, TypeId};
+use std::any::{self, Any, TypeId};
 
 /// A system parameter for applying actions on entities.
 ///
@@ -38,7 +38,12 @@ impl<'a> World<'a> {
             .create_entity(
                 None,
                 Box::new(|c| {
-                    entity.build(c, None);
+                    let entity_idx = entity.build(c, None);
+                    trace!(
+                        "root entity of type `{}` created with ID `{}`",
+                        any::type_name::<E>(),
+                        entity_idx.0
+                    );
                 }),
             );
     }
@@ -58,7 +63,12 @@ impl<'a> World<'a> {
             .create_entity(
                 Some(parent_id.into()),
                 Box::new(move |c| {
-                    entity.build(c, Some(parent_id.into()));
+                    let entity_idx = entity.build(c, Some(parent_id.into()));
+                    trace!(
+                        "child entity of type `{}` created with ID `{}` for entity with ID {parent_id}",
+                        any::type_name::<E>(),
+                        entity_idx.0
+                    );
                 }),
             );
     }
@@ -99,6 +109,10 @@ impl<'a> World<'a> {
                         .type_idx(TypeId::of::<C>())
                         .expect("internal error: add component with not registered type");
                     c.add_component::<C>(component, type_idx, l, false);
+                    trace!(
+                        "component of type `{}` added for entity with ID {entity_id}",
+                        any::type_name::<C>()
+                    );
                 }),
             );
     }
@@ -122,6 +136,10 @@ impl<'a> World<'a> {
                 .expect("internal error: cannot lock updates to delete component")
                 .delete_component(entity_id.into(), type_idx);
         }
+        trace!(
+            "component of type `{}` deleted from entity with ID {entity_id}",
+            any::type_name::<C>()
+        );
     }
 }
 

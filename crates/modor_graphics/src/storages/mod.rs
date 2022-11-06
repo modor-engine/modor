@@ -4,7 +4,6 @@ use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::{TextureIdx, TextureStorage};
-use log::error;
 use modor_internal::ti_vec::TiVecSafeOperations;
 use std::ops::Range;
 use typed_index_collections::TiVec;

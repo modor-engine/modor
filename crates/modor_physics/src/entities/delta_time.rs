@@ -30,6 +30,7 @@ pub struct DeltaTime {
 impl DeltaTime {
     /// Builds the entity with an initial `duration`.
     pub fn build(duration: Duration) -> impl Built<Self> {
+        debug!("delta time initialized to `{duration:?}`");
         EntityBuilder::new(Self { duration })
     }
 
@@ -42,5 +43,6 @@ impl DeltaTime {
     /// Set the duration of the last update.
     pub fn set(&mut self, duration: Duration) {
         self.duration = duration;
+        trace!("delta time set to `{duration:?}`");
     }
 }

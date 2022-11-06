@@ -55,6 +55,8 @@
 
 #[macro_use]
 extern crate modor_internal;
+#[macro_use]
+extern crate log;
 
 #[cfg(doctest)]
 #[macro_use]

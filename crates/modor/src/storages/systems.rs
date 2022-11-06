@@ -10,6 +10,7 @@ use typed_index_collections::{TiSlice, TiVec};
 #[derive(Default)]
 pub(crate) struct SystemStorage {
     wrappers: TiVec<SystemIdx, SystemWrapper>,
+    labels: TiVec<SystemIdx, &'static str>,
     filtered_component_type_idxs: TiVec<SystemIdx, Vec<ComponentTypeIdx>>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
@@ -39,6 +40,7 @@ impl SystemStorage {
     pub(super) fn add(
         &mut self,
         wrapper: SystemWrapper,
+        label: &'static str,
         properties: SystemProperties,
         action_idx: ActionIdx,
     ) -> SystemIdx {
@@ -51,6 +53,7 @@ impl SystemStorage {
                 action_idx,
             );
         self.wrappers.push(wrapper);
+        self.labels.push(label);
         self.filtered_component_type_idxs
             .push_and_get_key(properties.filtered_component_type_idxs)
     }
@@ -74,6 +77,7 @@ impl SystemStorage {
             &self.states,
             &self.filtered_component_type_idxs,
             &self.wrappers,
+            &self.labels,
         );
     }
 
@@ -87,6 +91,7 @@ impl SystemStorage {
                         &self.states,
                         &self.filtered_component_type_idxs,
                         &self.wrappers,
+                        &self.labels,
                     );
                 });
             }
@@ -95,6 +100,7 @@ impl SystemStorage {
                 &self.states,
                 &self.filtered_component_type_idxs,
                 &self.wrappers,
+                &self.labels,
             );
         });
     }
@@ -104,13 +110,20 @@ impl SystemStorage {
         states: &Mutex<SystemStateStorage>,
         filtered_component_type_idxs: &TiSlice<SystemIdx, Vec<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
+        labels: &TiSlice<SystemIdx, &'static str>,
     ) {
         let mut previous_system_idx = None;
         while let LockedSystem::Remaining(system_idx) =
             Self::lock_next_system(data, states, previous_system_idx)
         {
             if let Some(system_idx) = system_idx {
-                Self::run_system(system_idx, filtered_component_type_idxs, wrappers, data);
+                Self::run_system(
+                    system_idx,
+                    filtered_component_type_idxs,
+                    wrappers,
+                    labels,
+                    data,
+                );
             }
             previous_system_idx = system_idx;
         }
@@ -131,6 +144,7 @@ impl SystemStorage {
         system_idx: SystemIdx,
         filtered_component_type_idxs: &TiSlice<SystemIdx, Vec<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
+        labels: &TiSlice<SystemIdx, &'static str>,
         data: SystemData<'_>,
     ) {
         let filtered_type_idxs = &filtered_component_type_idxs[system_idx];
@@ -139,6 +153,7 @@ impl SystemStorage {
             item_count: data.item_count(filtered_type_idxs),
         };
         (wrappers[system_idx])(data, info);
+        trace!("system `{}` run", labels[system_idx]);
     }
 }
 

@@ -95,12 +95,19 @@ impl App {
         Self::default()
     }
 
+    /// Returns the number of threads used by the `App` during update.
+    #[must_use]
+    pub fn thread_count(&self) -> u32 {
+        self.core.systems().thread_count()
+    }
+
     /// Set minimum log level.
     ///
     /// Default minimum log level is [`LevelFilter::Warn`](log::LevelFilter::Warn).
     #[must_use]
     pub fn with_log_level(self, level: LevelFilter) -> Self {
         log::set_max_level(level);
+        info!("minimum log level set to '{level}'");
         self
     }
 
@@ -115,6 +122,8 @@ impl App {
     #[must_use]
     pub fn with_thread_count(mut self, count: u32) -> Self {
         self.core.set_thread_count(count);
+        let new_thread_count = self.core.systems().thread_count();
+        info!("thread count set to {new_thread_count}");
         self
     }
 
@@ -125,7 +134,12 @@ impl App {
         E: EntityMainComponent,
         B: Built<E>,
     {
-        entity.build(&mut self.core, None);
+        let entity_idx = entity.build(&mut self.core, None);
+        trace!(
+            "entity of type `{}` created with ID {}",
+            any::type_name::<E>(),
+            entity_idx.0
+        );
         self
     }
 
@@ -148,7 +162,7 @@ impl App {
     /// Runs all systems registered in the `App`.
     #[must_use]
     pub fn updated(mut self) -> Self {
-        self.core.update();
+        self.update();
         self
     }
 
@@ -170,7 +184,7 @@ impl App {
     {
         let mut result = false;
         for i in 0.. {
-            self.core.update();
+            self.update();
             let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().any(&mut f));
             let properties = (system.properties_fn)(&mut self.core);
             self.core.run_system_once(system.wrapper, properties);
@@ -202,7 +216,7 @@ impl App {
     {
         let mut result = false;
         for i in 0.. {
-            self.core.update();
+            self.update();
             let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().all(&mut f));
             let properties = (system.properties_fn)(&mut self.core);
             self.core.run_system_once(system.wrapper, properties);
@@ -255,12 +269,6 @@ impl App {
         runner(self);
     }
 
-    /// Returns the number of threads used by the `App` during update.
-    #[must_use]
-    pub fn thread_count(&self) -> u32 {
-        self.core.systems().thread_count()
-    }
-
     /// Runs `f` if the singleton of type `E` exists.
     pub fn update_singleton<E>(&mut self, f: impl FnOnce(&mut E))
     where
@@ -278,7 +286,9 @@ impl App {
 
     /// Runs all systems registered in the `App`.
     pub fn update(&mut self) {
+        debug!("update `App`...");
         self.core.update();
+        debug!("`App` updated");
     }
 }
 

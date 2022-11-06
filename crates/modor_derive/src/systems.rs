@@ -1,8 +1,8 @@
 use crate::attributes::{AttributeType, ParsedAttribute};
 use crate::{attributes, crate_name};
-use proc_macro2::TokenStream;
+use proc_macro2::{Literal, TokenStream, TokenTree};
 use proc_macro_error::emit_error;
-use quote::{quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use std::cmp::Ordering;
 use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
@@ -21,7 +21,11 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
             if let ImplItem::Method(method) = i {
                 let attributes = supported_attributes(&method.attrs);
                 return match attributes.len().cmp(&1) {
-                    Ordering::Equal => Some(generate_system_call(method, &attributes[0])),
+                    Ordering::Equal => Some(generate_system_call(
+                        &impl_block.self_ty.to_token_stream().to_string(),
+                        method,
+                        &attributes[0],
+                    )),
                     Ordering::Less => None,
                     Ordering::Greater => {
                         emit_error!(attributes[1].span(), "found more than one `run*` attribute");
@@ -41,23 +45,30 @@ fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
         .collect()
 }
 
-fn generate_system_call(method: &ImplItemMethod, attribute: &AttributeType) -> Option<TokenStream> {
+fn generate_system_call(
+    entity_type: &str,
+    method: &ImplItemMethod,
+    attribute: &AttributeType,
+) -> Option<TokenStream> {
     let crate_ident = crate_name::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
+    let label = format!("{entity_type}::{}", method.sig.ident);
+    let label_tokens = TokenTree::Literal(Literal::string(&label));
     Some(match attributes::parse(attribute)? {
         ParsedAttribute::Run => quote_spanned! { attribute.span() =>
-            .run(#crate_ident::system!(Self::#system_name))
+            .run(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
         ParsedAttribute::RunAs(action) => quote_spanned! { attribute.span() =>
-            .run_as::<#action>(#crate_ident::system!(Self::#system_name))
+            .run_as::<#action>(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
         ParsedAttribute::RunAfter(actions) => quote_spanned! { attribute.span() =>
             .run_constrained::<(#(#crate_ident::DependsOn<#actions>,)*)>(
-                #crate_ident::system!(Self::#system_name)
+                #crate_ident::system!(Self::#system_name),
+                #label_tokens,
             )
         },
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
-            .and_then(#crate_ident::system!(Self::#system_name))
+            .and_then(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
     })
 }

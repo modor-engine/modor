@@ -61,6 +61,7 @@ impl InputEventCollector {
         gamepads.iter_mut().for_each(|(_, g)| g.reset());
         let module_id = module.entity().id();
         for event in self.events.drain(..) {
+            trace!("input event `{event:?}` received");
             match event {
                 InputEvent::Mouse(event) => mouse.apply_event(event),
                 InputEvent::Keyboard(event) => keyboard.apply_event(event),

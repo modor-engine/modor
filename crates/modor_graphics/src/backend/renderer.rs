@@ -1,5 +1,4 @@
 use crate::backend::targets::{CreatedTarget, Target};
-use log::warn;
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, CommandEncoder,
     Device, Extent3d, Queue, SamplerBindingType, ShaderStages, TextureDescriptor, TextureDimension,

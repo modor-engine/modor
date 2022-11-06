@@ -12,7 +12,7 @@ use modor_physics::PhysicsModule;
 /// - **Type**: singleton entity
 /// - **Lifetime**: custom (same as parent entity)
 /// - **Dependencies (created if not found)**: [`PhysicsModule`](modor_physics::PhysicsModule),
-///     [`InputModule`](modor_input::InputModule)
+///     [`InputModule`](modor_input::InputModule) if window mode
 ///
 /// # Examples
 ///
@@ -63,6 +63,7 @@ impl GraphicsModule {
     ///
     /// Window properties can be accessed using the [`Window`](crate::Window) entity.
     pub fn build(settings: WindowSettings) -> impl Built<Self> {
+        info!("graphics module created with `{settings:?}`");
         EntityBuilder::new(Self)
             .with_child(WindowInit::build(settings))
             .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
@@ -78,6 +79,7 @@ impl GraphicsModule {
     /// This mode is particularly useful for testing. You can use the
     /// [`assert_capture`](crate::testing::assert_capture) method to easily compare captures.
     pub fn build_windowless(capture_size: SurfaceSize) -> impl Built<Self> {
+        info!("graphics module created without window and with `{capture_size:?}`");
         EntityBuilder::new(Self)
             .with_child(Capture::build(capture_size))
             .with_dependency(PhysicsModule::build())
@@ -86,6 +88,7 @@ impl GraphicsModule {
 
 // coverage: off (window cannot be tested)
 /// The settings of a window to create.
+#[derive(Debug)]
 pub struct WindowSettings {
     pub(crate) size: SurfaceSize,
     pub(crate) title: String,
@@ -93,6 +96,7 @@ pub struct WindowSettings {
 }
 
 impl Default for WindowSettings {
+    // feokfoe
     fn default() -> Self {
         Self {
             size: SurfaceSize {

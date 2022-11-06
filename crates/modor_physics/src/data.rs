@@ -123,6 +123,7 @@ impl CollisionGroupIndex {
 /// # Examples
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
+#[derive(Debug)]
 pub struct CollisionLayer {
     pub(crate) groups: Vec<CollisionGroupIndex>,
 }
