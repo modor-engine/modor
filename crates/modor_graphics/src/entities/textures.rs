@@ -40,8 +40,8 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 /// impl TextureRef for AppTextureRef {
 ///     fn config(&self) -> TextureConfig {
 ///         let config = match self {
-///             Self::Rectangle => TextureConfig::from_path(label, "res/rectangle.png"),
-///             Self::Circle => TextureConfig::from_memory(label, include_bytes!(
+///             Self::Rectangle => TextureConfig::from_path("res/rectangle.png"),
+///             Self::Circle => TextureConfig::from_memory(include_bytes!(
 ///                 concat!(env!("CARGO_MANIFEST_DIR"), "/assets/circle.png")
 ///             )),
 ///         };
