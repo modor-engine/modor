@@ -1,12 +1,13 @@
 use modor::{App, Built, Entity, EntityBuilder, Query, With, World};
 use modor_graphics::{
-    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureConfig,
-    TextureState,
+    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureRef, TextureState,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use std::thread;
 use std::time::Duration;
+
+use crate::PathTextureRef;
 
 struct Object;
 
@@ -34,14 +35,14 @@ impl Object {
 
     fn build_styled_rectangle(
         position: Vec2,
-        texture_id: Option<usize>,
+        texture_ref: Option<impl TextureRef>,
         color: Color,
         texture_color: Color,
     ) -> impl Built<Self> {
         let mut mesh = Mesh2D::rectangle()
             .with_color(color)
             .with_texture_color(texture_color);
-        if let Some(texture_id) = texture_id {
+        if let Some(texture_id) = texture_ref {
             mesh = mesh.with_texture(texture_id);
         }
         EntityBuilder::new(Self)
@@ -88,7 +89,7 @@ fn display_invisible_shape() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_styled_rectangle(
             Vec2::ZERO,
-            None,
+            None as Option<PathTextureRef>,
             Color::INVISIBLE,
             Color::WHITE,
         ))
@@ -102,29 +103,26 @@ fn display_invisible_shape() {
 fn attach_texture_with_color() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(
-            TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_smooth(false),
-        ))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
         })
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, 0.25),
-            None,
+            None as Option<PathTextureRef>,
             Color::GREEN,
             Color::BLUE,
         ))
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(0.25, 0.25),
-            Some(0),
+            Some(PathTextureRef::OpaquePixelated),
             Color::GREEN,
             Color::BLUE,
         ))
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, -0.25),
-            Some(1),
+            Some(PathTextureRef::OpaqueSmooth),
             Color::GREEN,
             Color::BLUE,
         ))
@@ -137,5 +135,41 @@ fn attach_texture_with_color() {
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/removed_texture_with_color.png")
+        });
+}
+
+#[test]
+fn update_attached_texture() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
+        .with_entity(Texture::build(PathTextureRef::TransparentPixelated))
+        .updated_until_all::<(), _>(Some(100), |t: &Texture| {
+            thread::sleep(Duration::from_millis(10));
+            !matches!(t.state(), TextureState::Loading)
+        })
+        .with_entity(Object::build_styled_rectangle(
+            Vec2::new(-0.25, 0.25),
+            Some(PathTextureRef::OpaquePixelated),
+            Color::GREEN,
+            Color::BLUE,
+        ))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/initial_texture.png")
+        })
+        .with_update::<(), _>(|m: &mut Mesh2D| {
+            m.attach_texture(PathTextureRef::TransparentPixelated);
+        })
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/modified_texture.png")
+        })
+        .with_update::<(), _>(|m: &mut Mesh2D| {
+            m.detach_texture();
+        })
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/removed_texture.png")
         });
 }

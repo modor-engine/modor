@@ -117,7 +117,7 @@ impl PhysicsModule {
     /// can collide with each other.
     pub fn build() -> impl Built<Self> {
         info!("physics module created");
-        Self::build_with_layers(vec![CollisionLayer::new(
+        Self::build_internal(vec![CollisionLayer::new(
             CollisionGroupIndex::ALL
                 .into_iter()
                 .chain(CollisionGroupIndex::ALL.into_iter())
@@ -128,11 +128,7 @@ impl PhysicsModule {
     /// Builds the module with custom collision layers.
     pub fn build_with_layers(layers: Vec<CollisionLayer>) -> impl Built<Self> {
         info!("physics module created with layers `{layers:?}`");
-        EntityBuilder::new(Self {
-            groups: Self::compute_groups(layers),
-            core_2d: Core2DStorage::default(),
-        })
-        .with_child(DeltaTime::build(Duration::ZERO))
+        Self::build_internal(layers)
     }
 
     #[run_as(Update2DAbsoluteFromRelativeAction)]
@@ -165,6 +161,14 @@ impl PhysicsModule {
 
     #[run_as(UpdatePhysicsAction)]
     fn finish_update() {}
+
+    fn build_internal(layers: Vec<CollisionLayer>) -> impl Built<Self> {
+        EntityBuilder::new(Self {
+            groups: Self::compute_groups(layers),
+            core_2d: Core2DStorage::default(),
+        })
+        .with_child(DeltaTime::build(Duration::ZERO))
+    }
 
     fn compute_groups(layers: Vec<CollisionLayer>) -> Vec<Group> {
         let mut groups: Vec<_> = (0..32).map(Group::new).collect();

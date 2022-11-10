@@ -9,6 +9,11 @@ use modor_physics::{
     RelativeTransform2D, Transform2D,
 };
 
+// TODO: add physics layers of layers
+// - TypeId of CollisionGroupLabel would be saved in Collider2D component
+// - PhysicsModule contains multiple core storages for each CollisionGroupLabel TypeId
+// - If no collision group, then defaut core storage with CollisionGroupLabel=()
+
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()

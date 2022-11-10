@@ -4,15 +4,16 @@ use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
-use crate::storages::textures::{TextureIdx, TextureStorage};
+use crate::storages::textures::TextureStorage;
 use crate::storages::InstanceDetails;
+use fxhash::FxHashSet;
+use modor::DynKey;
 use std::cmp::Ordering;
-use typed_index_collections::TiVec;
 
 pub(super) struct TransparentInstanceStorage {
     instances: DynamicBuffer<Instance>,
     instance_details: Vec<TransparentInstanceDetails>,
-    logged_missing_textures: TiVec<TextureIdx, bool>,
+    logged_missing_texture_keys: FxHashSet<DynKey>,
 }
 
 impl TransparentInstanceStorage {
@@ -25,7 +26,7 @@ impl TransparentInstanceStorage {
                 renderer,
             ),
             instance_details: vec![],
-            logged_missing_textures: ti_vec![],
+            logged_missing_texture_keys: FxHashSet::default(),
         }
     }
 
@@ -38,7 +39,7 @@ impl TransparentInstanceStorage {
         &mut self,
         instance: Instance,
         shader_idx: ShaderIdx,
-        texture_idx: TextureIdx,
+        texture_key: DynKey,
         model_idx: ModelIdx,
     ) {
         let initial_idx = self.instance_details.len();
@@ -47,7 +48,7 @@ impl TransparentInstanceStorage {
             initial_idx,
             inner: InstanceDetails {
                 shader_idx,
-                texture_idx,
+                texture_key,
                 model_idx,
             },
         });
@@ -89,8 +90,8 @@ impl TransparentInstanceStorage {
                 models,
                 &self.instances,
                 next_instance_idx..first_instance_idx_with_different_model,
-                details.inner,
-                &mut self.logged_missing_textures,
+                &details.inner,
+                &mut self.logged_missing_texture_keys,
             );
             next_instance_idx = first_instance_idx_with_different_model;
         }
@@ -113,7 +114,7 @@ impl TransparentInstanceStorage {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct TransparentInstanceDetails {
     initial_idx: usize,
     inner: InstanceDetails,

@@ -1,4 +1,6 @@
-use crate::Color;
+use modor::DynKey;
+
+use crate::{Color, TextureRef};
 
 /// The properties of a rendered entity.
 ///
@@ -46,13 +48,12 @@ pub struct Mesh2D {
     /// Z-coordinate of the mesh used to define display order, where smallest Z-coordinates are
     /// displayed first.
     pub z: f32,
-    /// ID of the attached texture, or `None` if no texture should be applied.
-    pub texture_id: Option<usize>,
     /// Color applied to the attached texture.
     ///
     /// The color of each pixel of the texture will be multiplied component-wise by this color.<br>
     /// This color will be applied only if there is an attached texture that is already loaded.
     pub texture_color: Color,
+    pub(crate) texture_key: Option<DynKey>,
     pub(crate) shape: Shape,
 }
 
@@ -67,8 +68,8 @@ impl Mesh2D {
             color: Color::WHITE,
             z: 0.,
             shape: Shape::Rectangle,
-            texture_id: None,
             texture_color: Color::WHITE,
+            texture_key: None,
         }
     }
 
@@ -82,8 +83,8 @@ impl Mesh2D {
             color: Color::WHITE,
             z: 0.,
             shape: Shape::Ellipse,
-            texture_id: None,
             texture_color: Color::WHITE,
+            texture_key: None,
         }
     }
 
@@ -105,12 +106,12 @@ impl Mesh2D {
         self
     }
 
-    /// Returns the mesh with an attached texture with ID `texture_id`.
+    /// Returns the mesh with an attached texture with label `texture_label`.
     ///
     /// There is no attached texture by default.
     #[must_use]
-    pub fn with_texture(mut self, texture_id: impl Into<usize>) -> Self {
-        self.texture_id = Some(texture_id.into());
+    pub fn with_texture(mut self, texture_ref: impl TextureRef) -> Self {
+        self.texture_key = Some(DynKey::new(texture_ref));
         self
     }
 
@@ -121,6 +122,16 @@ impl Mesh2D {
     pub const fn with_texture_color(mut self, texture_color: Color) -> Self {
         self.texture_color = texture_color;
         self
+    }
+
+    /// Attach a new texture.
+    pub fn attach_texture(&mut self, texture_ref: impl TextureRef) {
+        self.texture_key = Some(DynKey::new(texture_ref));
+    }
+
+    /// Detach the current texture if any is attached.
+    pub fn detach_texture(&mut self) {
+        self.texture_key = None;
     }
 }
 

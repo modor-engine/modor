@@ -1,93 +1,100 @@
+use std::iter;
+
 use crate::backend::renderer::Renderer;
 use crate::backend::textures::{Image, Texture};
-use crate::TextureConfig;
+use crate::InternalTextureConfig;
+use fxhash::FxHashMap;
 use image::{DynamicImage, ImageBuffer, Rgba};
-use modor_internal::ti_vec::TiVecSafeOperations;
-use typed_index_collections::TiVec;
+use modor::DynKey;
 
 pub(super) struct TextureStorage {
-    textures: TiVec<TextureIdx, Option<StoredTexture>>,
+    default_key: DynKey,
+    textures: FxHashMap<DynKey, StoredTexture>,
 }
 
 impl TextureStorage {
-    pub(super) const DEFAULT_TEXTURE_IDX: TextureIdx = TextureIdx(0);
-
     pub(super) fn new(renderer: &Renderer) -> Self {
         let default_texture_data = ImageBuffer::from_pixel(1, 1, Rgba([255u8, 255, 255, 255]));
+        let default_texture_key = DynKey::new(DefaultTextureLabel);
         Self {
-            textures: ti_vec![Some(StoredTexture {
-                texture: Texture::new(
-                    Image {
-                        data: DynamicImage::ImageRgba8(default_texture_data),
-                        is_transparent: false
-                    },
-                    false,
-                    &Self::DEFAULT_TEXTURE_IDX.0.to_string(),
-                    renderer,
-                ),
-                should_be_removed: false
-            })],
+            textures: iter::once((
+                default_texture_key.clone(),
+                StoredTexture {
+                    texture: Texture::new(
+                        Image {
+                            data: DynamicImage::ImageRgba8(default_texture_data),
+                            is_transparent: false,
+                        },
+                        false,
+                        "default",
+                        renderer,
+                    ),
+                    is_deleted: false,
+                },
+            ))
+            .collect(),
+            default_key: default_texture_key,
         }
     }
 
+    pub(super) fn default_key(&self) -> &DynKey {
+        &self.default_key
+    }
+
     pub(super) fn get_default(&self) -> &Texture {
-        &self.textures[Self::DEFAULT_TEXTURE_IDX]
-            .as_ref()
-            .expect("internal error: default texture not loaded")
-            .texture
+        &self.textures[&self.default_key].texture
     }
 
-    pub(super) fn get(&self, idx: TextureIdx) -> Option<&Texture> {
-        self.textures
-            .get(idx)
-            .and_then(Option::as_ref)
-            .map(|t| &t.texture)
+    pub(super) fn get(&self, key: &DynKey) -> Option<&Texture> {
+        self.textures.get(key).map(|t| &t.texture)
     }
 
-    pub(super) fn is_transparent(&self, idx: TextureIdx) -> bool {
-        self.get(idx).map_or(false, Texture::is_transparent)
+    pub(super) fn is_transparent(&self, key: &DynKey) -> bool {
+        self.get(key).map_or(false, Texture::is_transparent)
     }
 
     pub(super) fn load_texture(
         &mut self,
         image: Image,
-        config: &TextureConfig,
+        config: &InternalTextureConfig,
         renderer: &Renderer,
     ) {
-        let id = config.texture_id + 1;
-        *self.textures.get_mut_or_create(id.into()) = Some(StoredTexture {
-            texture: Texture::new(image, config.is_smooth, &id.to_string(), renderer),
-            should_be_removed: false,
-        });
+        self.textures.insert(
+            config.key.clone(),
+            StoredTexture {
+                texture: Texture::new(
+                    image,
+                    config.is_smooth,
+                    &format!("{:?}", config.key),
+                    renderer,
+                ),
+                is_deleted: false,
+            },
+        );
     }
 
-    pub(crate) fn remove_not_found_textures(
+    pub(crate) fn remove_not_found_textures<'a>(
         &mut self,
-        texture_idxs: impl Iterator<Item = TextureIdx>,
+        existing_keys: impl Iterator<Item = &'a DynKey>,
     ) {
-        for texture in self.textures.iter_mut().skip(1).flatten() {
-            texture.should_be_removed = true;
-        }
-        for texture_idx in texture_idxs {
-            if let Some(Some(texture)) = self.textures.get_mut(texture_idx) {
-                texture.should_be_removed = false;
+        for (key, texture) in &mut self.textures {
+            if key != &self.default_key {
+                texture.is_deleted = true;
             }
         }
-        for texture in &mut self.textures {
-            if let Some(StoredTexture {
-                should_be_removed: true,
-                ..
-            }) = texture
-            {
-                texture.take();
+        for key in existing_keys {
+            if let Some(texture) = self.textures.get_mut(key) {
+                texture.is_deleted = false;
             }
         }
+        self.textures.retain(|_, t| !t.is_deleted);
     }
 }
 
 struct StoredTexture {
     texture: Texture,
-    should_be_removed: bool,
+    is_deleted: bool,
 }
 
-idx_type!(pub(super) TextureIdx);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct DefaultTextureLabel;

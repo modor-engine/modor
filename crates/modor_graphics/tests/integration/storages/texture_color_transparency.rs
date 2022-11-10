@@ -1,12 +1,13 @@
 use modor::{App, Built, Entity, EntityBuilder, With, World};
 use modor_graphics::{
-    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureConfig,
-    TextureState,
+    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureState,
 };
 use modor_math::{Vec2, Vec3};
 use modor_physics::Transform2D;
 use std::thread;
 use std::time::Duration;
+
+use crate::PathTextureRef;
 
 struct Object;
 
@@ -21,7 +22,7 @@ impl Object {
             )
             .with(
                 Mesh2D::rectangle()
-                    .with_texture(0_usize)
+                    .with_texture(PathTextureRef::OpaquePixelated)
                     .with_texture_color(color)
                     .with_z(position.z),
             )
@@ -36,7 +37,7 @@ impl Object {
             )
             .with(
                 Mesh2D::ellipse()
-                    .with_texture(0_usize)
+                    .with_texture(PathTextureRef::OpaquePixelated)
                     .with_texture_color(color)
                     .with_z(position.z),
             )
@@ -52,10 +53,7 @@ impl Object {
 fn display_transparent_and_opaque_shapes_ordered() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(
-            TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_smooth(false),
-        ))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
@@ -89,10 +87,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
 fn display_transparent_and_opaque_shapes_unordered() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(
-            TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_smooth(false),
-        ))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
@@ -126,10 +121,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
 fn display_different_transparent_shapes() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(
-            TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_smooth(false),
-        ))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
@@ -163,10 +155,7 @@ fn display_different_transparent_shapes() {
 fn hide_shape_after_deletion() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(
-            TextureConfig::from_path(0_usize, "../tests/assets/opaque-texture.png")
-                .with_smooth(false),
-        ))
+        .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
