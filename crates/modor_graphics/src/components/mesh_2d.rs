@@ -1,6 +1,5 @@
-use modor::DynKey;
-
 use crate::{Color, TextureRef};
+use modor_internal::dyn_key::DynKey;
 
 /// The properties of a rendered entity.
 ///

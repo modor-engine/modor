@@ -5,7 +5,7 @@ use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::TextureStorage;
 use fxhash::FxHashSet;
-use modor::DynKey;
+use modor_internal::dyn_key::DynKey;
 use std::ops::Range;
 
 pub(crate) mod core;

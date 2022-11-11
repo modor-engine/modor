@@ -1,4 +1,4 @@
-use modor::DynKey;
+use modor_internal::dyn_key::DynKey;
 use std::collections::HashMap;
 
 #[test]

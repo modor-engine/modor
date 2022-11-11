@@ -1,13 +1,12 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
-
 use modor::{entity, singleton, App, Built, EntityBuilder};
 use modor_graphics::{
     Color, GraphicsModule, Mesh2D, Texture, TextureConfig, TextureRef, WindowSettings,
 };
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, Transform2D};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {

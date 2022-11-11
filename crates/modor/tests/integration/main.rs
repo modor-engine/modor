@@ -8,7 +8,6 @@
 extern crate modor;
 
 pub mod app;
-pub mod dyn_key;
 pub mod entities;
 pub mod ranges;
 pub mod system_params;

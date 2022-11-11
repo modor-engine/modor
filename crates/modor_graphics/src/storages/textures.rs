@@ -5,7 +5,7 @@ use crate::backend::textures::{Image, Texture};
 use crate::InternalTextureConfig;
 use fxhash::FxHashMap;
 use image::{DynamicImage, ImageBuffer, Rgba};
-use modor::DynKey;
+use modor_internal::dyn_key::DynKey;
 
 pub(super) struct TextureStorage {
     default_key: DynKey,

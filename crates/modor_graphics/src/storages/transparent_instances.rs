@@ -7,7 +7,7 @@ use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::TextureStorage;
 use crate::storages::InstanceDetails;
 use fxhash::FxHashSet;
-use modor::DynKey;
+use modor_internal::dyn_key::DynKey;
 use std::cmp::Ordering;
 
 pub(super) struct TransparentInstanceStorage {

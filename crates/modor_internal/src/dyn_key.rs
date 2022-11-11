@@ -3,27 +3,11 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
-/// A clonable dynamic `HashMap` key.
-///
-/// # Examples
-///
-/// ```rust
-/// # use std::collections::HashMap;
-/// # use modor::DynKey;
-/// #
-/// let mut map = HashMap::<DynKey, u32>::new();
-/// map.insert(DynKey::new(12_usize), 0);
-/// map.insert(DynKey::new("key"), 1);
-/// assert_eq!(map.get(&DynKey::new(12_usize)), Some(&0_u32));
-/// assert_eq!(map.get(&DynKey::new("key")), Some(&1_u32));
-/// assert_eq!(map.get(&DynKey::new(33_usize)), None);
-/// assert_eq!(map.get(&DynKey::new("other key")), None);
-/// ```
+// This is a clonable dynamic `HashMap` key.
 #[derive(Eq)]
 pub struct DynKey(Box<dyn DynKeyType>);
 
 impl DynKey {
-    /// Creates a new dynamic key from `value`.
     pub fn new<T>(value: T) -> Self
     where
         T: Any + Sync + Send + UnwindSafe + RefUnwindSafe + PartialEq + Eq + Hash + Debug + Clone,

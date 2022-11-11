@@ -69,7 +69,6 @@ doc_comment!(include_str!("../../../README.md"));
 mod utils;
 mod actions;
 mod app;
-mod dyn_key;
 mod entities;
 mod entity_filters;
 mod logging;
@@ -82,7 +81,6 @@ mod systems;
 
 pub use actions::*;
 pub use app::*;
-pub use dyn_key::*;
 pub use entities::*;
 pub use entity_filters::*;
 pub use ranges::*;
