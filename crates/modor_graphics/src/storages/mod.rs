@@ -1,3 +1,4 @@
+use self::textures::TextureKey;
 use crate::backend::buffer::DynamicBuffer;
 use crate::backend::data::Instance;
 use crate::backend::rendering::RenderCommands;
@@ -5,7 +6,6 @@ use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::TextureStorage;
 use fxhash::FxHashSet;
-use modor_internal::dyn_key::DynKey;
 use std::ops::Range;
 
 pub(crate) mod core;
@@ -18,7 +18,7 @@ pub(crate) mod transparent_instances;
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct InstanceDetails {
     shader_idx: ShaderIdx,
-    texture_key: DynKey,
+    texture_key: TextureKey,
     model_idx: ModelIdx,
 }
 
@@ -31,7 +31,7 @@ fn push_shape_commands<'a>(
     instances: &'a DynamicBuffer<Instance>,
     instance_idxs: Range<usize>,
     details: &InstanceDetails,
-    logged_missing_texture_keys: &mut FxHashSet<DynKey>,
+    logged_missing_texture_keys: &mut FxHashSet<TextureKey>,
 ) {
     commands.push_shader_change(shaders.get(details.shader_idx));
     let key = &details.texture_key;

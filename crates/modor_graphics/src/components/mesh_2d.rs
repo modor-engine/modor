@@ -1,5 +1,5 @@
+use crate::storages::textures::TextureKey;
 use crate::{Color, TextureRef};
-use modor_internal::dyn_key::DynKey;
 
 /// The properties of a rendered entity.
 ///
@@ -52,7 +52,7 @@ pub struct Mesh2D {
     /// The color of each pixel of the texture will be multiplied component-wise by this color.<br>
     /// This color will be applied only if there is an attached texture that is already loaded.
     pub texture_color: Color,
-    pub(crate) texture_key: Option<DynKey>,
+    pub(crate) texture_key: Option<TextureKey>,
     pub(crate) shape: Shape,
 }
 
@@ -110,7 +110,7 @@ impl Mesh2D {
     /// There is no attached texture by default.
     #[must_use]
     pub fn with_texture(mut self, texture_ref: impl TextureRef) -> Self {
-        self.texture_key = Some(DynKey::new(texture_ref));
+        self.texture_key = Some(TextureKey::new(texture_ref));
         self
     }
 
@@ -125,7 +125,7 @@ impl Mesh2D {
 
     /// Attach a new texture.
     pub fn attach_texture(&mut self, texture_ref: impl TextureRef) {
-        self.texture_key = Some(DynKey::new(texture_ref));
+        self.texture_key = Some(TextureKey::new(texture_ref));
     }
 
     /// Detach the current texture if any is attached.

@@ -1,9 +1,10 @@
 use crate::backend::textures::Image;
+use crate::storages::textures::{DynTextureKeyClone, TextureKey};
 use crate::RenderTarget;
 use image::error::UnsupportedErrorKind;
 use image::{GenericImageView, ImageError};
 use modor::{Built, EntityBuilder, SingleMut};
-use modor_internal::dyn_key::DynKey;
+use modor_internal::dyn_traits::{DynDebug, DynHash, DynPartialEq};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
@@ -75,7 +76,7 @@ impl Texture {
     pub fn build(texture_ref: impl TextureRef) -> impl Built<Self> {
         let config = texture_ref.config();
         let config = InternalTextureConfig {
-            key: DynKey::new(texture_ref),
+            key: TextureKey::new(texture_ref),
             location: config.location,
             is_smooth: config.is_smooth,
         };
@@ -284,14 +285,22 @@ impl TryFrom<ImageError> for TextureError {
 ///
 /// See [`Texture`](crate::Texture).
 pub trait TextureRef:
-    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + Eq + Hash + Debug
+    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
 {
     /// Returns the associated texture configuration.
     fn config(&self) -> TextureConfig;
 }
 
+#[doc(hidden)]
+pub trait DynTextureKey:
+    Sync + Send + UnwindSafe + RefUnwindSafe + DynTextureKeyClone + DynPartialEq + DynHash + DynDebug
+{
+}
+
+impl<T> DynTextureKey for T where T: TextureRef {}
+
 pub(crate) struct InternalTextureConfig {
-    pub(crate) key: DynKey,
+    pub(crate) key: TextureKey,
     pub(crate) location: TextureLocation,
     pub(crate) is_smooth: bool,
 }

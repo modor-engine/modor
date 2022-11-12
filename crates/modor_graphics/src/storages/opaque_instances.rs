@@ -1,3 +1,4 @@
+use super::textures::TextureKey;
 use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Instance;
 use crate::backend::renderer::Renderer;
@@ -7,12 +8,11 @@ use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::TextureStorage;
 use crate::storages::InstanceDetails;
 use fxhash::{FxHashMap, FxHashSet};
-use modor_internal::dyn_key::DynKey;
 
 #[derive(Default)]
 pub(super) struct OpaqueInstanceStorage {
     instances: FxHashMap<InstanceDetails, DynamicBuffer<Instance>>,
-    logged_missing_texture_keys: FxHashSet<DynKey>,
+    logged_missing_texture_keys: FxHashSet<TextureKey>,
 }
 
 impl OpaqueInstanceStorage {
@@ -26,7 +26,7 @@ impl OpaqueInstanceStorage {
         &mut self,
         instance: Instance,
         shader_idx: ShaderIdx,
-        texture_key: DynKey,
+        texture_key: TextureKey,
         model_idx: ModelIdx,
         renderer: &Renderer,
     ) {

@@ -1,21 +1,22 @@
-use std::iter;
+use std::{fmt, iter};
 
 use crate::backend::renderer::Renderer;
 use crate::backend::textures::{Image, Texture};
-use crate::InternalTextureConfig;
+use crate::{DynTextureKey, InternalTextureConfig, TextureRef};
 use fxhash::FxHashMap;
 use image::{DynamicImage, ImageBuffer, Rgba};
-use modor_internal::dyn_key::DynKey;
+use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 
 pub(super) struct TextureStorage {
-    default_key: DynKey,
-    textures: FxHashMap<DynKey, StoredTexture>,
+    default_key: TextureKey,
+    textures: FxHashMap<TextureKey, StoredTexture>,
 }
 
 impl TextureStorage {
     pub(super) fn new(renderer: &Renderer) -> Self {
         let default_texture_data = ImageBuffer::from_pixel(1, 1, Rgba([255u8, 255, 255, 255]));
-        let default_texture_key = DynKey::new(DefaultTextureLabel);
+        let default_texture_key = TextureKey::new(DefaultTextureKey);
         Self {
             textures: iter::once((
                 default_texture_key.clone(),
@@ -37,7 +38,7 @@ impl TextureStorage {
         }
     }
 
-    pub(super) fn default_key(&self) -> &DynKey {
+    pub(super) fn default_key(&self) -> &TextureKey {
         &self.default_key
     }
 
@@ -45,11 +46,11 @@ impl TextureStorage {
         &self.textures[&self.default_key].texture
     }
 
-    pub(super) fn get(&self, key: &DynKey) -> Option<&Texture> {
+    pub(super) fn get(&self, key: &TextureKey) -> Option<&Texture> {
         self.textures.get(key).map(|t| &t.texture)
     }
 
-    pub(super) fn is_transparent(&self, key: &DynKey) -> bool {
+    pub(super) fn is_transparent(&self, key: &TextureKey) -> bool {
         self.get(key).map_or(false, Texture::is_transparent)
     }
 
@@ -75,7 +76,7 @@ impl TextureStorage {
 
     pub(crate) fn remove_not_found_textures<'a>(
         &mut self,
-        existing_keys: impl Iterator<Item = &'a DynKey>,
+        existing_keys: impl Iterator<Item = &'a TextureKey>,
     ) {
         for (key, texture) in &mut self.textures {
             if key != &self.default_key {
@@ -96,5 +97,47 @@ struct StoredTexture {
     is_deleted: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct DefaultTextureLabel;
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct DefaultTextureKey;
+
+impl TextureRef for DefaultTextureKey {
+    fn config(&self) -> crate::TextureConfig {
+        unreachable!("internal error: unreachable config generation from `DefaultTextureKey`")
+    }
+}
+
+pub(crate) struct TextureKey(Box<dyn DynTextureKey>);
+
+impl TextureKey {
+    pub(crate) fn new(texture_ref: impl DynTextureKey) -> Self {
+        Self(Box::new(texture_ref))
+    }
+}
+
+impl Clone for TextureKey {
+    fn clone(&self) -> Self {
+        Self(self.0.as_ref().dyn_clone())
+    }
+}
+
+impl PartialEq for TextureKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.dyn_partial_eq(other.0.as_dyn_partial_eq())
+    }
+}
+
+impl Eq for TextureKey {}
+
+impl Hash for TextureKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.dyn_hash(state);
+    }
+}
+
+impl Debug for TextureKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.0.dyn_fmt(f)
+    }
+}
+
+dyn_clone_trait!(pub DynTextureKeyClone, DynTextureKey);

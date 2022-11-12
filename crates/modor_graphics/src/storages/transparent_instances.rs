@@ -1,3 +1,4 @@
+use super::textures::TextureKey;
 use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Instance;
 use crate::backend::renderer::Renderer;
@@ -7,13 +8,12 @@ use crate::storages::shaders::{ShaderIdx, ShaderStorage};
 use crate::storages::textures::TextureStorage;
 use crate::storages::InstanceDetails;
 use fxhash::FxHashSet;
-use modor_internal::dyn_key::DynKey;
 use std::cmp::Ordering;
 
 pub(super) struct TransparentInstanceStorage {
     instances: DynamicBuffer<Instance>,
     instance_details: Vec<TransparentInstanceDetails>,
-    logged_missing_texture_keys: FxHashSet<DynKey>,
+    logged_missing_texture_keys: FxHashSet<TextureKey>,
 }
 
 impl TransparentInstanceStorage {
@@ -39,7 +39,7 @@ impl TransparentInstanceStorage {
         &mut self,
         instance: Instance,
         shader_idx: ShaderIdx,
-        texture_key: DynKey,
+        texture_key: TextureKey,
         model_idx: ModelIdx,
     ) {
         let initial_idx = self.instance_details.len();
