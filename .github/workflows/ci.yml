@@ -137,7 +137,7 @@ jobs:
         run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
-        run: cargo clippy--all-targets --target wasm32-unknown-unknown -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+        run: cargo clippy --all-targets --target wasm32-unknown-unknown -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   check-coverage:
     runs-on: ubuntu-20.04
