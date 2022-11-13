@@ -62,8 +62,8 @@ impl CollisionGroupStorage {
         let group1_idx = user_data1.collision_group_idx();
         let group2_idx = user_data2.collision_group_idx();
         self.collision_types
-            .get(Self::min_idx(group1_idx, group2_idx))
-            .and_then(|c| c.get(Self::max_idx(group1_idx, group2_idx)).copied())
+            .get(Self::max_idx(group1_idx, group2_idx))
+            .and_then(|c| c.get(Self::min_idx(group1_idx, group2_idx)).copied())
             .unwrap_or(CollisionType::None)
     }
 }
@@ -74,13 +74,6 @@ impl PhysicsHooks for CollisionGroupStorage {
             CollisionType::None => None,
             CollisionType::Sensor | CollisionType::Impulse => Some(SolverFlags::COMPUTE_IMPULSES),
         }
-    }
-
-    fn filter_intersection_pair(&self, context: &PairFilterContext<'_>) -> bool {
-        matches!(
-            self.collision_type(context),
-            CollisionType::Sensor | CollisionType::Impulse
-        )
     }
 }
 

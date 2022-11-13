@@ -45,46 +45,12 @@ impl CollisionGroupRef for ReversedCollisionGroup {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum BigCollisionGroup {
-    Group1,
-    Group2,
-    Group3,
-    Group4,
-    Group5,
-    Group6,
-    Group7,
-    Group8,
-    Group9,
-    Group10,
-    Group11,
-    Group12,
-    Group13,
-    Group14,
-    Group15,
-    Group16,
-    Group17,
-    Group18,
-    Group19,
-    Group20,
-    Group21,
-    Group22,
-    Group23,
-    Group24,
-    Group25,
-    Group26,
-    Group27,
-    Group28,
-    Group29,
-    Group30,
-    Group31,
-    Group32,
-    Group33,
-}
+struct BigCollisionGroup(u32);
 
 impl CollisionGroupRef for BigCollisionGroup {
     fn collision_type(&self, other: &Self) -> CollisionType {
         match (self, other) {
-            (Self::Group1, Self::Group32) => CollisionType::Sensor,
+            (Self(0), Self(0)) | (Self(32), Self(32)) => CollisionType::Sensor,
             _ => CollisionType::None,
         }
     }
@@ -160,10 +126,41 @@ fn add_collider_with_dynamics_and_same_rapier_group_but_different_modor_group() 
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(BigCollisionGroup::Group1, true))
-        .with_entity(collider_entity2(BigCollisionGroup::Group33, true))
+        .with_entity(collider_entity1(BigCollisionGroup(0), true))
+        .with_entity(collider_entity1(BigCollisionGroup(1), true))
+        .with_entity(collider_entity1(BigCollisionGroup(2), true))
+        .with_entity(collider_entity1(BigCollisionGroup(3), true))
+        .with_entity(collider_entity1(BigCollisionGroup(4), true))
+        .with_entity(collider_entity1(BigCollisionGroup(5), true))
+        .with_entity(collider_entity1(BigCollisionGroup(6), true))
+        .with_entity(collider_entity1(BigCollisionGroup(7), true))
+        .with_entity(collider_entity1(BigCollisionGroup(8), true))
+        .with_entity(collider_entity1(BigCollisionGroup(9), true))
+        .with_entity(collider_entity1(BigCollisionGroup(10), true))
+        .with_entity(collider_entity1(BigCollisionGroup(11), true))
+        .with_entity(collider_entity1(BigCollisionGroup(12), true))
+        .with_entity(collider_entity1(BigCollisionGroup(13), true))
+        .with_entity(collider_entity1(BigCollisionGroup(14), true))
+        .with_entity(collider_entity1(BigCollisionGroup(15), true))
+        .with_entity(collider_entity1(BigCollisionGroup(16), true))
+        .with_entity(collider_entity1(BigCollisionGroup(17), true))
+        .with_entity(collider_entity1(BigCollisionGroup(18), true))
+        .with_entity(collider_entity1(BigCollisionGroup(19), true))
+        .with_entity(collider_entity1(BigCollisionGroup(20), true))
+        .with_entity(collider_entity1(BigCollisionGroup(21), true))
+        .with_entity(collider_entity1(BigCollisionGroup(22), true))
+        .with_entity(collider_entity1(BigCollisionGroup(23), true))
+        .with_entity(collider_entity1(BigCollisionGroup(24), true))
+        .with_entity(collider_entity1(BigCollisionGroup(25), true))
+        .with_entity(collider_entity1(BigCollisionGroup(26), true))
+        .with_entity(collider_entity1(BigCollisionGroup(27), true))
+        .with_entity(collider_entity1(BigCollisionGroup(28), true))
+        .with_entity(collider_entity1(BigCollisionGroup(29), true))
+        .with_entity(collider_entity1(BigCollisionGroup(30), true))
+        .with_entity(collider_entity1(BigCollisionGroup(31), true))
+        .with_entity(collider_entity2(BigCollisionGroup(32), true))
         .updated()
-        .assert::<With<Entity1>>(1, |e| {
+        .assert::<With<Entity1>>(32, |e| {
             e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
         })
         .assert::<With<Entity2>>(1, |e| {

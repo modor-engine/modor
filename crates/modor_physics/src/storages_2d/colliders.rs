@@ -4,6 +4,7 @@ use crate::storages_2d::pipeline::PipelineStorage;
 use crate::utils::UserData;
 use modor::Query;
 use rapier2d::geometry::{ActiveCollisionTypes, Collider, ColliderHandle, ColliderSet};
+use rapier2d::prelude::ActiveHooks;
 
 #[derive(Default)]
 pub(super) struct ColliderStorage {
@@ -70,7 +71,10 @@ impl ColliderStorage {
                 let builder = collider
                     .collider_builder(*entity.transform.size)
                     .user_data(UserData::new(entity.entity.id()).into())
-                    .active_collision_types(ActiveCollisionTypes::all());
+                    .active_collision_types(ActiveCollisionTypes::all())
+                    .active_hooks(
+                        ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::FILTER_INTERSECTION_PAIR,
+                    );
                 collider.handle = Some(if let Some(body_handle) = body_state.handle() {
                     self.container
                         .insert_with_parent(builder, body_handle, &mut bodies.container)

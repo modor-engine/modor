@@ -172,9 +172,11 @@ mod collider_2d_tests {
     struct CollisionGroup;
 
     impl CollisionGroupRef for CollisionGroup {
+        // coverage: off (unreachable)
         fn collision_type(&self, _other: &Self) -> CollisionType {
             CollisionType::Sensor
         }
+        // coverage: on
     }
 
     #[test]
