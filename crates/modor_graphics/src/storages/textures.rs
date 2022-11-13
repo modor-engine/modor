@@ -2,7 +2,7 @@ use std::{fmt, iter};
 
 use crate::backend::renderer::Renderer;
 use crate::backend::textures::{Image, Texture};
-use crate::{DynTextureKey, InternalTextureConfig, TextureRef};
+use crate::{DynTextureKey, InternalTextureConfig, TextureConfig, TextureRef};
 use fxhash::FxHashMap;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use std::fmt::{Debug, Formatter};
@@ -101,9 +101,11 @@ struct StoredTexture {
 struct DefaultTextureKey;
 
 impl TextureRef for DefaultTextureKey {
-    fn config(&self) -> crate::TextureConfig {
+    // coverage: off (unreachable)
+    fn config(&self) -> TextureConfig {
         unreachable!("internal error: unreachable config generation from `DefaultTextureKey`")
     }
+    // coverage: on
 }
 
 pub(crate) struct TextureKey(Box<dyn DynTextureKey>);

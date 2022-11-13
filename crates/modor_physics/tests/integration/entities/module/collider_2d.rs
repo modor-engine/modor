@@ -1,4 +1,5 @@
 use crate::TestEntity;
+use log::LevelFilter;
 use modor::{App, Built, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
@@ -90,6 +91,7 @@ const COLLISION_POSITION2: Vec2 = Vec2::new(-1.5, 2.);
 fn add_collider_with_dynamics_and_same_colliding_group() {
     let mut entity2_id = 0;
     App::new()
+        .with_log_level(LevelFilter::Debug)
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
         .with_entity(collider_entity1(CollisionGroup::Group1, true))

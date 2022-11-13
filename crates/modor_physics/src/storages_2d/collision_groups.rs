@@ -44,6 +44,7 @@ impl CollisionGroupStorage {
                     self.group_filters[next_idx] |= idx.group_membership();
                 }
             }
+            debug!("collision group `{group_key:?}` registered");
             next_idx
         }
     }
