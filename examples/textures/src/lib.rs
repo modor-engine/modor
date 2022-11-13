@@ -1,11 +1,12 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use modor::{entity, singleton, App, Built, EntityBuilder};
-use modor_graphics::{Color, GraphicsModule, Mesh2D, Texture, TextureConfig, WindowSettings};
+use modor_graphics::{
+    Color, GraphicsModule, Mesh2D, Texture, TextureConfig, TextureRef, WindowSettings,
+};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
-use std::fmt::Debug;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
@@ -13,8 +14,8 @@ pub fn main() {
         .with_entity(GraphicsModule::build(
             WindowSettings::default().title("Modor - textures"),
         ))
-        .with_entity(Texture::build(TextureLabel::Background))
-        .with_entity(Texture::build(TextureLabel::Smiley))
+        .with_entity(Texture::build(AppTextureRef::Background))
+        .with_entity(Texture::build(AppTextureRef::Smiley))
         .with_entity(Background::build())
         .with_entity(Smiley::build(
             Vec2::new(0.25, -0.25),
@@ -35,25 +36,19 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
-#[derive(Debug)]
-enum TextureLabel {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AppTextureRef {
     Background,
     Smiley,
 }
 
-impl From<TextureLabel> for usize {
-    fn from(label: TextureLabel) -> Self {
-        label as Self
-    }
-}
-
-impl From<TextureLabel> for TextureConfig {
-    fn from(label: TextureLabel) -> Self {
-        let path = match label {
-            TextureLabel::Background => "background.png",
-            TextureLabel::Smiley => "smiley.png",
+impl TextureRef for AppTextureRef {
+    fn config(&self) -> TextureConfig {
+        let path = match self {
+            Self::Background => "background.png",
+            Self::Smiley => "smiley.png",
         };
-        Self::from_path(label, path).with_smooth(true)
+        TextureConfig::from_path(path).with_smooth(true)
     }
 }
 
@@ -65,7 +60,7 @@ impl Background {
         EntityBuilder::new(Self).with(Transform2D::new()).with(
             Mesh2D::rectangle()
                 .with_color(Color::rgb(0.3, 0.4, 0.6))
-                .with_texture(TextureLabel::Background),
+                .with_texture(AppTextureRef::Background),
         )
     }
 }
@@ -101,7 +96,7 @@ impl Smiley {
                     .with_z(z)
                     .with_color(color)
                     .with_texture_color(texture_color)
-                    .with_texture(TextureLabel::Smiley),
+                    .with_texture(AppTextureRef::Smiley),
             )
     }
 

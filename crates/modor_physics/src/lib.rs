@@ -28,7 +28,6 @@
 extern crate modor;
 #[macro_use]
 extern crate log;
-#[cfg(test)]
 #[macro_use]
 extern crate modor_internal;
 

@@ -5,7 +5,7 @@ use modor_graphics::{Color, GraphicsModule, Mesh2D, WindowSettings};
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{
-    Collider2D, CollisionGroupIndex, CollisionLayer, DeltaTime, Dynamics2D, PhysicsModule,
+    Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule,
     RelativeTransform2D, Transform2D,
 };
 
@@ -15,32 +15,26 @@ pub fn main() {
         .with_entity(GraphicsModule::build(
             WindowSettings::default().title("Modor - collisions"),
         ))
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(Character::build(Vec2::ZERO, Vec2::new(0.05, 0.1)))
         .with_entity(Rectangle::build(Vec2::X * 0.25, Vec2::new(0.2, 0.3)))
         .with_entity(Circle::build(Vec2::X * -0.25, 0.2))
         .run(modor_graphics::runner);
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum CollisionGroup {
     Character,
     Object,
 }
 
-impl From<CollisionGroup> for CollisionGroupIndex {
-    fn from(group: CollisionGroup) -> Self {
-        match group {
-            CollisionGroup::Character => Self::Group0,
-            CollisionGroup::Object => Self::Group1,
+impl CollisionGroupRef for CollisionGroup {
+    fn collision_type(&self, other: &Self) -> CollisionType {
+        match (self, other) {
+            (Self::Character, Self::Object) => CollisionType::Sensor,
+            _ => CollisionType::None,
         }
     }
-}
-
-fn layers() -> Vec<CollisionLayer> {
-    vec![CollisionLayer::new(vec![
-        CollisionGroup::Character.into(),
-        CollisionGroup::Object.into(),
-    ])]
 }
 
 struct Character;

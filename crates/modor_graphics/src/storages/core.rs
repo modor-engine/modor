@@ -8,7 +8,7 @@ use crate::storages::opaque_instances::OpaqueInstanceStorage;
 use crate::storages::shaders::ShaderStorage;
 use crate::storages::textures::TextureStorage;
 use crate::storages::transparent_instances::TransparentInstanceStorage;
-use crate::{utils, Color, Mesh2D, SurfaceSize, Texture, TextureConfig};
+use crate::{utils, Color, InternalTextureConfig, Mesh2D, SurfaceSize, Texture};
 use modor::Query;
 use modor_math::{Mat4, Quat, Vec3};
 use modor_physics::Transform2D;
@@ -60,13 +60,13 @@ impl CoreStorage {
         self.renderer.toggle_vsync(enabled);
     }
 
-    pub(crate) fn load_texture(&mut self, image: Image, config: &TextureConfig) {
+    pub(crate) fn load_texture(&mut self, image: Image, config: &InternalTextureConfig) {
         self.textures.load_texture(image, config, &self.renderer);
     }
 
     pub(crate) fn remove_not_found_textures(&mut self, textures: &Query<'_, &Texture>) {
         self.textures
-            .remove_not_found_textures(textures.iter().map(|t| (t.id + 1).into()));
+            .remove_not_found_textures(textures.iter().map(|t| &t.config.key));
     }
 
     pub(crate) fn update_instances(
@@ -78,24 +78,30 @@ impl CoreStorage {
         self.transparent_instances.reset();
         let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, m)| m.z));
         for (transform, mesh) in shapes.iter() {
-            let color = self.mesh_color(mesh);
+            let has_texture = self.has_mesh_texture(mesh);
+            let color = Self::mesh_color(mesh, has_texture);
             if color.a <= 0. {
                 continue;
             }
-            let instance = Self::create_instance(transform, mesh, depth_bounds, color);
+            let instance = Self::create_instance(transform, mesh, depth_bounds, color, has_texture);
             let shader_idx = ShaderStorage::idx(mesh);
             let model_idx = ModelStorage::idx(mesh);
-            let texture_idx = mesh
-                .texture_id
-                .map_or(TextureStorage::DEFAULT_TEXTURE_IDX, |i| (i + 1).into());
-            if color.a < 1. || self.textures.is_transparent(texture_idx) {
-                self.transparent_instances
-                    .add(instance, shader_idx, texture_idx, model_idx);
+            let texture_key = mesh
+                .texture_key
+                .as_ref()
+                .unwrap_or_else(|| self.textures.default_key());
+            if color.a < 1. || self.textures.is_transparent(texture_key) {
+                self.transparent_instances.add(
+                    instance,
+                    shader_idx,
+                    texture_key.clone(),
+                    model_idx,
+                );
             } else {
                 self.opaque_instances.add(
                     instance,
                     shader_idx,
-                    texture_idx,
+                    texture_key.clone(),
                     model_idx,
                     &self.renderer,
                 );
@@ -130,11 +136,14 @@ impl CoreStorage {
         rendering.apply();
     }
 
-    fn mesh_color(&mut self, mesh: &Mesh2D) -> Color {
-        if mesh
-            .texture_id
-            .map_or(false, |i| self.textures.get((i + 1).into()).is_some())
-        {
+    fn has_mesh_texture(&self, mesh: &Mesh2D) -> bool {
+        mesh.texture_key
+            .as_ref()
+            .map_or(false, |k| self.textures.get(k).is_some())
+    }
+
+    fn mesh_color(mesh: &Mesh2D, has_texture: bool) -> Color {
+        if has_texture {
             mesh.texture_color
         } else {
             mesh.color
@@ -155,6 +164,7 @@ impl CoreStorage {
         mesh: &Mesh2D,
         depth_bounds: (f32, f32),
         color: Color,
+        has_texture: bool,
     ) -> Instance {
         let (min_z, max_z) = depth_bounds;
         let z = MAX_DEPTH - utils::normalize(mesh.z, min_z, max_z, 0., MAX_DEPTH);
@@ -164,7 +174,7 @@ impl CoreStorage {
         Instance {
             transform: matrix.to_array(),
             color: color.into(),
-            has_texture: mesh.texture_id.is_some().into(),
+            has_texture: has_texture.into(),
         }
     }
 

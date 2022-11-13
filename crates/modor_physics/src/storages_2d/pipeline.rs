@@ -1,3 +1,4 @@
+use super::collision_groups::CollisionGroupStorage;
 use crate::storages_2d::bodies::BodyStorage;
 use crate::storages_2d::colliders::ColliderStorage;
 use crate::utils::UserData;
@@ -48,6 +49,7 @@ impl PipelineStorage {
         delta: Duration,
         bodies: &mut BodyStorage,
         colliders: &mut ColliderStorage,
+        collision_groups: &CollisionGroupStorage,
     ) {
         self.integration_parameters.dt = delta.as_secs_f32();
         self.physics_pipeline.step(
@@ -61,7 +63,7 @@ impl PipelineStorage {
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
-            &(),
+            collision_groups,
             &(),
         );
     }

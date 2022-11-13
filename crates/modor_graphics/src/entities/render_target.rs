@@ -7,8 +7,8 @@ use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAct
 use crate::internal::PrepareCaptureAction;
 use crate::storages::core::{CoreStorage, ShapeComponents};
 use crate::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, Texture,
-    TextureConfig, WindowSettings,
+    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, InternalTextureConfig, SurfaceSize,
+    Texture, WindowSettings,
 };
 use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
 use modor_physics::Transform2D;
@@ -37,7 +37,7 @@ impl RenderTarget {
     }
     // coverage: on
 
-    pub(crate) fn load_texture(&mut self, image: Image, config: &TextureConfig) {
+    pub(crate) fn load_texture(&mut self, image: Image, config: &InternalTextureConfig) {
         self.core.load_texture(image, config);
     }
 

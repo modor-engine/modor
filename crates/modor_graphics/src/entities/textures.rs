@@ -1,10 +1,15 @@
 use crate::backend::textures::Image;
+use crate::storages::textures::{DynTextureKeyClone, TextureKey};
 use crate::RenderTarget;
 use image::error::UnsupportedErrorKind;
 use image::{GenericImageView, ImageError};
 use modor::{Built, EntityBuilder, SingleMut};
+use modor_internal::dyn_traits::{DynDebug, DynHash, DynPartialEq};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
+use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
+use std::hash::Hash;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
 /// A texture loaded asynchronously.
 ///
@@ -18,33 +23,27 @@ use std::fmt::{Debug, Display, Formatter};
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_graphics::{Color, Mesh2D, Texture, TextureConfig};
+/// # use modor_graphics::{Color, Mesh2D, Texture, TextureRef, TextureConfig};
 /// # use modor_physics::Transform2D;
 /// #
 /// #
 /// # macro_rules! include_bytes {($($path:tt)*) => { &[] }}
 /// #
 /// App::new()
-///     .with_entity(Texture::build(TextureLabel::Rectangle))
+///     .with_entity(Texture::build(AppTextureRef::Rectangle))
 ///     .with_entity(Rectangle::build());
 ///
-/// #[derive(Debug)]
-/// enum TextureLabel {
+/// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+/// enum AppTextureRef {
 ///     Rectangle,
 ///     Circle,
 /// }
 ///
-/// impl From<TextureLabel> for usize {
-///     fn from(label: TextureLabel) -> Self {
-///         label as usize
-///     }
-/// }
-///
-/// impl From<TextureLabel> for TextureConfig {
-///     fn from(label: TextureLabel) -> Self {
-///         let config = match label {
-///             TextureLabel::Rectangle => TextureConfig::from_path(label, "res/rectangle.png"),
-///             TextureLabel::Circle => TextureConfig::from_memory(label, include_bytes!(
+/// impl TextureRef for AppTextureRef {
+///     fn config(&self) -> TextureConfig {
+///         let config = match self {
+///             Self::Rectangle => TextureConfig::from_path("res/rectangle.png"),
+///             Self::Circle => TextureConfig::from_memory(include_bytes!(
 ///                 concat!(env!("CARGO_MANIFEST_DIR"), "/assets/circle.png")
 ///             )),
 ///         };
@@ -59,7 +58,7 @@ use std::fmt::{Debug, Display, Formatter};
 ///     fn build() -> impl Built<Self> {
 ///         EntityBuilder::new(Self).with(Transform2D::new()).with(
 ///             Mesh2D::rectangle()
-///                 .with_texture(TextureLabel::Rectangle)
+///                 .with_texture(AppTextureRef::Rectangle)
 ///                 .with_texture_color(Color::YELLOW)
 ///                 .with_color(Color::GRAY),
 ///         )
@@ -67,23 +66,26 @@ use std::fmt::{Debug, Display, Formatter};
 /// }
 /// ```
 pub struct Texture {
-    pub(crate) id: usize,
-    config: TextureConfig,
+    pub(crate) config: InternalTextureConfig,
     state: TextureState,
 }
 
 #[entity]
 impl Texture {
     /// Creates a new texture.
-    pub fn build(config: impl Into<TextureConfig>) -> impl Built<Self> {
-        let config = config.into();
+    pub fn build(texture_ref: impl TextureRef) -> impl Built<Self> {
+        let config = texture_ref.config();
+        let config = InternalTextureConfig {
+            key: TextureKey::new(texture_ref),
+            location: config.location,
+            is_smooth: config.is_smooth,
+        };
         let location = config.location.clone();
         EntityBuilder::new(Self {
-            id: config.texture_id,
             config,
             state: TextureState::Loading,
         })
-        .with_option(if let TextureDataLocation::FromPath(p) = &location {
+        .with_option(if let TextureLocation::FromPath(p) = &location {
             Some(AssetLoadingJob::new(
                 p,
                 |b| async move { Self::parse_image(&b) },
@@ -91,7 +93,7 @@ impl Texture {
         } else {
             None
         })
-        .with_option(if let TextureDataLocation::FromMemory(b) = &location {
+        .with_option(if let TextureLocation::FromMemory(b) = &location {
             Some(Job::new(async { Self::parse_image(b) }))
         } else {
             None
@@ -114,15 +116,15 @@ impl Texture {
             self.state = match job.try_poll() {
                 Ok(Some(Ok(i))) => {
                     target.load_texture(i, &self.config);
-                    debug!("texture '{}' loaded", self.config.label);
+                    debug!("texture '{:?}' loaded", self.config.key);
                     TextureState::Loaded
                 }
                 Ok(Some(Err(e))) => {
-                    error!("cannot load texture '{}': {e}", self.config.label);
+                    error!("cannot load texture '{:?}': {e}", self.config.key);
                     TextureState::Error(e)
                 }
                 Err(e) => {
-                    error!("cannot retrieve texture '{}': {e}", self.config.label);
+                    error!("cannot retrieve texture '{:?}': {e}", self.config.key);
                     TextureState::Error(TextureError::LoadingError(e))
                 }
                 Ok(None) => TextureState::Loading,
@@ -144,11 +146,11 @@ impl Texture {
                 self.state = match result {
                     Ok(i) => {
                         target.load_texture(i, &self.config);
-                        debug!("texture '{}' loaded", self.config.label);
+                        debug!("texture '{:?}' loaded", self.config.key);
                         TextureState::Loaded
                     }
                     Err(e) => {
-                        error!("cannot read texture '{}': {e}", self.config.label);
+                        error!("cannot read texture '{:?}': {e}", self.config.key);
                         TextureState::Error(e)
                     }
                 }
@@ -173,9 +175,7 @@ impl Texture {
 /// See [`Texture`](crate::Texture).
 #[derive(Debug)]
 pub struct TextureConfig {
-    pub(crate) texture_id: usize,
-    pub(crate) label: String,
-    pub(crate) location: TextureDataLocation,
+    pub(crate) location: TextureLocation,
     pub(crate) is_smooth: bool,
 }
 
@@ -193,12 +193,9 @@ impl TextureConfig {
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
     #[must_use]
-    pub fn from_path(texture_id: impl Into<usize> + Debug, path: impl Into<String>) -> Self {
-        let label = format!("{texture_id:?}");
+    pub fn from_path(path: impl Into<String>) -> Self {
         Self {
-            texture_id: texture_id.into(),
-            label,
-            location: TextureDataLocation::FromPath(path.into()),
+            location: TextureLocation::FromPath(path.into()),
             is_smooth: true,
         }
     }
@@ -208,12 +205,9 @@ impl TextureConfig {
     /// This method can be used when the texture is included directly in the code using the
     /// [`include_bytes`](macro@std::include_bytes) macro.
     #[must_use]
-    pub fn from_memory(texture_id: impl Into<usize> + Debug, bytes: &'static [u8]) -> Self {
-        let label = format!("{texture_id:?}");
+    pub fn from_memory(bytes: &'static [u8]) -> Self {
         Self {
-            texture_id: texture_id.into(),
-            label,
-            location: TextureDataLocation::FromMemory(bytes),
+            location: TextureLocation::FromMemory(bytes),
             is_smooth: true,
         }
     }
@@ -282,8 +276,37 @@ impl TryFrom<ImageError> for TextureError {
     }
 }
 
+/// A trait for defining a texture reference.
+///
+/// A texture reference is generally an `enum` listing the different textures of the application.
+/// <br>This `enum` can then be used to indicate which texture to load or to attach.
+///
+/// # Examples
+///
+/// See [`Texture`](crate::Texture).
+pub trait TextureRef:
+    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
+{
+    /// Returns the associated texture configuration.
+    fn config(&self) -> TextureConfig;
+}
+
+#[doc(hidden)]
+pub trait DynTextureKey:
+    Sync + Send + UnwindSafe + RefUnwindSafe + DynTextureKeyClone + DynPartialEq + DynHash + DynDebug
+{
+}
+
+impl<T> DynTextureKey for T where T: TextureRef {}
+
+pub(crate) struct InternalTextureConfig {
+    pub(crate) key: TextureKey,
+    pub(crate) location: TextureLocation,
+    pub(crate) is_smooth: bool,
+}
+
 #[derive(Debug, Clone)]
-pub(crate) enum TextureDataLocation {
+pub(crate) enum TextureLocation {
     FromPath(String),
     FromMemory(&'static [u8]),
 }

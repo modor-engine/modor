@@ -1,4 +1,5 @@
-use crate::{CollisionGroupIndex, Group, Transform2D};
+use crate::storages_2d::collision_groups::{CollisionGroupIdx, CollisionGroupKey};
+use crate::{CollisionGroupRef, Transform2D};
 use modor_math::Vec2;
 use rapier2d::geometry::{Collider, ColliderBuilder, ColliderHandle, ContactManifold};
 use rapier2d::math::{Point, Vector};
@@ -25,7 +26,8 @@ use rapier2d::prelude::InteractionGroups;
 /// [`Transform2D`](crate::Transform2D) component.
 #[derive(Debug, Clone)]
 pub struct Collider2D {
-    pub(crate) group_idx: usize,
+    pub(crate) group_key: CollisionGroupKey,
+    pub(crate) group_idx: Option<CollisionGroupIdx>,
     pub(crate) collisions: Vec<Collision2D>,
     pub(crate) handle: Option<ColliderHandle>,
     shape: Collider2DShape,
@@ -33,15 +35,15 @@ pub struct Collider2D {
 
 impl Collider2D {
     /// Creates a new rectangle collider.
-    pub fn rectangle(group: impl Into<CollisionGroupIndex>) -> Self {
-        Self::new(group.into(), Collider2DShape::Rectangle)
+    pub fn rectangle(group_ref: impl CollisionGroupRef) -> Self {
+        Self::new(group_ref, Collider2DShape::Rectangle)
     }
 
     /// Creates a new circle collider.
     ///
     /// The radius of the circle is smallest size coordinate of the entity.
-    pub fn circle(group: impl Into<CollisionGroupIndex>) -> Self {
-        Self::new(group.into(), Collider2DShape::Circle)
+    pub fn circle(group_ref: impl CollisionGroupRef) -> Self {
+        Self::new(group_ref, Collider2DShape::Circle)
     }
 
     /// Returns the detected collisions.
@@ -50,18 +52,12 @@ impl Collider2D {
         &self.collisions
     }
 
-    pub(crate) fn collider_builder(&self, size: Vec2, groups: &[Group]) -> ColliderBuilder {
+    pub(crate) fn collider_builder(&self, size: Vec2) -> ColliderBuilder {
         let builder = match self.shape {
             Collider2DShape::Rectangle => ColliderBuilder::cuboid(size.x / 2., size.y / 2.),
             Collider2DShape::Circle => ColliderBuilder::ball(size.x.abs().min(size.y.abs()) / 2.),
         };
-        let group = groups.get(self.group_idx);
-        builder
-            .collision_groups(InteractionGroups::new(
-                group.map_or(0, |g| g.membership_bits).into(),
-                group.map_or(0, |g| g.interaction_bits).into(),
-            ))
-            .solver_groups(InteractionGroups::none())
+        builder.solver_groups(InteractionGroups::none())
     }
 
     pub(crate) fn update_collider(&self, size: Vec2, collider: &mut Collider) {
@@ -82,9 +78,10 @@ impl Collider2D {
         }
     }
 
-    fn new(group: CollisionGroupIndex, shape: Collider2DShape) -> Self {
+    fn new(group_ref: impl CollisionGroupRef, shape: Collider2DShape) -> Self {
         Self {
-            group_idx: group as usize,
+            group_key: CollisionGroupKey::new(group_ref),
+            group_idx: None,
             collisions: vec![],
             handle: None,
             shape,
@@ -98,8 +95,6 @@ impl Collider2D {
 pub struct Collision2D {
     /// ID of the collided entity ID.
     pub other_entity_id: usize,
-    /// Collision group of the collided entity ID.
-    pub other_entity_group: CollisionGroupIndex,
     /// Normalized normal of the collision.
     pub normal: Vec2,
     /// Position of the collision in world units.
@@ -110,15 +105,21 @@ pub struct Collision2D {
     /// The position should be in the intersection of both shapes, but this is not always the case
     /// (e.g. when one shape is fully included in the other shape).
     pub position: Vec2,
+    pub(crate) other_entity_group_key: CollisionGroupKey,
 }
 
 impl Collision2D {
+    /// Returns whether the other entity belongs to the provided collision group.
+    pub fn has_other_entity_group(&self, group_ref: impl CollisionGroupRef) -> bool {
+        self.other_entity_group_key == CollisionGroupKey::new(group_ref)
+    }
+
     #[allow(clippy::cast_precision_loss)]
     pub(crate) fn create_pair(
         entity1_id: usize,
         entity2_id: usize,
-        group1_idx: usize,
-        group2_idx: usize,
+        group1_key: CollisionGroupKey,
+        group2_key: CollisionGroupKey,
         transform1: &Transform2D,
         transform2: &Transform2D,
         manifold: &ContactManifold,
@@ -127,7 +128,7 @@ impl Collision2D {
         (
             Self {
                 other_entity_id: entity2_id,
-                other_entity_group: CollisionGroupIndex::ALL[group2_idx],
+                other_entity_group_key: group2_key,
                 normal,
                 position: manifold
                     .points
@@ -138,7 +139,7 @@ impl Collision2D {
             },
             Self {
                 other_entity_id: entity1_id,
-                other_entity_group: CollisionGroupIndex::ALL[group1_idx],
+                other_entity_group_key: group1_key,
                 normal: -normal,
                 position: manifold
                     .points
@@ -165,13 +166,23 @@ pub(crate) enum Collider2DShape {
 #[cfg(test)]
 mod collider_2d_tests {
     use super::*;
+    use crate::CollisionType;
 
-    const GROUP: [Group; 1] = [Group::new(0)];
+    #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    struct CollisionGroup;
+
+    impl CollisionGroupRef for CollisionGroup {
+        // coverage: off (unreachable)
+        fn collision_type(&self, _other: &Self) -> CollisionType {
+            CollisionType::Sensor
+        }
+        // coverage: on
+    }
 
     #[test]
     fn create_rectangle() {
-        let collider = Collider2D::rectangle(CollisionGroupIndex::Group0);
-        let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.), &GROUP).build();
+        let collider = Collider2D::rectangle(CollisionGroup);
+        let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.)).build();
         let shape = rapier_collider.shape().as_cuboid().unwrap();
         assert_approx_eq!(shape.half_extents.x, 0.5);
         assert_approx_eq!(shape.half_extents.y, 1.);
@@ -183,8 +194,8 @@ mod collider_2d_tests {
 
     #[test]
     fn create_circle() {
-        let collider = Collider2D::circle(CollisionGroupIndex::Group0);
-        let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.), &GROUP).build();
+        let collider = Collider2D::circle(CollisionGroup);
+        let mut rapier_collider = collider.collider_builder(Vec2::new(1., 2.)).build();
         let shape = rapier_collider.shape().as_ball().unwrap();
         assert_approx_eq!(shape.radius, 0.5);
         collider.update_collider(Vec2::new(4., 3.), &mut rapier_collider);

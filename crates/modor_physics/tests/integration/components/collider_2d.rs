@@ -3,10 +3,19 @@ use crate::TestEntity;
 use modor::{App, Built, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
-    Collider2D, CollisionGroupIndex, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
+    Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
 };
 use std::f32::consts::FRAC_PI_4;
 use std::time::Duration;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CollisionGroup;
+
+impl CollisionGroupRef for CollisionGroup {
+    fn collision_type(&self, _other: &Self) -> CollisionType {
+        CollisionType::Sensor
+    }
+}
 
 struct Entity1;
 struct Entity2;
@@ -127,12 +136,12 @@ fn check_collision_rectangle_rectangle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-1., 3.))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
         Vec2::new(2_f32.sqrt() / 2., 2_f32.sqrt() / 2.),
         Vec2::new(-1.353_553_4, 3.),
         Vec2::new(-1.530_330_1, 2.823_223_4),
@@ -141,12 +150,12 @@ fn check_collision_rectangle_rectangle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-0.6, 3.4))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
     );
 }
 
@@ -157,12 +166,12 @@ fn check_collision_circle_circle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-1., 3.))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
         Vec2::new(2_f32.sqrt() / 2., 2_f32.sqrt() / 2.),
         Vec2::new(-1.292_893_2, 2.707_106_8),
         Vec2::new(-1.353_553_3, 2.646_446_7),
@@ -171,12 +180,12 @@ fn check_collision_circle_circle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-0.6, 3.4))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
     );
 }
 
@@ -187,12 +196,12 @@ fn check_collision_circle_rectangle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-1., 3.))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
         Vec2::new(2_f32.sqrt() / 2., 2_f32.sqrt() / 2.),
         Vec2::new(-1.292_893_2, 2.707_106_8),
         Vec2::new(-1.353_553_3, 2.646_446_7),
@@ -201,11 +210,11 @@ fn check_collision_circle_rectangle() {
         Transform2D::new()
             .with_position(Vec2::new(-2., 2.))
             .with_size(Vec2::ONE * 2.),
-        Collider2D::circle(CollisionGroupIndex::Group0),
+        Collider2D::circle(CollisionGroup),
         Transform2D::new()
             .with_position(Vec2::new(-0.8, 3.2))
             .with_size(Vec2::ONE)
             .with_rotation(FRAC_PI_4),
-        Collider2D::rectangle(CollisionGroupIndex::Group0),
+        Collider2D::rectangle(CollisionGroup),
     );
 }

@@ -1,12 +1,12 @@
+use self::textures::TextureKey;
 use crate::backend::buffer::DynamicBuffer;
 use crate::backend::data::Instance;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
-use crate::storages::textures::{TextureIdx, TextureStorage};
-use modor_internal::ti_vec::TiVecSafeOperations;
+use crate::storages::textures::TextureStorage;
+use fxhash::FxHashSet;
 use std::ops::Range;
-use typed_index_collections::TiVec;
 
 pub(crate) mod core;
 pub(crate) mod models;
@@ -15,10 +15,10 @@ pub(crate) mod shaders;
 pub(crate) mod textures;
 pub(crate) mod transparent_instances;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct InstanceDetails {
     shader_idx: ShaderIdx,
-    texture_idx: TextureIdx,
+    texture_key: TextureKey,
     model_idx: ModelIdx,
 }
 
@@ -30,18 +30,15 @@ fn push_shape_commands<'a>(
     models: &'a ModelStorage,
     instances: &'a DynamicBuffer<Instance>,
     instance_idxs: Range<usize>,
-    details: InstanceDetails,
-    logged_missing_textures: &mut TiVec<TextureIdx, bool>,
+    details: &InstanceDetails,
+    logged_missing_texture_keys: &mut FxHashSet<TextureKey>,
 ) {
     commands.push_shader_change(shaders.get(details.shader_idx));
-    let texture = textures.get(details.texture_idx).unwrap_or_else(|| {
-        let logged_missing_texture = logged_missing_textures.get_mut_or_create(details.texture_idx);
-        if !*logged_missing_texture {
-            error!(
-                "texture with ID '{}' used for shape but not loaded",
-                details.texture_idx.0
-            );
-            *logged_missing_texture = true;
+    let key = &details.texture_key;
+    let texture = textures.get(key).unwrap_or_else(|| {
+        if !logged_missing_texture_keys.contains(key) {
+            error!("texture with ID '{:?}' used for shape but not loaded", key);
+            logged_missing_texture_keys.insert(key.clone());
         }
         textures.get_default()
     });

@@ -1,139 +1,45 @@
+use std::any::Any;
+use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
-/// The index of a collision group.
+/// The collision behavior that should happen between two type of collision groups.
 ///
 /// # Examples
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-// This is an enum and not simplify a `usize` to make sure at compile time we don't go beyond the 32
-// collision groups supported by Rapier.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum CollisionGroupIndex {
-    /// Index of collision group 0.
-    Group0,
-    /// Index of collision group 1.
-    Group1,
-    /// Index of collision group 2.
-    Group2,
-    /// Index of collision group 3.
-    Group3,
-    /// Index of collision group 4.
-    Group4,
-    /// Index of collision group 5.
-    Group5,
-    /// Index of collision group 6.
-    Group6,
-    /// Index of collision group 7.
-    Group7,
-    /// Index of collision group 8.
-    Group8,
-    /// Index of collision group 9.
-    Group9,
-    /// Index of collision group 10.
-    Group10,
-    /// Index of collision group 11.
-    Group11,
-    /// Index of collision group 12.
-    Group12,
-    /// Index of collision group 13.
-    Group13,
-    /// Index of collision group 14.
-    Group14,
-    /// Index of collision group 15.
-    Group15,
-    /// Index of collision group 16.
-    Group16,
-    /// Index of collision group 17.
-    Group17,
-    /// Index of collision group 18.
-    Group18,
-    /// Index of collision group 19.
-    Group19,
-    /// Index of collision group 20.
-    Group20,
-    /// Index of collision group 21.
-    Group21,
-    /// Index of collision group 22.
-    Group22,
-    /// Index of collision group 23.
-    Group23,
-    /// Index of collision group 24.
-    Group24,
-    /// Index of collision group 25.
-    Group25,
-    /// Index of collision group 26.
-    Group26,
-    /// Index of collision group 27.
-    Group27,
-    /// Index of collision group 28.
-    Group28,
-    /// Index of collision group 29.
-    Group29,
-    /// Index of collision group 30.
-    Group30,
-    /// Index of collision group 31.
-    Group31,
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+pub enum CollisionType {
+    /// No collision should happen.
+    #[default]
+    None,
+    /// Collision should happen but it doesn't produce forces.
+    Sensor,
+    /// Collision should happen and it produces forces. This has currently the same effect as
+    /// [`CollisionType::Sensor`](crate::CollisionType::Sensor).
+    Impulse,
 }
 
-impl CollisionGroupIndex {
-    /// The list of all collision group indexes.
-    pub const ALL: [Self; 32] = [
-        Self::Group0,
-        Self::Group1,
-        Self::Group2,
-        Self::Group3,
-        Self::Group4,
-        Self::Group5,
-        Self::Group6,
-        Self::Group7,
-        Self::Group8,
-        Self::Group9,
-        Self::Group10,
-        Self::Group11,
-        Self::Group12,
-        Self::Group13,
-        Self::Group14,
-        Self::Group15,
-        Self::Group16,
-        Self::Group17,
-        Self::Group18,
-        Self::Group19,
-        Self::Group20,
-        Self::Group21,
-        Self::Group22,
-        Self::Group23,
-        Self::Group24,
-        Self::Group25,
-        Self::Group26,
-        Self::Group27,
-        Self::Group28,
-        Self::Group29,
-        Self::Group30,
-        Self::Group31,
-    ];
-}
-
-/// A collision layer.
+/// A trait for defining a collision group reference.
 ///
-/// Each group registered in a layer can collide with each other.
-///
-/// By default, entities of the same group cannot collide with each other.
-/// This behavior can be changed by registering the group twice in the same layer.
+/// A collision group reference is generally an `enum` listing all the groups of collision
+/// and describing which groups can collide together.<br>
+/// This `enum` can then be assigned to a [`Collider2D`](crate::Collider2D).
 ///
 /// # Examples
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Debug)]
-pub struct CollisionLayer {
-    pub(crate) groups: Vec<CollisionGroupIndex>,
-}
-
-impl CollisionLayer {
-    /// Creates a new layer.
-    #[must_use]
-    pub const fn new(groups: Vec<CollisionGroupIndex>) -> Self {
-        Self { groups }
-    }
+pub trait CollisionGroupRef:
+    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
+{
+    /// Returns the collision type produced when the group collides with another group.
+    ///
+    /// It is not necessary to define the collision type in both ways.<br>
+    /// For example, if groups `a` and `b` produces `CollisionType::Sensor`, and `b` and `a`
+    /// produces `CollisionType::None`, when it considered that both cases produce
+    /// `CollisionType::Sensor`.
+    fn collision_type(&self, other: &Self) -> CollisionType;
 }
 
 /// A property where changes are tracked internally.

@@ -6,7 +6,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-
   check-version:
     runs-on: ubuntu-20.04
     outputs:
@@ -15,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Check CHANGELOG.md file exists
-        run: '[ -f CHANGELOG.md ]'
+        run: "[ -f CHANGELOG.md ]"
       - name: Check unreleased version is defined in CHANGELOG.md
         run: grep '^\#\# \[Unreleased\] - yyyy-mm-dd$' CHANGELOG.md
       - name: Check and retrieve version
@@ -38,14 +37,9 @@ jobs:
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   test-windows:
     runs-on: windows-2022
@@ -61,14 +55,9 @@ jobs:
         with:
           toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   test-macos:
     runs-on: macos-11
@@ -84,10 +73,7 @@ jobs:
         with:
           toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets
+        run: cargo build --all-targets
       # Tests are disabled because there is no available software renderer
 
   test-web:
@@ -105,10 +91,7 @@ jobs:
           target: wasm32-unknown-unknown
           components: clippy
       - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --debug
+        run: cargo install wasm-pack --debug
       - name: Test
         run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
 

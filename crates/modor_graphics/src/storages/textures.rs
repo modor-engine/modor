@@ -1,93 +1,145 @@
+use std::{fmt, iter};
+
 use crate::backend::renderer::Renderer;
 use crate::backend::textures::{Image, Texture};
-use crate::TextureConfig;
+use crate::{DynTextureKey, InternalTextureConfig, TextureConfig, TextureRef};
+use fxhash::FxHashMap;
 use image::{DynamicImage, ImageBuffer, Rgba};
-use modor_internal::ti_vec::TiVecSafeOperations;
-use typed_index_collections::TiVec;
+use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 
 pub(super) struct TextureStorage {
-    textures: TiVec<TextureIdx, Option<StoredTexture>>,
+    default_key: TextureKey,
+    textures: FxHashMap<TextureKey, StoredTexture>,
 }
 
 impl TextureStorage {
-    pub(super) const DEFAULT_TEXTURE_IDX: TextureIdx = TextureIdx(0);
-
     pub(super) fn new(renderer: &Renderer) -> Self {
         let default_texture_data = ImageBuffer::from_pixel(1, 1, Rgba([255u8, 255, 255, 255]));
+        let default_texture_key = TextureKey::new(DefaultTextureKey);
         Self {
-            textures: ti_vec![Some(StoredTexture {
-                texture: Texture::new(
-                    Image {
-                        data: DynamicImage::ImageRgba8(default_texture_data),
-                        is_transparent: false
-                    },
-                    false,
-                    &Self::DEFAULT_TEXTURE_IDX.0.to_string(),
-                    renderer,
-                ),
-                should_be_removed: false
-            })],
+            textures: iter::once((
+                default_texture_key.clone(),
+                StoredTexture {
+                    texture: Texture::new(
+                        Image {
+                            data: DynamicImage::ImageRgba8(default_texture_data),
+                            is_transparent: false,
+                        },
+                        false,
+                        "default",
+                        renderer,
+                    ),
+                    is_deleted: false,
+                },
+            ))
+            .collect(),
+            default_key: default_texture_key,
         }
     }
 
+    pub(super) fn default_key(&self) -> &TextureKey {
+        &self.default_key
+    }
+
     pub(super) fn get_default(&self) -> &Texture {
-        &self.textures[Self::DEFAULT_TEXTURE_IDX]
-            .as_ref()
-            .expect("internal error: default texture not loaded")
-            .texture
+        &self.textures[&self.default_key].texture
     }
 
-    pub(super) fn get(&self, idx: TextureIdx) -> Option<&Texture> {
-        self.textures
-            .get(idx)
-            .and_then(Option::as_ref)
-            .map(|t| &t.texture)
+    pub(super) fn get(&self, key: &TextureKey) -> Option<&Texture> {
+        self.textures.get(key).map(|t| &t.texture)
     }
 
-    pub(super) fn is_transparent(&self, idx: TextureIdx) -> bool {
-        self.get(idx).map_or(false, Texture::is_transparent)
+    pub(super) fn is_transparent(&self, key: &TextureKey) -> bool {
+        self.get(key).map_or(false, Texture::is_transparent)
     }
 
     pub(super) fn load_texture(
         &mut self,
         image: Image,
-        config: &TextureConfig,
+        config: &InternalTextureConfig,
         renderer: &Renderer,
     ) {
-        let id = config.texture_id + 1;
-        *self.textures.get_mut_or_create(id.into()) = Some(StoredTexture {
-            texture: Texture::new(image, config.is_smooth, &id.to_string(), renderer),
-            should_be_removed: false,
-        });
+        self.textures.insert(
+            config.key.clone(),
+            StoredTexture {
+                texture: Texture::new(
+                    image,
+                    config.is_smooth,
+                    &format!("{:?}", config.key),
+                    renderer,
+                ),
+                is_deleted: false,
+            },
+        );
     }
 
-    pub(crate) fn remove_not_found_textures(
+    pub(crate) fn remove_not_found_textures<'a>(
         &mut self,
-        texture_idxs: impl Iterator<Item = TextureIdx>,
+        existing_keys: impl Iterator<Item = &'a TextureKey>,
     ) {
-        for texture in self.textures.iter_mut().skip(1).flatten() {
-            texture.should_be_removed = true;
-        }
-        for texture_idx in texture_idxs {
-            if let Some(Some(texture)) = self.textures.get_mut(texture_idx) {
-                texture.should_be_removed = false;
+        for (key, texture) in &mut self.textures {
+            if key != &self.default_key {
+                texture.is_deleted = true;
             }
         }
-        for texture in &mut self.textures {
-            if let Some(StoredTexture {
-                should_be_removed: true,
-                ..
-            }) = texture
-            {
-                texture.take();
+        for key in existing_keys {
+            if let Some(texture) = self.textures.get_mut(key) {
+                texture.is_deleted = false;
             }
         }
+        self.textures.retain(|_, t| !t.is_deleted);
     }
 }
 
 struct StoredTexture {
     texture: Texture,
-    should_be_removed: bool,
+    is_deleted: bool,
 }
 
-idx_type!(pub(super) TextureIdx);
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct DefaultTextureKey;
+
+impl TextureRef for DefaultTextureKey {
+    // coverage: off (unreachable)
+    fn config(&self) -> TextureConfig {
+        unreachable!("internal error: unreachable config generation from `DefaultTextureKey`")
+    }
+    // coverage: on
+}
+
+pub(crate) struct TextureKey(Box<dyn DynTextureKey>);
+
+impl TextureKey {
+    pub(crate) fn new(texture_ref: impl DynTextureKey) -> Self {
+        Self(Box::new(texture_ref))
+    }
+}
+
+impl Clone for TextureKey {
+    fn clone(&self) -> Self {
+        Self(self.0.as_ref().dyn_clone())
+    }
+}
+
+impl PartialEq for TextureKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.dyn_partial_eq(other.0.as_dyn_partial_eq())
+    }
+}
+
+impl Eq for TextureKey {}
+
+impl Hash for TextureKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.dyn_hash(state);
+    }
+}
+
+impl Debug for TextureKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.0.dyn_fmt(f)
+    }
+}
+
+dyn_clone_trait!(pub DynTextureKeyClone, DynTextureKey);

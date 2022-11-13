@@ -1,8 +1,9 @@
 use crate::TestEntity;
+use log::LevelFilter;
 use modor::{App, Built, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
-    Collider2D, CollisionGroupIndex, CollisionLayer, DeltaTime, Dynamics2D, PhysicsModule,
+    Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule,
     RelativeTransform2D, Transform2D,
 };
 use std::mem;
@@ -12,36 +13,51 @@ struct Entity1;
 struct Entity2;
 struct Entity3;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum CollisionGroup {
-    GROUP1,
-    GROUP2,
-    GROUP3,
+    Group1,
+    Group2,
+    Group3,
 }
 
-impl From<CollisionGroup> for CollisionGroupIndex {
-    fn from(group: CollisionGroup) -> Self {
-        match group {
-            CollisionGroup::GROUP1 => Self::Group0,
-            CollisionGroup::GROUP2 => Self::Group1,
-            CollisionGroup::GROUP3 => Self::Group2,
+impl CollisionGroupRef for CollisionGroup {
+    fn collision_type(&self, other: &Self) -> CollisionType {
+        match (self, other) {
+            (Self::Group1, Self::Group1 | Self::Group2) => CollisionType::Sensor,
+            _ => CollisionType::None,
         }
     }
 }
 
-fn layers() -> Vec<CollisionLayer> {
-    vec![
-        CollisionLayer::new(vec![
-            CollisionGroup::GROUP1.into(),
-            CollisionGroup::GROUP1.into(),
-        ]),
-        CollisionLayer::new(vec![
-            CollisionGroup::GROUP2.into(),
-            CollisionGroup::GROUP1.into(),
-        ]),
-    ]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum ReversedCollisionGroup {
+    Group1,
+    Group2,
 }
 
-fn collider_entity1(group: CollisionGroup, with_dynamics: bool) -> impl Built<TestEntity> {
+impl CollisionGroupRef for ReversedCollisionGroup {
+    fn collision_type(&self, other: &Self) -> CollisionType {
+        match (self, other) {
+            (Self::Group1 | Self::Group2, Self::Group1) => CollisionType::Sensor,
+            _ => CollisionType::None,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BigCollisionGroup(u32);
+
+impl CollisionGroupRef for BigCollisionGroup {
+    fn collision_type(&self, other: &Self) -> CollisionType {
+        match (self, other) {
+            (Self(0), Self(0)) | (Self(32), Self(32)) => CollisionType::Sensor,
+            _ => CollisionType::None,
+        }
+    }
+}
+
+fn collider_entity1(group: impl CollisionGroupRef, with_dynamics: bool) -> impl Built<TestEntity> {
     EntityBuilder::new(TestEntity)
         .with(Entity1)
         .with(
@@ -54,7 +70,7 @@ fn collider_entity1(group: CollisionGroup, with_dynamics: bool) -> impl Built<Te
         .with(Collider2D::rectangle(group))
 }
 
-fn collider_entity2(group: CollisionGroup, with_dynamics: bool) -> impl Built<TestEntity> {
+fn collider_entity2(group: impl CollisionGroupRef, with_dynamics: bool) -> impl Built<TestEntity> {
     EntityBuilder::new(TestEntity)
         .with(Entity2)
         .with(
@@ -72,13 +88,14 @@ const COLLISION_POSITION2: Vec2 = Vec2::new(-1.5, 2.);
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn add_collider_with_dynamics_and_group_duplicated_in_layer() {
+fn add_collider_with_dynamics_and_same_colliding_group() {
     let mut entity2_id = 0;
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_log_level(LevelFilter::Debug)
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP1, true))
+        .with_entity(collider_entity1(CollisionGroup::Group1, true))
+        .with_entity(collider_entity2(CollisionGroup::Group1, true))
         .updated()
         .with_update::<With<Entity1>, _>(|c: &mut Collider2D| {
             entity2_id = c.collisions()[0].other_entity_id;
@@ -87,8 +104,7 @@ fn add_collider_with_dynamics_and_group_duplicated_in_layer() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP1.into();
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION1);
             })
@@ -97,9 +113,8 @@ fn add_collider_with_dynamics_and_group_duplicated_in_layer() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP1.into();
                 assert_eq!(collision.other_entity_id, entity2_id - 1);
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
             })
@@ -109,13 +124,61 @@ fn add_collider_with_dynamics_and_group_duplicated_in_layer() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn add_collider_with_dynamics_and_different_groups_in_same_layer() {
+fn add_collider_with_dynamics_and_same_rapier_group_but_different_modor_group() {
+    App::new()
+        .with_entity(PhysicsModule::build())
+        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(collider_entity1(BigCollisionGroup(0), true))
+        .with_entity(collider_entity1(BigCollisionGroup(1), true))
+        .with_entity(collider_entity1(BigCollisionGroup(2), true))
+        .with_entity(collider_entity1(BigCollisionGroup(3), true))
+        .with_entity(collider_entity1(BigCollisionGroup(4), true))
+        .with_entity(collider_entity1(BigCollisionGroup(5), true))
+        .with_entity(collider_entity1(BigCollisionGroup(6), true))
+        .with_entity(collider_entity1(BigCollisionGroup(7), true))
+        .with_entity(collider_entity1(BigCollisionGroup(8), true))
+        .with_entity(collider_entity1(BigCollisionGroup(9), true))
+        .with_entity(collider_entity1(BigCollisionGroup(10), true))
+        .with_entity(collider_entity1(BigCollisionGroup(11), true))
+        .with_entity(collider_entity1(BigCollisionGroup(12), true))
+        .with_entity(collider_entity1(BigCollisionGroup(13), true))
+        .with_entity(collider_entity1(BigCollisionGroup(14), true))
+        .with_entity(collider_entity1(BigCollisionGroup(15), true))
+        .with_entity(collider_entity1(BigCollisionGroup(16), true))
+        .with_entity(collider_entity1(BigCollisionGroup(17), true))
+        .with_entity(collider_entity1(BigCollisionGroup(18), true))
+        .with_entity(collider_entity1(BigCollisionGroup(19), true))
+        .with_entity(collider_entity1(BigCollisionGroup(20), true))
+        .with_entity(collider_entity1(BigCollisionGroup(21), true))
+        .with_entity(collider_entity1(BigCollisionGroup(22), true))
+        .with_entity(collider_entity1(BigCollisionGroup(23), true))
+        .with_entity(collider_entity1(BigCollisionGroup(24), true))
+        .with_entity(collider_entity1(BigCollisionGroup(25), true))
+        .with_entity(collider_entity1(BigCollisionGroup(26), true))
+        .with_entity(collider_entity1(BigCollisionGroup(27), true))
+        .with_entity(collider_entity1(BigCollisionGroup(28), true))
+        .with_entity(collider_entity1(BigCollisionGroup(29), true))
+        .with_entity(collider_entity1(BigCollisionGroup(30), true))
+        .with_entity(collider_entity1(BigCollisionGroup(31), true))
+        .with_entity(collider_entity2(BigCollisionGroup(32), true))
+        .updated()
+        .assert::<With<Entity1>>(32, |e| {
+            e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
+        })
+        .assert::<With<Entity2>>(1, |e| {
+            e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
+        });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn add_collider_with_dynamics_and_different_colliding_groups() {
     let mut entity2_id = 0;
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, true))
+        .with_entity(collider_entity1(CollisionGroup::Group1, true))
+        .with_entity(collider_entity2(CollisionGroup::Group2, true))
         .updated()
         .with_update::<With<Entity1>, _>(|c: &mut Collider2D| {
             entity2_id = c.collisions()[0].other_entity_id;
@@ -124,8 +187,7 @@ fn add_collider_with_dynamics_and_different_groups_in_same_layer() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP2.into();
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group2));
                 assert_approx_eq!(collision.normal, COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION1);
             })
@@ -134,9 +196,8 @@ fn add_collider_with_dynamics_and_different_groups_in_same_layer() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP1.into();
                 assert_eq!(collision.other_entity_id, entity2_id - 1);
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
             })
@@ -146,12 +207,47 @@ fn add_collider_with_dynamics_and_different_groups_in_same_layer() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn add_collider_with_dynamics_and_group_not_duplicated_in_layer() {
+fn add_collider_with_dynamics_and_same_colliding_group_with_reversed_condition() {
+    let mut entity2_id = 0;
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP3, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP3, true))
+        .with_entity(collider_entity1(ReversedCollisionGroup::Group1, true))
+        .with_entity(collider_entity2(ReversedCollisionGroup::Group2, true))
+        .updated()
+        .with_update::<With<Entity1>, _>(|c: &mut Collider2D| {
+            entity2_id = c.collisions()[0].other_entity_id;
+        })
+        .assert::<With<Entity1>>(1, |e| {
+            e.has(|c: &Collider2D| {
+                assert_eq!(c.collisions().len(), 1);
+                let collision = &c.collisions()[0];
+                assert!(collision.has_other_entity_group(ReversedCollisionGroup::Group2));
+                assert_approx_eq!(collision.normal, COLLISION_NORMAL);
+                assert_approx_eq!(collision.position, COLLISION_POSITION1);
+            })
+        })
+        .assert::<With<Entity2>>(1, |e| {
+            e.has(|c: &Collider2D| {
+                assert_eq!(c.collisions().len(), 1);
+                let collision = &c.collisions()[0];
+                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert!(collision.has_other_entity_group(ReversedCollisionGroup::Group1));
+                assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
+                assert_approx_eq!(collision.position, COLLISION_POSITION2);
+            })
+            .has(|t: &Transform2D| assert_approx_eq!(*t.position, Vec2::new(-1., 2.)))
+        });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn add_collider_with_dynamics_and_same_not_colliding_group() {
+    App::new()
+        .with_entity(PhysicsModule::build())
+        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(collider_entity1(CollisionGroup::Group3, true))
+        .with_entity(collider_entity2(CollisionGroup::Group3, true))
         .updated()
         .assert::<With<Entity1>>(1, |e| {
             e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
@@ -164,12 +260,12 @@ fn add_collider_with_dynamics_and_group_not_duplicated_in_layer() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn add_collider_with_dynamics_and_different_groups_not_in_same_layer() {
+fn add_collider_with_dynamics_and_different_not_colliding_groups() {
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP3, true))
+        .with_entity(collider_entity1(CollisionGroup::Group1, true))
+        .with_entity(collider_entity2(CollisionGroup::Group3, true))
         .updated()
         .assert::<With<Entity1>>(1, |e| {
             e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 0))
@@ -185,10 +281,10 @@ fn add_collider_with_dynamics_and_different_groups_not_in_same_layer() {
 fn add_collider_without_dynamics() {
     let mut entity2_id = 0;
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, false))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, false))
+        .with_entity(collider_entity1(CollisionGroup::Group1, false))
+        .with_entity(collider_entity2(CollisionGroup::Group2, false))
         .updated()
         .with_update::<With<Entity1>, _>(|c: &mut Collider2D| {
             entity2_id = c.collisions()[0].other_entity_id;
@@ -197,8 +293,7 @@ fn add_collider_without_dynamics() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP2.into();
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group2));
                 assert_approx_eq!(collision.normal, COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION1);
             })
@@ -207,9 +302,8 @@ fn add_collider_without_dynamics() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                let group = CollisionGroup::GROUP1.into();
                 assert_eq!(collision.other_entity_id, entity2_id - 1);
-                assert_eq!(collision.other_entity_group, group);
+                assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
             })
@@ -220,12 +314,12 @@ fn add_collider_without_dynamics() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn remove_and_put_back_collider_without_dynamics() {
-    let mut collider = Collider2D::rectangle(CollisionGroup::GROUP2);
+    let mut collider = Collider2D::rectangle(CollisionGroup::Group2);
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, false))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, false))
+        .with_entity(collider_entity1(CollisionGroup::Group1, false))
+        .with_entity(collider_entity2(CollisionGroup::Group2, false))
         .updated()
         .assert::<With<Entity2>>(1, |e| {
             e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 1))
@@ -246,10 +340,10 @@ fn remove_and_put_back_collider_without_dynamics() {
 fn remove_and_put_back_dynamics_with_collider() {
     let mut dynamics = Dynamics2D::new();
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, true))
+        .with_entity(collider_entity1(CollisionGroup::Group1, true))
+        .with_entity(collider_entity2(CollisionGroup::Group2, true))
         .updated()
         .assert::<With<Entity2>>(1, |e| {
             e.has(|c: &Collider2D| assert_eq!(c.collisions().len(), 1))
@@ -266,12 +360,12 @@ fn remove_and_put_back_dynamics_with_collider() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn remove_and_put_back_collider_with_dynamics() {
-    let mut collider = Collider2D::rectangle(CollisionGroup::GROUP2);
+    let mut collider = Collider2D::rectangle(CollisionGroup::Group2);
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, true))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, true))
+        .with_entity(collider_entity1(CollisionGroup::Group1, true))
+        .with_entity(collider_entity2(CollisionGroup::Group2, true))
         .updated()
         .with_update::<With<Entity2>, _>(|d: &mut Dynamics2D| *d.velocity = Vec2::new(1., 0.))
         .updated()
@@ -297,13 +391,13 @@ fn move_collider() {
                 .with_position(Vec2::new(-5., 2.))
                 .with_size(Vec2::ONE),
         )
-        .with(Collider2D::rectangle(CollisionGroup::GROUP3));
-    let mut collider = Collider2D::rectangle(CollisionGroup::GROUP3);
+        .with(Collider2D::rectangle(CollisionGroup::Group3));
+    let mut collider = Collider2D::rectangle(CollisionGroup::Group3);
     App::new()
-        .with_entity(PhysicsModule::build_with_layers(layers()))
+        .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
-        .with_entity(collider_entity1(CollisionGroup::GROUP1, false))
-        .with_entity(collider_entity2(CollisionGroup::GROUP2, false))
+        .with_entity(collider_entity1(CollisionGroup::Group1, false))
+        .with_entity(collider_entity2(CollisionGroup::Group2, false))
         .with_entity(entity3)
         .updated()
         .assert::<With<Entity2>>(1, |e| {

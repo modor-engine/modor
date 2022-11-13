@@ -2,10 +2,19 @@ use crate::TestEntity;
 use modor::{App, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
-    Collider2D, CollisionGroupIndex, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
+    Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
 };
 use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Duration;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CollisionGroup;
+
+impl CollisionGroupRef for CollisionGroup {
+    fn collision_type(&self, _other: &Self) -> CollisionType {
+        CollisionType::Sensor
+    }
+}
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
@@ -13,7 +22,7 @@ fn update_position() {
     let entity = EntityBuilder::new(TestEntity)
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
         .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroupIndex::Group0));
+        .with(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
@@ -35,7 +44,7 @@ fn update_size() {
     let entity = EntityBuilder::new(TestEntity)
         .with(Transform2D::new().with_size(Vec2::new(1., 2.)))
         .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroupIndex::Group0));
+        .with(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
@@ -57,7 +66,7 @@ fn update_rotation() {
     let entity = EntityBuilder::new(TestEntity)
         .with(Transform2D::new().with_rotation(PI))
         .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroupIndex::Group0));
+        .with(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::build(Duration::from_secs(2)))
