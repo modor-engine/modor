@@ -2,7 +2,6 @@ use crate::storages_2d::bodies::{BodyState, BodyStorage};
 use crate::storages_2d::core::{PhysicsEntity2D, PhysicsEntity2DTuple};
 use crate::storages_2d::pipeline::PipelineStorage;
 use crate::utils::UserData;
-use crate::Group;
 use modor::Query;
 use rapier2d::geometry::{ActiveCollisionTypes, Collider, ColliderHandle, ColliderSet};
 
@@ -51,7 +50,6 @@ impl ColliderStorage {
         body_state: BodyState,
         bodies: &mut BodyStorage,
         pipeline: &mut PipelineStorage,
-        groups: &[Group],
     ) {
         if let Some(collider) = &mut entity.collider {
             // Remove existing collider in case rigid body has just been created,
@@ -70,7 +68,7 @@ impl ColliderStorage {
             // Create the collider if not already existing.
             if collider.handle.is_none() {
                 let builder = collider
-                    .collider_builder(*entity.transform.size, groups)
+                    .collider_builder(*entity.transform.size)
                     .user_data(UserData::new(entity.entity.id()).into())
                     .active_collision_types(ActiveCollisionTypes::all());
                 collider.handle = Some(if let Some(body_handle) = body_state.handle() {

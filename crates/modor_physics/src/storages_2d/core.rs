@@ -1,16 +1,20 @@
+use super::collision_groups::CollisionGroupStorage;
 use crate::storages_2d::bodies::BodyStorage;
 use crate::storages_2d::colliders::ColliderStorage;
 use crate::storages_2d::pipeline::PipelineStorage;
-use crate::{Collider2D, Collision2D, Dynamics2D, Group, RelativeTransform2D, Transform2D};
+use crate::utils::UserData;
+use crate::{Collider2D, Collision2D, Dynamics2D, RelativeTransform2D, Transform2D};
 use modor::{Entity, Query};
 use rapier2d::dynamics::RigidBody;
 use rapier2d::geometry::Collider;
+use rapier2d::prelude::InteractionGroups;
 use std::time::Duration;
 
 #[derive(Default)]
 pub(crate) struct Core2DStorage {
     bodies: BodyStorage,
     colliders: ColliderStorage,
+    collision_groups: CollisionGroupStorage,
     pipeline: PipelineStorage,
 }
 
@@ -19,7 +23,6 @@ impl Core2DStorage {
         &mut self,
         delta: Duration,
         entities: &mut Query<'_, PhysicsEntity2DTuple<'_>>,
-        groups: &[Group],
     ) {
         for entity in entities.iter_mut() {
             let mut entity = PhysicsEntity2D::from(entity);
@@ -32,7 +35,15 @@ impl Core2DStorage {
             .delete_outdated(entities, &mut self.bodies, &mut self.pipeline);
         for entity in entities.iter_mut() {
             let mut entity = PhysicsEntity2D::from(entity);
-            self.create_resources(&mut entity, groups);
+            self.register_collision_groups(&mut entity);
+        }
+        for entity in entities.iter_mut() {
+            let mut entity = PhysicsEntity2D::from(entity);
+            self.create_resources(&mut entity);
+            self.update_resources(&mut entity);
+        }
+        for entity in entities.iter_mut() {
+            let mut entity = PhysicsEntity2D::from(entity);
             self.update_resources(&mut entity);
         }
         self.run_pipeline_step(delta);
@@ -42,15 +53,22 @@ impl Core2DStorage {
         self.update_entity_colliders(entities);
     }
 
-    fn create_resources(&mut self, entity: &mut PhysicsEntity2D<'_>, groups: &[Group]) {
+    fn register_collision_groups(&mut self, entity: &mut PhysicsEntity2D<'_>) {
+        if let Some(collider) = entity.collider.as_mut() {
+            collider.group_idx = Some(if let Some(group_idx) = collider.group_idx {
+                group_idx
+            } else {
+                let group_idx = self.collision_groups.register(&collider.group_key);
+                collider.group_idx = Some(group_idx);
+                group_idx
+            });
+        }
+    }
+
+    fn create_resources(&mut self, entity: &mut PhysicsEntity2D<'_>) {
         let body_state = self.bodies.create(entity);
-        self.colliders.create(
-            entity,
-            body_state,
-            &mut self.bodies,
-            &mut self.pipeline,
-            groups,
-        );
+        self.colliders
+            .create(entity, body_state, &mut self.bodies, &mut self.pipeline);
     }
 
     fn update_resources(&mut self, entity: &mut PhysicsEntity2D<'_>) {
@@ -62,11 +80,27 @@ impl Core2DStorage {
         if let (Some(dynamics), Some(body)) = (&mut entity.dynamics, body) {
             dynamics.update_body(body);
         }
+        if let (Some(collider), Some(rapier_collider)) = (&mut entity.collider, collider) {
+            let group_idx = collider
+                .group_idx
+                .expect("internal error: missing collider group index");
+            rapier_collider.set_collision_groups(InteractionGroups::new(
+                group_idx.group_membership(),
+                self.collision_groups.group_filter(group_idx),
+            ));
+            rapier_collider.user_data = UserData::from(rapier_collider.user_data)
+                .with_collision_group_idx(group_idx)
+                .into();
+        }
     }
 
     fn run_pipeline_step(&mut self, delta: Duration) {
-        self.pipeline
-            .run_pipeline_step(delta, &mut self.bodies, &mut self.colliders);
+        self.pipeline.run_pipeline_step(
+            delta,
+            &mut self.bodies,
+            &mut self.colliders,
+            &self.collision_groups,
+        );
     }
 
     fn update_entity(&self, entity: &mut PhysicsEntity2D<'_>) {
@@ -93,23 +127,23 @@ impl Core2DStorage {
             let entity1_id = contact.entity1_id;
             let entity2_id = contact.entity2_id;
             let (entity1, entity2) = entities.get_both_mut(entity1_id, entity2_id);
-            let entity1 = entity1.expect("internal error: missing collider1 entity");
-            let entity2 = entity2.expect("internal error: missing collider2 entity");
+            let entity1 = entity1.expect("internal error: missing collider 1 entity");
+            let entity2 = entity2.expect("internal error: missing collider 2 entity");
             let entity1 = PhysicsEntity2D::from(entity1);
             let entity2 = PhysicsEntity2D::from(entity2);
             let collider1 = entity1
                 .collider
-                .expect("internal error: collider1 not registered");
+                .expect("internal error: collider 1 not registered");
             let collider2 = entity2
                 .collider
-                .expect("internal error: collider1 not registered");
+                .expect("internal error: collider 2 not registered");
             for manifold in contact.manifolds {
                 if !manifold.points.is_empty() {
                     let (collision1, collision2) = Collision2D::create_pair(
                         entity1_id,
                         entity2_id,
-                        collider1.group_idx,
-                        collider2.group_idx,
+                        collider1.group_key.clone(),
+                        collider2.group_key.clone(),
                         entity1.transform,
                         entity2.transform,
                         manifold,

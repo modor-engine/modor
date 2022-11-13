@@ -1,5 +1,5 @@
-use core::fmt;
 use std::any::Any;
+use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 

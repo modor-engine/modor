@@ -1,9 +1,6 @@
 use crate::internal::{Update2DAbsoluteFromRelativeAction, Update2DBodies};
 use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2DTuple};
-use crate::{
-    CollisionGroupIndex, CollisionLayer, DeltaTime, RelativeTransform2D, Transform2D,
-    ROOT_TRANSFORM,
-};
+use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
 use modor::{Built, Entity, EntityBuilder, Query, Single, With};
 use std::time::Duration;
 
@@ -21,8 +18,7 @@ use std::time::Duration;
 /// # use modor::{entity, App, Built, EntityBuilder};
 /// # use modor_math::Vec2;
 /// # use modor_physics::{
-/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D, Collider2D,
-/// #     CollisionGroupIndex
+/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D, Collider2D
 /// # };
 /// #
 /// let mut app = App::new()
@@ -47,22 +43,21 @@ use std::time::Duration;
 ///             )
 ///             .with(RelativeTransform2D::new().with_rotation(PI / 2.))
 ///             .with(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
-///             .with(Collider2D::rectangle(CollisionGroupIndex::Group0))
 ///     }
 /// }
 /// ```
 ///
-/// It is also possible to configure collision layers to define which collision groups can collide
-/// together:
+/// Colliders can be configured this way:
 /// ```rust
 /// # use std::f32::consts::PI;
 /// # use modor::{entity, App, Built, EntityBuilder};
 /// # use modor_math::Vec2;
 /// # use modor_physics::{
-/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D, CollisionGroupIndex,
-/// #     CollisionLayer, Collider2D
+/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D,
+/// #     Collider2D, CollisionGroupRef, CollisionType
 /// # };
 /// #
+/// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// enum CollisionGroup {
 ///     Ally,
 ///     Enemy,
@@ -70,13 +65,12 @@ use std::time::Duration;
 ///     EnemyBullet
 /// }
 ///
-/// impl From<CollisionGroup> for CollisionGroupIndex {
-///     fn from(group: CollisionGroup) -> Self {
-///         match group {
-///             CollisionGroup::Ally => Self::Group0,
-///             CollisionGroup::Enemy => Self::Group1,
-///             CollisionGroup::AllyBullet => Self::Group2,
-///             CollisionGroup::EnemyBullet => Self::Group2,
+/// impl CollisionGroupRef for CollisionGroup {
+///     fn collision_type(&self, other: &Self) -> CollisionType {
+///         match (self, other) {
+///             (Self::Ally, Self::EnemyBullet) => CollisionType::Sensor,
+///             (Self::Enemy, Self::AllyBullet) => CollisionType::Sensor,
+///             _ => CollisionType::None,
 ///         }
 ///     }
 /// }
@@ -92,22 +86,11 @@ use std::time::Duration;
 ///     }
 /// }
 ///
-/// let layers = vec![
-///     CollisionLayer::new(vec![
-///         CollisionGroup::Ally.into(),
-///         CollisionGroup::EnemyBullet.into(),
-///     ]),
-///     CollisionLayer::new(vec![
-///         CollisionGroup::Enemy.into(),
-///         CollisionGroup::AllyBullet.into(),
-///     ]),
-/// ];
 /// let mut app = App::new()
-///     .with_entity(PhysicsModule::build_with_layers(layers))
+///     .with_entity(PhysicsModule::build())
 ///     .with_entity(Ally::build());
 /// ```
 pub struct PhysicsModule {
-    groups: Vec<Group>,
     core_2d: Core2DStorage,
 }
 
@@ -117,18 +100,10 @@ impl PhysicsModule {
     /// can collide with each other.
     pub fn build() -> impl Built<Self> {
         info!("physics module created");
-        Self::build_internal(vec![CollisionLayer::new(
-            CollisionGroupIndex::ALL
-                .into_iter()
-                .chain(CollisionGroupIndex::ALL.into_iter())
-                .collect(),
-        )])
-    }
-
-    /// Builds the module with custom collision layers.
-    pub fn build_with_layers(layers: Vec<CollisionLayer>) -> impl Built<Self> {
-        info!("physics module created with layers `{layers:?}`");
-        Self::build_internal(layers)
+        EntityBuilder::new(Self {
+            core_2d: Core2DStorage::default(),
+        })
+        .with_child(DeltaTime::build(Duration::ZERO))
     }
 
     #[run_as(Update2DAbsoluteFromRelativeAction)]
@@ -155,34 +130,11 @@ impl PhysicsModule {
         delta: Single<'_, DeltaTime>,
         mut entities: Query<'_, PhysicsEntity2DTuple<'_>>,
     ) {
-        self.core_2d
-            .update(delta.get(), &mut entities, &self.groups);
+        self.core_2d.update(delta.get(), &mut entities);
     }
 
     #[run_as(UpdatePhysicsAction)]
     fn finish_update() {}
-
-    fn build_internal(layers: Vec<CollisionLayer>) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            groups: Self::compute_groups(layers),
-            core_2d: Core2DStorage::default(),
-        })
-        .with_child(DeltaTime::build(Duration::ZERO))
-    }
-
-    fn compute_groups(layers: Vec<CollisionLayer>) -> Vec<Group> {
-        let mut groups: Vec<_> = (0..32).map(Group::new).collect();
-        for layer in layers {
-            let group_idxs: Vec<_> = layer.groups.into_iter().map(|g| g as usize).collect();
-            for (group_pos, &group_idx) in group_idxs.iter().enumerate() {
-                for &current_group_idx in &group_idxs[0..group_pos] {
-                    groups[current_group_idx].interaction_bits |= 1 << group_idx;
-                    groups[group_idx].interaction_bits |= 1 << current_group_idx;
-                }
-            }
-        }
-        groups
-    }
 
     fn entities_sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
     where
@@ -191,20 +143,6 @@ impl PhysicsModule {
         let mut entities: Vec<_> = entities.collect();
         entities.sort_unstable_by_key(|e| e.depth());
         entities
-    }
-}
-
-pub(crate) struct Group {
-    pub(crate) membership_bits: u32, // the active bit indicates the group
-    pub(crate) interaction_bits: u32, // the active bits indicates with which groups it can collide
-}
-
-impl Group {
-    pub(crate) const fn new(group_idx: usize) -> Self {
-        Self {
-            membership_bits: 1 << group_idx,
-            interaction_bits: 0,
-        }
     }
 }
 
