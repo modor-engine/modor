@@ -151,21 +151,20 @@ impl<'a> SystemParamWithLifetime<'a> for World<'_> {
 }
 
 impl SystemParam for World<'_> {
-    type Tuple = (Self,);
+    type Filter = ();
     type InnerTuple = ();
 
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             can_update: true,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         WorldGuard::new(data, info)
     }
 
@@ -212,11 +211,11 @@ mod internal {
 
     pub struct WorldGuard<'a> {
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     }
 
     impl<'a> WorldGuard<'a> {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self { data, info }
         }
 

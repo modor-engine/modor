@@ -2,14 +2,15 @@ use std::any::{Any, TypeId};
 use std::mem;
 use std::sync::Mutex;
 
+use super::systems::FullSystemProperties;
 use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
-use crate::storages::systems::{SystemProperties, SystemStorage};
+use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
 use crate::systems::internal::SystemWrapper;
-use crate::{SystemData, SystemInfo};
+use crate::{SystemBuilder, SystemData, SystemInfo};
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -61,7 +62,7 @@ impl CoreStorage {
     {
         let type_idx = self.components.type_idx_or_create::<C>();
         self.archetypes
-            .add_component(src_archetype_idx, type_idx)
+            .add_component(src_archetype_idx, type_idx, TypeId::of::<C>())
             .map_or((type_idx, src_archetype_idx), |dst_archetype_idx| {
                 (type_idx, dst_archetype_idx)
             })
@@ -136,7 +137,7 @@ impl CoreStorage {
         &mut self,
         wrapper: SystemWrapper,
         label: &'static str,
-        properties: SystemProperties,
+        properties: FullSystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> ActionIdx {
@@ -147,12 +148,17 @@ impl CoreStorage {
         action_idx
     }
 
-    // This is a workaround for App::with_update.
-    // This should be generalized when Filter<F> system param will be added.
-    pub(crate) fn run_system_once<S>(&mut self, mut wrapper: S, properties: SystemProperties)
+    pub(crate) fn run_system<S>(&mut self, mut system: SystemBuilder<S>)
     where
-        S: FnMut(SystemData<'_>, SystemInfo<'_>),
+        S: FnMut(SystemData<'_>, SystemInfo),
     {
+        let properties = (system.properties_fn)(self);
+        let properties = FullSystemProperties {
+            component_types: properties.component_types,
+            can_update: properties.can_update,
+            archetype_filter_fn: system.archetype_filter_fn,
+            entity_type: None,
+        };
         let data = SystemData {
             entities: &self.entities,
             components: &self.components,
@@ -160,11 +166,12 @@ impl CoreStorage {
             actions: &self.actions,
             updates: &self.updates,
         };
-        wrapper(
+        (system.wrapper)(
             data,
             SystemInfo {
-                filtered_component_type_idxs: &properties.filtered_component_type_idxs,
-                item_count: 1, // generalized: data.item_count(&properties.filtered_component_type_idxs)
+                archetype_filter_fn: properties.archetype_filter_fn,
+                entity_type: properties.entity_type,
+                item_count: data.item_count(properties.archetype_filter_fn, properties.entity_type),
             },
         );
     }

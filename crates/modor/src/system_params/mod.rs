@@ -1,13 +1,13 @@
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
-use crate::{SystemData, SystemInfo};
+use crate::{EntityFilter, SystemData, SystemInfo};
 
 pub(crate) mod components;
 pub(crate) mod components_mut;
 pub(crate) mod entity;
+pub(crate) mod filters;
 pub(crate) mod optional_components;
 pub(crate) mod optional_components_mut;
 pub(crate) mod optional_singletons;
@@ -21,7 +21,7 @@ pub(crate) mod world;
 /// A trait implemented for valid system parameters.
 pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     #[doc(hidden)]
-    type Tuple: SystemParam;
+    type Filter: EntityFilter;
     #[doc(hidden)]
     type InnerTuple: SystemParam;
 
@@ -29,10 +29,8 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     fn properties(core: &mut CoreStorage) -> SystemProperties;
 
     #[doc(hidden)]
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard;
+    fn lock(data: SystemData<'_>, info: SystemInfo)
+        -> <Self as SystemParamWithLifetime<'_>>::Guard;
 
     #[doc(hidden)]
     fn borrow_guard<'a, 'b>(
@@ -58,9 +56,6 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
 
 /// A trait implemented for valid [`Query`](crate::Query) parameters.
 pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'a> {
-    #[doc(hidden)]
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx>;
-
     #[doc(hidden)]
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,

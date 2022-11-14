@@ -86,6 +86,7 @@ pub use entity_filters::*;
 pub use ranges::*;
 pub use system_checks::*;
 pub use system_params::entity::*;
+pub use system_params::filters::*;
 pub use system_params::queries::*;
 pub use system_params::singletons::*;
 pub use system_params::singletons_mut::*;

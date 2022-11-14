@@ -1,6 +1,6 @@
 use crate::storages::actions::{ActionDependencies, ActionIdx};
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
+use crate::storages::systems::{EntityTypeInfo, FullSystemProperties};
 use crate::systems::internal::SystemWrapper;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
@@ -8,7 +8,7 @@ use std::any::TypeId;
 #[doc(hidden)]
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) entity_type_idx: ComponentTypeIdx,
+    pub(crate) entity_type: EntityTypeInfo,
     pub(crate) latest_action_idx: Option<ActionIdx>,
 }
 
@@ -70,20 +70,22 @@ impl<'a> SystemRunner<'a> {
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> SystemRunner<'a> {
-        let mut properties = (system.properties_fn)(self.core);
-        properties
-            .filtered_component_type_idxs
-            .push(self.entity_type_idx);
+        let properties = (system.properties_fn)(self.core);
         SystemRunner {
             latest_action_idx: Some(self.core.add_system(
                 system.wrapper,
                 label,
-                properties,
+                FullSystemProperties {
+                    component_types: properties.component_types,
+                    can_update: properties.can_update,
+                    archetype_filter_fn: system.archetype_filter_fn,
+                    entity_type: Some(self.entity_type),
+                },
                 action_type,
                 action_dependencies,
             )),
             core: self.core,
-            entity_type_idx: self.entity_type_idx,
+            entity_type: self.entity_type,
         }
     }
 }

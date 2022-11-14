@@ -1,8 +1,10 @@
 use crate::internal::{Update2DAbsoluteFromRelativeAction, Update2DBodies};
 use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2DTuple};
 use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
-use modor::{Built, Entity, EntityBuilder, Query, Single, With};
+use modor::{Built, Entity, EntityBuilder, Filter, Query, Single, With};
 use std::time::Duration;
+
+type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransform2D>)>;
 
 /// The main entity of the physics module.
 ///
@@ -108,10 +110,10 @@ impl PhysicsModule {
 
     #[run_as(Update2DAbsoluteFromRelativeAction)]
     fn update_2d_absolute_from_relative(
-        entities: Query<'_, Entity<'_>, (With<Transform2D>, With<RelativeTransform2D>)>,
+        entities: Query<'_, (Entity<'_>, RelativeTransform2DFilter)>,
         mut components: Query<'_, (&mut Transform2D, Option<&mut RelativeTransform2D>)>,
     ) {
-        for entity in Self::entities_sorted_by_depth(entities.iter()) {
+        for entity in Self::entities_sorted_by_depth(entities.iter().map(|(e, _)| e)) {
             match components.get_with_first_parent_mut(entity.id()) {
                 (Some((transform, Some(relative))), Some((parent, _))) => {
                     transform.update_from_relative(relative, parent);

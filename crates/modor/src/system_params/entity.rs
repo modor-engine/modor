@@ -1,6 +1,5 @@
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
@@ -81,21 +80,20 @@ impl<'a> SystemParamWithLifetime<'a> for Entity<'_> {
 }
 
 impl SystemParam for Entity<'_> {
-    type Tuple = (Self,);
+    type Filter = ();
     type InnerTuple = ();
 
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             can_update: false,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         EntityGuard::new(data, info)
     }
 
@@ -135,10 +133,6 @@ impl<'a> QuerySystemParamWithLifetime<'a> for Entity<'_> {
 }
 
 impl QuerySystemParam for Entity<'_> {
-    fn filtered_component_type_idxs(_data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![]
-    }
-
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -203,7 +197,7 @@ impl QuerySystemParam for Entity<'_> {
     }
 }
 
-mod internal {
+pub(super) mod internal {
     use crate::storages::archetypes::FilteredArchetypeIdxIter;
     use crate::storages::entities::EntityIdx;
     use crate::{Entity, SystemData, SystemInfo};
@@ -212,20 +206,21 @@ mod internal {
 
     pub struct EntityGuard<'a> {
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     }
 
     impl<'a> EntityGuard<'a> {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self { data, info }
         }
 
         pub(crate) fn borrow(&mut self) -> EntityGuardBorrow<'_> {
             EntityGuardBorrow {
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self
-                    .data
-                    .filter_archetype_idx_iter(self.info.filtered_component_type_idxs),
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
+                    self.info.archetype_filter_fn,
+                    self.info.entity_type,
+                ),
                 data: self.data,
             }
         }

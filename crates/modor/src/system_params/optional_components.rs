@@ -1,6 +1,5 @@
 use crate::optional_components::internal::{ComponentOptionGuard, ComponentOptionGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{
@@ -24,7 +23,7 @@ impl<C> SystemParam for Option<&C>
 where
     C: Any + Sync + Send,
 {
-    type Tuple = (Self,);
+    type Filter = ();
     type InnerTuple = ();
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
@@ -35,14 +34,13 @@ where
                 type_idx,
             }],
             can_update: false,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         ComponentOptionGuard::new(data, info)
     }
 
@@ -88,10 +86,6 @@ impl<C> QuerySystemParam for Option<&C>
 where
     C: Any + Sync + Send,
 {
-    fn filtered_component_type_idxs(_data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![]
-    }
-
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -181,14 +175,14 @@ pub(crate) mod internal {
     pub struct ComponentOptionGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     }
 
     impl<'a, C> ComponentOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self {
                 components: data.components.read_components::<C>(),
                 data,
@@ -200,9 +194,10 @@ pub(crate) mod internal {
             ComponentOptionGuardBorrow {
                 components: &*self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self
-                    .data
-                    .filter_archetype_idx_iter(self.info.filtered_component_type_idxs),
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
+                    self.info.archetype_filter_fn,
+                    self.info.entity_type,
+                ),
                 data: self.data,
             }
         }

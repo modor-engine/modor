@@ -1,3 +1,16 @@
+pub mod components;
+pub mod components_mut;
+pub mod entity;
+pub mod filters;
+pub mod optional_components;
+pub mod optional_components_mut;
+pub mod optional_singletons;
+pub mod optional_singletons_mut;
+pub mod queries;
+pub mod singletons;
+pub mod singletons_mut;
+pub mod tuples;
+pub mod world;
 use std::fmt::Debug;
 
 fn assert_iter<T, E, I1, I2>(mut actual: I1, expected: E)
@@ -26,16 +39,3 @@ where
     assert_eq!(actual.len(), 0, "size not zero after last item");
     assert_eq!(actual.next(), None, "more items than expected");
 }
-
-pub mod components;
-pub mod components_mut;
-pub mod entity;
-pub mod optional_components;
-pub mod optional_components_mut;
-pub mod optional_singletons;
-pub mod optional_singletons_mut;
-pub mod queries;
-pub mod singletons;
-pub mod singletons_mut;
-pub mod tuples;
-pub mod world;

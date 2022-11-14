@@ -1,5 +1,5 @@
 use crate::system_params::assert_iter;
-use modor::{App, Built, Entity, EntityBuilder, Query, SingleMut, With};
+use modor::{App, Built, Entity, EntityBuilder, Filter, Query, SingleMut, With};
 
 struct QueryTester {
     done: bool,
@@ -12,20 +12,20 @@ impl QueryTester {
     }
 
     #[run]
-    fn collect(&mut self, mut query: Query<'_, Entity<'_>, With<Number>>) {
-        assert_iter(query.iter().map(Entity::id), [5, 2, 4, 6]);
-        assert_iter(query.iter_mut().map(Entity::id), [5, 2, 4, 6]);
-        assert_iter(query.iter().rev().map(Entity::id), [6, 4, 2, 5]);
-        assert_iter(query.iter_mut().rev().map(Entity::id), [6, 4, 2, 5]);
-        assert_eq!(query.get(10).map(Entity::id), None);
-        assert_eq!(query.get_mut(10).map(Entity::id), None);
-        assert_eq!(query.get(3).map(Entity::id), None);
-        assert_eq!(query.get_mut(3).map(Entity::id), None);
-        assert_eq!(query.get(4).map(Entity::id), Some(4));
-        assert_eq!(query.get_mut(4).map(Entity::id), Some(4));
+    fn collect(&mut self, mut query: Query<'_, (Entity<'_>, Filter<With<Number>>)>) {
+        assert_iter(query.iter().map(|e| e.0.id()), [5, 2, 4, 6]);
+        assert_iter(query.iter_mut().map(|e| e.0.id()), [5, 2, 4, 6]);
+        assert_iter(query.iter().rev().map(|e| e.0.id()), [6, 4, 2, 5]);
+        assert_iter(query.iter_mut().rev().map(|e| e.0.id()), [6, 4, 2, 5]);
+        assert_eq!(query.get(10).map(|e| e.0.id()), None);
+        assert_eq!(query.get_mut(10).map(|e| e.0.id()), None);
+        assert_eq!(query.get(3).map(|e| e.0.id()), None);
+        assert_eq!(query.get_mut(3).map(|e| e.0.id()), None);
+        assert_eq!(query.get(4).map(|e| e.0.id()), Some(4));
+        assert_eq!(query.get_mut(4).map(|e| e.0.id()), Some(4));
         let (left, right) = query.get_both_mut(4, 2);
-        assert_eq!(left.map(Entity::id), Some(4));
-        assert_eq!(right.map(Entity::id), Some(2));
+        assert_eq!(left.map(|e| e.0.id()), Some(4));
+        assert_eq!(right.map(|e| e.0.id()), Some(2));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(200));

@@ -1,4 +1,4 @@
-use modor::{App, Built, Entity, EntityBuilder, Query, With, World};
+use modor::{App, Built, Entity, EntityBuilder, Filter, Query, With, World};
 use modor_graphics::{
     testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureRef, TextureState,
 };
@@ -64,8 +64,8 @@ impl TextureRemover {
     }
 
     #[run]
-    fn update(textures: Query<'_, Entity<'_>, With<Texture>>, mut world: World<'_>) {
-        for texture in textures.iter() {
+    fn update(textures: Query<'_, (Entity<'_>, Filter<With<Texture>>)>, mut world: World<'_>) {
+        for (texture, _) in textures.iter() {
             world.delete_entity(texture.id());
         }
     }
