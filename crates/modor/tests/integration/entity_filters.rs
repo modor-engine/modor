@@ -1,5 +1,5 @@
 use fxhash::FxHashSet;
-use modor::{App, Built, EntityBuilder, Filter, Or, Query, With};
+use modor::{App, Built, EntityBuilder, Filter, Or, Query, With, Without};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -27,24 +27,40 @@ impl ResultCollector {
     fn run_filtered_queries(
         &mut self,
         with: Query<'_, (&u32, Filter<With<i64>>)>,
-        and_0_item: Query<'_, (&u32, Filter<()>)>,
-        and_1_item: Query<'_, (&u32, Filter<(With<i64>,)>)>,
-        and_many_items: Query<'_, (&u32, Filter<(With<i64>, With<u8>)>)>,
-        or_0_item: Query<'_, (&u32, Filter<Or<()>>)>,
-        or_1_item: Query<'_, (&u32, Filter<Or<(With<i64>,)>>)>,
-        or_many_items: Query<'_, (&u32, Filter<Or<(With<i64>, With<u8>)>>)>,
-        or_with: Query<'_, (&u32, Filter<Or<With<i64>>>)>,
-        complex: Query<'_, (&u32, Filter<Or<(With<u8>, (With<u32>, With<i64>))>>)>,
+        without: Query<'_, (&u32, Filter<Without<i64>>)>,
+        (and_empty, and_1_with, and_many_with, and_1_without, and_many_without): (
+            Query<'_, (&u32, Filter<()>)>,
+            Query<'_, (&u32, Filter<(With<i64>,)>)>,
+            Query<'_, (&u32, Filter<(With<i64>, With<u8>)>)>,
+            Query<'_, (&u32, Filter<(Without<i64>,)>)>,
+            Query<'_, (&u32, Filter<(Without<i64>, Without<u8>)>)>,
+        ),
+        (or_empty, or_1_with, or_many_with, or_1_without, or_many_without, or_with, or_without): (
+            Query<'_, (&u32, Filter<Or<()>>)>,
+            Query<'_, (&u32, Filter<Or<(With<i64>,)>>)>,
+            Query<'_, (&u32, Filter<Or<(With<i64>, With<u8>)>>)>,
+            Query<'_, (&u32, Filter<Or<(Without<i64>,)>>)>,
+            Query<'_, (&u32, Filter<Or<(Without<i64>, Without<u8>)>>)>,
+            Query<'_, (&u32, Filter<Or<With<i64>>>)>,
+            Query<'_, (&u32, Filter<Or<Without<i64>>>)>,
+        ),
+        nested: Query<'_, (&u32, Filter<Or<(With<u8>, (With<u32>, With<i64>))>>)>,
     ) {
         assert_unordered_iter(with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(and_0_item.iter().map(|(&v, _)| v), [1, 2, 3, 4]);
-        assert_unordered_iter(and_1_item.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(and_many_items.iter().map(|(&v, _)| v), [1]);
-        assert_unordered_iter(or_0_item.iter().map(|(&v, _)| v), []);
-        assert_unordered_iter(or_1_item.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(or_many_items.iter().map(|(&v, _)| v), [1, 2, 3]);
+        assert_unordered_iter(without.iter().map(|(&v, _)| v), [2, 4]);
+        assert_unordered_iter(and_empty.iter().map(|(&v, _)| v), [1, 2, 3, 4]);
+        assert_unordered_iter(and_1_with.iter().map(|(&v, _)| v), [1, 3]);
+        assert_unordered_iter(and_many_with.iter().map(|(&v, _)| v), [1]);
+        assert_unordered_iter(and_1_without.iter().map(|(&v, _)| v), [2, 4]);
+        assert_unordered_iter(and_many_without.iter().map(|(&v, _)| v), [4]);
+        assert_unordered_iter(or_empty.iter().map(|(&v, _)| v), []);
+        assert_unordered_iter(or_1_with.iter().map(|(&v, _)| v), [1, 3]);
+        assert_unordered_iter(or_many_with.iter().map(|(&v, _)| v), [1, 2, 3]);
+        assert_unordered_iter(or_1_without.iter().map(|(&v, _)| v), [2, 4]);
+        assert_unordered_iter(or_many_without.iter().map(|(&v, _)| v), [2, 3, 4]);
         assert_unordered_iter(or_with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(complex.iter().map(|(&v, _)| v), [1, 2, 3]);
+        assert_unordered_iter(or_without.iter().map(|(&v, _)| v), [2, 4]);
+        assert_unordered_iter(nested.iter().map(|(&v, _)| v), [1, 2, 3]);
         self.done = true;
     }
 }
