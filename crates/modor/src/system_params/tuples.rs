@@ -1,5 +1,4 @@
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
@@ -17,21 +16,20 @@ impl<'a> SystemParamWithLifetime<'a> for () {
 }
 
 impl SystemParam for () {
-    type Tuple = Self;
+    type Filter = ();
     type InnerTuple = Self;
 
     fn properties(_core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             can_update: false,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         EmptyTupleGuard::new(data, info)
     }
 
@@ -71,10 +69,6 @@ impl<'a> QuerySystemParamWithLifetime<'a> for () {
 }
 
 impl QuerySystemParam for () {
-    fn filtered_component_type_idxs(_data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![]
-    }
-
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -147,7 +141,7 @@ macro_rules! impl_tuple_system_param {
         where
             $($params: SystemParam,)+
         {
-            type Tuple = Self;
+            type Filter = ($($params::Filter,)+);
             type InnerTuple = Self;
 
             fn properties(core: &mut CoreStorage) -> SystemProperties {
@@ -155,15 +149,12 @@ macro_rules! impl_tuple_system_param {
                 SystemProperties {
                     component_types: utils::merge([$(properties.$indexes.component_types),+]),
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
-                    filtered_component_type_idxs: utils::merge(
-                        [$(properties.$indexes.filtered_component_type_idxs),+]
-                    ),
                 }
             }
 
             fn lock<'a>(
                 data: SystemData<'a>,
-                info: SystemInfo<'a>,
+                info: SystemInfo,
             ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
                 ($($params::lock(data, info),)+)
             }
@@ -210,11 +201,6 @@ macro_rules! impl_tuple_system_param {
         where
             $($params: QuerySystemParam,)+
         {
-            fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-                let filtered_type_idxs = ($($params::filtered_component_type_idxs(data),)+);
-                utils::merge([$(filtered_type_idxs.$indexes),+])
-            }
-
             #[allow(non_snake_case)]
             fn query_iter<'a, 'b>(
                 guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
@@ -403,7 +389,7 @@ mod internal {
     }
 
     impl EmptyTupleGuard {
-        pub(crate) fn new(_data: SystemData<'_>, info: SystemInfo<'_>) -> Self {
+        pub(crate) fn new(_data: SystemData<'_>, info: SystemInfo) -> Self {
             Self {
                 item_count: info.item_count,
             }

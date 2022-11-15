@@ -84,7 +84,7 @@ impl<C> SystemParam for SingleMut<'_, C>
 where
     C: EntityMainComponent<Type = Singleton>,
 {
-    type Tuple = (Self,);
+    type Filter = ();
     type InnerTuple = ();
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
@@ -95,14 +95,13 @@ where
                 type_idx,
             }],
             can_update: false,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         SingletonMutGuard::new(data, info)
     }
 
@@ -154,14 +153,14 @@ pub(crate) mod internal {
     pub struct SingletonMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     }
 
     impl<'a, C> SingletonMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self {
                 components: data.components.write_components::<C>(),
                 data,

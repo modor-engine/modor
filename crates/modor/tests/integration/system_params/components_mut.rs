@@ -1,5 +1,5 @@
 use crate::system_params::assert_iter;
-use modor::{App, Built, EntityBuilder, Query, SingleMut, With};
+use modor::{App, Built, EntityBuilder, Filter, Query, SingleMut, With};
 
 struct QueryTester {
     done: bool,
@@ -12,25 +12,25 @@ impl QueryTester {
     }
 
     #[run]
-    fn run(&mut self, mut query: Query<'_, &mut Value, With<Number>>) {
-        assert_iter(query.iter().map(|v| v.0), [1, 2, 3]);
-        assert_iter(query.iter_mut().map(|v| v.0), [1, 2, 3]);
-        assert_iter(query.iter().rev().map(|v| v.0), [3, 2, 1]);
-        assert_iter(query.iter_mut().rev().map(|v| v.0), [3, 2, 1]);
-        assert_eq!(query.get(10).map(|v| v.0), None);
-        assert_eq!(query.get_mut(10).map(|v| v.0), None);
-        assert_eq!(query.get(5).map(|v| v.0), None);
-        assert_eq!(query.get_mut(5).map(|v| v.0), None);
-        assert_eq!(query.get(3).map(|v| v.0), None);
-        assert_eq!(query.get_mut(3).map(|v| v.0), None);
-        assert_eq!(query.get(4).map(|v| v.0), Some(2));
-        assert_eq!(query.get_mut(4).map(|v| v.0), Some(2));
+    fn run(&mut self, mut query: Query<'_, (&mut Value, Filter<With<Number>>)>) {
+        assert_iter(query.iter().map(|v| v.0 .0), [1, 2, 3]);
+        assert_iter(query.iter_mut().map(|v| v.0 .0), [1, 2, 3]);
+        assert_iter(query.iter().rev().map(|v| v.0 .0), [3, 2, 1]);
+        assert_iter(query.iter_mut().rev().map(|v| v.0 .0), [3, 2, 1]);
+        assert_eq!(query.get(10).map(|v| v.0 .0), None);
+        assert_eq!(query.get_mut(10).map(|v| v.0 .0), None);
+        assert_eq!(query.get(5).map(|v| v.0 .0), None);
+        assert_eq!(query.get_mut(5).map(|v| v.0 .0), None);
+        assert_eq!(query.get(3).map(|v| v.0 .0), None);
+        assert_eq!(query.get_mut(3).map(|v| v.0 .0), None);
+        assert_eq!(query.get(4).map(|v| v.0 .0), Some(2));
+        assert_eq!(query.get_mut(4).map(|v| v.0 .0), Some(2));
         let (left, right) = query.get_both_mut(4, 2);
-        assert_eq!(left.map(|v| v.0), Some(2));
-        assert_eq!(right.map(|v| v.0), Some(1));
+        assert_eq!(left.map(|v| v.0 .0), Some(2));
+        assert_eq!(right.map(|v| v.0 .0), Some(1));
         let (left, right) = query.get_both_mut(2, 4);
-        assert_eq!(left.map(|v| v.0), Some(1));
-        assert_eq!(right.map(|v| v.0), Some(2));
+        assert_eq!(left.map(|v| v.0 .0), Some(1));
+        assert_eq!(right.map(|v| v.0 .0), Some(2));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(150));

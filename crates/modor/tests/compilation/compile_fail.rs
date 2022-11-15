@@ -2,7 +2,7 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{Built, EntityBuilder, Query, Single, SingleMut, World};
+use modor::{Built, EntityBuilder, Filter, Query, Single, SingleMut, With, World};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -111,6 +111,9 @@ impl EntityWithValidSystems {
 
     #[run]
     fn entity_params_with_world(_: &mut u32, _: World<'_>) {}
+
+    #[run]
+    fn filters_with_same_component(_: Filter<With<i64>>, _: Filter<With<i64>>) {}
 }
 
 #[test]

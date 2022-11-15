@@ -1,13 +1,11 @@
 use crate::queries::internal::{QueryGuard, QueryGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::queries::internal::QueryStream;
 use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::marker::PhantomData;
 
 /// A system parameter for iterating on entities.
 ///
@@ -16,49 +14,33 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::{Entity, Query};
 /// #
-/// #[derive(Debug)]
-/// struct Position(f32, f32);
 ///
-/// fn print_position(query: Query<'_, (Entity<'_>, &Position)>) {
-///     for (entity, position) in query.iter() {
-///         println!("Entity with ID {} has position {:?}", entity.id(), position)
+/// fn print_position(query: Query<'_, Entity<'_>>) {
+///     for entity in query.iter() {
+///         println!("Entity found with ID {}", entity.id());
 ///     }
 /// }
 /// ```
-pub struct Query<'a, P, F = ()>
+pub struct Query<'a, P>
 where
     P: 'static + QuerySystemParam,
-    F: EntityFilter,
 {
     guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
-    filtered_component_type_idxs: &'a [ComponentTypeIdx],
     data: SystemData<'a>,
-    phantom: PhantomData<F>,
 }
 
-impl<'a, P, F> Query<'a, P, F>
+impl<'a, P> Query<'a, P>
 where
     P: 'static + QuerySystemParam,
-    F: EntityFilter,
 {
-    fn new(
-        guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
-        filtered_component_type_idxs: &'a [ComponentTypeIdx],
-        data: SystemData<'a>,
-    ) -> Self {
-        Self {
-            guard,
-            filtered_component_type_idxs,
-            data,
-            phantom: PhantomData,
-        }
+    fn new(guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow, data: SystemData<'a>) -> Self {
+        Self { guard, data }
     }
 }
 
-impl<P, F> Query<'_, P, F>
+impl<P> Query<'_, P>
 where
     P: 'static + QuerySystemParam,
-    F: EntityFilter,
 {
     /// Returns an iterator on constant query results.
     pub fn iter(&self) -> <P as QuerySystemParamWithLifetime<'_>>::Iter {
@@ -173,10 +155,7 @@ where
 
     fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
         self.data.entities.location(entity_idx).and_then(|l| {
-            self.data
-                .archetypes
-                .has_types(l.idx, self.filtered_component_type_idxs)
-                .then_some(l)
+            <P::Filter>::is_archetype_kept(self.data.archetypes.type_ids(l.idx)).then_some(l)
         })
     }
 
@@ -192,39 +171,35 @@ where
     }
 }
 
-impl<'a, P, F> SystemParamWithLifetime<'a> for Query<'_, P, F>
+impl<'a, P> SystemParamWithLifetime<'a> for Query<'_, P>
 where
     P: 'static + QuerySystemParam,
-    F: EntityFilter,
 {
-    type Param = Query<'a, P, F>;
-    type Guard = QueryGuard<'a, P, F>;
+    type Param = Query<'a, P>;
+    type Guard = QueryGuard<'a, P>;
     type GuardBorrow = QueryGuardBorrow<'a>;
     type Stream = QueryStream<'a, P>;
 }
 
-impl<P, F> SystemParam for Query<'_, P, F>
+impl<P> SystemParam for Query<'_, P>
 where
     P: 'static + QuerySystemParam,
-    F: EntityFilter,
 {
-    type Tuple = (Self,);
-    type InnerTuple = P::Tuple;
+    type Filter = ();
+    type InnerTuple = P::InnerTuple;
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
-        F::register(core);
         let param_properties = P::properties(core);
         SystemProperties {
             component_types: param_properties.component_types,
             can_update: param_properties.can_update,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         QueryGuard::new(data, info)
     }
 
@@ -253,43 +228,33 @@ where
     where
         'b: 'a,
     {
-        stream.item_positions.next().map(|_| {
-            Query::new(
-                P::borrow_guard(&mut stream.guard),
-                stream.filtered_component_type_idxs,
-                stream.data,
-            )
-        })
+        stream
+            .item_positions
+            .next()
+            .map(|_| Query::new(P::borrow_guard(&mut stream.guard), stream.data))
     }
 }
 
 mod internal {
-    use crate::storages::components::ComponentTypeIdx;
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
-    use crate::{utils, EntityFilter, QuerySystemParam, SystemData, SystemInfo};
+    use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo};
     use std::marker::PhantomData;
     use std::ops::Range;
 
-    pub struct QueryGuard<'a, P, F> {
+    pub struct QueryGuard<'a, P> {
         data: SystemData<'a>,
         item_count: usize,
-        filtered_component_type_idxs: Vec<ComponentTypeIdx>,
-        phantom: PhantomData<(P, F)>,
+        phantom: PhantomData<P>,
     }
 
-    impl<'a, P, F> QueryGuard<'a, P, F>
+    impl<'a, P> QueryGuard<'a, P>
     where
         P: QuerySystemParam,
-        F: EntityFilter,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self {
                 data,
                 item_count: info.item_count,
-                filtered_component_type_idxs: utils::merge([
-                    P::filtered_component_type_idxs(data),
-                    F::filtered_component_type_idxs(data),
-                ]),
                 phantom: PhantomData,
             }
         }
@@ -298,20 +263,19 @@ mod internal {
             QueryGuardBorrow {
                 data: self.data,
                 param_info: SystemInfo {
-                    filtered_component_type_idxs: &self.filtered_component_type_idxs,
-                    item_count: self.data.item_count(&self.filtered_component_type_idxs),
+                    archetype_filter_fn: <P::Filter>::is_archetype_kept,
+                    entity_type_idx: None,
+                    item_count: self.data.item_count(<P::Filter>::is_archetype_kept, None),
                 },
                 item_count: self.item_count,
-                filtered_component_type_idxs: &self.filtered_component_type_idxs,
             }
         }
     }
 
     pub struct QueryGuardBorrow<'a> {
         pub(crate) data: SystemData<'a>,
-        pub(crate) param_info: SystemInfo<'a>,
+        pub(crate) param_info: SystemInfo,
         pub(crate) item_count: usize,
-        pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     }
 
     pub struct QueryStream<'a, P>
@@ -321,7 +285,6 @@ mod internal {
         pub(crate) item_positions: Range<usize>,
         pub(crate) data: SystemData<'a>,
         pub(crate) guard: <P as SystemParamWithLifetime<'a>>::Guard,
-        pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
     }
 
     impl<'a, P> QueryStream<'a, P>
@@ -333,7 +296,6 @@ mod internal {
                 item_positions: 0..guard.item_count,
                 data: guard.data,
                 guard: P::lock(guard.data, guard.param_info),
-                filtered_component_type_idxs: guard.filtered_component_type_idxs,
             }
         }
     }

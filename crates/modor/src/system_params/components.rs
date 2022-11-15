@@ -1,13 +1,12 @@
 use crate::components::internal::{ComponentGuard, ComponentGuardBorrow, ComponentIter};
 use crate::storages::archetypes::EntityLocation;
-use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{
     Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
-use std::any::{Any, TypeId};
+use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam, With};
+use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C
 where
@@ -23,7 +22,7 @@ impl<C> SystemParam for &C
 where
     C: Any + Sync + Send,
 {
-    type Tuple = (Self,);
+    type Filter = With<C>;
     type InnerTuple = ();
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
@@ -34,14 +33,13 @@ where
                 type_idx,
             }],
             can_update: false,
-            filtered_component_type_idxs: vec![type_idx],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         ComponentGuard::new(data, info)
     }
 
@@ -87,13 +85,6 @@ impl<C> QuerySystemParam for &C
 where
     C: Any + Sync + Send,
 {
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![data
-            .components
-            .type_idx(TypeId::of::<C>())
-            .expect("internal error: component type not registered")]
-    }
-
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
@@ -178,14 +169,14 @@ pub(crate) mod internal {
     pub struct ComponentGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     }
 
     impl<'a, C> ComponentGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
             Self {
                 components: data.components.read_components::<C>(),
                 data,
@@ -197,9 +188,10 @@ pub(crate) mod internal {
             ComponentGuardBorrow {
                 components: &*self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self
-                    .data
-                    .filter_archetype_idx_iter(self.info.filtered_component_type_idxs),
+                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
+                    self.info.archetype_filter_fn,
+                    self.info.entity_type_idx,
+                ),
             }
         }
     }

@@ -1,6 +1,3 @@
-use crate::storages::components::ComponentTypeIdx;
-use crate::storages::core::CoreStorage;
-use crate::SystemData;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
@@ -9,10 +6,7 @@ use std::marker::PhantomData;
 /// These filters can for example be applied to a [`Query`](crate::Query).
 pub trait EntityFilter: Any {
     #[doc(hidden)]
-    fn register(core: &mut CoreStorage);
-
-    #[doc(hidden)]
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx>;
+    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool;
 }
 
 /// A filter for restricting a [`Query`](crate::Query) to entities containing an component
@@ -25,13 +19,13 @@ pub trait EntityFilter: Any {
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, With, Entity};
+/// # use modor::{Query, With, Entity, Filter};
 /// #
 /// struct Position;
 /// struct Velocity;
 ///
-/// fn list_movable_entities(query: Query<'_, Entity<'_>, (With<Position>, With<Velocity>)>) {
-///     for entity in query.iter() {
+/// fn list_movable_entities(query: Query<'_, (Entity<'_>, Filter<(With<Position>, With<Velocity>)>)>) {
+///     for (entity, _) in query.iter() {
 ///         println!("Entity {} is movable", entity.id());
 ///     }
 /// }
@@ -44,36 +38,20 @@ impl<C> EntityFilter for With<C>
 where
     C: Any + Sync + Send,
 {
-    #[doc(hidden)]
-    fn register(core: &mut CoreStorage) {
-        core.register_component_type::<C>();
-    }
-
-    #[doc(hidden)]
-    fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-        vec![data
-            .components
-            .type_idx(TypeId::of::<C>())
-            .expect("internal error: missing component type for query filter")]
+    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+        archetype_type_ids.contains(&TypeId::of::<C>())
     }
 }
 
 macro_rules! impl_tuple_query_filter {
     ($(($params:ident, $indexes:tt)),*) => {
+        #[allow(unused_mut, unused_variables)]
         impl<$($params),*> EntityFilter for ($($params,)*)
         where
             $($params: EntityFilter,)*
         {
-            #[allow(unused_variables)]
-            fn register(core: &mut CoreStorage) {
-                $($params::register(core);)*
-            }
-
-            #[allow(unused_mut, unused_variables)]
-            fn filtered_component_type_idxs(data: SystemData<'_>) -> Vec<ComponentTypeIdx> {
-                let mut types = Vec::new();
-                $(types.extend($params::filtered_component_type_idxs(data));)*
-                types
+            fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+                true $(&& $params::is_archetype_kept(archetype_type_ids))*
             }
         }
     };

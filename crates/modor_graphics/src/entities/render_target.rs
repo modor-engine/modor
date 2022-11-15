@@ -10,7 +10,7 @@ use crate::{
     Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, InternalTextureConfig, SurfaceSize,
     Texture, WindowSettings,
 };
-use modor::{Built, Entity, EntityBuilder, Query, Single, With, World};
+use modor::{Built, Entity, EntityBuilder, Filter, Query, Single, With, World};
 use modor_physics::Transform2D;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
@@ -45,10 +45,14 @@ impl RenderTarget {
     fn prepare_rendering(
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
-        cameras: Query<'_, &Transform2D, With<Camera2D>>,
+        cameras: Query<'_, (&Transform2D, Filter<With<Camera2D>>)>,
         textures: Query<'_, &Texture>,
     ) {
-        let camera_transform = cameras.iter().next().unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
+        let camera_transform = cameras
+            .iter()
+            .map(|(t, _)| t)
+            .next()
+            .unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
         self.core.remove_not_found_textures(&textures);
         self.core.update_instances(shapes, camera_transform);
     }

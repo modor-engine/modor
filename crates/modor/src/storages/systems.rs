@@ -1,7 +1,7 @@
 use crate::storages::actions::ActionIdx;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{LockedSystem, SystemStateStorage};
-use crate::systems::internal::SystemWrapper;
+use crate::systems::internal::{ArchetypeFilterFn, SystemWrapper};
 use crate::{SystemData, SystemInfo};
 use scoped_threadpool::Pool;
 use std::sync::Mutex;
@@ -10,8 +10,9 @@ use typed_index_collections::{TiSlice, TiVec};
 #[derive(Default)]
 pub(crate) struct SystemStorage {
     wrappers: TiVec<SystemIdx, SystemWrapper>,
+    archetype_filter_fns: TiVec<SystemIdx, ArchetypeFilterFn>,
+    entity_type_idxs: TiVec<SystemIdx, Option<ComponentTypeIdx>>,
     labels: TiVec<SystemIdx, &'static str>,
-    filtered_component_type_idxs: TiVec<SystemIdx, Vec<ComponentTypeIdx>>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
 }
@@ -41,7 +42,7 @@ impl SystemStorage {
         &mut self,
         wrapper: SystemWrapper,
         label: &'static str,
-        properties: SystemProperties,
+        properties: FullSystemProperties,
         action_idx: ActionIdx,
     ) -> SystemIdx {
         self.states
@@ -54,8 +55,9 @@ impl SystemStorage {
             );
         self.wrappers.push(wrapper);
         self.labels.push(label);
-        self.filtered_component_type_idxs
-            .push_and_get_key(properties.filtered_component_type_idxs)
+        self.entity_type_idxs.push(properties.entity_type);
+        self.archetype_filter_fns
+            .push_and_get_key(properties.archetype_filter_fn)
     }
 
     pub(super) fn run(&mut self, data: SystemData<'_>) {
@@ -75,7 +77,8 @@ impl SystemStorage {
         Self::run_thread(
             data,
             &self.states,
-            &self.filtered_component_type_idxs,
+            &self.archetype_filter_fns,
+            &self.entity_type_idxs,
             &self.wrappers,
             &self.labels,
         );
@@ -89,7 +92,8 @@ impl SystemStorage {
                     Self::run_thread(
                         data,
                         &self.states,
-                        &self.filtered_component_type_idxs,
+                        &self.archetype_filter_fns,
+                        &self.entity_type_idxs,
                         &self.wrappers,
                         &self.labels,
                     );
@@ -98,7 +102,8 @@ impl SystemStorage {
             Self::run_thread(
                 data,
                 &self.states,
-                &self.filtered_component_type_idxs,
+                &self.archetype_filter_fns,
+                &self.entity_type_idxs,
                 &self.wrappers,
                 &self.labels,
             );
@@ -108,7 +113,8 @@ impl SystemStorage {
     fn run_thread(
         data: SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
-        filtered_component_type_idxs: &TiSlice<SystemIdx, Vec<ComponentTypeIdx>>,
+        archetype_filter_fns: &TiSlice<SystemIdx, ArchetypeFilterFn>,
+        entity_type_idxs: &TiSlice<SystemIdx, Option<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
         labels: &TiSlice<SystemIdx, &'static str>,
     ) {
@@ -119,7 +125,8 @@ impl SystemStorage {
             if let Some(system_idx) = system_idx {
                 Self::run_system(
                     system_idx,
-                    filtered_component_type_idxs,
+                    archetype_filter_fns,
+                    entity_type_idxs,
                     wrappers,
                     labels,
                     data,
@@ -142,15 +149,18 @@ impl SystemStorage {
 
     fn run_system(
         system_idx: SystemIdx,
-        filtered_component_type_idxs: &TiSlice<SystemIdx, Vec<ComponentTypeIdx>>,
+        archetype_filter_fns: &TiSlice<SystemIdx, ArchetypeFilterFn>,
+        entity_type_idxs: &TiSlice<SystemIdx, Option<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
         labels: &TiSlice<SystemIdx, &'static str>,
         data: SystemData<'_>,
     ) {
-        let filtered_type_idxs = &filtered_component_type_idxs[system_idx];
+        let archetype_filter_fn = archetype_filter_fns[system_idx];
+        let entity_type_idx = entity_type_idxs[system_idx];
         let info = SystemInfo {
-            filtered_component_type_idxs: filtered_type_idxs,
-            item_count: data.item_count(filtered_type_idxs),
+            archetype_filter_fn,
+            entity_type_idx,
+            item_count: data.item_count(archetype_filter_fn, entity_type_idx),
         };
         (wrappers[system_idx])(data, info);
         trace!("system `{}` run", labels[system_idx]);
@@ -162,7 +172,13 @@ idx_type!(pub(crate) SystemIdx);
 pub struct SystemProperties {
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
-    pub(crate) filtered_component_type_idxs: Vec<ComponentTypeIdx>,
+}
+
+pub(crate) struct FullSystemProperties {
+    pub(crate) component_types: Vec<ComponentTypeAccess>,
+    pub(crate) can_update: bool,
+    pub(crate) archetype_filter_fn: ArchetypeFilterFn,
+    pub(crate) entity_type: Option<ComponentTypeIdx>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

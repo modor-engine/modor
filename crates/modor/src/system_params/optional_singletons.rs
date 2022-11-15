@@ -20,7 +20,7 @@ impl<C> SystemParam for Option<Single<'_, C>>
 where
     C: EntityMainComponent<Type = Singleton>,
 {
-    type Tuple = (Self,);
+    type Filter = ();
     type InnerTuple = ();
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
@@ -31,14 +31,13 @@ where
                 type_idx,
             }],
             can_update: false,
-            filtered_component_type_idxs: vec![],
         }
     }
 
-    fn lock<'a>(
-        data: SystemData<'a>,
-        info: SystemInfo<'a>,
-    ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
+    fn lock(
+        data: SystemData<'_>,
+        info: SystemInfo,
+    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
         SingletonGuard::new(data, info)
     }
 

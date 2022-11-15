@@ -219,7 +219,7 @@ fn assert_valid_child_count() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entity_filters::With<integration::app::Entity> have 3 children, actual count: 2"]
+modor::entity_filters::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count() {
     App::new()
         .with_entity(Entity::build_with_children(10))
@@ -228,7 +228,7 @@ fn assert_invalid_child_count() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entity_filters::With<integration::app::Entity> have 3 children, actual count: 2"]
+modor::entity_filters::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count_in_any_mode() {
     App::new()
         .with_entity(Entity::build_with_children(10))

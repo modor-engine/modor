@@ -1,5 +1,5 @@
 use crate::system_params::assert_iter;
-use modor::{App, Built, EntityBuilder, Query, SingleMut, With};
+use modor::{App, Built, EntityBuilder, Filter, Query, SingleMut, With};
 
 struct QueryTester {
     done: bool,
@@ -16,31 +16,35 @@ impl QueryTester {
     }
 
     #[run]
-    fn collect(&mut self, mut query: Query<'_, Option<&Value>, With<Number>>) {
+    fn collect(&mut self, mut query: Query<'_, (Option<&Value>, Filter<With<Number>>)>) {
         let values = [None, Some(1), Some(2), Some(3)];
-        assert_iter(query.iter().map(|v| v.map(|v| v.0)), values);
-        assert_iter(query.iter_mut().map(|v| v.map(|v| v.0)), values);
+        assert_iter(query.iter().map(|v| v.0.map(|v| v.0)), values);
+        assert_iter(query.iter_mut().map(|v| v.0.map(|v| v.0)), values);
         let rev_values = [Some(3), Some(2), Some(1), None];
-        assert_iter(query.iter().rev().map(|v| v.map(|v| v.0)), rev_values);
-        assert_iter(query.iter_mut().rev().map(|v| v.map(|v| v.0)), rev_values);
-        assert_eq!(query.get(10).map(|v| v.map(|v| v.0)), None);
-        assert_eq!(query.get_mut(10).map(|v| v.map(|v| v.0)), None);
-        assert_eq!(query.get(5).map(|v| v.map(|v| v.0)), Some(None));
-        assert_eq!(query.get_mut(5).map(|v| v.map(|v| v.0)), Some(None));
-        assert_eq!(query.get(3).map(|v| v.map(|v| v.0)), None);
-        assert_eq!(query.get_mut(3).map(|v| v.map(|v| v.0)), None);
-        assert_eq!(query.get(4).map(|v| v.map(|v| v.0)), Some(Some(2)));
-        assert_eq!(query.get_mut(4).map(|v| v.map(|v| v.0)), Some(Some(2)));
+        assert_iter(query.iter().rev().map(|v| v.0.map(|v| v.0)), rev_values);
+        assert_iter(query.iter_mut().rev().map(|v| v.0.map(|v| v.0)), rev_values);
+        assert_eq!(query.get(10).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get_mut(10).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get(5).map(|v| v.0.map(|v| v.0)), Some(None));
+        assert_eq!(query.get_mut(5).map(|v| v.0.map(|v| v.0)), Some(None));
+        assert_eq!(query.get(3).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get_mut(3).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get(4).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
+        assert_eq!(query.get_mut(4).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
         let (left, right) = query.get_both_mut(4, 2);
-        assert_eq!(left.map(|v| v.map(|v| v.0)), Some(Some(2)));
-        assert_eq!(right.map(|v| v.map(|v| v.0)), Some(Some(1)));
+        assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(2)));
+        assert_eq!(right.map(|v| v.0.map(|v| v.0)), Some(Some(1)));
         self.done = true;
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(200));
     }
 
+    #[allow(clippy::type_complexity)]
     #[run]
-    fn collect_complex(&mut self, mut query: Query<'_, (&Value, Option<&u32>), With<Number>>) {
+    fn collect_complex(
+        &mut self,
+        mut query: Query<'_, (&Value, Option<&u32>, Filter<With<Number>>)>,
+    ) {
         let values = [Some(1), Some(2), None];
         assert_iter(query.iter().map(|v| v.1.copied()), values);
         assert_iter(query.iter_mut().map(|v| v.1.copied()), values);

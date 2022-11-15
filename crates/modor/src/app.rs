@@ -1,7 +1,6 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    logging, system, Built, EntityFilter, EntityMainComponent, Singleton, SystemBuilder,
-    SystemData, SystemInfo, UsizeRange,
+    logging, system, Built, EntityFilter, EntityMainComponent, Filter, Singleton, UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -153,9 +152,8 @@ impl App {
         F: EntityFilter,
         C: Any + Sync + Send,
     {
-        let system = system!(|mut q: Query<'_, &mut C, F>| q.iter_mut().for_each(&mut f));
-        let properties = (system.properties_fn)(&mut self.core);
-        self.core.run_system_once(system.wrapper, properties);
+        self.core
+            .run_system(system!(|c: &mut C, _: Filter<F>| f(c)));
         self
     }
 
@@ -182,12 +180,11 @@ impl App {
         F: EntityFilter,
         C: Any + Sync + Send,
     {
-        let mut result = false;
         for i in 0.. {
             self.update();
-            let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().any(&mut f));
-            let properties = (system.properties_fn)(&mut self.core);
-            self.core.run_system_once(system.wrapper, properties);
+            let mut result = false;
+            self.core
+                .run_system(system!(|c: &mut C, _: Filter<F>| result = result || f(c)));
             if result {
                 break;
             }
@@ -214,12 +211,11 @@ impl App {
         F: EntityFilter,
         C: Any + Sync + Send,
     {
-        let mut result = false;
         for i in 0.. {
             self.update();
-            let system = system!(|entities: Query<'_, &C, F>| result = entities.iter().all(&mut f));
-            let properties = (system.properties_fn)(&mut self.core);
-            self.core.run_system_once(system.wrapper, properties);
+            let mut result = true;
+            self.core
+                .run_system(system!(|c: &mut C, _: Filter<F>| result = result && f(c)));
             if result {
                 break;
             }
@@ -244,15 +240,16 @@ impl App {
     where
         F: EntityFilter,
     {
-        let system = system!(|entities: Query<'_, (), F>| assert!(
-            count.contains_value(entities.iter().len()),
+        let mut entity_count = 0;
+        self.core
+            .run_system(system!(|_: Filter<F>| entity_count += 1));
+        assert!(
+            count.contains_value(entity_count),
             "assertion failed: {:?} entities matching {}, actual count: {}",
             count,
             any::type_name::<F>(),
-            entities.iter().len(),
-        ));
-        let properties = (system.properties_fn)(&mut self.core);
-        self.core.run_system_once(system.wrapper, properties);
+            entity_count,
+        );
         f(EntityAssertions {
             core: &mut self.core,
             any_mode: false,
@@ -332,29 +329,37 @@ where
         A: Fn(&C) + RefUnwindSafe,
     {
         self.check_platform_for_catch_unwind();
-        let any_mode = self.any_mode;
-        self.run(system!(|entities: Query<'_, Option<&C>, F>| {
-            assert!(
-                if any_mode {
-                    entities.iter().any(|c| c.is_some())
+        let mut entity_count = 0;
+        let mut component_count = 0;
+        let mut error = None;
+        let mut ok_count = 0;
+        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
+            entity_count += 1;
+            if let Some(component) = c {
+                component_count += 1;
+                if let Err(unwind_error) = panic::catch_unwind(|| f(component)) {
+                    error = Some(unwind_error);
                 } else {
-                    entities.iter().all(|c| c.is_some())
-                },
-                "assertion failed: entities matching {} have component {}",
-                any::type_name::<F>(),
-                any::type_name::<C>(),
-            );
-            if any_mode {
-                for component in entities.iter().flatten() {
-                    if panic::catch_unwind(|| f(component)).is_ok() {
-                        return;
-                    }
+                    ok_count += 1;
                 }
             }
-            for component in entities.iter().flatten() {
-                f(component);
+        }));
+        assert!(
+            if self.any_mode {
+                component_count > 0
+            } else {
+                entity_count == component_count
+            },
+            "assertion failed: entities matching {} have component {}",
+            any::type_name::<F>(),
+            any::type_name::<C>(),
+        );
+        if let Some(error) = error {
+            if !self.any_mode || ok_count == 0 {
+                panic::resume_unwind(error);
             }
-        }))
+        }
+        self
     }
 
     /// Asserts the entity has not a component of type `C`.
@@ -366,19 +371,25 @@ where
     where
         C: Any + Sync + Send,
     {
-        let any_mode = self.any_mode;
-        self.run(system!(|entities: Query<'_, Option<&C>, F>| {
-            assert!(
-                if any_mode {
-                    entities.iter().any(|c| c.is_none())
-                } else {
-                    entities.iter().all(|c| c.is_none())
-                },
-                "assertion failed: entities matching {} have not component {}",
-                any::type_name::<F>(),
-                any::type_name::<C>(),
-            );
-        }))
+        let mut entity_count = 0;
+        let mut component_count = 0;
+        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
+            entity_count += 1;
+            if c.is_some() {
+                component_count += 1;
+            }
+        }));
+        assert!(
+            if self.any_mode {
+                component_count < entity_count
+            } else {
+                component_count == 0
+            },
+            "assertion failed: entities matching {} have not component {}",
+            any::type_name::<F>(),
+            any::type_name::<C>(),
+        );
+        self
     }
 
     /// Asserts the entity has `count` children.
@@ -387,28 +398,25 @@ where
     ///
     /// This will panic if the entity has not `count` children.
     pub fn child_count(self, count: impl UsizeRange) -> Self {
-        let any_mode = self.any_mode;
-        self.run(system!(|entities: Query<'_, Entity<'_>, F>| {
-            assert!(
-                if any_mode {
-                    entities
-                        .iter()
-                        .any(|e| count.contains_value(e.children().len()))
-                } else {
-                    entities
-                        .iter()
-                        .all(|e| count.contains_value(e.children().len()))
-                },
-                "assertion failed: entities matching {} have {:?} children, actual count: {}",
-                any::type_name::<F>(),
-                count,
-                entities
-                    .iter()
-                    .map(|e| e.children().len())
-                    .find(|&c| !count.contains_value(c))
-                    .expect("internal error: "),
-            );
-        }))
+        let mut entity_count = 0;
+        let mut correct_entity_count = 0;
+        self.core.run_system(system!(|e: Entity<'_>, _: Filter<F>| {
+            entity_count += 1;
+            if count.contains_value(e.children().len()) {
+                correct_entity_count += 1;
+            }
+        }));
+        assert!(
+            if self.any_mode {
+                correct_entity_count > 0
+            } else {
+                correct_entity_count == entity_count
+            },
+            "assertion failed: entities matching {} have {:?} children",
+            any::type_name::<F>(),
+            count,
+        );
+        self
     }
 
     /// Asserts the entity has a parent matching `P`.
@@ -420,34 +428,28 @@ where
     where
         P: EntityFilter,
     {
-        let any_mode = self.any_mode;
-        self.run(system!(
-            |entities: Query<'_, Entity<'_>, F>, parents: Query<'_, Entity<'_>, P>| {
-                let parent_ids: Vec<_> = parents.iter().map(Entity::id).collect();
-                assert!(
-                    if any_mode {
-                        entities
-                            .iter()
-                            .any(|e| e.parent().map_or(false, |p| parent_ids.contains(&p.id())))
-                    } else {
-                        entities
-                            .iter()
-                            .all(|e| e.parent().map_or(false, |p| parent_ids.contains(&p.id())))
-                    },
-                    "assertion failed: entities matching {} have parent matching {}",
-                    any::type_name::<F>(),
-                    any::type_name::<P>(),
-                );
+        let mut entity_count = 0;
+        let mut correct_entity_count = 0;
+        self.core.run_system(system!(
+            |e: Entity<'_>, _: Filter<F>, p: Query<'_, Filter<P>>| {
+                entity_count += 1;
+                if let Some(parent) = e.parent() {
+                    if p.get(parent.id()).is_some() {
+                        correct_entity_count += 1;
+                    }
+                }
             }
-        ))
-    }
-
-    fn run<S>(self, system: SystemBuilder<S>) -> Self
-    where
-        S: FnMut(SystemData<'_>, SystemInfo<'_>),
-    {
-        let properties = (system.properties_fn)(self.core);
-        self.core.run_system_once(system.wrapper, properties);
+        ));
+        assert!(
+            if self.any_mode {
+                correct_entity_count > 0
+            } else {
+                correct_entity_count == entity_count
+            },
+            "assertion failed: entities matching {} have parent matching {}",
+            any::type_name::<F>(),
+            any::type_name::<P>(),
+        );
         self
     }
 

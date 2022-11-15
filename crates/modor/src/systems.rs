@@ -1,3 +1,4 @@
+use self::internal::ArchetypeFilterFn;
 use crate::storages::actions::ActionStorage;
 use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
@@ -7,7 +8,7 @@ use crate::storages::systems::SystemProperties;
 use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::internal::SealedSystem;
-use crate::SystemParam;
+use crate::{EntityFilter, SystemParam};
 use std::sync::Mutex;
 
 #[doc(hidden)]
@@ -20,7 +21,8 @@ macro_rules! system {
         #[allow(clippy::semicolon_if_nothing_returned)]
         $crate::SystemBuilder {
             properties_fn: $crate::System::properties_fn(&$system),
-            wrapper: |data: $crate::SystemData<'_>, info: $crate::SystemInfo<'_>| {
+            archetype_filter_fn: $crate::System::archetype_filter_fn(&$system),
+            wrapper: |data: $crate::SystemData<'_>, info: $crate::SystemInfo| {
                 let checker = $crate::SystemParamMutabilityChecker::new($system);
                 let mut system = checker.check_param_mutability().into_inner();
                 let mut guard = $crate::System::lock(&system, data, info);
@@ -36,8 +38,9 @@ macro_rules! system {
 
 #[doc(hidden)]
 #[derive(Clone, Copy)]
-pub struct SystemInfo<'a> {
-    pub(crate) filtered_component_type_idxs: &'a [ComponentTypeIdx],
+pub struct SystemInfo {
+    pub(crate) archetype_filter_fn: ArchetypeFilterFn,
+    pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
     pub(crate) item_count: usize,
 }
 
@@ -52,23 +55,33 @@ pub struct SystemData<'a> {
 }
 
 impl SystemData<'_> {
-    pub(crate) fn filter_archetype_idx_iter<'a>(
-        &'a self,
-        filtered_component_type_idxs: &'a [ComponentTypeIdx],
-    ) -> FilteredArchetypeIdxIter<'a> {
-        if let Some((&first_idx, other_idxs)) = filtered_component_type_idxs.split_first() {
-            self.archetypes.filter_idxs(
-                self.components.sorted_archetype_idxs(first_idx).iter(),
-                other_idxs,
-            )
-        } else {
-            self.archetypes
-                .filter_idxs(self.archetypes.all_sorted_idxs().iter(), &[])
-        }
+    pub(crate) fn filter_archetype_idx_iter(
+        &self,
+        archetype_filter_fn: ArchetypeFilterFn,
+        entity_type_idx: Option<ComponentTypeIdx>,
+    ) -> FilteredArchetypeIdxIter<'_> {
+        entity_type_idx.map_or_else(
+            || {
+                self.archetypes.filter_idxs(
+                    self.archetypes.all_sorted_idxs().iter(),
+                    archetype_filter_fn,
+                )
+            },
+            |i| {
+                self.archetypes.filter_idxs(
+                    self.components.sorted_archetype_idxs(i).iter(),
+                    archetype_filter_fn,
+                )
+            },
+        )
     }
 
-    pub(crate) fn item_count(&self, filtered_component_type_idxs: &[ComponentTypeIdx]) -> usize {
-        self.filter_archetype_idx_iter(filtered_component_type_idxs)
+    pub(crate) fn item_count(
+        &self,
+        archetype_filter_fn: ArchetypeFilterFn,
+        entity_type_idx: Option<ComponentTypeIdx>,
+    ) -> usize {
+        self.filter_archetype_idx_iter(archetype_filter_fn, entity_type_idx)
             .map(|a| self.archetypes.entity_idxs(a).len())
             .sum()
     }
@@ -77,10 +90,11 @@ impl SystemData<'_> {
 #[doc(hidden)]
 pub struct SystemBuilder<S>
 where
-    S: FnMut(SystemData<'_>, SystemInfo<'_>),
+    S: FnMut(SystemData<'_>, SystemInfo),
 {
     #[doc(hidden)]
     pub properties_fn: fn(&mut CoreStorage) -> SystemProperties,
+    pub archetype_filter_fn: ArchetypeFilterFn,
     #[doc(hidden)]
     pub wrapper: S,
 }
@@ -96,10 +110,15 @@ where
     }
 
     #[doc(hidden)]
+    fn archetype_filter_fn(&self) -> ArchetypeFilterFn {
+        <P::Filter as EntityFilter>::is_archetype_kept
+    }
+
+    #[doc(hidden)]
     fn lock<'a>(
         &self,
         data: SystemData<'a>,
-        info: SystemInfo<'a>,
+        info: SystemInfo,
     ) -> <P as SystemParamWithLifetime<'a>>::Guard {
         P::lock(data, info)
     }
@@ -170,8 +189,10 @@ run_for_tuples_with_idxs!(impl_system);
 
 pub(crate) mod internal {
     use crate::{SystemData, SystemInfo};
+    use std::any::TypeId;
 
     pub trait SealedSystem<P> {}
 
-    pub(crate) type SystemWrapper = fn(SystemData<'_>, SystemInfo<'_>);
+    pub(crate) type SystemWrapper = fn(SystemData<'_>, SystemInfo);
+    pub(crate) type ArchetypeFilterFn = fn(&[TypeId]) -> bool;
 }

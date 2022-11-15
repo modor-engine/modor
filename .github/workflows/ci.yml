@@ -189,11 +189,12 @@ jobs:
         run: bash .github/workflows/scripts/generate_coverage.sh lcov ./lcov.info
       - name: Upload coverage report on Codecov
         if: ${{ env.CODECOV_UPLOAD == 'true' }}
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           files: ./lcov.info
           fail_ci_if_error: true
           verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Check coverage threshold
         if: ${{ env.CODECOV_UPLOAD == 'true' }}
         run: bash .github/workflows/scripts/check_coverage_lcov.sh
