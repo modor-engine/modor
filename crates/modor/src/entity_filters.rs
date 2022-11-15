@@ -25,7 +25,7 @@ pub trait EntityFilter: Any {
 /// struct Velocity;
 ///
 /// fn list_movable_entities(query: Query<'_, (Entity<'_>, Filter<(With<Position>, With<Velocity>)>)>) {
-///     for entity, _ in query.iter() {
+///     for (entity, _) in query.iter() {
 ///         println!("Entity {} is movable", entity.id());
 ///     }
 /// }
@@ -52,7 +52,7 @@ where
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, With, Entity, Filter};
+/// # use modor::{Query, With, Entity, Filter, Or};
 /// #
 /// struct MainCharacter;
 /// struct EnemyCharacter;
@@ -60,7 +60,7 @@ where
 /// fn list_characters(
 ///     query: Query<'_, (Entity<'_>, Filter<Or<(With<MainCharacter>, With<EnemyCharacter>)>>)>
 /// ) {
-///     for entity, _ in query.iter() {
+///     for (entity, _) in query.iter() {
 ///         println!("Entity {} is a character", entity.id());
 ///     }
 /// }
