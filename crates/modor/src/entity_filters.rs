@@ -9,10 +9,10 @@ pub trait EntityFilter: Any {
     fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool;
 }
 
-/// A filter for restricting a [`Query`](crate::Query) to entities containing an component
-/// of type `C`.
+/// An entity filter to keep only entities having a component of type `C`.
 ///
-/// You can group multiple `With` in a tuple to restrict according to multiple component types.<br>
+/// You can group multiple `With` in a tuple to filter entities having multiple specific component
+///  types.<br>
 /// A maximum of 10 filters is supported in tuples.
 /// If you need more filters for a query, you can use nested tuples.
 ///
@@ -30,7 +30,7 @@ pub trait EntityFilter: Any {
 ///     }
 /// }
 /// ```
-pub struct With<C>(PhantomData<C>)
+pub struct With<C>(PhantomData<fn(C)>)
 where
     C: Any + Sync + Send;
 
@@ -43,6 +43,41 @@ where
     }
 }
 
+/// An entity filter to keep only entities matching at least one of the sub-filters.
+///
+/// Tuple entity filters if you want instead to keep entities matching all sub-filters.<br>
+/// A maximum of 10 filters is supported in tuples.
+/// If you need more filters for a query, you can use nested tuples.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::{Query, With, Entity, Filter, Or};
+/// #
+/// struct MainCharacter;
+/// struct EnemyCharacter;
+///
+/// fn list_characters(
+///     query: Query<'_, (Entity<'_>, Filter<Or<(With<MainCharacter>, With<EnemyCharacter>)>>)>
+/// ) {
+///     for (entity, _) in query.iter() {
+///         println!("Entity {} is a character", entity.id());
+///     }
+/// }
+/// ```
+pub struct Or<F>(PhantomData<fn(F)>)
+where
+    F: EntityFilter;
+
+impl<C> EntityFilter for Or<With<C>>
+where
+    C: Any + Sync + Send,
+{
+    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+        With::<C>::is_archetype_kept(archetype_type_ids)
+    }
+}
+
 macro_rules! impl_tuple_query_filter {
     ($(($params:ident, $indexes:tt)),*) => {
         #[allow(unused_mut, unused_variables)]
@@ -52,6 +87,16 @@ macro_rules! impl_tuple_query_filter {
         {
             fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
                 true $(&& $params::is_archetype_kept(archetype_type_ids))*
+            }
+        }
+
+        #[allow(unused_mut, unused_variables)]
+        impl<$($params),*> EntityFilter for Or<($($params,)*)>
+        where
+            $($params: EntityFilter,)*
+        {
+            fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+                false $(|| $params::is_archetype_kept(archetype_type_ids))*
             }
         }
     };

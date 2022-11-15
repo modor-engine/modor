@@ -4,7 +4,7 @@ use crate::storages_2d::colliders::ColliderStorage;
 use crate::storages_2d::pipeline::PipelineStorage;
 use crate::utils::UserData;
 use crate::{Collider2D, Collision2D, Dynamics2D, RelativeTransform2D, Transform2D};
-use modor::{Entity, Query};
+use modor::{Entity, Filter, Or, Query, With};
 use rapier2d::dynamics::RigidBody;
 use rapier2d::geometry::Collider;
 use rapier2d::prelude::InteractionGroups;
@@ -162,6 +162,7 @@ pub(crate) type PhysicsEntity2DTuple<'a> = (
     Option<&'a mut Dynamics2D>,
     Option<&'a mut Collider2D>,
     Option<&'a mut RelativeTransform2D>,
+    Filter<Or<(With<Dynamics2D>, With<Collider2D>)>>,
 );
 
 pub(super) struct PhysicsEntity2D<'a> {
@@ -193,7 +194,7 @@ impl PhysicsEntity2D<'_> {
 
 impl<'a> From<PhysicsEntity2DTuple<'a>> for PhysicsEntity2D<'a> {
     fn from(tuple: PhysicsEntity2DTuple<'a>) -> Self {
-        let (entity, transform, dynamics, collider, relative) = tuple;
+        let (entity, transform, dynamics, collider, relative, _) = tuple;
         Self {
             entity,
             transform,
