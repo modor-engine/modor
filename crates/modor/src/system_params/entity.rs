@@ -219,7 +219,7 @@ pub(super) mod internal {
                 item_count: self.info.item_count,
                 sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
                     self.info.archetype_filter_fn,
-                    self.info.entity_type,
+                    self.info.entity_type_idx,
                 ),
                 data: self.data,
             }

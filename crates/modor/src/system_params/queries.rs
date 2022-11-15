@@ -264,7 +264,7 @@ mod internal {
                 data: self.data,
                 param_info: SystemInfo {
                     archetype_filter_fn: <P::Filter>::is_archetype_kept,
-                    entity_type: None,
+                    entity_type_idx: None,
                     item_count: self.data.item_count(<P::Filter>::is_archetype_kept, None),
                 },
                 item_count: self.item_count,

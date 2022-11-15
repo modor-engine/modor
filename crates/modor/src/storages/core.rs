@@ -170,7 +170,7 @@ impl CoreStorage {
             data,
             SystemInfo {
                 archetype_filter_fn: properties.archetype_filter_fn,
-                entity_type: properties.entity_type,
+                entity_type_idx: properties.entity_type,
                 item_count: data.item_count(properties.archetype_filter_fn, properties.entity_type),
             },
         );

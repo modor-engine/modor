@@ -346,7 +346,6 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::storages::systems::EntityTypeInfo;
     use crate::{ChildBuilder, EntityMainComponent, Singleton, SystemRunner};
     use std::any;
     use std::any::{Any, TypeId};
@@ -397,10 +396,7 @@ mod internal {
                 let entity_type_idx = core.add_entity_type::<E>();
                 E::on_update(SystemRunner {
                     core,
-                    entity_type: EntityTypeInfo {
-                        idx: entity_type_idx,
-                        id: TypeId::of::<E>(),
-                    },
+                    entity_type_idx,
                     latest_action_idx: None,
                 });
             };

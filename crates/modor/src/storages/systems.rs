@@ -4,7 +4,6 @@ use crate::storages::system_states::{LockedSystem, SystemStateStorage};
 use crate::systems::internal::{ArchetypeFilterFn, SystemWrapper};
 use crate::{SystemData, SystemInfo};
 use scoped_threadpool::Pool;
-use std::any::TypeId;
 use std::sync::Mutex;
 use typed_index_collections::{TiSlice, TiVec};
 
@@ -12,7 +11,7 @@ use typed_index_collections::{TiSlice, TiVec};
 pub(crate) struct SystemStorage {
     wrappers: TiVec<SystemIdx, SystemWrapper>,
     archetype_filter_fns: TiVec<SystemIdx, ArchetypeFilterFn>,
-    entity_types: TiVec<SystemIdx, Option<EntityTypeInfo>>,
+    entity_type_idxs: TiVec<SystemIdx, Option<ComponentTypeIdx>>,
     labels: TiVec<SystemIdx, &'static str>,
     states: Mutex<SystemStateStorage>,
     pool: Option<Pool>,
@@ -56,7 +55,7 @@ impl SystemStorage {
             );
         self.wrappers.push(wrapper);
         self.labels.push(label);
-        self.entity_types.push(properties.entity_type);
+        self.entity_type_idxs.push(properties.entity_type);
         self.archetype_filter_fns
             .push_and_get_key(properties.archetype_filter_fn)
     }
@@ -79,7 +78,7 @@ impl SystemStorage {
             data,
             &self.states,
             &self.archetype_filter_fns,
-            &self.entity_types,
+            &self.entity_type_idxs,
             &self.wrappers,
             &self.labels,
         );
@@ -94,7 +93,7 @@ impl SystemStorage {
                         data,
                         &self.states,
                         &self.archetype_filter_fns,
-                        &self.entity_types,
+                        &self.entity_type_idxs,
                         &self.wrappers,
                         &self.labels,
                     );
@@ -104,7 +103,7 @@ impl SystemStorage {
                 data,
                 &self.states,
                 &self.archetype_filter_fns,
-                &self.entity_types,
+                &self.entity_type_idxs,
                 &self.wrappers,
                 &self.labels,
             );
@@ -115,7 +114,7 @@ impl SystemStorage {
         data: SystemData<'_>,
         states: &Mutex<SystemStateStorage>,
         archetype_filter_fns: &TiSlice<SystemIdx, ArchetypeFilterFn>,
-        entity_types: &TiSlice<SystemIdx, Option<EntityTypeInfo>>,
+        entity_type_idxs: &TiSlice<SystemIdx, Option<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
         labels: &TiSlice<SystemIdx, &'static str>,
     ) {
@@ -127,7 +126,7 @@ impl SystemStorage {
                 Self::run_system(
                     system_idx,
                     archetype_filter_fns,
-                    entity_types,
+                    entity_type_idxs,
                     wrappers,
                     labels,
                     data,
@@ -151,17 +150,17 @@ impl SystemStorage {
     fn run_system(
         system_idx: SystemIdx,
         archetype_filter_fns: &TiSlice<SystemIdx, ArchetypeFilterFn>,
-        entity_types: &TiSlice<SystemIdx, Option<EntityTypeInfo>>,
+        entity_type_idxs: &TiSlice<SystemIdx, Option<ComponentTypeIdx>>,
         wrappers: &TiSlice<SystemIdx, SystemWrapper>,
         labels: &TiSlice<SystemIdx, &'static str>,
         data: SystemData<'_>,
     ) {
         let archetype_filter_fn = archetype_filter_fns[system_idx];
-        let entity_type = entity_types[system_idx];
+        let entity_type_idx = entity_type_idxs[system_idx];
         let info = SystemInfo {
             archetype_filter_fn,
-            entity_type,
-            item_count: data.item_count(archetype_filter_fn, entity_type),
+            entity_type_idx,
+            item_count: data.item_count(archetype_filter_fn, entity_type_idx),
         };
         (wrappers[system_idx])(data, info);
         trace!("system `{}` run", labels[system_idx]);
@@ -179,7 +178,7 @@ pub(crate) struct FullSystemProperties {
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
-    pub(crate) entity_type: Option<EntityTypeInfo>,
+    pub(crate) entity_type: Option<ComponentTypeIdx>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -192,10 +191,4 @@ pub(crate) struct ComponentTypeAccess {
 pub(crate) enum Access {
     Read,
     Write,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) struct EntityTypeInfo {
-    pub(crate) idx: ComponentTypeIdx,
-    pub(crate) id: TypeId,
 }

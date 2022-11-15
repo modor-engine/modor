@@ -1,10 +1,10 @@
 use self::internal::ArchetypeFilterFn;
 use crate::storages::actions::ActionStorage;
 use crate::storages::archetypes::{ArchetypeStorage, FilteredArchetypeIdxIter};
-use crate::storages::components::ComponentStorage;
+use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityStorage;
-use crate::storages::systems::{EntityTypeInfo, SystemProperties};
+use crate::storages::systems::SystemProperties;
 use crate::storages::updates::UpdateStorage;
 use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::internal::SealedSystem;
@@ -40,7 +40,7 @@ macro_rules! system {
 #[derive(Clone, Copy)]
 pub struct SystemInfo {
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
-    pub(crate) entity_type: Option<EntityTypeInfo>,
+    pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
     pub(crate) item_count: usize,
 }
 
@@ -58,23 +58,19 @@ impl SystemData<'_> {
     pub(crate) fn filter_archetype_idx_iter(
         &self,
         archetype_filter_fn: ArchetypeFilterFn,
-        entity_type: Option<EntityTypeInfo>,
+        entity_type_idx: Option<ComponentTypeIdx>,
     ) -> FilteredArchetypeIdxIter<'_> {
-        entity_type.map_or_else(
+        entity_type_idx.map_or_else(
             || {
                 self.archetypes.filter_idxs(
                     self.archetypes.all_sorted_idxs().iter(),
                     archetype_filter_fn,
-                    None,
                 )
             },
-            |entity_type| {
+            |i| {
                 self.archetypes.filter_idxs(
-                    self.components
-                        .sorted_archetype_idxs(entity_type.idx)
-                        .iter(),
+                    self.components.sorted_archetype_idxs(i).iter(),
                     archetype_filter_fn,
-                    Some(entity_type.id),
                 )
             },
         )
@@ -83,9 +79,9 @@ impl SystemData<'_> {
     pub(crate) fn item_count(
         &self,
         archetype_filter_fn: ArchetypeFilterFn,
-        entity_type: Option<EntityTypeInfo>,
+        entity_type_idx: Option<ComponentTypeIdx>,
     ) -> usize {
-        self.filter_archetype_idx_iter(archetype_filter_fn, entity_type)
+        self.filter_archetype_idx_iter(archetype_filter_fn, entity_type_idx)
             .map(|a| self.archetypes.entity_idxs(a).len())
             .sum()
     }

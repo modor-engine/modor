@@ -55,12 +55,10 @@ impl ArchetypeStorage {
         &'a self,
         archetype_idxs: Iter<'a, ArchetypeIdx>,
         is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-        entity_type_id: Option<TypeId>,
     ) -> FilteredArchetypeIdxIter<'a> {
         FilteredArchetypeIdxIter {
             archetype_idxs,
             is_archetype_kept_fn,
-            entity_type_id,
             archetype_type_ids: &self.type_ids,
         }
     }
@@ -159,7 +157,6 @@ impl ArchetypeStorage {
 pub(crate) struct FilteredArchetypeIdxIter<'a> {
     archetype_idxs: Iter<'a, ArchetypeIdx>,
     is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-    entity_type_id: Option<TypeId>,
     archetype_type_ids: &'a TiVec<ArchetypeIdx, Vec<TypeId>>,
 }
 
@@ -170,7 +167,6 @@ impl Iterator for FilteredArchetypeIdxIter<'_> {
         Self::next_idx(
             &mut self.archetype_idxs,
             self.is_archetype_kept_fn,
-            self.entity_type_id,
             self.archetype_type_ids,
         )
     }
@@ -181,7 +177,6 @@ impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
         Self::next_idx(
             (&mut self.archetype_idxs).rev(),
             self.is_archetype_kept_fn,
-            self.entity_type_id,
             self.archetype_type_ids,
         )
     }
@@ -191,7 +186,6 @@ impl FilteredArchetypeIdxIter<'_> {
     fn next_idx<'a, I>(
         archetype_idxs: I,
         is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-        entity_type_id: Option<TypeId>,
         archetype_type_ids: &'a TiVec<ArchetypeIdx, Vec<TypeId>>,
     ) -> Option<ArchetypeIdx>
     where
@@ -199,11 +193,6 @@ impl FilteredArchetypeIdxIter<'_> {
     {
         for &archetype_idx in archetype_idxs {
             let archetype_type_ids = &&archetype_type_ids[archetype_idx];
-            if let Some(entity_type_id) = entity_type_id {
-                if !archetype_type_ids.contains(&entity_type_id) {
-                    continue;
-                }
-            }
             if is_archetype_kept_fn(archetype_type_ids) {
                 return Some(archetype_idx);
             }
