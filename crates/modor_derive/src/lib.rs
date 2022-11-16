@@ -42,15 +42,23 @@ pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
         .unwrap_or_abort()
         .into_iter()
         .collect();
+    let mut final_actions = quote!(());
+    for action in actions {
+        final_actions = quote!((#crate_ident::DependsOn<#action>, (#final_actions)));
+    }
     let output = quote! {
         #item
 
         impl #impl_generics #crate_ident::Action for #type_name #where_clause {
-            type Constraint = (#(#crate_ident::DependsOn<#actions>,)*);
+            type Constraint = #final_actions;
         }
     };
     output.into()
 }
+
+// A -> (A,)
+// A, B -> (A, (B,))
+// A, B, C -> (A, (B, (C,)))
 
 fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
