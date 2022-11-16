@@ -9,12 +9,12 @@ pub trait EntityFilter: Any {
     fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool;
 }
 
-/// An entity filter to keep only entities having a component of type `C`.
+/// An entity filter to keep only entities with a component of type `C`.
 ///
-/// You can group multiple `With` in a tuple to filter entities having multiple specific component
+/// You can group multiple `With` in a tuple to filter entities with multiple specific component
 ///  types.<br>
 /// A maximum of 10 filters is supported in tuples.
-/// If you need more filters for a query, you can use nested tuples.
+/// If you need more filter conditions, you can use nested tuples.
 ///
 /// # Examples
 ///
@@ -24,7 +24,9 @@ pub trait EntityFilter: Any {
 /// struct Position;
 /// struct Velocity;
 ///
-/// fn list_movable_entities(query: Query<'_, (Entity<'_>, Filter<(With<Position>, With<Velocity>)>)>) {
+/// fn list_movable_entities(
+///     query: Query<'_, (Entity<'_>, Filter<(With<Position>, With<Velocity>)>)>
+/// ) {
 ///     for (entity, _) in query.iter() {
 ///         println!("Entity {} is movable", entity.id());
 ///     }
@@ -43,11 +45,47 @@ where
     }
 }
 
+/// An entity filter to keep only entities without a component of type `C`.
+///
+/// You can group multiple `With` in a tuple to filter entities without multiple specific component
+///  types.<br>
+/// A maximum of 10 filters is supported in tuples.
+/// If you need more filter conditions, you can use nested tuples.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::{Query, Without, Or, Entity, Filter};
+/// #
+/// struct Position;
+/// struct Velocity;
+///
+/// fn list_not_movable_entities(
+///     query: Query<'_, (Entity<'_>, Filter<Or<(Without<Position>, Without<Velocity>)>>)>
+/// ) {
+///     for (entity, _) in query.iter() {
+///         println!("Entity {} is not movable", entity.id());
+///     }
+/// }
+/// ```
+pub struct Without<C>(PhantomData<fn(C)>)
+where
+    C: Any + Sync + Send;
+
+impl<C> EntityFilter for Without<C>
+where
+    C: Any + Sync + Send,
+{
+    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+        !archetype_type_ids.contains(&TypeId::of::<C>())
+    }
+}
+
 /// An entity filter to keep only entities matching at least one of the sub-filters.
 ///
 /// Tuple entity filters if you want instead to keep entities matching all sub-filters.<br>
 /// A maximum of 10 filters is supported in tuples.
-/// If you need more filters for a query, you can use nested tuples.
+/// If you need more filter conditions, you can use nested tuples.
 ///
 /// # Examples
 ///
@@ -75,6 +113,15 @@ where
 {
     fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
         With::<C>::is_archetype_kept(archetype_type_ids)
+    }
+}
+
+impl<C> EntityFilter for Or<Without<C>>
+where
+    C: Any + Sync + Send,
+{
+    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
+        Without::<C>::is_archetype_kept(archetype_type_ids)
     }
 }
 
