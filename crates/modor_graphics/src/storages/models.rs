@@ -7,15 +7,19 @@ use typed_index_collections::TiVec;
 const RECTANGLE_VERTICES: [Vertex; 4] = [
     Vertex {
         position: [-0.5, 0.5, 0.],
+        texture_position: [0., 0.],
     },
     Vertex {
         position: [-0.5, -0.5, 0.],
+        texture_position: [0., 1.],
     },
     Vertex {
         position: [0.5, -0.5, 0.],
+        texture_position: [1., 1.],
     },
     Vertex {
         position: [0.5, 0.5, 0.],
+        texture_position: [1., 0.],
     },
 ];
 const RECTANGLE_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];

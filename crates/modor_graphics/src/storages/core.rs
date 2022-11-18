@@ -175,6 +175,8 @@ impl CoreStorage {
             transform: matrix.to_array(),
             color: color.into(),
             has_texture: has_texture.into(),
+            texture_part_position: [mesh.texture_part.position.x, mesh.texture_part.position.y],
+            texture_part_size: [mesh.texture_part.size.x, mesh.texture_part.size.y],
         }
     }
 

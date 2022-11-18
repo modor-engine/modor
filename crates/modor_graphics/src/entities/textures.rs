@@ -1,15 +1,11 @@
 use crate::backend::textures::Image;
-use crate::storages::textures::{DynTextureKeyClone, TextureKey};
-use crate::RenderTarget;
+use crate::storages::textures::TextureKey;
+use crate::{RenderTarget, TextureRef};
 use image::error::UnsupportedErrorKind;
 use image::{GenericImageView, ImageError};
 use modor::{Built, EntityBuilder, SingleMut};
-use modor_internal::dyn_traits::{DynDebug, DynHash, DynPartialEq};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
-use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
-use std::hash::Hash;
-use std::panic::{RefUnwindSafe, UnwindSafe};
 
 /// A texture loaded asynchronously.
 ///
@@ -23,8 +19,9 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 ///
 /// ```rust
 /// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_graphics::{Color, Mesh2D, Texture, TextureRef, TextureConfig};
+/// # use modor_graphics::{Color, Mesh2D, Texture, TextureRef, TextureConfig, TexturePart};
 /// # use modor_physics::Transform2D;
+/// # use modor_math::Vec2;
 /// #
 /// #
 /// # macro_rules! include_bytes {($($path:tt)*) => { &[] }}
@@ -51,6 +48,27 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 ///     }
 /// }
 ///
+/// enum AppTexturePart {
+///     TopLeft,
+///     TopRight,
+///     BottomLeft,
+///     BottomRight,
+/// }
+///
+/// impl From<AppTexturePart> for TexturePart {
+///     fn from(part: AppTexturePart) -> Self {
+///         let position = match part {
+///             AppTexturePart::TopLeft => Vec2::new(0., 0.),
+///             AppTexturePart::TopRight => Vec2::new(0.5, 0.),
+///             AppTexturePart::BottomLeft => Vec2::new(0., 0.5),
+///             AppTexturePart::BottomRight => Vec2::new(0.5, 0.5),
+///         };
+///         Self::default()
+///             .with_position(position)
+///             .with_size(Vec2::ONE * 0.5)
+///     }
+/// }
+///
 /// struct Rectangle;
 ///
 /// #[entity]
@@ -59,6 +77,7 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 ///         EntityBuilder::new(Self).with(Transform2D::new()).with(
 ///             Mesh2D::rectangle()
 ///                 .with_texture(AppTextureRef::Rectangle)
+///                 .with_texture_part(AppTexturePart::TopLeft.into())
 ///                 .with_texture_color(Color::YELLOW)
 ///                 .with_color(Color::GRAY),
 ///         )
@@ -168,63 +187,6 @@ impl Texture {
     }
 }
 
-/// The configuration of a texture.
-///
-/// # Examples
-///
-/// See [`Texture`](crate::Texture).
-#[derive(Debug)]
-pub struct TextureConfig {
-    pub(crate) location: TextureLocation,
-    pub(crate) is_smooth: bool,
-}
-
-impl TextureConfig {
-    /// Creates a new config from a path relative to the asset folder.
-    ///
-    /// # Platform-specific
-    ///
-    /// - Web: HTTP GET call is performed to retrieve the file from URL
-    /// `{current_browser_url}/assets/{path}`.
-    /// - Android: the file is retrieved using the Android
-    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
-    /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
-    /// application is run using a `cargo` command), then the file is retrieved from path
-    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
-    /// `{executable_folder_path}/assets/{path}`.
-    #[must_use]
-    pub fn from_path(path: impl Into<String>) -> Self {
-        Self {
-            location: TextureLocation::FromPath(path.into()),
-            is_smooth: true,
-        }
-    }
-
-    /// Creates a new config from texture bytes.
-    ///
-    /// This method can be used when the texture is included directly in the code using the
-    /// [`include_bytes`](macro@std::include_bytes) macro.
-    #[must_use]
-    pub fn from_memory(bytes: &'static [u8]) -> Self {
-        Self {
-            location: TextureLocation::FromMemory(bytes),
-            is_smooth: true,
-        }
-    }
-
-    /// Returns the configuration with a different `is_smooth`.
-    ///
-    /// If `true`, a linear sampling is applied to the texture when it appears larger than its
-    /// original size.
-    ///
-    /// Default value is `true`.
-    #[must_use]
-    pub fn with_smooth(mut self, is_smooth: bool) -> Self {
-        self.is_smooth = is_smooth;
-        self
-    }
-}
-
 /// The state of a texture.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TextureState {
@@ -275,29 +237,6 @@ impl TryFrom<ImageError> for TextureError {
         })
     }
 }
-
-/// A trait for defining a texture reference.
-///
-/// A texture reference is generally an `enum` listing the different textures of the application.
-/// <br>This `enum` can then be used to indicate which texture to load or to attach.
-///
-/// # Examples
-///
-/// See [`Texture`](crate::Texture).
-pub trait TextureRef:
-    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
-{
-    /// Returns the associated texture configuration.
-    fn config(&self) -> TextureConfig;
-}
-
-#[doc(hidden)]
-pub trait DynTextureKey:
-    Sync + Send + UnwindSafe + RefUnwindSafe + DynTextureKeyClone + DynPartialEq + DynHash + DynDebug
-{
-}
-
-impl<T> DynTextureKey for T where T: TextureRef {}
 
 pub(crate) struct InternalTextureConfig {
     pub(crate) key: TextureKey,

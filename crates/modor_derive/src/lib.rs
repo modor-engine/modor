@@ -56,10 +56,6 @@ pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
     output.into()
 }
 
-// A -> (A,)
-// A, B -> (A, (B,))
-// A, B, C -> (A, (B, (C,)))
-
 fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
     let crate_ident = crate_name::find_crate_ident(item.span());

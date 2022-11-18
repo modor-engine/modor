@@ -12,6 +12,7 @@ use modor_graphics::{TextureConfig, TextureRef};
 enum PathTextureRef {
     OpaqueSmooth,
     OpaquePixelated,
+    Colored,
     TransparentPixelated,
     UnsupportedFormat,
     InvalidFormat,
@@ -24,6 +25,9 @@ impl TextureRef for PathTextureRef {
             Self::OpaqueSmooth => TextureConfig::from_path("../tests/assets/opaque-texture.png"),
             Self::OpaquePixelated => {
                 TextureConfig::from_path("../tests/assets/opaque-texture.png").with_smooth(false)
+            }
+            Self::Colored => {
+                TextureConfig::from_path("../tests/assets/colored-texture.png").with_smooth(false)
             }
             Self::TransparentPixelated => {
                 TextureConfig::from_path("../tests/assets/transparent-texture.png")
