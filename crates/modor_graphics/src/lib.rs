@@ -46,7 +46,9 @@ mod utils;
 pub mod testing;
 
 pub use components::mesh_2d::*;
-pub use data::*;
+pub use data::colors::*;
+pub use data::surfaces::*;
+pub use data::textures::*;
 pub use entities::background::*;
 pub use entities::camera_2d::*;
 pub use entities::frame_rate::*;

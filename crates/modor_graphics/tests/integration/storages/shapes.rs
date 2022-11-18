@@ -1,6 +1,7 @@
 use modor::{App, Built, Entity, EntityBuilder, Filter, Query, With, World};
 use modor_graphics::{
-    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureRef, TextureState,
+    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TexturePart, TextureRef,
+    TextureState,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -38,6 +39,7 @@ impl Object {
         texture_ref: Option<impl TextureRef>,
         color: Color,
         texture_color: Color,
+        texture_part: TexturePart,
     ) -> impl Built<Self> {
         let mut mesh = Mesh2D::rectangle()
             .with_color(color)
@@ -51,7 +53,7 @@ impl Object {
                     .with_position(position)
                     .with_size(Vec2::new(0.4, 0.3)),
             )
-            .with(mesh)
+            .with(mesh.with_texture_part(texture_part))
     }
 }
 
@@ -92,6 +94,7 @@ fn display_invisible_shape() {
             None as Option<PathTextureRef>,
             Color::INVISIBLE,
             Color::WHITE,
+            TexturePart::default(),
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
@@ -113,18 +116,21 @@ fn attach_texture_with_color() {
             None as Option<PathTextureRef>,
             Color::GREEN,
             Color::BLUE,
+            TexturePart::default(),
         ))
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(0.25, 0.25),
             Some(PathTextureRef::OpaquePixelated),
             Color::GREEN,
             Color::BLUE,
+            TexturePart::default(),
         ))
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, -0.25),
             Some(PathTextureRef::OpaqueSmooth),
             Color::GREEN,
             Color::BLUE,
+            TexturePart::default(),
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
@@ -153,6 +159,7 @@ fn update_attached_texture() {
             Some(PathTextureRef::OpaquePixelated),
             Color::GREEN,
             Color::BLUE,
+            TexturePart::default(),
         ))
         .updated()
         .assert::<With<Capture>>(1, |e| {
@@ -171,5 +178,29 @@ fn update_attached_texture() {
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/removed_texture.png")
+        });
+}
+
+#[test]
+fn configure_texture_part() {
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Texture::build(PathTextureRef::Complex))
+        .updated_until_all::<(), _>(Some(100), |t: &Texture| {
+            thread::sleep(Duration::from_millis(10));
+            !matches!(t.state(), TextureState::Loading)
+        })
+        .with_entity(Object::build_styled_rectangle(
+            Vec2::new(-0.25, 0.25),
+            Some(PathTextureRef::Complex),
+            Color::WHITE,
+            Color::WHITE,
+            TexturePart::default()
+                .with_position(Vec2::new(0., 0.5))
+                .with_size(Vec2::new(0.5, 0.5)),
+        ))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/texture_part.png")
         });
 }

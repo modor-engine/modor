@@ -11,10 +11,12 @@ pub(crate) trait GpuData<const L: u32> {
 #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
 pub(crate) struct Vertex {
     pub(crate) position: [f32; 3],
+    pub(crate) texture_position: [f32; 2],
 }
 
 impl<const L: u32> GpuData<L> for Vertex {
-    const ATTRIBUTES: &'static [VertexAttribute] = &vertex_attr_array![L => Float32x3];
+    const ATTRIBUTES: &'static [VertexAttribute] =
+        &vertex_attr_array![L => Float32x3, L + 1 => Float32x2];
 
     fn layout() -> VertexBufferLayout<'static> {
         VertexBufferLayout {
@@ -31,6 +33,8 @@ pub(crate) struct Instance {
     pub(crate) transform: [[f32; 4]; 4],
     pub(crate) color: [f32; 4],
     pub(crate) has_texture: u32,
+    pub(crate) texture_part_position: [f32; 2],
+    pub(crate) texture_part_size: [f32; 2],
 }
 
 impl<const L: u32> GpuData<L> for Instance {
@@ -41,6 +45,8 @@ impl<const L: u32> GpuData<L> for Instance {
         L + 3 => Float32x4,
         L + 4 => Float32x4,
         L + 5 => Uint32,
+        L + 6 => Float32x2,
+        L + 7 => Float32x2,
     ];
 
     fn layout() -> VertexBufferLayout<'static> {

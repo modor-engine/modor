@@ -1,5 +1,6 @@
 use crate::storages::textures::TextureKey;
 use crate::{Color, TextureRef};
+use modor_math::Vec2;
 
 /// The properties of a rendered entity.
 ///
@@ -52,6 +53,8 @@ pub struct Mesh2D {
     /// The color of each pixel of the texture will be multiplied component-wise by this color.<br>
     /// This color will be applied only if there is an attached texture that is already loaded.
     pub texture_color: Color,
+    /// Configuration of the texture part to use.
+    pub texture_part: TexturePart,
     pub(crate) texture_key: Option<TextureKey>,
     pub(crate) shape: Shape,
 }
@@ -69,6 +72,7 @@ impl Mesh2D {
             shape: Shape::Rectangle,
             texture_color: Color::WHITE,
             texture_key: None,
+            texture_part: TexturePart::DEFAULT,
         }
     }
 
@@ -84,6 +88,7 @@ impl Mesh2D {
             shape: Shape::Ellipse,
             texture_color: Color::WHITE,
             texture_key: None,
+            texture_part: TexturePart::DEFAULT,
         }
     }
 
@@ -114,6 +119,15 @@ impl Mesh2D {
         self
     }
 
+    /// Returns the mesh with an attached texture with label `texture_label`.
+    ///
+    /// By default, the whole texture is used.
+    #[must_use]
+    pub fn with_texture_part(mut self, texture_part: TexturePart) -> Self {
+        self.texture_part = texture_part;
+        self
+    }
+
     /// Returns the mesh with a different texture `texture_color`.
     ///
     /// Default value is `Color::WHITE`.
@@ -131,6 +145,57 @@ impl Mesh2D {
     /// Detach the current texture if any is attached.
     pub fn detach_texture(&mut self) {
         self.texture_key = None;
+    }
+}
+
+/// The part of a texture to apply.
+///
+/// This can for example be used to apply a part of a spritesheet to a mesh.
+///
+/// # Examples
+///
+/// See [`Texture`](crate::Texture)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TexturePart {
+    /// The top-left position of the texture part in the texture.
+    ///
+    /// `Vec2::ZERO` corresponds to top-left corner of the texture.<br>
+    /// `Vec2::ONE` corresponds to bottom-right corner of the texture.
+    pub position: Vec2,
+    /// The size of the texture part in the texture.
+    ///
+    /// The texture has a size of `Vec2::ONE`.
+    pub size: Vec2,
+}
+
+impl TexturePart {
+    const DEFAULT: Self = Self {
+        position: Vec2::ZERO,
+        size: Vec2::ONE,
+    };
+
+    /// Returns the texture part with a different position.
+    ///
+    /// Default value is `Vec2::ZERO`.
+    #[must_use]
+    pub fn with_position(mut self, position: Vec2) -> Self {
+        self.position = position;
+        self
+    }
+
+    /// Returns the texture part with a different size.
+    ///
+    /// Default value is `Vec2::ONE`.
+    #[must_use]
+    pub fn with_size(mut self, size: Vec2) -> Self {
+        self.size = size;
+        self
+    }
+}
+
+impl Default for TexturePart {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 

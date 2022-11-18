@@ -6,7 +6,7 @@ use crate::{Mesh2D, Shape};
 use typed_index_collections::TiVec;
 
 const FIRST_VERTEX_BUFFER_LOCATION: u32 = 0;
-const FIRST_INSTANCE_BUFFER_LOCATION: u32 = 1;
+const FIRST_INSTANCE_BUFFER_LOCATION: u32 = 2;
 
 pub(super) struct ShaderStorage {
     shaders: TiVec<ShaderIdx, Shader>,
@@ -27,7 +27,7 @@ impl ShaderStorage {
                         camera_2d.bind_group_layout(),
                         renderer.texture_bind_group_layout()
                     ],
-                    "main_2d",
+                    "rectangle_2d",
                     renderer,
                 ),
                 Shader::new(
