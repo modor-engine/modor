@@ -185,14 +185,14 @@ fn update_attached_texture() {
 fn configure_texture_part() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(Texture::build(PathTextureRef::Complex))
+        .with_entity(Texture::build(PathTextureRef::Colored))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
             !matches!(t.state(), TextureState::Loading)
         })
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, 0.25),
-            Some(PathTextureRef::Complex),
+            Some(PathTextureRef::Colored),
             Color::WHITE,
             Color::WHITE,
             TexturePart::default()
