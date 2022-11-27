@@ -4,6 +4,7 @@ use crate::backend::renderer::Renderer;
 use crate::backend::textures::Image;
 use crate::utils::texts;
 use crate::{InternalTextureConfig, ResourceLocation, Text2D};
+use ab_glyph::FontVec;
 use fxhash::FxHashSet;
 use image::RgbaImage;
 use modor_internal::ti_vec::TiVecSafeOperations;
@@ -40,7 +41,7 @@ impl TextStorage {
         if let Some(text_idx) = text.text_idx {
             if let Some(Some(properties)) = self.properties.get_mut(text_idx) {
                 if !properties.is_registered {
-                    if Self::text_has_changed(properties, text) {
+                    if Self::text_has_changed(properties, text, fonts) {
                         *properties = Self::create_text(
                             text_idx,
                             text,
@@ -88,9 +89,9 @@ impl TextStorage {
         }
     }
 
-    fn text_has_changed(properties: &TextProperties, text: &Text2D) -> bool {
+    fn text_has_changed(properties: &TextProperties, text: &Text2D, fonts: &FontStorage) -> bool {
         properties.string != text.string
-            || properties.font_key != text.font_key
+            || &properties.font_key != Self::text_font(text, fonts, None).0
             || (properties.font_height - text.font_height).abs() > f32::EPSILON
     }
 
@@ -103,14 +104,7 @@ impl TextStorage {
         renderer: &mut Renderer,
         logged_missing_font_keys: &mut FxHashSet<FontKey>,
     ) -> TextProperties {
-        let font_key = &text.font_key;
-        let font = fonts.get(font_key).unwrap_or_else(|| {
-            if !logged_missing_font_keys.contains(font_key) {
-                error!("font with ID '{:?}' attached but not loaded", font_key);
-                logged_missing_font_keys.insert(font_key.clone());
-            }
-            fonts.get_default()
-        });
+        let (font_key, font) = Self::text_font(text, fonts, Some(logged_missing_font_keys));
         let texture_key = TextureKey::new(TextTextureKey(text_idx));
         let mut texture =
             texts::generate_texture(&text.string, text.alignment, text.font_height, font);
@@ -129,15 +123,36 @@ impl TextStorage {
             false,
             renderer,
         );
+        let font_key = font_key.clone();
         text.text_idx = Some(text_idx);
         TextProperties {
             texture_key,
             texture_size,
             is_registered: true,
             string: text.string.clone(),
-            font_key: text.font_key.clone(),
+            font_key,
             font_height: text.font_height,
         }
+    }
+
+    fn text_font<'a>(
+        text: &'a Text2D,
+        fonts: &'a FontStorage,
+        logged_missing_font_keys: Option<&mut FxHashSet<FontKey>>,
+    ) -> (&'a FontKey, &'a FontVec) {
+        let font_key = &text.font_key;
+        fonts.get(font_key).map_or_else(
+            || {
+                if let Some(logged_missing_font_keys) = logged_missing_font_keys {
+                    if !logged_missing_font_keys.contains(font_key) {
+                        error!("font with ID '{:?}' attached but not loaded", font_key);
+                        logged_missing_font_keys.insert(font_key.clone());
+                    }
+                }
+                (fonts.default_key(), fonts.get_default())
+            },
+            |font| (&text.font_key, font),
+        )
     }
 
     // used to avoid display artifacts

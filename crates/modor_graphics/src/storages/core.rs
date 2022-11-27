@@ -102,7 +102,12 @@ impl CoreStorage {
         self.opaque_instances.reset();
         self.transparent_instances.reset();
         self.texts.reset();
-        let depth_bounds = Self::depth_bounds(shapes.iter().map(|(_, m)| m.z));
+        let depth_bounds = Self::depth_bounds(
+            shapes
+                .iter()
+                .map(|(_, m)| m.z)
+                .chain(texts.iter().map(|(_, t)| t.z)),
+        );
         for (transform, mesh) in shapes.iter() {
             let has_texture = self.has_mesh_texture(mesh);
             let color = Self::mesh_color(mesh, has_texture);
