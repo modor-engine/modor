@@ -53,6 +53,11 @@ impl TextRemover {
     fn run(query: Query<'_, (Entity<'_>, Filter<With<Text>>)>, mut world: World<'_>) {
         query.iter().for_each(|(e, _)| world.delete_entity(e.id()));
     }
+
+    #[run]
+    fn remove(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_entity(entity.id());
+    }
 }
 
 #[test]
@@ -97,6 +102,10 @@ fn display_text_with_not_loaded_font() {
         .with_log_level(LevelFilter::Info)
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Text::build_with_font(PathFontRef::ValidFont))
+        .updated()
+        .with_update::<(), _>(|t: &mut Text2D| t.font_height = 31.)
+        .updated()
+        .with_update::<(), _>(|t: &mut Text2D| t.font_height = 30.)
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_font_default.png")
@@ -148,6 +157,72 @@ fn display_text_with_update() {
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_invisible.png")
+        });
+}
+
+#[test]
+fn display_cloned_text() {
+    let mut text = Text2D::new(30., "invalid");
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Text::build(
+            Vec2::new(-0.5, 0.),
+            Vec2::new(0.2, 0.2),
+            Alignment::Center,
+            TextSize::Auto,
+        ))
+        .with_entity(Text::build(
+            Vec2::new(0.5, 0.),
+            Vec2::new(0.2, 0.2),
+            Alignment::Right,
+            TextSize::Auto,
+        ))
+        .updated()
+        .with_update::<(), _>(|t: &mut Text2D| {
+            if t.alignment == Alignment::Center {
+                text = t.clone();
+            }
+        })
+        .with_update::<(), _>(|t: &mut Text2D| {
+            if t.alignment == Alignment::Right {
+                *t = text.clone();
+            }
+        })
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_cloned.png")
+        });
+}
+
+#[test]
+fn display_moved_text() {
+    let mut text = Text2D::new(30., "invalid");
+    App::new()
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Text::build(
+            Vec2::new(-0.5, 0.),
+            Vec2::new(0.2, 0.2),
+            Alignment::Center,
+            TextSize::Auto,
+        ))
+        .with_update::<(), _>(|t: &mut Text2D| text = t.clone())
+        .with_entity(TextRemover::build())
+        .updated()
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_invisible.png")
+        })
+        .with_entity(Text::build(
+            Vec2::new(-0.5, 0.),
+            Vec2::new(0.2, 0.2),
+            Alignment::Right,
+            TextSize::Auto,
+        ))
+        .with_update::<(), _>(|t: &mut Text2D| *t = text.clone())
+        .with_entity(TextRemover::build())
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_moved.png")
         });
 }
 
