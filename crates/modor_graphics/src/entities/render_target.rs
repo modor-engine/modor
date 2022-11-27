@@ -5,18 +5,19 @@ use crate::backend::textures::Image;
 use crate::entities::background::BackgroundColor;
 use crate::entities::render_target::internal::{PrepareRenderingAction, RenderAction};
 use crate::internal::PrepareCaptureAction;
-use crate::storages::core::{CoreStorage, ShapeComponents};
+use crate::storages::core::{CoreStorage, ShapeComponents, TextComponents};
+use crate::storages::resources::fonts::FontKey;
 use crate::{
-    Camera2D, Color, FrameRate, FrameRateLimit, GraphicsModule, InternalTextureConfig, SurfaceSize,
+    Camera2D, Font, FrameRate, FrameRateLimit, GraphicsModule, InternalTextureConfig, SurfaceSize,
     Texture, WindowSettings,
 };
+use ab_glyph::FontVec;
 use modor::{Built, Entity, EntityBuilder, Filter, Query, Single, With, World};
 use modor_physics::Transform2D;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
 
-const DEFAULT_BACKGROUND_COLOR: Color = Color::BLACK;
 pub(crate) const DEFAULT_CAMERA_TRANSFORM: Transform2D = Transform2D::new();
 
 pub(crate) struct RenderTarget {
@@ -41,32 +42,37 @@ impl RenderTarget {
         self.core.load_texture(image, config);
     }
 
+    pub(crate) fn load_font(&mut self, key: FontKey, font: FontVec) {
+        self.core.load_font(key, font);
+    }
+
     #[run_as(PrepareRenderingAction)]
     fn prepare_rendering(
         &mut self,
         shapes: Query<'_, ShapeComponents<'_>>,
+        texts: Query<'_, TextComponents<'_>>,
         cameras: Query<'_, (&Transform2D, Filter<With<Camera2D>>)>,
         textures: Query<'_, &Texture>,
+        fonts: Query<'_, &Font>,
     ) {
         let camera_transform = cameras
             .iter()
             .map(|(t, _)| t)
             .next()
             .unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
-        self.core.remove_not_found_textures(&textures);
-        self.core.update_instances(shapes, camera_transform);
+        self.core.remove_not_found_resources(&textures, &fonts);
+        self.core.update_instances(shapes, texts, camera_transform);
     }
 
     #[run_as(RenderAction)]
     fn render(
         &mut self,
-        background_color: Option<Single<'_, BackgroundColor>>,
+        background_color: Single<'_, BackgroundColor>,
         frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
     ) {
-        let background_color = background_color.map_or(DEFAULT_BACKGROUND_COLOR, |c| **c);
-        let enable_vsync = matches!(frame_rate_limit.map(|l| l.get()), Some(FrameRate::VSync));
+        let enable_vsync = matches!(frame_rate_limit.map(|f| f.get()), Some(FrameRate::VSync));
         self.core.toggle_vsync(enable_vsync);
-        self.core.render(background_color);
+        self.core.render(**background_color);
     }
 
     #[run_as(UpdateGraphicsAction)]

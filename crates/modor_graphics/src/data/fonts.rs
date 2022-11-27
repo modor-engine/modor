@@ -1,39 +1,42 @@
-use super::resources::ResourceLocation;
-use crate::storages::resources::textures::DynTextureKey;
+use crate::storages::resources::fonts::DynFontKey;
+use crate::ResourceLocation;
 use std::any::Any;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
-/// A trait for defining a texture reference.
+/// A trait for defining a font reference.
 ///
-/// A texture reference is generally an `enum` listing the different textures of the application.
-/// <br>This `enum` can then be used to indicate which texture to load or to attach.
+/// A font reference is generally an `enum` listing the different fonts of the application.
+/// <br>This `enum` can then be used to indicate which font to load or to attach.
 ///
 /// # Examples
 ///
-/// See [`Texture`](crate::Texture).
-pub trait TextureRef:
+/// See [`Font`](crate::Font).
+pub trait FontRef:
     Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
 {
-    /// Returns the associated texture configuration.
-    fn config(&self) -> TextureConfig;
+    /// Returns the associated font configuration.
+    fn config(&self) -> FontConfig;
 }
 
-impl<T> DynTextureKey for T where T: TextureRef {}
+impl<T> DynFontKey for T where T: FontRef {}
 
-/// The configuration of a texture.
+/// The configuration of a font.
+///
+/// Following font formats are supported:
+/// - TrueType Fonts (TTF)
+/// - OpenType Fonts (OTF)
 ///
 /// # Examples
 ///
-/// See [`Texture`](crate::Texture).
+/// See [`Font`](crate::Font).
 #[derive(Debug)]
-pub struct TextureConfig {
+pub struct FontConfig {
     pub(crate) location: ResourceLocation,
-    pub(crate) is_smooth: bool,
 }
 
-impl TextureConfig {
+impl FontConfig {
     /// Creates a new config from a path relative to the asset folder.
     ///
     /// # Platform-specific
@@ -50,31 +53,17 @@ impl TextureConfig {
     pub fn from_path(path: impl Into<String>) -> Self {
         Self {
             location: ResourceLocation::FromPath(path.into()),
-            is_smooth: true,
         }
     }
 
-    /// Creates a new config from texture bytes.
+    /// Creates a new config from font bytes.
     ///
-    /// This method can be used when the texture is included directly in the code using the
+    /// This method can be used when the font is included directly in the code using the
     /// [`include_bytes`](macro@std::include_bytes) macro.
     #[must_use]
     pub fn from_memory(bytes: &'static [u8]) -> Self {
         Self {
             location: ResourceLocation::FromMemory(bytes),
-            is_smooth: true,
         }
-    }
-
-    /// Returns the configuration with a different `is_smooth`.
-    ///
-    /// If `true`, a linear sampling is applied to the texture when it appears larger than its
-    /// original size.
-    ///
-    /// Default value is `true`.
-    #[must_use]
-    pub fn with_smooth(mut self, is_smooth: bool) -> Self {
-        self.is_smooth = is_smooth;
-        self
     }
 }

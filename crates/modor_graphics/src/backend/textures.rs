@@ -1,5 +1,5 @@
 use crate::backend::renderer::Renderer;
-use image::{DynamicImage, GenericImageView, RgbaImage};
+use image::RgbaImage;
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
     FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Sampler, SamplerDescriptor,
@@ -16,20 +16,20 @@ impl Texture {
     pub(crate) fn new(
         image: Image,
         mag_linear: bool,
+        is_repeated: bool,
         label_suffix: &str,
         renderer: &Renderer,
     ) -> Self {
         let dimensions = image.data.dimensions();
-        let rgba = image.data.into_rgba8();
         let size = Extent3d {
             width: dimensions.0,
             height: dimensions.1,
             depth_or_array_layers: 1,
         };
         let texture = Self::create_texture(label_suffix, size, renderer);
-        Self::write_texture(rgba, size, &texture, renderer);
+        Self::write_texture(image.data, size, &texture, renderer);
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let sampler = Self::create_sampler(mag_linear, label_suffix, renderer);
+        let sampler = Self::create_sampler(mag_linear, is_repeated, label_suffix, renderer);
         let bind_group = Self::create_bind_group(&view, &sampler, label_suffix, renderer);
         Self {
             bind_group,
@@ -80,12 +80,29 @@ impl Texture {
         );
     }
 
-    fn create_sampler(mag_linear: bool, label_suffix: &str, renderer: &Renderer) -> Sampler {
+    fn create_sampler(
+        mag_linear: bool,
+        is_repeated: bool,
+        label_suffix: &str,
+        renderer: &Renderer,
+    ) -> Sampler {
         renderer.device().create_sampler(&SamplerDescriptor {
             label: Some(&format!("modor_texture_sampler_{}", label_suffix)),
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
-            address_mode_w: AddressMode::Repeat,
+            address_mode_u: if is_repeated {
+                AddressMode::Repeat
+            } else {
+                AddressMode::ClampToEdge
+            },
+            address_mode_v: if is_repeated {
+                AddressMode::Repeat
+            } else {
+                AddressMode::ClampToEdge
+            },
+            address_mode_w: if is_repeated {
+                AddressMode::Repeat
+            } else {
+                AddressMode::ClampToEdge
+            },
             min_filter: FilterMode::Nearest,
             mag_filter: if mag_linear {
                 FilterMode::Linear
@@ -125,6 +142,6 @@ impl Texture {
 }
 
 pub(crate) struct Image {
-    pub(crate) data: DynamicImage,
+    pub(crate) data: RgbaImage,
     pub(crate) is_transparent: bool,
 }

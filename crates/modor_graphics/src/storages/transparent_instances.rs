@@ -1,11 +1,10 @@
-use super::textures::TextureKey;
+use super::resources::textures::{TextureKey, TextureStorage};
 use crate::backend::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::backend::data::Instance;
 use crate::backend::renderer::Renderer;
 use crate::backend::rendering::RenderCommands;
 use crate::storages::models::{ModelIdx, ModelStorage};
 use crate::storages::shaders::{ShaderIdx, ShaderStorage};
-use crate::storages::textures::TextureStorage;
 use crate::storages::InstanceDetails;
 use fxhash::FxHashSet;
 use std::cmp::Ordering;

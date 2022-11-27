@@ -1,5 +1,6 @@
 use crate::entities::camera_2d::internal::UpdateCamera2DMatrixAction;
-use crate::{utils, Window};
+use crate::utils::numbers;
+use crate::Window;
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder, Query, Single};
 use modor_input::{Finger, Mouse, UpdateInputAction};
@@ -89,7 +90,7 @@ impl Camera2D {
 
     #[run_as(UpdateCamera2DMatrixAction)]
     fn update_matrix(&mut self, transform: &Transform2D, window: Single<'_, Window>) {
-        let (x_scale, y_scale) = utils::world_scale((window.size().width, window.size().height));
+        let (x_scale, y_scale) = numbers::world_scale((window.size().width, window.size().height));
         let position = Vec3::from_xy(transform.position.x, transform.position.y);
         let scale = Vec3::new(transform.size.x / x_scale, transform.size.y / y_scale, 1.);
         let rotation = -1. * *transform.rotation;
