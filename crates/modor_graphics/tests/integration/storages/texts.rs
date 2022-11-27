@@ -1,7 +1,7 @@
 use crate::{MemoryFontRef, PathFontRef};
 use instant::Duration;
 use log::LevelFilter;
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, Built, Entity, EntityBuilder, Filter, Query, With, World};
 use modor_graphics::{
     testing, Alignment, Capture, Color, Font, FontRef, GraphicsModule, Mesh2D, Resource,
     ResourceState, SurfaceSize, Text2D, TextSize,
@@ -38,6 +38,20 @@ impl Text {
                 .with_font(font_ref)
                 .with_size(TextSize::LineHeight(0.1)),
         )
+    }
+}
+
+struct TextRemover;
+
+#[entity]
+impl TextRemover {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self)
+    }
+
+    #[run]
+    fn run(query: Query<'_, (Entity<'_>, Filter<With<Text>>)>, mut world: World<'_>) {
+        query.iter().for_each(|(e, _)| world.delete_entity(e.id()));
     }
 }
 
@@ -78,9 +92,21 @@ fn display_text_with_line_height_and_saturating_height() {
 }
 
 #[test]
-fn display_text_with_update() {
+fn display_text_with_not_loaded_font() {
     App::new()
         .with_log_level(LevelFilter::Info)
+        .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
+        .with_entity(Text::build_with_font(PathFontRef::ValidFont))
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_font_default.png")
+        });
+}
+
+#[test]
+fn display_text_with_update() {
+    App::new()
+        .with_log_level(LevelFilter::Debug)
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Text::build_with_font(PathFontRef::ValidFont))
         .with_entity(Font::build(PathFontRef::ValidFont))
@@ -107,10 +133,21 @@ fn display_text_with_update() {
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_font_updated_alignment.png")
         })
-        .with_update::<(), _>(|t: &mut Text2D| t.string = "I".into())
+        .with_update::<(), _>(|t: &mut Text2D| t.string = "I\u{0}".into())
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_font_updated_string.png")
+        })
+        .with_update::<(), _>(|t: &mut Text2D| t.color = Color::INVISIBLE)
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_invisible.png")
+        })
+        .with_entity(TextRemover::build())
+        .updated()
+        .updated()
+        .assert::<With<Capture>>(1, |e| {
+            testing::assert_capture(e, "tests/expected/text_invisible.png")
         });
 }
 
