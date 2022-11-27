@@ -44,7 +44,7 @@ impl Text {
 #[test]
 fn display_text_with_auto_size_and_saturated_width() {
     test_text_rendering_with_multiple_alignments(
-        Vec2::new(0.05, 0.2),
+        Vec2::new(0.1, 0.3),
         TextSize::Auto,
         "tests/expected/text_auto_size_saturated_width.png",
     );
@@ -62,7 +62,7 @@ fn display_text_with_auto_size_and_saturated_height() {
 #[test]
 fn display_text_with_line_height_and_saturating_width() {
     test_text_rendering_with_multiple_alignments(
-        Vec2::new(0.05, 0.2),
+        Vec2::new(0.1, 0.3),
         TextSize::LineHeight(0.08),
         "tests/expected/text_line_height_saturated_width.png",
     );
@@ -118,25 +118,25 @@ fn test_text_rendering_with_multiple_alignments(size: Vec2, text_size: TextSize,
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Text::build(
-            Vec2::new(-0.4, 0.4),
+            Vec2::new(-0.3, 0.3),
             size,
             Alignment::TopLeft,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(0., 0.4),
+            Vec2::new(0., 0.3),
             size,
             Alignment::Top,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(0.4, 0.4),
+            Vec2::new(0.3, 0.3),
             size,
             Alignment::TopRight,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(-0.4, 0.),
+            Vec2::new(-0.3, 0.),
             size,
             Alignment::Left,
             text_size,
@@ -148,25 +148,25 @@ fn test_text_rendering_with_multiple_alignments(size: Vec2, text_size: TextSize,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(0.4, 0.),
+            Vec2::new(0.3, 0.),
             size,
             Alignment::Right,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(-0.4, -0.4),
+            Vec2::new(-0.3, -0.3),
             size,
             Alignment::BottomLeft,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(0., -0.4),
+            Vec2::new(0., -0.3),
             size,
             Alignment::Bottom,
             text_size,
         ))
         .with_entity(Text::build(
-            Vec2::new(0.4, -0.4),
+            Vec2::new(0.3, -0.3),
             size,
             Alignment::BottomRight,
             text_size,
