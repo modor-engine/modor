@@ -33,9 +33,11 @@ impl Text {
     }
 
     fn build_with_font(font_ref: impl FontRef) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .with(Transform2D::new())
-            .with(Text2D::new(30., "Text").with_font(font_ref))
+        EntityBuilder::new(Self).with(Transform2D::new()).with(
+            Text2D::new(30., "Text")
+                .with_font(font_ref)
+                .with_size(TextSize::LineHeight(0.1)),
+        )
     }
 }
 
@@ -93,7 +95,7 @@ fn display_text_with_update() {
         .with_update::<(), _>(Text2D::use_default_font)
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/text_default_font.png")
+            testing::assert_capture(e, "tests/expected/text_font_default.png")
         })
         .with_update::<(), _>(|t: &mut Text2D| t.set_font(MemoryFontRef::ValidFont))
         .updated()
@@ -105,10 +107,10 @@ fn display_text_with_update() {
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_font_updated_alignment.png")
         })
-        .with_update::<(), _>(|t: &mut Text2D| t.font_height = 10.)
+        .with_update::<(), _>(|t: &mut Text2D| t.string = "I".into())
         .updated()
         .assert::<With<Capture>>(1, |e| {
-            testing::assert_capture(e, "tests/expected/text_font_updated_font_height.png")
+            testing::assert_capture(e, "tests/expected/text_font_updated_string.png")
         });
 }
 
