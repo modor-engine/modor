@@ -205,6 +205,7 @@ fn display_moved_text() {
             Alignment::Center,
             TextSize::Auto,
         ))
+        .updated()
         .with_update::<(), _>(|t: &mut Text2D| text = t.clone())
         .with_entity(TextRemover::build())
         .updated()
@@ -219,7 +220,6 @@ fn display_moved_text() {
             TextSize::Auto,
         ))
         .with_update::<(), _>(|t: &mut Text2D| *t = text.clone())
-        .with_entity(TextRemover::build())
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/text_moved.png")

@@ -85,6 +85,7 @@ impl TextStorage {
             }) = properties
             {
                 *properties = None;
+                self.deleted_idxs.push(text_idx);
             }
         }
     }
