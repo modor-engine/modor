@@ -1,4 +1,5 @@
-use crate::{utils, FrameRate, FrameRateLimit, RenderTarget, SurfaceSize, Window, WindowInit};
+use crate::utils::framerate;
+use crate::{FrameRate, FrameRateLimit, RenderTarget, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{
@@ -80,7 +81,7 @@ pub fn runner(mut app: App) {
             });
             #[cfg(not(target_os = "android"))]
             update_gamepads(&mut app, &mut gilrs);
-            utils::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
+            framerate::run_with_frame_rate(previous_update_end, frame_rate, || app.update());
             let update_end = Instant::now();
             let delta_time = if suspended {
                 suspended = false;

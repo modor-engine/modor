@@ -1,7 +1,7 @@
 use modor::{App, Built, Entity, EntityBuilder, Filter, Query, With, World};
 use modor_graphics::{
-    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TexturePart, TextureRef,
-    TextureState,
+    testing, Capture, Color, GraphicsModule, Mesh2D, Resource, ResourceState, SurfaceSize, Texture,
+    TexturePart, TextureRef,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -9,6 +9,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::PathTextureRef;
+use log::LevelFilter;
 
 struct Object;
 
@@ -76,6 +77,7 @@ impl TextureRemover {
 #[test]
 fn display_shapes() {
     App::new()
+        .with_log_level(LevelFilter::Info)
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Object::build_ellipse())
         .with_entity(Object::build_rectangle())
@@ -109,7 +111,7 @@ fn attach_texture_with_color() {
         .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, 0.25),
@@ -152,7 +154,7 @@ fn update_attached_texture() {
         .with_entity(Texture::build(PathTextureRef::TransparentPixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, 0.25),
@@ -188,7 +190,7 @@ fn configure_texture_part() {
         .with_entity(Texture::build(PathTextureRef::Colored))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_styled_rectangle(
             Vec2::new(-0.25, 0.25),

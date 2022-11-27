@@ -1,5 +1,5 @@
 use crate::entities::render_target::WindowInit;
-use crate::{Camera2D, Capture, SurfaceSize};
+use crate::{BackgroundColor, Camera2D, Capture, Color, FrameRate, FrameRateLimit, SurfaceSize};
 use modor::{Built, EntityBuilder};
 use modor_input::InputModule;
 use modor_math::Vec2;
@@ -67,6 +67,8 @@ impl GraphicsModule {
         EntityBuilder::new(Self)
             .with_child(WindowInit::build(settings))
             .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
+            .with_child(BackgroundColor::build(Color::BLACK))
+            .with_child(FrameRateLimit::build(FrameRate::VSync))
             .with_dependency(PhysicsModule::build())
             .with_dependency(InputModule::build())
     }
@@ -82,6 +84,7 @@ impl GraphicsModule {
         info!("graphics module created without window and with `{capture_size:?}`");
         EntityBuilder::new(Self)
             .with_child(Capture::build(capture_size))
+            .with_child(BackgroundColor::build(Color::BLACK))
             .with_dependency(PhysicsModule::build())
     }
 }

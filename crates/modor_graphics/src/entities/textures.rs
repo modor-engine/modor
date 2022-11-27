@@ -1,11 +1,10 @@
 use crate::backend::textures::Image;
-use crate::storages::textures::TextureKey;
-use crate::{RenderTarget, TextureRef};
-use image::error::UnsupportedErrorKind;
+use crate::data::resources::{ResourceLoadingError, ResourceLocation, ResourceState};
+use crate::storages::resources::textures::TextureKey;
+use crate::{RenderTarget, Resource, ResourceLoading, TextureRef};
 use image::{GenericImageView, ImageError};
 use modor::{Built, EntityBuilder, SingleMut};
-use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
-use std::fmt::{Debug, Display, Formatter};
+use modor_jobs::{AssetLoadingJob, Job};
 
 /// A texture loaded asynchronously.
 ///
@@ -86,7 +85,7 @@ use std::fmt::{Debug, Display, Formatter};
 /// ```
 pub struct Texture {
     pub(crate) config: InternalTextureConfig,
-    state: TextureState,
+    state: ResourceState,
 }
 
 #[entity]
@@ -102,136 +101,76 @@ impl Texture {
         let location = config.location.clone();
         EntityBuilder::new(Self {
             config,
-            state: TextureState::Loading,
+            state: ResourceState::Loading,
         })
-        .with_option(if let TextureLocation::FromPath(p) = &location {
-            Some(AssetLoadingJob::new(
-                p,
-                |b| async move { Self::parse_image(&b) },
-            ))
-        } else {
-            None
-        })
-        .with_option(if let TextureLocation::FromMemory(b) = &location {
-            Some(Job::new(async { Self::parse_image(b) }))
-        } else {
-            None
-        })
-    }
-
-    /// Returns the state of the texture.
-    #[must_use]
-    pub fn state(&self) -> &TextureState {
-        &self.state
+        .with_option(Self::asset_loading_job(&location))
+        .with_option(Self::job(&location))
     }
 
     #[run]
     fn load_from_path(
         &mut self,
-        job: &mut AssetLoadingJob<Result<Image, TextureError>>,
-        mut target: SingleMut<'_, RenderTarget>,
+        job: &mut AssetLoadingJob<
+            Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>,
+        >,
+        target: SingleMut<'_, RenderTarget>,
     ) {
-        if let TextureState::Loading = &self.state {
-            self.state = match job.try_poll() {
-                Ok(Some(Ok(i))) => {
-                    target.load_texture(i, &self.config);
-                    debug!("texture '{:?}' loaded", self.config.key);
-                    TextureState::Loaded
-                }
-                Ok(Some(Err(e))) => {
-                    error!("cannot load texture '{:?}': {e}", self.config.key);
-                    TextureState::Error(e)
-                }
-                Err(e) => {
-                    error!("cannot retrieve texture '{:?}': {e}", self.config.key);
-                    TextureState::Error(TextureError::LoadingError(e))
-                }
-                Ok(None) => TextureState::Loading,
-            }
-        }
+        ResourceLoading::load_from_path(self, job, target);
     }
 
     #[run]
     fn load_from_memory(
         &mut self,
-        job: &mut Job<Result<Image, TextureError>>,
-        mut target: SingleMut<'_, RenderTarget>,
+        job: &mut Job<Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>>,
+        target: SingleMut<'_, RenderTarget>,
     ) {
-        if let TextureState::Loading = &self.state {
-            if let Some(result) = job
-                .try_poll()
-                .expect("internal error: texture loading from memory has failed")
-            {
-                self.state = match result {
-                    Ok(i) => {
-                        target.load_texture(i, &self.config);
-                        debug!("texture '{:?}' loaded", self.config.key);
-                        TextureState::Loaded
-                    }
-                    Err(e) => {
-                        error!("cannot read texture '{:?}': {e}", self.config.key);
-                        TextureState::Error(e)
-                    }
-                }
-            }
-        }
+        ResourceLoading::load_from_memory(self, job, target);
+    }
+}
+
+impl Resource for Texture {
+    fn state(&self) -> &ResourceState {
+        &self.state
+    }
+}
+
+impl ResourceLoading for Texture {
+    type ResourceType = Image;
+
+    fn key(&self) -> String {
+        format!("{:?}", self.config.key)
     }
 
-    fn parse_image(bytes: &[u8]) -> Result<Image, TextureError> {
+    fn parse(bytes: &[u8]) -> Result<Image, ResourceLoadingError> {
         image::load_from_memory(bytes)
-            .map_err(|e| TextureError::try_from(e).expect("internal error"))
+            .map_err(|e| ResourceLoadingError::try_from(e).expect("internal error"))
             .map(|i| Image {
                 is_transparent: i.pixels().any(|p| p.2 .0[3] > 0 && p.2 .0[3] < 255),
-                data: i,
+                data: i.into_rgba8(),
             })
     }
-}
 
-/// The state of a texture.
-#[derive(Debug, Clone, PartialEq)]
-pub enum TextureState {
-    /// The texture is loading.
-    Loading,
-    /// The texture is loaded.
-    Loaded,
-    /// The texture returned an error during its loading.
-    Error(TextureError),
-}
+    fn load(&self, resource: Self::ResourceType, target: &mut RenderTarget) {
+        target.load_texture(resource, &self.config);
+    }
 
-/// An error that occurs during texture loading.
-#[derive(Debug, Clone, PartialEq)]
-#[non_exhaustive]
-pub enum TextureError {
-    /// The image format is unsupported.
-    UnsupportedFormat(UnsupportedErrorKind),
-    /// The image format is invalid.
-    InvalidFormat,
-    /// There was an error while retrieving the file.
-    LoadingError(AssetLoadingError),
-}
-
-// coverage: off (not necessary to test Display impl)
-#[allow(clippy::use_debug)]
-impl Display for TextureError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnsupportedFormat(e) => write!(f, "unsupported image format: {e:?}"),
-            Self::InvalidFormat => write!(f, "invalid image format"),
-            Self::LoadingError(e) => write!(f, "loading error: {e}"),
-        }
+    fn set_state(&mut self, state: ResourceState) {
+        self.state = state;
     }
 }
-// coverage: on
 
-impl TryFrom<ImageError> for TextureError {
+impl TryFrom<ImageError> for ResourceLoadingError {
     type Error = String;
 
     fn try_from(error: ImageError) -> Result<Self, Self::Error> {
         Ok(match error {
-            ImageError::Decoding(_) | ImageError::Encoding(_) => Self::InvalidFormat,
-            ImageError::Unsupported(e) => Self::UnsupportedFormat(e.kind()),
+            ImageError::Decoding(e) => Self::InvalidFormat(format!("{e}")),
+            ImageError::Unsupported(e) => Self::InvalidFormat(format!("{e}")),
             // coverage: off (internal errors that shouldn't happen)
-            ImageError::Limits(_) | ImageError::Parameter(_) | ImageError::IoError(_) => {
+            ImageError::Limits(_)
+            | ImageError::Parameter(_)
+            | ImageError::IoError(_)
+            | ImageError::Encoding(_) => {
                 return Err(format!("error when reading texture: {error}"))
             } // coverage: on
         })
@@ -240,12 +179,6 @@ impl TryFrom<ImageError> for TextureError {
 
 pub(crate) struct InternalTextureConfig {
     pub(crate) key: TextureKey,
-    pub(crate) location: TextureLocation,
+    pub(crate) location: ResourceLocation,
     pub(crate) is_smooth: bool,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum TextureLocation {
-    FromPath(String),
-    FromMemory(&'static [u8]),
 }

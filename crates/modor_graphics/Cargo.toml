@@ -13,6 +13,7 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
+ab_glyph.workspace = true
 bytemuck.workspace = true
 fxhash.workspace = true
 futures.workspace = true

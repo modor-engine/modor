@@ -1,8 +1,8 @@
-use crate::storages::textures::TextureKey;
+use crate::storages::resources::textures::TextureKey;
 use crate::{Color, TextureRef};
 use modor_math::Vec2;
 
-/// The properties of a rendered entity.
+/// The properties of an entity rendered as a 2D mesh.
 ///
 /// # Modor
 ///
@@ -37,6 +37,8 @@ use modor_math::Vec2;
 ///     }
 /// }
 /// ```
+///
+/// See also [`Texture`](crate::Texture) for a texture attachment example.
 #[derive(Clone, Debug)]
 pub struct Mesh2D {
     /// Color of the entity.

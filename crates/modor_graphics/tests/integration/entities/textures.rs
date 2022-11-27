@@ -1,8 +1,7 @@
-use image::error::{ImageFormatHint, UnsupportedErrorKind};
 use modor::{App, Built, EntityBuilder, With};
 use modor_graphics::{
-    testing, Capture, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureError, TextureRef,
-    TextureState,
+    testing, Capture, GraphicsModule, Mesh2D, Resource, ResourceLoadingError, ResourceState,
+    SurfaceSize, Texture, TextureRef,
 };
 use modor_jobs::AssetLoadingError;
 use modor_math::Vec2;
@@ -35,7 +34,7 @@ fn load_textures_with_different_sampling() {
         .with_entity(Texture::build(PathTextureRef::OpaqueSmooth))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Rectangle::build(
             Vec2::new(-0.25, 0.25),
@@ -57,18 +56,18 @@ fn load_valid_texture_from_path() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(PathTextureRef::OpaqueSmooth))
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loading))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loading))
         })
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loaded))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loaded))
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loaded))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loaded))
         });
 }
 
@@ -79,27 +78,23 @@ fn load_texture_from_path_with_unsupported_format() {
         .with_entity(Texture::build(PathTextureRef::UnsupportedFormat))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(
+                assert!(matches!(
                     t.state(),
-                    &TextureState::Error(TextureError::UnsupportedFormat(
-                        UnsupportedErrorKind::Format(ImageFormatHint::Unknown)
-                    ))
-                );
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(
+                assert!(matches!(
                     t.state(),
-                    &TextureState::Error(TextureError::UnsupportedFormat(
-                        UnsupportedErrorKind::Format(ImageFormatHint::Unknown)
-                    ))
-                );
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         });
 }
@@ -111,17 +106,23 @@ fn load_texture_from_path_with_invalid_format() {
         .with_entity(Texture::build(PathTextureRef::InvalidFormat))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(t.state(), &TextureState::Error(TextureError::InvalidFormat));
+                assert!(matches!(
+                    t.state(),
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(t.state(), &TextureState::Error(TextureError::InvalidFormat));
+                assert!(matches!(
+                    t.state(),
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         });
 }
@@ -133,13 +134,15 @@ fn load_texture_from_path_with_invalid_path() {
         .with_entity(Texture::build(PathTextureRef::InvalidPath))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
                 assert!(matches!(
                     t.state(),
-                    TextureState::Error(TextureError::LoadingError(AssetLoadingError::IoError(_)))
+                    ResourceState::Error(ResourceLoadingError::LoadingError(
+                        AssetLoadingError::IoError(_)
+                    ))
                 ));
             })
         })
@@ -148,7 +151,9 @@ fn load_texture_from_path_with_invalid_path() {
             e.has(|t: &Texture| {
                 assert!(matches!(
                     t.state(),
-                    TextureState::Error(TextureError::LoadingError(AssetLoadingError::IoError(_)))
+                    ResourceState::Error(ResourceLoadingError::LoadingError(
+                        AssetLoadingError::IoError(_)
+                    ))
                 ));
             })
         });
@@ -160,18 +165,18 @@ fn load_valid_texture_from_memory() {
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
         .with_entity(Texture::build(MemoryTextureRef::OpaqueSmooth))
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loading))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loading))
         })
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loaded))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loaded))
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
-            e.has(|t: &Texture| assert_eq!(t.state(), &TextureState::Loaded))
+            e.has(|t: &Texture| assert_eq!(t.state(), &ResourceState::Loaded))
         });
 }
 
@@ -182,27 +187,23 @@ fn load_texture_from_memory_with_unsupported_format() {
         .with_entity(Texture::build(MemoryTextureRef::UnsupportedFormat))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(
+                assert!(matches!(
                     t.state(),
-                    &TextureState::Error(TextureError::UnsupportedFormat(
-                        UnsupportedErrorKind::Format(ImageFormatHint::Unknown)
-                    ))
-                );
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(
+                assert!(matches!(
                     t.state(),
-                    &TextureState::Error(TextureError::UnsupportedFormat(
-                        UnsupportedErrorKind::Format(ImageFormatHint::Unknown)
-                    ))
-                );
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         });
 }
@@ -214,17 +215,23 @@ fn load_texture_from_memory_with_invalid_format() {
         .with_entity(Texture::build(MemoryTextureRef::InvalidFormat))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(t.state(), &TextureState::Error(TextureError::InvalidFormat));
+                assert!(matches!(
+                    t.state(),
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         })
         .updated()
         .assert::<With<Texture>>(1, |e| {
             e.has(|t: &Texture| {
-                assert_eq!(t.state(), &TextureState::Error(TextureError::InvalidFormat));
+                assert!(matches!(
+                    t.state(),
+                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+                ));
             })
         });
 }

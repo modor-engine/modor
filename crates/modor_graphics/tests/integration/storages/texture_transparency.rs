@@ -1,6 +1,7 @@
 use modor::{App, Built, Entity, EntityBuilder, With, World};
 use modor_graphics::{
-    testing, Capture, Color, GraphicsModule, Mesh2D, SurfaceSize, Texture, TextureRef, TextureState,
+    testing, Capture, Color, GraphicsModule, Mesh2D, Resource, ResourceState, SurfaceSize, Texture,
+    TextureRef,
 };
 use modor_math::{Vec2, Vec3};
 use modor_physics::Transform2D;
@@ -65,7 +66,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
         .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_rectangle(
             Vec3::new(0., 0., 0.),
@@ -101,7 +102,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
         .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_rectangle(
             Vec3::new(0.15, 0.15, 3.),
@@ -136,7 +137,7 @@ fn display_different_transparent_shapes() {
         .with_entity(Texture::build(PathTextureRef::TransparentPixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_ellipse(
             Vec3::new(0.15, 0.15, 3.),
@@ -175,7 +176,7 @@ fn hide_shape_after_deletion() {
         .with_entity(Texture::build(PathTextureRef::OpaquePixelated))
         .updated_until_all::<(), _>(Some(100), |t: &Texture| {
             thread::sleep(Duration::from_millis(10));
-            !matches!(t.state(), TextureState::Loading)
+            !matches!(t.state(), ResourceState::Loading)
         })
         .with_entity(Object::build_rectangle(
             Vec3::new(0.15, 0.15, 3.),
