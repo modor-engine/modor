@@ -12,7 +12,7 @@ use rapier2d::prelude::InteractionGroups;
 /// - **Type**: component
 /// - **Required components**: [`Transform2D`](crate::Transform2D)
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
+/// - **Updated during actions**: [`PhysicsModule`](crate::PhysicsModule)
 ///
 /// # Example
 ///

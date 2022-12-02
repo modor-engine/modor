@@ -13,7 +13,7 @@ pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 ///
 /// - **Type**: component
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
+/// - **Updated during actions**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated using**: [`RelativeTransform2D`](crate::RelativeTransform2D),
 ///     [`Dynamics2D`](crate::Dynamics2D), [`Collider2D`](crate::Collider2D),
 ///     [`DeltaTime`](crate::DeltaTime), [`Transform2D`](crate::Transform2D) of the parent
