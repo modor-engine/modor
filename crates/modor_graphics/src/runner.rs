@@ -1,5 +1,6 @@
+use crate::internal::RenderTarget;
 use crate::utils::framerate;
-use crate::{FrameRate, FrameRateLimit, RenderTarget, SurfaceSize, Window, WindowInit};
+use crate::{FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
 use instant::Instant;
 use modor::App;
 use modor_input::{

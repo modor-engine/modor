@@ -11,7 +11,6 @@ use modor_math::Vec2;
 ///
 /// - **Type**: entity
 /// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-/// - **Updated during**: [`UpdateInputAction`](crate::UpdateInputAction)
 ///
 /// # Examples
 ///

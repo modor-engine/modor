@@ -115,6 +115,10 @@ pub use systems::*;
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
 ///
+/// Note than the entity also implements [`Action`](crate::Action).<br>
+/// If the entity type is put as dependency of a system, then the system will be run once all
+/// systems of the entity type have been run.
+///
 /// Cyclic dependencies between systems are detected at compile time.
 ///
 /// # System behaviour
