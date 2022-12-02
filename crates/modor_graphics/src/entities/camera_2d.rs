@@ -14,7 +14,6 @@ use modor_physics::{PhysicsModule, Transform2D};
 /// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
 /// - **Default if missing**: `Camera2D::build(Position::xy(0., 0.), Size::xy(1., 1.))`
 /// - **Inner components**: [`Transform2D`](modor_physics::Transform2D)
-/// - **Updated during**: [`UpdateCamera2DAction`](crate::UpdateCamera2DAction)
 /// - **Updated using**: [`Transform2D`](modor_physics::Transform2D), [`Mouse`](modor_input::Mouse),
 ///     [`Finger`](modor_input::Finger), [`Window`](crate::Window)
 ///

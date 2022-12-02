@@ -125,7 +125,6 @@ impl WindowInit {
 ///
 /// - **Type**: singleton entity
 /// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
-/// - **Updated during**: [`UpdateCaptureBufferAction`](crate::UpdateCaptureBufferAction)
 ///
 /// # Examples
 ///
