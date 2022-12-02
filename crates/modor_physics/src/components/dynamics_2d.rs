@@ -10,7 +10,7 @@ use rapier2d::na::Vector2;
 /// - **Type**: component
 /// - **Required components**: [`Transform2D`](crate::Transform2D)
 /// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during**: [`UpdatePhysicsAction`](crate::UpdatePhysicsAction)
+/// - **Updated during**: [`PhysicsModule`](crate::PhysicsModule)
 /// - **Updated using**: [`Collider2D`](crate::Collider2D)
 ///
 /// # Example
