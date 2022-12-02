@@ -56,9 +56,7 @@ impl ActionStorage {
                 .into_iter()
                 .map(|t| self.idx_or_create(Some(t), ActionDependencies::Types(vec![])))
                 .collect(),
-            ActionDependencies::Action(action_idx) => {
-                vec![action_idx]
-            }
+            ActionDependencies::Actions(action_idxs) => action_idxs,
         }
     }
 }
@@ -68,5 +66,5 @@ idx_type!(pub(crate) ActionIdx);
 #[derive(Clone)]
 pub(crate) enum ActionDependencies {
     Types(Vec<TypeId>),
-    Action(ActionIdx),
+    Actions(Vec<ActionIdx>),
 }

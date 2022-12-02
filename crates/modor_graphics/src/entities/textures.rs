@@ -1,7 +1,8 @@
 use crate::backend::textures::Image;
 use crate::data::resources::{ResourceLoadingError, ResourceLocation, ResourceState};
+use crate::internal::RenderTarget;
 use crate::storages::resources::textures::TextureKey;
-use crate::{RenderTarget, Resource, ResourceLoading, TextureRef};
+use crate::{Resource, ResourceLoading, TextureRef};
 use image::{GenericImageView, ImageError};
 use modor::{Built, EntityBuilder, SingleMut};
 use modor_jobs::{AssetLoadingJob, Job};

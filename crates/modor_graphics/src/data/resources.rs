@@ -1,4 +1,4 @@
-use crate::RenderTarget;
+use crate::internal::RenderTarget;
 use modor::SingleMut;
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::any::{self, Any};

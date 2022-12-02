@@ -9,6 +9,7 @@ extern crate modor;
 
 pub mod app;
 pub mod entities;
+pub mod entity_actions;
 pub mod entity_filters;
 pub mod ranges;
 pub mod system_params;

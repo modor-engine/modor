@@ -5,7 +5,7 @@ use crate::entities::internal::{
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::SystemRunner;
+use crate::{Action, FinishedSystemRunner, SystemRunner};
 use std::any::Any;
 use std::marker::PhantomData;
 
@@ -14,12 +14,12 @@ use std::marker::PhantomData;
 /// This trait shouldn't be directly implemented.<br>
 /// Instead, you can use [`entity`](macro@crate::entity) and [`singleton`](macro@crate::singleton)
 /// proc macros.
-pub trait EntityMainComponent: Sized + Any + Sync + Send {
+pub trait EntityMainComponent: Sized + Any + Sync + Send + Action {
     #[doc(hidden)]
     type Type: EntityType;
 
     #[doc(hidden)]
-    fn on_update(runner: SystemRunner<'_>) -> SystemRunner<'_>;
+    fn on_update(runner: SystemRunner<'_>) -> FinishedSystemRunner;
 }
 
 #[doc(hidden)]
@@ -396,8 +396,9 @@ mod internal {
                 let entity_type_idx = core.add_entity_type::<E>();
                 E::on_update(SystemRunner {
                     core,
+                    entity_type: TypeId::of::<E>(),
                     entity_type_idx,
-                    latest_action_idx: None,
+                    action_idxs: vec![],
                 });
             };
             self.component_part.create_archetype(core, archetype_idx)

@@ -1,6 +1,7 @@
 use crate::data::resources::ResourceState;
+use crate::internal::RenderTarget;
 use crate::storages::resources::fonts::FontKey;
-use crate::{FontRef, RenderTarget, Resource, ResourceLoading, ResourceLoadingError};
+use crate::{FontRef, Resource, ResourceLoading, ResourceLoadingError};
 use ab_glyph::FontVec;
 use modor::{Built, EntityBuilder, SingleMut};
 use modor_jobs::{AssetLoadingJob, Job};

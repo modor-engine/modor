@@ -4,7 +4,8 @@ use proc_macro2::{Literal, TokenStream, TokenTree};
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned, ToTokens};
 use std::cmp::Ordering;
-use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
+use std::iter;
+use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl, Path};
 
 pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
     let system_calls = system_call_iter(impl_block);
@@ -13,29 +14,51 @@ pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
     }
 }
 
-fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> + '_ {
+pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<Path> {
     impl_block
         .items
         .iter()
         .filter_map(|i| {
             if let ImplItem::Method(method) = i {
+                Some(method)
+            } else {
+                None
+            }
+        })
+        .flat_map(|m| supported_attributes(&m.attrs))
+        .flat_map(|a| match attributes::parse(&a) {
+            Some(ParsedAttribute::RunAs(path)) => vec![path],
+            Some(ParsedAttribute::RunAfter(paths)) => paths,
+            Some(ParsedAttribute::Run | ParsedAttribute::RunAfterPrevious) | None => vec![],
+        })
+        .collect()
+}
+
+fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> + '_ {
+    let token_stream = impl_block.self_ty.to_token_stream().to_string();
+    let finish_call = finish_system_call(&token_stream);
+    impl_block
+        .items
+        .iter()
+        .filter_map(move |i| {
+            if let ImplItem::Method(method) = i {
                 let attributes = supported_attributes(&method.attrs);
-                return match attributes.len().cmp(&1) {
-                    Ordering::Equal => Some(generate_system_call(
-                        &impl_block.self_ty.to_token_stream().to_string(),
-                        method,
-                        &attributes[0],
-                    )),
+                match attributes.len().cmp(&1) {
+                    Ordering::Equal => {
+                        Some(generate_system_call(&token_stream, method, &attributes[0]))
+                    }
                     Ordering::Less => None,
                     Ordering::Greater => {
                         emit_error!(attributes[1].span(), "found more than one `run*` attribute");
                         None
                     }
-                };
+                }
+            } else {
+                None
             }
-            None
         })
         .flatten()
+        .chain(iter::once(finish_call))
 }
 
 fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
@@ -71,4 +94,12 @@ fn generate_system_call(
             .and_then(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
     })
+}
+
+fn finish_system_call(entity_type: &str) -> TokenStream {
+    let label = format!("{entity_type}::{}", "modor_finish");
+    let label_tokens = TokenTree::Literal(Literal::string(&label));
+    quote! {
+        .finish(#label_tokens)
+    }
 }

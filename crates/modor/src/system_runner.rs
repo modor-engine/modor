@@ -1,7 +1,7 @@
 use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
-use crate::storages::systems::FullSystemProperties;
+use crate::storages::systems::{FullSystemProperties, SystemProperties};
 use crate::systems::internal::SystemWrapper;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
@@ -9,8 +9,9 @@ use std::any::TypeId;
 #[doc(hidden)]
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
+    pub(crate) entity_type: TypeId,
     pub(crate) entity_type_idx: ComponentTypeIdx,
-    pub(crate) latest_action_idx: Option<ActionIdx>,
+    pub(crate) action_idxs: Vec<ActionIdx>,
 }
 
 #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
@@ -52,16 +53,35 @@ impl<'a> SystemRunner<'a> {
 
     #[doc(hidden)]
     pub fn and_then(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {
-        if let Some(latest_action_idx) = self.latest_action_idx {
+        if let Some(&latest_action_idx) = self.action_idxs.last() {
             self.run_with_action(
                 system,
                 label,
                 None,
-                ActionDependencies::Action(latest_action_idx),
+                ActionDependencies::Actions(vec![latest_action_idx]),
             )
         } else {
             self.run(system, label)
         }
+    }
+
+    pub fn finish(self, label: &'static str) -> FinishedSystemRunner {
+        let dependencies = ActionDependencies::Actions(self.action_idxs.clone());
+        let entity_type = self.entity_type;
+        self.run_with_action(
+            SystemBuilder {
+                properties_fn: |_| SystemProperties {
+                    component_types: vec![],
+                    can_update: false,
+                },
+                archetype_filter_fn: |_| false,
+                wrapper: |_, _| (),
+            },
+            label,
+            Some(entity_type),
+            dependencies,
+        );
+        FinishedSystemRunner
     }
 
     fn run_with_action(
@@ -72,21 +92,28 @@ impl<'a> SystemRunner<'a> {
         action_dependencies: ActionDependencies,
     ) -> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
+        let mut action_idxs = self.action_idxs.clone();
+        action_idxs.push(self.core.add_system(
+            system.wrapper,
+            label,
+            FullSystemProperties {
+                component_types: properties.component_types,
+                can_update: properties.can_update,
+                archetype_filter_fn: system.archetype_filter_fn,
+                entity_type: Some(self.entity_type_idx),
+            },
+            action_type,
+            action_dependencies,
+        ));
         SystemRunner {
-            latest_action_idx: Some(self.core.add_system(
-                system.wrapper,
-                label,
-                FullSystemProperties {
-                    component_types: properties.component_types,
-                    can_update: properties.can_update,
-                    archetype_filter_fn: system.archetype_filter_fn,
-                    entity_type: Some(self.entity_type_idx),
-                },
-                action_type,
-                action_dependencies,
-            )),
+            action_idxs,
+            entity_type: self.entity_type,
             core: self.core,
             entity_type_idx: self.entity_type_idx,
         }
     }
 }
+
+#[doc(hidden)]
+#[non_exhaustive]
+pub struct FinishedSystemRunner;

@@ -44,7 +44,7 @@ impl InputEventCollector {
         EntityBuilder::new(Self { events: vec![] })
     }
 
-    #[run_as(UpdateInputAction)]
+    #[run]
     fn apply(
         &mut self,
         module: Single<'_, InputModule>,
@@ -141,10 +141,6 @@ impl InputEventCollector {
             .for_each(|(_, f)| f.apply_event(&event));
     }
 }
-
-/// An action done when the input module has treated all events.
-#[action]
-pub struct UpdateInputAction;
 
 /// An input event.
 ///

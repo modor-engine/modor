@@ -1,4 +1,3 @@
-use crate::internal::{Update2DAbsoluteFromRelativeAction, Update2DBodies};
 use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2DTuple};
 use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
 use modor::{Built, Entity, EntityBuilder, Filter, Query, Single, With};
@@ -108,7 +107,7 @@ impl PhysicsModule {
         .with_child(DeltaTime::build(Duration::ZERO))
     }
 
-    #[run_as(Update2DAbsoluteFromRelativeAction)]
+    #[run]
     fn update_2d_absolute_from_relative(
         entities: Query<'_, (Entity<'_>, RelativeTransform2DFilter)>,
         mut components: Query<'_, (&mut Transform2D, Option<&mut RelativeTransform2D>)>,
@@ -126,7 +125,7 @@ impl PhysicsModule {
         }
     }
 
-    #[run_as(Update2DBodies)]
+    #[run_after_previous]
     fn update_2d_bodies(
         &mut self,
         delta: Single<'_, DeltaTime>,
@@ -134,9 +133,6 @@ impl PhysicsModule {
     ) {
         self.core_2d.update(delta.get(), &mut entities);
     }
-
-    #[run_as(UpdatePhysicsAction)]
-    fn finish_update() {}
 
     fn entities_sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
     where
@@ -146,16 +142,4 @@ impl PhysicsModule {
         entities.sort_unstable_by_key(|e| e.depth());
         entities
     }
-}
-
-/// An action done when the transforms and colliders have been updated.
-#[action(Update2DBodies)]
-pub struct UpdatePhysicsAction;
-
-pub(crate) mod internal {
-    #[action]
-    pub struct Update2DAbsoluteFromRelativeAction;
-
-    #[action(Update2DAbsoluteFromRelativeAction)]
-    pub struct Update2DBodies;
 }

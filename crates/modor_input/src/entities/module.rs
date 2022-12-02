@@ -34,4 +34,7 @@ impl InputModule {
             .with_child(Mouse::build())
             .with_child(Keyboard::build())
     }
+
+    #[run_after(InputEventCollector)]
+    fn finish() {}
 }
