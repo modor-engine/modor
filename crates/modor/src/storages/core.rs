@@ -9,7 +9,6 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
-use crate::systems::internal::SystemWrapper;
 use crate::{SystemBuilder, SystemData, SystemInfo};
 
 #[derive(Default)]
@@ -135,15 +134,14 @@ impl CoreStorage {
 
     pub(crate) fn add_system(
         &mut self,
-        wrapper: SystemWrapper,
-        label: &'static str,
         properties: FullSystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> ActionIdx {
+        let label = properties.label;
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
         self.actions.add_system(action_idx);
-        self.systems.add(wrapper, label, properties, action_idx);
+        self.systems.add(properties, action_idx);
         debug!("system `{label}` initialized");
         action_idx
     }
@@ -152,13 +150,7 @@ impl CoreStorage {
     where
         S: FnMut(SystemData<'_>, SystemInfo),
     {
-        let properties = (system.properties_fn)(self);
-        let properties = FullSystemProperties {
-            component_types: properties.component_types,
-            can_update: properties.can_update,
-            archetype_filter_fn: system.archetype_filter_fn,
-            entity_type: None,
-        };
+        let _properties = (system.properties_fn)(self); // to create component types
         let data = SystemData {
             entities: &self.entities,
             components: &self.components,
@@ -169,9 +161,9 @@ impl CoreStorage {
         (system.wrapper)(
             data,
             SystemInfo {
-                archetype_filter_fn: properties.archetype_filter_fn,
-                entity_type_idx: properties.entity_type,
-                item_count: data.item_count(properties.archetype_filter_fn, properties.entity_type),
+                archetype_filter_fn: system.archetype_filter_fn,
+                entity_type_idx: None,
+                item_count: data.item_count(system.archetype_filter_fn, None),
             },
         );
     }

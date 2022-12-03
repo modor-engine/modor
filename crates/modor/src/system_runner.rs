@@ -94,13 +94,13 @@ impl<'a> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
         let mut action_idxs = self.action_idxs.clone();
         action_idxs.push(self.core.add_system(
-            system.wrapper,
-            label,
             FullSystemProperties {
+                wrapper: system.wrapper,
                 component_types: properties.component_types,
                 can_update: properties.can_update,
                 archetype_filter_fn: system.archetype_filter_fn,
-                entity_type: Some(self.entity_type_idx),
+                entity_type_idx: Some(self.entity_type_idx),
+                label,
             },
             action_type,
             action_dependencies,
