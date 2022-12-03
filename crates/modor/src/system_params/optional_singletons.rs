@@ -2,8 +2,9 @@ use crate::optional_singletons::internal::SingletonOptionStream;
 use crate::singletons::internal::{SingletonGuard, SingletonGuardBorrow};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
-use crate::{EntityMainComponent, Single, Singleton, SystemData, SystemInfo, SystemParam};
+use crate::{EntityMainComponent, Single, Singleton, SystemParam};
 
 #[allow(clippy::use_self)]
 impl<'a, C> SystemParamWithLifetime<'a> for Option<Single<'_, C>>
@@ -34,11 +35,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -80,13 +78,14 @@ where
 pub(crate) mod internal {
     use crate::singletons::internal::SingletonGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, EntityMainComponent, Single, Singleton, SystemData};
+    use crate::systems::context::SystemInfo;
+    use crate::{Entity, EntityMainComponent, Single, Singleton};
     use std::ops::Range;
 
     pub struct SingletonOptionStream<'a, C> {
         component: Option<(EntityIdx, &'a C)>,
         item_positions: Range<usize>,
-        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> SingletonOptionStream<'a, C>
@@ -99,7 +98,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                data: guard.data,
+                info: guard.info,
             }
         }
 
@@ -110,7 +109,7 @@ pub(crate) mod internal {
                     component: c,
                     entity: Entity {
                         entity_idx: e,
-                        data: self.data,
+                        info: self.info,
                     },
                 })
             })

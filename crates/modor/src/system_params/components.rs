@@ -2,10 +2,11 @@ use crate::components::internal::{ComponentGuard, ComponentGuardBorrow, Componen
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{
     Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam, With};
+use crate::{QuerySystemParam, SystemParam, With};
 use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C
@@ -36,11 +37,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        ComponentGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        ComponentGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -159,7 +157,7 @@ pub(crate) mod internal {
     use crate::components_mut::internal::ComponentMutGuardBorrow;
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
     use crate::storages::components::ComponentArchetypes;
-    use crate::{SystemData, SystemInfo};
+    use crate::systems::context::SystemInfo;
     use std::any::Any;
     use std::iter::Flatten;
     use std::slice::Iter;
@@ -168,18 +166,16 @@ pub(crate) mod internal {
 
     pub struct ComponentGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
             Self {
-                components: data.components.read_components::<C>(),
-                data,
+                components: info.storages.components.read_components::<C>(),
                 info,
             }
         }
@@ -188,10 +184,7 @@ pub(crate) mod internal {
             ComponentGuardBorrow {
                 components: &*self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.archetype_filter_fn,
-                    self.info.entity_type_idx,
-                ),
+                sorted_archetype_idxs: self.info.filter_archetype_idx_iter(),
             }
         }
     }

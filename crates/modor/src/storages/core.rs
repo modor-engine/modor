@@ -9,7 +9,8 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
-use crate::{SystemBuilder, SystemData, SystemInfo};
+use crate::systems::context::{Storages, SystemInfo};
+use crate::SystemBuilder;
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -148,28 +149,26 @@ impl CoreStorage {
 
     pub(crate) fn run_system<S>(&mut self, mut system: SystemBuilder<S>)
     where
-        S: FnMut(SystemData<'_>, SystemInfo),
+        S: FnMut(SystemInfo<'_>),
     {
         let _properties = (system.properties_fn)(self); // to create component types
-        let data = SystemData {
+        let storages = Storages {
             entities: &self.entities,
             components: &self.components,
             archetypes: &self.archetypes,
             actions: &self.actions,
             updates: &self.updates,
         };
-        (system.wrapper)(
-            data,
-            SystemInfo {
-                archetype_filter_fn: system.archetype_filter_fn,
-                entity_type_idx: None,
-                item_count: data.item_count(system.archetype_filter_fn, None),
-            },
-        );
+        (system.wrapper)(SystemInfo {
+            archetype_filter_fn: system.archetype_filter_fn,
+            entity_type_idx: None,
+            item_count: storages.item_count(system.archetype_filter_fn, None),
+            storages,
+        });
     }
 
     pub(crate) fn update(&mut self) {
-        let data = SystemData {
+        let data = Storages {
             entities: &self.entities,
             components: &self.components,
             archetypes: &self.archetypes,

@@ -1,8 +1,7 @@
 use crate::storages::actions::ActionIdx;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{LockedSystem, SystemStateStorage};
-use crate::systems::internal::{ArchetypeFilterFn, SystemWrapper};
-use crate::{SystemData, SystemInfo};
+use crate::systems::context::{ArchetypeFilterFn, Storages, SystemInfo, SystemWrapper};
 use scoped_threadpool::Pool;
 use std::sync::Mutex;
 use typed_index_collections::TiVec;
@@ -43,57 +42,61 @@ impl SystemStorage {
         self.states
             .get_mut()
             .expect("internal error: cannot access to system states to register component type")
-            .add_system(&properties.component_types, action_idx);
+            .add_system(
+                &properties.component_types,
+                action_idx,
+                true, // TODO: replace
+            );
         self.properties.push_and_get_key(properties)
     }
 
-    pub(super) fn run(&mut self, data: SystemData<'_>) {
+    pub(super) fn run(&mut self, storages: Storages<'_>) {
         self.states
             .get_mut()
             .expect("internal error: cannot reset states")
-            .reset(self.properties.keys(), data.actions.system_counts());
+            .reset(self.properties.keys(), storages.actions.system_counts());
         if let Some(mut pool) = self.pool.take() {
-            self.run_in_parallel(&mut pool, data);
+            self.run_in_parallel(&mut pool, storages);
             self.pool = Some(pool);
         } else {
-            self.run_sequentially(data);
+            self.run_sequentially(storages);
         }
     }
 
-    fn run_sequentially(&mut self, data: SystemData<'_>) {
-        Self::run_thread(data, &self.states, &self.properties);
+    fn run_sequentially(&mut self, storages: Storages<'_>) {
+        Self::run_thread(storages, &self.states, &self.properties);
     }
 
-    fn run_in_parallel(&mut self, pool: &mut Pool, data: SystemData<'_>) {
+    fn run_in_parallel(&mut self, pool: &mut Pool, storages: Storages<'_>) {
         let thread_count = pool.thread_count();
         pool.scoped(|s| {
             for _ in 0..thread_count {
                 s.execute(|| {
-                    Self::run_thread(data, &self.states, &self.properties);
+                    Self::run_thread(storages, &self.states, &self.properties);
                 });
             }
-            Self::run_thread(data, &self.states, &self.properties);
+            Self::run_thread(storages, &self.states, &self.properties);
         });
     }
 
     fn run_thread(
-        data: SystemData<'_>,
+        storages: Storages<'_>,
         states: &Mutex<SystemStateStorage>,
         properties: &TiVec<SystemIdx, FullSystemProperties>,
     ) {
         let mut previous_system_idx = None;
         while let LockedSystem::Remaining(system_idx) =
-            Self::lock_next_system(data, states, previous_system_idx, properties)
+            Self::lock_next_system(storages, states, previous_system_idx, properties)
         {
             if let Some(system_idx) = system_idx {
-                Self::run_system(system_idx, properties, data);
+                Self::run_system(system_idx, properties, storages);
             }
             previous_system_idx = system_idx;
         }
     }
 
     fn lock_next_system(
-        data: SystemData<'_>,
+        storages: Storages<'_>,
         states: &Mutex<SystemStateStorage>,
         previous_system_idx: Option<SystemIdx>,
         properties: &TiVec<SystemIdx, FullSystemProperties>,
@@ -101,21 +104,22 @@ impl SystemStorage {
         states
             .lock()
             .expect("internal error: cannot lock states")
-            .lock_next_system(previous_system_idx, data.actions, properties)
+            .lock_next_system(previous_system_idx, storages.actions, properties)
     }
 
     fn run_system(
         system_idx: SystemIdx,
         properties: &TiVec<SystemIdx, FullSystemProperties>,
-        data: SystemData<'_>,
+        storages: Storages<'_>,
     ) {
         let system = &properties[system_idx];
         let info = SystemInfo {
             archetype_filter_fn: system.archetype_filter_fn,
             entity_type_idx: system.entity_type_idx,
-            item_count: data.item_count(system.archetype_filter_fn, system.entity_type_idx),
+            item_count: storages.item_count(system.archetype_filter_fn, system.entity_type_idx),
+            storages,
         };
-        (system.wrapper)(data, info);
+        (system.wrapper)(info);
         trace!("system `{}` run", system.label);
     }
 }
@@ -125,12 +129,14 @@ idx_type!(pub(crate) SystemIdx);
 pub struct SystemProperties {
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
+    // pub(crate) tracked_mut_components: Vec<ComponentTypeIdx> // TODO: add
 }
 
 pub(crate) struct FullSystemProperties {
     pub(crate) wrapper: SystemWrapper,
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
+    // pub(crate) tracked_mut_components: Vec<ComponentTypeIdx> // TODO: add
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
     pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
     pub(crate) label: &'static str,

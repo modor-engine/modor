@@ -3,8 +3,9 @@ use crate::singletons_mut::internal::{
 };
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
-use crate::{Entity, EntityMainComponent, Singleton, SystemData, SystemInfo, SystemParam};
+use crate::{Entity, EntityMainComponent, Singleton, SystemParam};
 use std::ops::{Deref, DerefMut};
 
 /// A system parameter for mutably accessing the singleton of type `C`.
@@ -98,11 +99,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonMutGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonMutGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -145,42 +143,42 @@ pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, EntityMainComponent, SingleMut, Singleton, SystemData, SystemInfo};
+    use crate::systems::context::SystemInfo;
+    use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
     use std::any::{Any, TypeId};
     use std::ops::Range;
     use std::sync::RwLockWriteGuard;
 
     pub struct SingletonMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> SingletonMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
             Self {
-                components: data.components.write_components::<C>(),
-                data,
+                components: info.storages.components.write_components::<C>(),
                 info,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> SingletonMutGuardBorrow<'_, C> {
             let type_idx = self
-                .data
+                .info
+                .storages
                 .components
                 .type_idx(TypeId::of::<C>())
                 .expect("internal error: singleton type not registered");
-            let singleton_location = self.data.components.singleton_location(type_idx);
+            let singleton_location = self.info.storages.components.singleton_location(type_idx);
             SingletonMutGuardBorrow {
                 components: &mut *self.components,
                 item_count: self.info.item_count,
                 entity: singleton_location
-                    .map(|l| (self.data.archetypes.entity_idxs(l.idx)[l.pos], l)),
-                data: self.data,
+                    .map(|l| (self.info.storages.archetypes.entity_idxs(l.idx)[l.pos], l)),
+                info: self.info,
             }
         }
     }
@@ -189,13 +187,13 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) entity: Option<(EntityIdx, EntityLocation)>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) info: SystemInfo<'a>,
     }
 
     pub struct SingletonMutStream<'a, C> {
         component: Option<(EntityIdx, &'a mut C)>,
         item_positions: Range<usize>,
-        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> SingletonMutStream<'a, C>
@@ -208,7 +206,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                data: guard.data,
+                info: guard.info,
             }
         }
 
@@ -220,7 +218,7 @@ pub(crate) mod internal {
                     component: *c,
                     entity: Entity {
                         entity_idx: *e,
-                        data: self.data,
+                        info: self.info,
                     },
                 })
         }

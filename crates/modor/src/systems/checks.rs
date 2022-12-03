@@ -1,4 +1,4 @@
-use crate::system_checks::internal::{SealedChecker, SystemParamWithMutabilityIssue};
+use self::internal::{SealedChecker, SystemParamWithMutabilityIssue};
 use crate::{System, SystemParam};
 use std::marker::PhantomData;
 

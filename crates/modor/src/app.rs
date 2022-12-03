@@ -1,6 +1,6 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    logging, system, Built, EntityFilter, EntityMainComponent, Filter, Singleton, UsizeRange,
+    system, utils, Built, EntityFilter, EntityMainComponent, Filter, Singleton, UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -90,7 +90,7 @@ impl App {
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
     #[must_use]
     pub fn new() -> Self {
-        logging::init();
+        utils::init_logging();
         Self::default()
     }
 

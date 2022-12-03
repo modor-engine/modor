@@ -2,7 +2,7 @@ use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{FullSystemProperties, SystemProperties};
-use crate::systems::internal::SystemWrapper;
+use crate::systems::context::SystemWrapper;
 use crate::{Action, ActionConstraint, SystemBuilder};
 use std::any::TypeId;
 
@@ -75,7 +75,7 @@ impl<'a> SystemRunner<'a> {
                     can_update: false,
                 },
                 archetype_filter_fn: |_| false,
-                wrapper: |_, _| (),
+                wrapper: |_| (),
             },
             label,
             Some(entity_type),

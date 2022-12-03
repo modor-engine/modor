@@ -4,13 +4,14 @@ use crate::optional_components_mut::internal::{
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{
     LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::system_params::optional_components_mut::internal::ComponentMutOptionIter;
 use crate::system_params::utils;
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::{QuerySystemParam, SystemParam};
 use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&mut C>
@@ -41,11 +42,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        ComponentMutOptionGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        ComponentMutOptionGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -168,7 +166,7 @@ where
 pub(crate) mod internal {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
     use crate::storages::components::ComponentArchetypes;
-    use crate::{SystemData, SystemInfo};
+    use crate::systems::context::SystemInfo;
     use std::any::Any;
     use std::iter::Flatten;
     use std::ops::Range;
@@ -178,18 +176,16 @@ pub(crate) mod internal {
 
     pub struct ComponentMutOptionGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentMutOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
             Self {
-                components: data.components.write_components::<C>(),
-                data,
+                components: info.storages.components.write_components::<C>(),
                 info,
             }
         }
@@ -198,11 +194,8 @@ pub(crate) mod internal {
             ComponentMutOptionGuardBorrow {
                 components: &mut *self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.archetype_filter_fn,
-                    self.info.entity_type_idx,
-                ),
-                data: self.data,
+                sorted_archetype_idxs: self.info.filter_archetype_idx_iter(),
+                info: self.info,
             }
         }
     }
@@ -211,7 +204,7 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) info: SystemInfo<'a>,
     }
 
     pub struct ComponentMutOptionIter<'a, C> {
@@ -260,7 +253,7 @@ pub(crate) mod internal {
         last_archetype_idx: Option<ArchetypeIdx>,
         components: IterMut<'a, TiVec<ArchetypeEntityPos, C>>,
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ArchetypeComponentIter<'a, C> {
@@ -269,7 +262,7 @@ pub(crate) mod internal {
                 last_archetype_idx: None,
                 components: guard.components.iter_mut(),
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
-                data: guard.data,
+                info: guard.info,
             }
         }
     }
@@ -284,7 +277,11 @@ pub(crate) mod internal {
             self.last_archetype_idx = Some(archetype_idx);
             Some(ComponentIter::new(
                 self.components.nth(nth).map(|c| c.iter_mut()),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.info
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }
@@ -299,7 +296,11 @@ pub(crate) mod internal {
                 .and_then(|n| n.checked_sub(1));
             Some(ComponentIter::new(
                 nth_back.and_then(|n| self.components.nth_back(n).map(|c| c.iter_mut())),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.info
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }

@@ -11,7 +11,7 @@ pub(super) struct SystemStateStorage {
     updater_state: LockState,
     runnable_idxs: Vec<SystemIdx>,
     remaining_action_count: TiVec<ActionIdx, usize>,
-    action_idxs: TiVec<SystemIdx, ActionIdx>,
+    systems: TiVec<SystemIdx, SystemState>,
 }
 
 impl SystemStateStorage {
@@ -19,13 +19,14 @@ impl SystemStateStorage {
         &mut self,
         component_types: &[ComponentTypeAccess],
         action_idx: ActionIdx,
+        _has_skippable_archetypes: bool, // TODO: use
     ) {
         for component_types in component_types {
             *self
                 .component_type_states
                 .get_mut_or_create(component_types.type_idx) = LockState::Free;
         }
-        self.action_idxs.push(action_idx);
+        self.systems.push(SystemState { action_idx });
     }
 
     pub(super) fn reset(
@@ -72,7 +73,7 @@ impl SystemStateStorage {
             .position(|s| {
                 (!properties[s].can_update || self.updater_state.is_lockable(Access::Write))
                     && actions
-                        .dependency_idxs(self.action_idxs[s])
+                        .dependency_idxs(self.systems[s].action_idx)
                         .iter()
                         .all(|&a| self.remaining_action_count[a] == 0)
                     && properties[s]
@@ -91,7 +92,7 @@ impl SystemStateStorage {
         if system.can_update {
             self.updater_state = self.updater_state.unlock();
         }
-        let action_idx = self.action_idxs[system_idx];
+        let action_idx = self.systems[system_idx].action_idx;
         self.remaining_action_count[action_idx] -= 1;
     }
 
@@ -104,6 +105,10 @@ impl SystemStateStorage {
             self.updater_state = self.updater_state.lock(Access::Write);
         }
     }
+}
+
+struct SystemState {
+    action_idx: ActionIdx,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]

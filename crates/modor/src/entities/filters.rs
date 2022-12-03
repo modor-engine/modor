@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 /// These filters can for example be applied to a [`Query`](crate::Query).
 pub trait EntityFilter: Any {
     #[doc(hidden)]
-    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool;
+    fn is_archetype_kept(component_types: &[TypeId]) -> bool;
 }
 
 /// An entity filter to keep only entities with a component of type `C`.
@@ -40,8 +40,8 @@ impl<C> EntityFilter for With<C>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-        archetype_type_ids.contains(&TypeId::of::<C>())
+    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+        component_types.contains(&TypeId::of::<C>())
     }
 }
 
@@ -76,8 +76,23 @@ impl<C> EntityFilter for Without<C>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-        !archetype_type_ids.contains(&TypeId::of::<C>())
+    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+        !component_types.contains(&TypeId::of::<C>())
+    }
+}
+
+// TODO: add doc + tests + Or compatibility + static check test
+/// TODO
+pub struct Mutated<C>(PhantomData<fn(C)>)
+where
+    C: Any + Sync + Send;
+
+impl<C> EntityFilter for Mutated<C>
+where
+    C: Any + Sync + Send,
+{
+    fn is_archetype_kept(_component_types: &[TypeId]) -> bool {
+        true
     }
 }
 
@@ -107,21 +122,23 @@ pub struct Or<F>(PhantomData<fn(F)>)
 where
     F: EntityFilter;
 
+// TODO: should it be kept ?
 impl<C> EntityFilter for Or<With<C>>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-        With::<C>::is_archetype_kept(archetype_type_ids)
+    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+        With::<C>::is_archetype_kept(component_types)
     }
 }
 
+// TODO: should it be kept ?
 impl<C> EntityFilter for Or<Without<C>>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-        Without::<C>::is_archetype_kept(archetype_type_ids)
+    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+        Without::<C>::is_archetype_kept(component_types)
     }
 }
 
@@ -132,8 +149,8 @@ macro_rules! impl_tuple_query_filter {
         where
             $($params: EntityFilter,)*
         {
-            fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-                true $(&& $params::is_archetype_kept(archetype_type_ids))*
+            fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+                true $(&& $params::is_archetype_kept(component_types))*
             }
         }
 
@@ -142,8 +159,8 @@ macro_rules! impl_tuple_query_filter {
         where
             $($params: EntityFilter,)*
         {
-            fn is_archetype_kept(archetype_type_ids: &[TypeId]) -> bool {
-                false $(|| $params::is_archetype_kept(archetype_type_ids))*
+            fn is_archetype_kept(component_types: &[TypeId]) -> bool {
+                false $(|| $params::is_archetype_kept(component_types))*
             }
         }
     };

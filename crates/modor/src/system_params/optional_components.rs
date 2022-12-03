@@ -2,11 +2,12 @@ use crate::optional_components::internal::{ComponentOptionGuard, ComponentOption
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{
     Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::system_params::optional_components::internal::ComponentOptionIter;
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::{QuerySystemParam, SystemParam};
 use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&C>
@@ -37,11 +38,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        ComponentOptionGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        ComponentOptionGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -164,7 +162,7 @@ pub(crate) mod internal {
     use crate::optional_components_mut::internal::ComponentMutOptionGuardBorrow;
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
     use crate::storages::components::ComponentArchetypes;
-    use crate::{SystemData, SystemInfo};
+    use crate::systems::context::SystemInfo;
     use std::any::Any;
     use std::iter::Flatten;
     use std::ops::Range;
@@ -174,18 +172,16 @@ pub(crate) mod internal {
 
     pub struct ComponentOptionGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ComponentOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
             Self {
-                components: data.components.read_components::<C>(),
-                data,
+                components: info.storages.components.read_components::<C>(),
                 info,
             }
         }
@@ -194,11 +190,8 @@ pub(crate) mod internal {
             ComponentOptionGuardBorrow {
                 components: &*self.components,
                 item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.archetype_filter_fn,
-                    self.info.entity_type_idx,
-                ),
-                data: self.data,
+                sorted_archetype_idxs: self.info.filter_archetype_idx_iter(),
+                info: self.info,
             }
         }
     }
@@ -207,7 +200,7 @@ pub(crate) mod internal {
         pub(crate) components: &'a ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) info: SystemInfo<'a>,
     }
 
     pub struct ComponentOptionIter<'a, C> {
@@ -263,7 +256,7 @@ pub(crate) mod internal {
         last_archetype_idx: Option<ArchetypeIdx>,
         components: Iter<'a, TiVec<ArchetypeEntityPos, C>>,
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: SystemData<'a>,
+        info: SystemInfo<'a>,
     }
 
     impl<'a, C> ArchetypeComponentIter<'a, C> {
@@ -272,7 +265,7 @@ pub(crate) mod internal {
                 last_archetype_idx: None,
                 components: guard.components.iter(),
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
-                data: guard.data,
+                info: guard.info,
             }
         }
 
@@ -281,7 +274,7 @@ pub(crate) mod internal {
                 last_archetype_idx: None,
                 components: guard.components.iter(),
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
-                data: guard.data,
+                info: guard.info,
             }
         }
     }
@@ -296,7 +289,11 @@ pub(crate) mod internal {
             self.last_archetype_idx = Some(archetype_idx);
             Some(ComponentIter::new(
                 self.components.nth(nth).map(|c| c.iter()),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.info
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }
@@ -311,7 +308,11 @@ pub(crate) mod internal {
                 .and_then(|n| n.checked_sub(1));
             Some(ComponentIter::new(
                 nth_back.and_then(|n| self.components.nth_back(n).map(|c| c.iter())),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.info
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }

@@ -4,7 +4,8 @@ use crate::entity::internal::{EntityGuard, EntityGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemInfo;
+use crate::{EntityFilter, QuerySystemParam, SystemParam};
 use std::marker::PhantomData;
 
 /// A system parameter for fitlering entities on which the system iterates.
@@ -53,11 +54,8 @@ where
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        EntityGuard::new(data, info)
+    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        EntityGuard::new(info)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -129,7 +127,8 @@ where
         'b: 'a,
     {
         guard
-            .data
+            .info
+            .storages
             .archetypes
             .entity_idxs(location.idx)
             .get(location.pos)
