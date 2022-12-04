@@ -2,8 +2,8 @@ use crate::optional_singletons::internal::SingletonOptionStream;
 use crate::singletons::internal::{SingletonGuard, SingletonGuardBorrow};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
-use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
+use crate::systems::context::SystemContext;
 use crate::{EntityMainComponent, Single, Singleton, SystemParam};
 
 #[allow(clippy::use_self)]
@@ -35,8 +35,8 @@ where
         }
     }
 
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonGuard::new(info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -78,14 +78,14 @@ where
 pub(crate) mod internal {
     use crate::singletons::internal::SingletonGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::systems::context::SystemInfo;
+    use crate::systems::context::SystemContext;
     use crate::{Entity, EntityMainComponent, Single, Singleton};
     use std::ops::Range;
 
     pub struct SingletonOptionStream<'a, C> {
         component: Option<(EntityIdx, &'a C)>,
         item_positions: Range<usize>,
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonOptionStream<'a, C>
@@ -98,7 +98,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                info: guard.info,
+                context: guard.context,
             }
         }
 
@@ -109,7 +109,7 @@ pub(crate) mod internal {
                     component: c,
                     entity: Entity {
                         entity_idx: e,
-                        info: self.info,
+                        context: self.context,
                     },
                 })
             })

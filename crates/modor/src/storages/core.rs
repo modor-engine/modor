@@ -9,7 +9,7 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
-use crate::systems::context::{Storages, SystemInfo};
+use crate::systems::context::{Storages, SystemContext};
 use crate::SystemBuilder;
 
 #[derive(Default)]
@@ -149,7 +149,7 @@ impl CoreStorage {
 
     pub(crate) fn run_system<S>(&mut self, mut system: SystemBuilder<S>)
     where
-        S: FnMut(SystemInfo<'_>),
+        S: FnMut(SystemContext<'_>),
     {
         let _properties = (system.properties_fn)(self); // to create component types
         let storages = Storages {
@@ -159,7 +159,7 @@ impl CoreStorage {
             actions: &self.actions,
             updates: &self.updates,
         };
-        (system.wrapper)(SystemInfo {
+        (system.wrapper)(SystemContext {
             archetype_filter_fn: system.archetype_filter_fn,
             entity_type_idx: None,
             item_count: storages.item_count(system.archetype_filter_fn, None),

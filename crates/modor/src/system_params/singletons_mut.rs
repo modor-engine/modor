@@ -3,8 +3,8 @@ use crate::singletons_mut::internal::{
 };
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
-use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
+use crate::systems::context::SystemContext;
 use crate::{Entity, EntityMainComponent, Singleton, SystemParam};
 use std::ops::{Deref, DerefMut};
 
@@ -99,8 +99,8 @@ where
         }
     }
 
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonMutGuard::new(info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonMutGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -143,7 +143,7 @@ pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
-    use crate::systems::context::SystemInfo;
+    use crate::systems::context::SystemContext;
     use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
     use std::any::{Any, TypeId};
     use std::ops::Range;
@@ -151,34 +151,42 @@ pub(crate) mod internal {
 
     pub struct SingletonMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                components: info.storages.components.write_components::<C>(),
-                info,
+                components: context.storages.components.write_components::<C>(),
+                context,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> SingletonMutGuardBorrow<'_, C> {
             let type_idx = self
-                .info
+                .context
                 .storages
                 .components
                 .type_idx(TypeId::of::<C>())
                 .expect("internal error: singleton type not registered");
-            let singleton_location = self.info.storages.components.singleton_location(type_idx);
+            let singleton_location = self
+                .context
+                .storages
+                .components
+                .singleton_location(type_idx);
             SingletonMutGuardBorrow {
                 components: &mut *self.components,
-                item_count: self.info.item_count,
-                entity: singleton_location
-                    .map(|l| (self.info.storages.archetypes.entity_idxs(l.idx)[l.pos], l)),
-                info: self.info,
+                item_count: self.context.item_count,
+                entity: singleton_location.map(|l| {
+                    (
+                        self.context.storages.archetypes.entity_idxs(l.idx)[l.pos],
+                        l,
+                    )
+                }),
+                context: self.context,
             }
         }
     }
@@ -187,13 +195,13 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) entity: Option<(EntityIdx, EntityLocation)>,
-        pub(crate) info: SystemInfo<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct SingletonMutStream<'a, C> {
         component: Option<(EntityIdx, &'a mut C)>,
         item_positions: Range<usize>,
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonMutStream<'a, C>
@@ -206,7 +214,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                info: guard.info,
+                context: guard.context,
             }
         }
 
@@ -218,7 +226,7 @@ pub(crate) mod internal {
                     component: *c,
                     entity: Entity {
                         entity_idx: *e,
-                        info: self.info,
+                        context: self.context,
                     },
                 })
         }

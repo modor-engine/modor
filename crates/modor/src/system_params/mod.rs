@@ -1,8 +1,8 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
+use crate::systems::context::SystemContext;
 use crate::EntityFilter;
 
 pub(crate) mod components;
@@ -30,7 +30,7 @@ pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     fn properties(core: &mut CoreStorage) -> SystemProperties;
 
     #[doc(hidden)]
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard;
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard;
 
     #[doc(hidden)]
     fn borrow_guard<'a, 'b>(

@@ -1,7 +1,8 @@
 use crate::storages::actions::ActionIdx;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{LockedSystem, SystemStateStorage};
-use crate::systems::context::{ArchetypeFilterFn, Storages, SystemInfo, SystemWrapper};
+use crate::systems::context::{Storages, SystemContext};
+use crate::{ArchetypeFilterFn, SystemWrapper};
 use scoped_threadpool::Pool;
 use std::sync::Mutex;
 use typed_index_collections::TiVec;
@@ -113,13 +114,13 @@ impl SystemStorage {
         storages: Storages<'_>,
     ) {
         let system = &properties[system_idx];
-        let info = SystemInfo {
+        let context = SystemContext {
             archetype_filter_fn: system.archetype_filter_fn,
             entity_type_idx: system.entity_type_idx,
             item_count: storages.item_count(system.archetype_filter_fn, system.entity_type_idx),
             storages,
         };
-        (system.wrapper)(info);
+        (system.wrapper)(context);
         trace!("system `{}` run", system.label);
     }
 }

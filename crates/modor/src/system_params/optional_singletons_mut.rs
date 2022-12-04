@@ -2,8 +2,8 @@ use crate::optional_singletons_mut::internal::SingletonOptionMutStream;
 use crate::singletons_mut::internal::{SingletonMutGuard, SingletonMutGuardBorrow};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
-use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
+use crate::systems::context::SystemContext;
 use crate::{EntityMainComponent, SingleMut, Singleton, SystemParam};
 
 #[allow(clippy::use_self)]
@@ -35,8 +35,8 @@ where
         }
     }
 
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonMutGuard::new(info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonMutGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -78,14 +78,14 @@ where
 pub(crate) mod internal {
     use crate::singletons_mut::internal::SingletonMutGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::systems::context::SystemInfo;
+    use crate::systems::context::SystemContext;
     use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
     use std::ops::Range;
 
     pub struct SingletonOptionMutStream<'a, C> {
         component: Option<(EntityIdx, &'a mut C)>,
         item_positions: Range<usize>,
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonOptionMutStream<'a, C>
@@ -98,7 +98,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                info: guard.info,
+                context: guard.context,
             }
         }
 
@@ -109,7 +109,7 @@ pub(crate) mod internal {
                     component: *c,
                     entity: Entity {
                         entity_idx: *e,
-                        info: self.info,
+                        context: self.context,
                     },
                 })
             })

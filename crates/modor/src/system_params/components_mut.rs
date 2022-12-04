@@ -2,13 +2,13 @@ use crate::components_mut::internal::{ComponentMutGuard, ComponentMutGuardBorrow
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
-use crate::systems::context::SystemInfo;
 use crate::system_params::components::internal::ComponentIter;
 use crate::system_params::components_mut::internal::ComponentMutIter;
 use crate::system_params::internal::{
     LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::system_params::utils;
+use crate::systems::context::SystemContext;
 use crate::{QuerySystemParam, SystemParam, With};
 use std::any::Any;
 
@@ -40,8 +40,8 @@ where
         }
     }
 
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        ComponentMutGuard::new(info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        ComponentMutGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -157,9 +157,10 @@ where
 }
 
 pub(crate) mod internal {
-    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
+    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
     use crate::storages::components::ComponentArchetypes;
-    use crate::systems::context::SystemInfo;
+    use crate::systems::context::SystemContext;
+    use crate::systems::iterations::FilteredArchetypeIdxIter;
     use std::any::Any;
     use std::iter::Flatten;
     use std::slice::IterMut;
@@ -168,25 +169,25 @@ pub(crate) mod internal {
 
     pub struct ComponentMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> ComponentMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                components: info.storages.components.write_components::<C>(),
-                info,
+                components: context.storages.components.write_components::<C>(),
+                context,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> ComponentMutGuardBorrow<'_, C> {
             ComponentMutGuardBorrow {
                 components: &mut *self.components,
-                item_count: self.info.item_count,
-                sorted_archetype_idxs: self.info.filter_archetype_idx_iter(),
+                item_count: self.context.item_count,
+                sorted_archetype_idxs: self.context.filter_archetype_idx_iter(),
             }
         }
     }

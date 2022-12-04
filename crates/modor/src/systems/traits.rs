@@ -1,9 +1,9 @@
 use self::internal::SealedSystem;
-use super::context::{ArchetypeFilterFn, SystemInfo};
+use super::context::SystemContext;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::SystemParamWithLifetime;
-use crate::{EntityFilter, SystemParam};
+use crate::{ArchetypeFilterFn, EntityFilter, SystemParam};
 
 /// A trait implemented for any system.
 pub trait System<P>: SealedSystem<P>
@@ -21,8 +21,8 @@ where
     }
 
     #[doc(hidden)]
-    fn lock<'a>(&self, info: SystemInfo<'a>) -> <P as SystemParamWithLifetime<'a>>::Guard {
-        P::lock(info)
+    fn lock<'a>(&self, context: SystemContext<'a>) -> <P as SystemParamWithLifetime<'a>>::Guard {
+        P::lock(context)
     }
 
     #[doc(hidden)]

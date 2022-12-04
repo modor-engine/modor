@@ -2,8 +2,7 @@ use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{FullSystemProperties, SystemProperties};
-use crate::systems::context::SystemWrapper;
-use crate::{Action, ActionConstraint, SystemBuilder};
+use crate::{Action, ActionConstraint, SystemBuilder, SystemWrapper};
 use std::any::TypeId;
 
 #[doc(hidden)]

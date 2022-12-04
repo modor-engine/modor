@@ -81,7 +81,7 @@ where
     }
 }
 
-// TODO: add doc + tests + Or compatibility + static check test
+// TODO: add doc + tests + static check test
 /// TODO
 pub struct Mutated<C>(PhantomData<fn(C)>)
 where
@@ -121,26 +121,6 @@ where
 pub struct Or<F>(PhantomData<fn(F)>)
 where
     F: EntityFilter;
-
-// TODO: should it be kept ?
-impl<C> EntityFilter for Or<With<C>>
-where
-    C: Any + Sync + Send,
-{
-    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-        With::<C>::is_archetype_kept(component_types)
-    }
-}
-
-// TODO: should it be kept ?
-impl<C> EntityFilter for Or<Without<C>>
-where
-    C: Any + Sync + Send,
-{
-    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-        Without::<C>::is_archetype_kept(component_types)
-    }
-}
 
 macro_rules! impl_tuple_query_filter {
     ($(($params:ident, $indexes:tt)),*) => {

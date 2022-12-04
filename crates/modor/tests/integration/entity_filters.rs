@@ -35,14 +35,12 @@ impl ResultCollector {
             Query<'_, (&u32, Filter<(Without<i64>,)>)>,
             Query<'_, (&u32, Filter<(Without<i64>, Without<u8>)>)>,
         ),
-        (or_empty, or_1_with, or_many_with, or_1_without, or_many_without, or_with, or_without): (
+        (or_empty, or_1_with, or_many_with, or_1_without, or_many_without): (
             Query<'_, (&u32, Filter<Or<()>>)>,
             Query<'_, (&u32, Filter<Or<(With<i64>,)>>)>,
             Query<'_, (&u32, Filter<Or<(With<i64>, With<u8>)>>)>,
             Query<'_, (&u32, Filter<Or<(Without<i64>,)>>)>,
             Query<'_, (&u32, Filter<Or<(Without<i64>, Without<u8>)>>)>,
-            Query<'_, (&u32, Filter<Or<With<i64>>>)>,
-            Query<'_, (&u32, Filter<Or<Without<i64>>>)>,
         ),
         nested: Query<'_, (&u32, Filter<Or<(With<u8>, (With<u32>, With<i64>))>>)>,
     ) {
@@ -58,8 +56,6 @@ impl ResultCollector {
         assert_unordered_iter(or_many_with.iter().map(|(&v, _)| v), [1, 2, 3]);
         assert_unordered_iter(or_1_without.iter().map(|(&v, _)| v), [2, 4]);
         assert_unordered_iter(or_many_without.iter().map(|(&v, _)| v), [2, 3, 4]);
-        assert_unordered_iter(or_with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(or_without.iter().map(|(&v, _)| v), [2, 4]);
         assert_unordered_iter(nested.iter().map(|(&v, _)| v), [1, 2, 3]);
         self.done = true;
     }

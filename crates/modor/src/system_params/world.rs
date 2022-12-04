@@ -1,8 +1,8 @@
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::systems::context::SystemInfo;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
+use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
 use crate::{Built, EntityMainComponent, SystemParam};
 use std::any::{self, Any, TypeId};
@@ -20,7 +20,7 @@ use std::any::{self, Any, TypeId};
 /// }
 /// ```
 pub struct World<'a> {
-    info: SystemInfo<'a>,
+    context: SystemContext<'a>,
 }
 
 impl<'a> World<'a> {
@@ -32,7 +32,7 @@ impl<'a> World<'a> {
         E: EntityMainComponent,
         B: Built<E>,
     {
-        self.info
+        self.context
             .storages
             .updates
             .try_lock()
@@ -58,7 +58,7 @@ impl<'a> World<'a> {
         E: EntityMainComponent,
         B: Built<E>,
     {
-        self.info
+        self.context
             .storages
             .updates
             .try_lock()
@@ -80,7 +80,7 @@ impl<'a> World<'a> {
     ///
     /// The entity is actually deleted once all registered systems have been run.
     pub fn delete_entity(&mut self, entity_id: usize) {
-        self.info
+        self.context
             .storages
             .updates
             .try_lock()
@@ -100,7 +100,7 @@ impl<'a> World<'a> {
     where
         C: Any + Sync + Send,
     {
-        self.info
+        self.context
             .storages
             .updates
             .try_lock()
@@ -134,8 +134,8 @@ impl<'a> World<'a> {
     where
         C: Any + Sync + Send,
     {
-        if let Some(type_idx) = self.info.storages.components.type_idx(TypeId::of::<C>()) {
-            self.info
+        if let Some(type_idx) = self.context.storages.components.type_idx(TypeId::of::<C>()) {
+            self.context
                 .storages
                 .updates
                 .try_lock()
@@ -167,8 +167,8 @@ impl SystemParam for World<'_> {
         }
     }
 
-    fn lock(info: SystemInfo<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        WorldGuard::new(info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        WorldGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -196,10 +196,9 @@ impl SystemParam for World<'_> {
     where
         'b: 'a,
     {
-        stream
-            .item_positions
-            .next()
-            .map(move |_| World { info: stream.info })
+        stream.item_positions.next().map(move |_| World {
+            context: stream.context,
+        })
     }
 }
 
@@ -209,40 +208,40 @@ impl LockableSystemParam for World<'_> {
 }
 
 mod internal {
-    use crate::systems::context::SystemInfo;
+    use crate::systems::context::SystemContext;
     use std::ops::Range;
 
     pub struct WorldGuard<'a> {
-        info: SystemInfo<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a> WorldGuard<'a> {
-        pub(crate) fn new(info: SystemInfo<'a>) -> Self {
-            Self { info }
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
+            Self { context }
         }
 
         pub(crate) fn borrow(&mut self) -> WorldGuardBorrow<'_> {
             WorldGuardBorrow {
-                item_count: self.info.item_count,
-                info: self.info,
+                item_count: self.context.item_count,
+                context: self.context,
             }
         }
     }
 
     pub struct WorldGuardBorrow<'a> {
         pub(crate) item_count: usize,
-        pub(crate) info: SystemInfo<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct WorldStream<'a> {
-        pub(crate) info: SystemInfo<'a>,
+        pub(crate) context: SystemContext<'a>,
         pub(crate) item_positions: Range<usize>,
     }
 
     impl<'a> WorldStream<'a> {
         pub(crate) fn new(guard: &'a WorldGuardBorrow<'_>) -> Self {
             Self {
-                info: guard.info,
+                context: guard.context,
                 item_positions: 0..guard.item_count,
             }
         }
