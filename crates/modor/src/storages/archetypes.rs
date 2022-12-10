@@ -11,6 +11,7 @@ pub(crate) struct ArchetypeStorage {
     entity_idxs: TiVec<ArchetypeIdx, TiVec<ArchetypeEntityPos, EntityIdx>>,
     next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
     previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
+    have_new_entity: TiVec<ArchetypeIdx, bool>,
     all_sorted_idxs: Vec<ArchetypeIdx>,
 }
 
@@ -22,6 +23,7 @@ impl Default for ArchetypeStorage {
             entity_idxs: ti_vec![ti_vec![]],
             next_idxs: ti_vec![ti_vec![]],
             previous_idxs: ti_vec![ti_vec![]],
+            have_new_entity: ti_vec![false],
             all_sorted_idxs: vec![0.into()],
         }
     }
@@ -46,6 +48,10 @@ impl ArchetypeStorage {
         self.entity_idxs[archetype_idx].next_key()
     }
 
+    pub(crate) fn has_new_entity(&self, archetype_idx: ArchetypeIdx) -> bool {
+        self.have_new_entity[archetype_idx]
+    }
+
     pub(crate) fn all_sorted_idxs(&self) -> &[ArchetypeIdx] {
         &self.all_sorted_idxs
     }
@@ -53,6 +59,12 @@ impl ArchetypeStorage {
     #[inline]
     pub(crate) fn type_ids(&self, archetype_idx: ArchetypeIdx) -> &[TypeId] {
         &self.type_ids[archetype_idx]
+    }
+
+    pub(super) fn reset_state(&mut self) {
+        for has_new_entity in &mut self.have_new_entity {
+            *has_new_entity = false;
+        }
     }
 
     #[allow(clippy::similar_names)]
@@ -110,6 +122,7 @@ impl ArchetypeStorage {
         entity_idx: EntityIdx,
         archetype_idx: ArchetypeIdx,
     ) -> ArchetypeEntityPos {
+        self.have_new_entity[archetype_idx] = true;
         self.entity_idxs[archetype_idx].push_and_get_key(entity_idx)
     }
 
@@ -134,6 +147,7 @@ impl ArchetypeStorage {
         self.type_ids.push(type_ids);
         self.entity_idxs.push(ti_vec![]);
         self.next_idxs.push(ti_vec![]);
+        self.have_new_entity.push(false);
         let archetype_idx = self.previous_idxs.push_and_get_key(ti_vec![]);
         self.all_sorted_idxs.push(archetype_idx);
         archetype_idx

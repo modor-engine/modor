@@ -186,6 +186,7 @@ impl CoreStorage {
             archetype_states: &self.archetype_states,
         };
         self.systems.run(data);
+        self.archetypes.reset_state();
         self.archetype_states
             .get_mut()
             .expect("internal error: cannot refresh archetype state")
