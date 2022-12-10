@@ -117,7 +117,7 @@ fn assert_valid_entity_count() {
 
 #[test]
 #[should_panic = "assertion failed: 2 entities matching \
-modor::entities::filters::With<integration::app::Entity>, actual count: 1"]
+modor::filters::with::With<integration::app::Entity>, actual count: 1"]
 fn assert_invalid_entity_count() {
     App::new()
         .with_entity(Entity::build(10))
@@ -157,7 +157,7 @@ fn assert_entity_has_invalid_component_in_any_mode() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have component integration::app::Singleton"]
+modor::filters::with::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component() {
     App::new()
         .with_entity(Entity::build(10))
@@ -166,7 +166,7 @@ fn assert_entity_has_missing_component() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have component integration::app::Singleton"]
+modor::filters::with::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component_in_any_mode() {
     App::new()
         .with_entity(Entity::build(10))
@@ -188,7 +188,7 @@ fn assert_entity_has_not_missing_component() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have not component integration::app::Component"]
+modor::filters::with::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_not_existing_component() {
     App::new()
@@ -198,7 +198,7 @@ fn assert_entity_has_not_existing_component() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have not component integration::app::Component"]
+modor::filters::with::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_not_existing_component_in_any_mode() {
     App::new()
@@ -219,7 +219,7 @@ fn assert_valid_child_count() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have 3 children"]
+modor::filters::with::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count() {
     App::new()
         .with_entity(Entity::build_with_children(10))
@@ -228,7 +228,7 @@ fn assert_invalid_child_count() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have 3 children"]
+modor::filters::with::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count_in_any_mode() {
     App::new()
         .with_entity(Entity::build_with_children(10))
@@ -248,8 +248,8 @@ fn assert_entity_has_matching_parent() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Child1> have parent matching \
-modor::entities::filters::With<integration::app::Singleton>"]
+modor::filters::with::With<integration::app::Child1> have parent matching \
+modor::filters::with::With<integration::app::Singleton>"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_not_matching_parent() {
     App::new()
@@ -259,8 +259,8 @@ fn assert_entity_has_not_matching_parent() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Child1> have parent matching \
-modor::entities::filters::With<integration::app::Singleton>"]
+modor::filters::with::With<integration::app::Child1> have parent matching \
+modor::filters::with::With<integration::app::Singleton>"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_not_matching_parent_in_any_mode() {
     App::new()
@@ -270,8 +270,8 @@ fn assert_entity_has_not_matching_parent_in_any_mode() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have parent matching \
-modor::entities::filters::With<integration::app::Singleton>"]
+modor::filters::with::With<integration::app::Entity> have parent matching \
+modor::filters::with::With<integration::app::Singleton>"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_missing_parent() {
     App::new()
@@ -281,8 +281,8 @@ fn assert_entity_has_missing_parent() {
 
 #[test]
 #[should_panic = "assertion failed: entities matching \
-modor::entities::filters::With<integration::app::Entity> have parent matching \
-modor::entities::filters::With<integration::app::Singleton>"]
+modor::filters::with::With<integration::app::Entity> have parent matching \
+modor::filters::with::With<integration::app::Singleton>"]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_missing_parent_in_any_mode() {
     App::new()
