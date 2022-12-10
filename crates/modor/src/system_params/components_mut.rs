@@ -37,6 +37,7 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
@@ -158,7 +159,7 @@ where
 
 pub(crate) mod internal {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
-    use crate::storages::components::ComponentArchetypes;
+    use crate::storages::components::{ComponentArchetypes, ComponentTypeIdx};
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
     use std::any::Any;
@@ -188,6 +189,7 @@ pub(crate) mod internal {
                 components: &mut *self.components,
                 item_count: self.context.item_count,
                 sorted_archetype_idxs: self.context.filter_archetype_idx_iter(),
+                context: self.context,
             }
         }
     }
@@ -196,6 +198,7 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct ComponentMutIter<'a, C> {
@@ -203,7 +206,10 @@ pub(crate) mod internal {
         len: usize,
     }
 
-    impl<'a, C> ComponentMutIter<'a, C> {
+    impl<'a, C> ComponentMutIter<'a, C>
+    where
+        C: Any,
+    {
         pub(super) fn new(guard: &'a mut ComponentMutGuardBorrow<'_, C>) -> Self {
             Self {
                 len: guard.item_count,
@@ -244,14 +250,21 @@ pub(crate) mod internal {
         last_archetype_idx: Option<ArchetypeIdx>,
         components: IterMut<'a, TiVec<ArchetypeEntityPos, C>>,
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
+        type_idx: ComponentTypeIdx,
+        context: SystemContext<'a>,
     }
 
-    impl<'a, C> ArchetypeComponentIter<'a, C> {
+    impl<'a, C> ArchetypeComponentIter<'a, C>
+    where
+        C: Any,
+    {
         fn new(guard: &'a mut ComponentMutGuardBorrow<'_, C>) -> Self {
             Self {
                 last_archetype_idx: None,
                 components: guard.components.iter_mut(),
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                type_idx: guard.context.component_type_idx::<C>(),
+                context: guard.context,
             }
         }
     }
@@ -261,6 +274,8 @@ pub(crate) mod internal {
 
         fn next(&mut self) -> Option<Self::Item> {
             let archetype_idx = self.sorted_archetype_idxs.next()?;
+            self.context
+                .add_mutated_component(self.type_idx, archetype_idx);
             let nth = usize::from(archetype_idx)
                 - self.last_archetype_idx.map_or(0, |i| usize::from(i) + 1);
             self.last_archetype_idx = Some(archetype_idx);

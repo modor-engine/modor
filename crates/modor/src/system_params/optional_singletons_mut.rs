@@ -32,6 +32,7 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
@@ -94,9 +95,13 @@ pub(crate) mod internal {
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {
-                component: (guard
-                    .entity
-                    .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
+                component: if let Some((e, l)) = guard.entity {
+                    let type_idx = guard.context.component_type_idx::<C>();
+                    guard.context.add_mutated_component(type_idx, l.idx);
+                    Some((e, &mut guard.components[l.idx][l.pos]))
+                } else {
+                    None
+                },
                 item_positions: 0..guard.item_count,
                 context: guard.context,
             }

@@ -24,6 +24,7 @@ impl SystemParam for () {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
@@ -147,6 +148,8 @@ macro_rules! impl_tuple_system_param {
                 SystemProperties {
                     component_types: utils::merge([$(properties.$indexes.component_types),+]),
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
+                    mutation_component_type_idxs:
+                        utils::merge([$(properties.$indexes.mutation_component_type_idxs),+]),
                 }
             }
 

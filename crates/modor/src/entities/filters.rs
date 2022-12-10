@@ -1,3 +1,9 @@
+use crate::storages::archetypes::ArchetypeIdx;
+use crate::storages::components::ComponentTypeIdx;
+use crate::storages::core::CoreStorage;
+use crate::storages::systems::SystemIdx;
+use crate::systems::context::Storages;
+use crate::utils;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
@@ -6,7 +12,17 @@ use std::marker::PhantomData;
 /// These filters can for example be applied to a [`Query`](crate::Query).
 pub trait EntityFilter: Any {
     #[doc(hidden)]
-    fn is_archetype_kept(component_types: &[TypeId]) -> bool;
+    fn is_archetype_kept(
+        system_idx: Option<SystemIdx>,
+        archetype_idx: ArchetypeIdx,
+        storages: Storages<'_>,
+    ) -> bool;
+
+    #[doc(hidden)]
+    #[allow(unused_variables)]
+    fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+        vec![]
+    }
 }
 
 /// An entity filter to keep only entities with a component of type `C`.
@@ -40,8 +56,15 @@ impl<C> EntityFilter for With<C>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-        component_types.contains(&TypeId::of::<C>())
+    fn is_archetype_kept(
+        _system_idx: Option<SystemIdx>,
+        archetype_idx: ArchetypeIdx,
+        storages: Storages<'_>,
+    ) -> bool {
+        storages
+            .archetypes
+            .type_ids(archetype_idx)
+            .contains(&TypeId::of::<C>())
     }
 }
 
@@ -76,23 +99,55 @@ impl<C> EntityFilter for Without<C>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-        !component_types.contains(&TypeId::of::<C>())
+    fn is_archetype_kept(
+        system_idx: Option<SystemIdx>,
+        archetype_idx: ArchetypeIdx,
+        storages: Storages<'_>,
+    ) -> bool {
+        !<With<C>>::is_archetype_kept(system_idx, archetype_idx, storages)
     }
 }
 
+// TODO: create ticket for Not<> (special implementation for Not<Mutated<C>> ?)
+// TODO: create ticket for deleted/transformed entities (can be accessed as list of IDs from World)
+
+// TODO:
+// - Mutated<C>: at least one entity of archetype is accessed mutably or added since last system exec
+// - First system execution: no filtering
+// - Store whether entity added per archetype
+// - Store whether entity accessed mutably per system/archetype/component in RwLock
+// - For EntityFilter: fn is_archetype_kept(system_idx: SystemIdx, archetype_idx: ArchetypeIdx, storages: Storages) -> bool
+
 // TODO: add doc + tests + static check test
 /// TODO
-pub struct Mutated<C>(PhantomData<fn(C)>)
+pub struct Changed<C>(PhantomData<fn(C)>)
 where
     C: Any + Sync + Send;
 
-impl<C> EntityFilter for Mutated<C>
+impl<C> EntityFilter for Changed<C>
 where
     C: Any + Sync + Send,
 {
-    fn is_archetype_kept(_component_types: &[TypeId]) -> bool {
-        true
+    fn is_archetype_kept(
+        system_idx: Option<SystemIdx>,
+        archetype_idx: ArchetypeIdx,
+        storages: Storages<'_>,
+    ) -> bool {
+        system_idx.map_or(true, |system_idx| {
+            let component_type_idx = storages
+                .components
+                .type_idx(TypeId::of::<C>())
+                .expect("internal error: read archetype state from not registered component type");
+            storages
+                .archetype_states
+                .read()
+                .expect("internal error: cannot read archetype state")
+                .is_mutated(system_idx, component_type_idx, archetype_idx)
+        })
+    }
+
+    fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+        vec![core.register_component_type::<C>()]
     }
 }
 
@@ -129,8 +184,16 @@ macro_rules! impl_tuple_query_filter {
         where
             $($params: EntityFilter,)*
         {
-            fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-                true $(&& $params::is_archetype_kept(component_types))*
+            fn is_archetype_kept(
+                system_idx: Option<SystemIdx>,
+                archetype_idx: ArchetypeIdx,
+                storages: Storages<'_>,
+            ) -> bool {
+                true $(&& $params::is_archetype_kept(system_idx, archetype_idx, storages))*
+            }
+
+            fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+                utils::merge([$($params::mutation_component_type_idxs(core)),*])
             }
         }
 
@@ -139,8 +202,16 @@ macro_rules! impl_tuple_query_filter {
         where
             $($params: EntityFilter,)*
         {
-            fn is_archetype_kept(component_types: &[TypeId]) -> bool {
-                false $(|| $params::is_archetype_kept(component_types))*
+            fn is_archetype_kept(
+                system_idx: Option<SystemIdx>,
+                archetype_idx: ArchetypeIdx,
+                storages: Storages<'_>,
+            ) -> bool {
+                false $(|| $params::is_archetype_kept(system_idx, archetype_idx, storages))*
+            }
+
+            fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+                utils::merge([$($params::mutation_component_type_idxs(core)),*])
             }
         }
     };

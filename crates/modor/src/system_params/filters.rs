@@ -47,10 +47,11 @@ where
     type Filter = F;
     type InnerTuple = ();
 
-    fn properties(_core: &mut CoreStorage) -> SystemProperties {
+    fn properties(core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: F::mutation_component_type_idxs(core),
         }
     }
 

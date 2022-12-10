@@ -1,10 +1,10 @@
-use super::context::SystemContext;
+use super::context::{Storages, SystemContext};
+use crate::storages::archetypes::ArchetypeIdx;
 use crate::storages::core::CoreStorage;
-use crate::storages::systems::SystemProperties;
-use std::any::TypeId;
+use crate::storages::systems::{SystemIdx, SystemProperties};
 
 pub(crate) type SystemWrapper = fn(SystemContext<'_>);
-pub(crate) type ArchetypeFilterFn = fn(&[TypeId]) -> bool;
+pub(crate) type ArchetypeFilterFn = fn(Option<SystemIdx>, ArchetypeIdx, Storages<'_>) -> bool;
 
 #[doc(hidden)]
 #[macro_export]

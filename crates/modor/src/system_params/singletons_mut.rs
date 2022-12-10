@@ -96,6 +96,7 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
@@ -145,7 +146,7 @@ pub(crate) mod internal {
     use crate::storages::entities::EntityIdx;
     use crate::systems::context::SystemContext;
     use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
-    use std::any::{Any, TypeId};
+    use std::any::Any;
     use std::ops::Range;
     use std::sync::RwLockWriteGuard;
 
@@ -166,12 +167,7 @@ pub(crate) mod internal {
         }
 
         pub(crate) fn borrow(&mut self) -> SingletonMutGuardBorrow<'_, C> {
-            let type_idx = self
-                .context
-                .storages
-                .components
-                .type_idx(TypeId::of::<C>())
-                .expect("internal error: singleton type not registered");
+            let type_idx = self.context.component_type_idx::<C>();
             let singleton_location = self
                 .context
                 .storages
@@ -210,9 +206,13 @@ pub(crate) mod internal {
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {
-                component: (guard
-                    .entity
-                    .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
+                component: if let Some((e, l)) = guard.entity {
+                    let type_idx = guard.context.component_type_idx::<C>();
+                    guard.context.add_mutated_component(type_idx, l.idx);
+                    Some((e, &mut guard.components[l.idx][l.pos]))
+                } else {
+                    None
+                },
                 item_positions: 0..guard.item_count,
                 context: guard.context,
             }

@@ -43,11 +43,7 @@ impl SystemStorage {
         self.states
             .get_mut()
             .expect("internal error: cannot access to system states to register component type")
-            .add_system(
-                &properties.component_types,
-                action_idx,
-                true, // TODO: replace
-            );
+            .add_system(&properties.component_types, action_idx);
         self.properties.push_and_get_key(properties)
     }
 
@@ -115,29 +111,39 @@ impl SystemStorage {
     ) {
         let system = &properties[system_idx];
         let context = SystemContext {
+            system_idx: Some(system_idx),
             archetype_filter_fn: system.archetype_filter_fn,
             entity_type_idx: system.entity_type_idx,
-            item_count: storages.item_count(system.archetype_filter_fn, system.entity_type_idx),
+            item_count: storages.item_count(
+                Some(system_idx),
+                system.archetype_filter_fn,
+                system.entity_type_idx,
+            ),
             storages,
         };
         (system.wrapper)(context);
+        storages
+            .archetype_states
+            .write()
+            .expect("internal error: cannot lock archetype state")
+            .reset_system(system_idx);
         trace!("system `{}` run", system.label);
     }
 }
 
-idx_type!(pub(crate) SystemIdx);
+idx_type!(pub SystemIdx);
 
 pub struct SystemProperties {
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
-    // pub(crate) tracked_mut_components: Vec<ComponentTypeIdx> // TODO: add
+    pub(crate) mutation_component_type_idxs: Vec<ComponentTypeIdx>,
 }
 
 pub(crate) struct FullSystemProperties {
     pub(crate) wrapper: SystemWrapper,
     pub(crate) component_types: Vec<ComponentTypeAccess>,
     pub(crate) can_update: bool,
-    // pub(crate) tracked_mut_components: Vec<ComponentTypeIdx> // TODO: add
+    pub(crate) mutation_component_type_idxs: Vec<ComponentTypeIdx>,
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
     pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
     pub(crate) label: &'static str,

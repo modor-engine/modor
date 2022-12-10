@@ -19,7 +19,6 @@ impl SystemStateStorage {
         &mut self,
         component_types: &[ComponentTypeAccess],
         action_idx: ActionIdx,
-        _has_skippable_archetypes: bool, // TODO: use
     ) {
         for component_types in component_types {
             *self

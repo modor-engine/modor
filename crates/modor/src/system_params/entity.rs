@@ -90,6 +90,7 @@ impl SystemParam for Entity<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 

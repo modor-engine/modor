@@ -32,6 +32,7 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 

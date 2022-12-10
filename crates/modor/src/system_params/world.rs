@@ -164,6 +164,7 @@ impl SystemParam for World<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: true,
+            mutation_component_type_idxs: vec![],
         }
     }
 

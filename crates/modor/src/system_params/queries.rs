@@ -163,8 +163,12 @@ where
             .entities
             .location(entity_idx)
             .and_then(|l| {
-                <P::Filter>::is_archetype_kept(self.context.storages.archetypes.type_ids(l.idx))
-                    .then_some(l)
+                <P::Filter>::is_archetype_kept(
+                    self.context.system_idx,
+                    l.idx,
+                    self.context.storages,
+                )
+                .then_some(l)
             })
     }
 
@@ -202,6 +206,7 @@ where
         SystemProperties {
             component_types: param_properties.component_types,
             can_update: param_properties.can_update,
+            mutation_component_type_idxs: param_properties.mutation_component_type_idxs,
         }
     }
 
@@ -270,12 +275,14 @@ mod internal {
             QueryGuardBorrow {
                 context: self.context,
                 param_context: SystemContext {
+                    system_idx: self.context.system_idx,
                     archetype_filter_fn: <P::Filter>::is_archetype_kept,
                     entity_type_idx: None,
-                    item_count: self
-                        .context
-                        .storages
-                        .item_count(<P::Filter>::is_archetype_kept, None),
+                    item_count: self.context.storages.item_count(
+                        self.context.system_idx,
+                        <P::Filter>::is_archetype_kept,
+                        None,
+                    ),
                     storages: self.context.storages,
                 },
                 item_count: self.item_count,

@@ -72,8 +72,9 @@ impl<'a> SystemRunner<'a> {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
                     can_update: false,
+                    mutation_component_type_idxs: vec![],
                 },
-                archetype_filter_fn: |_| false,
+                archetype_filter_fn: |_, _, _| false,
                 wrapper: |_| (),
             },
             label,
@@ -97,6 +98,7 @@ impl<'a> SystemRunner<'a> {
                 wrapper: system.wrapper,
                 component_types: properties.component_types,
                 can_update: properties.can_update,
+                mutation_component_type_idxs: properties.mutation_component_type_idxs,
                 archetype_filter_fn: system.archetype_filter_fn,
                 entity_type_idx: Some(self.entity_type_idx),
                 label,
