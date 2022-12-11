@@ -3,9 +3,10 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
+use crate::systems::context::SystemContext;
 use crate::tuples::internal::EmptyTupleGuardBorrow;
 use crate::utils;
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::{QuerySystemParam, SystemParam};
 use std::iter::{Map, Zip};
 
 impl<'a> SystemParamWithLifetime<'a> for () {
@@ -23,14 +24,12 @@ impl SystemParam for () {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        EmptyTupleGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        EmptyTupleGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -149,14 +148,13 @@ macro_rules! impl_tuple_system_param {
                 SystemProperties {
                     component_types: utils::merge([$(properties.$indexes.component_types),+]),
                     can_update: [$(properties.$indexes.can_update),+].into_iter().any(|b| b),
+                    mutation_component_type_idxs:
+                        utils::merge([$(properties.$indexes.mutation_component_type_idxs),+]),
                 }
             }
 
-            fn lock<'a>(
-                data: SystemData<'a>,
-                info: SystemInfo,
-            ) -> <Self as SystemParamWithLifetime<'a>>::Guard {
-                ($($params::lock(data, info),)+)
+            fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+                ($($params::lock(context),)+)
             }
 
             fn borrow_guard<'a, 'b>(
@@ -381,7 +379,7 @@ macro_rules! nested_tuple {
 run_for_tuples_with_idxs!(impl_tuple_system_param);
 
 mod internal {
-    use crate::{SystemData, SystemInfo};
+    use crate::systems::context::SystemContext;
     use std::ops::Range;
 
     pub struct EmptyTupleGuard {
@@ -389,9 +387,9 @@ mod internal {
     }
 
     impl EmptyTupleGuard {
-        pub(crate) fn new(_data: SystemData<'_>, info: SystemInfo) -> Self {
+        pub(crate) fn new(context: SystemContext<'_>) -> Self {
             Self {
-                item_count: info.item_count,
+                item_count: context.item_count,
             }
         }
 

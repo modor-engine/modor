@@ -2,8 +2,7 @@ use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{FullSystemProperties, SystemProperties};
-use crate::systems::internal::SystemWrapper;
-use crate::{Action, ActionConstraint, SystemBuilder};
+use crate::{Action, ActionConstraint, SystemBuilder, SystemWrapper};
 use std::any::TypeId;
 
 #[doc(hidden)]
@@ -73,9 +72,10 @@ impl<'a> SystemRunner<'a> {
                 properties_fn: |_| SystemProperties {
                     component_types: vec![],
                     can_update: false,
+                    mutation_component_type_idxs: vec![],
                 },
-                archetype_filter_fn: |_| false,
-                wrapper: |_, _| (),
+                archetype_filter_fn: |_, _, _| false,
+                wrapper: |_| (),
             },
             label,
             Some(entity_type),
@@ -94,13 +94,14 @@ impl<'a> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
         let mut action_idxs = self.action_idxs.clone();
         action_idxs.push(self.core.add_system(
-            system.wrapper,
-            label,
             FullSystemProperties {
+                wrapper: system.wrapper,
                 component_types: properties.component_types,
                 can_update: properties.can_update,
+                mutation_component_type_idxs: properties.mutation_component_type_idxs,
                 archetype_filter_fn: system.archetype_filter_fn,
-                entity_type: Some(self.entity_type_idx),
+                entity_type_idx: Some(self.entity_type_idx),
+                label,
             },
             action_type,
             action_dependencies,

@@ -1,4 +1,5 @@
-use modor::{App, Built, Entity, EntityBuilder, LevelFilter, With, World};
+use fxhash::FxHashSet;
+use modor::{App, Built, Entity, EntityBuilder, LevelFilter, Query, With, World};
 
 struct Parent(u32);
 
@@ -211,10 +212,46 @@ impl NewChildEntity {
     }
 }
 
+struct WorldState {
+    parents: Vec<Option<u32>>,
+    deleted_parent_ids: FxHashSet<u32>,
+    transformed_entity_ids: FxHashSet<u32>,
+}
+
+#[singleton]
+impl WorldState {
+    fn build() -> impl Built<Self> {
+        EntityBuilder::new(Self {
+            parents: vec![],
+            deleted_parent_ids: FxHashSet::default(),
+            transformed_entity_ids: FxHashSet::default(),
+        })
+    }
+
+    #[run]
+    fn update(&mut self, world: World<'_>, query: Query<'_, (Entity<'_>, &Parent)>) {
+        for (entity, parent) in query.iter() {
+            for _ in self.parents.len()..=entity.id() {
+                self.parents.push(None);
+            }
+            self.parents[entity.id()] = Some(parent.0);
+        }
+        self.deleted_parent_ids = world
+            .deleted_entity_ids()
+            .filter_map(|i| self.parents.get(i).copied().flatten())
+            .collect();
+        self.transformed_entity_ids = world
+            .transformed_entity_ids()
+            .filter_map(|i| self.parents.get(i).copied().flatten())
+            .collect();
+    }
+}
+
 #[test]
 fn use_world() {
     App::new()
         .with_log_level(LevelFilter::Trace)
+        .with_entity(WorldState::build())
         .with_entity(EntityToDelete::build(10))
         .with_entity(ParentEntityToDelete::build(11))
         .with_entity(ParentOfEntityToDelete::build(12))
@@ -228,6 +265,12 @@ fn use_world() {
         .with_entity(EntityWithNotRegisteredComponentTypeDeleted::build(50))
         .with_entity(EntityWithAddedChild::build(60))
         .updated()
+        .assert::<With<WorldState>>(1, |e| {
+            e.has(|s: &WorldState| {
+                assert!(s.deleted_parent_ids.is_empty());
+                assert!(s.transformed_entity_ids.is_empty());
+            })
+        })
         .assert::<With<EntityToDelete>>(0, |e| e)
         .assert::<With<ParentEntityToDelete>>(0, |e| e)
         .assert::<With<DeletedChild>>(0, |e| e)
@@ -272,7 +315,20 @@ fn use_world() {
             e.has(|e: &NewChildEntity| assert_eq!(e.0, 70))
                 .has_parent::<With<EntityWithAddedChild>>()
         })
-        .assert::<With<NewRootEntity>>(1, |e| e.has(|e: &NewRootEntity| assert_eq!(e.0, 80)));
+        .assert::<With<NewRootEntity>>(1, |e| e.has(|e: &NewRootEntity| assert_eq!(e.0, 80)))
+        .updated()
+        .assert::<With<WorldState>>(1, |e| {
+            e.has(|s: &WorldState| {
+                assert_eq!(
+                    s.deleted_parent_ids,
+                    [10, 11, 12].into_iter().collect::<FxHashSet<_>>()
+                );
+                assert_eq!(
+                    s.transformed_entity_ids,
+                    [20, 22, 23, 30, 31].into_iter().collect::<FxHashSet<_>>()
+                );
+            })
+        });
 }
 
 #[test]

@@ -4,7 +4,8 @@ use crate::singletons_mut::internal::{
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
-use crate::{Entity, EntityMainComponent, Singleton, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{Entity, EntityMainComponent, Singleton, SystemParam};
 use std::ops::{Deref, DerefMut};
 
 /// A system parameter for mutably accessing the singleton of type `C`.
@@ -95,14 +96,12 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonMutGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonMutGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -145,42 +144,45 @@ pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, EntityMainComponent, SingleMut, Singleton, SystemData, SystemInfo};
-    use std::any::{Any, TypeId};
+    use crate::systems::context::SystemContext;
+    use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
+    use std::any::Any;
     use std::ops::Range;
     use std::sync::RwLockWriteGuard;
 
     pub struct SingletonMutGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonMutGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                components: data.components.write_components::<C>(),
-                data,
-                info,
+                components: context.storages.components.write_components::<C>(),
+                context,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> SingletonMutGuardBorrow<'_, C> {
-            let type_idx = self
-                .data
+            let type_idx = self.context.component_type_idx::<C>();
+            let singleton_location = self
+                .context
+                .storages
                 .components
-                .type_idx(TypeId::of::<C>())
-                .expect("internal error: singleton type not registered");
-            let singleton_location = self.data.components.singleton_location(type_idx);
+                .singleton_location(type_idx);
             SingletonMutGuardBorrow {
                 components: &mut *self.components,
-                item_count: self.info.item_count,
-                entity: singleton_location
-                    .map(|l| (self.data.archetypes.entity_idxs(l.idx)[l.pos], l)),
-                data: self.data,
+                item_count: self.context.item_count,
+                entity: singleton_location.map(|l| {
+                    (
+                        self.context.storages.archetypes.entity_idxs(l.idx)[l.pos],
+                        l,
+                    )
+                }),
+                context: self.context,
             }
         }
     }
@@ -189,13 +191,13 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) entity: Option<(EntityIdx, EntityLocation)>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct SingletonMutStream<'a, C> {
         component: Option<(EntityIdx, &'a mut C)>,
         item_positions: Range<usize>,
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonMutStream<'a, C>
@@ -204,11 +206,15 @@ pub(crate) mod internal {
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {
-                component: (guard
-                    .entity
-                    .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
+                component: if let Some((e, l)) = guard.entity {
+                    let type_idx = guard.context.component_type_idx::<C>();
+                    guard.context.add_mutated_component(type_idx, l.idx);
+                    Some((e, &mut guard.components[l.idx][l.pos]))
+                } else {
+                    None
+                },
                 item_positions: 0..guard.item_count,
-                data: guard.data,
+                context: guard.context,
             }
         }
 
@@ -220,7 +226,7 @@ pub(crate) mod internal {
                     component: *c,
                     entity: Entity {
                         entity_idx: *e,
-                        data: self.data,
+                        context: self.context,
                     },
                 })
         }

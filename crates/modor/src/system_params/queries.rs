@@ -5,7 +5,8 @@ use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::queries::internal::QueryStream;
-use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{EntityFilter, QuerySystemParam, SystemParam};
 
 /// A system parameter for iterating on entities.
 ///
@@ -26,15 +27,18 @@ where
     P: 'static + QuerySystemParam,
 {
     guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
-    data: SystemData<'a>,
+    context: SystemContext<'a>,
 }
 
 impl<'a, P> Query<'a, P>
 where
     P: 'static + QuerySystemParam,
 {
-    fn new(guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow, data: SystemData<'a>) -> Self {
-        Self { guard, data }
+    fn new(
+        guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
+        context: SystemContext<'a>,
+    ) -> Self {
+        Self { guard, context }
     }
 }
 
@@ -154,13 +158,22 @@ where
     }
 
     fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
-        self.data.entities.location(entity_idx).and_then(|l| {
-            <P::Filter>::is_archetype_kept(self.data.archetypes.type_ids(l.idx)).then_some(l)
-        })
+        self.context
+            .storages
+            .entities
+            .location(entity_idx)
+            .and_then(|l| {
+                <P::Filter>::is_archetype_kept(
+                    self.context.system_idx,
+                    l.idx,
+                    self.context.storages,
+                )
+                .then_some(l)
+            })
     }
 
     fn first_parent(&self, entity_idx: EntityIdx) -> Option<EntityIdx> {
-        let parent_idx = self.data.entities.parent_idx(entity_idx);
+        let parent_idx = self.context.storages.entities.parent_idx(entity_idx);
         parent_idx.and_then(|p| {
             if self.get(p.into()).is_some() {
                 Some(p)
@@ -193,14 +206,12 @@ where
         SystemProperties {
             component_types: param_properties.component_types,
             can_update: param_properties.can_update,
+            mutation_component_type_idxs: param_properties.mutation_component_type_idxs,
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        QueryGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        QueryGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -231,18 +242,19 @@ where
         stream
             .item_positions
             .next()
-            .map(|_| Query::new(P::borrow_guard(&mut stream.guard), stream.data))
+            .map(|_| Query::new(P::borrow_guard(&mut stream.guard), stream.context))
     }
 }
 
 mod internal {
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
-    use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo};
+    use crate::systems::context::SystemContext;
+    use crate::{EntityFilter, QuerySystemParam};
     use std::marker::PhantomData;
     use std::ops::Range;
 
     pub struct QueryGuard<'a, P> {
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
         item_count: usize,
         phantom: PhantomData<P>,
     }
@@ -251,21 +263,27 @@ mod internal {
     where
         P: QuerySystemParam,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                data,
-                item_count: info.item_count,
+                context,
+                item_count: context.item_count,
                 phantom: PhantomData,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> QueryGuardBorrow<'_> {
             QueryGuardBorrow {
-                data: self.data,
-                param_info: SystemInfo {
+                context: self.context,
+                param_context: SystemContext {
+                    system_idx: self.context.system_idx,
                     archetype_filter_fn: <P::Filter>::is_archetype_kept,
                     entity_type_idx: None,
-                    item_count: self.data.item_count(<P::Filter>::is_archetype_kept, None),
+                    item_count: self.context.storages.item_count(
+                        self.context.system_idx,
+                        <P::Filter>::is_archetype_kept,
+                        None,
+                    ),
+                    storages: self.context.storages,
                 },
                 item_count: self.item_count,
             }
@@ -273,8 +291,8 @@ mod internal {
     }
 
     pub struct QueryGuardBorrow<'a> {
-        pub(crate) data: SystemData<'a>,
-        pub(crate) param_info: SystemInfo,
+        pub(crate) context: SystemContext<'a>,
+        pub(crate) param_context: SystemContext<'a>,
         pub(crate) item_count: usize,
     }
 
@@ -283,7 +301,7 @@ mod internal {
         P: SystemParam,
     {
         pub(crate) item_positions: Range<usize>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
         pub(crate) guard: <P as SystemParamWithLifetime<'a>>::Guard,
     }
 
@@ -294,8 +312,8 @@ mod internal {
         pub(crate) fn new(guard: &'a QueryGuardBorrow<'_>) -> Self {
             QueryStream {
                 item_positions: 0..guard.item_count,
-                data: guard.data,
-                guard: P::lock(guard.data, guard.param_info),
+                context: guard.context,
+                guard: P::lock(guard.param_context),
             }
         }
     }

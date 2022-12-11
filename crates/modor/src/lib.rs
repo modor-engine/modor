@@ -70,21 +70,23 @@ mod utils;
 mod actions;
 mod app;
 mod entities;
-mod entity_filters;
-mod logging;
+mod filters;
 mod ranges;
 mod storages;
-mod system_checks;
 mod system_params;
-mod system_runner;
 mod systems;
 
 pub use actions::*;
 pub use app::*;
-pub use entities::*;
-pub use entity_filters::*;
+pub use entities::building::*;
+pub use entities::runner::*;
+pub use entities::traits::*;
+pub use filters::changed::*;
+pub use filters::or::*;
+pub use filters::with::*;
+pub use filters::without::*;
+pub use filters::*;
 pub use ranges::*;
-pub use system_checks::*;
 pub use system_params::entity::*;
 pub use system_params::filters::*;
 pub use system_params::queries::*;
@@ -92,8 +94,9 @@ pub use system_params::singletons::*;
 pub use system_params::singletons_mut::*;
 pub use system_params::world::*;
 pub use system_params::*;
-pub use system_runner::*;
-pub use systems::*;
+pub use systems::building::*;
+pub use systems::checks::*;
+pub use systems::traits::*;
 
 /// Defines an entity.
 ///

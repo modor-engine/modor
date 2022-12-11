@@ -2,8 +2,9 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
+use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{Built, EntityMainComponent, SystemData, SystemInfo, SystemParam};
+use crate::{Built, EntityMainComponent, SystemParam};
 use std::any::{self, Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -19,7 +20,7 @@ use std::any::{self, Any, TypeId};
 /// }
 /// ```
 pub struct World<'a> {
-    data: SystemData<'a>,
+    context: SystemContext<'a>,
 }
 
 impl<'a> World<'a> {
@@ -31,7 +32,8 @@ impl<'a> World<'a> {
         E: EntityMainComponent,
         B: Built<E>,
     {
-        self.data
+        self.context
+            .storages
             .updates
             .try_lock()
             .expect("internal error: cannot lock updates to create root entity")
@@ -56,7 +58,8 @@ impl<'a> World<'a> {
         E: EntityMainComponent,
         B: Built<E>,
     {
-        self.data
+        self.context
+            .storages
             .updates
             .try_lock()
             .expect("internal error: cannot lock updates to create child entity")
@@ -77,7 +80,8 @@ impl<'a> World<'a> {
     ///
     /// The entity is actually deleted once all registered systems have been run.
     pub fn delete_entity(&mut self, entity_id: usize) {
-        self.data
+        self.context
+            .storages
             .updates
             .try_lock()
             .expect("internal error: cannot lock updates to delete entity")
@@ -96,7 +100,8 @@ impl<'a> World<'a> {
     where
         C: Any + Sync + Send,
     {
-        self.data
+        self.context
+            .storages
             .updates
             .try_lock()
             .expect("internal error: cannot lock updates to add component")
@@ -129,8 +134,9 @@ impl<'a> World<'a> {
     where
         C: Any + Sync + Send,
     {
-        if let Some(type_idx) = self.data.components.type_idx(TypeId::of::<C>()) {
-            self.data
+        if let Some(type_idx) = self.context.storages.components.type_idx(TypeId::of::<C>()) {
+            self.context
+                .storages
                 .updates
                 .try_lock()
                 .expect("internal error: cannot lock updates to delete component")
@@ -140,6 +146,34 @@ impl<'a> World<'a> {
             "component of type `{}` deleted from entity with ID {entity_id}",
             any::type_name::<C>()
         );
+    }
+
+    /// Returns IDs of the entities transformed at the end of the previous [`App`](crate::App)
+    /// update.
+    ///
+    /// An entity is considered as transformed if a component has been added or deleted.
+    ///
+    /// Some return IDs might be duplicated.<br>
+    /// It is possible that some of the returned IDs correspond to deleted entities.
+    pub fn transformed_entity_ids(&self) -> impl Iterator<Item = usize> + '_ {
+        self.context
+            .storages
+            .entities
+            .moved_idxs()
+            .iter()
+            .map(|&i| i.into())
+    }
+
+    /// Returns IDs of the entities deleted at the end of the previous [`App`](crate::App) update.
+    ///
+    /// Some return IDs might be duplicated.
+    pub fn deleted_entity_ids(&self) -> impl Iterator<Item = usize> + '_ {
+        self.context
+            .storages
+            .entities
+            .deleted_idxs()
+            .iter()
+            .map(|&i| i.into())
     }
 }
 
@@ -158,14 +192,12 @@ impl SystemParam for World<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: true,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        WorldGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        WorldGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -193,10 +225,9 @@ impl SystemParam for World<'_> {
     where
         'b: 'a,
     {
-        stream
-            .item_positions
-            .next()
-            .map(move |_| World { data: stream.data })
+        stream.item_positions.next().map(move |_| World {
+            context: stream.context,
+        })
     }
 }
 
@@ -206,41 +237,40 @@ impl LockableSystemParam for World<'_> {
 }
 
 mod internal {
-    use crate::{SystemData, SystemInfo};
+    use crate::systems::context::SystemContext;
     use std::ops::Range;
 
     pub struct WorldGuard<'a> {
-        data: SystemData<'a>,
-        info: SystemInfo,
+        context: SystemContext<'a>,
     }
 
     impl<'a> WorldGuard<'a> {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
-            Self { data, info }
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
+            Self { context }
         }
 
         pub(crate) fn borrow(&mut self) -> WorldGuardBorrow<'_> {
             WorldGuardBorrow {
-                item_count: self.info.item_count,
-                data: self.data,
+                item_count: self.context.item_count,
+                context: self.context,
             }
         }
     }
 
     pub struct WorldGuardBorrow<'a> {
         pub(crate) item_count: usize,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct WorldStream<'a> {
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
         pub(crate) item_positions: Range<usize>,
     }
 
     impl<'a> WorldStream<'a> {
         pub(crate) fn new(guard: &'a WorldGuardBorrow<'_>) -> Self {
             Self {
-                data: guard.data,
+                context: guard.context,
                 item_positions: 0..guard.item_count,
             }
         }

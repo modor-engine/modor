@@ -1,7 +1,8 @@
 use std::any::{Any, TypeId};
 use std::mem;
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
+use super::archetype_states::ArchetypeStateStorage;
 use super::systems::FullSystemProperties;
 use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
@@ -9,8 +10,8 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
-use crate::systems::internal::SystemWrapper;
-use crate::{SystemBuilder, SystemData, SystemInfo};
+use crate::systems::context::{Storages, SystemContext};
+use crate::SystemBuilder;
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -20,6 +21,7 @@ pub struct CoreStorage {
     actions: ActionStorage,
     systems: SystemStorage,
     updates: Mutex<UpdateStorage>,
+    archetype_states: RwLock<ArchetypeStateStorage>,
 }
 
 impl CoreStorage {
@@ -135,56 +137,61 @@ impl CoreStorage {
 
     pub(crate) fn add_system(
         &mut self,
-        wrapper: SystemWrapper,
-        label: &'static str,
         properties: FullSystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: ActionDependencies,
     ) -> ActionIdx {
+        let label = properties.label;
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
         self.actions.add_system(action_idx);
-        self.systems.add(wrapper, label, properties, action_idx);
+        let mutation_component_type_idxs = properties.mutation_component_type_idxs.clone();
+        let system_idx = self.systems.add(properties, action_idx);
+        self.archetype_states
+            .get_mut()
+            .expect("internal error: cannot add system in archetype state")
+            .add_system(system_idx, &mutation_component_type_idxs);
         debug!("system `{label}` initialized");
         action_idx
     }
 
     pub(crate) fn run_system<S>(&mut self, mut system: SystemBuilder<S>)
     where
-        S: FnMut(SystemData<'_>, SystemInfo),
+        S: FnMut(SystemContext<'_>),
     {
-        let properties = (system.properties_fn)(self);
-        let properties = FullSystemProperties {
-            component_types: properties.component_types,
-            can_update: properties.can_update,
-            archetype_filter_fn: system.archetype_filter_fn,
-            entity_type: None,
-        };
-        let data = SystemData {
+        let _properties = (system.properties_fn)(self); // to create component types
+        let storages = Storages {
             entities: &self.entities,
             components: &self.components,
             archetypes: &self.archetypes,
             actions: &self.actions,
             updates: &self.updates,
+            archetype_states: &self.archetype_states,
         };
-        (system.wrapper)(
-            data,
-            SystemInfo {
-                archetype_filter_fn: properties.archetype_filter_fn,
-                entity_type_idx: properties.entity_type,
-                item_count: data.item_count(properties.archetype_filter_fn, properties.entity_type),
-            },
-        );
+        (system.wrapper)(SystemContext {
+            system_idx: None,
+            archetype_filter_fn: system.archetype_filter_fn,
+            entity_type_idx: None,
+            item_count: storages.item_count(None, system.archetype_filter_fn, None),
+            storages,
+        });
     }
 
     pub(crate) fn update(&mut self) {
-        let data = SystemData {
+        let data = Storages {
             entities: &self.entities,
             components: &self.components,
             archetypes: &self.archetypes,
             actions: &self.actions,
             updates: &self.updates,
+            archetype_states: &self.archetype_states,
         };
         self.systems.run(data);
+        self.archetypes.reset_state();
+        self.entities.reset_state();
+        self.archetype_states
+            .get_mut()
+            .expect("internal error: cannot reset archetype state")
+            .reset_state();
         let mut updates = mem::take(
             self.updates
                 .get_mut()

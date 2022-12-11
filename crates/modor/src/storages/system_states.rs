@@ -1,3 +1,4 @@
+use super::systems::FullSystemProperties;
 use crate::storages::actions::{ActionIdx, ActionStorage};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemIdx};
@@ -10,26 +11,21 @@ pub(super) struct SystemStateStorage {
     updater_state: LockState,
     runnable_idxs: Vec<SystemIdx>,
     remaining_action_count: TiVec<ActionIdx, usize>,
-    component_types: TiVec<SystemIdx, Vec<ComponentTypeAccess>>,
-    can_update: TiVec<SystemIdx, bool>,
-    action_idxs: TiVec<SystemIdx, ActionIdx>,
+    systems: TiVec<SystemIdx, SystemState>,
 }
 
 impl SystemStateStorage {
     pub(super) fn add_system(
         &mut self,
-        component_types: Vec<ComponentTypeAccess>,
-        can_update: bool,
+        component_types: &[ComponentTypeAccess],
         action_idx: ActionIdx,
     ) {
-        for component_types in &component_types {
+        for component_types in component_types {
             *self
                 .component_type_states
                 .get_mut_or_create(component_types.type_idx) = LockState::Free;
         }
-        self.component_types.push(component_types);
-        self.can_update.push(can_update);
-        self.action_idxs.push(action_idx);
+        self.systems.push(SystemState { action_idx });
     }
 
     pub(super) fn reset(
@@ -50,58 +46,68 @@ impl SystemStateStorage {
         &mut self,
         previous_system_idx: Option<SystemIdx>,
         actions: &ActionStorage,
+        properties: &TiVec<SystemIdx, FullSystemProperties>,
     ) -> LockedSystem {
         if let Some(system_idx) = previous_system_idx {
-            self.unlock(system_idx);
+            self.unlock(system_idx, &properties[system_idx]);
         }
         if self.runnable_idxs.is_empty() {
             LockedSystem::Done
-        } else if let Some(system_idx) = self.extract_lockable_system_idx(actions) {
-            self.lock(system_idx);
+        } else if let Some(system_idx) = self.extract_lockable_system_idx(actions, properties) {
+            self.lock(&properties[system_idx]);
             LockedSystem::Remaining(Some(system_idx))
         } else {
             LockedSystem::Remaining(None)
         }
     }
 
-    fn extract_lockable_system_idx(&mut self, actions: &ActionStorage) -> Option<SystemIdx> {
+    fn extract_lockable_system_idx(
+        &mut self,
+        actions: &ActionStorage,
+        properties: &TiVec<SystemIdx, FullSystemProperties>,
+    ) -> Option<SystemIdx> {
         self.runnable_idxs
             .iter()
             .copied()
             .position(|s| {
-                (!self.can_update[s] || self.updater_state.is_lockable(Access::Write))
+                (!properties[s].can_update || self.updater_state.is_lockable(Access::Write))
                     && actions
-                        .dependency_idxs(self.action_idxs[s])
+                        .dependency_idxs(self.systems[s].action_idx)
                         .iter()
                         .all(|&a| self.remaining_action_count[a] == 0)
-                    && self.component_types[s]
+                    && properties[s]
+                        .component_types
                         .iter()
                         .all(|a| self.component_type_states[a.type_idx].is_lockable(a.access))
             })
             .map(|p| self.runnable_idxs.swap_remove(p))
     }
 
-    fn unlock(&mut self, system_idx: SystemIdx) {
-        for access in &self.component_types[system_idx] {
+    fn unlock(&mut self, system_idx: SystemIdx, system: &FullSystemProperties) {
+        for access in &system.component_types {
             let state = self.component_type_states[access.type_idx].unlock();
             self.component_type_states[access.type_idx] = state;
         }
-        if self.can_update[system_idx] {
+        if system.can_update {
             self.updater_state = self.updater_state.unlock();
         }
-        let action_idx = self.action_idxs[system_idx];
+        let action_idx = self.systems[system_idx].action_idx;
         self.remaining_action_count[action_idx] -= 1;
     }
 
-    fn lock(&mut self, system_idx: SystemIdx) {
-        for access in &self.component_types[system_idx] {
+    fn lock(&mut self, system: &FullSystemProperties) {
+        for access in &system.component_types {
             let state = self.component_type_states[access.type_idx].lock(access.access);
             self.component_type_states[access.type_idx] = state;
         }
-        if self.can_update[system_idx] {
+        if system.can_update {
             self.updater_state = self.updater_state.lock(Access::Write);
         }
     }
+}
+
+struct SystemState {
+    action_idx: ActionIdx,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]

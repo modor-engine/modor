@@ -4,7 +4,8 @@ use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{QuerySystemParam, SystemParam};
 use std::iter::FusedIterator;
 
 /// A system parameter for retrieving information about the entity.
@@ -24,7 +25,7 @@ use std::iter::FusedIterator;
 #[derive(Clone, Copy)]
 pub struct Entity<'a> {
     pub(crate) entity_idx: EntityIdx,
-    pub(crate) data: SystemData<'a>,
+    pub(crate) context: SystemContext<'a>,
 }
 
 impl<'a> Entity<'a> {
@@ -39,12 +40,13 @@ impl<'a> Entity<'a> {
     /// Returns the entity parent.
     #[must_use]
     pub fn parent(self) -> Option<Self> {
-        self.data
+        self.context
+            .storages
             .entities
             .parent_idx(self.entity_idx)
             .map(|p| Self {
                 entity_idx: p,
-                data: self.data,
+                context: self.context,
             })
     }
 
@@ -53,13 +55,14 @@ impl<'a> Entity<'a> {
         &'b self,
     ) -> impl Iterator<Item = Entity<'a>> + DoubleEndedIterator + ExactSizeIterator + FusedIterator + 'b
     {
-        self.data
+        self.context
+            .storages
             .entities
             .child_idxs(self.entity_idx)
             .iter()
             .map(|&c| Self {
                 entity_idx: c,
-                data: self.data,
+                context: self.context,
             })
     }
 
@@ -68,7 +71,7 @@ impl<'a> Entity<'a> {
     /// Root entities have a depth of `0`.
     #[must_use]
     pub fn depth(self) -> usize {
-        self.data.entities.depth(self.entity_idx)
+        self.context.storages.entities.depth(self.entity_idx)
     }
 }
 
@@ -87,14 +90,12 @@ impl SystemParam for Entity<'_> {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        EntityGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        EntityGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -160,13 +161,14 @@ impl QuerySystemParam for Entity<'_> {
         'b: 'a,
     {
         guard
-            .data
+            .context
+            .storages
             .archetypes
             .entity_idxs(location.idx)
             .get(location.pos)
             .map(|&e| Entity {
                 entity_idx: e,
-                data: guard.data,
+                context: guard.context,
             })
     }
 
@@ -198,30 +200,27 @@ impl QuerySystemParam for Entity<'_> {
 }
 
 pub(super) mod internal {
-    use crate::storages::archetypes::FilteredArchetypeIdxIter;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, SystemData, SystemInfo};
+    use crate::systems::context::SystemContext;
+    use crate::systems::iterations::FilteredArchetypeIdxIter;
+    use crate::Entity;
     use std::iter::Flatten;
     use std::slice::Iter;
 
     pub struct EntityGuard<'a> {
-        data: SystemData<'a>,
-        info: SystemInfo,
+        context: SystemContext<'a>,
     }
 
     impl<'a> EntityGuard<'a> {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
-            Self { data, info }
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
+            Self { context }
         }
 
         pub(crate) fn borrow(&mut self) -> EntityGuardBorrow<'_> {
             EntityGuardBorrow {
-                item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.archetype_filter_fn,
-                    self.info.entity_type_idx,
-                ),
-                data: self.data,
+                item_count: self.context.item_count,
+                sorted_archetype_idxs: self.context.filter_archetype_idx_iter(),
+                context: self.context,
             }
         }
     }
@@ -229,13 +228,13 @@ pub(super) mod internal {
     pub struct EntityGuardBorrow<'a> {
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct EntityIter<'a> {
         entity_idxs: Flatten<ArchetypeEntityIdxIter<'a>>,
         len: usize,
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a> EntityIter<'a> {
@@ -243,7 +242,7 @@ pub(super) mod internal {
             Self {
                 entity_idxs: ArchetypeEntityIdxIter::new(guard).flatten(),
                 len: guard.item_count,
-                data: guard.data,
+                context: guard.context,
             }
         }
     }
@@ -257,7 +256,7 @@ pub(super) mod internal {
                 self.len -= 1;
                 Entity {
                     entity_idx: e,
-                    data: self.data,
+                    context: self.context,
                 }
             })
         }
@@ -274,7 +273,7 @@ pub(super) mod internal {
                 self.len -= 1;
                 Entity {
                     entity_idx: e,
-                    data: self.data,
+                    context: self.context,
                 }
             })
         }
@@ -284,14 +283,14 @@ pub(super) mod internal {
 
     struct ArchetypeEntityIdxIter<'a> {
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a> ArchetypeEntityIdxIter<'a> {
         fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
             Self {
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
-                data: guard.data,
+                context: guard.context,
             }
         }
     }
@@ -302,7 +301,7 @@ pub(super) mod internal {
         fn next(&mut self) -> Option<Self::Item> {
             self.sorted_archetype_idxs
                 .next()
-                .map(|a| self.data.archetypes.entity_idxs(a).iter())
+                .map(|a| self.context.storages.archetypes.entity_idxs(a).iter())
         }
     }
 
@@ -310,7 +309,7 @@ pub(super) mod internal {
         fn next_back(&mut self) -> Option<Self::Item> {
             self.sorted_archetype_idxs
                 .next_back()
-                .map(|a| self.data.archetypes.entity_idxs(a).iter())
+                .map(|a| self.context.storages.archetypes.entity_idxs(a).iter())
         }
     }
 }

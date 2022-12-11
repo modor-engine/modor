@@ -10,7 +10,8 @@ use crate::system_params::internal::{
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::system_params::optional_components_mut::internal::ComponentMutOptionIter;
 use crate::system_params::utils;
-use crate::{QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{QuerySystemParam, SystemParam};
 use std::any::Any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&mut C>
@@ -38,14 +39,12 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        ComponentMutOptionGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        ComponentMutOptionGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -166,9 +165,10 @@ where
 }
 
 pub(crate) mod internal {
-    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, FilteredArchetypeIdxIter};
-    use crate::storages::components::ComponentArchetypes;
-    use crate::{SystemData, SystemInfo};
+    use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
+    use crate::storages::components::{ComponentArchetypes, ComponentTypeIdx};
+    use crate::systems::context::SystemContext;
+    use crate::systems::iterations::FilteredArchetypeIdxIter;
     use std::any::Any;
     use std::iter::Flatten;
     use std::ops::Range;
@@ -178,31 +178,26 @@ pub(crate) mod internal {
 
     pub struct ComponentMutOptionGuard<'a, C> {
         components: RwLockWriteGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> ComponentMutOptionGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                components: data.components.write_components::<C>(),
-                data,
-                info,
+                components: context.storages.components.write_components::<C>(),
+                context,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> ComponentMutOptionGuardBorrow<'_, C> {
             ComponentMutOptionGuardBorrow {
                 components: &mut *self.components,
-                item_count: self.info.item_count,
-                sorted_archetype_idxs: self.data.filter_archetype_idx_iter(
-                    self.info.archetype_filter_fn,
-                    self.info.entity_type_idx,
-                ),
-                data: self.data,
+                item_count: self.context.item_count,
+                sorted_archetype_idxs: self.context.filter_archetype_idx_iter(),
+                context: self.context,
             }
         }
     }
@@ -211,7 +206,7 @@ pub(crate) mod internal {
         pub(crate) components: &'a mut ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct ComponentMutOptionIter<'a, C> {
@@ -219,7 +214,10 @@ pub(crate) mod internal {
         len: usize,
     }
 
-    impl<'a, C> ComponentMutOptionIter<'a, C> {
+    impl<'a, C> ComponentMutOptionIter<'a, C>
+    where
+        C: Any,
+    {
         pub(super) fn new(guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>) -> Self {
             Self {
                 len: guard.item_count,
@@ -260,16 +258,21 @@ pub(crate) mod internal {
         last_archetype_idx: Option<ArchetypeIdx>,
         components: IterMut<'a, TiVec<ArchetypeEntityPos, C>>,
         sorted_archetype_idxs: FilteredArchetypeIdxIter<'a>,
-        data: SystemData<'a>,
+        type_idx: ComponentTypeIdx,
+        context: SystemContext<'a>,
     }
 
-    impl<'a, C> ArchetypeComponentIter<'a, C> {
+    impl<'a, C> ArchetypeComponentIter<'a, C>
+    where
+        C: Any,
+    {
         fn new(guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>) -> Self {
             Self {
                 last_archetype_idx: None,
                 components: guard.components.iter_mut(),
                 sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
-                data: guard.data,
+                type_idx: guard.context.component_type_idx::<C>(),
+                context: guard.context,
             }
         }
     }
@@ -279,12 +282,18 @@ pub(crate) mod internal {
 
         fn next(&mut self) -> Option<Self::Item> {
             let archetype_idx = self.sorted_archetype_idxs.next()?;
+            self.context
+                .add_mutated_component(self.type_idx, archetype_idx);
             let nth = usize::from(archetype_idx)
                 - self.last_archetype_idx.map_or(0, |i| usize::from(i) + 1);
             self.last_archetype_idx = Some(archetype_idx);
             Some(ComponentIter::new(
                 self.components.nth(nth).map(|c| c.iter_mut()),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.context
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }
@@ -299,7 +308,11 @@ pub(crate) mod internal {
                 .and_then(|n| n.checked_sub(1));
             Some(ComponentIter::new(
                 nth_back.and_then(|n| self.components.nth_back(n).map(|c| c.iter_mut())),
-                self.data.archetypes.entity_idxs(archetype_idx).len(),
+                self.context
+                    .storages
+                    .archetypes
+                    .entity_idxs(archetype_idx)
+                    .len(),
             ))
         }
     }

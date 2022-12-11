@@ -3,7 +3,8 @@ use crate::singletons_mut::internal::{SingletonMutGuard, SingletonMutGuardBorrow
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
-use crate::{EntityMainComponent, SingleMut, Singleton, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{EntityMainComponent, SingleMut, Singleton, SystemParam};
 
 #[allow(clippy::use_self)]
 impl<'a, C> SystemParamWithLifetime<'a> for Option<SingleMut<'_, C>>
@@ -31,14 +32,12 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonMutGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonMutGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -80,13 +79,14 @@ where
 pub(crate) mod internal {
     use crate::singletons_mut::internal::SingletonMutGuardBorrow;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, EntityMainComponent, SingleMut, Singleton, SystemData};
+    use crate::systems::context::SystemContext;
+    use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
     use std::ops::Range;
 
     pub struct SingletonOptionMutStream<'a, C> {
         component: Option<(EntityIdx, &'a mut C)>,
         item_positions: Range<usize>,
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonOptionMutStream<'a, C>
@@ -95,11 +95,15 @@ pub(crate) mod internal {
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {
-                component: (guard
-                    .entity
-                    .map(|(e, l)| (e, &mut guard.components[l.idx][l.pos]))),
+                component: if let Some((e, l)) = guard.entity {
+                    let type_idx = guard.context.component_type_idx::<C>();
+                    guard.context.add_mutated_component(type_idx, l.idx);
+                    Some((e, &mut guard.components[l.idx][l.pos]))
+                } else {
+                    None
+                },
                 item_positions: 0..guard.item_count,
-                data: guard.data,
+                context: guard.context,
             }
         }
 
@@ -110,7 +114,7 @@ pub(crate) mod internal {
                     component: *c,
                     entity: Entity {
                         entity_idx: *e,
-                        data: self.data,
+                        context: self.context,
                     },
                 })
             })

@@ -2,7 +2,8 @@ use crate::singletons::internal::{SingletonGuard, SingletonGuardBorrow, Singleto
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
-use crate::{Entity, EntityMainComponent, Singleton, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{Entity, EntityMainComponent, Singleton, SystemParam};
 use std::ops::Deref;
 
 /// A system parameter for immutably accessing the singleton of type `C`.
@@ -84,14 +85,12 @@ where
                 type_idx,
             }],
             can_update: false,
+            mutation_component_type_idxs: vec![],
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        SingletonGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        SingletonGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -134,42 +133,45 @@ pub(crate) mod internal {
     use crate::storages::archetypes::EntityLocation;
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
-    use crate::{Entity, EntityMainComponent, Single, Singleton, SystemData, SystemInfo};
-    use std::any::{Any, TypeId};
+    use crate::systems::context::SystemContext;
+    use crate::{Entity, EntityMainComponent, Single, Singleton};
+    use std::any::Any;
     use std::ops::Range;
     use std::sync::RwLockReadGuard;
 
     pub struct SingletonGuard<'a, C> {
         components: RwLockReadGuard<'a, ComponentArchetypes<C>>,
-        data: SystemData<'a>,
-        info: SystemInfo,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonGuard<'a, C>
     where
         C: Any,
     {
-        pub(crate) fn new(data: SystemData<'a>, info: SystemInfo) -> Self {
+        pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
-                components: data.components.read_components::<C>(),
-                data,
-                info,
+                components: context.storages.components.read_components::<C>(),
+                context,
             }
         }
 
         pub(crate) fn borrow(&mut self) -> SingletonGuardBorrow<'_, C> {
-            let type_idx = self
-                .data
+            let type_idx = self.context.component_type_idx::<C>();
+            let singleton_location = self
+                .context
+                .storages
                 .components
-                .type_idx(TypeId::of::<C>())
-                .expect("internal error: singleton type not registered");
-            let singleton_location = self.data.components.singleton_location(type_idx);
+                .singleton_location(type_idx);
             SingletonGuardBorrow {
                 components: &*self.components,
-                item_count: self.info.item_count,
-                entity: singleton_location
-                    .map(|l| (self.data.archetypes.entity_idxs(l.idx)[l.pos], l)),
-                data: self.data,
+                item_count: self.context.item_count,
+                entity: singleton_location.map(|l| {
+                    (
+                        self.context.storages.archetypes.entity_idxs(l.idx)[l.pos],
+                        l,
+                    )
+                }),
+                context: self.context,
             }
         }
     }
@@ -178,13 +180,13 @@ pub(crate) mod internal {
         pub(crate) components: &'a ComponentArchetypes<C>,
         pub(crate) item_count: usize,
         pub(crate) entity: Option<(EntityIdx, EntityLocation)>,
-        pub(crate) data: SystemData<'a>,
+        pub(crate) context: SystemContext<'a>,
     }
 
     pub struct SingletonStream<'a, C> {
         component: Option<(EntityIdx, &'a C)>,
         item_positions: Range<usize>,
-        data: SystemData<'a>,
+        context: SystemContext<'a>,
     }
 
     impl<'a, C> SingletonStream<'a, C>
@@ -197,7 +199,7 @@ pub(crate) mod internal {
                     .entity
                     .map(|(e, l)| (e, &guard.components[l.idx][l.pos]))),
                 item_positions: 0..guard.item_count,
-                data: guard.data,
+                context: guard.context,
             }
         }
 
@@ -209,7 +211,7 @@ pub(crate) mod internal {
                     component: c,
                     entity: Entity {
                         entity_idx: e,
-                        data: self.data,
+                        context: self.context,
                     },
                 })
         }

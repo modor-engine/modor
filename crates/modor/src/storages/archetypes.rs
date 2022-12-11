@@ -3,7 +3,6 @@ use crate::storages::entities::EntityIdx;
 use modor_internal::ti_vec;
 use modor_internal::ti_vec::TiVecSafeOperations;
 use std::any::TypeId;
-use std::slice::Iter;
 use typed_index_collections::{TiSlice, TiVec};
 
 pub(crate) struct ArchetypeStorage {
@@ -12,6 +11,7 @@ pub(crate) struct ArchetypeStorage {
     entity_idxs: TiVec<ArchetypeIdx, TiVec<ArchetypeEntityPos, EntityIdx>>,
     next_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
     previous_idxs: TiVec<ArchetypeIdx, TiVec<ComponentTypeIdx, Option<ArchetypeIdx>>>,
+    have_new_entity: TiVec<ArchetypeIdx, bool>,
     all_sorted_idxs: Vec<ArchetypeIdx>,
 }
 
@@ -23,6 +23,7 @@ impl Default for ArchetypeStorage {
             entity_idxs: ti_vec![ti_vec![]],
             next_idxs: ti_vec![ti_vec![]],
             previous_idxs: ti_vec![ti_vec![]],
+            have_new_entity: ti_vec![false],
             all_sorted_idxs: vec![0.into()],
         }
     }
@@ -47,25 +48,23 @@ impl ArchetypeStorage {
         self.entity_idxs[archetype_idx].next_key()
     }
 
-    pub(crate) fn all_sorted_idxs(&self) -> &[ArchetypeIdx] {
-        &self.all_sorted_idxs
+    pub(crate) fn has_new_entity(&self, archetype_idx: ArchetypeIdx) -> bool {
+        self.have_new_entity[archetype_idx]
     }
 
-    pub(crate) fn filter_idxs<'a>(
-        &'a self,
-        archetype_idxs: Iter<'a, ArchetypeIdx>,
-        is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-    ) -> FilteredArchetypeIdxIter<'a> {
-        FilteredArchetypeIdxIter {
-            archetype_idxs,
-            is_archetype_kept_fn,
-            archetype_type_ids: &self.type_ids,
-        }
+    pub(crate) fn all_sorted_idxs(&self) -> &[ArchetypeIdx] {
+        &self.all_sorted_idxs
     }
 
     #[inline]
     pub(crate) fn type_ids(&self, archetype_idx: ArchetypeIdx) -> &[TypeId] {
         &self.type_ids[archetype_idx]
+    }
+
+    pub(super) fn reset_state(&mut self) {
+        for has_new_entity in &mut self.have_new_entity {
+            *has_new_entity = false;
+        }
     }
 
     #[allow(clippy::similar_names)]
@@ -123,6 +122,7 @@ impl ArchetypeStorage {
         entity_idx: EntityIdx,
         archetype_idx: ArchetypeIdx,
     ) -> ArchetypeEntityPos {
+        self.have_new_entity[archetype_idx] = true;
         self.entity_idxs[archetype_idx].push_and_get_key(entity_idx)
     }
 
@@ -147,57 +147,10 @@ impl ArchetypeStorage {
         self.type_ids.push(type_ids);
         self.entity_idxs.push(ti_vec![]);
         self.next_idxs.push(ti_vec![]);
+        self.have_new_entity.push(false);
         let archetype_idx = self.previous_idxs.push_and_get_key(ti_vec![]);
         self.all_sorted_idxs.push(archetype_idx);
         archetype_idx
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct FilteredArchetypeIdxIter<'a> {
-    archetype_idxs: Iter<'a, ArchetypeIdx>,
-    is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-    archetype_type_ids: &'a TiVec<ArchetypeIdx, Vec<TypeId>>,
-}
-
-impl Iterator for FilteredArchetypeIdxIter<'_> {
-    type Item = ArchetypeIdx;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Self::next_idx(
-            &mut self.archetype_idxs,
-            self.is_archetype_kept_fn,
-            self.archetype_type_ids,
-        )
-    }
-}
-
-impl DoubleEndedIterator for FilteredArchetypeIdxIter<'_> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        Self::next_idx(
-            (&mut self.archetype_idxs).rev(),
-            self.is_archetype_kept_fn,
-            self.archetype_type_ids,
-        )
-    }
-}
-
-impl FilteredArchetypeIdxIter<'_> {
-    fn next_idx<'a, I>(
-        archetype_idxs: I,
-        is_archetype_kept_fn: fn(&[TypeId]) -> bool,
-        archetype_type_ids: &'a TiVec<ArchetypeIdx, Vec<TypeId>>,
-    ) -> Option<ArchetypeIdx>
-    where
-        I: Iterator<Item = &'a ArchetypeIdx>,
-    {
-        for &archetype_idx in archetype_idxs {
-            let archetype_type_ids = &&archetype_type_ids[archetype_idx];
-            if is_archetype_kept_fn(archetype_type_ids) {
-                return Some(archetype_idx);
-            }
-        }
-        None
     }
 }
 

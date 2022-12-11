@@ -4,7 +4,8 @@ use crate::entity::internal::{EntityGuard, EntityGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::{EntityFilter, QuerySystemParam, SystemData, SystemInfo, SystemParam};
+use crate::systems::context::SystemContext;
+use crate::{EntityFilter, QuerySystemParam, SystemParam};
 use std::marker::PhantomData;
 
 /// A system parameter for fitlering entities on which the system iterates.
@@ -46,18 +47,16 @@ where
     type Filter = F;
     type InnerTuple = ();
 
-    fn properties(_core: &mut CoreStorage) -> SystemProperties {
+    fn properties(core: &mut CoreStorage) -> SystemProperties {
         SystemProperties {
             component_types: vec![],
             can_update: false,
+            mutation_component_type_idxs: F::mutation_component_type_idxs(core),
         }
     }
 
-    fn lock(
-        data: SystemData<'_>,
-        info: SystemInfo,
-    ) -> <Self as SystemParamWithLifetime<'_>>::Guard {
-        EntityGuard::new(data, info)
+    fn lock(context: SystemContext<'_>) -> <Self as SystemParamWithLifetime<'_>>::Guard {
+        EntityGuard::new(context)
     }
 
     fn borrow_guard<'a, 'b>(
@@ -129,7 +128,8 @@ where
         'b: 'a,
     {
         guard
-            .data
+            .context
+            .storages
             .archetypes
             .entity_idxs(location.idx)
             .get(location.pos)
