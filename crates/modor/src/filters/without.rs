@@ -6,7 +6,7 @@ use crate::systems::context::Storages;
 use std::any::Any;
 use std::marker::PhantomData;
 
-/// An entity filter to keep only entities without a component of type `C`.
+/// A filter to keep only entities without a component of type `C`.
 ///
 /// You can group multiple `With` in a tuple to filter entities without multiple specific component
 ///  types.<br>

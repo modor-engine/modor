@@ -7,7 +7,7 @@ use crate::systems::context::Storages;
 use crate::utils;
 use std::marker::PhantomData;
 
-/// An entity filter to keep only entities matching at least one of the sub-filters.
+/// A filter to keep only entities matching at least one of the sub-filters.
 ///
 /// Tuple entity filters if you want instead to keep entities matching all sub-filters.<br>
 /// A maximum of 10 filters is supported in tuples.

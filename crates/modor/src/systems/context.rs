@@ -48,7 +48,7 @@ impl SystemContext<'_> {
             .archetype_states
             .write()
             .expect("internal error: cannot add mutated component to archetype state")
-            .add_mutated_component(component_type_idx, archetype_idx);
+            .add_mutated_component(component_type_idx, archetype_idx, self.system_idx);
     }
 }
 

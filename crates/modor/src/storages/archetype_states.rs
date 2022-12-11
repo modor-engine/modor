@@ -20,7 +20,10 @@ impl ArchetypeStateStorage {
         self.are_systems_new[system_idx]
             || self.mutations[system_idx][component_type_idx]
                 .as_ref()
-                .expect("internal error: component not tracked for mutability")[archetype_idx]
+                .expect("internal error: component not tracked for mutability")
+                .get(archetype_idx)
+                .copied()
+                .unwrap_or(false)
     }
 
     pub(super) fn add_system(
@@ -45,10 +48,13 @@ impl ArchetypeStateStorage {
         &mut self,
         component_type_idx: ComponentTypeIdx,
         archetype_idx: ArchetypeIdx,
+        excluded_system: Option<SystemIdx>,
     ) {
-        for system_mutations in &mut self.mutations {
+        for (system_idx, system_mutations) in self.mutations.iter_mut_enumerated() {
             if let Some(Some(archetypes)) = system_mutations.get_mut(component_type_idx) {
-                *archetypes.get_mut_or_create(archetype_idx) = true;
+                if excluded_system != Some(system_idx) {
+                    *archetypes.get_mut_or_create(archetype_idx) = true;
+                }
             }
         }
     }

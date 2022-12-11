@@ -7,18 +7,23 @@ use crate::systems::context::Storages;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
-// TODO: create ticket for Not<> (special implementation for Not<Mutated<C>> ?)
-// TODO: create ticket for deleted/transformed entities (can be accessed as list of IDs from World)
+// TODO: implement deleted/transformed entities (can be accessed as list of IDs from World)
 
-// TODO:
-// - Mutated<C>: at least one entity of archetype is accessed mutably or added since last system exec
-// - First system execution: no filtering
-// - Store whether entity added per archetype
-// - Store whether entity accessed mutably per system/archetype/component in RwLock
-// - For EntityFilter: fn is_archetype_kept(system_idx: SystemIdx, archetype_idx: ArchetypeIdx, storages: Storages) -> bool
-
-// TODO: add doc + tests + static check test
-/// TODO
+/// A filter to keep only entities with a component type `C` changed since last execution of the
+/// system.
+///
+/// At first execution of the system, all entities are kept.<br>
+/// After first execution, an entity can match if the component of type `C` has been accessed
+/// mutably with a system or a [`Query`](crate::Query). An entity can also match in some cases if
+/// some of its components have been added or deleted.
+///
+/// The filter is applied at archetype level (an archetype regroup entities with the same set of
+/// component types), which means that some unchanged entities might be kept by this filter.<br>
+/// However it is ensured that all entities with added or changed component of type `C` are kept.
+///
+/// # Examples
+///
+/// TODO: add example
 pub struct Changed<C>(PhantomData<fn(C)>)
 where
     C: Any + Sync + Send;
