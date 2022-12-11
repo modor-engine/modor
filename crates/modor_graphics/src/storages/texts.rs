@@ -16,7 +16,7 @@ idx_type!(pub(crate) TextIdx);
 #[derive(Default)]
 pub(super) struct TextStorage {
     properties: TiVec<TextIdx, Option<TextProperties>>,
-    deleted_idxs: Vec<TextIdx>,
+    available_idxs: Vec<TextIdx>,
     logged_missing_font_keys: FxHashSet<FontKey>,
 }
 
@@ -59,7 +59,7 @@ impl TextStorage {
             text.text_idx = None;
         }
         let text_idx = self
-            .deleted_idxs
+            .available_idxs
             .pop()
             .unwrap_or_else(|| self.properties.next_key());
         let properties = Self::create_text(
@@ -85,7 +85,7 @@ impl TextStorage {
             }) = properties
             {
                 *properties = None;
-                self.deleted_idxs.push(text_idx);
+                self.available_idxs.push(text_idx);
             }
         }
     }

@@ -187,10 +187,11 @@ impl CoreStorage {
         };
         self.systems.run(data);
         self.archetypes.reset_state();
+        self.entities.reset_state();
         self.archetype_states
             .get_mut()
-            .expect("internal error: cannot refresh archetype state")
-            .refresh();
+            .expect("internal error: cannot reset archetype state")
+            .reset_state();
         let mut updates = mem::take(
             self.updates
                 .get_mut()

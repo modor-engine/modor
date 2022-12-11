@@ -147,6 +147,34 @@ impl<'a> World<'a> {
             any::type_name::<C>()
         );
     }
+
+    /// Returns IDs of the entities transformed at the end of the previous [`App`](crate::App)
+    /// update.
+    ///
+    /// An entity is considered as transformed if a component has been added or deleted.
+    ///
+    /// Some return IDs might be duplicated.<br>
+    /// It is possible that some of the returned IDs correspond to deleted entities.
+    pub fn transformed_entity_ids(&self) -> impl Iterator<Item = usize> + '_ {
+        self.context
+            .storages
+            .entities
+            .moved_idxs()
+            .iter()
+            .map(|&i| i.into())
+    }
+
+    /// Returns IDs of the entities deleted at the end of the previous [`App`](crate::App) update.
+    ///
+    /// Some return IDs might be duplicated.
+    pub fn deleted_entity_ids(&self) -> impl Iterator<Item = usize> + '_ {
+        self.context
+            .storages
+            .entities
+            .deleted_idxs()
+            .iter()
+            .map(|&i| i.into())
+    }
 }
 
 impl<'a> SystemParamWithLifetime<'a> for World<'_> {

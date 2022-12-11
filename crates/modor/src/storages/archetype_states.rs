@@ -59,7 +59,7 @@ impl ArchetypeStateStorage {
         }
     }
 
-    pub(super) fn refresh(&mut self) {
+    pub(super) fn reset_state(&mut self) {
         for is_new in &mut self.are_systems_new {
             *is_new = false;
         }

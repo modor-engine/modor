@@ -7,8 +7,6 @@ use crate::systems::context::Storages;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 
-// TODO: implement deleted/transformed entities (can be accessed as list of IDs from World)
-
 /// A filter to keep only entities with a component type `C` changed since last execution of the
 /// system.
 ///
@@ -23,7 +21,50 @@ use std::marker::PhantomData;
 ///
 /// # Examples
 ///
-/// TODO: add example
+/// This filter can be used to track all entities in an optimized way (i.e. iterate only on
+/// necessary entities):
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// # fn main() {}
+///
+/// #[derive(Clone, Copy)]
+/// struct Position(f32, f32);
+///
+/// struct PositionStorage {
+///     positions: Vec<Option<Position>>,
+/// }
+///
+/// #[entity]
+/// impl PositionStorage {
+///     #[run]
+///     fn delete_entities(&mut self, world: World<'_>) {
+///         for entity_id in world
+///             .deleted_entity_ids()
+///             // don't forget entities that might not match `update_entities` query anymore:
+///             .chain(world.transformed_entity_ids())
+///         {
+///             if let Some(position) = self.positions.get_mut(entity_id) {
+///                 *position = None;
+///             }
+///         }
+///     }
+///
+///     #[run_after_previous]
+///     fn update_entities(
+///         &mut self,
+///         query: Query<'_, (Entity<'_>, &Position, Filter<Changed<Position>>)>
+///     ) {
+///         for (entity, &position, _) in query.iter() {
+///             for _ in self.positions.len()..=entity.id() {
+///                 self.positions.push(None);
+///             }
+///             self.positions[entity.id()] = Some(position);
+///         }
+///     }
+/// }
+/// ```
 pub struct Changed<C>(PhantomData<fn(C)>)
 where
     C: Any + Sync + Send;

@@ -4,11 +4,13 @@ use typed_index_collections::TiVec;
 
 #[derive(Default)]
 pub(crate) struct EntityStorage {
-    deleted_idxs: Vec<EntityIdx>,
+    available_idxs: Vec<EntityIdx>,
     locations: TiVec<EntityIdx, Option<EntityLocation>>,
     parent_idxs: TiVec<EntityIdx, Option<EntityIdx>>,
     child_idxs: TiVec<EntityIdx, Vec<EntityIdx>>,
     depths: TiVec<EntityIdx, usize>,
+    moved_idxs: Vec<EntityIdx>,
+    deleted_idxs: Vec<EntityIdx>,
 }
 
 impl EntityStorage {
@@ -28,13 +30,21 @@ impl EntityStorage {
         self.depths[entity_idx]
     }
 
+    pub(crate) fn moved_idxs(&self) -> &[EntityIdx] {
+        &self.moved_idxs
+    }
+
+    pub(crate) fn deleted_idxs(&self) -> &[EntityIdx] {
+        &self.deleted_idxs
+    }
+
     pub(super) fn create(
         &mut self,
         location: EntityLocation,
         parent_idx: Option<EntityIdx>,
     ) -> EntityIdx {
         let depth = parent_idx.map_or(0, |p| self.depths[p] + 1);
-        let entity_idx = if let Some(entity_idx) = self.deleted_idxs.pop() {
+        let entity_idx = if let Some(entity_idx) = self.available_idxs.pop() {
             self.locations[entity_idx] = Some(location);
             self.parent_idxs[entity_idx] = parent_idx;
             self.depths[entity_idx] = depth;
@@ -52,7 +62,11 @@ impl EntityStorage {
     }
 
     pub(super) fn set_location(&mut self, entity_idx: EntityIdx, location: EntityLocation) {
-        self.locations[entity_idx] = Some(location);
+        let current_location = &mut self.locations[entity_idx];
+        if Some(location.idx) != current_location.map(|l| l.idx) {
+            self.moved_idxs.push(entity_idx);
+        }
+        *current_location = Some(location);
     }
 
     pub(super) fn delete<F>(&mut self, entity_idx: EntityIdx, mut for_each_deleted_entity_fn: F)
@@ -69,16 +83,19 @@ impl EntityStorage {
         self.delete_internal(entity_idx, &mut for_each_deleted_entity_fn);
     }
 
-    pub(super) fn delete_internal<F>(
-        &mut self,
-        entity_idx: EntityIdx,
-        for_each_deleted_entity_fn: &mut F,
-    ) where
+    pub(super) fn reset_state(&mut self) {
+        self.deleted_idxs.clear();
+        self.moved_idxs.clear();
+    }
+
+    fn delete_internal<F>(&mut self, entity_idx: EntityIdx, for_each_deleted_entity_fn: &mut F)
+    where
         F: FnMut(&mut Self, EntityLocation),
     {
         for child_idx in mem::take(&mut self.child_idxs[entity_idx]) {
             self.delete_internal(child_idx, for_each_deleted_entity_fn);
         }
+        self.available_idxs.push(entity_idx);
         self.deleted_idxs.push(entity_idx);
         let location = self.locations[entity_idx]
             .take()
