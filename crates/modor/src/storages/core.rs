@@ -4,7 +4,7 @@ use std::sync::{Mutex, RwLock};
 
 use super::archetype_states::ArchetypeStateStorage;
 use super::systems::FullSystemProperties;
-use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
+use crate::storages::actions::{ActionDependency, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
@@ -139,7 +139,7 @@ impl CoreStorage {
         &mut self,
         properties: FullSystemProperties,
         action_type: Option<TypeId>,
-        action_dependencies: ActionDependencies,
+        action_dependencies: Vec<ActionDependency>,
     ) -> ActionIdx {
         let label = properties.label;
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);

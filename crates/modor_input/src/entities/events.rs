@@ -33,6 +33,9 @@ pub struct InputEventCollector {
     events: Vec<InputEvent>,
 }
 
+// TODO: put update system in Finger, Keyword, ... instead of InputEventCollector ?
+// TODO: make sure all entities can be a valid action (for all crates)
+
 #[singleton]
 impl InputEventCollector {
     /// Pushes an event.

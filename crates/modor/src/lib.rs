@@ -198,6 +198,11 @@ pub use systems::traits::*;
 ///     fn system5() {
 ///         //  will be run after `system4`
 ///     }
+///
+///     #[run_after_previous_and(Action2)]
+///     fn system6() {
+///         //  will be run after `system5` and `system2`
+///     }
 /// }
 ///
 /// #[action]

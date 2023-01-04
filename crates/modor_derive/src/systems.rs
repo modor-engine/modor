@@ -28,7 +28,8 @@ pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<Path> {
         .flat_map(|m| supported_attributes(&m.attrs))
         .flat_map(|a| match attributes::parse(&a) {
             Some(ParsedAttribute::RunAs(path)) => vec![path],
-            Some(ParsedAttribute::RunAfter(paths)) => paths,
+            Some(ParsedAttribute::RunAfter(paths))
+            | Some(ParsedAttribute::RunAfterPreviousAnd(paths)) => paths,
             Some(ParsedAttribute::Run | ParsedAttribute::RunAfterPrevious) | None => vec![],
         })
         .collect()
@@ -91,7 +92,13 @@ fn generate_system_call(
             )
         },
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
-            .and_then(#crate_ident::system!(Self::#system_name), #label_tokens)
+            .and_then::<()>(#crate_ident::system!(Self::#system_name), #label_tokens)
+        },
+        ParsedAttribute::RunAfterPreviousAnd(actions) => quote_spanned! { attribute.span() =>
+            .and_then::<(#(#crate_ident::DependsOn<#actions>,)*)>(
+                #crate_ident::system!(Self::#system_name),
+                #label_tokens,
+            )
         },
     })
 }

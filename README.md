@@ -6,7 +6,7 @@
 [![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
 [![Lines of code](https://tokei.rs/b1/github/modor-engine/modor?category=code)](https://github.com/modor-engine/modor)
-[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-0-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor+extension%3Ars+unsafe)
+[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-1-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates+extension%3Ars+unsafe)
 
 Modor is a modular and kind of object-oriented game engine. It is based on
 the [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but provides an API that

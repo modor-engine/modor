@@ -1,9 +1,10 @@
-use crate::storages::actions::{ActionDependencies, ActionIdx};
+use crate::storages::actions::{ActionDependency, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{FullSystemProperties, SystemProperties};
 use crate::{Action, ActionConstraint, SystemBuilder, SystemWrapper};
 use std::any::TypeId;
+use std::iter;
 
 #[doc(hidden)]
 pub struct SystemRunner<'a> {
@@ -17,7 +18,7 @@ pub struct SystemRunner<'a> {
 impl<'a> SystemRunner<'a> {
     #[doc(hidden)]
     pub fn run(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {
-        self.run_with_action(system, label, None, ActionDependencies::Types(vec![]))
+        self.run_with_action(system, label, None, vec![])
     }
 
     #[doc(hidden)]
@@ -29,7 +30,10 @@ impl<'a> SystemRunner<'a> {
             system,
             label,
             Some(TypeId::of::<A>()),
-            ActionDependencies::Types(A::Constraint::dependency_types()),
+            A::Constraint::dependency_types()
+                .into_iter()
+                .map(ActionDependency::Type)
+                .collect(),
         )
     }
 
@@ -46,18 +50,28 @@ impl<'a> SystemRunner<'a> {
             system,
             label,
             None,
-            ActionDependencies::Types(C::dependency_types()),
+            C::dependency_types()
+                .into_iter()
+                .map(ActionDependency::Type)
+                .collect(),
         )
     }
 
     #[doc(hidden)]
-    pub fn and_then(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {
+    pub fn and_then<C>(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self
+    where
+        C: ActionConstraint,
+    {
         if let Some(&latest_action_idx) = self.action_idxs.last() {
             self.run_with_action(
                 system,
                 label,
                 None,
-                ActionDependencies::Actions(vec![latest_action_idx]),
+                C::dependency_types()
+                    .into_iter()
+                    .map(ActionDependency::Type)
+                    .chain(iter::once(ActionDependency::Idx(latest_action_idx)))
+                    .collect(),
             )
         } else {
             self.run(system, label)
@@ -65,7 +79,12 @@ impl<'a> SystemRunner<'a> {
     }
 
     pub fn finish(self, label: &'static str) -> FinishedSystemRunner {
-        let dependencies = ActionDependencies::Actions(self.action_idxs.clone());
+        let dependencies = self
+            .action_idxs
+            .iter()
+            .copied()
+            .map(ActionDependency::Idx)
+            .collect();
         let entity_type = self.entity_type;
         self.run_with_action(
             SystemBuilder {
@@ -89,7 +108,7 @@ impl<'a> SystemRunner<'a> {
         system: SystemBuilder<SystemWrapper>,
         label: &'static str,
         action_type: Option<TypeId>,
-        action_dependencies: ActionDependencies,
+        action_dependencies: Vec<ActionDependency>,
     ) -> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
         let mut action_idxs = self.action_idxs.clone();
