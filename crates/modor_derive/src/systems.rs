@@ -28,8 +28,9 @@ pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<Path> {
         .flat_map(|m| supported_attributes(&m.attrs))
         .flat_map(|a| match attributes::parse(&a) {
             Some(ParsedAttribute::RunAs(path)) => vec![path],
-            Some(ParsedAttribute::RunAfter(paths))
-            | Some(ParsedAttribute::RunAfterPreviousAnd(paths)) => paths,
+            Some(
+                ParsedAttribute::RunAfter(paths) | ParsedAttribute::RunAfterPreviousAnd(paths),
+            ) => paths,
             Some(ParsedAttribute::Run | ParsedAttribute::RunAfterPrevious) | None => vec![],
         })
         .collect()

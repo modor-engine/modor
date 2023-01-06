@@ -25,11 +25,11 @@ impl AttributeType {
 
     fn expected_syntax(&self) -> &'static str {
         match self {
-            AttributeType::Run(_) => "#[run]",
-            AttributeType::RunAs(_) => "#[run_as(ActionType)]",
-            AttributeType::RunAfter(_) => "#[run_after(ActionType1, ActionType2, ...)]",
-            AttributeType::RunAfterPrevious(_) => "#[run_after_previous]",
-            AttributeType::RunAfterPreviousAnd(_) => {
+            Self::Run(_) => "#[run]",
+            Self::RunAs(_) => "#[run_as(ActionType)]",
+            Self::RunAfter(_) => "#[run_after(ActionType1, ActionType2, ...)]",
+            Self::RunAfterPrevious(_) => "#[run_after_previous]",
+            Self::RunAfterPreviousAnd(_) => {
                 "#[run_after_previous_and(ActionType1, ActionType2, ...)]"
             }
         }
