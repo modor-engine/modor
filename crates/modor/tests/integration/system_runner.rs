@@ -103,18 +103,21 @@ impl Tester3 {
     #[run_as(Action1)]
     fn run(&self) {
         self.run_system_ids.lock().unwrap().push(1);
+        #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
     #[run_after_previous_and(Action2)]
     fn run_after_previous_and(&self) {
         self.run_system_ids.lock().unwrap().push(2);
+        #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
     #[run_as(Action2)]
     fn run_as(&self) {
         self.run_system_ids.lock().unwrap().push(3);
+        #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 }
