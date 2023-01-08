@@ -35,9 +35,21 @@ impl InvalidEntity {
     //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
     fn literal_passed_to_run_as_attribute() {}
 
+    #[run_as(entity::attribute(MySingleton))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    fn sub_attribute_with_multiple_parts_passed_to_run_as_attribute() {}
+
     #[run_as(singleton(MySingleton))]
     //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
     fn unknown_sub_attribute_passed_to_run_as_attribute() {}
+
+    #[run_as(entity(MySingleton, MySingleton))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    fn multiple_entities_in_same_sub_attribute_passed_to_run_as_attribute() {}
+
+    #[run_as(entity("singleton"))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    fn literal_entity_in_sub_attribute_passed_to_run_as_attribute() {}
 
     #[run_after]
     //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`

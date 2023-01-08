@@ -32,7 +32,7 @@ impl Value2 {
         EntityBuilder::new(Self(0))
     }
 
-    #[run]
+    #[run_after()]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
         counter.0 += 1;

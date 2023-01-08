@@ -6,13 +6,14 @@ use std::any::{Any, TypeId};
 /// Actions are used to constrain systems.
 ///
 /// **Do not implement manually this trait.**<br>
-/// The [`action`](macro@crate::action) proc macro can be used instead to define an action.
+/// The [`action`](macro@crate::Action) derive macro can be used instead to define an action.
 ///
 /// # Examples
 ///
 /// See [`entity`](macro@crate::entity).
 pub trait Action: Any {
     #[doc(hidden)]
+    #[must_use]
     fn dependency_types() -> Vec<TypeId>;
 }
 
