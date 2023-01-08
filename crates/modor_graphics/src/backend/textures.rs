@@ -47,7 +47,7 @@ impl Texture {
 
     fn create_texture(label_suffix: &str, size: Extent3d, renderer: &Renderer) -> wgpu::Texture {
         renderer.device().create_texture(&TextureDescriptor {
-            label: Some(&format!("modor_texture_{}", label_suffix)),
+            label: Some(&format!("modor_texture_{label_suffix}")),
             size,
             mip_level_count: 1,
             sample_count: 1,
@@ -87,7 +87,7 @@ impl Texture {
         renderer: &Renderer,
     ) -> Sampler {
         renderer.device().create_sampler(&SamplerDescriptor {
-            label: Some(&format!("modor_texture_sampler_{}", label_suffix)),
+            label: Some(&format!("modor_texture_sampler_{label_suffix}")),
             address_mode_u: if is_repeated {
                 AddressMode::Repeat
             } else {
@@ -136,7 +136,7 @@ impl Texture {
                     resource: BindingResource::Sampler(sampler),
                 },
             ],
-            label: Some(&format!("modor_texture_bind_group_{}", label_suffix)),
+            label: Some(&format!("modor_texture_bind_group_{label_suffix}")),
         })
     }
 }

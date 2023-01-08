@@ -5,9 +5,9 @@ use modor::*;
 struct Entity;
 
 #[singleton]
-//~^ error: overflow evaluating the requirement `DependsOn<Entity>: Sized`
+//~^ error: the trait bound `EntityAction: EntityMainComponent` is not satisfied
 impl Entity {
-    #[run_as(Self)]
+    #[run_as(entity(Self))]
     fn f() {}
 }
 

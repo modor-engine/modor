@@ -24,7 +24,7 @@ impl Shader {
         let shader = renderer
             .device()
             .create_shader_module(ShaderModuleDescriptor {
-                label: Some(&format!("modor_shader_{}", label_suffix)),
+                label: Some(&format!("modor_shader_{label_suffix}")),
                 source: ShaderSource::Wgsl(code.into()),
             });
         Self {
@@ -49,7 +49,7 @@ impl Shader {
         renderer
             .device()
             .create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some(&format!("modor_pipeline_layout_{}", label_suffix)),
+                label: Some(&format!("modor_pipeline_layout_{label_suffix}")),
                 bind_group_layouts,
                 push_constant_ranges: &[],
             })

@@ -64,13 +64,13 @@ impl Model {
             vertex_buffer: DynamicBuffer::new(
                 vertices,
                 DynamicBufferUsage::Vertex,
-                format!("modor_vertex_buffer_{}", label),
+                format!("modor_vertex_buffer_{label}"),
                 renderer,
             ),
             index_buffer: DynamicBuffer::new(
                 indices,
                 DynamicBufferUsage::Index,
-                format!("modor_index_buffer_{}", label),
+                format!("modor_index_buffer_{label}"),
                 renderer,
             ),
         }

@@ -4,12 +4,14 @@ use std::any::Any;
 
 /// A trait for defining the main component of an entity type.
 ///
-/// This trait shouldn't be directly implemented.<br>
+/// **Do not implement manually this trait.**<br>
 /// Instead, you can use [`entity`](macro@crate::entity) and [`singleton`](macro@crate::singleton)
 /// proc macros.
-pub trait EntityMainComponent: Sized + Any + Sync + Send + Action {
+pub trait EntityMainComponent: Sized + Any + Sync + Send {
     #[doc(hidden)]
     type Type: EntityType;
+    #[doc(hidden)]
+    type Action: Action;
 
     #[doc(hidden)]
     fn on_update(runner: SystemRunner<'_>) -> FinishedSystemRunner;

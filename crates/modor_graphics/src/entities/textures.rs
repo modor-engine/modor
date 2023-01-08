@@ -1,6 +1,6 @@
 use crate::backend::textures::Image;
 use crate::data::resources::{ResourceLoadingError, ResourceLocation, ResourceState};
-use crate::internal::RenderTarget;
+use crate::entities::render_target::RenderTarget;
 use crate::storages::resources::textures::TextureKey;
 use crate::{Resource, ResourceLoading, TextureRef};
 use image::{GenericImageView, ImageError};

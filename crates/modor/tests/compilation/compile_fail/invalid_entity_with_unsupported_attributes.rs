@@ -5,7 +5,7 @@ use modor::*;
 
 fn main() {}
 
-#[action]
+#[derive(Action)]
 struct TestAction;
 
 struct InvalidEntity;

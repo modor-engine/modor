@@ -1,8 +1,9 @@
-use proc_macro2::Span;
+use crate::idents;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::emit_error;
+use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
-use syn::Path;
-use syn::{Attribute, Meta, NestedMeta};
+use syn::{Attribute, Meta, MetaList, NestedMeta};
 
 pub(crate) enum AttributeType {
     Run(Attribute),
@@ -24,8 +25,8 @@ impl AttributeType {
 
 pub(crate) enum ParsedAttribute {
     Run,
-    RunAs(Path),
-    RunAfter(Vec<Path>),
+    RunAs(TokenStream),
+    RunAfter(Vec<TokenStream>),
     RunAfterPrevious,
 }
 
@@ -50,13 +51,16 @@ pub(crate) fn parse(attribute: &AttributeType) -> Option<ParsedAttribute> {
             None
         }),
         AttributeType::RunAs(attribute) => parse_run_as(attribute).or_else(|| {
-            emit_error!(attribute, "expected syntax: `#[run_as(ActionType)]`");
+            emit_error!(
+                attribute,
+                "expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`"
+            );
             None
         }),
         AttributeType::RunAfter(attribute) => parse_run_after(attribute).or_else(|| {
             emit_error!(
                 attribute,
-                "expected syntax: `#[run_after(ActionType1, ActionType2, ...)]`"
+                "expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`"
             );
             None
         }),
@@ -80,7 +84,12 @@ fn parse_run_as(attribute: &Attribute) -> Option<ParsedAttribute> {
     match attribute.parse_meta().ok()? {
         Meta::List(list) => (list.nested.len() == 1)
             .then(|| match &list.nested[0] {
-                NestedMeta::Meta(Meta::Path(path)) => Some(ParsedAttribute::RunAs(path.clone())),
+                NestedMeta::Meta(Meta::Path(path)) => {
+                    Some(ParsedAttribute::RunAs(path.to_token_stream()))
+                }
+                NestedMeta::Meta(Meta::List(list)) => {
+                    parse_entity_meta(list).map(ParsedAttribute::RunAs)
+                }
                 NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
             })
             .flatten(),
@@ -94,7 +103,8 @@ fn parse_run_after(attribute: &Attribute) -> Option<ParsedAttribute> {
             list.nested
                 .iter()
                 .map(|n| match &n {
-                    NestedMeta::Meta(Meta::Path(path)) => Some(path.clone()),
+                    NestedMeta::Meta(Meta::Path(path)) => Some(path.to_token_stream()),
+                    NestedMeta::Meta(Meta::List(list)) => parse_entity_meta(list),
                     NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
                 })
                 .collect::<Option<_>>()?,
@@ -107,5 +117,25 @@ fn parse_run_after_previous(attribute: &Attribute) -> Option<ParsedAttribute> {
     match attribute.parse_meta().ok()? {
         Meta::Path(_) => Some(ParsedAttribute::RunAfterPrevious),
         Meta::List(_) | Meta::NameValue(_) => None,
+    }
+}
+
+fn parse_entity_meta(meta: &MetaList) -> Option<TokenStream> {
+    if meta.path.segments.len() != 1 {
+        return None;
+    }
+    if meta.path.segments[0].ident != "entity" {
+        return None;
+    }
+    if meta.nested.len() != 1 {
+        return None;
+    }
+    let Some(nested_meta) = meta.nested.first() else { return None };
+    let crate_ident = idents::find_crate_ident(nested_meta.span());
+    match nested_meta {
+        NestedMeta::Meta(Meta::Path(path)) => {
+            Some(quote! {<#path as #crate_ident::EntityMainComponent>::Action})
+        }
+        NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
     }
 }

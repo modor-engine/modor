@@ -118,11 +118,28 @@ pub use systems::traits::*;
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
 ///
-/// Note than the entity also implements [`Action`](crate::Action).<br>
-/// If the entity type is put as dependency of a system, then the system will be run once all
-/// systems of the entity type have been run.
+/// Note that an action type is created for each entity type:
+/// - In previously defined attributes, it is possible to refer this action using the `entity`
+/// attribute: `#[run_as(entity(MyEntity))]`
+/// - It is also possible to add this action as a dependency of another action defined using the
+/// [`Action`](macro@crate::Action) derive macro:
+/// ```rust
+/// # use modor::{entity, Action, EntityMainComponent};
+/// #
+/// # struct MyEntity;
+/// #
+/// # #[entity]
+/// # impl MyEntity {}
+/// #
+/// #[derive(Action)]
+/// struct MyAction(<MyEntity as EntityMainComponent>::Action);
+/// ```
 ///
-/// Cyclic dependencies between systems are detected at compile time.
+/// The action associated to an entity type is considered as finished once all systems of the entity
+/// have been run.
+///
+/// The way actions are defined makes sure cyclic dependencies between systems are detected at
+/// compile time.
 ///
 /// # System behaviour
 ///
@@ -164,7 +181,7 @@ pub use systems::traits::*;
 /// You can use `run*` attributes this way:
 ///
 /// ```rust
-/// # use modor::{entity, action, EntityBuilder, Built};
+/// # use modor::{entity, Action, EntityBuilder, Built};
 /// #
 /// struct MyEntity;
 ///
@@ -200,11 +217,11 @@ pub use systems::traits::*;
 ///     }
 /// }
 ///
-/// #[action]
+/// #[derive(Action)]
 /// struct Action1;
 ///
-/// #[action(Action1)]
-/// struct Action2;
+/// #[derive(Action)]
+/// struct Action2(Action1);
 /// ```
 ///
 /// Here are some valid systems:
@@ -300,43 +317,29 @@ pub use modor_derive::singleton;
 
 /// Defines a type implementing [`Action`](crate::Action).
 ///
-/// Dependent actions can be passed as argument of this macro.
+/// The type must be a unit type (if no dependency) or a type with unnamed fields, where field types
+/// implement [`Action`](crate::Action) trait and are the dependencies of the defined action.
+///
+/// An action A is a dependency of an action B if all systems running as action A must be run
+/// before any system running as action B.
+///
+/// # Static checks
+///
+/// The way an action type is defined ensures that cyclic dependencies are detected at compile time.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::action;
+/// # use modor::Action;
 /// #
-/// #[action]
+/// #[derive(Action)]
 /// struct A;
 ///
-/// #[action]
+/// #[derive(Action)]
 /// pub struct B;
 ///
-/// #[action(A, B)]
-/// pub(crate) struct C;
+/// // systems running as C will be run only once all systems running as A and B have been run
+/// #[derive(Action)]
+/// pub(crate) struct C(A, B);
 /// ```
-///
-/// This is equivalent to:
-/// ```rust
-/// # use modor::{Action, DependsOn};
-/// #
-/// struct A;
-///
-/// impl Action for A {
-///     type Constraint = ();
-/// }
-///
-/// pub struct B;
-///
-/// impl Action for B {
-///     type Constraint = ();
-/// }
-///
-/// pub(crate) struct C;
-///
-/// impl Action for C {
-///     type Constraint = (DependsOn<A>, DependsOn<B>);
-/// }
-/// ```
-pub use modor_derive::action;
+pub use modor_derive::Action;

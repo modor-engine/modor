@@ -35,6 +35,6 @@ impl InputModule {
             .with_child(Keyboard::build())
     }
 
-    #[run_after(InputEventCollector)]
+    #[run_after(entity(InputEventCollector))]
     fn finish() {}
 }

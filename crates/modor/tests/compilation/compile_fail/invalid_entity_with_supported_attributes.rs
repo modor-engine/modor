@@ -5,7 +5,7 @@ use modor::*;
 
 fn main() {}
 
-#[action]
+#[derive(Action)]
 struct TestAction;
 
 struct InvalidEntity;
@@ -24,23 +24,27 @@ impl InvalidEntity {
     fn wrong_run_attribute_syntax() {}
 
     #[run_as]
-    //~^ error: expected syntax: `#[run_as(ActionType)]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
     fn wrong_run_as_attribute_syntax() {}
 
     #[run_as(TestAction, TestAction)]
-    //~^ error: expected syntax: `#[run_as(ActionType)]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
     fn too_many_actions_passed_to_run_as_attribute() {}
 
     #[run_as("action")]
-    //~^ error: expected syntax: `#[run_as(ActionType)]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
     fn literal_passed_to_run_as_attribute() {}
 
+    #[run_as(singleton(MySingleton))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    fn unknown_sub_attribute_passed_to_run_as_attribute() {}
+
     #[run_after]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, ...)]`
+    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`
     fn wrong_run_after_attribute_syntax() {}
 
     #[run_after("action")]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, ...)]`
+    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`
     fn literal_passed_to_run_after_attribute() {}
 
     #[run_after_previous(TestAction)]
