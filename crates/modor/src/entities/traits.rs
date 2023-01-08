@@ -10,7 +10,7 @@ use std::any::Any;
 pub trait EntityMainComponent: Sized + Any + Sync + Send {
     #[doc(hidden)]
     type Type: EntityType;
-    #[doc(hidden)]
+    /// The type of the action associated to the entity type.
     type Action: Action;
 
     #[doc(hidden)]
