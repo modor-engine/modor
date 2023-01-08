@@ -1,11 +1,8 @@
 use modor::{
-    App, Changed, ChildBuilder, DependsOn, Entity, EntityBuilder, Filter, Or, Query, Single,
-    SingleMut, With, World,
+    App, Changed, ChildBuilder, Entity, EntityBuilder, Filter, Or, Query, Single, SingleMut, With,
+    World,
 };
 use std::panic::{RefUnwindSafe, UnwindSafe};
-
-#[action]
-struct Action;
 
 struct Singleton;
 
@@ -13,7 +10,6 @@ struct Singleton;
 impl Singleton {}
 
 assert_impl_all!(App: Send, Unpin);
-assert_impl_all!(DependsOn<Action>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 assert_impl_all!(Changed<u32>: Sync, Send, UnwindSafe, RefUnwindSafe, Unpin);
 assert_impl_all!(ChildBuilder<'_>: Send, Unpin);
 assert_impl_all!(Entity<'_>: Sync, Send, Unpin);

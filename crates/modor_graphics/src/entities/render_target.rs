@@ -1,11 +1,19 @@
-use self::internal::RenderTarget;
 use crate::backend::renderer::Renderer;
 use crate::backend::targets::texture::TextureTarget;
 use crate::backend::targets::window::WindowTarget;
-use crate::entities::render_target::internal::{CaptureAction, PrepareCaptureAction};
-use crate::{GraphicsModule, SurfaceSize, WindowSettings};
-use modor::{Built, Entity, EntityBuilder, Single, World};
-use modor_physics::Transform2D;
+use crate::backend::textures::Image;
+use crate::entities::textures::InternalTextureConfig;
+use crate::storages::core::{CoreStorage, ShapeComponents, TextComponents};
+use crate::storages::resources::fonts::FontKey;
+use crate::{
+    BackgroundColor, Camera2D, Font, FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize,
+    Texture, WindowSettings,
+};
+use ab_glyph::FontVec;
+use modor::{
+    Built, Entity, EntityBuilder, EntityMainComponent, Filter, Query, Single, With, World,
+};
+use modor_physics::{PhysicsModule, Transform2D};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WinitWindow, WindowBuilder};
@@ -180,7 +188,7 @@ impl Capture {
         }
     }
 
-    #[run_as(CaptureAction)]
+    #[run_as(CaptureUpdateAction)]
     fn update(&mut self, surface: &mut RenderTarget) {
         let (width, height) = surface.core.renderer().target_size();
         self.buffer_size = SurfaceSize::new(width, height);
@@ -188,87 +196,74 @@ impl Capture {
     }
 }
 
-pub(crate) mod internal {
-    use crate::backend::renderer::Renderer;
-    use crate::backend::textures::Image;
-    use crate::entities::background::BackgroundColor;
-    use crate::storages::core::{CoreStorage, ShapeComponents, TextComponents};
-    use crate::storages::resources::fonts::FontKey;
-    use crate::{
-        Camera2D, Font, FrameRate, FrameRateLimit, InternalTextureConfig, Texture,
-        DEFAULT_CAMERA_TRANSFORM,
-    };
-    use ab_glyph::FontVec;
-    use modor::{Built, EntityBuilder, Filter, Query, Single, With};
-    use modor_physics::PhysicsModule;
-    use modor_physics::Transform2D;
-    use winit::window::Window as WinitWindow;
+pub(crate) struct RenderTarget {
+    pub(crate) core: CoreStorage,
+}
 
-    #[action]
-    pub struct PrepareCaptureAction;
-
-    #[action(PrepareCaptureAction, PhysicsModule, Camera2D)]
-    pub struct PrepareRenderingAction;
-
-    #[action(PrepareRenderingAction)]
-    pub struct RenderAction;
-
-    #[action(RenderAction)]
-    pub struct CaptureAction;
-
-    pub struct RenderTarget {
-        pub(crate) core: CoreStorage,
+#[singleton]
+impl RenderTarget {
+    pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
+        EntityBuilder::new(Self {
+            core: CoreStorage::new(renderer),
+        })
     }
 
-    #[singleton]
-    impl RenderTarget {
-        pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
-            EntityBuilder::new(Self {
-                core: CoreStorage::new(renderer),
-            })
-        }
+    // coverage: off (no surface refresh with capture)
+    pub(crate) fn refresh_surface(&mut self, window: &WinitWindow) {
+        self.core.refresh_surface(window);
+    }
+    // coverage: on
 
-        // coverage: off (no surface refresh with capture)
-        pub(crate) fn refresh_surface(&mut self, window: &WinitWindow) {
-            self.core.refresh_surface(window);
-        }
-        // coverage: on
+    pub(crate) fn load_texture(&mut self, image: Image, config: &InternalTextureConfig) {
+        self.core.load_texture(image, config);
+    }
 
-        pub(crate) fn load_texture(&mut self, image: Image, config: &InternalTextureConfig) {
-            self.core.load_texture(image, config);
-        }
+    pub(crate) fn load_font(&mut self, key: FontKey, font: FontVec) {
+        self.core.load_font(key, font);
+    }
 
-        pub(crate) fn load_font(&mut self, key: FontKey, font: FontVec) {
-            self.core.load_font(key, font);
-        }
+    #[run_as(PrepareRenderingAction)]
+    fn prepare_rendering(
+        &mut self,
+        shapes: Query<'_, ShapeComponents<'_>>,
+        texts: Query<'_, TextComponents<'_>>,
+        cameras: Query<'_, (&Transform2D, Filter<With<Camera2D>>)>,
+        textures: Query<'_, &Texture>,
+        fonts: Query<'_, &Font>,
+    ) {
+        let camera_transform = cameras
+            .iter()
+            .map(|(t, _)| t)
+            .next()
+            .unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
+        self.core.remove_not_found_resources(&textures, &fonts);
+        self.core.update_instances(shapes, texts, camera_transform);
+    }
 
-        #[run_as(PrepareRenderingAction)]
-        fn prepare_rendering(
-            &mut self,
-            shapes: Query<'_, ShapeComponents<'_>>,
-            texts: Query<'_, TextComponents<'_>>,
-            cameras: Query<'_, (&Transform2D, Filter<With<Camera2D>>)>,
-            textures: Query<'_, &Texture>,
-            fonts: Query<'_, &Font>,
-        ) {
-            let camera_transform = cameras
-                .iter()
-                .map(|(t, _)| t)
-                .next()
-                .unwrap_or(&DEFAULT_CAMERA_TRANSFORM);
-            self.core.remove_not_found_resources(&textures, &fonts);
-            self.core.update_instances(shapes, texts, camera_transform);
-        }
-
-        #[run_as(RenderAction)]
-        fn render(
-            &mut self,
-            background_color: Single<'_, BackgroundColor>,
-            frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
-        ) {
-            let enable_vsync = matches!(frame_rate_limit.map(|f| f.get()), Some(FrameRate::VSync));
-            self.core.toggle_vsync(enable_vsync);
-            self.core.render(**background_color);
-        }
+    #[run_as(RenderAction)]
+    fn render(
+        &mut self,
+        background_color: Single<'_, BackgroundColor>,
+        frame_rate_limit: Option<Single<'_, FrameRateLimit>>,
+    ) {
+        let enable_vsync = matches!(frame_rate_limit.map(|f| f.get()), Some(FrameRate::VSync));
+        self.core.toggle_vsync(enable_vsync);
+        self.core.render(**background_color);
     }
 }
+
+#[derive(Action)]
+struct PrepareCaptureAction;
+
+#[derive(Action)]
+struct PrepareRenderingAction(
+    PrepareCaptureAction,
+    <PhysicsModule as EntityMainComponent>::Action,
+    <Camera2D as EntityMainComponent>::Action,
+);
+
+#[derive(Action)]
+struct RenderAction(PrepareRenderingAction);
+
+#[derive(Action)]
+struct CaptureUpdateAction(RenderAction);

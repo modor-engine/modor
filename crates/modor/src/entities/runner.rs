@@ -2,13 +2,13 @@ use crate::storages::actions::{ActionDependencies, ActionIdx};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{FullSystemProperties, SystemProperties};
-use crate::{Action, ActionConstraint, SystemBuilder, SystemWrapper};
+use crate::{Action, Constraint, SystemBuilder, SystemWrapper};
 use std::any::TypeId;
 
 #[doc(hidden)]
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) entity_type: TypeId,
+    pub(crate) entity_action_type: TypeId,
     pub(crate) entity_type_idx: ComponentTypeIdx,
     pub(crate) action_idxs: Vec<ActionIdx>,
 }
@@ -29,7 +29,7 @@ impl<'a> SystemRunner<'a> {
             system,
             label,
             Some(TypeId::of::<A>()),
-            ActionDependencies::Types(A::Constraint::dependency_types()),
+            ActionDependencies::Types(A::dependency_types()),
         )
     }
 
@@ -40,13 +40,13 @@ impl<'a> SystemRunner<'a> {
         label: &'static str,
     ) -> Self
     where
-        C: ActionConstraint,
+        C: Constraint,
     {
         self.run_with_action(
             system,
             label,
             None,
-            ActionDependencies::Types(C::dependency_types()),
+            ActionDependencies::Types(C::action_types()),
         )
     }
 
@@ -66,7 +66,7 @@ impl<'a> SystemRunner<'a> {
 
     pub fn finish(self, label: &'static str) -> FinishedSystemRunner {
         let dependencies = ActionDependencies::Actions(self.action_idxs.clone());
-        let entity_type = self.entity_type;
+        let entity_type = self.entity_action_type;
         self.run_with_action(
             SystemBuilder {
                 properties_fn: |_| SystemProperties {
@@ -108,7 +108,7 @@ impl<'a> SystemRunner<'a> {
         ));
         SystemRunner {
             action_idxs,
-            entity_type: self.entity_type,
+            entity_action_type: self.entity_action_type,
             core: self.core,
             entity_type_idx: self.entity_type_idx,
         }

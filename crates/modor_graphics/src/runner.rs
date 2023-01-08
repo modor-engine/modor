@@ -1,4 +1,4 @@
-use crate::internal::RenderTarget;
+use crate::entities::render_target::RenderTarget;
 use crate::utils::framerate;
 use crate::{FrameRate, FrameRateLimit, SurfaceSize, Window, WindowInit};
 use instant::Instant;

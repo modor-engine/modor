@@ -1,5 +1,4 @@
-use crate::entities::render_target::WindowInit;
-use crate::internal::RenderTarget;
+use crate::entities::render_target::{RenderTarget, WindowInit};
 use crate::{BackgroundColor, Camera2D, Capture, Color, FrameRate, FrameRateLimit, SurfaceSize};
 use modor::{Built, EntityBuilder};
 use modor_input::InputModule;
@@ -89,7 +88,7 @@ impl GraphicsModule {
             .with_dependency(PhysicsModule::build())
     }
 
-    #[run_after(RenderTarget, Capture)]
+    #[run_after(entity(RenderTarget), entity(Capture))]
     fn finish() {}
 }
 

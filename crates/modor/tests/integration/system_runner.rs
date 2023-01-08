@@ -2,14 +2,14 @@ use modor::{App, Built, EntityBuilder, With};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-#[action]
+#[derive(Action)]
 struct Action1;
 
-#[action(Action1)]
-struct Action2;
+#[derive(Action)]
+struct Action2(Action1);
 
-#[action(Action1, Action2)]
-struct Action3;
+#[derive(Action)]
+struct Action3(Action1, Action2);
 
 struct Tester1 {
     run_system_ids: Arc<Mutex<Vec<u32>>>,

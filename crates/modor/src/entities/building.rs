@@ -337,7 +337,7 @@ mod internal {
                 let entity_type_idx = core.add_entity_type::<E>();
                 E::on_update(SystemRunner {
                     core,
-                    entity_type: TypeId::of::<E>(),
+                    entity_action_type: TypeId::of::<<E as EntityMainComponent>::Action>(),
                     entity_type_idx,
                     action_idxs: vec![],
                 });

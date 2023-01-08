@@ -96,7 +96,10 @@ impl Vec2 {
     /// Returns the rotation between the vector and `other` in radians.
     #[must_use]
     pub fn rotation(self, other: Self) -> f32 {
-        (other.y * self.x - other.x * self.y).atan2(self.dot(other))
+        other
+            .y
+            .mul_add(self.x, -other.x * self.y)
+            .atan2(self.dot(other))
     }
 
     /// Returns the dot product between the vector and `other`.
