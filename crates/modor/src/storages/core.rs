@@ -1,7 +1,3 @@
-use std::any::{Any, TypeId};
-use std::mem;
-use std::sync::{Mutex, RwLock};
-
 use super::archetype_states::ArchetypeStateStorage;
 use super::systems::FullSystemProperties;
 use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
@@ -11,7 +7,10 @@ use crate::storages::entities::{EntityIdx, EntityStorage};
 use crate::storages::systems::SystemStorage;
 use crate::storages::updates::UpdateStorage;
 use crate::systems::context::{Storages, SystemContext};
-use crate::SystemBuilder;
+use crate::{Component, SystemBuilder};
+use std::any::TypeId;
+use std::mem;
+use std::sync::{Mutex, RwLock};
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -43,14 +42,14 @@ impl CoreStorage {
 
     pub(crate) fn register_component_type<C>(&mut self) -> ComponentTypeIdx
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         self.components.type_idx_or_create::<C>()
     }
 
     pub(crate) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         self.components.add_entity_type::<C>()
     }
@@ -60,7 +59,7 @@ impl CoreStorage {
         src_archetype_idx: ArchetypeIdx,
     ) -> (ComponentTypeIdx, ArchetypeIdx)
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         let type_idx = self.components.type_idx_or_create::<C>();
         self.archetypes
@@ -94,7 +93,7 @@ impl CoreStorage {
         location: EntityLocation,
         is_singleton: bool,
     ) where
-        C: Any + Sync + Send,
+        C: Component,
     {
         self.components
             .add(type_idx, location, component, is_singleton);

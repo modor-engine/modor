@@ -1,15 +1,27 @@
-use self::internal::SealedEntityType;
+use self::internal::SealedBool;
 use crate::{Action, FinishedSystemRunner, SystemRunner};
 use std::any::Any;
+
+/// A trait for defining a component.
+///
+/// **Do not implement manually this trait.**<br>
+/// Instead, you can use:
+/// - [`entity`](macro@crate::entity) proc macro to define an entity main component
+/// - [`singleton`](macro@crate::singleton) proc macro to define a singleton entity main component
+/// - [`Component`](macro@crate::Component) derive macro to define a simple component
+pub trait Component: Sized + Any + Sync + Send {
+    /// Whether the component type is the main component of an entity.
+    type IsEntityMainComponent: Bool;
+}
 
 /// A trait for defining the main component of an entity type.
 ///
 /// **Do not implement manually this trait.**<br>
 /// Instead, you can use [`entity`](macro@crate::entity) and [`singleton`](macro@crate::singleton)
 /// proc macros.
-pub trait EntityMainComponent: Sized + Any + Sync + Send {
-    #[doc(hidden)]
-    type Type: EntityType;
+pub trait EntityMainComponent: Component<IsEntityMainComponent = True> {
+    /// Whether the entity is a singleton.
+    type IsSingleton: Bool;
     /// The type of the action associated to the entity type.
     type Action: Action;
 
@@ -17,22 +29,29 @@ pub trait EntityMainComponent: Sized + Any + Sync + Send {
     fn on_update(runner: SystemRunner<'_>) -> FinishedSystemRunner;
 }
 
-#[doc(hidden)]
-pub trait EntityType: Any + SealedEntityType {}
+impl<T> Component for T
+where
+    T: EntityMainComponent,
+{
+    type IsEntityMainComponent = True;
+}
 
 #[doc(hidden)]
-pub struct NotSingleton;
-
-impl SealedEntityType for NotSingleton {}
-
-impl EntityType for NotSingleton {}
+pub trait Bool: Any + SealedBool {}
 
 #[doc(hidden)]
-pub struct Singleton;
+pub struct False;
 
-impl SealedEntityType for Singleton {}
+impl SealedBool for False {}
 
-impl EntityType for Singleton {}
+impl Bool for False {}
+
+#[doc(hidden)]
+pub struct True;
+
+impl SealedBool for True {}
+
+impl Bool for True {}
 
 #[doc(hidden)]
 pub trait Inheritable<E> {}
@@ -40,27 +59,27 @@ pub trait Inheritable<E> {}
 impl<E, T> Inheritable<E> for T
 where
     T: EntityMainComponent,
-    (T, T::Type): InheritableInner<E>,
+    (T, T::IsSingleton): InheritableWithIsSingleton<E>,
 {
 }
 
 #[doc(hidden)]
-pub trait InheritableInner<E> {}
+pub trait InheritableWithIsSingleton<E> {}
 
-impl<T, E> InheritableInner<E> for (T, Singleton)
+impl<T, E> InheritableWithIsSingleton<E> for (T, True)
 where
-    T: EntityMainComponent<Type = Singleton>,
-    E: EntityMainComponent<Type = Singleton>,
+    T: EntityMainComponent<IsSingleton = True>,
+    E: EntityMainComponent<IsSingleton = True>,
 {
 }
 
-impl<T, E> InheritableInner<E> for (T, NotSingleton)
+impl<T, E> InheritableWithIsSingleton<E> for (T, False)
 where
-    T: EntityMainComponent<Type = NotSingleton>,
+    T: EntityMainComponent<IsSingleton = False>,
     E: EntityMainComponent,
 {
 }
 
 mod internal {
-    pub trait SealedEntityType {}
+    pub trait SealedBool {}
 }

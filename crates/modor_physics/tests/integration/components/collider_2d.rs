@@ -17,7 +17,10 @@ impl CollisionGroupRef for CollisionGroup {
     }
 }
 
+#[derive(Component)]
 struct Entity1;
+
+#[derive(Component)]
 struct Entity2;
 
 fn entity1(

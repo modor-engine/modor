@@ -7,12 +7,11 @@ use crate::system_params::internal::{
 };
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::systems::context::SystemContext;
-use crate::{QuerySystemParam, SystemParam};
-use std::any::Any;
+use crate::{Component, QuerySystemParam, SystemParam};
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type Param = Option<&'a C>;
     type Guard = ComponentOptionGuard<'a, C>;
@@ -22,7 +21,7 @@ where
 
 impl<C> SystemParam for Option<&C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type Filter = ();
     type InnerTuple = ();
@@ -74,7 +73,7 @@ where
 
 impl<'a, C> QuerySystemParamWithLifetime<'a> for Option<&C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type ConstParam = Option<&'a C>;
     type Iter = ComponentOptionIter<'a, C>;
@@ -83,7 +82,7 @@ where
 
 impl<C> QuerySystemParam for Option<&C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
@@ -153,7 +152,7 @@ where
 
 impl<C> LockableSystemParam for Option<&C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type LockedType = C;
     type Mutability = Const;
@@ -165,7 +164,7 @@ pub(crate) mod internal {
     use crate::storages::components::ComponentArchetypes;
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
-    use std::any::Any;
+    use crate::Component;
     use std::iter::Flatten;
     use std::ops::Range;
     use std::slice::Iter;
@@ -179,7 +178,7 @@ pub(crate) mod internal {
 
     impl<'a, C> ComponentOptionGuard<'a, C>
     where
-        C: Any,
+        C: Component,
     {
         pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {

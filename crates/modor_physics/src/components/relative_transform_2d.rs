@@ -18,7 +18,7 @@ use modor_math::Vec2;
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 #[non_exhaustive]
 pub struct RelativeTransform2D {
     /// Relative position of the entity.

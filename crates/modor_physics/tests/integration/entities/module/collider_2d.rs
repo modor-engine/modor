@@ -9,8 +9,13 @@ use modor_physics::{
 use std::mem;
 use std::time::Duration;
 
+#[derive(Component)]
 struct Entity1;
+
+#[derive(Component)]
 struct Entity2;
+
+#[derive(Component)]
 struct Entity3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

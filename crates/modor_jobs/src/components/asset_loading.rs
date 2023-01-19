@@ -53,12 +53,15 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///     LoadingError
 /// }
 /// ```
-pub struct AssetLoadingJob<T> {
+#[derive(Component)]
+pub struct AssetLoadingJob<T>
+where
+    T: Any + Send,
+{
     /// Actual job instance that can be used to retrieve the job result.
     inner: Job<Result<T, AssetLoadingError>>,
 }
 
-#[entity]
 impl<T> AssetLoadingJob<T>
 where
     T: Any + Send,
@@ -94,6 +97,10 @@ where
     /// Try polling the job result.
     ///
     /// `None` is returned if the result is not yet available or has already been retrieved.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the asset has not been successfully loaded.
     pub fn try_poll(&mut self) -> Result<Option<T>, AssetLoadingError> {
         self.inner
             .try_poll()

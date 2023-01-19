@@ -1,5 +1,14 @@
 use modor::{App, Built, EntityBuilder, LevelFilter, With};
 
+#[derive(Component)]
+struct I64(i64);
+
+#[derive(Component)]
+struct U32(u32);
+
+#[derive(Component)]
+struct I8(i8);
+
 struct Singleton1(u32);
 
 #[singleton]
@@ -27,6 +36,7 @@ impl Singleton3 {
     }
 }
 
+#[derive(Component)]
 struct Value(u32);
 
 struct Level1;
@@ -63,14 +73,15 @@ impl Level3 {
     fn build(value: u32, add_option: bool) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value(value))
-            .with_option(add_option.then_some(42_u32))
-            .with_option((!add_option).then_some(42_i8))
+            .with_option(add_option.then_some(42_u32).map(U32))
+            .with_option((!add_option).then_some(42_i8).map(I8))
             .with_dependency(Singleton1::build(10))
             .with_dependency(Singleton2::build(20))
             .with_dependency(Singleton3::build(30))
     }
 }
 
+#[derive(Component)]
 struct InheritedChild;
 
 struct Inherited;
@@ -79,12 +90,14 @@ struct Inherited;
 impl Inherited {
     fn build(value: i64) -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(value)
+            .with(I64(value))
             .with_child(Self::build_child(value + 1))
     }
 
     fn build_child(value: i64) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(value).with(InheritedChild)
+        EntityBuilder::new(Self)
+            .with(I64(value))
+            .with(InheritedChild)
     }
 }
 
@@ -106,28 +119,37 @@ fn create_complex_entities() {
         .assert::<With<Level2>>(1, |e| {
             e.has(|_: &Inherited| ())
                 .has(|c: &Value| assert_eq!(c.0, 201))
-                .has(|c: &i64| assert_eq!(c, &101))
+                .has(|c: &I64| assert_eq!(c.0, 101))
                 .has_parent::<With<Level1>>()
                 .child_count(3)
         })
         .assert::<With<InheritedChild>>(1, |e| {
             e.has(|_: &Inherited| ())
-                .has(|c: &i64| assert_eq!(c, &102))
+                .has(|c: &I64| assert_eq!(c.0, 102))
                 .has_parent::<With<Level2>>()
                 .child_count(0)
         })
-        .assert::<(With<Level3>, With<u32>)>(1, |e| {
+        .assert::<(With<Level3>, With<U32>)>(1, |e| {
             e.has(|v: &Value| assert_eq!(v.0, 103))
-                .has(|v: &u32| assert_eq!(v, &42))
-                .has_not::<i8>()
+                .has(|v: &U32| assert_eq!(v.0, 42))
+                .has_not::<I8>()
                 .has_parent::<With<Level2>>()
                 .child_count(0)
         })
-        .assert::<(With<Level3>, With<i8>)>(1, |e| {
+        .assert::<(With<Level3>, With<I8>)>(1, |e| {
             e.has(|v: &Value| assert_eq!(v.0, 104))
-                .has(|v: &i8| assert_eq!(v, &42))
-                .has_not::<u32>()
+                .has(|v: &I8| assert_eq!(v.0, 42))
+                .has_not::<U32>()
                 .has_parent::<With<Level2>>()
                 .child_count(0)
         });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn access_main_component_from_entity_builder() {
+    let mut builder = EntityBuilder::new(Singleton1(0));
+    assert_eq!(builder.main().0, 0);
+    builder.main_mut().0 = 10;
+    assert_eq!(builder.main().0, 10);
 }

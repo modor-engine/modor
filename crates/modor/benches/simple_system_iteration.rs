@@ -13,10 +13,13 @@ struct Vec4(f32, f32, f32, f32);
 
 struct Mat4(Vec4, Vec4, Vec4, Vec4);
 
+#[derive(Component)]
 struct Position(Vec3);
 
+#[derive(Component)]
 struct Rotation(Vec3);
 
+#[derive(Component)]
 struct Velocity(Vec3);
 
 struct Object(Mat4);

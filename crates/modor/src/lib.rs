@@ -102,6 +102,8 @@ pub use systems::traits::*;
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.
 ///
+/// It automatically implements the trait [`Component`](crate::Component).
+///
 /// # System definition
 ///
 /// Systems are methods run at each [`App`] update, and can access to other objects stored
@@ -287,12 +289,6 @@ pub use modor_derive::entity;
 /// The instance can be directly accessed in systems using [`Single`](crate::Single) and
 /// [`SingleMut`](crate::SingleMut) parameter types.
 ///
-/// It has to be noted that an entity main component defined as singleton can be added to entities
-/// as a simple component (e.g. using [`EntityBuilder::with`](crate::EntityBuilder::with)).<br>
-/// In this case, the entity will not be tracked as a singleton by the engine, and so the component
-/// will not be accessible in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut).
-///
 /// # Examples
 ///
 /// ```rust
@@ -314,6 +310,29 @@ pub use modor_derive::entity;
 /// }
 /// ```
 pub use modor_derive::singleton;
+
+/// Defines a simple component that can be added to an entity.
+///
+/// This macro implements the trait [`Component`](crate::Component).
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::{Built, Component, EntityBuilder};
+/// #
+/// #[derive(entity, Component)]
+/// struct Life(u16);
+///
+/// struct Character;
+///
+/// #[entity]
+/// impl Character {
+///     fn build() -> impl Built<Self> {
+///         EntityBuilder::new(Self).with(Life(100))
+///     }
+/// }
+/// ```
+pub use modor_derive::Component;
 
 /// Defines a type implementing [`Action`](crate::Action).
 ///

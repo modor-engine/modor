@@ -1,4 +1,5 @@
 use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
+use crate::Component;
 use fxhash::FxHashMap;
 use modor_internal::ti_vec::TiVecSafeOperations;
 use std::any::{Any, TypeId};
@@ -29,7 +30,7 @@ impl ComponentStorage {
 
     pub(crate) fn is_entity_type<C>(&self) -> bool
     where
-        C: Any,
+        C: Component,
     {
         self.idxs
             .get(&TypeId::of::<C>())
@@ -38,7 +39,7 @@ impl ComponentStorage {
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
     where
-        C: Any,
+        C: Component,
     {
         let &type_idx = self
             .idxs
@@ -54,7 +55,7 @@ impl ComponentStorage {
 
     pub(crate) fn write_components<C>(&self) -> RwLockWriteGuard<'_, ComponentArchetypes<C>>
     where
-        C: Any,
+        C: Component,
     {
         let &type_idx = self
             .idxs
@@ -70,7 +71,7 @@ impl ComponentStorage {
 
     pub(crate) fn type_idx_or_create<C>(&mut self) -> ComponentTypeIdx
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
             self.are_entity_types.push(false);
@@ -83,7 +84,7 @@ impl ComponentStorage {
 
     pub(super) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         let type_idx = self.type_idx_or_create::<C>();
         self.are_entity_types[type_idx] = true;
@@ -97,7 +98,7 @@ impl ComponentStorage {
         component: C,
         is_singleton: bool,
     ) where
-        C: Any + Send + Sync,
+        C: Component,
     {
         let archetypes = self.archetypes[type_idx]
             .as_any_mut()

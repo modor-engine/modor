@@ -4,7 +4,8 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
-use std::any::{Any, TypeId};
+use crate::Component;
+use std::any::TypeId;
 use std::marker::PhantomData;
 
 /// A filter to keep only entities with a component type `C` changed since last execution of the
@@ -65,11 +66,11 @@ use std::marker::PhantomData;
 /// ```
 pub struct Changed<C>(PhantomData<fn(C)>)
 where
-    C: Any + Sync + Send;
+    C: Component;
 
 impl<C> EntityFilter for Changed<C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     fn is_archetype_kept(
         system_idx: Option<SystemIdx>,

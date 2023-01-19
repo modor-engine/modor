@@ -22,6 +22,6 @@ impl MyEntity {
     #[allow(unused)]
     fn build() -> impl Built<Self> {
         EntityBuilder::new(Self).inherit_from(MySingleton::build())
-        //~^ error: type mismatch resolving `<MyEntity as EntityMainComponent>::Type == Singleton`
+        //~^ error: type mismatch resolving `<MyEntity as EntityMainComponent>::IsSingleton == True`
     }
 }

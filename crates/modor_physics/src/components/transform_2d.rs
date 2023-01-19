@@ -21,7 +21,7 @@ pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 #[non_exhaustive]
 pub struct Transform2D {
     /// Position of the entity in world units.

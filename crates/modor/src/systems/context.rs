@@ -6,8 +6,8 @@ use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::EntityStorage;
 use crate::storages::systems::SystemIdx;
 use crate::storages::updates::UpdateStorage;
-use crate::ArchetypeFilterFn;
-use std::any::{Any, TypeId};
+use crate::{ArchetypeFilterFn, Component};
+use std::any::TypeId;
 use std::sync::{Mutex, RwLock};
 
 #[doc(hidden)]
@@ -23,7 +23,7 @@ pub struct SystemContext<'a> {
 impl SystemContext<'_> {
     pub(crate) fn component_type_idx<C>(&self) -> ComponentTypeIdx
     where
-        C: Any,
+        C: Component,
     {
         self.storages
             .components

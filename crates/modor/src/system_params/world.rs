@@ -4,8 +4,8 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{Built, EntityMainComponent, SystemParam};
-use std::any::{self, Any, TypeId};
+use crate::{Built, Component, EntityMainComponent, SystemParam};
+use std::any::{self, TypeId};
 
 /// A system parameter for applying actions on entities.
 ///
@@ -98,7 +98,7 @@ impl<'a> World<'a> {
     /// be run for the entity.
     pub fn add_component<C>(&mut self, entity_id: usize, component: C)
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         self.context
             .storages
@@ -132,7 +132,7 @@ impl<'a> World<'a> {
     /// be run for the entity.
     pub fn delete_component<C>(&mut self, entity_id: usize)
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         if let Some(type_idx) = self.context.storages.components.type_idx(TypeId::of::<C>()) {
             self.context

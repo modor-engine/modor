@@ -1,4 +1,4 @@
-use crate::system_params::assert_iter;
+use crate::system_params::{assert_iter, Text, Value};
 use modor::{App, Built, EntityBuilder, Filter, Query, SingleMut, With};
 
 struct QueryTester {
@@ -46,8 +46,6 @@ impl StreamCollector {
     }
 }
 
-struct Value(u32);
-
 struct Number;
 
 #[entity]
@@ -63,7 +61,7 @@ impl Number {
     fn build_with_additional_component(value: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value(value))
-            .with(String::from("other"))
+            .with(Text(String::from("other")))
     }
 
     #[run]

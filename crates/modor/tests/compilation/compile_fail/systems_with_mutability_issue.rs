@@ -5,6 +5,18 @@ use modor::*;
 
 fn main() {}
 
+#[derive(Component)]
+struct C1;
+
+#[derive(Component)]
+struct C2;
+
+#[derive(Component)]
+struct C3;
+
+#[derive(Component)]
+struct C4;
+
 struct SingletonEntity;
 
 #[singleton]
@@ -18,31 +30,31 @@ impl EntityWithInvalidSystems {
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn const_and_mut_same_component(_: &u32, _: &String, _: &mut u32) {}
+    fn const_and_mut_same_component(_: &C1, _: &C3, _: &mut C1) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_const_same_component(_: &String, _: &mut u32, _: &u32) {}
+    fn mut_and_const_same_component(_: &C3, _: &mut C1, _: &C1) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_mut_same_component(_: &mut u32, _: &mut u32, _: &String) {}
+    fn mut_and_mut_same_component(_: &mut C1, _: &mut C1, _: &C3) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn const_and_mut_same_option_component(_: Option<&u32>, _: &String, _: Option<&mut u32>) {}
+    fn const_and_mut_same_option_component(_: Option<&C1>, _: &C3, _: Option<&mut C1>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn const_and_mut_option_same_component(_: &u32, _: &String, _: Option<&mut u32>) {}
+    fn const_and_mut_option_same_component(_: &C1, _: &C3, _: Option<&mut C1>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
@@ -130,7 +142,7 @@ impl EntityWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_option_same_singleton(
         _: Single<'_, SingletonEntity>,
-        _: &String,
+        _: &C3,
         _: Option<SingleMut<'_, SingletonEntity>>,
     ) {
     }
@@ -141,7 +153,7 @@ impl EntityWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_option_same_singleton_and_component(
         _: Single<'_, SingletonEntity>,
-        _: &String,
+        _: &C3,
         _: Option<&mut SingletonEntity>,
     ) {
     }
@@ -150,35 +162,35 @@ impl EntityWithInvalidSystems {
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn two_worlds(_: World<'_>, _: &String, _: World<'_>) {}
+    fn two_worlds(_: World<'_>, _: &C3, _: World<'_>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn incompatible_tuples(_: (&u32,), _: &String, _: (&mut u32,)) {}
+    fn incompatible_tuples(_: (&C1,), _: &C3, _: (&mut C1,)) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn incompatible_queries(_: Query<'_, (&u32,)>, _: &String, _: Query<'_, (&mut u32,)>) {}
+    fn incompatible_queries(_: Query<'_, (&C1,)>, _: &C3, _: Query<'_, (&mut C1,)>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn tuple_with_incompatible_params(_: &String, _: (&mut u32, &u32)) {}
+    fn tuple_with_incompatible_params(_: &C3, _: (&mut C1, &C1)) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn query_with_incompatible_params<'a>(_: &String, _: Query<'a, (&'a mut u32, &'a u32)>) {}
+    fn query_with_incompatible_params<'a>(_: &C3, _: Query<'a, (&'a mut C1, &'a C1)>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn nested_incompatible_params(_: (&i64, (&u64, (&mut u32,))), _: &String, _: (&i64, (&u32,))) {}
+    fn nested_incompatible_params(_: (&C2, (&C4, (&mut C1,))), _: &C3, _: (&C2, (&C1,))) {}
 }

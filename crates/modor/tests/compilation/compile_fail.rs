@@ -6,6 +6,15 @@ use modor::{Built, EntityBuilder, Filter, Query, Single, SingleMut, With, World}
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[derive(Component)]
+struct C1;
+
+#[derive(Component)]
+struct C2;
+
+#[derive(Component)]
+struct C3;
+
 struct Entity1;
 
 #[entity]
@@ -57,29 +66,29 @@ impl EntityWithValidSystems {
 
     #[run]
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn mandatory_component(_: &u32) {}
+    fn mandatory_component(_: &C2) {}
 
     #[run]
-    fn mandatory_component_in_tuple(_: Option<&u32>, _: (&mut i64,)) {}
+    fn mandatory_component_in_tuple(_: Option<&C2>, _: (&mut C1,)) {}
 
     #[run]
-    fn mandatory_component_in_sub_tuple(_: Option<&u32>, _: (World<'_>, (&mut i64,))) {}
+    fn mandatory_component_in_sub_tuple(_: Option<&C2>, _: (World<'_>, (&mut C1,))) {}
 
     #[run]
-    fn mandatory_component_in_query(_: Query<'_, &mut i64>) {}
+    fn mandatory_component_in_query(_: Query<'_, &mut C1>) {}
 
     #[run]
-    fn mandatory_component_in_tuple_in_query(_: Query<'_, (&mut i64,)>) {}
+    fn mandatory_component_in_tuple_in_query(_: Query<'_, (&mut C1,)>) {}
 
     #[run]
-    fn mandatory_component_in_sub_tuple_in_query(_: Query<'_, (&u32, (&mut i64,))>) {}
+    fn mandatory_component_in_sub_tuple_in_query(_: Query<'_, (&C2, (&mut C1,))>) {}
 
     #[run]
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn same_const_component(_: &u32, _: &u32) {}
+    fn same_const_component(_: &C2, _: &C2) {}
 
     #[run]
-    fn different_mut_components(_: &mut u32, _: &mut i64) {}
+    fn different_mut_components(_: &mut C2, _: &mut C1) {}
 
     #[run]
     fn same_const_singleton(_: Single<'_, Singleton1>, _: Single<'_, Singleton1>, _: &Singleton1) {}
@@ -104,16 +113,16 @@ impl EntityWithValidSystems {
 
     #[run]
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn all_entity_param_types(_: &mut u32, _: Option<&mut i64>, _: &i16, _: Option<&i16>) {}
+    fn all_entity_param_types(_: &mut C2, _: Option<&mut C1>, _: &C3, _: Option<&C3>) {}
 
     #[run]
-    fn entity_params_with_query(_: &mut u32, _: Query<'_, (&mut i64,)>) {}
+    fn entity_params_with_query(_: &mut C2, _: Query<'_, (&mut C1,)>) {}
 
     #[run]
-    fn entity_params_with_world(_: &mut u32, _: World<'_>) {}
+    fn entity_params_with_world(_: &mut C2, _: World<'_>) {}
 
     #[run]
-    fn filters_with_same_component(_: Filter<With<i64>>, _: Filter<With<i64>>) {}
+    fn filters_with_same_component(_: Filter<With<C1>>, _: Filter<With<C1>>) {}
 }
 
 #[test]

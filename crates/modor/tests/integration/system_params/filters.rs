@@ -1,3 +1,4 @@
+use crate::system_params::{Text, Value};
 use modor::{App, Built, EntityBuilder, Filter, SingleMut, With};
 
 struct StreamCollector(Vec<u32>);
@@ -8,8 +9,6 @@ impl StreamCollector {
         EntityBuilder::new(Self(vec![]))
     }
 }
-
-struct Value(u32);
 
 struct Number;
 
@@ -26,14 +25,14 @@ impl Number {
     fn build_with_additional_component(value: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value(value))
-            .with(String::from("other"))
+            .with(Text(String::from("other")))
     }
 
     #[run]
     fn collect(
         value: &Value,
         mut collector: SingleMut<'_, StreamCollector>,
-        _filter: Filter<With<String>>,
+        _filter: Filter<With<Text>>,
     ) {
         collector.0.push(value.0);
         #[cfg(not(target_arch = "wasm32"))]

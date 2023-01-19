@@ -6,12 +6,11 @@ use crate::system_params::internal::{
     Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };
 use crate::systems::context::SystemContext;
-use crate::{QuerySystemParam, SystemParam, With};
-use std::any::Any;
+use crate::{Component, QuerySystemParam, SystemParam, With};
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type Param = &'a C;
     type Guard = ComponentGuard<'a, C>;
@@ -21,7 +20,7 @@ where
 
 impl<C> SystemParam for &C
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type Filter = With<C>;
     type InnerTuple = ();
@@ -73,7 +72,7 @@ where
 
 impl<'a, C> QuerySystemParamWithLifetime<'a> for &C
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type ConstParam = &'a C;
     type Iter = ComponentIter<'a, C>;
@@ -82,7 +81,7 @@ where
 
 impl<C> QuerySystemParam for &C
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
@@ -148,7 +147,7 @@ where
 
 impl<C> LockableSystemParam for &C
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     type LockedType = C;
     type Mutability = Const;
@@ -160,7 +159,7 @@ pub(crate) mod internal {
     use crate::storages::components::ComponentArchetypes;
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
-    use std::any::Any;
+    use crate::Component;
     use std::iter::Flatten;
     use std::slice::Iter;
     use std::sync::RwLockReadGuard;
@@ -173,7 +172,7 @@ pub(crate) mod internal {
 
     impl<'a, C> ComponentGuard<'a, C>
     where
-        C: Any,
+        C: Component,
     {
         pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {

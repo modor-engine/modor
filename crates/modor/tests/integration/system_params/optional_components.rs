@@ -1,4 +1,4 @@
-use crate::system_params::assert_iter;
+use crate::system_params::{assert_iter, OptionalValue, Text, Value};
 use modor::{App, Built, EntityBuilder, Filter, Query, SingleMut, With};
 
 struct QueryTester {
@@ -43,14 +43,20 @@ impl QueryTester {
     #[run]
     fn collect_complex(
         &mut self,
-        mut query: Query<'_, (&Value, Option<&u32>, Filter<With<Number>>)>,
+        mut query: Query<'_, (&Value, Option<&OptionalValue>, Filter<With<Number>>)>,
     ) {
         let values = [Some(1), Some(2), None];
-        assert_iter(query.iter().map(|v| v.1.copied()), values);
-        assert_iter(query.iter_mut().map(|v| v.1.copied()), values);
+        assert_iter(query.iter().map(|v| v.1.cloned().map(|v| v.0)), values);
+        assert_iter(query.iter_mut().map(|v| v.1.cloned().map(|v| v.0)), values);
         let rev_values = [None, Some(2), Some(1)];
-        assert_iter(query.iter().rev().map(|v| v.1.copied()), rev_values);
-        assert_iter(query.iter_mut().rev().map(|v| v.1.copied()), rev_values);
+        assert_iter(
+            query.iter().rev().map(|v| v.1.cloned().map(|v| v.0)),
+            rev_values,
+        );
+        assert_iter(
+            query.iter_mut().rev().map(|v| v.1.cloned().map(|v| v.0)),
+            rev_values,
+        );
         self.done_complex = true;
     }
 }
@@ -64,14 +70,14 @@ impl StreamCollector {
     }
 }
 
-struct Value(u32);
-
 struct Number;
 
 #[entity]
 impl Number {
     fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Value(value)).with(value)
+        EntityBuilder::new(Self)
+            .with(Value(value))
+            .with(OptionalValue(value))
     }
 
     fn build_without_value() -> impl Built<Self> {
@@ -81,7 +87,7 @@ impl Number {
     fn build_with_additional_component(value: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with(Value(value))
-            .with(String::from("other"))
+            .with(Text(String::from("other")))
     }
 
     #[run]
