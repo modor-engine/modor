@@ -44,7 +44,7 @@ pub(crate) enum ParsedAttribute {
     RunAs(TokenStream),
     RunAfter(Vec<TokenStream>),
     RunAfterPrevious,
-    RunAfterPreviousAnd(Vec<Path>),
+    RunAfterPreviousAnd(Vec<TokenStream>),
 }
 
 pub(crate) fn parse_type(attribute: &Attribute) -> Option<AttributeType> {
@@ -97,11 +97,11 @@ fn parse_no_argument(attribute: &Attribute) -> Option<()> {
     }
 }
 
-fn parse_path_argument(attribute: &Attribute) -> Option<Path> {
+fn parse_path_argument(attribute: &Attribute) -> Option<TokenStream> {
     match attribute.parse_meta().ok()? {
         Meta::List(list) => (list.nested.len() == 1)
             .then(|| match &list.nested[0] {
-                NestedMeta::Meta(Meta::Path(path)) => Some(path.clone()),
+                NestedMeta::Meta(Meta::Path(path)) => Some(path.to_token_stream()),
                 NestedMeta::Meta(Meta::List(list)) => parse_entity_meta(list),
                 NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
             })
@@ -110,7 +110,7 @@ fn parse_path_argument(attribute: &Attribute) -> Option<Path> {
     }
 }
 
-fn parse_path_arguments(attribute: &Attribute) -> Option<Vec<Path>> {
+fn parse_path_arguments(attribute: &Attribute) -> Option<Vec<TokenStream>> {
     match attribute.parse_meta().ok()? {
         Meta::List(list) => Some(
             list.nested
@@ -123,13 +123,6 @@ fn parse_path_arguments(attribute: &Attribute) -> Option<Vec<Path>> {
                 .collect::<Option<_>>()?,
         ),
         Meta::Path(_) | Meta::NameValue(_) => None,
-    }
-}
-
-fn parse_run_after_previous(attribute: &Attribute) -> Option<ParsedAttribute> {
-    match attribute.parse_meta().ok()? {
-        Meta::Path(_) => Some(ParsedAttribute::RunAfterPrevious),
-        Meta::List(_) | Meta::NameValue(_) => None,
     }
 }
 

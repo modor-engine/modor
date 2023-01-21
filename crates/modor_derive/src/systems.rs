@@ -98,12 +98,15 @@ fn generate_system_call(
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
             .and_then::<()>(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
-        ParsedAttribute::RunAfterPreviousAnd(actions) => quote_spanned! { attribute.span() =>
-            .and_then::<(#(#crate_ident::DependsOn<#actions>,)*)>(
-                #crate_ident::system!(Self::#system_name),
-                #label_tokens,
-            )
-        },
+        ParsedAttribute::RunAfterPreviousAnd(actions) => {
+            let constraint = create_constraint(actions);
+            quote_spanned! { attribute.span() =>
+                .and_then::<#constraint>(
+                    #crate_ident::system!(Self::#system_name),
+                    #label_tokens,
+                )
+            }
+        }
     })
 }
 

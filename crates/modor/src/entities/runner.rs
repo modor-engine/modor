@@ -60,14 +60,14 @@ impl<'a> SystemRunner<'a> {
     #[doc(hidden)]
     pub fn and_then<C>(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self
     where
-        C: ActionConstraint,
+        C: Constraint,
     {
         if let Some(&latest_action_idx) = self.action_idxs.last() {
             self.run_with_action(
                 system,
                 label,
                 None,
-                C::dependency_types()
+                C::action_types()
                     .into_iter()
                     .map(ActionDependency::Type)
                     .chain(iter::once(ActionDependency::Idx(latest_action_idx)))

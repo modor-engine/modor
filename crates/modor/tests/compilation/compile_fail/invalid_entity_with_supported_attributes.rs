@@ -64,10 +64,10 @@ impl InvalidEntity {
     fn wrong_run_after_previous_attribute_syntax() {}
 
     #[run_after_previous_and]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, ...)]`
+    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, entity(EntityType), ...)]`
     fn wrong_run_after_previous_and_attribute_syntax() {}
 
     #[run_after_previous_and("action")]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, ...)]`
+    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, entity(EntityType), ...)]`
     fn literal_passed_to_run_after_previous_and_attribute() {}
 }
