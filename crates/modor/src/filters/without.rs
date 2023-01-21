@@ -16,9 +16,11 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, Without, Or, Entity, Filter};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct Position;
+/// #[derive(Component)]
 /// struct Velocity;
 ///
 /// fn list_not_movable_entities(

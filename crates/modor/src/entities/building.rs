@@ -36,10 +36,13 @@ where
 /// ```rust
 /// # use modor::*;
 /// #
-/// # struct Position(f32, f32);
-/// # struct Velocity(f32, f32);
-/// # struct Acceleration(f32, f32);
-/// #
+/// #[derive(Component)]
+/// struct Position(f32, f32);
+/// #[derive(Component)]
+/// struct Velocity(f32, f32);
+/// #[derive(Component)]
+/// struct Acceleration(f32, f32);
+///
 /// struct Object {
 ///     name: String,
 /// }

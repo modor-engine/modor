@@ -28,7 +28,7 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Clone, Copy)]
+/// #[derive(Clone, Copy, Component)]
 /// struct Position(f32, f32);
 ///
 /// struct PositionStorage {

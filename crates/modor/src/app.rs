@@ -27,12 +27,15 @@ pub use log::LevelFilter;
 ///     app.update();
 /// }
 ///
+/// #[derive(Component)]
+/// struct Label(String);
+///
 /// struct Button;
 ///
 /// #[entity]
 /// impl Button {
 ///     fn build(label: String) -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(label)
+///         EntityBuilder::new(Self).with(Label(label))
 ///     }
 /// }
 /// ```
@@ -42,7 +45,10 @@ pub use log::LevelFilter;
 /// ```rust
 /// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct Count(usize);
+/// #[derive(Component)]
+/// struct Label(String);
 ///
 /// struct Counter;
 ///
@@ -66,7 +72,7 @@ pub use log::LevelFilter;
 ///         .with_entity(Counter::build())
 ///         .assert::<With<Counter>>(1, |e| {
 ///             e.has(|c: &Count| assert_eq!(c.0, 0))
-///                 .has_not::<usize>()
+///                 .has_not::<Label>()
 ///                 .child_count(0)
 ///         })
 ///         .updated()

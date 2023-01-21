@@ -12,10 +12,13 @@ use std::any::{self, TypeId};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Entity, World};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Name(String);
+///
 /// fn add_string_component(mut world: World<'_>, entity: Entity<'_>) {
-///     let component = format!("entity_{}", entity.id());
+///     let component = Name(format!("entity_{}", entity.id()));
 ///     world.add_component(entity.id(), component);
 /// }
 /// ```

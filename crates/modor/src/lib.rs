@@ -19,7 +19,7 @@
 //!     .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
 //!     .update();
 //!
-//! #[derive(Debug)]
+//! #[derive(Debug, Component)]
 //! struct Position(f32, f32);
 //!
 //! enum CharacterType {
@@ -28,6 +28,7 @@
 //!     Enemy,
 //! }
 //!
+//! #[derive(Component)]
 //! struct Enemy;
 //!
 //! struct Character {
@@ -229,19 +230,24 @@ pub use systems::traits::*;
 /// Here are some valid systems:
 ///
 /// ```rust
-/// # use modor::{entity, World, Query, Entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Id(u32);
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn access_entity_info(id: &u32, message: Option<&mut String>) {
-///         // Run for each entity with at least a component of type `u32`
+///     fn access_entity_info(id: &Id, message: Option<&mut Text>) {
+///         // Run for each entity with at least a component of type `Id`
 ///         // and `MyEntity` (the main component is always used to filter).
-///         // `String` is not used to filter entities as it is optional.
+///         // `Text` is not used to filter entities as it is optional.
 ///         if let Some(message) = message {
-///             *message = format!("id: {}", id);
+///             message.0 = format!("id: {}", id.0);
 ///         }
 ///     }
 ///
@@ -265,15 +271,18 @@ pub use systems::traits::*;
 /// And here is an invalid system detected at compile time:
 ///
 /// ```compile_fail
-/// # use modor::{entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn invalid_system(name: &String, name_mut: &mut String) {
-///         // invalid as `String` cannot be borrowed both mutably and immutably
+///     fn invalid_system(name: &Text, name_mut: &mut Text) {
+///         // invalid as `Text` cannot be borrowed both mutably and immutably
 ///         *name_mut = format!("[[[ {} ]]]", name);
 ///     }
 /// }
@@ -318,9 +327,9 @@ pub use modor_derive::singleton;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Built, Component, EntityBuilder};
+/// # use modor::*;
 /// #
-/// #[derive(entity, Component)]
+/// #[derive(Component)]
 /// struct Life(u16);
 ///
 /// struct Character;
