@@ -2,15 +2,13 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use proc_macro_error::ResultExt;
-use quote::{quote, ToTokens};
-use syn::parse::Parser;
-use syn::punctuated::Punctuated;
+use proc_macro_error::abort;
+use quote::quote;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, ImplGenerics, ItemImpl, ItemStruct, Path, Token, WhereClause};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, ItemImpl};
 
 mod attributes;
-mod crate_name;
+mod idents;
 mod impl_block;
 mod systems;
 
@@ -29,88 +27,80 @@ pub fn singleton(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[allow(missing_docs)]
-#[proc_macro_attribute]
+#[proc_macro_derive(Component)]
 #[proc_macro_error::proc_macro_error]
-pub fn action(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as ItemStruct);
-    let crate_ident = crate_name::find_crate_ident(item.span());
-    let generics = &item.generics;
-    let (impl_generics, _generics, where_clause) = generics.split_for_impl();
-    let actions: Vec<_> = Punctuated::<Path, Token![,]>::parse_terminated
-        .parse(attr)
-        .unwrap_or_abort()
-        .into_iter()
-        .collect();
-    let impl_block = action_impl_block(
-        &crate_ident,
-        &item.ident,
-        &impl_generics,
-        where_clause,
-        &actions,
-    );
+pub fn component_derive(item: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(item as DeriveInput);
+    let crate_ident = idents::find_crate_ident(item.span());
+    let ident = &item.ident;
+    let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
     let output = quote! {
-        #item
+        impl #impl_generics #crate_ident::Component for #ident #type_generics #where_clause {
+            type IsEntityMainComponent = #crate_ident::False;
+        }
+    };
+    output.into()
+}
 
-        #impl_block
+#[allow(missing_docs)]
+#[proc_macro_derive(Action)]
+#[proc_macro_error::proc_macro_error]
+pub fn action_derive(item: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(item as DeriveInput);
+    let crate_ident = idents::find_crate_ident(item.span());
+    let ident = &item.ident;
+    let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
+    let dependencies: Vec<_> = match &item.data {
+        Data::Struct(struct_) => match &struct_.fields {
+            Fields::Unnamed(fields) => fields.unnamed.iter().map(|f| &f.ty).collect(),
+            Fields::Unit => vec![],
+            Fields::Named(_) => abort!(item, "structs with named fields cannot be actions"),
+        },
+        Data::Enum(_) | Data::Union(_) => abort!(item.span(), "only structs can be actions"),
+    };
+    let output = quote! {
+        impl #impl_generics #crate_ident::Action for #ident #type_generics #where_clause {
+            fn dependency_types() -> ::std::vec::Vec<::std::any::TypeId> {
+                let mut types = vec![#(::std::any::TypeId::of::<#dependencies>()),*];
+                #(types.extend(<#dependencies as #crate_ident::Action>::dependency_types());)*
+                types
+            }
+        }
     };
     output.into()
 }
 
 fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
-    let crate_ident = crate_name::find_crate_ident(item.span());
+    let crate_ident = idents::find_crate_ident(item.span());
     let cleaned_block = impl_block::clean(&item);
-    let type_name = &item.self_ty;
-    let generics = &item.generics;
-    let (impl_generics, _generics, where_clause) = generics.split_for_impl();
+    let type_ = &item.self_ty;
+    let type_ident = idents::extract_type_ident(type_);
+    let action_type_ident = Ident::new(&(type_ident.to_string() + "Action"), item.span());
+    let (impl_generics, _generics, where_clause) = item.generics.split_for_impl();
     let entity_type = if is_singleton {
-        quote!(#crate_ident::Singleton)
+        quote!(#crate_ident::True)
     } else {
-        quote!(#crate_ident::NotSingleton)
+        quote!(#crate_ident::False)
     };
     let update_statement = systems::generate_update_statement(&item);
     let actions = systems::entity_action_dependencies(&item);
-    let action_impl_block = action_impl_block(
-        &crate_ident,
-        type_name,
-        &impl_generics,
-        where_clause,
-        &actions,
-    );
     let output = quote! {
         #cleaned_block
 
-        impl #impl_generics #crate_ident::EntityMainComponent for #type_name #where_clause {
-            type Type = #entity_type;
+        impl #impl_generics #crate_ident::EntityMainComponent for #type_ #where_clause {
+            type IsSingleton = #entity_type;
+            type Action = #action_type_ident;
 
             fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
                 #update_statement
             }
         }
 
-        #action_impl_block
+        #[doc(hidden)]
+        #[non_exhaustive]
+        #[derive(#crate_ident::Action)]
+        pub struct #action_type_ident(#(#actions),*);
     };
     output.into()
-}
-
-fn action_impl_block(
-    crate_ident: &Ident,
-    item_name: impl ToTokens,
-    impl_generics: &ImplGenerics<'_>,
-    where_clause: Option<&WhereClause>,
-    actions: &[Path],
-) -> proc_macro2::TokenStream {
-    let mut final_actions = if actions.is_empty() {
-        quote!(())
-    } else {
-        quote!()
-    };
-    for action in actions {
-        final_actions = quote!((#crate_ident::DependsOn<#action>, #final_actions));
-    }
-    quote! {
-        impl #impl_generics #crate_ident::Action for #item_name #where_clause {
-            type Constraint = #final_actions;
-        }
-    }
 }

@@ -16,9 +16,11 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, With, Entity, Filter, Or};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct MainCharacter;
+/// #[derive(Component)]
 /// struct EnemyCharacter;
 ///
 /// fn list_characters(

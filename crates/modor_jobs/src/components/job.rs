@@ -69,7 +69,11 @@ macro_rules! job_future {
 ///     IoError
 /// }
 /// ```
-pub struct Job<T> {
+#[derive(Component)]
+pub struct Job<T>
+where
+    T: Any + Send,
+{
     receiver: Option<Receiver<T>>,
     #[cfg(not(target_arch = "wasm32"))]
     _join: async_std::task::JoinHandle<()>,

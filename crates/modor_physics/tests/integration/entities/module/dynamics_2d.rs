@@ -6,7 +6,10 @@ use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use std::mem;
 use std::time::Duration;
 
+#[derive(Component)]
 struct Source;
+
+#[derive(Component)]
 struct Destination;
 
 #[test]

@@ -3,7 +3,7 @@ use super::EntityFilter;
 use crate::storages::archetypes::ArchetypeIdx;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
-use std::any::Any;
+use crate::Component;
 use std::marker::PhantomData;
 
 /// A filter to keep only entities without a component of type `C`.
@@ -16,9 +16,11 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, Without, Or, Entity, Filter};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct Position;
+/// #[derive(Component)]
 /// struct Velocity;
 ///
 /// fn list_not_movable_entities(
@@ -31,11 +33,11 @@ use std::marker::PhantomData;
 /// ```
 pub struct Without<C>(PhantomData<fn(C)>)
 where
-    C: Any + Sync + Send;
+    C: Component;
 
 impl<C> EntityFilter for Without<C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     fn is_archetype_kept(
         system_idx: Option<SystemIdx>,

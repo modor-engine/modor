@@ -5,8 +5,13 @@ use modor_physics::{DeltaTime, PhysicsModule, RelativeTransform2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::time::Duration;
 
+#[derive(Component)]
 struct RootEntity;
+
+#[derive(Component)]
 struct RelativeChild;
+
+#[derive(Component)]
 struct AbsoluteChild;
 
 #[test]

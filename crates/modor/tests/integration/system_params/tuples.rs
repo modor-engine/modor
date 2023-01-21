@@ -106,8 +106,10 @@ impl QueryTester {
     }
 }
 
+#[derive(Component)]
 struct Value1(u32);
 
+#[derive(Component)]
 struct Value2(u32);
 
 struct Values {

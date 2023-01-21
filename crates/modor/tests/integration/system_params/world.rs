@@ -1,3 +1,4 @@
+use crate::system_params::Text;
 use fxhash::FxHashSet;
 use modor::{App, Built, Entity, EntityBuilder, LevelFilter, Query, With, World};
 
@@ -71,8 +72,8 @@ impl EntityWithMissingComponentAdded {
 
     #[run]
     fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), format!("id: {}", parent.0));
-        world.add_component(101, format!("id: {}", parent.0)); // not existing entity
+        world.add_component(entity.id(), Text(format!("id: {}", parent.0)));
+        world.add_component(101, Text(format!("id: {}", parent.0))); // not existing entity
     }
 }
 
@@ -82,13 +83,13 @@ struct EntityWithExistingComponentAdded;
 impl EntityWithExistingComponentAdded {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
-            .with(String::from("empty"))
+            .with(Text(String::from("empty")))
             .inherit_from(Parent::build(id))
     }
 
     #[run]
     fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), format!("id: {}", parent.0));
+        world.add_component(entity.id(), Text(format!("id: {}", parent.0)));
     }
 }
 
@@ -102,23 +103,7 @@ impl SingletonWithComponentAdded {
 
     #[run]
     fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), format!("id: {}", parent.0));
-    }
-}
-
-struct UnregisteredSingletonWithComponentAdded;
-
-#[singleton]
-impl UnregisteredSingletonWithComponentAdded {
-    fn build(id: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .with(SingletonWithComponentAdded)
-            .inherit_from(Parent::build(id))
-    }
-
-    #[run]
-    fn add_component(parent: &Parent, entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), format!("id: {}", parent.0));
+        world.add_component(entity.id(), Text(format!("id: {}", parent.0)));
     }
 }
 
@@ -129,12 +114,12 @@ impl EntityWithExistingComponentDeleted {
     fn build(id: u32) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .inherit_from(Parent::build(id))
-            .with(String::from("existing"))
+            .with(Text(String::from("existing")))
     }
 
     #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_component::<String>(entity.id());
+        world.delete_component::<Text>(entity.id());
     }
 }
 
@@ -148,9 +133,12 @@ impl EntityWithMissingComponentDeleted {
 
     #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_component::<String>(entity.id());
+        world.delete_component::<Text>(entity.id());
     }
 }
+
+#[derive(Component)]
+struct NotRegisteredComponent;
 
 struct EntityWithNotRegisteredComponentTypeDeleted;
 
@@ -162,7 +150,7 @@ impl EntityWithNotRegisteredComponentTypeDeleted {
 
     #[run]
     fn delete_component(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_component::<i64>(entity.id());
+        world.delete_component::<NotRegisteredComponent>(entity.id());
     }
 }
 
@@ -258,7 +246,6 @@ fn use_world() {
         .with_entity(EntityWithMissingComponentAdded::build(20))
         .with_entity(EntityWithExistingComponentAdded::build(21))
         .with_entity(SingletonWithComponentAdded::build(22))
-        .with_entity(UnregisteredSingletonWithComponentAdded::build(23))
         .with_entity(EntityWithExistingComponentDeleted::build(30))
         .with_entity(EntityWithExistingComponentDeleted::build(31))
         .with_entity(EntityWithMissingComponentDeleted::build(40))
@@ -277,38 +264,31 @@ fn use_world() {
         .assert::<With<ParentOfEntityToDelete>>(1, |e| e.child_count(0))
         .assert::<With<EntityWithMissingComponentAdded>>(1, |e| {
             e.has(|c: &Parent| assert_eq!(c.0, 20))
-                .has(|c: &String| assert_eq!(c, "id: 20"))
+                .has(|c: &Text| assert_eq!(c.0, "id: 20"))
         })
         .assert::<With<EntityWithExistingComponentAdded>>(1, |e| {
             e.has(|c: &Parent| assert_eq!(c.0, 21))
-                .has(|c: &String| assert_eq!(c, "id: 21"))
+                .has(|c: &Text| assert_eq!(c.0, "id: 21"))
         })
-        .assert::<With<SingletonWithComponentAdded>>(2, |e| {
-            e.any()
-                .has(|c: &Parent| assert_eq!(c.0, 22))
-                .has(|c: &Parent| assert_eq!(c.0, 23))
-                .has(|c: &String| assert_eq!(c, "id: 22"))
-                .has(|c: &String| assert_eq!(c, "id: 23"))
-        })
-        .assert::<With<UnregisteredSingletonWithComponentAdded>>(1, |e| {
-            e.has(|c: &Parent| assert_eq!(c.0, 23))
-                .has(|c: &String| assert_eq!(c, "id: 23"))
+        .assert::<With<SingletonWithComponentAdded>>(1, |e| {
+            e.has(|c: &Parent| assert_eq!(c.0, 22))
+                .has(|c: &Text| assert_eq!(c.0, "id: 22"))
         })
         .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| {
-            e.has_not::<String>()
+            e.has_not::<Text>()
                 .any()
                 .has(|c: &Parent| assert_eq!(c.0, 30))
                 .has(|c: &Parent| assert_eq!(c.0, 31))
         })
         .assert::<With<EntityWithMissingComponentDeleted>>(1, |e| {
-            e.has(|c: &Parent| assert_eq!(c.0, 40)).has_not::<String>()
+            e.has(|c: &Parent| assert_eq!(c.0, 40)).has_not::<Text>()
         })
         .assert::<With<EntityWithNotRegisteredComponentTypeDeleted>>(1, |e| {
-            e.has(|c: &Parent| assert_eq!(c.0, 50)).has_not::<String>()
+            e.has(|c: &Parent| assert_eq!(c.0, 50)).has_not::<Text>()
         })
         .assert::<With<EntityWithAddedChild>>(1, |e| {
             e.has(|c: &Parent| assert_eq!(c.0, 60))
-                .has_not::<String>()
+                .has_not::<Text>()
                 .child_count(1)
         })
         .assert::<With<NewChildEntity>>(1, |e| {
@@ -325,7 +305,7 @@ fn use_world() {
                 );
                 assert_eq!(
                     s.transformed_entity_ids,
-                    [20, 22, 23, 30, 31].into_iter().collect::<FxHashSet<_>>()
+                    [20, 22, 30, 31].into_iter().collect::<FxHashSet<_>>()
                 );
             })
         });

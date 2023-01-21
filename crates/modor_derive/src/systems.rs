@@ -1,11 +1,11 @@
 use crate::attributes::{AttributeType, ParsedAttribute};
-use crate::{attributes, crate_name};
+use crate::{attributes, idents};
 use proc_macro2::{Literal, TokenStream, TokenTree};
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned, ToTokens};
 use std::cmp::Ordering;
 use std::iter;
-use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl, Path};
+use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
 pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
     let system_calls = system_call_iter(impl_block);
@@ -14,7 +14,7 @@ pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
     }
 }
 
-pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<Path> {
+pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<TokenStream> {
     impl_block
         .items
         .iter()
@@ -75,7 +75,7 @@ fn generate_system_call(
     method: &ImplItemMethod,
     attribute: &AttributeType,
 ) -> Option<TokenStream> {
-    let crate_ident = crate_name::find_crate_ident(attribute.span());
+    let crate_ident = idents::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
     let label = format!("{entity_type}::{}", method.sig.ident);
     let label_tokens = TokenTree::Literal(Literal::string(&label));
@@ -86,12 +86,15 @@ fn generate_system_call(
         ParsedAttribute::RunAs(action) => quote_spanned! { attribute.span() =>
             .run_as::<#action>(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
-        ParsedAttribute::RunAfter(actions) => quote_spanned! { attribute.span() =>
-            .run_constrained::<(#(#crate_ident::DependsOn<#actions>,)*)>(
-                #crate_ident::system!(Self::#system_name),
-                #label_tokens,
-            )
-        },
+        ParsedAttribute::RunAfter(actions) => {
+            let constraint = create_constraint(actions);
+            quote_spanned! { attribute.span() =>
+                .run_constrained::<#constraint>(
+                    #crate_ident::system!(Self::#system_name),
+                    #label_tokens,
+                )
+            }
+        }
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
             .and_then::<()>(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
@@ -102,6 +105,17 @@ fn generate_system_call(
             )
         },
     })
+}
+
+fn create_constraint(actions: Vec<TokenStream>) -> TokenStream {
+    if actions.is_empty() {
+        return quote!(());
+    }
+    let mut constraint = quote! {};
+    for action in actions {
+        constraint = quote! { (#action, #constraint) };
+    }
+    constraint
 }
 
 fn finish_system_call(entity_type: &str) -> TokenStream {

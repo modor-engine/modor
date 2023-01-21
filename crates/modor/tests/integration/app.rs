@@ -10,10 +10,16 @@ impl Singleton {
     }
 }
 
+#[derive(Component)]
 struct Component(u32);
 
+#[derive(Component)]
+struct UnusedComponent;
+
+#[derive(Component)]
 struct Entity1;
 
+#[derive(Component)]
 struct Entity2;
 
 struct Entity;
@@ -49,8 +55,10 @@ impl Entity {
     }
 }
 
+#[derive(Component)]
 struct Child1;
 
+#[derive(Component)]
 struct Child2;
 
 struct Child(u32);
@@ -112,7 +120,7 @@ fn assert_valid_entity_count() {
         .assert::<With<Singleton>>(1, |e| e)
         .assert::<(With<Entity>, With<Component>)>(2, |e| e)
         .assert::<(With<Singleton>, With<Entity>)>(0, |e| e)
-        .assert::<With<usize>>(0, |e| e);
+        .assert::<With<UnusedComponent>>(0, |e| e);
 }
 
 #[test]
@@ -182,7 +190,7 @@ fn assert_entity_has_not_missing_component() {
         .with_entity(Entity::build(20))
         .with_entity(Singleton::build(30))
         .assert::<With<Entity>>(2, |e| e.has_not::<Singleton>())
-        .assert::<With<Singleton>>(1, |e| e.has_not::<Component>().has_not::<usize>())
+        .assert::<With<Singleton>>(1, |e| e.has_not::<Component>().has_not::<UnusedComponent>())
         .assert::<()>(3, |e| e.any().has_not::<Entity>().has_not::<Singleton>());
 }
 

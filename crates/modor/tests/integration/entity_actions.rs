@@ -17,7 +17,7 @@ impl Value1 {
         EntityBuilder::new(Self(0))
     }
 
-    #[run_after(Value3)]
+    #[run_after(entity(Value3))]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
         counter.0 += 1;
@@ -32,7 +32,7 @@ impl Value2 {
         EntityBuilder::new(Self(0))
     }
 
-    #[run]
+    #[run_after()]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
         counter.0 += 1;
@@ -47,7 +47,7 @@ impl Value3 {
         EntityBuilder::new(Self(0))
     }
 
-    #[run_after(Value2)]
+    #[run_after(entity(Value2))]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
         counter.0 += 1;

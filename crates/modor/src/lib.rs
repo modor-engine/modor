@@ -19,7 +19,7 @@
 //!     .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
 //!     .update();
 //!
-//! #[derive(Debug)]
+//! #[derive(Debug, Component)]
 //! struct Position(f32, f32);
 //!
 //! enum CharacterType {
@@ -28,6 +28,7 @@
 //!     Enemy,
 //! }
 //!
+//! #[derive(Component)]
 //! struct Enemy;
 //!
 //! struct Character {
@@ -102,6 +103,8 @@ pub use systems::traits::*;
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.
 ///
+/// It automatically implements the trait [`Component`](crate::Component).
+///
 /// # System definition
 ///
 /// Systems are methods run at each [`App`] update, and can access to other objects stored
@@ -118,11 +121,28 @@ pub use systems::traits::*;
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
 ///
-/// Note than the entity also implements [`Action`](crate::Action).<br>
-/// If the entity type is put as dependency of a system, then the system will be run once all
-/// systems of the entity type have been run.
+/// Note that an action type is created for each entity type:
+/// - In previously defined attributes, it is possible to refer this action using the `entity`
+/// attribute: `#[run_as(entity(MyEntity))]`
+/// - It is also possible to add this action as a dependency of another action defined using the
+/// [`Action`](macro@crate::Action) derive macro:
+/// ```rust
+/// # use modor::{entity, Action, EntityMainComponent};
+/// #
+/// # struct MyEntity;
+/// #
+/// # #[entity]
+/// # impl MyEntity {}
+/// #
+/// #[derive(Action)]
+/// struct MyAction(<MyEntity as EntityMainComponent>::Action);
+/// ```
 ///
-/// Cyclic dependencies between systems are detected at compile time.
+/// The action associated to an entity type is considered as finished once all systems of the entity
+/// have been run.
+///
+/// The way actions are defined makes sure cyclic dependencies between systems are detected at
+/// compile time.
 ///
 /// # System behaviour
 ///
@@ -164,7 +184,7 @@ pub use systems::traits::*;
 /// You can use `run*` attributes this way:
 ///
 /// ```rust
-/// # use modor::{entity, action, EntityBuilder, Built};
+/// # use modor::{entity, Action, EntityBuilder, Built};
 /// #
 /// struct MyEntity;
 ///
@@ -205,29 +225,34 @@ pub use systems::traits::*;
 ///     }
 /// }
 ///
-/// #[action]
+/// #[derive(Action)]
 /// struct Action1;
 ///
-/// #[action(Action1)]
-/// struct Action2;
+/// #[derive(Action)]
+/// struct Action2(Action1);
 /// ```
 ///
 /// Here are some valid systems:
 ///
 /// ```rust
-/// # use modor::{entity, World, Query, Entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Id(u32);
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn access_entity_info(id: &u32, message: Option<&mut String>) {
-///         // Run for each entity with at least a component of type `u32`
+///     fn access_entity_info(id: &Id, message: Option<&mut Text>) {
+///         // Run for each entity with at least a component of type `Id`
 ///         // and `MyEntity` (the main component is always used to filter).
-///         // `String` is not used to filter entities as it is optional.
+///         // `Text` is not used to filter entities as it is optional.
 ///         if let Some(message) = message {
-///             *message = format!("id: {}", id);
+///             message.0 = format!("id: {}", id.0);
 ///         }
 ///     }
 ///
@@ -251,15 +276,18 @@ pub use systems::traits::*;
 /// And here is an invalid system detected at compile time:
 ///
 /// ```compile_fail
-/// # use modor::{entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn invalid_system(name: &String, name_mut: &mut String) {
-///         // invalid as `String` cannot be borrowed both mutably and immutably
+///     fn invalid_system(name: &Text, name_mut: &mut Text) {
+///         // invalid as `Text` cannot be borrowed both mutably and immutably
 ///         *name_mut = format!("[[[ {} ]]]", name);
 ///     }
 /// }
@@ -274,12 +302,6 @@ pub use modor_derive::entity;
 /// [`EntityBuilder::with_dependency`](crate::EntityBuilder::with_dependency) method.<br>
 /// The instance can be directly accessed in systems using [`Single`](crate::Single) and
 /// [`SingleMut`](crate::SingleMut) parameter types.
-///
-/// It has to be noted that an entity main component defined as singleton can be added to entities
-/// as a simple component (e.g. using [`EntityBuilder::with`](crate::EntityBuilder::with)).<br>
-/// In this case, the entity will not be tracked as a singleton by the engine, and so the component
-/// will not be accessible in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut).
 ///
 /// # Examples
 ///
@@ -303,45 +325,54 @@ pub use modor_derive::entity;
 /// ```
 pub use modor_derive::singleton;
 
-/// Defines a type implementing [`Action`](crate::Action).
+/// Defines a simple component that can be added to an entity.
 ///
-/// Dependent actions can be passed as argument of this macro.
+/// This macro implements the trait [`Component`](crate::Component).
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::action;
+/// # use modor::*;
 /// #
-/// #[action]
-/// struct A;
+/// #[derive(Component)]
+/// struct Life(u16);
 ///
-/// #[action]
-/// pub struct B;
+/// struct Character;
 ///
-/// #[action(A, B)]
-/// pub(crate) struct C;
+/// #[entity]
+/// impl Character {
+///     fn build() -> impl Built<Self> {
+///         EntityBuilder::new(Self).with(Life(100))
+///     }
+/// }
 /// ```
+pub use modor_derive::Component;
+
+/// Defines a type implementing [`Action`](crate::Action).
 ///
-/// This is equivalent to:
+/// The type must be a unit type (if no dependency) or a type with unnamed fields, where field types
+/// implement [`Action`](crate::Action) trait and are the dependencies of the defined action.
+///
+/// An action A is a dependency of an action B if all systems running as action A must be run
+/// before any system running as action B.
+///
+/// # Static checks
+///
+/// The way an action type is defined ensures that cyclic dependencies are detected at compile time.
+///
+/// # Examples
+///
 /// ```rust
-/// # use modor::{Action, DependsOn};
+/// # use modor::Action;
 /// #
+/// #[derive(Action)]
 /// struct A;
 ///
-/// impl Action for A {
-///     type Constraint = ();
-/// }
-///
+/// #[derive(Action)]
 /// pub struct B;
 ///
-/// impl Action for B {
-///     type Constraint = ();
-/// }
-///
-/// pub(crate) struct C;
-///
-/// impl Action for C {
-///     type Constraint = (DependsOn<A>, DependsOn<B>);
-/// }
+/// // systems running as C will be run only once all systems running as A and B have been run
+/// #[derive(Action)]
+/// pub(crate) struct C(A, B);
 /// ```
-pub use modor_derive::action;
+pub use modor_derive::Action;

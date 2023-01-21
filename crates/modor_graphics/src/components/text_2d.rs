@@ -43,7 +43,7 @@ use crate::{Color, FontRef};
 /// ```
 ///
 /// See also [`Font`](crate::Font) for a font attachment example.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct Text2D {
     /// The string to render.
     pub string: String,

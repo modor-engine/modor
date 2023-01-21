@@ -1,5 +1,5 @@
 use crate::data::resources::ResourceState;
-use crate::internal::RenderTarget;
+use crate::entities::render_target::RenderTarget;
 use crate::storages::resources::fonts::FontKey;
 use crate::{FontRef, Resource, ResourceLoading, ResourceLoadingError};
 use ab_glyph::FontVec;

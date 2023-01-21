@@ -92,6 +92,6 @@ impl FrameRateDisplay {
     #[run]
     fn update_frame_rate(delta_time: Single<'_, DeltaTime>) {
         let fps = (1. / delta_time.get().as_secs_f32()).round();
-        println!("FPS: {}", fps);
+        println!("FPS: {fps}");
     }
 }

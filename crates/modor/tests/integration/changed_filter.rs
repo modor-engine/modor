@@ -1,7 +1,9 @@
 use modor::{App, Built, Changed, Entity, EntityBuilder, Filter, Query, With, World};
 
+#[derive(Component)]
 struct TrackedComponent;
 
+#[derive(Component)]
 struct Counter(u32);
 
 struct BaseEntity;
@@ -14,7 +16,7 @@ impl BaseEntity {
             .with(Counter(0))
     }
 
-    #[run_after(StaticEntity, MutatedEntity)]
+    #[run_after(entity(StaticEntity), entity(MutatedEntity))]
     fn update(counter: &mut Counter, _: Filter<Changed<TrackedComponent>>) {
         counter.0 += 1;
     }

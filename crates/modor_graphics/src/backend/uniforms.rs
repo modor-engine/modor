@@ -17,7 +17,7 @@ where
         let buffer = DynamicBuffer::new(
             data,
             DynamicBufferUsage::Uniform,
-            format!("modor_uniform_buffer_{}", label_suffix),
+            format!("modor_uniform_buffer_{label_suffix}"),
             renderer,
         );
         let bind_group_layout = Self::create_bind_group_layout(binding, label_suffix, renderer);
@@ -60,7 +60,7 @@ where
                     },
                     count: None,
                 }],
-                label: Some(&format!("modor_uniform_bind_group_layout_{}", label_suffix)),
+                label: Some(&format!("modor_uniform_bind_group_layout_{label_suffix}")),
             })
     }
 
@@ -79,7 +79,7 @@ where
                     binding,
                     resource: buffer.binding_resource(),
                 }],
-                label: Some(&format!("modor_uniform_bind_group_{}", label_suffix)),
+                label: Some(&format!("modor_uniform_bind_group_{label_suffix}")),
             })
     }
 }

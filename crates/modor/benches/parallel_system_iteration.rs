@@ -6,10 +6,19 @@ extern crate modor;
 use criterion::{criterion_main, Criterion};
 use modor::{App, Built, EntityBuilder};
 
+#[derive(Component)]
 struct A(f32);
+
+#[derive(Component)]
 struct B(f32);
+
+#[derive(Component)]
 struct C(f32);
+
+#[derive(Component)]
 struct D(f32);
+
+#[derive(Component)]
 struct E(f32);
 
 struct Item1;
