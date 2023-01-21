@@ -63,6 +63,7 @@ impl PipelineStorage {
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
+            None,
             collision_groups,
             &(),
         );
