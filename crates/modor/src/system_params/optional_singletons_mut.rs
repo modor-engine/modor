@@ -4,12 +4,12 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::systems::context::SystemContext;
-use crate::{EntityMainComponent, SingleMut, Singleton, SystemParam};
+use crate::{EntityMainComponent, SingleMut, SystemParam, True};
 
 #[allow(clippy::use_self)]
 impl<'a, C> SystemParamWithLifetime<'a> for Option<SingleMut<'_, C>>
 where
-    C: EntityMainComponent<Type = Singleton>,
+    C: EntityMainComponent<IsSingleton = True>,
 {
     type Param = Option<SingleMut<'a, C>>;
     type Guard = SingletonMutGuard<'a, C>;
@@ -19,7 +19,7 @@ where
 
 impl<C> SystemParam for Option<SingleMut<'_, C>>
 where
-    C: EntityMainComponent<Type = Singleton>,
+    C: EntityMainComponent<IsSingleton = True>,
 {
     type Filter = ();
     type InnerTuple = ();
@@ -70,7 +70,7 @@ where
 
 impl<C> LockableSystemParam for Option<SingleMut<'_, C>>
 where
-    C: EntityMainComponent<Type = Singleton>,
+    C: EntityMainComponent<IsSingleton = True>,
 {
     type LockedType = C;
     type Mutability = Mut;
@@ -80,7 +80,7 @@ pub(crate) mod internal {
     use crate::singletons_mut::internal::SingletonMutGuardBorrow;
     use crate::storages::entities::EntityIdx;
     use crate::systems::context::SystemContext;
-    use crate::{Entity, EntityMainComponent, SingleMut, Singleton};
+    use crate::{Entity, EntityMainComponent, SingleMut, True};
     use std::ops::Range;
 
     pub struct SingletonOptionMutStream<'a, C> {
@@ -91,7 +91,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonOptionMutStream<'a, C>
     where
-        C: EntityMainComponent<Type = Singleton>,
+        C: EntityMainComponent<IsSingleton = True>,
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {

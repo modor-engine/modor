@@ -39,3 +39,12 @@ where
     assert_eq!(actual.len(), 0, "size not zero after last item");
     assert_eq!(actual.next(), None, "more items than expected");
 }
+
+#[derive(Component)]
+struct Value(u32);
+
+#[derive(Component, Clone)]
+struct OptionalValue(u32);
+
+#[derive(Component)]
+struct Text(String);

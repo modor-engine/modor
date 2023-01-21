@@ -12,6 +12,18 @@ where
     assert_eq!(actual, expected);
 }
 
+#[derive(Component, PartialEq, Eq, Hash, Debug)]
+struct C1(u32);
+
+#[derive(Component, PartialEq, Eq, Hash, Debug)]
+struct C2;
+
+#[derive(Component, PartialEq, Eq, Hash, Debug)]
+struct C3;
+
+#[derive(Component, PartialEq, Eq, Hash, Debug)]
+struct C4;
+
 struct ResultCollector {
     done: bool,
 }
@@ -26,37 +38,37 @@ impl ResultCollector {
     #[run]
     fn run_filtered_queries(
         &mut self,
-        with: Query<'_, (&u32, Filter<With<i64>>)>,
-        without: Query<'_, (&u32, Filter<Without<i64>>)>,
+        with: Query<'_, (&C1, Filter<With<C2>>)>,
+        without: Query<'_, (&C1, Filter<Without<C2>>)>,
         (and_empty, and_1_with, and_many_with, and_1_without, and_many_without): (
-            Query<'_, (&u32, Filter<()>)>,
-            Query<'_, (&u32, Filter<(With<i64>,)>)>,
-            Query<'_, (&u32, Filter<(With<i64>, With<u8>)>)>,
-            Query<'_, (&u32, Filter<(Without<i64>,)>)>,
-            Query<'_, (&u32, Filter<(Without<i64>, Without<u8>)>)>,
+            Query<'_, (&C1, Filter<()>)>,
+            Query<'_, (&C1, Filter<(With<C2>,)>)>,
+            Query<'_, (&C1, Filter<(With<C2>, With<C3>)>)>,
+            Query<'_, (&C1, Filter<(Without<C2>,)>)>,
+            Query<'_, (&C1, Filter<(Without<C2>, Without<C3>)>)>,
         ),
         (or_empty, or_1_with, or_many_with, or_1_without, or_many_without): (
-            Query<'_, (&u32, Filter<Or<()>>)>,
-            Query<'_, (&u32, Filter<Or<(With<i64>,)>>)>,
-            Query<'_, (&u32, Filter<Or<(With<i64>, With<u8>)>>)>,
-            Query<'_, (&u32, Filter<Or<(Without<i64>,)>>)>,
-            Query<'_, (&u32, Filter<Or<(Without<i64>, Without<u8>)>>)>,
+            Query<'_, (&C1, Filter<Or<()>>)>,
+            Query<'_, (&C1, Filter<Or<(With<C2>,)>>)>,
+            Query<'_, (&C1, Filter<Or<(With<C2>, With<C3>)>>)>,
+            Query<'_, (&C1, Filter<Or<(Without<C2>,)>>)>,
+            Query<'_, (&C1, Filter<Or<(Without<C2>, Without<C3>)>>)>,
         ),
-        nested: Query<'_, (&u32, Filter<Or<(With<u8>, (With<u32>, With<i64>))>>)>,
+        nested: Query<'_, (&C1, Filter<Or<(With<C3>, (With<C1>, With<C2>))>>)>,
     ) {
-        assert_unordered_iter(with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(without.iter().map(|(&v, _)| v), [2, 4]);
-        assert_unordered_iter(and_empty.iter().map(|(&v, _)| v), [1, 2, 3, 4]);
-        assert_unordered_iter(and_1_with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(and_many_with.iter().map(|(&v, _)| v), [1]);
-        assert_unordered_iter(and_1_without.iter().map(|(&v, _)| v), [2, 4]);
-        assert_unordered_iter(and_many_without.iter().map(|(&v, _)| v), [4]);
-        assert_unordered_iter(or_empty.iter().map(|(&v, _)| v), []);
-        assert_unordered_iter(or_1_with.iter().map(|(&v, _)| v), [1, 3]);
-        assert_unordered_iter(or_many_with.iter().map(|(&v, _)| v), [1, 2, 3]);
-        assert_unordered_iter(or_1_without.iter().map(|(&v, _)| v), [2, 4]);
-        assert_unordered_iter(or_many_without.iter().map(|(&v, _)| v), [2, 3, 4]);
-        assert_unordered_iter(nested.iter().map(|(&v, _)| v), [1, 2, 3]);
+        assert_unordered_iter(with.iter().map(|(v, _)| v.0), [1, 3]);
+        assert_unordered_iter(without.iter().map(|(v, _)| v.0), [2, 4]);
+        assert_unordered_iter(and_empty.iter().map(|(v, _)| v.0), [1, 2, 3, 4]);
+        assert_unordered_iter(and_1_with.iter().map(|(v, _)| v.0), [1, 3]);
+        assert_unordered_iter(and_many_with.iter().map(|(v, _)| v.0), [1]);
+        assert_unordered_iter(and_1_without.iter().map(|(v, _)| v.0), [2, 4]);
+        assert_unordered_iter(and_many_without.iter().map(|(v, _)| v.0), [4]);
+        assert_unordered_iter(or_empty.iter().map(|(v, _)| v.0), []);
+        assert_unordered_iter(or_1_with.iter().map(|(v, _)| v.0), [1, 3]);
+        assert_unordered_iter(or_many_with.iter().map(|(v, _)| v.0), [1, 2, 3]);
+        assert_unordered_iter(or_1_without.iter().map(|(v, _)| v.0), [2, 4]);
+        assert_unordered_iter(or_many_without.iter().map(|(v, _)| v.0), [2, 3, 4]);
+        assert_unordered_iter(nested.iter().map(|(v, _)| v.0), [1, 2, 3]);
         self.done = true;
     }
 }
@@ -72,14 +84,14 @@ fn filter_entities_in_query() {
         .with_entity(ResultCollector::build())
         .with_entity(
             EntityBuilder::new(TestEntity)
-                .with(1_u32)
-                .with(10_i64)
-                .with(100_u8)
-                .with(1000_i16),
+                .with(C1(1))
+                .with(C2)
+                .with(C3)
+                .with(C4),
         )
-        .with_entity(EntityBuilder::new(TestEntity).with(2_u32).with(200_u8))
-        .with_entity(EntityBuilder::new(TestEntity).with(3_u32).with(30_i64))
-        .with_entity(EntityBuilder::new(TestEntity).with(4_u32))
+        .with_entity(EntityBuilder::new(TestEntity).with(C1(2)).with(C3))
+        .with_entity(EntityBuilder::new(TestEntity).with(C1(3)).with(C2))
+        .with_entity(EntityBuilder::new(TestEntity).with(C1(4)))
         .updated()
         .assert::<With<ResultCollector>>(1, |e| e.has(|c: &ResultCollector| assert!(c.done)));
 }

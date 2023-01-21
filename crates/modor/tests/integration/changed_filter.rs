@@ -1,7 +1,9 @@
 use modor::{App, Built, Changed, Entity, EntityBuilder, Filter, Query, With, World};
 
+#[derive(Component)]
 struct TrackedComponent;
 
+#[derive(Component)]
 struct Counter(u32);
 
 struct BaseEntity;

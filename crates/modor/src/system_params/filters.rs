@@ -13,12 +13,12 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Filter, With};
+/// # use modor::*;
 /// #
-/// #[derive(Debug)]
+/// #[derive(Debug, Component)]
 /// struct Position(f32, f32);
 ///
-/// #[derive(Debug)]
+/// #[derive(Debug, Component)]
 /// struct Velocity(f32, f32);
 ///
 /// fn print_position(position: &Position, _filter: Filter<With<Velocity>>) {

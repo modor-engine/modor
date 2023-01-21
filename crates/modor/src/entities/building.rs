@@ -1,12 +1,12 @@
 use self::internal::{
     BuildEntity, BuildEntityPart, ChildPart, ChildrenPart, ComponentPart, DependencyPart,
-    InheritedPart, MainComponentPart,
+    InheritedPart,
 };
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{EntityMainComponent, Inheritable, Singleton};
-use std::any::Any;
+use crate::{Component, EntityMainComponent, False, Inheritable, SystemRunner, True};
+use std::any::TypeId;
 use std::marker::PhantomData;
 
 /// A trait implemented for all types able to build an entity.
@@ -17,10 +17,15 @@ use std::marker::PhantomData;
 ///
 /// See [`EntityBuilder`](crate::EntityBuilder).
 #[must_use]
-pub trait Built<E>: BuildEntity
+pub trait Built<E>: BuildEntity + BuildEntityPart
 where
     E: EntityMainComponent,
 {
+    /// Retrieves an immutable reference to the main component of the entity.
+    fn main(&self) -> &E;
+
+    /// Retrieves a mutable reference to the main component of the entity.
+    fn main_mut(&mut self) -> &mut E;
 }
 
 /// A builder for defining the components and children of an entity.
@@ -31,10 +36,13 @@ where
 /// ```rust
 /// # use modor::*;
 /// #
-/// # struct Position(f32, f32);
-/// # struct Velocity(f32, f32);
-/// # struct Acceleration(f32, f32);
-/// #
+/// #[derive(Component)]
+/// struct Position(f32, f32);
+/// #[derive(Component)]
+/// struct Velocity(f32, f32);
+/// #[derive(Component)]
+/// struct Acceleration(f32, f32);
+///
 /// struct Object {
 ///     name: String,
 /// }
@@ -49,69 +57,69 @@ where
 ///     }
 /// }
 /// ```
-pub struct EntityBuilder<E, P, O> {
-    part: P,
-    other_parts: O,
-    phantom: PhantomData<E>,
+pub struct EntityBuilder<E, P> {
+    main_component: ComponentPart<E, E>,
+    parts: P,
 }
 
-impl<E> EntityBuilder<E, MainComponentPart<E>, ()>
+impl<E> EntityBuilder<E, ()>
 where
     E: EntityMainComponent,
 {
     /// Starts building an entity by providing its `main_component`.
     pub fn new(main_component: E) -> Self {
         Self {
-            part: MainComponentPart {
-                component_part: ComponentPart {
-                    component: Some(main_component),
-                    type_idx: None,
-                    phantom: PhantomData,
-                },
+            main_component: ComponentPart {
+                component: Some(main_component),
+                type_idx: None,
+                phantom: PhantomData,
             },
-            other_parts: (),
-            phantom: PhantomData,
+            parts: (),
         }
     }
 }
 
-impl<E, P, O> EntityBuilder<E, P, O>
+impl<E, P> EntityBuilder<E, P>
 where
     E: EntityMainComponent,
 {
     /// Adds a component of type `C`.
     ///
     /// If a component of type `C` already exists, it is overwritten.
-    pub fn with<C>(self, component: C) -> EntityBuilder<E, ComponentPart<E, C>, Self>
+    pub fn with<C>(self, component: C) -> EntityBuilder<E, (P, ComponentPart<E, C>)>
     where
-        C: Any + Sync + Send,
+        C: Component<IsEntityMainComponent = False>,
     {
         EntityBuilder {
-            part: ComponentPart {
-                component: Some(component),
-                type_idx: None,
-                phantom: PhantomData,
-            },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (
+                self.parts,
+                ComponentPart {
+                    component: Some(component),
+                    type_idx: None,
+                    phantom: PhantomData,
+                },
+            ),
         }
     }
 
     /// Adds a component of type `C` only if `component` is not `None`.
     ///
     /// If `component` is not `None` and a component of type `C` already exists, it is overwritten.
-    pub fn with_option<C>(self, component: Option<C>) -> EntityBuilder<E, ComponentPart<E, C>, Self>
+    pub fn with_option<C>(self, component: Option<C>) -> EntityBuilder<E, (P, ComponentPart<E, C>)>
     where
-        C: Any + Sync + Send,
+        C: Component<IsEntityMainComponent = False>,
     {
         EntityBuilder {
-            part: ComponentPart {
-                component,
-                type_idx: None,
-                phantom: PhantomData,
-            },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (
+                self.parts,
+                ComponentPart {
+                    component,
+                    type_idx: None,
+                    phantom: PhantomData,
+                },
+            ),
         }
     }
 
@@ -126,14 +134,13 @@ where
     pub fn inherit_from<I>(
         self,
         inherited: impl Built<I>,
-    ) -> EntityBuilder<E, InheritedPart<impl Built<I>>, Self>
+    ) -> EntityBuilder<E, (P, InheritedPart<impl Built<I>>)>
     where
         I: EntityMainComponent + Inheritable<E>,
     {
         EntityBuilder {
-            part: InheritedPart { entity: inherited },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (self.parts, InheritedPart { entity: inherited }),
         }
     }
 
@@ -141,14 +148,13 @@ where
     pub fn with_child<C>(
         self,
         child: impl Built<C>,
-    ) -> EntityBuilder<E, ChildPart<impl Built<C>>, Self>
+    ) -> EntityBuilder<E, (P, ChildPart<impl Built<C>>)>
     where
         C: EntityMainComponent,
     {
         EntityBuilder {
-            part: ChildPart { entity: child },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (self.parts, ChildPart { entity: child }),
         }
     }
 
@@ -157,14 +163,13 @@ where
     /// This method can be used instead of
     /// [`EntityBuilder::with_child`](crate::EntityBuilder::with_child) when children are
     /// created dynamically (e.g. with conditional creation or loops).
-    pub fn with_children<F>(self, build_fn: F) -> EntityBuilder<E, ChildrenPart<F>, Self>
+    pub fn with_children<F>(self, build_fn: F) -> EntityBuilder<E, (P, ChildrenPart<F>)>
     where
         F: FnOnce(&mut ChildBuilder<'_>),
     {
         EntityBuilder {
-            part: ChildrenPart { build_fn },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (self.parts, ChildrenPart { build_fn }),
         }
     }
 
@@ -175,52 +180,48 @@ where
     pub fn with_dependency<D>(
         self,
         dependency: impl Built<D>,
-    ) -> EntityBuilder<E, DependencyPart<D, impl Built<D>>, Self>
+    ) -> EntityBuilder<E, (P, DependencyPart<D, impl Built<D>>)>
     where
-        D: EntityMainComponent<Type = Singleton>,
+        D: EntityMainComponent<IsSingleton = True>,
     {
         EntityBuilder {
-            part: DependencyPart {
-                entity: dependency,
-                phantom: PhantomData,
-            },
-            other_parts: self,
-            phantom: PhantomData,
+            main_component: self.main_component,
+            parts: (
+                self.parts,
+                DependencyPart {
+                    entity: dependency,
+                    phantom: PhantomData,
+                },
+            ),
         }
     }
-}
 
-impl<E, P, O> BuildEntityPart for EntityBuilder<E, P, O>
-where
-    E: EntityMainComponent,
-    P: BuildEntityPart,
-    O: BuildEntityPart,
-{
-    fn create_archetype(
-        &mut self,
-        core: &mut CoreStorage,
-        archetype_idx: ArchetypeIdx,
-    ) -> ArchetypeIdx {
-        let archetype_idx = self.other_parts.create_archetype(core, archetype_idx);
-        self.part.create_archetype(core, archetype_idx)
-    }
-
-    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-        self.other_parts.add_components(core, location);
-        self.part.add_components(core, location);
-    }
-
-    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
-        self.other_parts.create_other_entities(core, parent_idx);
-        self.part.create_other_entities(core, parent_idx);
+    fn init_entity_type(core: &mut CoreStorage) {
+        if core.components().is_entity_type::<E>() {
+            let type_idx = core
+                .components()
+                .type_idx(TypeId::of::<E>())
+                .expect("internal error: entity type without index");
+            if let Some(location) = core.components().singleton_location(type_idx) {
+                let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
+                core.delete_entity(entity_idx);
+            }
+        } else {
+            let entity_type_idx = core.add_entity_type::<E>();
+            E::on_update(SystemRunner {
+                core,
+                entity_action_type: TypeId::of::<<E as EntityMainComponent>::Action>(),
+                entity_type_idx,
+                action_idxs: vec![],
+            });
+        };
     }
 }
 
-impl<E, P, O> BuildEntity for EntityBuilder<E, P, O>
+impl<E, P> BuildEntity for EntityBuilder<E, P>
 where
     E: EntityMainComponent,
     P: BuildEntityPart,
-    O: BuildEntityPart,
 {
     fn build(mut self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
         let archetype_idx = self.create_archetype(core, ArchetypeStorage::DEFAULT_IDX);
@@ -231,12 +232,50 @@ where
     }
 }
 
-impl<E, P, O> Built<E> for EntityBuilder<E, P, O>
+impl<E, P> BuildEntityPart for EntityBuilder<E, P>
 where
     E: EntityMainComponent,
     P: BuildEntityPart,
-    O: BuildEntityPart,
 {
+    fn create_archetype(
+        &mut self,
+        core: &mut CoreStorage,
+        archetype_idx: ArchetypeIdx,
+    ) -> ArchetypeIdx {
+        Self::init_entity_type(core);
+        let archetype_idx = self.main_component.create_archetype(core, archetype_idx);
+        self.parts.create_archetype(core, archetype_idx)
+    }
+
+    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
+        self.main_component.add_components(core, location);
+        self.parts.add_components(core, location);
+    }
+
+    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
+        self.main_component.create_other_entities(core, parent_idx);
+        self.parts.create_other_entities(core, parent_idx);
+    }
+}
+
+impl<E, P> Built<E> for EntityBuilder<E, P>
+where
+    E: EntityMainComponent,
+    P: BuildEntityPart,
+{
+    fn main(&self) -> &E {
+        self.main_component
+            .component
+            .as_ref()
+            .expect("internal error: missing main component of entity")
+    }
+
+    fn main_mut(&mut self) -> &mut E {
+        self.main_component
+            .component
+            .as_mut()
+            .expect("internal error: missing main component of entity")
+    }
 }
 
 /// A builder for dynamically defining children of an entity.
@@ -289,10 +328,14 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::{ChildBuilder, EntityMainComponent, Singleton, SystemRunner};
+    use crate::{ChildBuilder, Component, EntityMainComponent, True};
     use std::any;
     use std::any::{Any, TypeId};
     use std::marker::PhantomData;
+
+    pub trait BuildEntity: Any + Sync + Send {
+        fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
+    }
 
     #[allow(unused_variables)]
     pub trait BuildEntityPart: Sized + Any + Sync + Send {
@@ -311,47 +354,28 @@ mod internal {
 
     impl BuildEntityPart for () {}
 
-    pub struct MainComponentPart<E> {
-        pub(super) component_part: ComponentPart<E, E>,
-    }
-
-    impl<E> BuildEntityPart for MainComponentPart<E>
+    impl<T, U> BuildEntityPart for (T, U)
     where
-        E: EntityMainComponent,
+        T: BuildEntityPart,
+        U: BuildEntityPart,
     {
         fn create_archetype(
             &mut self,
             core: &mut CoreStorage,
             archetype_idx: ArchetypeIdx,
         ) -> ArchetypeIdx {
-            if core.components().is_entity_type::<E>() {
-                let type_idx = core
-                    .components()
-                    .type_idx(TypeId::of::<E>())
-                    .expect("internal error: entity type without index");
-                if let Some(location) = core.components().singleton_location(type_idx) {
-                    let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-                    core.delete_entity(entity_idx);
-                }
-            } else {
-                let entity_type_idx = core.add_entity_type::<E>();
-                E::on_update(SystemRunner {
-                    core,
-                    entity_action_type: TypeId::of::<<E as EntityMainComponent>::Action>(),
-                    entity_type_idx,
-                    action_idxs: vec![],
-                });
-            };
-            self.component_part.create_archetype(core, archetype_idx)
+            let archetype_idx = self.0.create_archetype(core, archetype_idx);
+            self.1.create_archetype(core, archetype_idx)
         }
 
         fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-            self.component_part.add_components(core, location);
-            trace!(
-                "component `{}` added to entity of type `{}`",
-                any::type_name::<E>(),
-                any::type_name::<E>()
-            );
+            self.0.add_components(core, location);
+            self.1.add_components(core, location);
+        }
+
+        fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
+            self.0.create_other_entities(core, parent_idx);
+            self.1.create_other_entities(core, parent_idx);
         }
     }
 
@@ -364,7 +388,7 @@ mod internal {
     impl<E, C> BuildEntityPart for ComponentPart<E, C>
     where
         E: EntityMainComponent,
-        C: Any + Sync + Send,
+        C: Component,
     {
         fn create_archetype(
             &mut self,
@@ -387,7 +411,7 @@ mod internal {
                     type_idx,
                     location,
                     TypeId::of::<C>() == TypeId::of::<E>()
-                        && TypeId::of::<E::Type>() == TypeId::of::<Singleton>(),
+                        && TypeId::of::<E::IsSingleton>() == TypeId::of::<True>(),
                 );
                 trace!(
                     "component `{}` added to entity of type `{}`",
@@ -485,9 +509,5 @@ mod internal {
                 );
             }
         }
-    }
-
-    pub trait BuildEntity: BuildEntityPart {
-        fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
     }
 }

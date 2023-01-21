@@ -16,7 +16,7 @@ use rapier2d::na::Vector2;
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct Dynamics2D {
     /// Linear velocity of the entity in world units per second.
     pub velocity: PhysicsProperty<Vec2>,

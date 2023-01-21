@@ -19,7 +19,7 @@
 //!     .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
 //!     .update();
 //!
-//! #[derive(Debug)]
+//! #[derive(Debug, Component)]
 //! struct Position(f32, f32);
 //!
 //! enum CharacterType {
@@ -28,6 +28,7 @@
 //!     Enemy,
 //! }
 //!
+//! #[derive(Component)]
 //! struct Enemy;
 //!
 //! struct Character {
@@ -101,6 +102,8 @@ pub use systems::traits::*;
 /// Defines an entity.
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.
+///
+/// It automatically implements the trait [`Component`](crate::Component).
 ///
 /// # System definition
 ///
@@ -227,19 +230,24 @@ pub use systems::traits::*;
 /// Here are some valid systems:
 ///
 /// ```rust
-/// # use modor::{entity, World, Query, Entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Id(u32);
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn access_entity_info(id: &u32, message: Option<&mut String>) {
-///         // Run for each entity with at least a component of type `u32`
+///     fn access_entity_info(id: &Id, message: Option<&mut Text>) {
+///         // Run for each entity with at least a component of type `Id`
 ///         // and `MyEntity` (the main component is always used to filter).
-///         // `String` is not used to filter entities as it is optional.
+///         // `Text` is not used to filter entities as it is optional.
 ///         if let Some(message) = message {
-///             *message = format!("id: {}", id);
+///             message.0 = format!("id: {}", id.0);
 ///         }
 ///     }
 ///
@@ -263,15 +271,18 @@ pub use systems::traits::*;
 /// And here is an invalid system detected at compile time:
 ///
 /// ```compile_fail
-/// # use modor::{entity};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
+/// struct Text(String);
+///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn invalid_system(name: &String, name_mut: &mut String) {
-///         // invalid as `String` cannot be borrowed both mutably and immutably
+///     fn invalid_system(name: &Text, name_mut: &mut Text) {
+///         // invalid as `Text` cannot be borrowed both mutably and immutably
 ///         *name_mut = format!("[[[ {} ]]]", name);
 ///     }
 /// }
@@ -286,12 +297,6 @@ pub use modor_derive::entity;
 /// [`EntityBuilder::with_dependency`](crate::EntityBuilder::with_dependency) method.<br>
 /// The instance can be directly accessed in systems using [`Single`](crate::Single) and
 /// [`SingleMut`](crate::SingleMut) parameter types.
-///
-/// It has to be noted that an entity main component defined as singleton can be added to entities
-/// as a simple component (e.g. using [`EntityBuilder::with`](crate::EntityBuilder::with)).<br>
-/// In this case, the entity will not be tracked as a singleton by the engine, and so the component
-/// will not be accessible in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut).
 ///
 /// # Examples
 ///
@@ -314,6 +319,29 @@ pub use modor_derive::entity;
 /// }
 /// ```
 pub use modor_derive::singleton;
+
+/// Defines a simple component that can be added to an entity.
+///
+/// This macro implements the trait [`Component`](crate::Component).
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Component)]
+/// struct Life(u16);
+///
+/// struct Character;
+///
+/// #[entity]
+/// impl Character {
+///     fn build() -> impl Built<Self> {
+///         EntityBuilder::new(Self).with(Life(100))
+///     }
+/// }
+/// ```
+pub use modor_derive::Component;
 
 /// Defines a type implementing [`Action`](crate::Action).
 ///

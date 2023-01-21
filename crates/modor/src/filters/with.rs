@@ -2,7 +2,8 @@ use super::EntityFilter;
 use crate::storages::archetypes::ArchetypeIdx;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
-use std::any::{Any, TypeId};
+use crate::Component;
+use std::any::TypeId;
 use std::marker::PhantomData;
 
 /// A filter to keep only entities with a component of type `C`.
@@ -15,9 +16,11 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Query, With, Entity, Filter};
+/// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct Position;
+/// #[derive(Component)]
 /// struct Velocity;
 ///
 /// fn list_movable_entities(
@@ -30,11 +33,11 @@ use std::marker::PhantomData;
 /// ```
 pub struct With<C>(PhantomData<fn(C)>)
 where
-    C: Any + Sync + Send;
+    C: Component;
 
 impl<C> EntityFilter for With<C>
 where
-    C: Any + Sync + Send,
+    C: Component,
 {
     fn is_archetype_kept(
         _system_idx: Option<SystemIdx>,

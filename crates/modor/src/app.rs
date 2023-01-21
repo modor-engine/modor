@@ -1,10 +1,10 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    system, utils, Built, EntityFilter, EntityMainComponent, Filter, Singleton, UsizeRange,
+    system, utils, Built, Component, EntityFilter, EntityMainComponent, Filter, True, UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::marker::PhantomData;
 use std::panic;
 use std::panic::RefUnwindSafe;
@@ -27,12 +27,15 @@ pub use log::LevelFilter;
 ///     app.update();
 /// }
 ///
+/// #[derive(Component)]
+/// struct Label(String);
+///
 /// struct Button;
 ///
 /// #[entity]
 /// impl Button {
 ///     fn build(label: String) -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(label)
+///         EntityBuilder::new(Self).with(Label(label))
 ///     }
 /// }
 /// ```
@@ -42,7 +45,10 @@ pub use log::LevelFilter;
 /// ```rust
 /// # use modor::*;
 /// #
+/// #[derive(Component)]
 /// struct Count(usize);
+/// #[derive(Component)]
+/// struct Label(String);
 ///
 /// struct Counter;
 ///
@@ -66,7 +72,7 @@ pub use log::LevelFilter;
 ///         .with_entity(Counter::build())
 ///         .assert::<With<Counter>>(1, |e| {
 ///             e.has(|c: &Count| assert_eq!(c.0, 0))
-///                 .has_not::<usize>()
+///                 .has_not::<Label>()
 ///                 .child_count(0)
 ///         })
 ///         .updated()
@@ -150,7 +156,7 @@ impl App {
     pub fn with_update<F, C>(mut self, mut f: impl FnMut(&mut C)) -> Self
     where
         F: EntityFilter,
-        C: Any + Sync + Send,
+        C: Component,
     {
         self.core
             .run_system(system!(|c: &mut C, _: Filter<F>| f(c)));
@@ -178,7 +184,7 @@ impl App {
     ) -> Self
     where
         F: EntityFilter,
-        C: Any + Sync + Send,
+        C: Component,
     {
         for i in 0.. {
             self.update();
@@ -209,7 +215,7 @@ impl App {
     ) -> Self
     where
         F: EntityFilter,
-        C: Any + Sync + Send,
+        C: Component,
     {
         for i in 0.. {
             self.update();
@@ -269,7 +275,7 @@ impl App {
     /// Runs `f` if the singleton of type `E` exists.
     pub fn update_singleton<E>(&mut self, f: impl FnOnce(&mut E))
     where
-        E: EntityMainComponent<Type = Singleton>,
+        E: EntityMainComponent<IsSingleton = True>,
     {
         let location = self
             .core
@@ -325,7 +331,7 @@ where
     /// because internal call to [`catch_unwind`](std::panic::catch_unwind) is unsupported.
     pub fn has<C, A>(self, f: A) -> Self
     where
-        C: Any + Sync + Send + RefUnwindSafe,
+        C: Component + RefUnwindSafe,
         A: Fn(&C) + RefUnwindSafe,
     {
         self.check_platform_for_catch_unwind();
@@ -369,7 +375,7 @@ where
     /// This will panic if the entity has a component of type `C`.
     pub fn has_not<C>(self) -> Self
     where
-        C: Any + Sync + Send,
+        C: Component,
     {
         let mut entity_count = 0;
         let mut component_count = 0;

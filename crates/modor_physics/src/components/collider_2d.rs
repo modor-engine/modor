@@ -24,7 +24,7 @@ use rapier2d::prelude::InteractionGroups;
 /// component is changed.<br>
 /// To make sure that the collisions are updated, you have to set the rotation or the position of the
 /// [`Transform2D`](crate::Transform2D) component.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct Collider2D {
     pub(crate) group_key: CollisionGroupKey,
     pub(crate) group_idx: Option<CollisionGroupIdx>,

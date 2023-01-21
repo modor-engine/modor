@@ -39,7 +39,7 @@ use modor_math::Vec2;
 /// ```
 ///
 /// See also [`Texture`](crate::Texture) for a texture attachment example.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 pub struct Mesh2D {
     /// Color of the entity.
     ///

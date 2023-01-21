@@ -7,6 +7,7 @@ extern crate modor;
 use criterion::{criterion_main, Criterion};
 use modor::{App, Built, EntityBuilder};
 
+#[derive(Component)]
 struct Data(f32);
 
 macro_rules! create_entities {
