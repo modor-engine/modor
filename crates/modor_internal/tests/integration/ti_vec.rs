@@ -5,6 +5,7 @@ use typed_index_collections::TiVec;
 idx_type!(TestIdx);
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_idx_type() {
     let idx = TestIdx::from(10);
     assert_eq!(idx.0, 10);
@@ -12,6 +13,7 @@ fn create_idx_type() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_ti_vec() {
     let vec: TiVec<u32, i64> = ti_vec![];
     assert_eq!(vec.len(), 0);
@@ -22,6 +24,7 @@ fn create_ti_vec() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn get_mut_or_create() {
     let mut vec = TiVec::<usize, usize>::new();
     *vec.get_mut_or_create(2) = 10;
