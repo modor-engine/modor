@@ -86,7 +86,7 @@ impl Camera2D {
         self.finger_positions.values().copied()
     }
 
-    #[run_after(entity(PhysicsModule), entity(InputModule))]
+    #[run_after(component(PhysicsModule), component(InputModule))]
     fn update_matrix(&mut self, transform: &Transform2D, window: Single<'_, Window>) {
         let (x_scale, y_scale) = numbers::world_scale((window.size().width, window.size().height));
         let position = Vec3::from_xy(transform.position.x, transform.position.y);

@@ -26,7 +26,7 @@ impl GraphicsModule {
             .with_dependency(PhysicsModule::build())
     }
 
-    #[run_after(entity(Rendering))]
+    #[run_after(component(Rendering))]
     fn retrieve_buffer(
         &mut self,
         target: Single<'_, TextureTarget>,

@@ -5,7 +5,7 @@
 //! provides an API that represents entities like strongly typed objects, and provides tools similar
 //! to the object-oriented paradigm:
 //! - data are represented by components
-//! - logic is put in systems that are only run for the entity type where they are defined
+//! - logic is put in systems associated to a component type, and are only run for entities containing the linked component type
 //! - data and logic inheritance is possible between entity types
 //!
 //! # Examples
@@ -103,7 +103,8 @@ pub use systems::traits::*;
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.
 ///
-/// It automatically implements the trait [`Component`](crate::Component).
+/// It automatically implements the traits [`Component`](crate::Component)
+/// and [`EntityMainComponent`](crate::EntityMainComponent).
 ///
 /// # System definition
 ///
@@ -121,13 +122,13 @@ pub use systems::traits::*;
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
 ///
-/// Note that an action type is created for each entity type:
-/// - In previously defined attributes, it is possible to refer this action using the `entity`
-/// attribute: `#[run_as(entity(MyEntity))]`
+/// Note that an action type is created for each component type:
+/// - In previously defined attributes, it is possible to refer this action using the `component`
+/// attribute: `#[run_as(component(MyEntity))]`
 /// - It is also possible to add this action as a dependency of another action defined using the
 /// [`Action`](macro@crate::Action) derive macro:
 /// ```rust
-/// # use modor::{entity, Action, EntityMainComponent};
+/// # use modor::{entity, Action, Component};
 /// #
 /// # struct MyEntity;
 /// #
@@ -135,19 +136,19 @@ pub use systems::traits::*;
 /// # impl MyEntity {}
 /// #
 /// #[derive(Action)]
-/// struct MyAction(<MyEntity as EntityMainComponent>::Action);
+/// struct MyAction(<MyEntity as Component>::Action);
 /// ```
 ///
-/// The action associated to an entity type is considered as finished once all systems of the entity
-/// have been run.
+/// The action associated to a component type is considered as finished once all systems of the
+/// component type have been run.
 ///
 /// The way actions are defined makes sure cyclic dependencies between systems are detected at
 /// compile time.
 ///
 /// # System behaviour
 ///
-/// If the system is defined for an entity main component of type `E`, the system is run for each
-/// entity containing a component of type `E`.
+/// If the system is defined for a component of type `T`, the system is run for each
+/// entity containing a component of type `T`.
 ///
 /// Some system parameter types help to access information about the current entity:
 /// - `&C` where `C` is a component type (the system is not executed for the entity
@@ -160,7 +161,8 @@ pub use systems::traits::*;
 ///
 /// Other system parameter types are more global.
 ///
-/// See [`SystemParam`](crate::SystemParam) to see the full list of system parameter types.
+/// See implementations of [`SystemParam`](crate::SystemParam) to see the full list of
+/// system parameter types.
 ///
 /// # Static checks
 ///
@@ -325,9 +327,42 @@ pub use modor_derive::entity;
 /// ```
 pub use modor_derive::singleton;
 
-/// Defines a simple component that can be added to an entity.
+/// Defines a simple component.
+///
+/// This macro works in the same way as the [`entity`](macro@crate::entity) proc macro,
+/// except it only implements the [`Component`](crate::Component) trait.
+///
+/// If the component does not have any system, the [`Component`](macro@crate::Component) derive
+/// macro can be used instead.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::component;
+/// #
+/// struct Counter(u32);
+///
+/// #[component]
+/// impl Counter {
+///     fn new() -> Self {
+///         Self(0)
+///     }
+///
+///     #[run]
+///     fn increment_score(&mut self) {
+///         self.0 += 1;
+///         println!("Number of updates: {}", self.0);
+///     }
+/// }
+/// ```
+pub use modor_derive::component;
+
+/// Defines a simple component with systems.
 ///
 /// This macro implements the trait [`Component`](crate::Component).
+///
+/// If the component has systems, the [`component`](macro@crate::component) proc macro can be used
+/// instead.
 ///
 /// # Examples
 ///

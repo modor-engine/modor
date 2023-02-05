@@ -9,8 +9,8 @@ use std::iter;
 #[doc(hidden)]
 pub struct SystemRunner<'a> {
     pub(crate) core: &'a mut CoreStorage,
-    pub(crate) entity_action_type: TypeId,
-    pub(crate) entity_type_idx: ComponentTypeIdx,
+    pub(crate) component_action_type: TypeId,
+    pub(crate) component_type_idx: ComponentTypeIdx,
     pub(crate) action_idxs: Vec<ActionIdx>,
 }
 
@@ -85,7 +85,7 @@ impl<'a> SystemRunner<'a> {
             .copied()
             .map(ActionDependency::Idx)
             .collect();
-        let entity_type = self.entity_action_type;
+        let component_type = self.component_action_type;
         self.run_with_action(
             SystemBuilder {
                 properties_fn: |_| SystemProperties {
@@ -97,7 +97,7 @@ impl<'a> SystemRunner<'a> {
                 wrapper: |_| (),
             },
             label,
-            Some(entity_type),
+            Some(component_type),
             dependencies,
         );
         FinishedSystemRunner
@@ -119,7 +119,7 @@ impl<'a> SystemRunner<'a> {
                 can_update: properties.can_update,
                 mutation_component_type_idxs: properties.mutation_component_type_idxs,
                 archetype_filter_fn: system.archetype_filter_fn,
-                entity_type_idx: Some(self.entity_type_idx),
+                component_type_idx: Some(self.component_type_idx),
                 label,
             },
             action_type,
@@ -127,9 +127,9 @@ impl<'a> SystemRunner<'a> {
         ));
         SystemRunner {
             action_idxs,
-            entity_action_type: self.entity_action_type,
+            component_action_type: self.component_action_type,
             core: self.core,
-            entity_type_idx: self.entity_type_idx,
+            component_type_idx: self.component_type_idx,
         }
     }
 }

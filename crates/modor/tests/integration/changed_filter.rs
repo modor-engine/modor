@@ -16,7 +16,7 @@ impl BaseEntity {
             .with(Counter(0))
     }
 
-    #[run_after(entity(StaticEntity), entity(MutatedEntity))]
+    #[run_after(component(StaticEntity), component(MutatedEntity))]
     fn update(counter: &mut Counter, _: Filter<Changed<TrackedComponent>>) {
         counter.0 += 1;
     }

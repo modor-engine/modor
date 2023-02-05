@@ -92,7 +92,7 @@ impl WindowTarget {
         }
     }
 
-    #[run_after_previous_and(entity(Target))]
+    #[run_after_previous_and(component(Target))]
     fn prepare_texture(&mut self, target: &mut Target, device: Single<'_, GpuDevice>) {
         if self.is_surface_refreshed {
             self.current_texture = None;

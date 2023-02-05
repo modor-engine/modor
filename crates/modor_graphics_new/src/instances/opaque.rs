@@ -22,7 +22,7 @@ impl OpaqueInstanceManager {
         })
     }
 
-    #[run_after(entity(PhysicsModule))]
+    #[run_after(component(PhysicsModule))]
     fn delete_meshes(&mut self, mut buffers: Query<'_, &mut OpaqueInstances>, world: World<'_>) {
         let mut buffers = Self::map_buffers(&mut buffers);
         for id in world
@@ -131,7 +131,7 @@ impl OpaqueInstances {
         })
     }
 
-    #[run_after(entity(OpaqueInstanceManager))]
+    #[run_after(component(OpaqueInstanceManager))]
     fn sync_buffer(&mut self, device: Single<'_, GpuDevice>) {
         self.buffer.sync(&device);
     }

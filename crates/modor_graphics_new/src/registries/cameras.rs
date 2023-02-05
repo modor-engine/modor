@@ -1,8 +1,8 @@
-use crate::resources::cameras::Camera2DTransform;
 use crate::keys::cameras::{CameraKey, DefaultCameraRef};
+use crate::resources::cameras::Camera2D;
+use crate::resources::cameras::Camera2DTransform;
 use crate::resources::uniforms::Uniform;
 use crate::targets::{GpuDevice, Target, CAMERA_BINDING};
-use crate::resources::cameras::Camera2D;
 use fxhash::FxHashMap;
 use log::error;
 use modor::{Built, EntityBuilder, Query, Single};
@@ -22,7 +22,7 @@ impl Camera2DRegistry {
         .with_child(Camera2D::build(DefaultCameraRef))
     }
 
-    #[run_after(entity(Camera2DTransform))]
+    #[run_after(component(Camera2DTransform))]
     fn update(
         &mut self,
         cameras: Query<'_, &Camera2DTransform>,

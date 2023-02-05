@@ -10,9 +10,7 @@ use crate::{
     Texture, WindowSettings,
 };
 use ab_glyph::FontVec;
-use modor::{
-    Built, Entity, EntityBuilder, EntityMainComponent, Filter, Query, Single, With, World,
-};
+use modor::{Built, Component, Entity, EntityBuilder, Filter, Query, Single, With, World};
 use modor_physics::{PhysicsModule, Transform2D};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
@@ -258,8 +256,8 @@ struct PrepareCaptureAction;
 #[derive(Action)]
 struct PrepareRenderingAction(
     PrepareCaptureAction,
-    <PhysicsModule as EntityMainComponent>::Action,
-    <Camera2D as EntityMainComponent>::Action,
+    <PhysicsModule as Component>::Action,
+    <Camera2D as Component>::Action,
 );
 
 #[derive(Action)]

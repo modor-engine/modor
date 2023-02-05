@@ -28,12 +28,14 @@ impl AttributeType {
         match self {
             Self::Run(_) => "#[run]",
             Self::RunAs(_) => {
-                "expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`"
+                "expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`"
             }
-            Self::RunAfter(_) => "#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`",
+            Self::RunAfter(_) => {
+                "#[run_after(ActionType1, ActionType2, component(ComponentType), ...)]`"
+            }
             Self::RunAfterPrevious(_) => "#[run_after_previous]",
             Self::RunAfterPreviousAnd(_) => {
-                "#[run_after_previous_and(ActionType1, ActionType2, entity(EntityType), ...)]"
+                "#[run_after_previous_and(ActionType1, ActionType2, component(ComponentType), ...)]"
             }
         }
     }
@@ -102,7 +104,7 @@ fn parse_path_argument(attribute: &Attribute) -> Option<TokenStream> {
         Meta::List(list) => (list.nested.len() == 1)
             .then(|| match &list.nested[0] {
                 NestedMeta::Meta(Meta::Path(path)) => Some(path.to_token_stream()),
-                NestedMeta::Meta(Meta::List(list)) => parse_entity_meta(list),
+                NestedMeta::Meta(Meta::List(list)) => parse_component_meta(list),
                 NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
             })
             .flatten(),
@@ -117,7 +119,7 @@ fn parse_path_arguments(attribute: &Attribute) -> Option<Vec<TokenStream>> {
                 .iter()
                 .map(|n| match &n {
                     NestedMeta::Meta(Meta::Path(path)) => Some(path.to_token_stream()),
-                    NestedMeta::Meta(Meta::List(list)) => parse_entity_meta(list),
+                    NestedMeta::Meta(Meta::List(list)) => parse_component_meta(list),
                     NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
                 })
                 .collect::<Option<_>>()?,
@@ -126,11 +128,11 @@ fn parse_path_arguments(attribute: &Attribute) -> Option<Vec<TokenStream>> {
     }
 }
 
-fn parse_entity_meta(meta: &MetaList) -> Option<TokenStream> {
+fn parse_component_meta(meta: &MetaList) -> Option<TokenStream> {
     if meta.path.segments.len() != 1 {
         return None;
     }
-    if meta.path.segments[0].ident != "entity" {
+    if meta.path.segments[0].ident != "component" {
         return None;
     }
     if meta.nested.len() != 1 {
@@ -140,7 +142,7 @@ fn parse_entity_meta(meta: &MetaList) -> Option<TokenStream> {
     let crate_ident = idents::find_crate_ident(nested_meta.span());
     match nested_meta {
         NestedMeta::Meta(Meta::Path(path)) => {
-            Some(quote! {<#path as #crate_ident::EntityMainComponent>::Action})
+            Some(quote! {<#path as #crate_ident::Component>::Action})
         }
         NestedMeta::Meta(_) | NestedMeta::Lit(_) => None,
     }

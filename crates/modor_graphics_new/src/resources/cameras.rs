@@ -32,7 +32,7 @@ impl Camera2D {
         .inherit_from(Camera2DTransform::build(CameraKey::new(ref_)))
     }
 
-    #[run_after(entity(InputModule), entity(Camera2DTransform))]
+    #[run_after(component(InputModule), component(Camera2DTransform))]
     fn update_mouse(
         &mut self,
         transform: &Camera2DTransform,
@@ -42,7 +42,7 @@ impl Camera2D {
         self.mouse_position = transform.window_to_world_position(mouse.position(), &resolution);
     }
 
-    #[run_after(entity(InputModule), entity(Camera2DTransform))]
+    #[run_after(component(InputModule), component(Camera2DTransform))]
     fn update_fingers(
         &mut self,
         transform: &Camera2DTransform,
@@ -88,7 +88,7 @@ impl Camera2DTransform {
         .with(Transform2D::new())
     }
 
-    #[run_after(entity(PhysicsModule))]
+    #[run_after(component(PhysicsModule))]
     fn update(
         &mut self,
         camera: &Camera2D,

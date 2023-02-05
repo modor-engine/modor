@@ -51,7 +51,7 @@ impl TextureTarget {
         }
     }
 
-    #[run_after_previous_and(entity(Target))]
+    #[run_after_previous_and(component(Target))]
     fn prepare_texture(&self, target: &mut Target) {
         let surface = self.texture.create_view(&TextureViewDescriptor::default());
         target.set_surface(surface);

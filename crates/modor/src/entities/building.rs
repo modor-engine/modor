@@ -5,7 +5,7 @@ use self::internal::{
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{Component, EntityMainComponent, False, Inheritable, SystemRunner, True};
+use crate::{Component, EntityMainComponent, False, Inheritable, True};
 use std::any::TypeId;
 use std::marker::PhantomData;
 
@@ -197,24 +197,12 @@ where
     }
 
     fn init_entity_type(core: &mut CoreStorage) {
-        if core.components().is_entity_type::<E>() {
-            let type_idx = core
-                .components()
-                .type_idx(TypeId::of::<E>())
-                .expect("internal error: entity type without index");
+        if let Some(type_idx) = core.components().type_idx(TypeId::of::<E>()) {
             if let Some(location) = core.components().singleton_location(type_idx) {
                 let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
                 core.delete_entity(entity_idx);
             }
-        } else {
-            let entity_type_idx = core.add_entity_type::<E>();
-            E::on_update(SystemRunner {
-                core,
-                entity_action_type: TypeId::of::<<E as EntityMainComponent>::Action>(),
-                entity_type_idx,
-                action_idxs: vec![],
-            });
-        };
+        }
     }
 }
 
@@ -328,7 +316,7 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::{ChildBuilder, Component, EntityMainComponent, True};
+    use crate::{ChildBuilder, Component, EntityMainComponent, SystemRunner, True};
     use std::any;
     use std::any::{Any, TypeId};
     use std::marker::PhantomData;
@@ -395,6 +383,15 @@ mod internal {
             core: &mut CoreStorage,
             archetype_idx: ArchetypeIdx,
         ) -> ArchetypeIdx {
+            if !core.components().has_systems_loaded::<E>() {
+                let component_type_idx = core.set_systems_as_loaded::<E>();
+                C::on_update(SystemRunner {
+                    core,
+                    component_action_type: TypeId::of::<<C as Component>::Action>(),
+                    component_type_idx,
+                    action_idxs: vec![],
+                });
+            };
             if self.component.is_some() {
                 let (new_type_idx, archetype_idx) = core.add_component_type::<C>(archetype_idx);
                 self.type_idx.replace(new_type_idx);

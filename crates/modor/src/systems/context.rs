@@ -15,7 +15,7 @@ use std::sync::{Mutex, RwLock};
 pub struct SystemContext<'a> {
     pub(crate) system_idx: Option<SystemIdx>,
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
-    pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
+    pub(crate) component_type_idx: Option<ComponentTypeIdx>,
     pub(crate) item_count: usize,
     pub(crate) storages: Storages<'a>,
 }
@@ -35,7 +35,7 @@ impl SystemContext<'_> {
         self.storages.filter_archetype_idx_iter(
             self.system_idx,
             self.archetype_filter_fn,
-            self.entity_type_idx,
+            self.component_type_idx,
         )
     }
 
@@ -68,9 +68,9 @@ impl Storages<'_> {
         &self,
         system_idx: Option<SystemIdx>,
         archetype_filter_fn: ArchetypeFilterFn,
-        entity_type_idx: Option<ComponentTypeIdx>,
+        component_type_idx: Option<ComponentTypeIdx>,
     ) -> usize {
-        self.filter_archetype_idx_iter(system_idx, archetype_filter_fn, entity_type_idx)
+        self.filter_archetype_idx_iter(system_idx, archetype_filter_fn, component_type_idx)
             .map(|a| self.archetypes.entity_idxs(a).len())
             .sum()
     }
@@ -79,9 +79,9 @@ impl Storages<'_> {
         &self,
         system_idx: Option<SystemIdx>,
         archetype_filter_fn: ArchetypeFilterFn,
-        entity_type_idx: Option<ComponentTypeIdx>,
+        component_type_idx: Option<ComponentTypeIdx>,
     ) -> FilteredArchetypeIdxIter<'_> {
-        let archetype_idxs = entity_type_idx.map_or_else(
+        let archetype_idxs = component_type_idx.map_or_else(
             || self.archetypes.all_sorted_idxs().iter(),
             |i| self.components.sorted_archetype_idxs(i).iter(),
         );

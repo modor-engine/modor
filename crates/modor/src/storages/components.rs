@@ -9,7 +9,7 @@ use typed_index_collections::TiVec;
 #[derive(Default)]
 pub(crate) struct ComponentStorage {
     idxs: FxHashMap<TypeId, ComponentTypeIdx>,
-    are_entity_types: TiVec<ComponentTypeIdx, bool>,
+    have_systems_loaded: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
     singleton_locations: TiVec<ComponentTypeIdx, Option<EntityLocation>>,
@@ -28,13 +28,13 @@ impl ComponentStorage {
         self.singleton_locations[type_idx]
     }
 
-    pub(crate) fn is_entity_type<C>(&self) -> bool
+    pub(crate) fn has_systems_loaded<C>(&self) -> bool
     where
         C: Component,
     {
         self.idxs
             .get(&TypeId::of::<C>())
-            .map_or(false, |&i| self.are_entity_types[i])
+            .map_or(false, |&i| self.have_systems_loaded[i])
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
@@ -74,7 +74,7 @@ impl ComponentStorage {
         C: Component,
     {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
-            self.are_entity_types.push(false);
+            self.have_systems_loaded.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
             self.archetypes.push(Box::new(archetype_lock));
             self.sorted_archetype_idxs.push(vec![]);
@@ -82,12 +82,12 @@ impl ComponentStorage {
         })
     }
 
-    pub(super) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
+    pub(super) fn set_systems_as_loaded<C>(&mut self) -> ComponentTypeIdx
     where
         C: Component,
     {
         let type_idx = self.type_idx_or_create::<C>();
-        self.are_entity_types[type_idx] = true;
+        self.have_systems_loaded[type_idx] = true;
         type_idx
     }
 

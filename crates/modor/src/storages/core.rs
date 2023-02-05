@@ -47,11 +47,11 @@ impl CoreStorage {
         self.components.type_idx_or_create::<C>()
     }
 
-    pub(crate) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
+    pub(crate) fn set_systems_as_loaded<C>(&mut self) -> ComponentTypeIdx
     where
         C: Component,
     {
-        self.components.add_entity_type::<C>()
+        self.components.set_systems_as_loaded::<C>()
     }
 
     pub(crate) fn add_component_type<C>(
@@ -169,7 +169,7 @@ impl CoreStorage {
         (system.wrapper)(SystemContext {
             system_idx: None,
             archetype_filter_fn: system.archetype_filter_fn,
-            entity_type_idx: None,
+            component_type_idx: None,
             item_count: storages.item_count(None, system.archetype_filter_fn, None),
             storages,
         });

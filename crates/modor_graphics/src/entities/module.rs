@@ -88,7 +88,7 @@ impl GraphicsModule {
             .with_dependency(PhysicsModule::build())
     }
 
-    #[run_after(entity(RenderTarget), entity(Capture))]
+    #[run_after(component(RenderTarget), component(Capture))]
     fn finish() {}
 }
 

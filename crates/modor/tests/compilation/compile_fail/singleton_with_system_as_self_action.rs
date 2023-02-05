@@ -5,9 +5,9 @@ use modor::*;
 struct Entity;
 
 #[singleton]
-//~^ error: the trait bound `EntityAction: EntityMainComponent` is not satisfied
+//~^ error: the trait bound `EntityAction: modor::Component` is not satisfied
 impl Entity {
-    #[run_as(entity(Self))]
+    #[run_as(component(Self))]
     fn f() {}
 }
 

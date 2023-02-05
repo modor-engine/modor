@@ -12,6 +12,13 @@ use std::any::Any;
 pub trait Component: Sized + Any + Sync + Send {
     /// Whether the component type is the main component of an entity.
     type IsEntityMainComponent: Bool;
+    /// The type of the action associated to the component type.
+    ///
+    /// The action is considered as done when all systems of the component have been run.
+    type Action: Action;
+
+    #[doc(hidden)]
+    fn on_update(runner: SystemRunner<'_>) -> FinishedSystemRunner;
 }
 
 /// A trait for defining the main component of an entity type.
@@ -22,18 +29,6 @@ pub trait Component: Sized + Any + Sync + Send {
 pub trait EntityMainComponent: Component<IsEntityMainComponent = True> {
     /// Whether the entity is a singleton.
     type IsSingleton: Bool;
-    /// The type of the action associated to the entity type.
-    type Action: Action;
-
-    #[doc(hidden)]
-    fn on_update(runner: SystemRunner<'_>) -> FinishedSystemRunner;
-}
-
-impl<T> Component for T
-where
-    T: EntityMainComponent,
-{
-    type IsEntityMainComponent = True;
 }
 
 #[doc(hidden)]

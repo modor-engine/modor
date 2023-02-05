@@ -24,39 +24,39 @@ impl InvalidEntity {
     fn wrong_run_attribute_syntax() {}
 
     #[run_as]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn wrong_run_as_attribute_syntax() {}
 
     #[run_as(TestAction, TestAction)]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn too_many_actions_passed_to_run_as_attribute() {}
 
     #[run_as("action")]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn literal_passed_to_run_as_attribute() {}
 
     #[run_as(entity::attribute(MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn sub_attribute_with_multiple_parts_passed_to_run_as_attribute() {}
 
     #[run_as(singleton(MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn unknown_sub_attribute_passed_to_run_as_attribute() {}
 
-    #[run_as(entity(MySingleton, MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    #[run_as(component(MySingleton, MySingleton))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn multiple_entities_in_same_sub_attribute_passed_to_run_as_attribute() {}
 
-    #[run_as(entity("singleton"))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(entity(EntityType))]`
+    #[run_as(component("singleton"))]
+    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
     fn literal_entity_in_sub_attribute_passed_to_run_as_attribute() {}
 
     #[run_after]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`
+    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, component(ComponentType), ...)]`
     fn wrong_run_after_attribute_syntax() {}
 
     #[run_after("action")]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, entity(EntityType), ...)]`
+    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, component(ComponentType), ...)]`
     fn literal_passed_to_run_after_attribute() {}
 
     #[run_after_previous(TestAction)]
@@ -64,10 +64,10 @@ impl InvalidEntity {
     fn wrong_run_after_previous_attribute_syntax() {}
 
     #[run_after_previous_and]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, entity(EntityType), ...)]`
+    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, component(ComponentType), ...)]`
     fn wrong_run_after_previous_and_attribute_syntax() {}
 
     #[run_after_previous_and("action")]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, entity(EntityType), ...)]`
+    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, component(ComponentType), ...)]`
     fn literal_passed_to_run_after_previous_and_attribute() {}
 }

@@ -1,4 +1,7 @@
 use crate::instances::opaque::{OpaqueInstanceManager, OpaqueInstances};
+use crate::registries::cameras::{Camera2DRegistry, CameraData};
+use crate::registries::models::ModelRegistry;
+use crate::registries::shaders::ShaderRegistry;
 use crate::resources::buffers::DynamicBuffer;
 use crate::resources::models::Model;
 use crate::resources::shaders::Shader;
@@ -10,9 +13,6 @@ use bytemuck::Pod;
 use modor::{Built, EntityBuilder, Query, Single, SingleMut};
 use std::ops::Range;
 use wgpu::{BindGroupLayout, Device, IndexFormat, RenderPass, TextureFormat};
-use crate::registries::cameras::{Camera2DRegistry, CameraData};
-use crate::registries::models::ModelRegistry;
-use crate::registries::shaders::ShaderRegistry;
 
 pub(crate) struct Rendering;
 
@@ -42,14 +42,14 @@ impl Rendering {
     }
 
     #[run_after(
-        entity(WindowTarget),
-        entity(TextureTarget),
-        entity(Camera2DRegistry),
-        entity(ShaderRegistry),
-        entity(ModelRegistry),
-        entity(Shader),
-        entity(Model),
-        entity(OpaqueInstances)
+        component(WindowTarget),
+        component(TextureTarget),
+        component(Camera2DRegistry),
+        component(ShaderRegistry),
+        component(ModelRegistry),
+        component(Shader),
+        component(Model),
+        component(OpaqueInstances)
     )]
     fn prepare(
         mut target: SingleMut<'_, Target>,
