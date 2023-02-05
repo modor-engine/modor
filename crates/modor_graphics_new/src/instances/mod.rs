@@ -1,6 +1,7 @@
+use crate::keys::cameras::CameraKey;
 use crate::resources::buffers::GpuData;
-use crate::resources::models::ModelKey;
-use crate::resources::shaders::ShaderKey;
+use crate::keys::models::ModelKey;
+use crate::keys::shaders::ShaderKey;
 use crate::Mesh2D;
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
@@ -49,6 +50,7 @@ impl Instance {
 pub(crate) struct ResourceKeys {
     pub(crate) shader: ShaderKey,
     pub(crate) model: ModelKey,
+    pub(crate) camera: CameraKey,
 }
 
 pub(crate) mod opaque;

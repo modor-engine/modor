@@ -1,36 +1,7 @@
+use crate::keys::models::{ModelKey, ModelRef};
 use crate::resources::buffers::{DynamicBuffer, DynamicBufferUsage, GpuData};
-use fxhash::FxHashMap;
-use modor::{Built, Changed, Entity, EntityBuilder, Filter, Query};
-use modor_internal::dyn_types::DynType;
+use modor::{Built, EntityBuilder};
 use wgpu::{vertex_attr_array, Device, VertexAttribute, VertexStepMode};
-
-pub(crate) struct ModelRegistry {
-    entity_ids: FxHashMap<ModelKey, usize>,
-}
-
-#[singleton]
-impl ModelRegistry {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            entity_ids: FxHashMap::default(),
-        })
-    }
-
-    #[run]
-    fn register(&mut self, models: Query<'_, (&Model, Entity<'_>, Filter<Changed<Model>>)>) {
-        for (model, entity, _) in models.iter() {
-            self.entity_ids.insert(model.key.clone(), entity.id());
-        }
-    }
-
-    pub(crate) fn find<'a>(
-        &self,
-        key: &ModelKey,
-        query: &'a Query<'_, &Model>,
-    ) -> Option<&'a Model> {
-        self.entity_ids.get(key).and_then(|&i| query.get(i))
-    }
-}
 
 pub(crate) struct Model {
     key: ModelKey,
@@ -72,6 +43,10 @@ impl Model {
         })
     }
 
+    pub(crate) fn key(&self) -> &ModelKey {
+        &self.key
+    }
+
     pub(crate) fn vertex_buffer(&self) -> &DynamicBuffer<Vertex> {
         &self.vertex_buffer
     }
@@ -79,20 +54,6 @@ impl Model {
     pub(crate) fn index_buffer(&self) -> &DynamicBuffer<u16> {
         &self.index_buffer
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct ModelKey(DynType);
-
-impl ModelKey {
-    pub(crate) fn new(ref_: ModelRef) -> Self {
-        Self(DynType::new(ref_))
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum ModelRef {
-    Rectangle,
 }
 
 #[repr(C)]

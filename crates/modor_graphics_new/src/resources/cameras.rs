@@ -1,38 +1,35 @@
-use crate::resources::shaders::Shader;
-use crate::resources::uniforms::Uniform;
-use crate::settings::rendering::Resolution;
-use crate::targets::GpuDevice;
+use crate::keys::cameras::CameraKey;
+use crate::{CameraRef, Resolution};
 use fxhash::FxHashMap;
 use modor::{Built, EntityBuilder, Query, Single};
 use modor_input::{Finger, InputModule, Mouse};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::{PhysicsModule, Transform2D};
-use wgpu::RenderPass;
 
-// TODO: allow user to create multiple Camera2D (default Camera2D is a non existing instance)
-// TODO: handle camera removal
-// TODO: handle camera duplication (same key for multiple cameras)
-// TODO: handle Camera2D component switch (so key does not correspond to same entity ID)
+// TODO: make Camera2D a component + add with_* methods
+// TODO: try to put camera key as generic type, corresponding to a component of the entity
+
+// TODO: test camera deletion and duplicated keys
 
 pub struct Camera2D {
+    // excluded bound
     pub min_z: f32,
+    // included bound
     pub max_z: f32,
     mouse_position: Vec2,
     finger_positions: FxHashMap<u64, Vec2>,
-    uniform: Uniform<CameraData>,
 }
 
-#[singleton]
+#[entity]
 impl Camera2D {
-    pub(crate) fn build(uniform: Uniform<CameraData>) -> impl Built<Self> {
+    pub fn build(ref_: impl CameraRef) -> impl Built<Self> {
         EntityBuilder::new(Self {
-            min_z: 0.,
-            max_z: 1.,
+            min_z: -0.5,
+            max_z: 0.5,
             mouse_position: Vec2::new(0., 0.),
             finger_positions: FxHashMap::default(),
-            uniform,
         })
-        .inherit_from(Camera2DTransform::build())
+        .inherit_from(Camera2DTransform::build(CameraKey::new(ref_)))
     }
 
     #[run_after(entity(InputModule), entity(Camera2DTransform))]
@@ -59,14 +56,6 @@ impl Camera2D {
         }
     }
 
-    #[run_after(entity(Camera2DTransform))]
-    fn update_uniform(&mut self, transform: &Camera2DTransform, device: Single<'_, GpuDevice>) {
-        *self.uniform = CameraData {
-            transform: transform.world_to_gpu_matrix.to_array(),
-        };
-        self.uniform.sync(&device);
-    }
-
     #[must_use]
     pub fn mouse_position(&self) -> Vec2 {
         self.mouse_position
@@ -80,21 +69,19 @@ impl Camera2D {
     pub fn finger_positions(&self) -> impl Iterator<Item = Vec2> + '_ {
         self.finger_positions.values().copied()
     }
-
-    pub(crate) fn use_for_rendering<'a>(&'a self, pass: &mut RenderPass<'a>) {
-        self.uniform.use_for_rendering(Shader::CAMERA_GROUP, pass);
-    }
 }
 
-pub struct Camera2DTransform {
+pub(crate) struct Camera2DTransform {
+    key: CameraKey,
     window_to_world_matrix: Mat4,
     world_to_gpu_matrix: Mat4,
 }
 
-#[singleton]
+#[entity]
 impl Camera2DTransform {
-    fn build() -> impl Built<Self> {
+    fn build(key: CameraKey) -> impl Built<Self> {
         EntityBuilder::new(Self {
+            key,
             window_to_world_matrix: Mat4::IDENTITY,
             world_to_gpu_matrix: Mat4::IDENTITY,
         })
@@ -113,6 +100,14 @@ impl Camera2DTransform {
         let y_scale = 1.0_f32.min(width / height);
         self.window_to_world_matrix = Self::window_to_world_matrix(transform, x_scale, y_scale);
         self.world_to_gpu_matrix = Self::world_to_gpu_matrix(camera, transform, x_scale, y_scale);
+    }
+
+    pub(crate) fn key(&self) -> &CameraKey {
+        &self.key
+    }
+
+    pub(crate) fn display_matrix(&self) -> Mat4 {
+        self.world_to_gpu_matrix
     }
 
     fn window_to_world_position(&self, position: Vec2, resolution: &Resolution) -> Vec2 {
@@ -134,21 +129,19 @@ impl Camera2DTransform {
         x_scale: f32,
         y_scale: f32,
     ) -> Mat4 {
-        let z_scale = 1. / (camera.max_z - camera.min_z);
-        let position = Vec3::new(-transform.position.x, -transform.position.y, -camera.min_z);
+        let z_diff = camera.max_z - camera.min_z;
+        let position = Vec3::new(
+            -transform.position.x,
+            -transform.position.y,
+            -camera.max_z / z_diff * z_diff,
+        );
         let scale = Vec3::new(
             2. * x_scale / transform.size.x,
             2. * y_scale / transform.size.y,
-            z_scale,
+            1. / -z_diff,
         );
         Mat4::from_position(position)
             * Quat::from_z(*transform.rotation).matrix()
             * Mat4::from_scale(scale)
     }
-}
-
-#[repr(C)]
-#[derive(Default, Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
-pub(crate) struct CameraData {
-    transform: [[f32; 4]; 4],
 }

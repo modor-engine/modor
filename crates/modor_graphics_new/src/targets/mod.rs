@@ -6,16 +6,19 @@ use crate::Color;
 use futures::executor;
 use modor::{Built, EntityBuilder, Single};
 use wgpu::{
-    Adapter, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor, Extent3d,
-    Features, Limits, LoadOp, Operations, Queue, RenderPass, RenderPassColorAttachment,
+    Adapter, BindGroupLayout, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor,
+    Extent3d, Features, Limits, LoadOp, Operations, Queue, RenderPass, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, TextureDescriptor, TextureDimension,
     TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
 };
+
+pub(crate) const CAMERA_BINDING: u32 = 0;
 
 pub(crate) struct Target {
     size: (u32, u32),
     depth_buffer_view: TextureView,
     background_color: Color,
+    camera_bind_group_layout: BindGroupLayout,
     encoder: Option<CommandEncoder>,
     surface: Option<TextureView>,
 }
@@ -29,14 +32,18 @@ impl Target {
         height: u32,
         format: TextureFormat,
     ) -> impl Built<Self> {
+        let camera_bind_group_layout =
+            Self::create_bind_group_layout(CAMERA_BINDING, "camera", &device);
+        let rendering = Rendering::build(format, &device, &camera_bind_group_layout);
         EntityBuilder::new(Self {
             size: (DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT),
             depth_buffer_view: Self::create_depth_buffer_view(&device, width, height),
             background_color: Color::BLACK,
+            camera_bind_group_layout,
             encoder: None,
             surface: None,
         })
-        .with_child(Rendering::build(format, &device))
+        .with_child(rendering)
         .with_child(GpuDevice::build(device, queue))
         .with_dependency(Resolution::build(
             DEFAULT_TARGET_WIDTH,
@@ -68,6 +75,10 @@ impl Target {
             label: Some("modor_render_encoder"),
         };
         self.encoder = Some(device.device.create_command_encoder(&descriptor));
+    }
+
+    pub(crate) fn camera_bind_group_layout(&self) -> &BindGroupLayout {
+        &self.camera_bind_group_layout
     }
 
     pub(crate) fn begin_render_pass(&mut self) -> RenderPass<'_> {
@@ -134,6 +145,26 @@ impl Target {
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
         });
         texture.create_view(&TextureViewDescriptor::default())
+    }
+
+    fn create_bind_group_layout(
+        binding: u32,
+        label_suffix: &str,
+        device: &Device,
+    ) -> BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some(&format!("modor_uniform_bind_group_layout_{}", label_suffix)),
+        })
     }
 }
 

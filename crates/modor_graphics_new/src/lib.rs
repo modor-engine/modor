@@ -3,7 +3,9 @@ extern crate modor;
 
 mod colors;
 mod instances;
+mod keys;
 mod module;
+mod registries;
 mod rendering;
 mod resources;
 mod runner;
@@ -11,6 +13,7 @@ mod settings;
 mod targets;
 
 pub use colors::*;
+pub use keys::cameras::*;
 pub use module::*;
 pub use resources::cameras::*;
 pub use resources::meshes::*;

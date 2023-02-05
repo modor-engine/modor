@@ -1,49 +1,50 @@
 use crate::instances::opaque::{OpaqueInstanceManager, OpaqueInstances};
 use crate::resources::buffers::DynamicBuffer;
-use crate::resources::cameras::CameraData;
-use crate::resources::models::{Model, ModelRegistry};
-use crate::resources::shaders::{Shader, ShaderRegistry};
+use crate::resources::models::Model;
+use crate::resources::shaders::Shader;
 use crate::resources::uniforms::Uniform;
 use crate::targets::texture::TextureTarget;
 use crate::targets::window::WindowTarget;
 use crate::targets::{GpuDevice, Target};
-use crate::Camera2D;
 use bytemuck::Pod;
 use modor::{Built, EntityBuilder, Query, Single, SingleMut};
 use std::ops::Range;
-use wgpu::{Device, IndexFormat, RenderPass, TextureFormat};
-
-const CAMERA_BINDING: u32 = 0;
+use wgpu::{BindGroupLayout, Device, IndexFormat, RenderPass, TextureFormat};
+use crate::registries::cameras::{Camera2DRegistry, CameraData};
+use crate::registries::models::ModelRegistry;
+use crate::registries::shaders::ShaderRegistry;
 
 pub(crate) struct Rendering;
 
 #[singleton]
 impl Rendering {
-    pub(crate) fn build(target_format: TextureFormat, device: &Device) -> impl Built<Self> {
-        let camera_2d_uniform =
-            Uniform::new(CameraData::default(), CAMERA_BINDING, "camera_2d", device);
+    pub(crate) fn build(
+        target_format: TextureFormat,
+        device: &Device,
+        camera_bind_group_layout: &BindGroupLayout,
+    ) -> impl Built<Self> {
         EntityBuilder::new(Self)
             .with_child(OpaqueInstanceManager::build())
             .with_child(ShaderRegistry::build())
             .with_child(ModelRegistry::build())
+            .with_child(Camera2DRegistry::build())
             .with_child(Shader::build_rectangle(
                 target_format,
-                &camera_2d_uniform,
+                camera_bind_group_layout,
                 device,
             ))
             .with_child(Shader::build_ellipse(
                 target_format,
-                &camera_2d_uniform,
+                camera_bind_group_layout,
                 device,
             ))
             .with_child(Model::build_rectangle(device))
-            .with_child(Camera2D::build(camera_2d_uniform))
     }
 
     #[run_after(
         entity(WindowTarget),
         entity(TextureTarget),
-        entity(Camera2D),
+        entity(Camera2DRegistry),
         entity(ShaderRegistry),
         entity(ModelRegistry),
         entity(Shader),
@@ -52,7 +53,7 @@ impl Rendering {
     )]
     fn prepare(
         mut target: SingleMut<'_, Target>,
-        camera: Single<'_, Camera2D>,
+        camera_registry: Single<'_, Camera2DRegistry>,
         shader_registry: Single<'_, ShaderRegistry>,
         model_registry: Single<'_, ModelRegistry>,
         shaders: Query<'_, &Shader>,
@@ -60,10 +61,11 @@ impl Rendering {
         opaque_instances: Query<'_, &OpaqueInstances>,
     ) {
         let mut pass = target.begin_render_pass();
-        camera.use_for_rendering(&mut pass);
         for instances in opaque_instances.iter() {
-            let shader_key = &instances.resource_keys().shader;
-            let model_key = &instances.resource_keys().model;
+            let resource_keys = instances.resource_keys();
+            let shader_key = &resource_keys.shader;
+            let model_key = &resource_keys.model;
+            let camera_uniform = camera_registry.uniform(&resource_keys.camera);
             match (
                 shader_registry.find(shader_key, &shaders),
                 model_registry.find(model_key, &models),
@@ -71,9 +73,10 @@ impl Rendering {
                 (None, _) => panic!("internal error: not found shader '{:?}' ", shader_key),
                 (_, None) => panic!("internal error: not found model '{:?}'", model_key),
                 (Some(shader), Some(model)) => {
-                    shader.use_for_rendering(&mut pass);
                     Self::draw(
                         &mut pass,
+                        shader,
+                        camera_uniform,
                         model.vertex_buffer(),
                         model.index_buffer(),
                         instances.buffer(),
@@ -105,6 +108,8 @@ impl Rendering {
     #[allow(clippy::cast_possible_truncation)]
     fn draw<'a, V, I>(
         pass: &mut RenderPass<'a>,
+        shader: &'a Shader,
+        camera_uniform: &'a Uniform<CameraData>,
         vertex_buffer: &'a DynamicBuffer<V>,
         index_buffer: &'a DynamicBuffer<u16>,
         instance_buffer: &'a DynamicBuffer<I>,
@@ -113,6 +118,8 @@ impl Rendering {
         V: Pod + Sync + Send,
         I: Pod + Sync + Send,
     {
+        pass.set_pipeline(shader.pipeline());
+        pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
         pass.set_vertex_buffer(0, vertex_buffer.buffer());
         pass.set_vertex_buffer(1, instance_buffer.buffer());
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);
