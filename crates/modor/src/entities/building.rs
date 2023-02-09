@@ -383,8 +383,8 @@ mod internal {
             core: &mut CoreStorage,
             archetype_idx: ArchetypeIdx,
         ) -> ArchetypeIdx {
-            if !core.components().has_systems_loaded::<E>() {
-                let component_type_idx = core.set_systems_as_loaded::<E>();
+            if !core.components().has_systems_loaded::<C>() {
+                let component_type_idx = core.set_systems_as_loaded::<C>();
                 C::on_update(SystemRunner {
                     core,
                     component_action_type: TypeId::of::<<C as Component>::Action>(),
