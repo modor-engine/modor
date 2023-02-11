@@ -1,7 +1,5 @@
 use crate::rendering::Rendering;
-use crate::settings::rendering::{
-    BackgroundColor, Resolution, DEFAULT_TARGET_HEIGHT, DEFAULT_TARGET_WIDTH,
-};
+use crate::settings::rendering::{BackgroundColor, Resolution};
 use crate::Color;
 use futures::executor;
 use modor::{Built, EntityBuilder, Single};
@@ -36,7 +34,7 @@ impl Target {
             Self::create_bind_group_layout(CAMERA_BINDING, "camera", &device);
         let rendering = Rendering::build(format, &device, &camera_bind_group_layout);
         EntityBuilder::new(Self {
-            size: (DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT),
+            size: (width, height),
             depth_buffer_view: Self::create_depth_buffer_view(&device, width, height),
             background_color: Color::BLACK,
             camera_bind_group_layout,
@@ -45,10 +43,7 @@ impl Target {
         })
         .with_child(rendering)
         .with_child(GpuDevice::build(device, queue))
-        .with_dependency(Resolution::build(
-            DEFAULT_TARGET_WIDTH,
-            DEFAULT_TARGET_HEIGHT,
-        ))
+        .with_dependency(Resolution::build(width, height))
     }
 
     #[run]
