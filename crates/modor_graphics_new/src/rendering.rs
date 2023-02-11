@@ -1,14 +1,13 @@
 use crate::instances::opaque::{OpaqueInstanceManager, OpaqueInstances};
-use crate::registries::cameras::{Camera2DRegistry, CameraData};
-use crate::registries::models::ModelRegistry;
-use crate::registries::shaders::ShaderRegistry;
 use crate::resources::buffers::DynamicBuffer;
-use crate::resources::models::Model;
-use crate::resources::shaders::Shader;
+use crate::resources::cameras::Camera2DRegistry;
+use crate::resources::models::{Model, ModelRegistry, RectangleModel};
+use crate::resources::shaders::{EllipseShader, RectangleShader, Shader, ShaderRegistry};
 use crate::resources::uniforms::Uniform;
 use crate::targets::texture::TextureTarget;
 use crate::targets::window::WindowTarget;
 use crate::targets::{GpuDevice, Target};
+use crate::Camera2D;
 use bytemuck::Pod;
 use modor::{Built, EntityBuilder, Query, Single, SingleMut};
 use std::ops::Range;
@@ -28,17 +27,17 @@ impl Rendering {
             .with_child(ShaderRegistry::build())
             .with_child(ModelRegistry::build())
             .with_child(Camera2DRegistry::build())
-            .with_child(Shader::build_rectangle(
+            .with_child(RectangleShader::build(
                 target_format,
                 camera_bind_group_layout,
                 device,
             ))
-            .with_child(Shader::build_ellipse(
+            .with_child(EllipseShader::build(
                 target_format,
                 camera_bind_group_layout,
                 device,
             ))
-            .with_child(Model::build_rectangle(device))
+            .with_child(RectangleModel::build(device))
     }
 
     #[run_after(
@@ -47,43 +46,36 @@ impl Rendering {
         component(Camera2DRegistry),
         component(ShaderRegistry),
         component(ModelRegistry),
+        component(Camera2D),
         component(Shader),
         component(Model),
         component(OpaqueInstances)
     )]
     fn prepare(
         mut target: SingleMut<'_, Target>,
-        camera_registry: Single<'_, Camera2DRegistry>,
-        shader_registry: Single<'_, ShaderRegistry>,
-        model_registry: Single<'_, ModelRegistry>,
-        shaders: Query<'_, &Shader>,
-        models: Query<'_, &Model>,
+        (mut camera_registry, mut shader_registry, mut model_registry): (
+            SingleMut<'_, Camera2DRegistry>,
+            SingleMut<'_, ShaderRegistry>,
+            SingleMut<'_, ModelRegistry>,
+        ),
+        (cameras, shaders, models): (Query<'_, &Camera2D>, Query<'_, &Shader>, Query<'_, &Model>),
         opaque_instances: Query<'_, &OpaqueInstances>,
     ) {
         let mut pass = target.begin_render_pass();
         for instances in opaque_instances.iter() {
             let resource_keys = instances.resource_keys();
-            let shader_key = &resource_keys.shader;
-            let model_key = &resource_keys.model;
-            let camera_uniform = camera_registry.uniform(&resource_keys.camera);
-            match (
-                shader_registry.find(shader_key, &shaders),
-                model_registry.find(model_key, &models),
-            ) {
-                (None, _) => panic!("internal error: not found shader '{:?}' ", shader_key),
-                (_, None) => panic!("internal error: not found model '{:?}'", model_key),
-                (Some(shader), Some(model)) => {
-                    Self::draw(
-                        &mut pass,
-                        shader,
-                        camera_uniform,
-                        model.vertex_buffer(),
-                        model.index_buffer(),
-                        instances.buffer(),
-                        0..instances.buffer().len(),
-                    );
-                }
-            }
+            let camera = camera_registry.find(&resource_keys.camera, &cameras);
+            let shader = shader_registry.find(&resource_keys.shader, &shaders);
+            let model = model_registry.find(&resource_keys.model, &models);
+            Self::draw(
+                &mut pass,
+                shader,
+                camera.uniform(),
+                model.vertex_buffer(),
+                model.index_buffer(),
+                instances.buffer(),
+                0..instances.buffer().len(),
+            );
         }
     }
 
@@ -129,4 +121,10 @@ impl Rendering {
             (drawn_instance_idxs.start as u32)..(drawn_instance_idxs.end as u32),
         );
     }
+}
+
+#[repr(C)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, bytemuck::Zeroable, bytemuck::Pod)]
+pub(crate) struct CameraData {
+    pub(crate) transform: [[f32; 4]; 4],
 }

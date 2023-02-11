@@ -1,8 +1,6 @@
-use crate::keys::cameras::CameraKey;
 use crate::resources::buffers::GpuData;
-use crate::keys::models::ModelKey;
-use crate::keys::shaders::ShaderKey;
 use crate::Mesh2D;
+use modor_internal::dyn_types::DynType;
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
@@ -48,9 +46,9 @@ impl Instance {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct ResourceKeys {
-    pub(crate) shader: ShaderKey,
-    pub(crate) model: ModelKey,
-    pub(crate) camera: CameraKey,
+    pub(crate) shader: DynType,
+    pub(crate) model: DynType,
+    pub(crate) camera: DynType,
 }
 
 pub(crate) mod opaque;

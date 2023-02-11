@@ -1,28 +1,39 @@
-// TODO: remove this file
-use modor::{entity, App, Built, EntityBuilder};
-use modor_graphics_new::{Camera2D, CameraRef, Color, GraphicsModule, Mesh2D, WindowTitle};
+use instant::Instant;
+use modor::{entity, App, Built, Entity, EntityBuilder, World};
+use modor_graphics_new::{Camera2D, Color, GraphicsModule, Mesh2D, WindowTitle};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, Transform2D};
+use std::time::Duration;
+
+// TODO: remove this file
 
 fn main() {
     test_window();
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CustomCamera;
+struct CustomCameraKey;
 
-impl CameraRef for CustomCamera {}
+struct CustomCamera(Instant);
 
 #[entity]
 impl CustomCamera {
     fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .inherit_from(Camera2D::build(Self))
+        EntityBuilder::new(Self(Instant::now()))
+            .with(Camera2D::new(CustomCameraKey))
             .with(
                 Transform2D::new()
                     .with_position(0.4 * Vec2::ONE)
                     .with_size(2. * Vec2::ONE),
             )
+            .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.)))
+    }
+
+    #[run]
+    fn update(&mut self, mut world: World<'_>, entity: Entity<'_>) {
+        if self.0.elapsed() > Duration::from_secs(2) {
+            world.delete_entity(entity.id());
+        }
     }
 }
 
@@ -49,7 +60,7 @@ impl CustomObject {
             .with(
                 Mesh2D::rectangle()
                     .with_color(Color::BLUE)
-                    .with_camera(CustomCamera)
+                    .with_camera(CustomCameraKey)
                     .with_z(0.5),
             )
     }

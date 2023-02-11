@@ -1,33 +1,27 @@
-use crate::keys::models::{ModelKey, ModelRef};
 use crate::resources::buffers::{DynamicBuffer, DynamicBufferUsage, GpuData};
+use crate::resources::registries::{Resource, ResourceRegistry};
+use crate::ResourceKey;
 use modor::{Built, EntityBuilder};
+use modor_internal::dyn_types::DynType;
 use wgpu::{vertex_attr_array, Device, VertexAttribute, VertexStepMode};
 
+pub(crate) type ModelRegistry = ResourceRegistry<Model>;
+
 pub(crate) struct Model {
-    key: ModelKey,
+    key: DynType,
     vertex_buffer: DynamicBuffer<Vertex>,
     index_buffer: DynamicBuffer<u16>,
 }
 
-#[entity]
+#[component]
 impl Model {
-    pub(crate) fn build_rectangle(device: &Device) -> impl Built<Self> {
-        Self::build(
-            RECTANGLE_VERTICES.to_vec(),
-            RECTANGLE_INDICES.to_vec(),
-            ModelKey::new(ModelRef::Rectangle),
-            device,
-        )
-    }
-
-    fn build(
+    fn new(
+        key: impl ResourceKey,
         vertices: Vec<Vertex>,
         indices: Vec<u16>,
-        key: ModelKey,
         device: &Device,
-    ) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            key: key.clone(),
+    ) -> Self {
+        Self {
             vertex_buffer: DynamicBuffer::new(
                 vertices,
                 DynamicBufferUsage::Vertex,
@@ -40,11 +34,8 @@ impl Model {
                 format!("modor_index_buffer_{:?}", key),
                 device,
             ),
-        })
-    }
-
-    pub(crate) fn key(&self) -> &ModelKey {
-        &self.key
+            key: DynType::new(key),
+        }
     }
 
     pub(crate) fn vertex_buffer(&self) -> &DynamicBuffer<Vertex> {
@@ -55,6 +46,49 @@ impl Model {
         &self.index_buffer
     }
 }
+
+impl Resource for Model {
+    fn key(&self) -> &DynType {
+        &self.key
+    }
+}
+
+pub(crate) struct RectangleModel;
+
+#[singleton]
+impl RectangleModel {
+    const VERTICES: [Vertex; 4] = [
+        Vertex {
+            position: [-0.5, 0.5, 0.],
+            texture_position: [0., 0.],
+        },
+        Vertex {
+            position: [-0.5, -0.5, 0.],
+            texture_position: [0., 1.],
+        },
+        Vertex {
+            position: [0.5, -0.5, 0.],
+            texture_position: [1., 1.],
+        },
+        Vertex {
+            position: [0.5, 0.5, 0.],
+            texture_position: [1., 0.],
+        },
+    ];
+    const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
+
+    pub(crate) fn build(device: &Device) -> impl Built<Self> {
+        EntityBuilder::new(Self).with(Model::new(
+            RectangleModelKey,
+            Self::VERTICES.to_vec(),
+            Self::INDICES.to_vec(),
+            device,
+        ))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct RectangleModelKey;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
@@ -68,23 +102,3 @@ impl<const L: u32> GpuData<L> for Vertex {
         &vertex_attr_array![L => Float32x3, L + 1 => Float32x2];
     const STEP_MODE: VertexStepMode = VertexStepMode::Vertex;
 }
-
-const RECTANGLE_VERTICES: [Vertex; 4] = [
-    Vertex {
-        position: [-0.5, 0.5, 0.],
-        texture_position: [0., 0.],
-    },
-    Vertex {
-        position: [-0.5, -0.5, 0.],
-        texture_position: [0., 1.],
-    },
-    Vertex {
-        position: [0.5, -0.5, 0.],
-        texture_position: [1., 1.],
-    },
-    Vertex {
-        position: [0.5, 0.5, 0.],
-        texture_position: [1., 0.],
-    },
-];
-const RECTANGLE_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
