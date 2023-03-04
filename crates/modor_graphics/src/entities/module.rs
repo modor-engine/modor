@@ -102,7 +102,6 @@ pub struct WindowSettings {
 }
 
 impl Default for WindowSettings {
-    // feokfoe
     fn default() -> Self {
         Self {
             size: SurfaceSize {
@@ -117,14 +116,12 @@ impl Default for WindowSettings {
 
 impl WindowSettings {
     /// Defines the window size (800x600 by default).
-    #[must_use]
     pub fn size(mut self, size: SurfaceSize) -> Self {
         self.size = size;
         self
     }
 
     /// Defines the window title (`"My app"` by default).
-    #[must_use]
     pub fn title<T>(mut self, title: T) -> Self
     where
         T: Into<String>,
@@ -134,7 +131,6 @@ impl WindowSettings {
     }
 
     /// Defines whether the mouse cursor is visible in the window (`true` by default).
-    #[must_use]
     pub fn has_visible_cursor(mut self, has_visible_cursor: bool) -> Self {
         self.has_visible_cursor = has_visible_cursor;
         self

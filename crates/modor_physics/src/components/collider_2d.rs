@@ -47,7 +47,6 @@ impl Collider2D {
     }
 
     /// Returns the detected collisions.
-    #[must_use]
     pub fn collisions(&self) -> &[Collision2D] {
         &self.collisions
     }

@@ -14,7 +14,6 @@ pub struct SystemRunner<'a> {
     pub(crate) action_idxs: Vec<ActionIdx>,
 }
 
-#[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 impl<'a> SystemRunner<'a> {
     #[doc(hidden)]
     pub fn run(self, system: SystemBuilder<SystemWrapper>, label: &'static str) -> Self {

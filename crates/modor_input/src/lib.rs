@@ -22,7 +22,7 @@
 //! // Crates like `modor_graphics` can automatically send events to the module.
 //! // It is also possible to create events manually, which can be convenient for testing.
 //! let event = InputEvent::Mouse(MouseEvent::PressedButton(MouseButton::Left));
-//! app.update_singleton(|c: &mut InputEventCollector| c.push(event));
+//! app.update_components(|c: &mut InputEventCollector| c.push(event.clone()));
 //! loop {
 //!     app.update();
 //!     # break;

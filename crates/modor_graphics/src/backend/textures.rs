@@ -141,6 +141,7 @@ impl Texture {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Image {
     pub(crate) data: RgbaImage,
     pub(crate) is_transparent: bool,

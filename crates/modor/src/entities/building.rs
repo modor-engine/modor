@@ -8,8 +8,6 @@ use std::any;
 use std::any::TypeId;
 use std::marker::PhantomData;
 
-// TODO: export rarely used types in a public submodule of the crate
-
 /// A trait implemented for all types able to build an entity.
 ///
 /// This trait is particularly useful when defining a building method for an entity.
@@ -17,7 +15,6 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// See [`EntityBuilder`](crate::EntityBuilder).
-#[must_use]
 pub trait Built<E>: BuildEntity + BuildEntityPart
 where
     E: EntityMainComponent,

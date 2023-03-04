@@ -43,7 +43,6 @@ where
     C: EntityMainComponent<IsSingleton = True>,
 {
     /// Returns entity information.
-    #[must_use]
     pub fn entity(&self) -> Entity<'_> {
         self.entity
     }

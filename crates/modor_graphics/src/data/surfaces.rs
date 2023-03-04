@@ -13,7 +13,6 @@ pub struct SurfaceSize {
 
 impl SurfaceSize {
     /// Creates a new size.
-    #[must_use]
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
     }

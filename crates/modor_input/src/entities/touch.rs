@@ -34,25 +34,21 @@ pub struct Finger {
 #[entity]
 impl Finger {
     /// Unique identifier of the finger.
-    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// State of the finger.
-    #[must_use]
     pub fn state(&self) -> InputState {
         self.state
     }
 
     /// Returns the position of the finger in pixels from the top-left corner of the app window.
-    #[must_use]
     pub fn position(&self) -> Vec2 {
         self.position
     }
 
     /// Returns the finger position delta in pixels.
-    #[must_use]
     pub fn delta(&self) -> Vec2 {
         self.delta
     }

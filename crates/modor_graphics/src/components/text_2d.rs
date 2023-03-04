@@ -80,7 +80,6 @@ impl Text2D {
     /// Returns the text with a different font.
     ///
     /// Default font is [Roboto Regular](https://fonts.google.com/specimen/Roboto).
-    #[must_use]
     pub fn with_font(mut self, font_ref: impl FontRef) -> Self {
         self.font_key = FontKey::new(font_ref);
         self
@@ -89,7 +88,6 @@ impl Text2D {
     /// Returns the text with a different size.
     ///
     /// Default value is `TextSize::AUTO`.
-    #[must_use]
     pub fn with_size(mut self, size: TextSize) -> Self {
         self.size = size;
         self
@@ -98,7 +96,6 @@ impl Text2D {
     /// Returns the text with a different alignment.
     ///
     /// Default value is `Alignment::Center`.
-    #[must_use]
     pub fn with_alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
         self
@@ -107,7 +104,6 @@ impl Text2D {
     /// Returns the text with a different color.
     ///
     /// Default value is `Color::WHITE`.
-    #[must_use]
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self
@@ -116,7 +112,6 @@ impl Text2D {
     /// Returns the text with a different `z`.
     ///
     /// Default value is `0.0`.
-    #[must_use]
     pub const fn with_z(mut self, z: f32) -> Self {
         self.z = z;
         self

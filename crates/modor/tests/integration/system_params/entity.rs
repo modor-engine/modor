@@ -121,11 +121,10 @@ fn iterate_on_component_reference() {
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
-#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
     modor_internal::retry!(10, {
         let start = instant::Instant::now();
-        App::new()
+        let _app = App::new()
             .with_thread_count(2)
             .with_entity(QueryTester::build())
             .with_entity(StreamCollector::build())

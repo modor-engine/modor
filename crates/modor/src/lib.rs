@@ -99,8 +99,6 @@ pub use systems::building::*;
 pub use systems::checks::*;
 pub use systems::traits::*;
 
-// TODO: clean up #[must_use] in all crates
-
 /// Defines an entity.
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.
@@ -283,16 +281,15 @@ pub use systems::traits::*;
 /// # use modor::*;
 /// #
 /// #[derive(Component)]
-/// struct Text(String);
+/// struct MyComponent;
 ///
 /// struct MyEntity;
 ///
 /// #[entity]
 /// impl MyEntity {
 ///     #[run]
-///     fn invalid_system(name: &Text, name_mut: &mut Text) {
+///     fn invalid_system(component: &MyComponent, component_mut: &mut MyComponent) {
 ///         // invalid as `Text` cannot be borrowed both mutably and immutably
-///         *name_mut = format!("[[[ {} ]]]", name);
 ///     }
 /// }
 /// ```

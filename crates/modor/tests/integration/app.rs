@@ -371,14 +371,6 @@ fn update_app_until_all_with_max_retries_reached() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_singleton() {
-    let mut app = App::new().with_entity(Singleton::build(10));
-    app.update_singleton(|s: &mut Singleton| s.0 = 20);
-    app.assert::<With<Singleton>>(1, |e| e.has(|c: &Singleton| assert_eq!(c.0, 20)));
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_components() {
     let mut app = App::new()
         .with_entity(Entity::build(10))

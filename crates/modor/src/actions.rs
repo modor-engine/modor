@@ -14,7 +14,6 @@ use std::marker::PhantomData;
 /// See [`entity`](macro@crate::entity).
 pub trait Action: Any {
     #[doc(hidden)]
-    #[must_use]
     fn dependency_types() -> Vec<TypeId>;
 }
 

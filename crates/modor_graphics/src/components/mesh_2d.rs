@@ -66,7 +66,6 @@ impl Mesh2D {
     ///
     /// The rectangle size is driven by the [`Transform2D`](modor_physics::Transform2D) size along
     /// X-axis and Y-axis.
-    #[must_use]
     pub const fn rectangle() -> Self {
         Self {
             color: Color::WHITE,
@@ -82,7 +81,6 @@ impl Mesh2D {
     ///
     /// The ellipse major and minor radii are driven by the
     /// [`Transform2D`](modor_physics::Transform2D) size along X-axis and Y-axis.
-    #[must_use]
     pub const fn ellipse() -> Self {
         Self {
             color: Color::WHITE,
@@ -97,7 +95,6 @@ impl Mesh2D {
     /// Returns the mesh with a different `color`.
     ///
     /// Default value is `Color::WHITE`.
-    #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self
@@ -106,7 +103,6 @@ impl Mesh2D {
     /// Returns the mesh with a different `z`.
     ///
     /// Default value is `0.0`.
-    #[must_use]
     pub const fn with_z(mut self, z: f32) -> Self {
         self.z = z;
         self
@@ -115,7 +111,6 @@ impl Mesh2D {
     /// Returns the mesh with an attached texture with label `texture_label`.
     ///
     /// There is no attached texture by default.
-    #[must_use]
     pub fn with_texture(mut self, texture_ref: impl TextureRef) -> Self {
         self.texture_key = Some(TextureKey::new(texture_ref));
         self
@@ -124,7 +119,6 @@ impl Mesh2D {
     /// Returns the mesh with an attached texture with label `texture_label`.
     ///
     /// By default, the whole texture is used.
-    #[must_use]
     pub fn with_texture_part(mut self, texture_part: TexturePart) -> Self {
         self.texture_part = texture_part;
         self
@@ -133,7 +127,6 @@ impl Mesh2D {
     /// Returns the mesh with a different texture `texture_color`.
     ///
     /// Default value is `Color::WHITE`.
-    #[must_use]
     pub const fn with_texture_color(mut self, texture_color: Color) -> Self {
         self.texture_color = texture_color;
         self
@@ -179,7 +172,6 @@ impl TexturePart {
     /// Returns the texture part with a different position.
     ///
     /// Default value is `Vec2::ZERO`.
-    #[must_use]
     pub fn with_position(mut self, position: Vec2) -> Self {
         self.position = position;
         self
@@ -188,7 +180,6 @@ impl TexturePart {
     /// Returns the texture part with a different size.
     ///
     /// Default value is `Vec2::ONE`.
-    #[must_use]
     pub fn with_size(mut self, size: Vec2) -> Self {
         self.size = size;
         self

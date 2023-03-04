@@ -21,8 +21,8 @@ pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Clone, Debug, Component)]
 #[non_exhaustive]
+#[derive(Clone, Debug, Component)]
 pub struct Transform2D {
     /// Position of the entity in world units.
     pub position: PhysicsProperty<Vec2>,
@@ -34,7 +34,6 @@ pub struct Transform2D {
 
 impl Transform2D {
     /// Creates a new transform.
-    #[must_use]
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -47,7 +46,6 @@ impl Transform2D {
     /// Returns the transform with a different `position` in world units.
     ///
     /// Default value is `Vec2::ZERO`.
-    #[must_use]
     #[inline]
     pub const fn with_position(mut self, position: Vec2) -> Self {
         self.position = PhysicsProperty::new(position);
@@ -57,7 +55,6 @@ impl Transform2D {
     /// Returns the transform with a different `size` in world units.
     ///
     /// Default value is `Vec2::ONE`.
-    #[must_use]
     #[inline]
     pub const fn with_size(mut self, size: Vec2) -> Self {
         self.size = PhysicsProperty::new(size);
@@ -67,7 +64,6 @@ impl Transform2D {
     /// Returns the transform with a different `rotation` in radians.
     ///
     /// Default value is `0.0`.
-    #[must_use]
     #[inline]
     pub const fn with_rotation(mut self, rotation: f32) -> Self {
         self.rotation = PhysicsProperty::new(rotation);

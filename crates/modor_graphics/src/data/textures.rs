@@ -46,7 +46,6 @@ impl TextureConfig {
     /// application is run using a `cargo` command), then the file is retrieved from path
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
-    #[must_use]
     pub fn from_path(path: impl Into<String>) -> Self {
         Self {
             location: ResourceLocation::FromPath(path.into()),
@@ -58,7 +57,6 @@ impl TextureConfig {
     ///
     /// This method can be used when the texture is included directly in the code using the
     /// [`include_bytes`](macro@std::include_bytes) macro.
-    #[must_use]
     pub fn from_memory(bytes: &'static [u8]) -> Self {
         Self {
             location: ResourceLocation::FromMemory(bytes),
@@ -72,7 +70,6 @@ impl TextureConfig {
     /// original size.
     ///
     /// Default value is `true`.
-    #[must_use]
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {
         self.is_smooth = is_smooth;
         self

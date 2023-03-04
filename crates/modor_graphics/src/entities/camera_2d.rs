@@ -68,7 +68,6 @@ impl Camera2D {
     /// Returns the 2D world position of the mouse.
     ///
     /// Does not work in windowless mode.
-    #[must_use]
     pub fn mouse_position(&self) -> Vec2 {
         self.mouse_position
     }
@@ -76,7 +75,6 @@ impl Camera2D {
     /// Returns the 2D world position of the finger with ID `ìd`.
     ///
     /// Does not work in windowless mode.
-    #[must_use]
     pub fn finger_position(&self, id: u64) -> Option<Vec2> {
         self.finger_positions.get(&id).copied()
     }

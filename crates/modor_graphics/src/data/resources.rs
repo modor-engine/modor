@@ -2,7 +2,7 @@ use crate::entities::render_target::RenderTarget;
 use modor::SingleMut;
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::any::{self, Any};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 /// Trait for defining a loadable resource.
 pub trait Resource {
@@ -11,7 +11,7 @@ pub trait Resource {
 }
 
 pub(crate) trait ResourceLoading: Any + Resource {
-    type ResourceType: Any + Send;
+    type ResourceType: Any + Send + Debug;
 
     fn key(&self) -> String;
 

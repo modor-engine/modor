@@ -18,8 +18,8 @@ use modor_math::Vec2;
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Clone, Debug, Default, Component)]
 #[non_exhaustive]
+#[derive(Clone, Debug, Default, Component)]
 pub struct RelativeTransform2D {
     /// Relative position of the entity.
     ///
@@ -48,7 +48,6 @@ pub struct RelativeTransform2D {
 
 impl RelativeTransform2D {
     /// Creates a new transform.
-    #[must_use]
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -61,7 +60,6 @@ impl RelativeTransform2D {
     /// Returns the transform with a different `position` in parent distance units.
     ///
     /// By default, the position is not relative.
-    #[must_use]
     #[inline]
     pub const fn with_position(mut self, position: Vec2) -> Self {
         self.position = Some(position);
@@ -71,7 +69,6 @@ impl RelativeTransform2D {
     /// Returns the transform with a different `size` in parent distance units.
     ///
     /// By default, the size is not relative.
-    #[must_use]
     #[inline]
     pub const fn with_size(mut self, size: Vec2) -> Self {
         self.size = Some(size);
@@ -81,7 +78,6 @@ impl RelativeTransform2D {
     /// Returns the transform with a different `rotation` in radians.
     ///
     /// By default, the rotation is not relative.
-    #[must_use]
     #[inline]
     pub const fn with_rotation(mut self, rotation: f32) -> Self {
         self.rotation = Some(rotation);

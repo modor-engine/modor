@@ -37,7 +37,6 @@ pub struct Window {
 #[singleton]
 impl Window {
     /// Returns the size of the rendering area.
-    #[must_use]
     pub fn size(&self) -> SurfaceSize {
         self.size
     }
@@ -145,7 +144,6 @@ pub struct Capture {
 #[singleton]
 impl Capture {
     /// Returns the capture size.
-    #[must_use]
     pub fn size(&self) -> SurfaceSize {
         self.buffer_size
     }
@@ -158,7 +156,6 @@ impl Capture {
     }
 
     /// Returns the capture as a 8-bit RGBA image buffer.
-    #[must_use]
     pub fn buffer(&self) -> Option<&[u8]> {
         if self.buffer.is_empty() {
             None
