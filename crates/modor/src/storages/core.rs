@@ -149,7 +149,7 @@ impl CoreStorage {
             .get_mut()
             .expect("internal error: cannot add system in archetype state")
             .add_system(system_idx, &mutation_component_type_idxs);
-        debug!("system `{label}` initialized");
+        debug!("system `{label}` initialized with `{action_idx:?}`");
         action_idx
     }
 

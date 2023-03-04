@@ -3,7 +3,7 @@ use futures::channel::oneshot::Receiver;
 use std::any;
 use std::any::Any;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 
 macro_rules! job_future {
@@ -69,10 +69,10 @@ macro_rules! job_future {
 ///     IoError
 /// }
 /// ```
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct Job<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     receiver: Option<Receiver<T>>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -81,7 +81,7 @@ where
 
 impl<T> Job<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     /// Creates a new job to run a `future`.
     ///

@@ -1,5 +1,6 @@
 use crate::actions::internal::SealedConstraint;
 use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 
 /// A trait for defining an action.
 ///
@@ -15,6 +16,15 @@ pub trait Action: Any {
     #[doc(hidden)]
     #[must_use]
     fn dependency_types() -> Vec<TypeId>;
+}
+
+impl<T> Action for PhantomData<T>
+where
+    T: Any,
+{
+    fn dependency_types() -> Vec<TypeId> {
+        vec![]
+    }
 }
 
 #[doc(hidden)]

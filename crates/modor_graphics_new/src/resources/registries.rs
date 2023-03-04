@@ -23,7 +23,7 @@ impl<T> ResourceKey for T where
 {
 }
 
-pub(crate) trait Resource: Component {
+pub trait Resource: Component {
     fn key(&self) -> &DynType;
 
     #[allow(unused_variables)]

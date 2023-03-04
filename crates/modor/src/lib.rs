@@ -99,6 +99,8 @@ pub use systems::building::*;
 pub use systems::checks::*;
 pub use systems::traits::*;
 
+// TODO: clean up #[must_use] in all crates
+
 /// Defines an entity.
 ///
 /// This macro should be applied on the `impl` block of the main component of the entity to define.

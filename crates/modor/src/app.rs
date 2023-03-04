@@ -272,6 +272,7 @@ impl App {
         runner(self);
     }
 
+    // TODO: remove
     /// Runs `f` if the singleton of type `E` exists.
     pub fn update_singleton<E>(&mut self, f: impl FnOnce(&mut E))
     where
@@ -285,6 +286,14 @@ impl App {
         if let Some(location) = location {
             f(&mut self.core.components().write_components()[location.idx][location.pos]);
         }
+    }
+
+    /// Apply `f` on all components of type `C`.
+    pub fn update_components<C>(&mut self, mut f: impl FnMut(&mut C))
+    where
+        C: Component,
+    {
+        self.core.run_system(system!(&mut f));
     }
 
     /// Runs all systems registered in the `App`.

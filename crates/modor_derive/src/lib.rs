@@ -41,12 +41,18 @@ pub fn component_derive(item: TokenStream) -> TokenStream {
     let crate_ident = idents::find_crate_ident(item.span());
     let ident = &item.ident;
     let action_type_ident = Ident::new(&(ident.to_string() + "Action"), item.span());
-    let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
+    let generics = item.generics;
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+    // TODO: test generic actions
+    let action_phantom = generics
+        .lt_token
+        .is_some()
+        .then(|| quote!(std::marker::PhantomData #type_generics));
     let finish_system_call = finish_system_call(ident);
     let output = quote! {
         impl #impl_generics #crate_ident::Component for #ident #type_generics #where_clause {
             type IsEntityMainComponent = #crate_ident::False;
-            type Action = #action_type_ident;
+            type Action = #action_type_ident #type_generics;
 
             fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
                 runner
@@ -57,7 +63,7 @@ pub fn component_derive(item: TokenStream) -> TokenStream {
         #[doc(hidden)]
         #[non_exhaustive]
         #[derive(#crate_ident::Action)]
-        pub struct #action_type_ident;
+        pub struct #action_type_ident #type_generics(#action_phantom) #where_clause;
     };
     output.into()
 }
@@ -97,7 +103,13 @@ fn implement_entity_main_component(item: TokenStream, object_type: ObjectType) -
     let type_ = &item.self_ty;
     let type_ident = idents::extract_type_ident(type_);
     let action_type_ident = Ident::new(&(type_ident.to_string() + "Action"), item.span());
-    let (impl_generics, _generics, where_clause) = item.generics.split_for_impl();
+    let generics = &item.generics;
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+    // TODO: test generic actions (some cases may not compile)
+    let action_phantom = generics
+        .lt_token
+        .is_some()
+        .then(|| quote!(std::marker::PhantomData #type_generics));
     let update_statement = systems::generate_update_statement(&item);
     let finish_system_call = finish_system_call(&type_ident);
     let actions = systems::action_dependencies(&item);
@@ -123,7 +135,7 @@ fn implement_entity_main_component(item: TokenStream, object_type: ObjectType) -
 
         impl #impl_generics #crate_ident::Component for #type_ #where_clause {
             type IsEntityMainComponent = #is_entity_main_component;
-            type Action = #action_type_ident;
+            type Action = #action_type_ident #type_generics;
 
             fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
                 #update_statement
@@ -136,7 +148,7 @@ fn implement_entity_main_component(item: TokenStream, object_type: ObjectType) -
         #[doc(hidden)]
         #[non_exhaustive]
         #[derive(#crate_ident::Action)]
-        pub struct #action_type_ident(#(#actions),*);
+        pub struct #action_type_ident #type_generics(#(#actions,)* #action_phantom) #where_clause;
     };
     output.into()
 }

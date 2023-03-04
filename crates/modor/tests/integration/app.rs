@@ -379,6 +379,22 @@ fn update_singleton() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn update_components() {
+    let mut app = App::new()
+        .with_entity(Entity::build(10))
+        .with_entity(Entity::build_entity1(20))
+        .with_entity(Entity::build_entity2(30));
+    app.update_components(|c: &mut Component| c.0 += 1);
+    app.assert::<With<Component>>(3, |e| {
+        e.any()
+            .has(|c: &Component| assert_eq!(c.0, 11))
+            .has(|c: &Component| assert_eq!(c.0, 21))
+            .has(|c: &Component| assert_eq!(c.0, 31))
+    });
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn start_runner() {
     let mut run = false;
     App::new().run(|_| run = true);

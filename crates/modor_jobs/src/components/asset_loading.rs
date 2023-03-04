@@ -1,7 +1,7 @@
 use crate::Job;
 use std::any::Any;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 
 /// Name of the asset folder taken into account in the folder `CARGO_MANIFEST_DIR`.
@@ -53,10 +53,10 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///     LoadingError
 /// }
 /// ```
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct AssetLoadingJob<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     /// Actual job instance that can be used to retrieve the job result.
     inner: Job<Result<T, AssetLoadingError>>,
@@ -64,7 +64,7 @@ where
 
 impl<T> AssetLoadingJob<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     /// Creates a new job to retrieve asset located at `path`, and apply `f` on the bytes of the
     /// file.
