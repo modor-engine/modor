@@ -70,3 +70,14 @@ mod internal {
 
     impl<A, C> SealedConstraint for (A, C) {}
 }
+
+#[cfg(test)]
+mod action_tests {
+    use crate::Action;
+    use std::marker::PhantomData;
+
+    #[test]
+    fn retrieve_phantom_actions() {
+        assert!(<PhantomData<()> as Action>::dependency_types().is_empty());
+    }
+}

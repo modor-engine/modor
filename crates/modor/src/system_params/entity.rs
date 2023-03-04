@@ -36,6 +36,7 @@ impl<'a> Entity<'a> {
         self.entity_idx.into()
     }
 
+    /// Returns the entity parent.
     pub fn parent(self) -> Option<Self> {
         self.context
             .storages

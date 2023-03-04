@@ -310,6 +310,7 @@ impl ChildBuilder<'_> {
     }
 }
 
+/// A component of a built entity.
 pub struct ComponentPart<E, C> {
     component: Option<C>,
     type_idx: Option<ComponentTypeIdx>,
@@ -368,6 +369,7 @@ where
     }
 }
 
+/// An entity inherited by a built entity.
 pub struct InheritedPart<E> {
     entity: E,
 }
@@ -393,6 +395,7 @@ where
     }
 }
 
+/// A child entity of a built entity.
 pub struct ChildPart<E> {
     entity: E,
 }
@@ -406,6 +409,7 @@ where
     }
 }
 
+/// Child entities of a built entity.
 pub struct ChildrenPart<F> {
     build_fn: F,
 }
@@ -420,6 +424,7 @@ where
     }
 }
 
+/// A dependency of a built entity.
 pub struct DependencyPart<E, B> {
     entity: B,
     phantom: PhantomData<E>,
