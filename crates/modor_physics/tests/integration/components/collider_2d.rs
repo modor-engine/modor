@@ -86,7 +86,7 @@ fn assert_collision_internal(
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_eq!(collision.other_entity_id, entity2_id - 2);
                 assert_approx_eq!(collision.normal, -normal_1);
                 assert_approx_eq!(collision.position, position2);
             })

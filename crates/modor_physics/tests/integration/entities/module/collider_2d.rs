@@ -117,7 +117,7 @@ fn add_collider_with_dynamics_and_same_colliding_group() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_eq!(collision.other_entity_id, entity2_id - 2);
                 assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
@@ -200,7 +200,7 @@ fn add_collider_with_dynamics_and_different_colliding_groups() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_eq!(collision.other_entity_id, entity2_id - 2);
                 assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
@@ -235,7 +235,7 @@ fn add_collider_with_dynamics_and_same_colliding_group_with_reversed_condition()
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_eq!(collision.other_entity_id, entity2_id - 2);
                 assert!(collision.has_other_entity_group(ReversedCollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);
@@ -306,7 +306,7 @@ fn add_collider_without_dynamics() {
             e.has(|c: &Collider2D| {
                 assert_eq!(c.collisions().len(), 1);
                 let collision = &c.collisions()[0];
-                assert_eq!(collision.other_entity_id, entity2_id - 1);
+                assert_eq!(collision.other_entity_id, entity2_id - 2);
                 assert!(collision.has_other_entity_group(CollisionGroup::Group1));
                 assert_approx_eq!(collision.normal, -COLLISION_NORMAL);
                 assert_approx_eq!(collision.position, COLLISION_POSITION2);

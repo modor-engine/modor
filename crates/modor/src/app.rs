@@ -124,8 +124,8 @@ impl App {
 
     /// Creates a new entity.
     pub fn with_entity(mut self, entity: impl BuildableEntity) -> Self {
-        let entity_idx = entity.build(&mut self.core, None);
-        trace!("entity created with ID {}", entity_idx.0);
+        entity.build(&mut self.core, None);
+        self.core.delete_replaced_entities();
         self
     }
 

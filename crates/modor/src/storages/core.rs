@@ -9,8 +9,8 @@ use crate::storages::updates::UpdateStorage;
 use crate::systems::context::{Storages, SystemContext};
 use crate::{Component, SystemBuilder};
 use std::any::TypeId;
-use std::mem;
 use std::sync::{Mutex, RwLock};
+use std::{any, mem};
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -21,6 +21,7 @@ pub struct CoreStorage {
     systems: SystemStorage,
     updates: Mutex<UpdateStorage>,
     archetype_states: RwLock<ArchetypeStateStorage>,
+    replaced_singletons: Vec<(EntityIdx, &'static str)>,
 }
 
 impl CoreStorage {
@@ -95,6 +96,12 @@ impl CoreStorage {
     ) where
         C: Component,
     {
+        if let Some(location) = self.components().singleton_location(type_idx) {
+            self.replaced_singletons.push((
+                self.archetypes.entity_idxs(location.idx)[location.pos],
+                any::type_name::<C>(),
+            ));
+        }
         self.components
             .add(type_idx, location, component, is_singleton);
     }
@@ -124,13 +131,21 @@ impl CoreStorage {
         dst_location
     }
 
+    pub(crate) fn delete_replaced_entities(&mut self) {
+        for (entity_idx, name) in mem::take(&mut self.replaced_singletons) {
+            self.delete_entity(entity_idx);
+            warn!("singleton component of type `{}` has been replaced", name);
+        }
+    }
+
     pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {
-        self.entities.delete(entity_idx, |e, l| {
+        self.entities.delete(entity_idx, |e, i, l| {
             for &type_idx in self.archetypes.sorted_type_idxs(l.idx) {
                 self.components.delete(type_idx, l);
             }
             self.archetypes.delete_entity(l);
             Self::update_moved_entity_location(l, &self.archetypes, e);
+            trace!("entity with ID {} deleted", i.0);
         });
     }
 
@@ -238,7 +253,6 @@ impl CoreStorage {
         for entity_idx in updates.deleted_entity_drain() {
             if self.entities.location(entity_idx).is_some() {
                 self.delete_entity(entity_idx);
-                trace!("entity with ID {} deleted", entity_idx.0);
             } else {
                 warn!(
                     "entity with ID {} not deleted as it doesn't exist",
@@ -246,6 +260,7 @@ impl CoreStorage {
                 );
             }
         }
+        self.delete_replaced_entities();
     }
 
     fn delete_component_type(

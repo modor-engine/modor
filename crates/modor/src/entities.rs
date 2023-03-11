@@ -228,10 +228,6 @@ impl<P> BuiltEntityPart for EntityBuilder<P>
 where
     P: BuiltEntityPart,
 {
-    fn remove_existing_singleton(&self, core: &mut CoreStorage) {
-        self.parts.remove_existing_singleton(core);
-    }
-
     fn create_archetype(
         &mut self,
         core: &mut CoreStorage,
@@ -290,7 +286,7 @@ mod internal {
     use crate::storages::components::ComponentTypeIdx;
     use crate::storages::core::CoreStorage;
     use crate::storages::entities::EntityIdx;
-    use crate::{BuildableEntity, ComponentSystems, EntityChildBuilder, False};
+    use crate::{BuildableEntity, ComponentSystems, EntityChildBuilder};
     use crate::{Component, SystemRunner, True};
     use std::any;
     use std::any::{Any, TypeId};
@@ -298,8 +294,6 @@ mod internal {
 
     #[allow(unused_variables)]
     pub trait BuiltEntityPart: Sized + Any + Sync + Send {
-        fn remove_existing_singleton(&self, core: &mut CoreStorage) {}
-
         fn create_archetype(
             &mut self,
             core: &mut CoreStorage,
@@ -313,11 +307,11 @@ mod internal {
         fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {}
 
         fn build(mut self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
-            self.remove_existing_singleton(core);
             let archetype_idx = self.create_archetype(core, ArchetypeStorage::DEFAULT_IDX);
             let (entity_idx, location) = core.create_entity(archetype_idx, parent_idx);
             self.add_components(core, location);
             self.create_other_entities(core, Some(entity_idx));
+            trace!("entity created with ID {}", entity_idx.0);
             entity_idx
         }
     }
@@ -329,11 +323,6 @@ mod internal {
         T: BuiltEntityPart,
         U: BuiltEntityPart,
     {
-        fn remove_existing_singleton(&self, core: &mut CoreStorage) {
-            self.0.remove_existing_singleton(core);
-            self.1.remove_existing_singleton(core);
-        }
-
         fn create_archetype(
             &mut self,
             core: &mut CoreStorage,
@@ -363,24 +352,6 @@ mod internal {
     where
         C: Component + ComponentSystems,
     {
-        fn remove_existing_singleton(&self, core: &mut CoreStorage) {
-            if self.component.is_none() || TypeId::of::<C::IsSingleton>() == TypeId::of::<False>() {
-                return;
-            }
-            if let Some(location) = core
-                .components()
-                .type_idx(TypeId::of::<C>())
-                .and_then(|c| core.components().singleton_location(c))
-            {
-                let entity_idx = core.archetypes().entity_idxs(location.idx)[location.pos];
-                core.delete_entity(entity_idx);
-                warn!(
-                    "singleton component of type `{}` has been replaced",
-                    any::type_name::<C>()
-                );
-            }
-        }
-
         fn create_archetype(
             &mut self,
             core: &mut CoreStorage,

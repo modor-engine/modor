@@ -432,5 +432,3 @@ pub use modor_derive::NoSystem;
 /// }
 /// ```
 pub use modor_derive::systems;
-
-// TODO: investigate possible issue when child has the same singleton component than parent

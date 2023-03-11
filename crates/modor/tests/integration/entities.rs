@@ -142,5 +142,5 @@ fn create_entity_with_same_singleton_in_children() {
                 .with_child(Singleton1(1))
                 .with_child(Singleton1(2)),
         )
-        .assert::<With<Singleton1>>(1, |e| e);
+        .assert::<With<Singleton1>>(0, |e| e);
 }
