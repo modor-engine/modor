@@ -172,7 +172,7 @@ impl CoreStorage {
     where
         S: FnMut(SystemContext<'_>),
     {
-        let _properties = (system.properties_fn)(self); // to create component types
+        let _properties = (system.properties_fn)(self); // creates component types
         let storages = Storages {
             entities: &self.entities,
             components: &self.components,

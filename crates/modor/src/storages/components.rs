@@ -127,20 +127,14 @@ impl ComponentStorage {
         self.archetypes[type_idx].move_component(src_location, dst_archetype_idx);
         self.add_archetype(type_idx, dst_archetype_idx);
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
-            let last_archetype_location = EntityLocation {
-                idx: src_location.idx,
-                pos: self.archetypes[type_idx]
-                    .component_count(src_location.idx)
-                    .into(),
-            };
             if singleton_location == src_location {
                 self.singleton_locations[type_idx] = Some(EntityLocation {
                     idx: dst_archetype_idx,
                     pos: ArchetypeEntityPos::default(),
                 });
-            } else if singleton_location == last_archetype_location {
-                self.singleton_locations[type_idx] = Some(src_location);
             }
+            // no need to check for last archetype location, like in `ComponentStorage::delete`,
+            // because this case is unreachable due to action ordering in `CoreStorage::update`
         }
     }
 
