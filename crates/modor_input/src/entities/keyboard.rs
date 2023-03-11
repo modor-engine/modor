@@ -29,7 +29,7 @@ impl Keyboard {
             text: String::new(),
         }
     }
-    
+
     /// Returns all pressed keys.
     pub fn pressed_keys(&self) -> impl Iterator<Item = Key> + '_ {
         self.keys

@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 /// #
 /// #[derive(Component, NoSystem)]
 /// struct MainCharacter;
-/// 
+///
 /// #[derive(Component, NoSystem)]
 /// struct EnemyCharacter;
 ///
