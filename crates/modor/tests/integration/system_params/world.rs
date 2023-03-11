@@ -8,14 +8,12 @@ struct Id(u32);
 #[derive(Component)]
 struct EntityToDelete;
 
+#[systems]
 impl EntityToDelete {
     fn build(id: u32) -> impl BuiltEntity {
         EntityBuilder::new().with(Self).with(Id(id))
     }
-}
 
-#[systems]
-impl EntityToDelete {
     #[run]
     fn delete(entity: Entity<'_>, mut world: World<'_>) {
         world.delete_entity(entity.id());
