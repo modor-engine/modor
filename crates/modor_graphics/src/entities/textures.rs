@@ -62,7 +62,7 @@ use modor_jobs::{AssetLoadingJob, Job};
 ///             .with_size(Vec2::ONE * 0.5)
 ///     }
 /// }
-/// 
+///
 /// fn build_rectangle() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new())
@@ -133,10 +133,6 @@ impl Resource for Texture {
 
 impl ResourceLoading for Texture {
     type ResourceType = Image;
-
-    fn key(&self) -> String {
-        format!("{:?}", self.config.key)
-    }
 
     fn parse(bytes: &[u8]) -> Result<Image, ResourceLoadingError> {
         image::load_from_memory(bytes)

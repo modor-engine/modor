@@ -47,7 +47,7 @@ pub trait BuiltEntity: BuildableEntity + Any + Sync + Send {
     /// Creates child entities.
     ///
     /// This method can be used instead of
-    /// [`EntityBuilder::with_child`](crate::EntityBuilder::with_child) when children are
+    /// [`EntityBuilder::with_child`](EntityBuilder::with_child) when children are
     /// created dynamically (e.g. with conditional creation or loops).
     fn with_children<F>(self, builder: F) -> EntityBuilder<(Self::Parts, ChildrenPart<F>)>
     where
@@ -249,6 +249,30 @@ where
     }
 }
 
+/// A builder for defining children of an entity.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Component, NoSystem)]
+/// struct Value(u32);
+///
+/// fn build_root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Value(0))
+///         .with_children(|b| {
+///             for i in 1..=10 {
+///                 b.add(build_child(i));
+///             }
+///         })
+/// }
+///
+/// fn build_child(value: u32) -> impl BuiltEntity {
+///     EntityBuilder::new().with(Value(value))
+/// }
+/// ```
 pub struct EntityChildBuilder<'a> {
     core: &'a mut CoreStorage,
     parent_idx: Option<EntityIdx>,

@@ -11,8 +11,6 @@ pub trait Resource {
 pub(crate) trait ResourceLoading: Any + Resource {
     type ResourceType: Any + Send + Debug;
 
-    fn key(&self) -> String;
-
     fn parse(bytes: &[u8]) -> Result<Self::ResourceType, ResourceLoadingError>;
 
     fn asset_loading_job(

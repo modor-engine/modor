@@ -26,7 +26,7 @@ struct Level1;
 
 impl Level1 {
     fn build(value: u32) -> impl BuiltEntity {
-        EntityBuilder::new()
+        EntityBuilder::default()
             .with(Self)
             .with(Value(value))
             .with_child(Level2::build(value + 1))
@@ -42,9 +42,9 @@ impl Level2 {
             .with(Self)
             .with_inherited(Inherited::build(i64::from(value)))
             .with(Value(value + 100))
-            .with_children(move |a| {
+            .with_children(move |b| {
                 for i in 2..4 {
-                    a.add(Level3::build(value + i, i == 2));
+                    b.add(Level3::build(value + i, i == 2));
                 }
             })
     }

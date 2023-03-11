@@ -39,7 +39,7 @@ use modor_jobs::{AssetLoadingJob, Job};
 ///         }
 ///     }
 /// }
-/// 
+///
 /// fn build_text() -> impl BuiltEntity {
 ///      EntityBuilder::new()
 ///          .with(Transform2D::new())
@@ -100,10 +100,6 @@ impl Resource for Font {
 
 impl ResourceLoading for Font {
     type ResourceType = FontVec;
-
-    fn key(&self) -> String {
-        format!("{:?}", self.key)
-    }
 
     fn parse(bytes: &[u8]) -> Result<Self::ResourceType, ResourceLoadingError> {
         FontVec::try_from_vec(bytes.into())
