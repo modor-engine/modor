@@ -25,8 +25,7 @@ impl<S, P> SealedChecker for SystemParamMutabilityChecker<S, P> {}
 
 /// A trait implemented for any system.
 ///
-/// This trait is used by the [`entity`](macro@crate::entity) and
-/// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
+/// This trait is used by the [`systems`](macro@crate::systems) proc macro to detect invalid systems.
 pub trait SystemWithParams<S, P>: Sized + SealedChecker {
     #[doc(hidden)]
     fn check_param_mutability(self) -> Self {
@@ -47,8 +46,7 @@ where
 /// engine, and at least one of them locks the resource mutably
 /// (e.g. there are two parameters of type `&C` and `&mut C`).
 ///
-/// This trait is used by the [`entity`](macro@crate::entity) and
-/// [`singleton`](macro@crate::singleton) proc macros to detect invalid systems.
+/// This trait is used by the [`systems`](macro@crate::systems) proc macro to detect invalid systems.
 pub trait SystemWithParamMutabilityIssue<S, Z>: Sized + SealedChecker {
     // coverage: off (method only used for compile time checking)
     #[doc(hidden)]

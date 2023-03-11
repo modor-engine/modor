@@ -8,10 +8,11 @@ fn main() {}
 #[derive(Action)]
 struct TestAction;
 
-struct InvalidEntity;
+#[derive(Component)]
+struct InvalidComponent;
 
-#[entity]
-impl InvalidEntity {
+#[systems]
+impl InvalidComponent {
     const CONSTANT: usize = 0;
 
     #[run]

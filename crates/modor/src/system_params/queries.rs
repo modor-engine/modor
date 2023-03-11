@@ -13,7 +13,7 @@ use crate::{EntityFilter, QuerySystemParam, SystemParam};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Entity, Query};
+/// # use modor::*;
 /// #
 ///
 /// fn print_position(query: Query<'_, Entity<'_>>) {

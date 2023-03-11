@@ -1,6 +1,6 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, App, Built, Entity, EntityBuilder, Single, World};
+use modor::{systems, App, BuiltEntity, Component, Entity, EntityBuilder, Single, World};
 use modor_graphics::{Color, GraphicsModule, Mesh2D, WindowSettings};
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
@@ -37,12 +37,14 @@ impl CollisionGroupRef for CollisionGroup {
     }
 }
 
+#[derive(Component)]
 struct Character;
 
-#[entity]
+#[systems]
 impl Character {
-    fn build(position: Vec2, size: Vec2) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(position: Vec2, size: Vec2) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_position(position).with_size(size))
             .with(Dynamics2D::new())
             .with(Mesh2D::rectangle().with_color(Color::GREEN).with_z(1.))
@@ -84,12 +86,15 @@ impl Character {
     }
 }
 
+#[derive(Component)]
 struct Object;
 
-#[entity]
+#[systems]
 impl Object {
-    fn build(position: Vec2, size: Vec2) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Transform2D::new().with_position(position).with_size(size))
+    fn build(position: Vec2, size: Vec2) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with(Transform2D::new().with_position(position).with_size(size))
     }
 
     #[run]
@@ -109,37 +114,43 @@ impl Object {
     }
 }
 
+#[derive(Component)]
 struct Rectangle;
 
-#[entity]
+#[systems]
 impl Rectangle {
-    fn build(position: Vec2, size: Vec2) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .inherit_from(Object::build(position, size))
+    fn build(position: Vec2, size: Vec2) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with_inherited(Object::build(position, size))
             .with(Mesh2D::rectangle().with_color(Color::BLUE))
             .with(Collider2D::rectangle(CollisionGroup::Object))
     }
 }
 
+#[derive(Component)]
 struct Circle;
 
-#[entity]
+#[systems]
 impl Circle {
-    fn build(position: Vec2, radius: f32) -> impl Built<Self> {
+    fn build(position: Vec2, radius: f32) -> impl BuiltEntity {
         let size = Vec2::ONE * radius * 2.;
-        EntityBuilder::new(Self)
-            .inherit_from(Object::build(position, size))
+        EntityBuilder::new()
+            .with(Self)
+            .with_inherited(Object::build(position, size))
             .with(Mesh2D::ellipse().with_color(Color::BLUE))
             .with(Collider2D::circle(CollisionGroup::Object))
     }
 }
 
+#[derive(Component)]
 struct CollisionPosition;
 
-#[entity]
+#[systems]
 impl CollisionPosition {
-    fn build(position: Vec2, normal: Vec2, color: Color) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(position: Vec2, normal: Vec2, color: Color) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(
                 Transform2D::new()
                     .with_position(position)
@@ -156,12 +167,14 @@ impl CollisionPosition {
     }
 }
 
+#[derive(Component)]
 struct CollisionNormal;
 
-#[entity]
+#[systems]
 impl CollisionNormal {
-    fn build(color: Color) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(color: Color) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_size(Vec2::new(0.05, 0.005)))
             .with(
                 RelativeTransform2D::new()
@@ -172,12 +185,14 @@ impl CollisionNormal {
     }
 }
 
+#[derive(Component)]
 struct CollisionNormalDirection;
 
-#[entity]
+#[systems]
 impl CollisionNormalDirection {
-    fn build(color: Color) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(color: Color) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new())
             .with(
                 RelativeTransform2D::new()

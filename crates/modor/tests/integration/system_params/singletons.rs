@@ -1,19 +1,13 @@
-use modor::{App, Built, EntityBuilder, Single, With};
+use modor::{App, Single, With};
 
+#[derive(Component, Default)]
 struct Tester {
     done_existing: bool,
     done_missing: bool,
 }
 
-#[entity]
+#[systems]
 impl Tester {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            done_existing: false,
-            done_missing: false,
-        })
-    }
-
     #[run]
     fn run_existing(&mut self, number: Single<'_, Number>) {
         assert_eq!(number.0, 10);
@@ -35,27 +29,19 @@ impl Tester {
     }
 }
 
+#[derive(SingletonComponent, NoSystem)]
 struct Number(u32);
 
-#[singleton]
-impl Number {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value))
-    }
-}
-
+#[derive(SingletonComponent, NoSystem)]
 struct Other(u32);
-
-#[singleton]
-impl Other {}
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_single() {
     App::new()
-        .with_entity(Number::build(10))
-        .with_entity(Tester::build())
-        .with_entity(Tester::build())
+        .with_entity(Number(10))
+        .with_entity(Tester::default())
+        .with_entity(Tester::default())
         .updated()
         .assert::<With<Tester>>(2, |e| {
             e.has(|t: &Tester| {
@@ -70,10 +56,10 @@ fn use_single() {
 fn run_systems_in_parallel() {
     modor_internal::retry!(10, {
         let start = instant::Instant::now();
-        let _app = App::new()
+        App::new()
             .with_thread_count(2)
-            .with_entity(Number::build(10))
-            .with_entity(Tester::build())
+            .with_entity(Number(10))
+            .with_entity(Tester::default())
             .updated();
         assert!(start.elapsed() < std::time::Duration::from_millis(150));
     });

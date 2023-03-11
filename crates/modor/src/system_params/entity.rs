@@ -13,9 +13,9 @@ use std::iter::FusedIterator;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Entity;
+/// # use modor::*;
 /// #
-/// #[derive(Debug)]
+/// #[derive(Debug, Component, NoSystem)]
 /// struct Position(f32, f32);
 ///
 /// fn print_position(position: &Position, entity: Entity<'_>) {

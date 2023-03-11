@@ -5,7 +5,7 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::systems::context::SystemContext;
-use crate::{Entity, EntityMainComponent, SystemParam, True};
+use crate::{Component, Entity, SystemParam, True};
 use std::ops::{Deref, DerefMut};
 
 /// A system parameter for mutably accessing the singleton of type `C`.
@@ -17,24 +17,18 @@ use std::ops::{Deref, DerefMut};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{singleton, Built, EntityBuilder, SingleMut, True};
+/// # use modor::*;
 /// #
-/// struct GameScore(u32);
+/// #[derive(SingletonComponent, NoSystem)]
+/// struct Score(u32);
 ///
-/// #[singleton]
-/// impl GameScore {
-///     fn build(score: u32) -> impl Built<Self> {
-///         EntityBuilder::new(Self(score))
-///     }
-/// }
-///
-/// fn increment_score(mut score: SingleMut<'_, GameScore>) {
+/// fn increment_score(mut score: SingleMut<'_, Score>) {
 ///     score.0 += 1;
 /// }
 /// ```
 pub struct SingleMut<'a, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     pub(crate) component: &'a mut C,
     pub(crate) entity: Entity<'a>,
@@ -42,7 +36,7 @@ where
 
 impl<C> SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     /// Returns entity information.
     pub fn entity(&self) -> Entity<'_> {
@@ -52,7 +46,7 @@ where
 
 impl<C> Deref for SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     type Target = C;
 
@@ -63,7 +57,7 @@ where
 
 impl<C> DerefMut for SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.component
@@ -72,7 +66,7 @@ where
 
 impl<'a, C> SystemParamWithLifetime<'a> for SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     type Param = SingleMut<'a, C>;
     type Guard = SingletonMutGuard<'a, C>;
@@ -82,7 +76,7 @@ where
 
 impl<C> SystemParam for SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     type Filter = ();
     type InnerTuple = ();
@@ -133,7 +127,7 @@ where
 
 impl<C> LockableSystemParam for SingleMut<'_, C>
 where
-    C: EntityMainComponent<IsSingleton = True>,
+    C: Component<IsSingleton = True>,
 {
     type LockedType = C;
     type Mutability = Mut;
@@ -144,7 +138,7 @@ pub(crate) mod internal {
     use crate::storages::components::ComponentArchetypes;
     use crate::storages::entities::EntityIdx;
     use crate::systems::context::SystemContext;
-    use crate::{Entity, EntityMainComponent, SingleMut, True};
+    use crate::{Component, Entity, SingleMut, True};
     use std::ops::Range;
     use std::sync::RwLockWriteGuard;
 
@@ -155,7 +149,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonMutGuard<'a, C>
     where
-        C: EntityMainComponent<IsSingleton = True>,
+        C: Component<IsSingleton = True>,
     {
         pub(crate) fn new(context: SystemContext<'a>) -> Self {
             Self {
@@ -200,7 +194,7 @@ pub(crate) mod internal {
 
     impl<'a, C> SingletonMutStream<'a, C>
     where
-        C: EntityMainComponent<IsSingleton = True>,
+        C: Component<IsSingleton = True>,
     {
         pub(super) fn new(guard: &'a mut SingletonMutGuardBorrow<'_, C>) -> Self {
             Self {

@@ -1,34 +1,35 @@
 use crate::data::InputState;
 use crate::utils;
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of the keyboard.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Single;
-/// # use modor_input::{Key, Keyboard};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_keyboard(keyboard: Single<'_, Keyboard>) {
 ///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed);
 ///     println!("Entered text: {:?}", keyboard.text());
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct Keyboard {
     keys: FxHashMap<Key, InputState>,
     text: String,
 }
 
-#[singleton]
 impl Keyboard {
+    pub(crate) fn new() -> Self {
+        Self {
+            keys: FxHashMap::default(),
+            text: String::new(),
+        }
+    }
+    
     /// Returns all pressed keys.
     pub fn pressed_keys(&self) -> impl Iterator<Item = Key> + '_ {
         self.keys
@@ -64,13 +65,6 @@ impl Keyboard {
     /// Returns the entered text.
     pub fn text(&self) -> &str {
         &self.text
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            keys: FxHashMap::default(),
-            text: String::new(),
-        })
     }
 
     pub(crate) fn reset(&mut self) {

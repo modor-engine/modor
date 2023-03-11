@@ -5,8 +5,8 @@ use modor::*;
 
 fn main() {}
 
-trait MyEntity {}
+trait MyComponent {}
 
-#[entity]
-impl dyn MyEntity {}
+#[systems]
+impl dyn MyComponent {}
 //~^ error: only path types are supported (for example, `module::Type<GenericType>`)

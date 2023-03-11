@@ -1,26 +1,25 @@
-use crate::TestEntity;
-use modor::{App, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, RelativeTransform2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use std::mem;
 use std::time::Duration;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Source;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Destination;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_velocity() {
-    let entity = EntityBuilder::new(TestEntity)
+    let entity = EntityBuilder::new()
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
         .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)));
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity)
         .updated()
         .assert::<With<Transform2D>>(1, |e| {
@@ -43,7 +42,7 @@ fn update_velocity() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_angular_velocity() {
-    let entity = EntityBuilder::new(TestEntity)
+    let entity = EntityBuilder::new()
         .with(
             Transform2D::new()
                 .with_position(Vec2::new(1., 2.))
@@ -52,7 +51,7 @@ fn update_angular_velocity() {
         .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_4));
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity)
         .updated()
         .assert::<With<Transform2D>>(1, |e| {
@@ -76,13 +75,13 @@ fn update_angular_velocity() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn remove_and_put_back_dynamics() {
-    let entity = EntityBuilder::new(TestEntity)
+    let entity = EntityBuilder::new()
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
         .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
     let mut dynamics = Dynamics2D::new();
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity)
         .updated()
         .with_update::<(), _>(|d: &mut Dynamics2D| mem::swap(d, &mut dynamics))
@@ -98,18 +97,18 @@ fn remove_and_put_back_dynamics() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn move_dynamics() {
-    let source = EntityBuilder::new(TestEntity)
+    let source = EntityBuilder::new()
         .with(Source)
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
         .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
-    let destination = EntityBuilder::new(TestEntity)
+    let destination = EntityBuilder::new()
         .with(Destination)
         .with(Transform2D::new().with_position(Vec2::new(2., 1.)))
         .with(Dynamics2D::new());
     let mut dynamics = Dynamics2D::new();
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(source)
         .with_entity(destination)
         .updated()
@@ -128,13 +127,13 @@ fn move_dynamics() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn create_with_relative_transform() {
-    let entity = EntityBuilder::new(TestEntity)
+    let entity = EntityBuilder::new()
         .with(Transform2D::new())
         .with(RelativeTransform2D::new())
         .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity)
         .updated()
         .assert::<With<Transform2D>>(1, |e| {

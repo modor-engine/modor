@@ -40,8 +40,8 @@ use winit::event_loop::{ControlFlow, EventLoop};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::App;
-/// # use modor_graphics::{GraphicsModule, SurfaceSize, WindowSettings};
+/// # use modor::*;
+/// # use modor_graphics::*;
 /// #
 /// # fn no_run() {
 /// App::new()

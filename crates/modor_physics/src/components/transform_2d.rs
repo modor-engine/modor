@@ -9,20 +9,11 @@ pub(crate) const ROOT_TRANSFORM: Transform2D = Transform2D::new();
 
 /// The positioning of a 2D entity.
 ///
-/// # Modor
-///
-/// - **Type**: component
-/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during actions**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated using**: [`RelativeTransform2D`](crate::RelativeTransform2D),
-///     [`Dynamics2D`](crate::Dynamics2D), [`Collider2D`](crate::Collider2D),
-///     [`DeltaTime`](crate::DeltaTime), [`Transform2D`](crate::Transform2D) of the parent
-///
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
 #[non_exhaustive]
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Component, NoSystem)]
 pub struct Transform2D {
     /// Position of the entity in world units.
     pub position: PhysicsProperty<Vec2>,

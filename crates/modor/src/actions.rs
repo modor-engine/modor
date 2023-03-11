@@ -7,11 +7,7 @@ use std::marker::PhantomData;
 /// Actions are used to constrain systems.
 ///
 /// **Do not implement manually this trait.**<br>
-/// The [`action`](macro@crate::Action) derive macro can be used instead to define an action.
-///
-/// # Examples
-///
-/// See [`entity`](macro@crate::entity).
+/// The [`Action`](macro@crate::Action) derive macro can be used instead to define an action.
 pub trait Action: Any {
     #[doc(hidden)]
     fn dependency_types() -> Vec<TypeId>;

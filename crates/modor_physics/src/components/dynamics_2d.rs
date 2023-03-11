@@ -5,18 +5,13 @@ use rapier2d::na::Vector2;
 
 /// The dynamics properties of a 2D entity.
 ///
-/// # Modor
-///
-/// - **Type**: component
-/// - **Required components**: [`Transform2D`](crate::Transform2D)
-/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated using**: [`Collider2D`](crate::Collider2D)
+/// This component has an effect only if the entity has also a component of type
+/// [`Transform2D`](crate::Transform2D).
 ///
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, NoSystem)]
 pub struct Dynamics2D {
     /// Linear velocity of the entity in world units per second.
     pub velocity: PhysicsProperty<Vec2>,

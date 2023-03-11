@@ -1,63 +1,52 @@
 use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2DTuple};
 use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
-use modor::{Built, Entity, EntityBuilder, Filter, Query, Single, With};
+use modor::{BuiltEntity, Entity, EntityBuilder, Filter, Query, Single, With};
 use std::time::Duration;
 
 type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransform2D>)>;
 
 /// The main entity of the physics module.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: custom (same as parent entity)
-///
 /// # Examples
 ///
 /// ```rust
 /// # use std::f32::consts::PI;
-/// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_math::Vec2;
-/// # use modor_physics::{
-/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D, Collider2D
-/// # };
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
 /// #
 /// let mut app = App::new()
 ///     .with_entity(PhysicsModule::build())
-///     .with_entity(Object::build());
+///     .with_entity(build_object());
 /// loop {
 ///     app.update();
 ///     # break;
 /// }
 ///
-/// struct Object;
-///
-/// #[entity]
-/// impl Object {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self)
-///             .with(
-///                 Transform2D::new()
-///                     .with_position(Vec2::new(0.2, 0.3))
-///                     .with_size(Vec2::new(0.25, 0.5))
-///                     .with_rotation(20_f32.to_radians())
-///             )
-///             .with(RelativeTransform2D::new().with_rotation(PI / 2.))
-///             .with(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
-///     }
+/// fn build_object() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(
+///             Transform2D::new()
+///                 .with_position(Vec2::new(0.2, 0.3))
+///                 .with_size(Vec2::new(0.25, 0.5))
+///                 .with_rotation(20_f32.to_radians())
+///         )
+///         .with(RelativeTransform2D::new().with_rotation(PI / 2.))
+///         .with(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
 /// }
 /// ```
 ///
 /// Colliders can be configured this way:
 /// ```rust
 /// # use std::f32::consts::PI;
-/// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_math::Vec2;
-/// # use modor_physics::{
-/// #     Transform2D, PhysicsModule, Dynamics2D, RelativeTransform2D,
-/// #     Collider2D, CollisionGroupRef, CollisionType
-/// # };
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
 /// #
+/// let mut app = App::new()
+///     .with_entity(PhysicsModule::build())
+///     .with_entity(Ally::build());
+///
 /// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// enum CollisionGroup {
 ///     Ally,
@@ -76,35 +65,35 @@ type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransfo
 ///     }
 /// }
 ///
+/// #[derive(Component)]
 /// struct Ally;
 ///
-/// #[entity]
+/// #[systems]
 /// impl Ally {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self)
+///     fn build() -> impl BuiltEntity {
+///         EntityBuilder::new()
+///             .with(Self)
 ///             .with(Transform2D::new())
 ///             .with(Collider2D::circle(CollisionGroup::Ally))
 ///     }
 /// }
-///
-/// let mut app = App::new()
-///     .with_entity(PhysicsModule::build())
-///     .with_entity(Ally::build());
 /// ```
+#[derive(SingletonComponent)]
 pub struct PhysicsModule {
     core_2d: Core2DStorage,
 }
 
-#[singleton]
+#[systems]
 impl PhysicsModule {
     /// Builds the module where all entities with a [`Collider2D`](crate::Collider2D) component
     /// can collide with each other.
-    pub fn build() -> impl Built<Self> {
+    pub fn build() -> impl BuiltEntity {
         info!("physics module created");
-        EntityBuilder::new(Self {
-            core_2d: Core2DStorage::default(),
-        })
-        .with_child(DeltaTime::build(Duration::ZERO))
+        EntityBuilder::new()
+            .with(Self {
+                core_2d: Core2DStorage::default(),
+            })
+            .with_child(DeltaTime::from(Duration::ZERO))
     }
 
     #[run]

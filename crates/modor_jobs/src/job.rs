@@ -21,33 +21,31 @@ macro_rules! job_future {
 
 /// An asynchronous job.
 ///
-/// # Modor
-///
-/// - **Type**: component
-///
 /// # Example
 ///
 /// ```
 /// # use std::path::{Path, PathBuf};
-/// # use modor::{entity, Built, EntityBuilder};
-/// # use modor_jobs::Job;
+/// # use modor::*;
+/// # use modor_jobs::*;
 /// #
+/// #[derive(Component)]
 /// struct FileReader {
+///     job: Job<Vec<u8>>,
 ///     bytes: Result<Vec<u8>, FileReaderError>
 /// }
 ///
-/// #[entity]
+/// #[systems]
 /// impl FileReader {
-///     fn build(path: impl Into<PathBuf>) -> impl Built<Self> {
+///     fn new(path: impl Into<PathBuf>) -> Self {
 ///         let path = path.into();
-///         EntityBuilder::new(Self {
+///         Self {
+///             job: Job::new(async {
+///                 async_std::fs::read(path)
+///                     .await
+///                     .expect("cannot read file")
+///             }),
 ///             bytes: Err(FileReaderError::NotReadYet),
-///         })
-///         .with(Job::new(async {
-///             async_std::fs::read(path)
-///                 .await
-///                 .expect("cannot read file")
-///         }))
+///         }
 ///     }
 ///
 ///     fn bytes(&self) -> Result<&[u8], &FileReaderError> {
@@ -55,8 +53,8 @@ macro_rules! job_future {
 ///     }
 ///
 ///     #[run]
-///     fn poll(&mut self, job: &mut Job<Vec<u8>>) {
-///         match job.try_poll() {
+///     fn poll(&mut self) {
+///         match self.job.try_poll() {
 ///             Ok(Some(result)) => self.bytes = Ok(result),
 ///             Ok(None) => (),
 ///             Err(_) => self.bytes = Err(FileReaderError::IoError),
@@ -69,7 +67,7 @@ macro_rules! job_future {
 ///     IoError
 /// }
 /// ```
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Job<T>
 where
     T: Any + Send + Debug,

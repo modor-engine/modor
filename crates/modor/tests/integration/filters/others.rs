@@ -1,5 +1,5 @@
 use fxhash::FxHashSet;
-use modor::{App, Built, EntityBuilder, Filter, Or, Query, With, Without};
+use modor::{App, BuiltEntity, EntityBuilder, Filter, Or, Query, With, Without};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -12,26 +12,27 @@ where
     assert_eq!(actual, expected);
 }
 
-#[derive(Component, PartialEq, Eq, Hash, Debug)]
+#[derive(Component, NoSystem, PartialEq, Eq, Hash, Debug)]
 struct C1(u32);
 
-#[derive(Component, PartialEq, Eq, Hash, Debug)]
+#[derive(Component, NoSystem, PartialEq, Eq, Hash, Debug)]
 struct C2;
 
-#[derive(Component, PartialEq, Eq, Hash, Debug)]
+#[derive(Component, NoSystem, PartialEq, Eq, Hash, Debug)]
 struct C3;
 
-#[derive(Component, PartialEq, Eq, Hash, Debug)]
+#[derive(Component, NoSystem, PartialEq, Eq, Hash, Debug)]
 struct C4;
 
+#[derive(SingletonComponent)]
 struct ResultCollector {
     done: bool,
 }
 
-#[singleton]
+#[systems]
 impl ResultCollector {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self { done: false })
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new().with(Self { done: false })
     }
 
     #[allow(clippy::type_complexity, clippy::too_many_arguments)]
@@ -73,25 +74,14 @@ impl ResultCollector {
     }
 }
 
-struct TestEntity;
-
-#[entity]
-impl TestEntity {}
-
 #[test]
 fn filter_entities_in_query() {
     App::new()
         .with_entity(ResultCollector::build())
-        .with_entity(
-            EntityBuilder::new(TestEntity)
-                .with(C1(1))
-                .with(C2)
-                .with(C3)
-                .with(C4),
-        )
-        .with_entity(EntityBuilder::new(TestEntity).with(C1(2)).with(C3))
-        .with_entity(EntityBuilder::new(TestEntity).with(C1(3)).with(C2))
-        .with_entity(EntityBuilder::new(TestEntity).with(C1(4)))
+        .with_entity(EntityBuilder::new().with(C1(1)).with(C2).with(C3).with(C4))
+        .with_entity(EntityBuilder::new().with(C1(2)).with(C3))
+        .with_entity(EntityBuilder::new().with(C1(3)).with(C2))
+        .with_entity(EntityBuilder::new().with(C1(4)))
         .updated()
         .assert::<With<ResultCollector>>(1, |e| e.has(|c: &ResultCollector| assert!(c.done)));
 }

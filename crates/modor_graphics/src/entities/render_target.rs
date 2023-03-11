@@ -10,7 +10,9 @@ use crate::{
     Texture, WindowSettings,
 };
 use ab_glyph::FontVec;
-use modor::{Built, Component, Entity, EntityBuilder, Filter, Query, Single, With, World};
+use modor::{
+    BuiltEntity, ComponentSystems, Entity, EntityBuilder, Filter, Query, Single, With, World,
+};
 use modor_physics::{PhysicsModule, Transform2D};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
@@ -22,31 +24,26 @@ pub(crate) const DEFAULT_CAMERA_TRANSFORM: Transform2D = Transform2D::new();
 
 /// The open window in which rendering occurs.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
-///
 /// # Examples
 ///
 /// See [`GraphicsModule`](crate::GraphicsModule).
+#[derive(SingletonComponent)]
 pub struct Window {
     size: SurfaceSize,
 }
 
-#[singleton]
+#[systems]
 impl Window {
     /// Returns the size of the rendering area.
     pub fn size(&self) -> SurfaceSize {
         self.size
     }
 
-    pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
+    pub(crate) fn build(renderer: Renderer) -> impl BuiltEntity {
         let (width, height) = renderer.target_size();
-        EntityBuilder::new(Self {
+        RenderTarget::build(renderer).with(Self {
             size: SurfaceSize { width, height },
         })
-        .inherit_from(RenderTarget::build(renderer))
     }
 
     pub(crate) fn set_size(&mut self, size: SurfaceSize) {
@@ -59,20 +56,23 @@ impl Window {
     }
 }
 
+#[derive(SingletonComponent)]
 pub(crate) struct WindowInit {
     settings: WindowSettings,
     renderer: Option<Renderer>,
 }
 
-#[singleton]
-impl WindowInit {
-    pub(crate) fn build(settings: WindowSettings) -> impl Built<Self> {
-        EntityBuilder::new(Self {
+impl From<WindowSettings> for WindowInit {
+    fn from(settings: WindowSettings) -> Self {
+        Self {
             settings,
             renderer: None,
-        })
+        }
     }
+}
 
+#[systems]
+impl WindowInit {
     pub(crate) fn create_renderer(&mut self, window: &WinitWindow) {
         self.renderer = Some(Renderer::new(WindowTarget::new(window)));
     }
@@ -126,23 +126,41 @@ impl WindowInit {
 
 /// A handler for capturing rendering.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
-///
 /// # Examples
 ///
 /// See [`GraphicsModule`](crate::GraphicsModule).
 // coverage: off (window cannot be tested)
+#[derive(SingletonComponent)]
 pub struct Capture {
     buffer: Vec<u8>,
     buffer_size: SurfaceSize,
     updated_size: Option<SurfaceSize>,
 }
 
-#[singleton]
+#[systems]
 impl Capture {
+    pub(crate) fn build(size: SurfaceSize) -> impl BuiltEntity {
+        RenderTarget::build(Renderer::new(TextureTarget::new(size.width, size.height))).with(Self {
+            buffer_size: size,
+            buffer: vec![],
+            updated_size: Some(size),
+        })
+    }
+
+    #[run_as(PrepareCaptureAction)]
+    fn prepare(&mut self, surface: &mut RenderTarget) {
+        if let Some(size) = self.updated_size.take() {
+            surface.core.set_size(size);
+        }
+    }
+
+    #[run_as(CaptureUpdateAction)]
+    fn update(&mut self, surface: &mut RenderTarget) {
+        let (width, height) = surface.core.renderer().target_size();
+        self.buffer_size = SurfaceSize::new(width, height);
+        self.buffer = surface.core.renderer().retrieve_buffer();
+    }
+
     /// Returns the capture size.
     pub fn size(&self) -> SurfaceSize {
         self.buffer_size
@@ -163,42 +181,17 @@ impl Capture {
             Some(&self.buffer)
         }
     }
-
-    pub(crate) fn build(size: SurfaceSize) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            buffer_size: size,
-            buffer: vec![],
-            updated_size: Some(size),
-        })
-        .inherit_from(RenderTarget::build(Renderer::new(TextureTarget::new(
-            size.width,
-            size.height,
-        ))))
-    }
-
-    #[run_as(PrepareCaptureAction)]
-    fn prepare(&mut self, surface: &mut RenderTarget) {
-        if let Some(size) = self.updated_size.take() {
-            surface.core.set_size(size);
-        }
-    }
-
-    #[run_as(CaptureUpdateAction)]
-    fn update(&mut self, surface: &mut RenderTarget) {
-        let (width, height) = surface.core.renderer().target_size();
-        self.buffer_size = SurfaceSize::new(width, height);
-        self.buffer = surface.core.renderer().retrieve_buffer();
-    }
 }
 
+#[derive(SingletonComponent)]
 pub(crate) struct RenderTarget {
     pub(crate) core: CoreStorage,
 }
 
-#[singleton]
+#[systems]
 impl RenderTarget {
-    pub(crate) fn build(renderer: Renderer) -> impl Built<Self> {
-        EntityBuilder::new(Self {
+    pub(crate) fn build(renderer: Renderer) -> impl BuiltEntity {
+        EntityBuilder::new().with(Self {
             core: CoreStorage::new(renderer),
         })
     }
@@ -253,8 +246,8 @@ struct PrepareCaptureAction;
 #[derive(Action)]
 struct PrepareRenderingAction(
     PrepareCaptureAction,
-    <PhysicsModule as Component>::Action,
-    <Camera2D as Component>::Action,
+    <PhysicsModule as ComponentSystems>::Action,
+    <Camera2D as ComponentSystems>::Action,
 );
 
 #[derive(Action)]

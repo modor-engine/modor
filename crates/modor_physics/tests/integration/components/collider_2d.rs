@@ -1,6 +1,4 @@
-use crate::TestEntity;
-
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, BuildableEntity, BuiltEntity, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
@@ -17,30 +15,22 @@ impl CollisionGroupRef for CollisionGroup {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Entity1;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Entity2;
 
-fn entity1(
-    transform: Transform2D,
-    collider: Collider2D,
-    with_dynamics: bool,
-) -> impl Built<TestEntity> {
-    EntityBuilder::new(TestEntity)
+fn entity1(transform: Transform2D, collider: Collider2D, with_dynamics: bool) -> impl BuiltEntity {
+    EntityBuilder::new()
         .with(Entity1)
         .with(transform)
         .with_option(with_dynamics.then(Dynamics2D::new))
         .with(collider)
 }
 
-fn entity2(
-    transform: Transform2D,
-    collider: Collider2D,
-    with_dynamics: bool,
-) -> impl Built<TestEntity> {
-    EntityBuilder::new(TestEntity)
+fn entity2(transform: Transform2D, collider: Collider2D, with_dynamics: bool) -> impl BuiltEntity {
+    EntityBuilder::new()
         .with(Entity2)
         .with(transform)
         .with_option(with_dynamics.then(Dynamics2D::new))
@@ -68,8 +58,8 @@ fn assert_collision(
 }
 
 fn assert_collision_internal(
-    entity1: impl Built<TestEntity>,
-    entity2: impl Built<TestEntity>,
+    entity1: impl BuildableEntity,
+    entity2: impl BuildableEntity,
     normal_1: Vec2,
     position1: Vec2,
     position2: Vec2,
@@ -77,7 +67,7 @@ fn assert_collision_internal(
     let mut entity2_id = 0;
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity1)
         .with_entity(entity2)
         .updated()
@@ -117,10 +107,10 @@ fn assert_no_collision(
     }
 }
 
-fn assert_no_collision_internal(entity1: impl Built<TestEntity>, entity2: impl Built<TestEntity>) {
+fn assert_no_collision_internal(entity1: impl BuildableEntity, entity2: impl BuildableEntity) {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(entity1)
         .with_entity(entity2)
         .updated()

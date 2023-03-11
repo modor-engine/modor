@@ -1,27 +1,20 @@
 use crate::utils::numbers;
 use crate::Window;
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder, Query, Single};
+use modor::{BuiltEntity, EntityBuilder, Query, Single};
 use modor_input::{Finger, InputModule, Mouse};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::{PhysicsModule, Transform2D};
 
 /// The camera used for 2D rendering.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`GraphicsModule`](crate::GraphicsModule)
-/// - **Default if missing**: `Camera2D::build(Position::xy(0., 0.), Size::xy(1., 1.))`
-/// - **Inner components**: [`Transform2D`](modor_physics::Transform2D)
-/// - **Updated using**: [`Transform2D`](modor_physics::Transform2D), [`Mouse`](modor_input::Mouse),
-///     [`Finger`](modor_input::Finger), [`Window`](crate::Window)
+/// If no camera is defined, then a default camera centered in `(0., 0.)` with a size of `(1., 1.)`.
 ///
 /// # Examples
 /// ```rust
-/// # use modor::{App, Single};
-/// # use modor_math::Vec2;
-/// # use modor_graphics::Camera2D;
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_graphics::*;
 /// #
 /// App::new()
 ///     .with_entity(Camera2D::build(Vec2::new(0.5, 0.7), Vec2::new(2., 2.)));
@@ -30,37 +23,41 @@ use modor_physics::{PhysicsModule, Transform2D};
 ///     println!("Mouse position in 2D world: {:?}", camera.mouse_position());
 /// }
 /// ```
+#[derive(SingletonComponent)]
 pub struct Camera2D {
     transform_matrix: Mat4,
     mouse_position: Vec2,
     finger_positions: FxHashMap<u64, Vec2>,
 }
 
-#[singleton]
+#[systems]
 impl Camera2D {
-    /// Builds the entity.
-    pub fn build(position: Vec2, size: Vec2) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            transform_matrix: Mat4::IDENTITY,
-            mouse_position: Vec2::new(0., 0.),
-            finger_positions: FxHashMap::default(),
-        })
-        .with(Transform2D::new().with_position(position).with_size(size))
+    /// Builds a camera entity with [`Camera2D`](Camera2D) and
+    /// [`Transform2D`](Transform2D) components.
+    pub fn build(position: Vec2, size: Vec2) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self {
+                transform_matrix: Mat4::IDENTITY,
+                mouse_position: Vec2::new(0., 0.),
+                finger_positions: FxHashMap::default(),
+            })
+            .with(Transform2D::new().with_position(position).with_size(size))
     }
 
     /// Builds the entity with a rotation.
-    pub fn build_rotated(position: Vec2, size: Vec2, rotation: f32) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            transform_matrix: Mat4::IDENTITY,
-            mouse_position: Vec2::new(0., 0.),
-            finger_positions: FxHashMap::default(),
-        })
-        .with(
-            Transform2D::new()
-                .with_position(position)
-                .with_size(size)
-                .with_rotation(rotation),
-        )
+    pub fn build_rotated(position: Vec2, size: Vec2, rotation: f32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self {
+                transform_matrix: Mat4::IDENTITY,
+                mouse_position: Vec2::new(0., 0.),
+                finger_positions: FxHashMap::default(),
+            })
+            .with(
+                Transform2D::new()
+                    .with_position(position)
+                    .with_size(size)
+                    .with_rotation(rotation),
+            )
     }
 
     // coverage: off (window cannot be tested)

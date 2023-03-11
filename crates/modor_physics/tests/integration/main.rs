@@ -7,8 +7,3 @@ extern crate modor_internal;
 
 pub mod components;
 pub mod entities;
-
-struct TestEntity;
-
-#[entity]
-impl TestEntity {}

@@ -4,42 +4,35 @@ use modor_math::Vec2;
 
 /// The properties of an entity rendered as a 2D mesh.
 ///
-/// # Modor
-///
-/// - **Type**: component
-/// - **Required components**: [`Transform2D`](modor_physics::Transform2D)
+/// The entity will be rendered only if it also has a [`Transform2D`](modor_physics::Transform2D)
+/// component.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{entity, Built, EntityBuilder};
-/// # use modor_math::Vec2;
-/// # use modor_physics::Transform2D;
-/// # use modor_graphics::{Mesh2D, Color};
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
+/// # use modor_graphics::*;
 /// #
-/// struct Rectangle;
-///
-/// #[entity]
-/// impl Rectangle {
-///     fn build(position: Vec2, size: Vec2, angle: f32, color: Color) -> impl Built<Self> {
-///         EntityBuilder::new(Self)
-///             .with(
-///                 Transform2D::new()
-///                     .with_position(position)
-///                     .with_size(size)
-///                     .with_rotation(angle)
-///             )
-///             .with(
-///                 Mesh2D::rectangle()
-///                     .with_color(color)
-///                     .with_z(2.)
-///             )
-///     }
+/// fn build_rectangle(position: Vec2, size: Vec2, angle: f32, color: Color) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(
+///              Transform2D::new()
+///                  .with_position(position)
+///                  .with_size(size)
+///                  .with_rotation(angle)
+///          )
+///          .with(
+///              Mesh2D::rectangle()
+///                  .with_color(color)
+///                  .with_z(2.)
+///          )
 /// }
 /// ```
 ///
 /// See also [`Texture`](crate::Texture) for a texture attachment example.
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Component, NoSystem)]
 pub struct Mesh2D {
     /// Color of the entity.
     ///

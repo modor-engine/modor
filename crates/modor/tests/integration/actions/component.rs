@@ -1,22 +1,13 @@
-use modor::{App, Built, EntityBuilder, SingleMut, With};
+use modor::{App, SingleMut, With};
 
+#[derive(SingletonComponent, NoSystem)]
 struct Counter(u32);
 
-#[singleton]
-impl Counter {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(1))
-    }
-}
-
+#[derive(Component)]
 struct Value1(u32);
 
-#[entity]
+#[systems]
 impl Value1 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(0))
-    }
-
     #[run_after(component(Value3))]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
@@ -24,14 +15,11 @@ impl Value1 {
     }
 }
 
+#[derive(Component)]
 struct Value2(u32);
 
-#[entity]
+#[systems]
 impl Value2 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(0))
-    }
-
     #[run_after()]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
@@ -39,14 +27,11 @@ impl Value2 {
     }
 }
 
+#[derive(Component)]
 struct Value3(u32);
 
-#[entity]
+#[systems]
 impl Value3 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(0))
-    }
-
     #[run_after(component(Value2))]
     fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
         self.0 = counter.0;
@@ -57,10 +42,10 @@ impl Value3 {
 #[test]
 fn run_systems_depending_on_entities() {
     App::new()
-        .with_entity(Counter::build())
-        .with_entity(Value1::build())
-        .with_entity(Value2::build())
-        .with_entity(Value3::build())
+        .with_entity(Counter(1))
+        .with_entity(Value1(0))
+        .with_entity(Value2(0))
+        .with_entity(Value3(0))
         .updated()
         .assert::<With<Value1>>(1, |e| e.has(|v: &Value1| assert_eq!(v.0, 3)))
         .assert::<With<Value2>>(1, |e| e.has(|v: &Value2| assert_eq!(v.0, 1)))

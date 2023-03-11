@@ -1,21 +1,16 @@
-use modor::{Built, EntityBuilder};
-
 /// A frame rate limit.
 ///
 /// The limit is only applied if the [`runner`](crate::runner()) is used.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: custom (same as parent entity)
-/// - **Default if missing**: `FrameRateLimit::build(FrameRate::VSync)`
+/// If no frame rate limit is defined, then the default frame rate is
+/// [`FrameRate::VSync`](FrameRate::VSync).
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::App;
-/// # use modor_graphics::{FrameRate, FrameRateLimit, GraphicsModule, SurfaceSize, WindowSettings};
-/// # use modor_physics::PhysicsModule;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_physics::*;
 /// #
 /// # fn no_run() {
 /// let mut app = App::new()
@@ -24,22 +19,23 @@ use modor::{Built, EntityBuilder};
 ///              .size(SurfaceSize::new(800, 600))
 ///              .title("title"),
 ///      ))
-///     .with_entity(FrameRateLimit::build(FrameRate::FPS(60)))
+///     .with_entity(FrameRateLimit::from(FrameRate::FPS(60)))
 ///     .run(modor_graphics::runner);
 /// # }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct FrameRateLimit {
     frame_rate: FrameRate,
 }
 
-#[singleton]
-impl FrameRateLimit {
-    /// Builds the entity.
-    pub fn build(frame_rate: FrameRate) -> impl Built<Self> {
-        info!("framerate limit initialized to {:?}", frame_rate);
-        EntityBuilder::new(Self { frame_rate })
+impl From<FrameRate> for FrameRateLimit {
+    fn from(frame_rate: FrameRate) -> Self {
+        info!("frame rate limit initialized to {:?}", frame_rate);
+        Self { frame_rate }
     }
+}
 
+impl FrameRateLimit {
     /// Get the frame rate limit.
     pub fn get(&self) -> FrameRate {
         self.frame_rate
@@ -48,7 +44,7 @@ impl FrameRateLimit {
     /// Set the frame rate limit.
     pub fn set(&mut self, frame_rate: FrameRate) {
         self.frame_rate = frame_rate;
-        info!("framerate limit set to {:?}", frame_rate);
+        info!("frame rate limit set to {:?}", frame_rate);
     }
 }
 

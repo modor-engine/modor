@@ -3,31 +3,25 @@ use crate::entities::render_target::RenderTarget;
 use crate::storages::resources::fonts::FontKey;
 use crate::{FontRef, Resource, ResourceLoading, ResourceLoadingError};
 use ab_glyph::FontVec;
-use modor::{Built, EntityBuilder, SingleMut};
+use modor::SingleMut;
 use modor_jobs::{AssetLoadingJob, Job};
 
 /// A font loaded asynchronously.
 ///
-/// # Modor
-///
-/// - **Type**: entity
-/// - **Lifetime**: same as parent entity
-/// - **Updated by**: [`GraphicsModule`](crate::GraphicsModule)
-///
 /// # Example
 ///
 /// ```rust
-/// # use modor::{entity, App, Built, EntityBuilder};
-/// # use modor_graphics::{Color, Text2D, Font, FontRef, FontConfig};
-/// # use modor_physics::Transform2D;
-/// # use modor_math::Vec2;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_physics::*;
+/// # use modor_math::*;
 /// #
 /// #
 /// # macro_rules! include_bytes {($($path:tt)*) => { &[] }}
 /// #
 /// App::new()
-///     .with_entity(Font::build(AppFontRef::FontFromPath))
-///     .with_entity(Text::build());
+///     .with_entity(Font::new(AppFontRef::FontFromPath))
+///     .with_entity(build_text());
 ///
 /// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// enum AppFontRef {
@@ -45,57 +39,56 @@ use modor_jobs::{AssetLoadingJob, Job};
 ///         }
 ///     }
 /// }
-///
-/// struct Text;
-///
-/// #[entity]
-/// impl Text {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Transform2D::new()).with(
-///             Text2D::new(30., "Hello world!")
-///                 .with_font(AppFontRef::FontFromPath)
-///         )
-///     }
+/// 
+/// fn build_text() -> impl BuiltEntity {
+///      EntityBuilder::new()
+///          .with(Transform2D::new())
+///          .with(Text2D::new(30., "Hello world!").with_font(AppFontRef::FontFromPath))
 /// }
 /// ```
+#[derive(Component)]
 pub struct Font {
     pub(crate) key: FontKey,
     state: ResourceState,
+    load_from_path_job: Option<
+        AssetLoadingJob<Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>>,
+    >,
+    load_from_memory_job:
+        Option<Job<Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>>>,
 }
 
-#[entity]
+#[systems]
 impl Font {
     /// Creates a new font.
-    pub fn build(font_ref: impl FontRef) -> impl Built<Self> {
+    pub fn new(font_ref: impl FontRef) -> Self {
         let config = font_ref.config();
         let key = FontKey::new(font_ref);
         let location = config.location;
-        EntityBuilder::new(Self {
+        Self {
             key,
             state: ResourceState::Loading,
-        })
-        .with_option(Self::asset_loading_job(&location))
-        .with_option(Self::job(&location))
+            load_from_path_job: Self::asset_loading_job(&location),
+            load_from_memory_job: Self::job(&location),
+        }
     }
 
     #[run]
-    fn load_from_path(
-        &mut self,
-        job: &mut AssetLoadingJob<
-            Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>,
-        >,
-        target: SingleMut<'_, RenderTarget>,
-    ) {
-        ResourceLoading::load_from_path(self, job, target);
-    }
-
-    #[run]
-    fn load_from_memory(
-        &mut self,
-        job: &mut Job<Result<<Self as ResourceLoading>::ResourceType, ResourceLoadingError>>,
-        target: SingleMut<'_, RenderTarget>,
-    ) {
-        ResourceLoading::load_from_memory(self, job, target);
+    fn load(&mut self, mut target: SingleMut<'_, RenderTarget>) {
+        if let Some(job) = self.load_from_path_job.as_mut() {
+            <Self as ResourceLoading>::load_from_path(
+                &format!("{:?}", self.key),
+                &mut self.state,
+                job,
+                |r| target.load_font(self.key.clone(), r),
+            );
+        } else if let Some(job) = self.load_from_memory_job.as_mut() {
+            <Self as ResourceLoading>::load_from_memory(
+                &format!("{:?}", self.key),
+                &mut self.state,
+                job,
+                |r| target.load_font(self.key.clone(), r),
+            );
+        }
     }
 }
 
@@ -115,13 +108,5 @@ impl ResourceLoading for Font {
     fn parse(bytes: &[u8]) -> Result<Self::ResourceType, ResourceLoadingError> {
         FontVec::try_from_vec(bytes.into())
             .map_err(|_| ResourceLoadingError::InvalidFormat("invalid font".into()))
-    }
-
-    fn load(&self, resource: Self::ResourceType, target: &mut RenderTarget) {
-        target.load_font(self.key.clone(), resource);
-    }
-
-    fn set_state(&mut self, state: ResourceState) {
-        self.state = state;
     }
 }

@@ -1,29 +1,47 @@
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob};
 use std::path::PathBuf;
 use std::time::Duration;
 use std::{fs, thread};
 
+#[derive(Component)]
+struct FileLoader {
+    job: AssetLoadingJob<usize>,
+}
+
+#[systems]
+impl FileLoader {
+    fn new(path: impl AsRef<str>) -> Self {
+        Self {
+            job: AssetLoadingJob::new(path, |b| async move {
+                async_std::task::sleep(Duration::from_millis(10)).await;
+                b.len()
+            }),
+        }
+    }
+
+    #[run]
+    fn poll(&mut self, size: &mut FileSize) {
+        size.size = self.job.try_poll();
+    }
+}
+
+#[derive(Component)]
 struct FileSize {
     size: Result<Option<usize>, AssetLoadingError>,
 }
 
-#[entity]
+#[systems]
 impl FileSize {
-    fn build(path: impl AsRef<str>) -> impl Built<Self> {
-        EntityBuilder::new(Self { size: Ok(None) }).with(AssetLoadingJob::new(
-            path,
-            |b| async move {
-                async_std::task::sleep(Duration::from_millis(10)).await;
-                b.len()
-            },
-        ))
+    fn new() -> Self {
+        Self { size: Ok(None) }
     }
+}
 
-    #[run]
-    fn poll(&mut self, job: &mut AssetLoadingJob<usize>) {
-        self.size = job.try_poll();
-    }
+fn file(path: &str) -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with(FileLoader::new(path))
+        .with(FileSize::new())
 }
 
 #[test]
@@ -31,7 +49,7 @@ fn load_valid_file_with_cargo() {
     // Multiple retries allowed as `load_valid_file_without_cargo` updates `CARGO_MANIFEST_DIR`.
     modor_internal::retry!(3, {
         App::new()
-            .with_entity(FileSize::build("../tests/assets/test.txt"))
+            .with_entity(file("../tests/assets/test.txt"))
             .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
                 thread::sleep(Duration::from_millis(10));
                 s.size != Ok(None)
@@ -53,7 +71,7 @@ fn load_valid_file_without_cargo() {
     fs::copy(asset_path, executable_path.join("assets/copied_test.txt")).unwrap();
     std::env::remove_var("CARGO_MANIFEST_DIR");
     App::new()
-        .with_entity(FileSize::build("copied_test.txt"))
+        .with_entity(file("copied_test.txt"))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));
             s.size != Ok(None)
@@ -69,7 +87,7 @@ fn load_valid_file_without_cargo() {
 #[test]
 fn load_missing_file() {
     App::new()
-        .with_entity(FileSize::build("invalid.txt"))
+        .with_entity(file("invalid.txt"))
         .updated_until_all::<(), _>(Some(100), |s: &FileSize| {
             thread::sleep(Duration::from_millis(10));
             s.size != Ok(None)

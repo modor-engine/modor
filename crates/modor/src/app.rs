@@ -1,7 +1,5 @@
 use crate::storages::core::CoreStorage;
-use crate::{
-    system, utils, Built, Component, EntityFilter, EntityMainComponent, Filter, UsizeRange,
-};
+use crate::{system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange};
 use crate::{Entity, Query};
 use std::any;
 use std::marker::PhantomData;
@@ -20,24 +18,26 @@ pub use log::LevelFilter;
 /// fn main() {
 ///     let mut app = App::new()
 ///         .with_thread_count(4)
-///         .with_entity(Button::build("New game".into()))
-///         .with_entity(Button::build("Settings".into()))
-///         .with_entity(Button::build("Exit".into()));
+///         .with_entity(button("New game"))
+///         .with_entity(button("Settings"))
+///         .with_entity(button("Exit"));
 ///     app.update();
 /// }
 ///
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct Label(String);
 ///
+/// #[derive(Component, NoSystem)]
 /// struct Button;
 ///
-/// #[entity]
-/// impl Button {
-///     fn build(label: String) -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Label(label))
-///     }
+/// fn button(label: &str) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Button)
+///         .with(Label(label.into()))
 /// }
 /// ```
+///
+/// See [`EntityBuilder`](crate::EntityBuilder) for details about how to create entities.
 ///
 /// [`App`](crate::App) can also be used for testing:
 ///
@@ -46,38 +46,33 @@ pub use log::LevelFilter;
 /// #
 /// #[derive(Component)]
 /// struct Count(usize);
-/// #[derive(Component)]
-/// struct Label(String);
 ///
-/// struct Counter;
-///
-/// #[entity]
-/// impl Counter {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Count(0))
-///     }
-///
+/// #[systems]
+/// impl Count {
 ///     #[run]
 ///     fn increment(count: &mut Count) {
 ///         count.0 += 1;
 ///     }
 /// }
 ///
+/// #[derive(Component, NoSystem)]
+/// struct OtherComponent;
+///
 /// #[test]
 /// fn test_counter() {
 /// # }
 /// # fn main() {
 ///     App::new()
-///         .with_entity(Counter::build())
-///         .assert::<With<Counter>>(1, |e| {
+///         .with_entity(Count(0))
+///         .assert::<With<Count>>(1, |e| {
 ///             e.has(|c: &Count| assert_eq!(c.0, 0))
-///                 .has_not::<Label>()
+///                 .has_not::<OtherComponent>()
 ///                 .child_count(0)
 ///         })
 ///         .updated()
-///         .assert::<With<Counter>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 1)))
-///         .with_update::<With<Counter>, _>(|count: &mut Count| count.0 = 42)
-///         .assert::<With<Counter>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 42)));
+///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 1)))
+///         .with_update::<With<Count>, _>(|count: &mut Count| count.0 = 42)
+///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 42)));
 /// }
 /// ```
 #[derive(Default)]
@@ -105,7 +100,7 @@ impl App {
 
     /// Set minimum log level.
     ///
-    /// Default minimum log level is [`LevelFilter::Warn`](log::LevelFilter::Warn).
+    /// Default minimum log level is [`LevelFilter::Warn`].
     pub fn with_log_level(self, level: LevelFilter) -> Self {
         log::set_max_level(level);
         info!("minimum log level set to '{level}'");
@@ -127,18 +122,10 @@ impl App {
         self
     }
 
-    /// Creates a new entity with main component of type `E`.
-    pub fn with_entity<E, B>(mut self, entity: B) -> Self
-    where
-        E: EntityMainComponent,
-        B: Built<E>,
-    {
+    /// Creates a new entity.
+    pub fn with_entity(mut self, entity: impl BuildableEntity) -> Self {
         let entity_idx = entity.build(&mut self.core, None);
-        trace!(
-            "entity of type `{}` created with ID {}",
-            any::type_name::<E>(),
-            entity_idx.0
-        );
+        trace!("entity created with ID {}", entity_idx.0);
         self
     }
 

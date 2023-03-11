@@ -1,62 +1,46 @@
-use modor::{App, Built, EntityBuilder, LevelFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, LevelFilter, With};
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct I64(i64);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct U32(u32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct I8(i8);
 
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton1(u32);
 
-#[singleton]
-impl Singleton1 {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value))
-    }
-}
-
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton2(u32);
 
-#[singleton]
-impl Singleton2 {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value))
-    }
-}
-
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton3(u32);
 
-#[singleton]
-impl Singleton3 {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value))
-    }
-}
-
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Value(u32);
 
+#[derive(Component, NoSystem)]
 struct Level1;
 
-#[entity]
 impl Level1 {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Value(value))
             .with_child(Level2::build(value + 1))
     }
 }
 
+#[derive(Component, NoSystem)]
 struct Level2;
 
-#[entity]
 impl Level2 {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .inherit_from(Inherited::build(i64::from(value)))
+    fn build(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with_inherited(Inherited::build(i64::from(value)))
             .with(Value(value + 100))
             .with_children(move |a| {
                 for i in 2..4 {
@@ -66,36 +50,39 @@ impl Level2 {
     }
 }
 
+#[derive(Component, NoSystem)]
 struct Level3;
 
-#[entity]
 impl Level3 {
-    fn build(value: u32, add_option: bool) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value: u32, add_option: bool) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Value(value))
             .with_option(add_option.then_some(42_u32).map(U32))
             .with_option((!add_option).then_some(42_i8).map(I8))
-            .with_dependency(Singleton1::build(10))
-            .with_dependency(Singleton2::build(20))
-            .with_dependency(Singleton3::build(30))
+            .with_dependency::<Singleton1, _>(Singleton1(10))
+            .with_dependency::<Singleton2, _>(Singleton2(20))
+            .with_dependency::<Singleton3, _>(Singleton3(30))
     }
 }
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct InheritedChild;
 
+#[derive(Component, NoSystem)]
 struct Inherited;
 
-#[entity]
 impl Inherited {
-    fn build(value: i64) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value: i64) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(I64(value))
             .with_child(Self::build_child(value + 1))
     }
 
-    fn build_child(value: i64) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build_child(value: i64) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(I64(value))
             .with(InheritedChild)
     }
@@ -106,10 +93,10 @@ impl Inherited {
 fn create_complex_entities() {
     App::new()
         .with_log_level(LevelFilter::Trace)
-        .with_entity(Singleton1::build(40))
-        .with_entity(Singleton1::build(41))
+        .with_entity(Singleton1(40))
+        .with_entity(Singleton1(41))
         .with_entity(Level1::build(100))
-        .with_entity(Singleton3::build(50))
+        .with_entity(Singleton3(50))
         .assert::<With<Singleton1>>(1, |e| e.has(|c: &Singleton1| assert_eq!(c.0, 41)))
         .assert::<With<Singleton2>>(1, |e| e.has(|c: &Singleton2| assert_eq!(c.0, 20)))
         .assert::<With<Singleton3>>(1, |e| e.has(|c: &Singleton3| assert_eq!(c.0, 50)))
@@ -143,13 +130,4 @@ fn create_complex_entities() {
                 .has_parent::<With<Level2>>()
                 .child_count(0)
         });
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn access_main_component_from_entity_builder() {
-    let mut builder = EntityBuilder::new(Singleton1(0));
-    assert_eq!(builder.main().0, 0);
-    builder.main_mut().0 = 10;
-    assert_eq!(builder.main().0, 10);
 }

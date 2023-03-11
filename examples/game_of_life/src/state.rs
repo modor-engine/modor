@@ -1,20 +1,21 @@
 use crate::{AliveCell, GRID_WIDTH, RAW_SAVED_GRID, REFRESH_FREQUENCY, START_STOP_KEY};
 use instant::Instant;
-use modor::{singleton, Built, Entity, EntityBuilder, Query, Single, SingleMut, World};
+use modor::{systems, Entity, Query, Single, SingleMut, SingletonComponent, World};
 use modor_input::Keyboard;
 
+#[derive(SingletonComponent)]
 pub(crate) struct Simulation {
     is_enabled: bool,
     last_update_time: Instant,
 }
 
-#[singleton]
+#[systems]
 impl Simulation {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
+    pub(crate) fn new() -> Self {
+        Self {
             is_enabled: false,
             last_update_time: Instant::now(),
-        })
+        }
     }
 
     fn start(&mut self) -> bool {
@@ -35,14 +36,14 @@ impl Simulation {
     }
 }
 
-#[derive(Clone)]
+#[derive(SingletonComponent, Clone)]
 pub(crate) struct Grid {
     cells: Vec<CellState>,
 }
 
-#[singleton]
+#[systems]
 impl Grid {
-    pub(crate) fn build() -> impl Built<Self> {
+    pub(crate) fn new() -> Self {
         let mut grid = Self {
             cells: vec![CellState::Dead; GRID_WIDTH * GRID_WIDTH],
         };
@@ -53,7 +54,7 @@ impl Grid {
                 }
             }
         }
-        EntityBuilder::new(grid)
+        grid
     }
 
     pub(crate) fn cell_state(&self, x: usize, y: usize) -> CellState {

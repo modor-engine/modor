@@ -1,52 +1,50 @@
 use log::LevelFilter;
-use modor::{App, Built, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton(u32);
 
-#[singleton]
-impl Singleton {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value))
-    }
-}
-
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Component(u32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct UnusedComponent;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Entity1;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Entity2;
 
+#[derive(Component)]
 struct Entity;
 
-#[entity]
+#[systems]
 impl Entity {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Component(value))
+    fn build(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new().with(Self).with(Component(value))
     }
 
-    fn build_entity1(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build_entity1(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Component(value))
             .with(Entity1)
     }
 
-    fn build_entity2(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build_entity2(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Component(value))
             .with(Entity2)
     }
 
-    fn build_with_children(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build_with_children(value: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Component(value))
-            .with_child(Child::build1(value + 1))
-            .with_child(Child::build2(value + 2))
+            .with_child(EntityBuilder::new().with(Child1))
+            .with_child(EntityBuilder::new().with(Child2))
     }
 
     #[run]
@@ -55,33 +53,20 @@ impl Entity {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Child1;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Child2;
 
+#[derive(Component, NoSystem)]
 struct Child(u32);
 
-#[entity]
-impl Child {
-    fn build1(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value)).with(Child1)
-    }
-
-    fn build2(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(value)).with(Child2)
-    }
-}
-
+#[derive(Component)]
 struct Counter(u32);
 
-#[entity]
+#[systems]
 impl Counter {
-    fn build(initial_value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self(initial_value))
-    }
-
     #[run]
     fn update(&mut self) {
         self.0 += 1;
@@ -115,7 +100,7 @@ fn assert_valid_entity_count() {
     App::new()
         .with_entity(Entity::build(10))
         .with_entity(Entity::build(20))
-        .with_entity(Singleton::build(30))
+        .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| e)
         .assert::<With<Singleton>>(1, |e| e)
         .assert::<(With<Entity>, With<Component>)>(2, |e| e)
@@ -137,7 +122,7 @@ fn assert_entity_has_existing_component() {
     App::new()
         .with_entity(Entity::build(10))
         .with_entity(Entity::build(20))
-        .with_entity(Singleton::build(30))
+        .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| {
             e.has(|c: &Component| assert!(c.0 == 10 || c.0 == 20))
                 .any()
@@ -188,7 +173,7 @@ fn assert_entity_has_not_missing_component() {
     App::new()
         .with_entity(Entity::build(10))
         .with_entity(Entity::build(20))
-        .with_entity(Singleton::build(30))
+        .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| e.has_not::<Singleton>())
         .assert::<With<Singleton>>(1, |e| e.has_not::<Component>().has_not::<UnusedComponent>())
         .assert::<()>(3, |e| e.any().has_not::<Entity>().has_not::<Singleton>());
@@ -220,7 +205,7 @@ fn assert_valid_child_count() {
     App::new()
         .with_entity(Entity::build_with_children(10))
         .with_entity(Entity::build_with_children(20))
-        .with_entity(Singleton::build(30))
+        .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| e.child_count(2))
         .assert::<()>(7, |e| e.any().child_count(2));
 }
@@ -323,8 +308,8 @@ fn update_app() {
 #[test]
 fn update_app_until_any() {
     App::new()
-        .with_entity(Counter::build(0))
-        .with_entity(Counter::build(1))
+        .with_entity(Counter(0))
+        .with_entity(Counter(1))
         .updated_until_any::<(), _>(Some(3), |c: &Counter| c.0 == 5)
         .assert::<With<Counter>>(2, |e| {
             e.any()
@@ -342,9 +327,9 @@ fn update_app_until_any() {
 #[test]
 #[should_panic = "max number of retries reached"]
 fn update_app_until_any_with_max_retries_reached() {
-    let _app = App::new()
-        .with_entity(Counter::build(0))
-        .with_entity(Counter::build(1))
+    App::new()
+        .with_entity(Counter(0))
+        .with_entity(Counter(1))
         .updated_until_any::<(), _>(Some(2), |c: &Counter| c.0 == 5);
 }
 
@@ -352,8 +337,8 @@ fn update_app_until_any_with_max_retries_reached() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_app_until_all() {
     App::new()
-        .with_entity(Counter::build(1))
-        .with_entity(Counter::build(1))
+        .with_entity(Counter(1))
+        .with_entity(Counter(1))
         .updated_until_all::<(), _>(Some(3), |c: &Counter| c.0 == 5)
         .assert::<With<Counter>>(2, |e| e.has(|c: &Counter| assert_eq!(c.0, 5)))
         .updated_until_all::<(), _>(None, |c: &Counter| c.0 == 15)
@@ -363,9 +348,9 @@ fn update_app_until_all() {
 #[test]
 #[should_panic = "max number of retries reached"]
 fn update_app_until_all_with_max_retries_reached() {
-    let _app = App::new()
-        .with_entity(Counter::build(1))
-        .with_entity(Counter::build(2))
+    App::new()
+        .with_entity(Counter(1))
+        .with_entity(Counter(2))
         .updated_until_all::<(), _>(Some(2), |c: &Counter| c.0 == 5);
 }
 

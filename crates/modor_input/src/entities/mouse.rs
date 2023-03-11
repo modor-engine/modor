@@ -1,26 +1,21 @@
 use crate::data::InputState;
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of the mouse.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Single;
-/// # use modor_input::{Mouse, MouseButton};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_mouse(mouse: Single<'_, Mouse>) {
 ///     println!("Position: {:?}", mouse.position());
 ///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed);
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct Mouse {
     buttons: FxHashMap<MouseButton, InputState>,
     scroll_delta: Vec2,
@@ -29,8 +24,17 @@ pub struct Mouse {
     delta: Vec2,
 }
 
-#[singleton]
 impl Mouse {
+    pub(crate) fn new() -> Self {
+        Self {
+            buttons: FxHashMap::default(),
+            scroll_delta: Vec2::ZERO,
+            scroll_unit: MouseScrollUnit::Pixel,
+            position: Vec2::ZERO,
+            delta: Vec2::ZERO,
+        }
+    }
+
     /// Return all pressed buttons.
     pub fn pressed_buttons(&self) -> impl Iterator<Item = MouseButton> + '_ {
         self.buttons
@@ -85,16 +89,6 @@ impl Mouse {
     /// in contrary to [`Mouse::position()`](crate::Mouse::position).
     pub fn delta(&self) -> Vec2 {
         self.delta
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            buttons: FxHashMap::default(),
-            scroll_delta: Vec2::ZERO,
-            scroll_unit: MouseScrollUnit::Pixel,
-            position: Vec2::ZERO,
-            delta: Vec2::ZERO,
-        })
     }
 
     pub(crate) fn reset(&mut self) {
