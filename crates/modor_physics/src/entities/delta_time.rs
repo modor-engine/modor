@@ -1,4 +1,3 @@
-use modor::{Built, EntityBuilder};
 use std::time::Duration;
 
 /// The duration of the latest update.
@@ -7,35 +6,31 @@ use std::time::Duration;
 /// Instead, the delta time can be manually set to simulate time, or be automatically updated
 /// by another module.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`PhysicsModule`](crate::PhysicsModule)
-/// - **Default if missing**: `DeltaTime::build(Duration::ZERO)`
+/// If the delta time is not defined or set, then its default value is `Duration::ZERO`.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor_physics::DeltaTime;
+/// # use modor_physics::*;
 /// #
 /// fn print_delta_time(delta_time: &DeltaTime) {
 ///     println!("Duration of the last update: {:?}", delta_time.get());
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct DeltaTime {
     duration: Duration,
 }
 
-#[singleton]
-impl DeltaTime {
-    /// Builds the entity with an initial `duration`.
-    pub fn build(duration: Duration) -> impl Built<Self> {
+impl From<Duration> for DeltaTime {
+    fn from(duration: Duration) -> Self {
         debug!("delta time initialized to `{duration:?}`");
-        EntityBuilder::new(Self { duration })
+        Self { duration }
     }
+}
 
+impl DeltaTime {
     /// Returns the duration of the last update.
-    #[must_use]
     pub fn get(&self) -> Duration {
         self.duration
     }

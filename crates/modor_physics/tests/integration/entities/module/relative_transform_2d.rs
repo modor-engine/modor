@@ -1,31 +1,30 @@
-use crate::TestEntity;
-use modor::{App, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, PhysicsModule, RelativeTransform2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::time::Duration;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct RootEntity;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct RelativeChild;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct AbsoluteChild;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_relative_position() {
-    let relative_child = EntityBuilder::new(TestEntity)
+    let relative_child = EntityBuilder::new()
         .with(RelativeChild)
         .with(Transform2D::new().with_position(Vec2::new(0.1, 0.2)))
         .with(RelativeTransform2D::new().with_position(Vec2::new(0.5, 0.2)));
-    let absolute_child = EntityBuilder::new(TestEntity)
+    let absolute_child = EntityBuilder::new()
         .with(AbsoluteChild)
         .with(Transform2D::new().with_position(Vec2::new(0.3, 0.4)))
         .with(RelativeTransform2D::new());
-    let root = EntityBuilder::new(TestEntity)
+    let root = EntityBuilder::new()
         .with(RootEntity)
         .with(
             Transform2D::new()
@@ -38,7 +37,7 @@ fn update_relative_position() {
         .with_child(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(root)
         .updated()
         .assert::<With<RootEntity>>(1, |e| {
@@ -81,15 +80,15 @@ fn update_relative_position() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_relative_size() {
-    let relative_child = EntityBuilder::new(TestEntity)
+    let relative_child = EntityBuilder::new()
         .with(RelativeChild)
         .with(Transform2D::new().with_size(Vec2::new(2., 4.)))
         .with(RelativeTransform2D::new().with_size(Vec2::new(0.5, 0.2)));
-    let absolute_child = EntityBuilder::new(TestEntity)
+    let absolute_child = EntityBuilder::new()
         .with(AbsoluteChild)
         .with(Transform2D::new().with_size(Vec2::new(5., 10.)))
         .with(RelativeTransform2D::new());
-    let root = EntityBuilder::new(TestEntity)
+    let root = EntityBuilder::new()
         .with(RootEntity)
         .with(Transform2D::new().with_size(Vec2::new(2., 4.)))
         .with(RelativeTransform2D::new().with_size(Vec2::new(3., 5.)))
@@ -97,7 +96,7 @@ fn update_relative_size() {
         .with_child(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(root)
         .updated()
         .assert::<With<RootEntity>>(1, |e| {
@@ -138,15 +137,15 @@ fn update_relative_size() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_relative_rotation() {
-    let relative_child = EntityBuilder::new(TestEntity)
+    let relative_child = EntityBuilder::new()
         .with(RelativeChild)
         .with(Transform2D::new().with_rotation(0.))
         .with(RelativeTransform2D::new().with_rotation(FRAC_PI_2));
-    let absolute_child = EntityBuilder::new(TestEntity)
+    let absolute_child = EntityBuilder::new()
         .with(AbsoluteChild)
         .with(Transform2D::new().with_rotation(FRAC_PI_4))
         .with(RelativeTransform2D::new());
-    let root = EntityBuilder::new(TestEntity)
+    let root = EntityBuilder::new()
         .with(RootEntity)
         .with(Transform2D::new().with_rotation(0.))
         .with(RelativeTransform2D::new().with_rotation(PI))
@@ -154,7 +153,7 @@ fn update_relative_rotation() {
         .with_child(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(DeltaTime::build(Duration::from_secs(2)))
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
         .with_entity(root)
         .updated()
         .assert::<With<RootEntity>>(1, |e| {

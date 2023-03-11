@@ -20,13 +20,11 @@ impl Mat4 {
     ///
     /// Each array of `elements` corresponds to a line of the matrix.
     #[inline]
-    #[must_use]
     pub const fn from_array(elements: [[f32; 4]; 4]) -> Self {
         Self { elements }
     }
 
     /// Creates a new transform matrix from a `position`.
-    #[must_use]
     pub const fn from_position(position: Vec3) -> Self {
         Self::from_array([
             [1., 0., 0., 0.],
@@ -37,7 +35,6 @@ impl Mat4 {
     }
 
     /// Creates a new transform matrix from a `scale`.
-    #[must_use]
     pub const fn from_scale(scale: Vec3) -> Self {
         Self::from_array([
             [scale.x, 0., 0., 0.],
@@ -50,7 +47,6 @@ impl Mat4 {
     /// Returns the array of arrays containing the elements of the matrix.
     ///
     /// Each array of the array corresponds to a line of the matrix.
-    #[must_use]
     pub const fn to_array(&self) -> [[f32; 4]; 4] {
         self.elements
     }

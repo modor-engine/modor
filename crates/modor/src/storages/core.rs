@@ -1,6 +1,6 @@
 use super::archetype_states::ArchetypeStateStorage;
 use super::systems::FullSystemProperties;
-use crate::storages::actions::{ActionDependencies, ActionIdx, ActionStorage};
+use crate::storages::actions::{ActionDependency, ActionIdx, ActionStorage};
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage, EntityLocation};
 use crate::storages::components::{ComponentStorage, ComponentTypeIdx};
 use crate::storages::entities::{EntityIdx, EntityStorage};
@@ -9,8 +9,8 @@ use crate::storages::updates::UpdateStorage;
 use crate::systems::context::{Storages, SystemContext};
 use crate::{Component, SystemBuilder};
 use std::any::TypeId;
-use std::mem;
 use std::sync::{Mutex, RwLock};
+use std::{any, mem};
 
 #[derive(Default)]
 pub struct CoreStorage {
@@ -21,6 +21,7 @@ pub struct CoreStorage {
     systems: SystemStorage,
     updates: Mutex<UpdateStorage>,
     archetype_states: RwLock<ArchetypeStateStorage>,
+    replaced_singletons: Vec<(EntityIdx, &'static str)>,
 }
 
 impl CoreStorage {
@@ -47,11 +48,11 @@ impl CoreStorage {
         self.components.type_idx_or_create::<C>()
     }
 
-    pub(crate) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
+    pub(crate) fn set_systems_as_loaded<C>(&mut self) -> ComponentTypeIdx
     where
         C: Component,
     {
-        self.components.add_entity_type::<C>()
+        self.components.set_systems_as_loaded::<C>()
     }
 
     pub(crate) fn add_component_type<C>(
@@ -95,6 +96,12 @@ impl CoreStorage {
     ) where
         C: Component,
     {
+        if let Some(location) = self.components().singleton_location(type_idx) {
+            self.replaced_singletons.push((
+                self.archetypes.entity_idxs(location.idx)[location.pos],
+                any::type_name::<C>(),
+            ));
+        }
         self.components
             .add(type_idx, location, component, is_singleton);
     }
@@ -124,13 +131,21 @@ impl CoreStorage {
         dst_location
     }
 
+    pub(crate) fn delete_replaced_entities(&mut self) {
+        for (entity_idx, name) in mem::take(&mut self.replaced_singletons) {
+            self.delete_entity(entity_idx);
+            warn!("singleton component of type `{}` has been replaced", name);
+        }
+    }
+
     pub(crate) fn delete_entity(&mut self, entity_idx: EntityIdx) {
-        self.entities.delete(entity_idx, |e, l| {
+        self.entities.delete(entity_idx, |e, i, l| {
             for &type_idx in self.archetypes.sorted_type_idxs(l.idx) {
                 self.components.delete(type_idx, l);
             }
             self.archetypes.delete_entity(l);
             Self::update_moved_entity_location(l, &self.archetypes, e);
+            trace!("entity with ID {} deleted", i.0);
         });
     }
 
@@ -138,7 +153,7 @@ impl CoreStorage {
         &mut self,
         properties: FullSystemProperties,
         action_type: Option<TypeId>,
-        action_dependencies: ActionDependencies,
+        action_dependencies: Vec<ActionDependency>,
     ) -> ActionIdx {
         let label = properties.label;
         let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
@@ -149,7 +164,7 @@ impl CoreStorage {
             .get_mut()
             .expect("internal error: cannot add system in archetype state")
             .add_system(system_idx, &mutation_component_type_idxs);
-        debug!("system `{label}` initialized");
+        debug!("system `{label}` initialized with `{action_idx:?}`");
         action_idx
     }
 
@@ -157,7 +172,7 @@ impl CoreStorage {
     where
         S: FnMut(SystemContext<'_>),
     {
-        let _properties = (system.properties_fn)(self); // to create component types
+        let _properties = (system.properties_fn)(self); // creates component types
         let storages = Storages {
             entities: &self.entities,
             components: &self.components,
@@ -169,7 +184,7 @@ impl CoreStorage {
         (system.wrapper)(SystemContext {
             system_idx: None,
             archetype_filter_fn: system.archetype_filter_fn,
-            entity_type_idx: None,
+            component_type_idx: None,
             item_count: storages.item_count(None, system.archetype_filter_fn, None),
             storages,
         });
@@ -238,7 +253,6 @@ impl CoreStorage {
         for entity_idx in updates.deleted_entity_drain() {
             if self.entities.location(entity_idx).is_some() {
                 self.delete_entity(entity_idx);
-                trace!("entity with ID {} deleted", entity_idx.0);
             } else {
                 warn!(
                     "entity with ID {} not deleted as it doesn't exist",
@@ -246,6 +260,7 @@ impl CoreStorage {
                 );
             }
         }
+        self.delete_replaced_entities();
     }
 
     fn delete_component_type(

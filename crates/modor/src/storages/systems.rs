@@ -113,11 +113,11 @@ impl SystemStorage {
         let context = SystemContext {
             system_idx: Some(system_idx),
             archetype_filter_fn: system.archetype_filter_fn,
-            entity_type_idx: system.entity_type_idx,
+            component_type_idx: system.component_type_idx,
             item_count: storages.item_count(
                 Some(system_idx),
                 system.archetype_filter_fn,
-                system.entity_type_idx,
+                system.component_type_idx,
             ),
             storages,
         };
@@ -145,7 +145,7 @@ pub(crate) struct FullSystemProperties {
     pub(crate) can_update: bool,
     pub(crate) mutation_component_type_idxs: Vec<ComponentTypeIdx>,
     pub(crate) archetype_filter_fn: ArchetypeFilterFn,
-    pub(crate) entity_type_idx: Option<ComponentTypeIdx>,
+    pub(crate) component_type_idx: Option<ComponentTypeIdx>,
     pub(crate) label: &'static str,
 }
 

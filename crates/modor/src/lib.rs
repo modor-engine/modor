@@ -5,53 +5,12 @@
 //! provides an API that represents entities like strongly typed objects, and provides tools similar
 //! to the object-oriented paradigm:
 //! - data are represented by components
-//! - logic is put in systems that are only run for the entity type where they are defined
+//! - logic is put in systems associated to a component type, and are only run for entities containing the linked component type
 //! - data and logic inheritance is possible between entity types
 //!
 //! # Examples
 //!
-//! ```rust
-//! use modor::*;
-//!
-//! App::new()
-//!     .with_entity(Character::build(Position(45., 65.), CharacterType::Main))
-//!     .with_entity(Character::build(Position(98., 12.), CharacterType::Enemy))
-//!     .with_entity(Character::build(Position(14., 23.), CharacterType::Enemy))
-//!     .update();
-//!
-//! #[derive(Debug, Component)]
-//! struct Position(f32, f32);
-//!
-//! enum CharacterType {
-//!     Main,
-//!     Neutral,
-//!     Enemy,
-//! }
-//!
-//! #[derive(Component)]
-//! struct Enemy;
-//!
-//! struct Character {
-//!     ammunition: u32,
-//! }
-//!
-//! #[entity]
-//! impl Character {
-//!     fn build(position: Position, type_: CharacterType) -> impl Built<Self> {
-//!         EntityBuilder::new(Self { ammunition: 10 })
-//!             .with_option(matches!(type_, CharacterType::Enemy).then(|| Enemy))
-//!             .with(position)
-//!     }
-//!
-//!     #[run]
-//!     fn fire_when_enemy(&mut self, position: &Position, _: &Enemy) {
-//!         if self.ammunition > 0 {
-//!             self.ammunition -= 1;
-//!             println!("Enemy at {:?} has fired", position);
-//!         }
-//!     }
-//! }
-//! ```
+//! See [`App`] and [`Component`](macro@crate::Component).
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::multiple_inherent_impl))]
 
 #[macro_use]
@@ -70,6 +29,7 @@ doc_comment!(include_str!("../../../README.md"));
 mod utils;
 mod actions;
 mod app;
+mod components;
 mod entities;
 mod filters;
 mod ranges;
@@ -79,9 +39,9 @@ mod systems;
 
 pub use actions::*;
 pub use app::*;
-pub use entities::building::*;
-pub use entities::runner::*;
-pub use entities::traits::*;
+pub use components::runner::*;
+pub use components::traits::*;
+pub use entities::*;
 pub use filters::changed::*;
 pub use filters::or::*;
 pub use filters::with::*;
@@ -99,55 +59,239 @@ pub use systems::building::*;
 pub use systems::checks::*;
 pub use systems::traits::*;
 
-/// Defines an entity.
+/// Defines an action type.
 ///
-/// This macro should be applied on the `impl` block of the main component of the entity to define.
+/// This macro implements the trait [`Action`].
 ///
-/// It automatically implements the trait [`Component`](crate::Component).
+/// The type must be a unit type (if no dependency) or a type with unnamed fields, where field types
+/// implement [`Action`] trait and are the dependencies of the defined action.
+///
+/// An action A is a dependency of an action B if all systems running as action A must be run
+/// before any system running as action B.
+///
+/// # Static checks
+///
+/// The way an action type is defined ensures that cyclic dependencies are detected at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Action)]
+/// struct A;
+///
+/// #[derive(Action)]
+/// pub struct B;
+///
+/// // systems running as C will be run only once all systems running as A and B have been run
+/// #[derive(Action)]
+/// pub(crate) struct C(A, B);
+/// ```
+pub use modor_derive::Action;
+
+/// Defines a component type.
+///
+/// This macro implements the trait [`Component`].
+///
+/// It is also required to define systems of the component using one of these macros:
+/// - [`systems`](macro@crate::systems) proc macro to define systems.
+/// - [`NoSystem`](macro@crate::NoSystem) derive macro to indicate the component as no system.
+///
+/// # Examples
+///
+/// Components are generally used in 3 different ways.
+///
+/// ## As encapsulated entity
+///
+/// It is common to define a component type as a type of entity, and encapsulate in this component
+/// type the builder methods and systems of the entity:
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// # struct Color(u8, u8, u8);
+/// #
+/// # #[derive(Component, NoSystem, Default)]
+/// # struct Position(f32, f32);
+/// #
+/// # #[derive(Component, NoSystem)]
+/// # struct Sprite(Color);
+/// #
+/// # impl Sprite {
+/// #    fn new(color: Color) -> Self { Self(color) }
+/// # }
+/// #
+/// App::new()
+///     .with_entity(Ball::build(Color(255, 255, 0), 0., 0.));
+///
+/// #[derive(Component)]
+/// struct Ball {
+///     hit_count: u32,
+///     direction: (f32, f32),
+/// }
+///
+/// #[systems]
+/// impl Ball {
+///     const SPEED: f32 = 0.01;
+///
+///     fn build(color: Color, x: f32, y: f32) -> impl BuiltEntity {
+///         EntityBuilder::new()
+///             .with(Self { hit_count: 0, direction: (1., 0.) })
+///             .with(Position(x, y))
+///             .with(Sprite::new(color))
+///     }
+///
+///     #[run]
+///     fn move_(&self, position: &mut Position) {
+///         position.0 += self.direction.0 * Self::SPEED;
+///         position.1 += self.direction.1 * Self::SPEED;
+///     }
+/// }
+/// ```
+///
+///
+/// ## As self-contained entity
+///
+/// Some components can also be enough to create an entity, without using [`EntityBuilder`]:
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// # struct Color(u8, u8, u8);
+/// #
+/// # #[derive(SingletonComponent, NoSystem)]
+/// # struct LeftPlayerHitCount(u32);
+/// #
+/// App::new()
+///     .with_entity(Score::default());
+///
+/// #[derive(SingletonComponent, Default)]
+/// struct Score {
+///     left_player: u32,
+///     right_player: u32,
+/// }
+///
+/// #[systems]
+/// impl Score {
+///     #[run]
+///     fn update_left(&mut self, count: Single<'_, LeftPlayerHitCount>) {
+///         self.left_player += count.0;
+///     }
+/// }
+/// ```
+///
+/// ## As property/extension of an entity
+///
+/// Components are also a good way to extend entities and bring additional features:
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// App::new()
+///     .with_entity(build_complex_entity().with(AutoRemoved));
+///
+/// fn build_complex_entity() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///     // ...
+/// }
+///
+/// #[derive(Component)]
+/// struct AutoRemoved;
+///
+/// #[systems]
+/// impl AutoRemoved {
+///     #[run]
+///     fn update(&mut self, entity: Entity<'_>, mut world: World<'_>) {
+///         world.delete_entity(entity.id());
+///     }
+/// }
+/// ```
+pub use modor_derive::Component;
+
+/// Defines a singleton component type.
+///
+/// This macro works the same way as [`Component`](macro@crate::Component), except that when a
+/// singleton component is created, an entity with an existing instance of this component
+/// type is deleted first, so that there is always a maximum of one instance of the component.
+///
+/// The instance can be directly accessed in systems using [`Single`] and [`SingleMut`] parameter
+/// types.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(SingletonComponent, NoSystem)]
+/// struct Score(u64);
+/// ```
+pub use modor_derive::SingletonComponent;
+
+/// Indicates a component type has no system.
+///
+/// It automatically implements the traits [`ComponentSystems`].
+///
+/// To define systems for a component type, replace by macro by the
+/// [`systems`](macro@crate::systems) proc macro.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Component, NoSystem)]
+/// struct Id(u32);
+/// ```
+pub use modor_derive::NoSystem;
+
+/// Defines the systems of a component.
+///
+/// This macro should be applied on the component type `impl` block.
+///
+/// It automatically implements the traits [`ComponentSystems`].
 ///
 /// # System definition
 ///
 /// Systems are methods run at each [`App`] update, and can access to other objects stored
-/// by the engine. A system must implement the [`System`](crate::System) trait.
+/// by the engine. A system must implement the [`System`] trait.
 ///
 /// You can apply a `run*` attribute on a method present in the `impl` block to run it at each
 /// update.
 /// Several attributes are available to configure when the system will be run:
 /// - `#[run]` to run the system without constraint
 /// - `#[run_as(MyAction)]` to run the system labeled with the action `MyAction` implementing
-/// the [`Action`](crate::Action) trait.
+/// the [`Action`] trait.
 /// - `#[run_after(Action1, Action2, ...)` to run the system once systems labeled with
 /// `Action1`, `Action2`, ... have been executed
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
 ///
-/// Note that an action type is created for each entity type:
-/// - In previously defined attributes, it is possible to refer this action using the `entity`
-/// attribute: `#[run_as(entity(MyEntity))]`
+/// Note that an action type is created for each component type:
+/// - In previously defined attributes, it is possible to refer this action using the `component`
+/// attribute: `#[run_as(component(MyComponent))]`
 /// - It is also possible to add this action as a dependency of another action defined using the
 /// [`Action`](macro@crate::Action) derive macro:
 /// ```rust
-/// # use modor::{entity, Action, EntityMainComponent};
+/// # use modor::*;
 /// #
-/// # struct MyEntity;
-/// #
-/// # #[entity]
-/// # impl MyEntity {}
+/// # #[derive(Component, NoSystem)]
+/// # struct MyComponent;
 /// #
 /// #[derive(Action)]
-/// struct MyAction(<MyEntity as EntityMainComponent>::Action);
+/// struct MyAction(<MyComponent as ComponentSystems>::Action);
 /// ```
 ///
-/// The action associated to an entity type is considered as finished once all systems of the entity
-/// have been run.
+/// The action associated to a component type is considered as finished once all systems of the
+/// component type have been run.
 ///
 /// The way actions are defined makes sure cyclic dependencies between systems are detected at
 /// compile time.
 ///
 /// # System behaviour
 ///
-/// If the system is defined for an entity main component of type `E`, the system is run for each
-/// entity containing a component of type `E`.
+/// If the system is defined for a component of type `T`, the system is run for each
+/// entity containing a component of type `T`.
 ///
 /// Some system parameter types help to access information about the current entity:
 /// - `&C` where `C` is a component type (the system is not executed for the entity
@@ -156,23 +300,23 @@ pub use systems::traits::*;
 /// if it does not have a component of type `C`)
 /// - `Option<&C>` where `C` is a component type
 /// - `Option<&mut C>` where `C` is a component type
-/// - [`Entity`](crate::Entity)
+/// - [`Entity`]
 ///
 /// Other system parameter types are more global.
 ///
-/// See [`SystemParam`](crate::SystemParam) to see the full list of system parameter types.
+/// See implementations of [`SystemParam`] to see the full list of
+/// system parameter types.
 ///
 /// # Static checks
 ///
 /// Compile time checks are applied by this macro to ensure the system will not panic at runtime.
 /// If the system is invalid, the macro returns a compile time error.
 ///
-/// The [`SystemWithParams`](crate::SystemWithParams) trait is implemented for all systems.
+/// The [`SystemWithParams`] trait is implemented for all systems.
 ///
-/// The [`SystemWithParamMutabilityIssue`](crate::SystemWithParamMutabilityIssue) trait
-/// is implemented in case the system is invalid. If this trait is implemented for the system,
-/// it creates a compile time error due to a conflict with the implemented
-/// [`SystemWithParams`](crate::SystemWithParams) trait.
+/// The [`SystemWithParamMutabilityIssue`] trait is implemented in case the system is invalid.
+/// If this trait is implemented for the system, it creates a compile time error due to a conflict
+/// with the implemented [`SystemWithParams`] trait.
 ///
 /// # Limitations
 ///
@@ -184,16 +328,13 @@ pub use systems::traits::*;
 /// You can use `run*` attributes this way:
 ///
 /// ```rust
-/// # use modor::{entity, Action, EntityBuilder, Built};
+/// # use modor::*;
 /// #
-/// struct MyEntity;
+/// #[derive(Component)]
+/// struct MyComponent;
 ///
-/// #[entity]
-/// impl MyEntity {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self)
-///     }
-///
+/// #[systems]
+/// impl MyComponent {
 ///     #[run]
 ///     fn system1() {
 ///         // has no constraint
@@ -218,6 +359,11 @@ pub use systems::traits::*;
 ///     fn system5() {
 ///         //  will be run after `system4`
 ///     }
+///
+///     #[run_after_previous_and(Action2)]
+///     fn system6() {
+///         //  will be run after `system5` and `system2`
+///     }
 /// }
 ///
 /// #[derive(Action)]
@@ -237,14 +383,15 @@ pub use systems::traits::*;
 /// #[derive(Component)]
 /// struct Text(String);
 ///
-/// struct MyEntity;
+/// #[derive(Component)]
+/// struct Label;
 ///
-/// #[entity]
-/// impl MyEntity {
+/// #[systems]
+/// impl Label {
 ///     #[run]
 ///     fn access_entity_info(id: &Id, message: Option<&mut Text>) {
 ///         // Run for each entity with at least a component of type `Id`
-///         // and `MyEntity` (the main component is always used to filter).
+///         // and `Label` (the component type of the `impl` block is always used to filter).
 ///         // `Text` is not used to filter entities as it is optional.
 ///         if let Some(message) = message {
 ///             message.0 = format!("id: {}", id.0);
@@ -254,7 +401,7 @@ pub use systems::traits::*;
 ///     #[run]
 ///     fn access_global_info(mut world: World<'_>, query: Query<'_, Entity<'_>>) {
 ///         // Even if there is no entity-specific parameter, this will be executed for each entity
-///         // with the main component `MyEntity`.
+///         // with the component `Label`.
 ///         // You generally want to define this type of system for a singleton entity, as it will
 ///         // be executed at most once.
 ///         query.iter().for_each(|entity| world.delete_entity(entity.id()));
@@ -274,100 +421,14 @@ pub use systems::traits::*;
 /// # use modor::*;
 /// #
 /// #[derive(Component)]
-/// struct Text(String);
+/// struct MyComponent;
 ///
-/// struct MyEntity;
-///
-/// #[entity]
-/// impl MyEntity {
+/// #[systems]
+/// impl MyComponent {
 ///     #[run]
-///     fn invalid_system(name: &Text, name_mut: &mut Text) {
-///         // invalid as `Text` cannot be borrowed both mutably and immutably
-///         *name_mut = format!("[[[ {} ]]]", name);
+///     fn invalid_system(&self, self_mut: &mut Self) {
+///         // invalid as `MyComponent` cannot be borrowed both mutably and immutably
 ///     }
 /// }
 /// ```
-pub use modor_derive::entity;
-
-/// Defines a singleton entity.
-///
-/// This macro works in the same way as the [`entity`](macro@crate::entity) proc macro.
-///
-/// When you create a singleton entity, any existing instance is deleted first, except with the
-/// [`EntityBuilder::with_dependency`](crate::EntityBuilder::with_dependency) method.<br>
-/// The instance can be directly accessed in systems using [`Single`](crate::Single) and
-/// [`SingleMut`](crate::SingleMut) parameter types.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::{singleton, EntityBuilder, Built};
-/// #
-/// struct UpdateCounter(u32);
-///
-/// #[singleton]
-/// impl UpdateCounter {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self(0))
-///     }
-///
-///     #[run]
-///     fn increment_score(&mut self) {
-///         self.0 += 1;
-///         println!("Number of updates: {}", self.0);
-///     }
-/// }
-/// ```
-pub use modor_derive::singleton;
-
-/// Defines a simple component that can be added to an entity.
-///
-/// This macro implements the trait [`Component`](crate::Component).
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Component)]
-/// struct Life(u16);
-///
-/// struct Character;
-///
-/// #[entity]
-/// impl Character {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Life(100))
-///     }
-/// }
-/// ```
-pub use modor_derive::Component;
-
-/// Defines a type implementing [`Action`](crate::Action).
-///
-/// The type must be a unit type (if no dependency) or a type with unnamed fields, where field types
-/// implement [`Action`](crate::Action) trait and are the dependencies of the defined action.
-///
-/// An action A is a dependency of an action B if all systems running as action A must be run
-/// before any system running as action B.
-///
-/// # Static checks
-///
-/// The way an action type is defined ensures that cyclic dependencies are detected at compile time.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::Action;
-/// #
-/// #[derive(Action)]
-/// struct A;
-///
-/// #[derive(Action)]
-/// pub struct B;
-///
-/// // systems running as C will be run only once all systems running as A and B have been run
-/// #[derive(Action)]
-/// pub(crate) struct C(A, B);
-/// ```
-pub use modor_derive::Action;
+pub use modor_derive::systems;

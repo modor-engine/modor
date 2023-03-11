@@ -7,24 +7,20 @@ use rapier2d::prelude::InteractionGroups;
 
 /// The collision properties of a 2D entity.
 ///
-/// # Modor
+/// This component has an effect only if the entity has also a component of type
+/// [`Transform2D`](crate::Transform2D).
 ///
-/// - **Type**: component
-/// - **Required components**: [`Transform2D`](crate::Transform2D)
-/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during actions**: [`PhysicsModule`](crate::PhysicsModule)
+/// # Limits
+///
+/// The collisions may not be updated when only the size of the [`Transform2D`](crate::Transform2D)
+/// component is changed.<br>
+/// However it is ensured the collision is detected when updating only the position or the rotation
+/// of the [`Transform2D`](crate::Transform2D) component.
 ///
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-///
-/// # Limits
-///
-/// The collisions may not be updated when the size of the [`Transform2D`](crate::Transform2D)
-/// component is changed.<br>
-/// To make sure that the collisions are updated, you have to set the rotation or the position of the
-/// [`Transform2D`](crate::Transform2D) component.
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, NoSystem)]
 pub struct Collider2D {
     pub(crate) group_key: CollisionGroupKey,
     pub(crate) group_idx: Option<CollisionGroupIdx>,
@@ -47,7 +43,6 @@ impl Collider2D {
     }
 
     /// Returns the detected collisions.
-    #[must_use]
     pub fn collisions(&self) -> &[Collision2D] {
         &self.collisions
     }

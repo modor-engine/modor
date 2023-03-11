@@ -18,9 +18,10 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct MainCharacter;
-/// #[derive(Component)]
+///
+/// #[derive(Component, NoSystem)]
 /// struct EnemyCharacter;
 ///
 /// fn list_characters(

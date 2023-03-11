@@ -27,7 +27,6 @@ impl Quat {
     };
 
     /// Creates a new quaternion from an `axis` and an `angle` in radians.
-    #[must_use]
     pub fn from_axis_angle(axis: Vec3, angle: f32) -> Self {
         let axis = axis.with_magnitude(1.).unwrap_or(Vec3::ZERO);
         let angle = Self::normalize_angle(angle);
@@ -41,27 +40,23 @@ impl Quat {
 
     /// Creates a new quaternion from an `angle` in radians around the X axis.
     #[inline]
-    #[must_use]
     pub fn from_x(angle: f32) -> Self {
         Self::from_axis_angle(Vec3::X, angle)
     }
 
     /// Creates a new quaternion from an `angle` in radians around the Y axis.
     #[inline]
-    #[must_use]
     pub fn from_y(angle: f32) -> Self {
         Self::from_axis_angle(Vec3::Y, angle)
     }
 
     /// Creates a new quaternion from an `angle` in radians around the Z axis.
     #[inline]
-    #[must_use]
     pub fn from_z(angle: f32) -> Self {
         Self::from_axis_angle(Vec3::Z, angle)
     }
 
     /// Returns the normalized axis, or `None` if the angle is `0.0`.
-    #[must_use]
     #[allow(clippy::float_cmp)]
     pub fn axis(self) -> Option<Vec3> {
         (self.w.powi(2) != 1.).then(|| {
@@ -75,13 +70,11 @@ impl Quat {
 
     /// Returns the angle in radians normalized between `0` and `2*π`.
     #[inline]
-    #[must_use]
     pub fn angle(self) -> f32 {
         2. * self.w.acos()
     }
 
     /// Returns the rotation matrix.
-    #[must_use]
     pub fn matrix(self) -> Mat4 {
         Mat4::from_array([
             [
@@ -106,7 +99,6 @@ impl Quat {
         ])
     }
 
-    #[must_use]
     /// Returns the quaternion with a scaled angle.
     ///
     /// Axis is unchanged.
@@ -119,7 +111,6 @@ impl Quat {
     /// Returns the quaternion rotated with `other`.
     ///
     /// The same operation can be done using multiplication of both quaternions.
-    #[must_use]
     pub fn with_rotation(self, other: Self) -> Self {
         self * other
     }

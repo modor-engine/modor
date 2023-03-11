@@ -1,15 +1,17 @@
 use crate::GRID_WIDTH;
-use modor::{entity, singleton, Built, EntityBuilder};
+use modor::{systems, BuiltEntity, Component, EntityBuilder, SingletonComponent};
 use modor_graphics::{Color, Mesh2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 
+#[derive(SingletonComponent)]
 pub(crate) struct GridBackground;
 
-#[singleton]
+#[systems]
 impl GridBackground {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    pub(crate) fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(
                 Transform2D::new()
                     .with_position(Vec2::ZERO)
@@ -19,15 +21,17 @@ impl GridBackground {
     }
 }
 
+#[derive(Component)]
 pub(crate) struct AliveCell {
     x: usize,
     y: usize,
 }
 
-#[entity]
+#[systems]
 impl AliveCell {
-    pub(crate) fn build(x: usize, y: usize) -> impl Built<Self> {
-        EntityBuilder::new(Self { x, y })
+    pub(crate) fn build(x: usize, y: usize) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self { x, y })
             .with(Transform2D::new().with_size(Vec2::ONE / GRID_WIDTH as f32))
             .with(Mesh2D::rectangle().with_color(Color::BLACK).with_z(1.))
     }

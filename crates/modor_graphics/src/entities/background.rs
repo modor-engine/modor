@@ -1,34 +1,28 @@
 use crate::Color;
-use modor::{Built, EntityBuilder};
 use std::ops::{Deref, DerefMut};
 
 /// The background color of the rendering.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: custom (same as parent entity)
-/// - **Default if missing**: `BackgroundColor::build(Color::BLACK)`
+/// If no background color is defined, the background is black.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{App, SingleMut};
-/// # use modor_graphics::{BackgroundColor, Color};
+/// # use modor::*;
+/// # use modor_graphics::*;
 /// #
-/// let app = App::new().with_entity(BackgroundColor::build(Color::RED));
+/// let app = App::new().with_entity(BackgroundColor::from(Color::RED));
 ///
 /// fn update_color(mut color: SingleMut<'_, BackgroundColor>) {
 ///     color.r -= 0.001;
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct BackgroundColor(Color);
 
-#[singleton]
-impl BackgroundColor {
-    /// Builds the entity.
-    pub fn build(color: Color) -> impl Built<Self> {
-        EntityBuilder::new(Self(color))
+impl From<Color> for BackgroundColor {
+    fn from(color: Color) -> Self {
+        Self(color)
     }
 }
 

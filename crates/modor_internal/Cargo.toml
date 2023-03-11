@@ -14,3 +14,6 @@ rust-version.workspace = true
 
 [dependencies]
 typed-index-collections.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true

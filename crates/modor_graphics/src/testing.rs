@@ -23,9 +23,9 @@ const COLOR_EPSILON: u8 = 1;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{App, With};
-/// # use modor_graphics::{Capture, GraphicsModule, SurfaceSize};
-/// # use modor_graphics::testing::assert_capture;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::testing::*;
 /// #
 /// # fn f() {
 /// App::new()

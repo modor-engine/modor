@@ -2,64 +2,29 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{Built, EntityBuilder, Filter, Query, Single, SingleMut, With, World};
+use modor::{Filter, Query, Single, SingleMut, With, World};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C1;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C2;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C3;
 
-struct Entity1;
-
-#[entity]
-impl Entity1 {
-    #[allow(unused)]
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-    }
-}
-
-struct Entity2;
-
-#[entity]
-impl Entity2 {
-    #[allow(unused)]
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(Entity1::build())
-    }
-}
-
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton1;
 
-#[singleton]
-impl Singleton1 {
-    #[allow(unused)]
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-    }
-}
-
+#[derive(SingletonComponent, NoSystem)]
 struct Singleton2;
 
-#[singleton]
-impl Singleton2 {
-    #[allow(unused)]
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .inherit_from(Entity1::build())
-            .inherit_from(Singleton1::build())
-    }
-}
-
+#[derive(Component)]
 struct EntityWithValidSystems;
 
-#[entity]
+#[systems]
 impl EntityWithValidSystems {
     #[run]
     fn no_param() {}

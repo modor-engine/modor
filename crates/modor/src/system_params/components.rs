@@ -1,7 +1,9 @@
-use crate::components::internal::{ComponentGuard, ComponentGuardBorrow, ComponentIter};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
+use crate::system_params::components::internal::{
+    ComponentGuard, ComponentGuardBorrow, ComponentIter,
+};
 use crate::system_params::internal::{
     Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
 };

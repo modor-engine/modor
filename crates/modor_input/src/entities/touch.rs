@@ -1,5 +1,4 @@
 use crate::InputState;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of a finger.
@@ -7,16 +6,11 @@ use modor_math::Vec2;
 /// The entity only exists if the finger is pressed.<br>
 /// Once released, the entity remains during one update before being deleted.
 ///
-/// # Modor
-///
-/// - **Type**: entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Single, Query};
-/// # use modor_input::Finger;
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_touch(fingers: Query<'_, &Finger>) {
 ///     for finger in fingers.iter() {
@@ -24,6 +18,7 @@ use modor_math::Vec2;
 ///     }
 /// }
 /// ```
+#[derive(Component, NoSystem)]
 pub struct Finger {
     id: u64,
     state: InputState,
@@ -31,34 +26,9 @@ pub struct Finger {
     delta: Vec2,
 }
 
-#[entity]
 impl Finger {
-    /// Unique identifier of the finger.
-    #[must_use]
-    pub fn id(&self) -> u64 {
-        self.id
-    }
-
-    /// State of the finger.
-    #[must_use]
-    pub fn state(&self) -> InputState {
-        self.state
-    }
-
-    /// Returns the position of the finger in pixels from the top-left corner of the app window.
-    #[must_use]
-    pub fn position(&self) -> Vec2 {
-        self.position
-    }
-
-    /// Returns the finger position delta in pixels.
-    #[must_use]
-    pub fn delta(&self) -> Vec2 {
-        self.delta
-    }
-
-    pub(crate) fn build(id: u64) -> impl Built<Self> {
-        EntityBuilder::new(Self {
+    pub(crate) fn new(id: u64) -> Self {
+        Self {
             id,
             state: {
                 let mut state = InputState::default();
@@ -67,7 +37,27 @@ impl Finger {
             },
             position: Vec2::ZERO,
             delta: Vec2::ZERO,
-        })
+        }
+    }
+
+    /// Unique identifier of the finger.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// State of the finger.
+    pub fn state(&self) -> InputState {
+        self.state
+    }
+
+    /// Returns the position of the finger in pixels from the top-left corner of the app window.
+    pub fn position(&self) -> Vec2 {
+        self.position
+    }
+
+    /// Returns the finger position delta in pixels.
+    pub fn delta(&self) -> Vec2 {
+        self.delta
     }
 
     pub(crate) fn reset(&mut self) {

@@ -1,24 +1,16 @@
 use crate::entities::gamepads::{Gamepad, GamepadEvent};
 use crate::{Finger, InputModule, Keyboard, KeyboardEvent, Mouse, MouseEvent, TouchEvent};
-use modor::{Built, Entity, EntityBuilder, Query, Single, SingleMut, World};
+use modor::{Entity, Query, Single, SingleMut, World};
 use modor_math::Vec2;
 
 /// The input event collector.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::SingleMut;
-/// # use modor_math::Vec2;
-/// # use modor_input::{
-/// #    InputEvent, InputEventCollector, Key, KeyboardEvent, MouseEvent,
-/// #    MouseScrollUnit, TouchEvent, GamepadEvent, GamepadAxis
-/// # };
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_input::*;
 /// #
 /// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
 ///     collector.push(MouseEvent::Scroll(Vec2::new(0., 0.5), MouseScrollUnit::Line).into());
@@ -29,19 +21,15 @@ use modor_math::Vec2;
 ///     collector.push(GamepadEvent::UpdatedAxisValue(5, GamepadAxis::LeftStickX, 0.68).into());
 /// }
 /// ```
+#[derive(SingletonComponent)]
 pub struct InputEventCollector {
     events: Vec<InputEvent>,
 }
 
-#[singleton]
+#[systems]
 impl InputEventCollector {
-    /// Pushes an event.
-    pub fn push(&mut self, event: InputEvent) {
-        self.events.push(event);
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self { events: vec![] })
+    pub(crate) fn new() -> Self {
+        Self { events: vec![] }
     }
 
     #[run]
@@ -87,8 +75,13 @@ impl InputEventCollector {
         gamepads.iter_mut().for_each(|(_, g)| g.normalize());
     }
 
+    /// Pushes an event.
+    pub fn push(&mut self, event: InputEvent) {
+        self.events.push(event);
+    }
+
     fn create_finger(id: u64, module_id: usize, world: &mut World<'_>) {
-        world.create_child_entity(module_id, Finger::build(id));
+        world.create_child_entity(module_id, Finger::new(id));
     }
 
     fn release_finger(id: u64, fingers: &mut Query<'_, (Entity<'_>, &mut Finger)>) {
@@ -116,7 +109,7 @@ impl InputEventCollector {
     }
 
     fn create_gamepad(id: u64, module_id: usize, world: &mut World<'_>) {
-        world.create_child_entity(module_id, Gamepad::build(id));
+        world.create_child_entity(module_id, Gamepad::new(id));
     }
 
     fn delete_gamepad(
@@ -146,7 +139,7 @@ impl InputEventCollector {
 ///
 /// # Examples
 ///
-/// See [`InputEventCollector`](crate::InputEventCollector).
+/// See [`InputEventCollector`](InputEventCollector).
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum InputEvent {

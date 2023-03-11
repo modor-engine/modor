@@ -1,9 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+#[cfg(not(target_arch = "wasm32"))]
 #[macro_use]
 extern crate modor;
-#[macro_use]
-extern crate static_assertions;
 
 pub mod compile_fail;
-pub mod trait_implementations;

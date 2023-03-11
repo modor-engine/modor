@@ -1,18 +1,13 @@
 use crate::{InputEventCollector, Keyboard, Mouse};
-use modor::{Built, EntityBuilder};
+use modor::{BuiltEntity, EntityBuilder};
 
-/// The main entity of the graphics module.
-///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: custom (same as parent entity)
+/// The main entity of the input module.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{App, Single};
-/// # use modor_input::{InputModule, Mouse};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// let app = App::new()
 ///      .with_entity(InputModule::build());
@@ -22,19 +17,21 @@ use modor::{Built, EntityBuilder};
 /// }
 /// ```
 #[non_exhaustive]
+#[derive(SingletonComponent)]
 pub struct InputModule;
 
-#[singleton]
+#[systems]
 impl InputModule {
     /// Builds the module.
-    pub fn build() -> impl Built<Self> {
+    pub fn build() -> impl BuiltEntity {
         info!("input module created");
-        EntityBuilder::new(Self)
-            .with_child(InputEventCollector::build())
-            .with_child(Mouse::build())
-            .with_child(Keyboard::build())
+        EntityBuilder::new()
+            .with(Self)
+            .with_child(InputEventCollector::new())
+            .with_child(Mouse::new())
+            .with_child(Keyboard::new())
     }
 
-    #[run_after(entity(InputEventCollector))]
+    #[run_after(component(InputEventCollector))]
     fn finish() {}
 }

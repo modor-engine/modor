@@ -1,7 +1,7 @@
 use crate::Job;
 use std::any::Any;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 
 /// Name of the asset folder taken into account in the folder `CARGO_MANIFEST_DIR`.
@@ -9,28 +9,26 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 
 /// An asynchronous job to retrieve an asset file.
 ///
-/// # Modor
-///
-/// - **Type**: component
-///
 /// # Example
 ///
 /// ```
-/// # use std::path::{Path, PathBuf};
-/// # use modor::{entity, Built, EntityBuilder};
-/// # use modor_jobs::AssetLoadingJob;
+/// # use std::path::*;
+/// # use modor::*;
+/// # use modor_jobs::*;
 /// #
+/// #[derive(Component)]
 /// struct AssetMetadata {
+///     job: AssetLoadingJob<usize>,
 ///     size: Result<usize, AssetMetadataError>
 /// }
 ///
-/// #[entity]
+/// #[systems]
 /// impl AssetMetadata {
-///     fn build(path: impl AsRef<str>) -> impl Built<Self> {
-///         EntityBuilder::new(Self {
+///     fn new(path: impl AsRef<str>) -> Self {
+///         Self {
+///             job: AssetLoadingJob::new(path, |b| async move { b.len() }),
 ///             size: Err(AssetMetadataError::NotReadYet),
-///         })
-///         .with(AssetLoadingJob::new(path, |b| async move { b.len() }))
+///         }
 ///     }
 ///
 ///     fn size(&self) -> Result<usize, AssetMetadataError> {
@@ -38,8 +36,8 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///     }
 ///
 ///     #[run]
-///     fn poll(&mut self, job: &mut AssetLoadingJob<usize>) {
-///         match job.try_poll() {
+///     fn poll(&mut self) {
+///         match self.job.try_poll() {
 ///             Ok(Some(result)) => self.size = Ok(result),
 ///             Ok(None) => (),
 ///             Err(_) => self.size = Err(AssetMetadataError::LoadingError),
@@ -53,10 +51,10 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///     LoadingError
 /// }
 /// ```
-#[derive(Component)]
+#[derive(Debug)]
 pub struct AssetLoadingJob<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     /// Actual job instance that can be used to retrieve the job result.
     inner: Job<Result<T, AssetLoadingError>>,
@@ -64,7 +62,7 @@ where
 
 impl<T> AssetLoadingJob<T>
 where
-    T: Any + Send,
+    T: Any + Send + Debug,
 {
     /// Creates a new job to retrieve asset located at `path`, and apply `f` on the bytes of the
     /// file.

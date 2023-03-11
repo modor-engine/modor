@@ -21,7 +21,7 @@ impl ActionStorage {
     pub(super) fn idx_or_create(
         &mut self,
         type_: Option<TypeId>,
-        dependencies: ActionDependencies,
+        dependencies: Vec<ActionDependency>,
     ) -> ActionIdx {
         if let Some(action_type) = type_ {
             if let Some(&action_idx) = self.idxs.get(&action_type) {
@@ -44,27 +44,33 @@ impl ActionStorage {
         self.system_counts[action_idx] += 1;
     }
 
-    fn create(&mut self, dependencies: ActionDependencies) -> ActionIdx {
+    fn create(&mut self, dependencies: Vec<ActionDependency>) -> ActionIdx {
         let dependency_idxs = self.convert_dependencies_to_idxs(dependencies);
         self.dependency_idxs.push(dependency_idxs);
         self.system_counts.push_and_get_key(0)
     }
 
-    fn convert_dependencies_to_idxs(&mut self, dependencies: ActionDependencies) -> Vec<ActionIdx> {
-        match dependencies {
-            ActionDependencies::Types(action_types) => action_types
-                .into_iter()
-                .map(|t| self.idx_or_create(Some(t), ActionDependencies::Types(vec![])))
-                .collect(),
-            ActionDependencies::Actions(action_idxs) => action_idxs,
+    fn convert_dependencies_to_idxs(
+        &mut self,
+        dependencies: Vec<ActionDependency>,
+    ) -> Vec<ActionIdx> {
+        dependencies
+            .into_iter()
+            .map(|d| self.dependency_idx(d))
+            .collect()
+    }
+
+    fn dependency_idx(&mut self, dependency: ActionDependency) -> ActionIdx {
+        match dependency {
+            ActionDependency::Type(type_id) => self.idx_or_create(Some(type_id), vec![]),
+            ActionDependency::Idx(idx) => idx,
         }
     }
 }
 
 idx_type!(pub(crate) ActionIdx);
 
-#[derive(Clone)]
-pub(crate) enum ActionDependencies {
-    Types(Vec<TypeId>),
-    Actions(Vec<ActionIdx>),
+pub(crate) enum ActionDependency {
+    Type(TypeId),
+    Idx(ActionIdx),
 }

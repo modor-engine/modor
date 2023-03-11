@@ -1,22 +1,16 @@
 use crate::{utils, InputState};
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of a gamepad.
 ///
 /// The entity only exists if the gamepad is plugged.
 ///
-/// # Modor
-///
-/// - **Type**: entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Single, Query};
-/// # use modor_input::{Gamepad, GamepadButton, GamepadStick};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_gamepads(gamepads: Query<'_, &Gamepad>) {
 ///     for gamepad in gamepads.iter() {
@@ -27,6 +21,7 @@ use modor_math::Vec2;
 ///     }
 /// }
 /// ```
+#[derive(Component, NoSystem)]
 pub struct Gamepad {
     id: u64,
     buttons: FxHashMap<GamepadButton, GamepadButtonState>,
@@ -36,10 +31,19 @@ pub struct Gamepad {
     has_d_pad_buttons: bool,
 }
 
-#[entity]
 impl Gamepad {
+    pub(crate) fn new(id: u64) -> Self {
+        Self {
+            id,
+            buttons: FxHashMap::default(),
+            stick_directions: FxHashMap::default(),
+            left_z_axis_value: 0.0,
+            right_z_axis_value: 0.0,
+            has_d_pad_buttons: false,
+        }
+    }
+
     /// Unique identifier of the gamepad.
-    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -53,7 +57,6 @@ impl Gamepad {
     }
 
     /// Returns the state of a button.
-    #[must_use]
     pub fn button(&self, button: GamepadButton) -> GamepadButtonState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
@@ -61,7 +64,6 @@ impl Gamepad {
     /// Returns the normalized direction of a stick.
     ///
     /// If the stick is not used, the returned direction has all components equal to `0.0`.
-    #[must_use]
     pub fn stick_direction(&self, stick: GamepadStick) -> Vec2 {
         self.stick_directions
             .get(&stick)
@@ -70,26 +72,13 @@ impl Gamepad {
     }
 
     /// Returns the value between `-1.0` and `1.0` of the left Z axis.
-    #[must_use]
     pub fn left_z_axis_value(&self) -> f32 {
         self.left_z_axis_value
     }
 
     /// Returns the value between `-1.0` and `1.0` of the right Z axis.
-    #[must_use]
     pub fn right_z_axis_value(&self) -> f32 {
         self.right_z_axis_value
-    }
-
-    pub(crate) fn build(id: u64) -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            id,
-            buttons: FxHashMap::default(),
-            stick_directions: FxHashMap::default(),
-            left_z_axis_value: 0.0,
-            right_z_axis_value: 0.0,
-            has_d_pad_buttons: false,
-        })
     }
 
     pub(crate) fn reset(&mut self) {
@@ -234,13 +223,11 @@ pub struct GamepadButtonState {
 
 impl GamepadButtonState {
     /// Returns the state of the button.
-    #[must_use]
     pub fn state(&self) -> InputState {
         self.state
     }
 
     /// Returns the value between `0.0` and `1.0` of the button.
-    #[must_use]
     pub fn value(&self) -> f32 {
         self.value
     }

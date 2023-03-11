@@ -11,11 +11,10 @@
 //! You can then use the components provided by this crate to start asynchronous jobs.
 
 #[macro_use]
-extern crate modor;
-#[macro_use]
 extern crate log;
 
-mod components;
+mod asset_loading;
+mod job;
 
-pub use components::asset_loading::*;
-pub use components::job::*;
+pub use asset_loading::*;
+pub use job::*;

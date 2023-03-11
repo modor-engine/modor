@@ -1,96 +1,77 @@
-use modor::{App, Built, Changed, Entity, EntityBuilder, Filter, Query, With, World};
+use modor::{App, BuiltEntity, Changed, Entity, EntityBuilder, Filter, Query, With, World};
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct TrackedComponent;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Counter(u32);
 
+#[derive(Component)]
 struct BaseEntity;
 
-#[entity]
+#[systems]
 impl BaseEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(TrackedComponent)
             .with(Counter(0))
     }
 
-    #[run_after(entity(StaticEntity), entity(MutatedEntity))]
+    #[run_after(component(StaticEntity), component(MutatedEntity))]
     fn update(counter: &mut Counter, _: Filter<Changed<TrackedComponent>>) {
         counter.0 += 1;
     }
 }
 
+#[derive(Component, NoSystem)]
 struct StaticEntity;
 
-#[entity]
-impl StaticEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-}
-
+#[derive(Component)]
 struct MutatedEntity;
 
-#[entity]
+#[systems]
 impl MutatedEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-
     #[run]
     fn update(_position: &mut TrackedComponent) {}
 }
 
+#[derive(Component)]
 struct UnusedQueryMutatedEntity;
 
-#[entity]
+#[systems]
 impl UnusedQueryMutatedEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-
     #[run]
     fn update(_query: Query<'_, (&mut TrackedComponent, Filter<With<Self>>)>) {}
 }
 
+#[derive(Component)]
 struct ConstQueryMutatedEntity;
 
-#[entity]
+#[systems]
 impl ConstQueryMutatedEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-
     #[run]
     fn update(query: Query<'_, (&mut TrackedComponent, Filter<With<Self>>)>) {
         for _ in query.iter() {}
     }
 }
 
+#[derive(Component)]
 struct MutQueryMutatedEntity;
 
-#[entity]
+#[systems]
 impl MutQueryMutatedEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-
     #[run]
     fn update(mut query: Query<'_, (&mut TrackedComponent, Filter<With<Self>>)>) {
         for _ in query.iter_mut() {}
     }
 }
 
+#[derive(Component)]
 struct OverwrittenEntity;
 
-#[entity]
+#[systems]
 impl OverwrittenEntity {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).inherit_from(BaseEntity::build())
-    }
-
     #[run]
     fn update(entity: Entity<'_>, mut world: World<'_>) {
         world.add_component(entity.id(), TrackedComponent);
@@ -100,12 +81,12 @@ impl OverwrittenEntity {
 #[test]
 fn filter_by_changed_component() {
     App::new()
-        .with_entity(StaticEntity::build())
-        .with_entity(MutatedEntity::build())
-        .with_entity(UnusedQueryMutatedEntity::build())
-        .with_entity(ConstQueryMutatedEntity::build())
-        .with_entity(MutQueryMutatedEntity::build())
-        .with_entity(OverwrittenEntity::build())
+        .with_entity(BaseEntity::build().with(StaticEntity))
+        .with_entity(BaseEntity::build().with(MutatedEntity))
+        .with_entity(BaseEntity::build().with(UnusedQueryMutatedEntity))
+        .with_entity(BaseEntity::build().with(ConstQueryMutatedEntity))
+        .with_entity(BaseEntity::build().with(MutQueryMutatedEntity))
+        .with_entity(BaseEntity::build().with(OverwrittenEntity))
         .updated()
         .updated()
         .assert::<With<StaticEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 1)))
@@ -114,7 +95,7 @@ fn filter_by_changed_component() {
         .assert::<With<ConstQueryMutatedEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 1)))
         .assert::<With<MutQueryMutatedEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 2)))
         .assert::<With<OverwrittenEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 2)))
-        .with_entity(StaticEntity::build())
+        .with_entity(BaseEntity::build().with(StaticEntity))
         .updated()
         .updated()
         .assert::<With<StaticEntity>>(2, |e| {

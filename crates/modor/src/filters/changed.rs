@@ -28,14 +28,15 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Clone, Copy, Component)]
+/// #[derive(Clone, Copy, Component, NoSystem)]
 /// struct Position(f32, f32);
 ///
+/// #[derive(SingletonComponent, Default)]
 /// struct PositionStorage {
 ///     positions: Vec<Option<Position>>,
 /// }
 ///
-/// #[entity]
+/// #[systems]
 /// impl PositionStorage {
 ///     #[run]
 ///     fn delete_entities(&mut self, world: World<'_>) {

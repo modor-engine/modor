@@ -4,46 +4,39 @@ use crate::{Color, FontRef};
 
 /// The properties of an entity rendered as a 2D text.
 ///
+/// The entity will be rendered only if it also has a [`Transform2D`](modor_physics::Transform2D)
+/// component.
+///
 /// In order to optimize the rendering, the text is cached in an internal texture.<br>
-/// This texture is updated only when the text `string`, the font or the `font_height` are modified.
-///
-/// # Modor
-///
-/// - **Type**: component
-/// - **Required components**: [`Transform2D`](modor_physics::Transform2D)
+/// This texture is updated only when the `string`, the font or the `font_height` are modified.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{entity, Built, EntityBuilder};
-/// # use modor_math::Vec2;
-/// # use modor_physics::Transform2D;
-/// # use modor_graphics::{Text2D, Color, Alignment, TextSize};
+/// # use modor::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
+/// # use modor_graphics::*;
 /// #
-/// struct Text;
-///
-/// #[entity]
-/// impl Text {
-///     fn build(position: Vec2, size: Vec2, string: &str, color: Color) -> impl Built<Self> {
-///         EntityBuilder::new(Self)
-///             .with(
-///                 Transform2D::new()
-///                     .with_position(position)
-///                     .with_size(size)
-///             )
-///             .with(
-///                 Text2D::new(100., string)
-///                     .with_color(color)
-///                     .with_z(2.)
-///                     .with_size(TextSize::LineHeight(size.y / 5.)) // display on 5 lines
-///                     .with_alignment(Alignment::TopLeft)
-///             )
-///     }
+/// fn build_text(position: Vec2, size: Vec2, string: &str, color: Color) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(
+///             Transform2D::new()
+///                 .with_position(position)
+///                 .with_size(size)
+///         )
+///         .with(
+///             Text2D::new(100., string)
+///                 .with_color(color)
+///                 .with_z(2.)
+///                 .with_size(TextSize::LineHeight(size.y / 5.)) // display on 5 lines
+///                 .with_alignment(Alignment::TopLeft)
+///         )
 /// }
 /// ```
 ///
 /// See also [`Font`](crate::Font) for a font attachment example.
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, NoSystem)]
 pub struct Text2D {
     /// The string to render.
     pub string: String,
@@ -80,7 +73,6 @@ impl Text2D {
     /// Returns the text with a different font.
     ///
     /// Default font is [Roboto Regular](https://fonts.google.com/specimen/Roboto).
-    #[must_use]
     pub fn with_font(mut self, font_ref: impl FontRef) -> Self {
         self.font_key = FontKey::new(font_ref);
         self
@@ -89,7 +81,6 @@ impl Text2D {
     /// Returns the text with a different size.
     ///
     /// Default value is `TextSize::AUTO`.
-    #[must_use]
     pub fn with_size(mut self, size: TextSize) -> Self {
         self.size = size;
         self
@@ -98,7 +89,6 @@ impl Text2D {
     /// Returns the text with a different alignment.
     ///
     /// Default value is `Alignment::Center`.
-    #[must_use]
     pub fn with_alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
         self
@@ -107,7 +97,6 @@ impl Text2D {
     /// Returns the text with a different color.
     ///
     /// Default value is `Color::WHITE`.
-    #[must_use]
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self
@@ -116,7 +105,6 @@ impl Text2D {
     /// Returns the text with a different `z`.
     ///
     /// Default value is `0.0`.
-    #[must_use]
     pub const fn with_z(mut self, z: f32) -> Self {
         self.z = z;
         self

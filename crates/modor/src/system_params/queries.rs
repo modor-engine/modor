@@ -13,7 +13,7 @@ use crate::{EntityFilter, QuerySystemParam, SystemParam};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::{Entity, Query};
+/// # use modor::*;
 /// #
 ///
 /// fn print_position(query: Query<'_, Entity<'_>>) {
@@ -277,7 +277,7 @@ mod internal {
                 param_context: SystemContext {
                     system_idx: self.context.system_idx,
                     archetype_filter_fn: <P::Filter>::is_archetype_kept,
-                    entity_type_idx: None,
+                    component_type_idx: None,
                     item_count: self.context.storages.item_count(
                         self.context.system_idx,
                         <P::Filter>::is_archetype_kept,

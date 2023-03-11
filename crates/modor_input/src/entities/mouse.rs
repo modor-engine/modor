@@ -1,26 +1,21 @@
 use crate::data::InputState;
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of the mouse.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Single;
-/// # use modor_input::{Mouse, MouseButton};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_mouse(mouse: Single<'_, Mouse>) {
 ///     println!("Position: {:?}", mouse.position());
 ///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed);
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct Mouse {
     buttons: FxHashMap<MouseButton, InputState>,
     scroll_delta: Vec2,
@@ -29,8 +24,17 @@ pub struct Mouse {
     delta: Vec2,
 }
 
-#[singleton]
 impl Mouse {
+    pub(crate) fn new() -> Self {
+        Self {
+            buttons: FxHashMap::default(),
+            scroll_delta: Vec2::ZERO,
+            scroll_unit: MouseScrollUnit::Pixel,
+            position: Vec2::ZERO,
+            delta: Vec2::ZERO,
+        }
+    }
+
     /// Return all pressed buttons.
     pub fn pressed_buttons(&self) -> impl Iterator<Item = MouseButton> + '_ {
         self.buttons
@@ -40,7 +44,6 @@ impl Mouse {
     }
 
     /// Returns the state of a button.
-    #[must_use]
     pub fn button(&self, button: MouseButton) -> InputState {
         self.buttons.get(&button).copied().unwrap_or_default()
     }
@@ -50,7 +53,6 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in lines, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
-    #[must_use]
     pub fn scroll_delta_in_pixels(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => self.scroll_delta,
@@ -66,7 +68,6 @@ impl Mouse {
     /// The scroll delta can be retrieved in two units: pixels and lines.<br>
     /// In case the delta is retrieved in pixels, `row_pixels` and `column_pixels` are used to
     /// make the conversion.
-    #[must_use]
     pub fn scroll_delta_in_lines(&self, row_pixels: f32, column_pixels: f32) -> Vec2 {
         match self.scroll_unit {
             MouseScrollUnit::Pixel => Vec2::new(
@@ -78,7 +79,6 @@ impl Mouse {
     }
 
     /// Returns the position of the mouse in pixels from the top-left corner of the app window.
-    #[must_use]
     pub fn position(&self) -> Vec2 {
         self.position
     }
@@ -87,19 +87,8 @@ impl Mouse {
     ///
     /// The delta does not take into account a possible acceleration created by the system,
     /// in contrary to [`Mouse::position()`](crate::Mouse::position).
-    #[must_use]
     pub fn delta(&self) -> Vec2 {
         self.delta
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            buttons: FxHashMap::default(),
-            scroll_delta: Vec2::ZERO,
-            scroll_unit: MouseScrollUnit::Pixel,
-            position: Vec2::ZERO,
-            delta: Vec2::ZERO,
-        })
     }
 
     pub(crate) fn reset(&mut self) {

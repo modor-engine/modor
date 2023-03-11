@@ -9,7 +9,7 @@ use typed_index_collections::TiVec;
 #[derive(Default)]
 pub(crate) struct ComponentStorage {
     idxs: FxHashMap<TypeId, ComponentTypeIdx>,
-    are_entity_types: TiVec<ComponentTypeIdx, bool>,
+    have_systems_loaded: TiVec<ComponentTypeIdx, bool>,
     archetypes: TiVec<ComponentTypeIdx, Box<dyn ComponentArchetypeLock>>,
     sorted_archetype_idxs: TiVec<ComponentTypeIdx, Vec<ArchetypeIdx>>,
     singleton_locations: TiVec<ComponentTypeIdx, Option<EntityLocation>>,
@@ -28,13 +28,13 @@ impl ComponentStorage {
         self.singleton_locations[type_idx]
     }
 
-    pub(crate) fn is_entity_type<C>(&self) -> bool
+    pub(crate) fn has_systems_loaded<C>(&self) -> bool
     where
         C: Component,
     {
         self.idxs
             .get(&TypeId::of::<C>())
-            .map_or(false, |&i| self.are_entity_types[i])
+            .map_or(false, |&i| self.have_systems_loaded[i])
     }
 
     pub(crate) fn read_components<C>(&self) -> RwLockReadGuard<'_, ComponentArchetypes<C>>
@@ -74,7 +74,7 @@ impl ComponentStorage {
         C: Component,
     {
         *self.idxs.entry(TypeId::of::<C>()).or_insert_with(|| {
-            self.are_entity_types.push(false);
+            self.have_systems_loaded.push(false);
             let archetype_lock = RwLock::new(ComponentArchetypes::<C>::default());
             self.archetypes.push(Box::new(archetype_lock));
             self.sorted_archetype_idxs.push(vec![]);
@@ -82,12 +82,12 @@ impl ComponentStorage {
         })
     }
 
-    pub(super) fn add_entity_type<C>(&mut self) -> ComponentTypeIdx
+    pub(super) fn set_systems_as_loaded<C>(&mut self) -> ComponentTypeIdx
     where
         C: Component,
     {
         let type_idx = self.type_idx_or_create::<C>();
-        self.are_entity_types[type_idx] = true;
+        self.have_systems_loaded[type_idx] = true;
         type_idx
     }
 
@@ -128,20 +128,29 @@ impl ComponentStorage {
         self.add_archetype(type_idx, dst_archetype_idx);
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
             if singleton_location == src_location {
-                let location = EntityLocation {
+                self.singleton_locations[type_idx] = Some(EntityLocation {
                     idx: dst_archetype_idx,
                     pos: ArchetypeEntityPos::default(),
-                };
-                self.singleton_locations[type_idx] = Some(location);
+                });
             }
+            // no need to check for last archetype location, like in `ComponentStorage::delete`,
+            // because this case is unreachable due to action ordering in `CoreStorage::update`
         }
     }
 
     pub(super) fn delete(&mut self, type_idx: ComponentTypeIdx, location: EntityLocation) {
         self.archetypes[type_idx].delete_component(location);
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
+            let last_archetype_location = EntityLocation {
+                idx: location.idx,
+                pos: self.archetypes[type_idx]
+                    .component_count(location.idx)
+                    .into(),
+            };
             if singleton_location == location {
                 self.singleton_locations[type_idx] = None;
+            } else if singleton_location == last_archetype_location {
+                self.singleton_locations[type_idx] = Some(location);
             }
         }
     }
@@ -157,6 +166,8 @@ trait ComponentArchetypeLock: Any + Sync + Send {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn component_count(&mut self, archetype_idx: ArchetypeIdx) -> usize;
 
     fn move_component(&mut self, src_location: EntityLocation, dst_archetype_idx: ArchetypeIdx);
 
@@ -175,6 +186,12 @@ where
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn component_count(&mut self, archetype_idx: ArchetypeIdx) -> usize {
+        self.get_mut()
+            .expect("internal error: cannot get number of components in archetype")[archetype_idx]
+            .len()
     }
 
     fn move_component(&mut self, src_location: EntityLocation, dst_archetype_idx: ArchetypeIdx) {

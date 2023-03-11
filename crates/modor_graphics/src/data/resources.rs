@@ -1,8 +1,6 @@
-use crate::entities::render_target::RenderTarget;
-use modor::SingleMut;
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::any::{self, Any};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 /// Trait for defining a loadable resource.
 pub trait Resource {
@@ -11,15 +9,9 @@ pub trait Resource {
 }
 
 pub(crate) trait ResourceLoading: Any + Resource {
-    type ResourceType: Any + Send;
-
-    fn key(&self) -> String;
+    type ResourceType: Any + Send + Debug;
 
     fn parse(bytes: &[u8]) -> Result<Self::ResourceType, ResourceLoadingError>;
-
-    fn load(&self, resource: Self::ResourceType, target: &mut RenderTarget);
-
-    fn set_state(&mut self, state: ResourceState);
 
     fn asset_loading_job(
         location: &ResourceLocation,
@@ -42,18 +34,19 @@ pub(crate) trait ResourceLoading: Any + Resource {
     }
 
     fn load_from_path(
-        &mut self,
+        key: &str,
+        state: &mut ResourceState,
         job: &mut AssetLoadingJob<Result<Self::ResourceType, ResourceLoadingError>>,
-        mut target: SingleMut<'_, RenderTarget>,
+        load_fn: impl FnOnce(Self::ResourceType),
     ) {
-        if let ResourceState::Loading = self.state() {
-            self.set_state(match job.try_poll() {
+        if let ResourceState::Loading = state {
+            *state = match job.try_poll() {
                 Ok(Some(Ok(r))) => {
-                    self.load(r, &mut target);
+                    load_fn(r);
                     debug!(
                         "resource of type `{:?}` with reference '{:?}' loaded",
                         any::type_name::<Self>(),
-                        self.key()
+                        key
                     );
                     ResourceState::Loaded
                 }
@@ -61,7 +54,7 @@ pub(crate) trait ResourceLoading: Any + Resource {
                     error!(
                         "cannot load resource of type `{:?}` with reference '{:?}': {e}",
                         any::type_name::<Self>(),
-                        self.key()
+                        key
                     );
                     ResourceState::Error(e)
                 }
@@ -69,32 +62,33 @@ pub(crate) trait ResourceLoading: Any + Resource {
                     error!(
                         "cannot retrieve resource of type `{:?}` with reference '{:?}': {e}",
                         any::type_name::<Self>(),
-                        self.key()
+                        key
                     );
                     ResourceState::Error(ResourceLoadingError::LoadingError(e))
                 }
                 Ok(None) => ResourceState::Loading,
-            });
+            };
         }
     }
 
     fn load_from_memory(
-        &mut self,
+        key: &str,
+        state: &mut ResourceState,
         job: &mut Job<Result<Self::ResourceType, ResourceLoadingError>>,
-        mut target: SingleMut<'_, RenderTarget>,
+        load_fn: impl FnOnce(Self::ResourceType),
     ) {
-        if let ResourceState::Loading = self.state() {
+        if let ResourceState::Loading = state {
             if let Some(result) = job
                 .try_poll()
                 .expect("internal error: resource loading from memory has failed")
             {
-                self.set_state(match result {
+                *state = match result {
                     Ok(r) => {
-                        self.load(r, &mut target);
+                        load_fn(r);
                         debug!(
                             "resource of type `{:?}` with reference '{:?}' loaded",
                             any::type_name::<Self>(),
-                            self.key()
+                            key
                         );
                         ResourceState::Loaded
                     }
@@ -102,11 +96,11 @@ pub(crate) trait ResourceLoading: Any + Resource {
                         error!(
                             "cannot read resource of type `{:?}` with reference '{:?}': {e}",
                             any::type_name::<Self>(),
-                            self.key()
+                            key
                         );
                         ResourceState::Error(e)
                     }
-                });
+                };
             }
         }
     }

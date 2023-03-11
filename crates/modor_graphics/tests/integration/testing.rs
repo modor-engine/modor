@@ -8,7 +8,7 @@ fn capture_save_if_not_existing() {
     let written_file_path = Path::new("tests/expected/testing_write.png");
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
+        .with_entity(BackgroundColor::from(Color::GREEN))
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/testing.png")
@@ -24,7 +24,7 @@ fn capture_save_if_not_existing() {
 fn fail_if_no_capture() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
+        .with_entity(BackgroundColor::from(Color::GREEN))
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/testing_no_capture.png")
         });
@@ -35,7 +35,7 @@ fn fail_if_no_capture() {
 fn fail_testing_if_captures_different() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::RED))
+        .with_entity(BackgroundColor::from(Color::RED))
         .updated()
         .assert::<With<Capture>>(1, |e| {
             testing::assert_capture(e, "tests/expected/testing.png")

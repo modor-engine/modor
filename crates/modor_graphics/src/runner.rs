@@ -40,8 +40,8 @@ use winit::event_loop::{ControlFlow, EventLoop};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::App;
-/// # use modor_graphics::{GraphicsModule, SurfaceSize, WindowSettings};
+/// # use modor::*;
+/// # use modor_graphics::*;
 /// #
 /// # fn no_run() {
 /// App::new()
@@ -59,21 +59,21 @@ pub fn runner(mut app: App) {
     let mut gilrs = init_gamepads(&mut app);
     let event_loop = EventLoop::new();
     let mut window = None;
-    app.update_singleton(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
+    app.update_components(|i: &mut WindowInit| window = Some(i.create_window(&event_loop)));
     let window = window.expect("`GraphicsModule` entity not found or created in windowless mode");
     let mut previous_update_end = Instant::now();
     let mut suspended = false;
     event_loop.run(move |event, _, control_flow| match event {
         Event::Suspended => suspended = true,
         Event::Resumed => {
-            app.update_singleton(|w: &mut WindowInit| w.create_renderer(&window));
-            app.update_singleton(|t: &mut RenderTarget| t.refresh_surface(&window));
+            app.update_components(|w: &mut WindowInit| w.create_renderer(&window));
+            app.update_components(|t: &mut RenderTarget| t.refresh_surface(&window));
         }
         Event::MainEventsCleared => window.request_redraw(),
         Event::RedrawRequested(window_id) if window_id == window.id() => {
             let mut frame_rate = FrameRate::VSync;
-            app.update_singleton(|i: &mut FrameRateLimit| frame_rate = i.get());
-            app.update_singleton(|w: &mut Window| {
+            app.update_components(|i: &mut FrameRateLimit| frame_rate = i.get());
+            app.update_components(|w: &mut Window| {
                 let size = window.inner_size();
                 w.set_size(SurfaceSize {
                     width: size.width,
@@ -90,7 +90,7 @@ pub fn runner(mut app: App) {
             } else {
                 update_end - previous_update_end
             };
-            app.update_singleton(|t: &mut DeltaTime| t.set(delta_time));
+            app.update_components(|t: &mut DeltaTime| t.set(delta_time));
             previous_update_end = update_end;
         }
         Event::DeviceEvent {
@@ -115,7 +115,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
             new_inner_size: &mut size,
             ..
         } => {
-            app.update_singleton(|w: &mut Window| {
+            app.update_components(|w: &mut Window| {
                 w.set_size(SurfaceSize {
                     width: size.width,
                     height: size.height,
@@ -181,20 +181,20 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
 }
 
 fn send_keyboard_event(app: &mut App, event: KeyboardEvent) {
-    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_components(|c: &mut InputEventCollector| c.push(event.clone().into()));
 }
 
 fn send_mouse_event(app: &mut App, event: MouseEvent) {
-    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_components(|c: &mut InputEventCollector| c.push(event.clone().into()));
 }
 
 fn send_touch_event(app: &mut App, event: TouchEvent) {
-    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_components(|c: &mut InputEventCollector| c.push(event.clone().into()));
 }
 
 #[cfg(not(target_os = "android"))]
 fn send_gamepad_event(app: &mut App, event: modor_input::GamepadEvent) {
-    app.update_singleton(|c: &mut InputEventCollector| c.push(event.into()));
+    app.update_components(|c: &mut InputEventCollector| c.push(event.clone().into()));
 }
 
 #[cfg(not(target_os = "android"))]

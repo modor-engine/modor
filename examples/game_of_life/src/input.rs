@@ -1,23 +1,18 @@
 use crate::state::{CellPosition, Grid};
 use crate::GRID_WIDTH;
-use modor::{singleton, Built, EntityBuilder, Single, SingleMut};
+use modor::{systems, Single, SingleMut, SingletonComponent};
 use modor_graphics::Camera2D;
 use modor_input::{Mouse, MouseButton};
 use modor_math::Vec2;
 use std::num::TryFromIntError;
 
+#[derive(SingletonComponent, Default)]
 pub(crate) struct Cursor {
     last_position: Option<CellPosition>,
 }
 
-#[singleton]
+#[systems]
 impl Cursor {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            last_position: None,
-        })
-    }
-
     #[run]
     fn update_grid(
         &mut self,

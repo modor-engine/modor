@@ -1,7 +1,7 @@
 //! Procedural macros of modor.
 
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Literal, TokenTree};
 use proc_macro_error::abort;
 use quote::quote;
 use syn::spanned::Spanned;
@@ -12,37 +12,7 @@ mod idents;
 mod impl_block;
 mod systems;
 
-#[allow(missing_docs)]
-#[proc_macro_attribute]
-#[proc_macro_error::proc_macro_error]
-pub fn entity(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    implement_entity_main_component(item, false)
-}
-
-#[allow(missing_docs)]
-#[proc_macro_attribute]
-#[proc_macro_error::proc_macro_error]
-pub fn singleton(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    implement_entity_main_component(item, true)
-}
-
-#[allow(missing_docs)]
-#[proc_macro_derive(Component)]
-#[proc_macro_error::proc_macro_error]
-pub fn component_derive(item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::find_crate_ident(item.span());
-    let ident = &item.ident;
-    let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
-    let output = quote! {
-        impl #impl_generics #crate_ident::Component for #ident #type_generics #where_clause {
-            type IsEntityMainComponent = #crate_ident::False;
-        }
-    };
-    output.into()
-}
-
-#[allow(missing_docs)]
+#[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(Action)]
 #[proc_macro_error::proc_macro_error]
 pub fn action_derive(item: TokenStream) -> TokenStream {
@@ -70,37 +40,105 @@ pub fn action_derive(item: TokenStream) -> TokenStream {
     output.into()
 }
 
-fn implement_entity_main_component(item: TokenStream, is_singleton: bool) -> TokenStream {
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(Component)]
+#[proc_macro_error::proc_macro_error]
+pub fn component_derive(item: TokenStream) -> TokenStream {
+    derive_component(item, false)
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(SingletonComponent)]
+#[proc_macro_error::proc_macro_error]
+pub fn singleton_component_derive(item: TokenStream) -> TokenStream {
+    derive_component(item, true)
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(NoSystem)]
+#[proc_macro_error::proc_macro_error]
+pub fn no_system_derive(item: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(item as DeriveInput);
+    let crate_ident = idents::find_crate_ident(item.span());
+    let ident = &item.ident;
+    let generics = item.generics;
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+    let finish_system_call = finish_system_call(ident);
+    let output = quote! {
+        impl #impl_generics #crate_ident::ComponentSystems for #ident #type_generics #where_clause {
+            type Action = std::marker::PhantomData<()>;
+
+            fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
+                runner
+                #finish_system_call
+            }
+        }
+    };
+    output.into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_attribute]
+#[proc_macro_error::proc_macro_error]
+pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
     let crate_ident = idents::find_crate_ident(item.span());
     let cleaned_block = impl_block::clean(&item);
     let type_ = &item.self_ty;
     let type_ident = idents::extract_type_ident(type_);
+    let generics = &item.generics;
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     let action_type_ident = Ident::new(&(type_ident.to_string() + "Action"), item.span());
-    let (impl_generics, _generics, where_clause) = item.generics.split_for_impl();
-    let entity_type = if is_singleton {
-        quote!(#crate_ident::True)
-    } else {
-        quote!(#crate_ident::False)
-    };
+    let actions = systems::action_dependencies(&item);
+    let action_phantom = generics
+        .lt_token
+        .is_some()
+        .then(|| quote!(std::marker::PhantomData #type_generics));
     let update_statement = systems::generate_update_statement(&item);
-    let actions = systems::entity_action_dependencies(&item);
+    let finish_system_call = finish_system_call(&type_ident);
     let output = quote! {
         #cleaned_block
 
-        impl #impl_generics #crate_ident::EntityMainComponent for #type_ #where_clause {
-            type IsSingleton = #entity_type;
-            type Action = #action_type_ident;
+        impl #impl_generics #crate_ident::ComponentSystems for #type_ #where_clause {
+            type Action = #action_type_ident #type_generics;
 
             fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
                 #update_statement
+                #finish_system_call
             }
         }
 
         #[doc(hidden)]
         #[non_exhaustive]
         #[derive(#crate_ident::Action)]
-        pub struct #action_type_ident(#(#actions),*);
+        pub struct #action_type_ident #type_generics(#(#actions,)* #action_phantom) #where_clause;
     };
     output.into()
+}
+
+fn derive_component(item: TokenStream, is_singleton: bool) -> TokenStream {
+    let item = parse_macro_input!(item as DeriveInput);
+    let crate_ident = idents::find_crate_ident(item.span());
+    let ident = &item.ident;
+    let generics = item.generics;
+    let is_singleton_type = if is_singleton {
+        quote! { #crate_ident::True }
+    } else {
+        quote! { #crate_ident::False }
+    };
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+    let output = quote! {
+        impl #impl_generics #crate_ident::Component for #ident #type_generics #where_clause {
+            type IsSingleton = #is_singleton_type;
+        }
+    };
+    output.into()
+}
+
+fn finish_system_call(entity_type: &Ident) -> proc_macro2::TokenStream {
+    let label = format!("{entity_type}::modor_finish");
+    let label_tokens = TokenTree::Literal(Literal::string(&label));
+    quote! {
+        .finish(#label_tokens)
+    }
 }

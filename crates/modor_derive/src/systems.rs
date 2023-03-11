@@ -4,7 +4,6 @@ use proc_macro2::{Literal, TokenStream, TokenTree};
 use proc_macro_error::emit_error;
 use quote::{quote, quote_spanned, ToTokens};
 use std::cmp::Ordering;
-use std::iter;
 use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
 pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
@@ -14,7 +13,7 @@ pub(crate) fn generate_update_statement(impl_block: &ItemImpl) -> TokenStream {
     }
 }
 
-pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<TokenStream> {
+pub(crate) fn action_dependencies(impl_block: &ItemImpl) -> Vec<TokenStream> {
     impl_block
         .items
         .iter()
@@ -28,7 +27,9 @@ pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<TokenStre
         .flat_map(|m| supported_attributes(&m.attrs))
         .flat_map(|a| match attributes::parse(&a) {
             Some(ParsedAttribute::RunAs(path)) => vec![path],
-            Some(ParsedAttribute::RunAfter(paths)) => paths,
+            Some(
+                ParsedAttribute::RunAfter(paths) | ParsedAttribute::RunAfterPreviousAnd(paths),
+            ) => paths,
             Some(ParsedAttribute::Run | ParsedAttribute::RunAfterPrevious) | None => vec![],
         })
         .collect()
@@ -36,7 +37,6 @@ pub(crate) fn entity_action_dependencies(impl_block: &ItemImpl) -> Vec<TokenStre
 
 fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> + '_ {
     let token_stream = impl_block.self_ty.to_token_stream().to_string();
-    let finish_call = finish_system_call(&token_stream);
     impl_block
         .items
         .iter()
@@ -58,7 +58,6 @@ fn system_call_iter(impl_block: &ItemImpl) -> impl Iterator<Item = TokenStream> 
             }
         })
         .flatten()
-        .chain(iter::once(finish_call))
 }
 
 fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
@@ -69,13 +68,13 @@ fn supported_attributes(attributes: &[Attribute]) -> Vec<AttributeType> {
 }
 
 fn generate_system_call(
-    entity_type: &str,
+    type_: &str,
     method: &ImplItemMethod,
     attribute: &AttributeType,
 ) -> Option<TokenStream> {
     let crate_ident = idents::find_crate_ident(attribute.span());
     let system_name = &method.sig.ident;
-    let label = format!("{entity_type}::{}", method.sig.ident);
+    let label = format!("{type_}::{}", method.sig.ident);
     let label_tokens = TokenTree::Literal(Literal::string(&label));
     Some(match attributes::parse(attribute)? {
         ParsedAttribute::Run => quote_spanned! { attribute.span() =>
@@ -94,8 +93,17 @@ fn generate_system_call(
             }
         }
         ParsedAttribute::RunAfterPrevious => quote_spanned! { attribute.span() =>
-            .and_then(#crate_ident::system!(Self::#system_name), #label_tokens)
+            .and_then::<()>(#crate_ident::system!(Self::#system_name), #label_tokens)
         },
+        ParsedAttribute::RunAfterPreviousAnd(actions) => {
+            let constraint = create_constraint(actions);
+            quote_spanned! { attribute.span() =>
+                .and_then::<#constraint>(
+                    #crate_ident::system!(Self::#system_name),
+                    #label_tokens,
+                )
+            }
+        }
     })
 }
 
@@ -108,12 +116,4 @@ fn create_constraint(actions: Vec<TokenStream>) -> TokenStream {
         constraint = quote! { (#action, #constraint) };
     }
     constraint
-}
-
-fn finish_system_call(entity_type: &str) -> TokenStream {
-    let label = format!("{entity_type}::{}", "modor_finish");
-    let label_tokens = TokenTree::Literal(Literal::string(&label));
-    quote! {
-        .finish(#label_tokens)
-    }
 }

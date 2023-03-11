@@ -1,11 +1,7 @@
 #[macro_use]
 extern crate modor;
 
-pub mod data;
-pub mod entities;
-pub mod storages;
-pub mod testing;
-
+use modor::{Entity, World};
 use modor_graphics::{FontConfig, FontRef, TextureConfig, TextureRef};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -92,3 +88,19 @@ impl FontRef for MemoryFontRef {
         }
     }
 }
+
+#[derive(Component)]
+struct AutoRemoved;
+
+#[systems]
+impl AutoRemoved {
+    #[run]
+    fn remove(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_entity(entity.id());
+    }
+}
+
+pub mod data;
+pub mod entities;
+pub mod storages;
+pub mod testing;

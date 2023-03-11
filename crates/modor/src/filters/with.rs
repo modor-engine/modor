@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 /// A filter to keep only entities with a component of type `C`.
 ///
-/// You can group multiple `With` in a tuple to filter entities with multiple specific component
+/// You can group multiple [`With`] in a tuple to filter entities with multiple specific component
 ///  types.<br>
 /// A maximum of 10 filters is supported in tuples.
 /// If you need more filter conditions, you can use nested tuples.
@@ -18,16 +18,17 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct Position;
-/// #[derive(Component)]
+///
+/// #[derive(Component, NoSystem)]
 /// struct Velocity;
 ///
 /// fn list_movable_entities(
 ///     query: Query<'_, (Entity<'_>, Filter<(With<Position>, With<Velocity>)>)>
 /// ) {
 ///     for (entity, _) in query.iter() {
-///         println!("Entity {} is movable", entity.id());
+///         println!("Entity {} has position and velocity", entity.id());
 ///     }
 /// }
 /// ```
