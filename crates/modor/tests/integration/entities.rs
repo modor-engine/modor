@@ -131,3 +131,16 @@ fn create_complex_entities() {
                 .child_count(0)
         });
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn create_entity_with_same_singleton_in_children() {
+    App::new()
+        .with_entity(
+            EntityBuilder::new()
+                .with(Singleton1(0))
+                .with_child(Singleton1(1))
+                .with_child(Singleton1(2)),
+        )
+        .assert::<With<Singleton1>>(1, |e| e);
+}

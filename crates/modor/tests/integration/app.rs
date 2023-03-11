@@ -355,7 +355,6 @@ fn update_app_until_all_with_max_retries_reached() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn update_components() {
     let mut app = App::new()
         .with_entity(Entity::build(10))
