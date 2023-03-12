@@ -12,30 +12,28 @@
 //! You can then start to use this module:
 //!
 //! ```rust
-//! use modor::{singleton, App, Single, Built, EntityBuilder};
+//! use modor::{systems, App, Single, EntityBuilder, SingletonComponent};
 //! use modor_input::{InputEvent, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent};
 //!
 //! let mut app = App::new()
 //!     .with_entity(InputModule::build())
-//!     .with_entity(MouseAction::build());
-//! // By default, no input event is pushed in the module.
-//! // Crates like `modor_graphics` can automatically send events to the module.
-//! // It is also possible to create events manually, which can be convenient for testing.
-//! let event = InputEvent::Mouse(MouseEvent::PressedButton(MouseButton::Left));
-//! app.update_singleton(|c: &mut InputEventCollector| c.push(event));
+//!     .with_entity(MouseAction);
 //! loop {
+//!     // By default, no input event is pushed in the module.
+//!     // Crates like `modor_graphics` can automatically send events to the module.
+//!     // It is also possible to create events manually, which can be convenient for testing.
+//!     app.update_components(|c: &mut InputEventCollector| {
+//!         c.push(InputEvent::Mouse(MouseEvent::PressedButton(MouseButton::Left)));
+//!     });
 //!     app.update();
 //!     # break;
 //! }
 //!
+//! #[derive(SingletonComponent)]
 //! struct MouseAction;
 //!
-//! #[singleton]
+//! #[systems]
 //! impl MouseAction {
-//!     fn build() -> impl Built<Self> {
-//!         EntityBuilder::new(Self)
-//!     }
-//!
 //!     #[run]
 //!     fn run(mouse: Single<'_, Mouse>) {
 //!         assert!(mouse.button(MouseButton::Left).is_pressed);

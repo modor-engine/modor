@@ -13,9 +13,9 @@ use std::iter::FusedIterator;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Entity;
+/// # use modor::*;
 /// #
-/// #[derive(Debug)]
+/// #[derive(Debug, Component, NoSystem)]
 /// struct Position(f32, f32);
 ///
 /// fn print_position(position: &Position, entity: Entity<'_>) {
@@ -32,13 +32,11 @@ impl<'a> Entity<'a> {
     /// Returns the entity ID.
     ///
     /// Entity IDs are unique and can be recycled in case the entity is deleted.
-    #[must_use]
     pub fn id(self) -> usize {
         self.entity_idx.into()
     }
 
     /// Returns the entity parent.
-    #[must_use]
     pub fn parent(self) -> Option<Self> {
         self.context
             .storages
@@ -69,7 +67,6 @@ impl<'a> Entity<'a> {
     /// Returns the entity depth in the entity hierarchy.
     ///
     /// Root entities have a depth of `0`.
-    #[must_use]
     pub fn depth(self) -> usize {
         self.context.storages.entities.depth(self.entity_idx)
     }

@@ -1,6 +1,6 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, App, Built, EntityBuilder};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics::{Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, RelativeTransform2D, Transform2D};
@@ -18,12 +18,14 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
+#[derive(Component)]
 struct Object;
 
-#[entity]
+#[systems]
 impl Object {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(
                 Transform2D::new()
                     .with_position(Vec2::new(0.15, 0.15))
@@ -35,12 +37,14 @@ impl Object {
     }
 }
 
+#[derive(Component)]
 struct Child;
 
-#[entity]
+#[systems]
 impl Child {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_size(Vec2::new(0.1, 0.2)))
             .with(
                 RelativeTransform2D::new()

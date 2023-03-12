@@ -1,10 +1,7 @@
 use crate::storages::core::CoreStorage;
-use crate::{
-    system, utils, Built, Component, EntityFilter, EntityMainComponent, Filter, True, UsizeRange,
-};
+use crate::{system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange};
 use crate::{Entity, Query};
 use std::any;
-use std::any::TypeId;
 use std::marker::PhantomData;
 use std::panic;
 use std::panic::RefUnwindSafe;
@@ -21,24 +18,26 @@ pub use log::LevelFilter;
 /// fn main() {
 ///     let mut app = App::new()
 ///         .with_thread_count(4)
-///         .with_entity(Button::build("New game".into()))
-///         .with_entity(Button::build("Settings".into()))
-///         .with_entity(Button::build("Exit".into()));
+///         .with_entity(button("New game"))
+///         .with_entity(button("Settings"))
+///         .with_entity(button("Exit"));
 ///     app.update();
 /// }
 ///
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct Label(String);
 ///
+/// #[derive(Component, NoSystem)]
 /// struct Button;
 ///
-/// #[entity]
-/// impl Button {
-///     fn build(label: String) -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Label(label))
-///     }
+/// fn button(label: &str) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Button)
+///         .with(Label(label.into()))
 /// }
 /// ```
+///
+/// See [`EntityBuilder`](crate::EntityBuilder) for details about how to create entities.
 ///
 /// [`App`](crate::App) can also be used for testing:
 ///
@@ -47,38 +46,33 @@ pub use log::LevelFilter;
 /// #
 /// #[derive(Component)]
 /// struct Count(usize);
-/// #[derive(Component)]
-/// struct Label(String);
 ///
-/// struct Counter;
-///
-/// #[entity]
-/// impl Counter {
-///     fn build() -> impl Built<Self> {
-///         EntityBuilder::new(Self).with(Count(0))
-///     }
-///
+/// #[systems]
+/// impl Count {
 ///     #[run]
 ///     fn increment(count: &mut Count) {
 ///         count.0 += 1;
 ///     }
 /// }
 ///
+/// #[derive(Component, NoSystem)]
+/// struct OtherComponent;
+///
 /// #[test]
 /// fn test_counter() {
 /// # }
 /// # fn main() {
 ///     App::new()
-///         .with_entity(Counter::build())
-///         .assert::<With<Counter>>(1, |e| {
+///         .with_entity(Count(0))
+///         .assert::<With<Count>>(1, |e| {
 ///             e.has(|c: &Count| assert_eq!(c.0, 0))
-///                 .has_not::<Label>()
+///                 .has_not::<OtherComponent>()
 ///                 .child_count(0)
 ///         })
 ///         .updated()
-///         .assert::<With<Counter>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 1)))
-///         .with_update::<With<Counter>, _>(|count: &mut Count| count.0 = 42)
-///         .assert::<With<Counter>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 42)));
+///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 1)))
+///         .with_update::<With<Count>, _>(|count: &mut Count| count.0 = 42)
+///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 42)));
 /// }
 /// ```
 #[derive(Default)]
@@ -94,22 +88,19 @@ impl App {
     /// - Web: logging is initialized using the `console_log` crate
     /// and panic hook using the `console_error_panic_hook` crate.
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
-    #[must_use]
     pub fn new() -> Self {
         utils::init_logging();
         Self::default()
     }
 
     /// Returns the number of threads used by the `App` during update.
-    #[must_use]
     pub fn thread_count(&self) -> u32 {
         self.core.systems().thread_count()
     }
 
     /// Set minimum log level.
     ///
-    /// Default minimum log level is [`LevelFilter::Warn`](log::LevelFilter::Warn).
-    #[must_use]
+    /// Default minimum log level is [`LevelFilter::Warn`].
     pub fn with_log_level(self, level: LevelFilter) -> Self {
         log::set_max_level(level);
         info!("minimum log level set to '{level}'");
@@ -124,7 +115,6 @@ impl App {
     /// # Platform-specific
     ///
     /// - Web: update is done in one thread even if `count` if greater than `1`.
-    #[must_use]
     pub fn with_thread_count(mut self, count: u32) -> Self {
         self.core.set_thread_count(count);
         let new_thread_count = self.core.systems().thread_count();
@@ -132,19 +122,10 @@ impl App {
         self
     }
 
-    /// Creates a new entity with main component of type `E`.
-    #[must_use]
-    pub fn with_entity<E, B>(mut self, entity: B) -> Self
-    where
-        E: EntityMainComponent,
-        B: Built<E>,
-    {
-        let entity_idx = entity.build(&mut self.core, None);
-        trace!(
-            "entity of type `{}` created with ID {}",
-            any::type_name::<E>(),
-            entity_idx.0
-        );
+    /// Creates a new entity.
+    pub fn with_entity(mut self, entity: impl BuildableEntity) -> Self {
+        entity.build(&mut self.core, None);
+        self.core.delete_replaced_entities();
         self
     }
 
@@ -152,7 +133,6 @@ impl App {
     ///
     /// If a matching entity does not have a component of type `C`, then the update is not
     /// performed for this entity.
-    #[must_use]
     pub fn with_update<F, C>(mut self, mut f: impl FnMut(&mut C)) -> Self
     where
         F: EntityFilter,
@@ -164,7 +144,6 @@ impl App {
     }
 
     /// Runs all systems registered in the `App`.
-    #[must_use]
     pub fn updated(mut self) -> Self {
         self.update();
         self
@@ -176,7 +155,6 @@ impl App {
     /// # Panics
     ///
     /// This will panic if `max_retry` is reached.
-    #[must_use]
     pub fn updated_until_any<F, C>(
         mut self,
         max_retries: Option<usize>,
@@ -207,7 +185,6 @@ impl App {
     /// # Panics
     ///
     /// This will panic if `max_retry` is reached.
-    #[must_use]
     pub fn updated_until_all<F, C>(
         mut self,
         max_retries: Option<usize>,
@@ -237,7 +214,6 @@ impl App {
     /// # Panics
     ///
     /// This will panic if `F` does not match `count` entities.
-    #[allow(clippy::return_self_not_must_use)]
     pub fn assert<F>(
         mut self,
         count: impl UsizeRange,
@@ -272,22 +248,6 @@ impl App {
         runner(self);
     }
 
-    // TODO: remove
-    /// Runs `f` if the singleton of type `E` exists.
-    pub fn update_singleton<E>(&mut self, f: impl FnOnce(&mut E))
-    where
-        E: EntityMainComponent<IsSingleton = True>,
-    {
-        let location = self
-            .core
-            .components()
-            .type_idx(TypeId::of::<E>())
-            .and_then(|t| self.core.components().singleton_location(t));
-        if let Some(location) = location {
-            f(&mut self.core.components().write_components()[location.idx][location.pos]);
-        }
-    }
-
     /// Apply `f` on all components of type `C`.
     pub fn update_components<C>(&mut self, mut f: impl FnMut(&mut C))
     where
@@ -315,7 +275,6 @@ pub struct EntityAssertions<'a, F> {
     phantom: PhantomData<F>,
 }
 
-#[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 impl<F> EntityAssertions<'_, F>
 where
     F: EntityFilter,

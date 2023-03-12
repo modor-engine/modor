@@ -29,7 +29,6 @@ console_log.workspace = true
 
 [dev-dependencies]
 doc-comment.workspace = true
-static_assertions.workspace = true
 instant.workspace = true
 spin_sleep.workspace = true
 

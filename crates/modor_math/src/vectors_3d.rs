@@ -59,7 +59,6 @@ impl Vec3 {
 
     /// Creates a new vector.
     #[inline]
-    #[must_use]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
@@ -68,7 +67,6 @@ impl Vec3 {
     ///
     /// Z-coordinate is initialized to `0.0`.
     #[inline]
-    #[must_use]
     pub const fn from_xy(x: f32, y: f32) -> Self {
         Self::new(x, y, 0.)
     }
@@ -76,7 +74,6 @@ impl Vec3 {
     /// Returned the vector rescaled using `scale`.
     ///
     /// The returned vector is the coordinate-wise multiplication of `self` and `scale`.
-    #[must_use]
     pub fn with_scale(self, scale: Self) -> Self {
         Self::new(self.x * scale.x, self.y * scale.y, self.z * scale.z)
     }
@@ -84,7 +81,6 @@ impl Vec3 {
     /// Returns the vector with the same direction and but a different `magnitude`.
     ///
     /// If all components of the vector are equal to `0.0`, `None` is returned.
-    #[must_use]
     pub fn with_magnitude(self, magnitude: f32) -> Option<Self> {
         let (x, y, z) = (self.x, self.y, self.z);
         let factor = magnitude / self.magnitude();
@@ -95,13 +91,11 @@ impl Vec3 {
 
     /// Returns a [`Vec2`](crate::Vec2) containing X and Y coordinates of the vector.
     #[inline]
-    #[must_use]
     pub fn xy(self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
 
     /// Returns the magnitude of the vector.
-    #[must_use]
     pub fn magnitude(self) -> f32 {
         self.x
             .mul_add(self.x, self.y.mul_add(self.y, self.z.powi(2)))
@@ -109,13 +103,11 @@ impl Vec3 {
     }
 
     /// Returns the Euclidean distance with `other`.
-    #[must_use]
     pub fn distance(self, other: Self) -> f32 {
         (self - other).magnitude()
     }
 
     /// Returns the rotation between the vector and `other`.
-    #[must_use]
     pub fn rotation(self, other: Self) -> Quat {
         let cross = self.cross(other);
         let w = self.magnitude().mul_add(other.magnitude(), self.dot(other));
@@ -137,14 +129,12 @@ impl Vec3 {
     }
 
     /// Returns the dot product between the vector and `other`.
-    #[must_use]
     pub fn dot(self, other: Self) -> f32 {
         self.x
             .mul_add(other.x, self.y.mul_add(other.y, self.z * other.z))
     }
 
     /// Returns the cross product between the vector and `other`.
-    #[must_use]
     pub fn cross(self, other: Self) -> Self {
         Self::new(
             self.y.mul_add(other.z, -self.z * other.y),
@@ -156,7 +146,6 @@ impl Vec3 {
     /// Returns the mirror vector with a line of direction `axis_direction`.
     ///
     /// `axis_direction` sense has no impact on the resulting vector.
-    #[must_use]
     pub fn mirror(self, axis_direction: Self) -> Self {
         let axis = axis_direction.with_magnitude(1.).unwrap_or(Self::ZERO);
         axis * self.dot(axis) * 2. - self

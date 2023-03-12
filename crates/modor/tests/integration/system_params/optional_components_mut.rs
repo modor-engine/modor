@@ -1,37 +1,31 @@
-use crate::system_params::{assert_iter, OptionalValue, Text, Value};
-use modor::{App, Built, EntityBuilder, Filter, Query, SingleMut, With};
+use crate::system_params::{assert_iter, Number, OptionalValue, OtherNumber, Value};
+use modor::{App, BuiltEntity, EntityBuilder, Filter, Query, SingleMut, With};
 
+#[derive(SingletonComponent, Default)]
 struct QueryTester {
     done: bool,
     done_complex: bool,
 }
 
-#[singleton]
+#[systems]
 impl QueryTester {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            done: false,
-            done_complex: false,
-        })
-    }
-
     #[run]
     fn collect(&mut self, mut query: Query<'_, (Option<&mut Value>, Filter<With<Number>>)>) {
-        let values = [None, Some(1), Some(2), Some(3)];
+        let values = [Some(1), Some(2), None, Some(3)];
         assert_iter(query.iter().map(|v| v.0.map(|v| v.0)), values);
         assert_iter(query.iter_mut().map(|v| v.0.map(|v| v.0)), values);
-        let rev_values = [Some(3), Some(2), Some(1), None];
+        let rev_values = [Some(3), None, Some(2), Some(1)];
         assert_iter(query.iter().rev().map(|v| v.0.map(|v| v.0)), rev_values);
         assert_iter(query.iter_mut().rev().map(|v| v.0.map(|v| v.0)), rev_values);
         assert_eq!(query.get(10).map(|v| v.0.map(|v| v.0)), None);
         assert_eq!(query.get_mut(10).map(|v| v.0.map(|v| v.0)), None);
-        assert_eq!(query.get(5).map(|v| v.0.map(|v| v.0)), Some(None));
-        assert_eq!(query.get_mut(5).map(|v| v.0.map(|v| v.0)), Some(None));
-        assert_eq!(query.get(3).map(|v| v.0.map(|v| v.0)), None);
-        assert_eq!(query.get_mut(3).map(|v| v.0.map(|v| v.0)), None);
-        assert_eq!(query.get(4).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
-        assert_eq!(query.get_mut(4).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
-        let (left, right) = query.get_both_mut(4, 2);
+        assert_eq!(query.get(6).map(|v| v.0.map(|v| v.0)), Some(None));
+        assert_eq!(query.get_mut(6).map(|v| v.0.map(|v| v.0)), Some(None));
+        assert_eq!(query.get(4).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get_mut(4).map(|v| v.0.map(|v| v.0)), None);
+        assert_eq!(query.get(5).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
+        assert_eq!(query.get_mut(5).map(|v| v.0.map(|v| v.0)), Some(Some(2)));
+        let (left, right) = query.get_both_mut(5, 3);
         assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(2)));
         assert_eq!(right.map(|v| v.0.map(|v| v.0)), Some(Some(1)));
         self.done = true;
@@ -61,66 +55,49 @@ impl QueryTester {
     }
 }
 
-struct StreamCollector(Vec<Option<u32>>);
+#[derive(SingletonComponent, NoSystem, Default)]
+struct Numbers(Vec<Option<u32>>);
 
-#[singleton]
-impl StreamCollector {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(vec![]))
-    }
-}
+#[derive(Component)]
+struct RegisteredNumber;
 
-struct Number;
-
-#[entity]
-impl Number {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .with(Value(value))
-            .with(OptionalValue(value))
-    }
-
-    fn build_without_value() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-    }
-
-    fn build_with_additional_component(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .with(Value(value))
-            .with(Text(String::from("other")))
-    }
-
+#[systems]
+impl RegisteredNumber {
     #[run]
-    fn collect(value: Option<&mut Value>, mut collector: SingleMut<'_, StreamCollector>) {
+    fn collect(value: Option<&mut Value>, mut collector: SingleMut<'_, Numbers>) {
         collector.0.push(value.map(|v| v.0));
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 }
 
-struct OtherNumber;
-
-#[entity]
-impl OtherNumber {
-    fn build(value: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Value(value))
-    }
+fn entities() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with_child(QueryTester::default())
+        .with_child(Numbers::default())
+        .with_child(
+            Number::build(1)
+                .with(RegisteredNumber)
+                .with(OptionalValue(1)),
+        )
+        .with_child(OtherNumber::build(10))
+        .with_child(
+            Number::build(2)
+                .with(RegisteredNumber)
+                .with(OptionalValue(2)),
+        )
+        .with_child(Number::build_without_value().with(RegisteredNumber))
+        .with_child(Number::build_with_additional_component(3).with(RegisteredNumber))
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn iterate_on_component_reference() {
     App::new()
-        .with_entity(QueryTester::build())
-        .with_entity(StreamCollector::build())
-        .with_entity(Number::build(1))
-        .with_entity(OtherNumber::build(10))
-        .with_entity(Number::build(2))
-        .with_entity(Number::build_without_value())
-        .with_entity(Number::build_with_additional_component(3))
+        .with_entity(entities())
         .updated()
-        .assert::<With<StreamCollector>>(1, |e| {
-            e.has(|c: &StreamCollector| assert_eq!(c.0, [None, Some(1), Some(2), Some(3)]))
+        .assert::<With<Numbers>>(1, |e| {
+            e.has(|c: &Numbers| assert_eq!(c.0, [Some(1), Some(2), None, Some(3)]))
         })
         .assert::<With<QueryTester>>(1, |e| {
             e.has(|c: &QueryTester| {
@@ -132,18 +109,11 @@ fn iterate_on_component_reference() {
 
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
-#[allow(unused_must_use)]
 fn run_systems_in_parallel() {
     let start = instant::Instant::now();
     App::new()
         .with_thread_count(2)
-        .with_entity(QueryTester::build())
-        .with_entity(StreamCollector::build())
-        .with_entity(Number::build(1))
-        .with_entity(OtherNumber::build(10))
-        .with_entity(Number::build(2))
-        .with_entity(Number::build_without_value())
-        .with_entity(Number::build_with_additional_component(3))
+        .with_entity(entities())
         .updated();
     assert!(start.elapsed() > std::time::Duration::from_millis(400));
 }

@@ -1,6 +1,9 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, singleton, App, Built, Entity, EntityBuilder, Query, Single, World};
+use modor::{
+    systems, App, BuiltEntity, Component, Entity, EntityBuilder, Query, Single, SingletonComponent,
+    World,
+};
 use modor_graphics::{Camera2D, Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
 use modor_input::{
     Finger, Gamepad, GamepadButton, GamepadStick, Key, Keyboard, Mouse, MouseButton,
@@ -22,18 +25,20 @@ pub fn main() {
         .with_entity(CustomCamera::build())
         .with_entity(MouseState::build())
         .with_entity(KeyboardState::build())
-        .with_entity(TouchState::build())
-        .with_entity(GamepadsState::build())
+        .with_entity(TouchUpdate)
+        .with_entity(GamepadsUpdate)
         .run(modor_graphics::runner);
 }
 
+#[derive(SingletonComponent)]
 struct CustomCamera;
 
-#[singleton]
+#[systems]
 impl CustomCamera {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .inherit_from(Camera2D::build_rotated(
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with_inherited(Camera2D::build_rotated(
                 Vec2::new(0.5, 0.5),
                 Vec2::new(1.5, 1.5),
                 20_f32.to_radians(),
@@ -48,12 +53,14 @@ impl CustomCamera {
     }
 }
 
+#[derive(SingletonComponent)]
 struct MouseState;
 
-#[singleton]
+#[systems]
 impl MouseState {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_size(Vec2::ONE * 0.25))
             .with(Mesh2D::rectangle().with_color(Color::DARK_GRAY))
     }
@@ -77,12 +84,14 @@ impl MouseState {
     }
 }
 
+#[derive(SingletonComponent)]
 struct KeyboardState;
 
-#[singleton]
+#[systems]
 impl KeyboardState {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_size(Vec2::ONE * 0.25))
             .with(Dynamics2D::new())
             .with(Mesh2D::rectangle().with_color(Color::DARK_GRAY))
@@ -113,14 +122,11 @@ impl KeyboardState {
     }
 }
 
-struct TouchState;
+#[derive(SingletonComponent)]
+struct TouchUpdate;
 
-#[entity]
-impl TouchState {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-    }
-
+#[systems]
+impl TouchUpdate {
     #[run]
     fn create_fingers(
         entity: Entity<'_>,
@@ -136,14 +142,16 @@ impl TouchState {
     }
 }
 
+#[derive(Component)]
 struct FingerState {
     id: u64,
 }
 
-#[entity]
+#[systems]
 impl FingerState {
-    fn build(id: u64) -> impl Built<Self> {
-        EntityBuilder::new(Self { id })
+    fn build(id: u64) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self { id })
             .with(
                 Transform2D::new()
                     .with_position(Vec2::new(0.5, 0.5))
@@ -174,14 +182,11 @@ impl FingerState {
     }
 }
 
-struct GamepadsState;
+#[derive(SingletonComponent)]
+struct GamepadsUpdate;
 
-#[entity]
-impl GamepadsState {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-    }
-
+#[systems]
+impl GamepadsUpdate {
     #[run]
     fn create_fingers(
         entity: Entity<'_>,
@@ -197,14 +202,16 @@ impl GamepadsState {
     }
 }
 
+#[derive(Component)]
 struct GamepadState {
     id: u64,
 }
 
-#[entity]
+#[systems]
 impl GamepadState {
-    fn build(id: u64) -> impl Built<Self> {
-        EntityBuilder::new(Self { id })
+    fn build(id: u64) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self { id })
             .with(
                 Transform2D::new()
                     .with_position(Vec2::new(0.5, 0.5))

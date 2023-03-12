@@ -1,7 +1,7 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
 use instant::Instant;
-use modor::{entity, singleton, App, Built, EntityBuilder, Single};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
 use modor_graphics::{Camera2D, Color, GraphicsModule, Mesh2D, SurfaceSize, WindowSettings};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
@@ -21,12 +21,14 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
+#[derive(SingletonComponent)]
 struct MainModule;
 
-#[singleton]
+#[systems]
 impl MainModule {
-    fn build(entity_count: usize) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(entity_count: usize) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with_child(Camera2D::build(Vec2::new(0., 0.), Vec2::new(1.5, 1.5)))
             .with_child(FrameRateDisplay::build())
             .with_children(move |b| {
@@ -37,31 +39,33 @@ impl MainModule {
     }
 }
 
+#[derive(Component)]
 struct Sprite {
     next_update: Instant,
 }
 
-#[entity]
+#[systems]
 impl Sprite {
-    fn build() -> impl Built<Self> {
+    fn build() -> impl BuiltEntity {
         let mut rng = rand::thread_rng();
-        EntityBuilder::new(Self {
-            next_update: Instant::now(),
-        })
-        .with(
-            Transform2D::new()
-                .with_position(Vec2::new(
-                    Self::random_f32(&mut rng),
-                    Self::random_f32(&mut rng),
-                ))
-                .with_size(Vec2::ONE * 0.01),
-        )
-        .with(Dynamics2D::new())
-        .with(Mesh2D::ellipse().with_color(Color::rgb(
-            Self::random_f32(&mut rng) + 0.5,
-            Self::random_f32(&mut rng) + 0.5,
-            Self::random_f32(&mut rng) + 0.5,
-        )))
+        EntityBuilder::new()
+            .with(Self {
+                next_update: Instant::now(),
+            })
+            .with(
+                Transform2D::new()
+                    .with_position(Vec2::new(
+                        Self::random_f32(&mut rng),
+                        Self::random_f32(&mut rng),
+                    ))
+                    .with_size(Vec2::ONE * 0.01),
+            )
+            .with(Dynamics2D::new())
+            .with(Mesh2D::ellipse().with_color(Color::rgb(
+                Self::random_f32(&mut rng) + 0.5,
+                Self::random_f32(&mut rng) + 0.5,
+                Self::random_f32(&mut rng) + 0.5,
+            )))
     }
 
     #[run]
@@ -81,12 +85,13 @@ impl Sprite {
     }
 }
 
+#[derive(SingletonComponent)]
 struct FrameRateDisplay;
 
-#[singleton]
+#[systems]
 impl FrameRateDisplay {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new().with(Self)
     }
 
     #[run]

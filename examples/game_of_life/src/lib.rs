@@ -12,7 +12,7 @@ mod view;
 use crate::input::Cursor;
 use crate::state::{Grid, Simulation};
 use crate::view::{AliveCell, GridBackground};
-use modor::{singleton, App, Built, EntityBuilder};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics::{GraphicsModule, WindowSettings};
 use modor_input::Key;
 use std::time::Duration;
@@ -32,15 +32,17 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
+#[derive(Component)]
 struct MainModule;
 
-#[singleton]
+#[systems]
 impl MainModule {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
-            .with_child(Cursor::build())
-            .with_child(Simulation::build())
-            .with_child(Grid::build())
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with_child(Cursor::default())
+            .with_child(Simulation::new())
+            .with_child(Grid::new())
             .with_child(GridBackground::build())
     }
 }

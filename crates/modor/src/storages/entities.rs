@@ -71,16 +71,18 @@ impl EntityStorage {
 
     pub(super) fn delete<F>(&mut self, entity_idx: EntityIdx, mut for_each_deleted_entity_fn: F)
     where
-        F: FnMut(&mut Self, EntityLocation),
+        F: FnMut(&mut Self, EntityIdx, EntityLocation),
     {
-        if let Some(parent_idx) = self.parent_idxs[entity_idx] {
-            let entity_pos = self.child_idxs[parent_idx]
-                .iter()
-                .position(|&c| c == entity_idx)
-                .expect("internal error: child not registered in parent entity");
-            self.child_idxs[parent_idx].swap_remove(entity_pos);
+        if self.location(entity_idx).is_some() {
+            if let Some(parent_idx) = self.parent_idxs[entity_idx] {
+                let entity_pos = self.child_idxs[parent_idx]
+                    .iter()
+                    .position(|&c| c == entity_idx)
+                    .expect("internal error: child not registered in parent entity");
+                self.child_idxs[parent_idx].swap_remove(entity_pos);
+            }
+            self.delete_internal(entity_idx, &mut for_each_deleted_entity_fn);
         }
-        self.delete_internal(entity_idx, &mut for_each_deleted_entity_fn);
     }
 
     pub(super) fn reset_state(&mut self) {
@@ -90,7 +92,7 @@ impl EntityStorage {
 
     fn delete_internal<F>(&mut self, entity_idx: EntityIdx, for_each_deleted_entity_fn: &mut F)
     where
-        F: FnMut(&mut Self, EntityLocation),
+        F: FnMut(&mut Self, EntityIdx, EntityLocation),
     {
         for child_idx in mem::take(&mut self.child_idxs[entity_idx]) {
             self.delete_internal(child_idx, for_each_deleted_entity_fn);
@@ -100,7 +102,7 @@ impl EntityStorage {
         let location = self.locations[entity_idx]
             .take()
             .expect("internal error: cannot delete entity with no location");
-        for_each_deleted_entity_fn(self, location);
+        for_each_deleted_entity_fn(self, entity_idx, location);
     }
 }
 

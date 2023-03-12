@@ -4,29 +4,30 @@
 extern crate modor;
 
 use criterion::{criterion_main, Criterion};
-use modor::{App, Built, EntityBuilder};
+use modor::{App, BuiltEntity, EntityBuilder};
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct A(f32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct B(f32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C(f32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct D(f32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct E(f32);
 
+#[derive(Component)]
 struct Item1;
 
-#[entity]
+#[systems]
 impl Item1 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with(A(0.0)).with(B(0.0))
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new().with(Self).with(A(0.0)).with(B(0.0))
     }
 
     #[run]
@@ -45,12 +46,14 @@ impl Item1 {
     }
 }
 
+#[derive(Component)]
 struct Item2;
 
-#[entity]
+#[systems]
 impl Item2 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))
@@ -72,12 +75,14 @@ impl Item2 {
     }
 }
 
+#[derive(Component)]
 struct Item3;
 
-#[entity]
+#[systems]
 impl Item3 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))
@@ -100,12 +105,14 @@ impl Item3 {
     }
 }
 
+#[derive(Component)]
 struct Item4;
 
-#[entity]
+#[systems]
 impl Item4 {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(A(0.0))
             .with(B(0.0))
             .with(C(0.0))

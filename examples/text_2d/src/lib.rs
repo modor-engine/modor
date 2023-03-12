@@ -1,6 +1,6 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, App, Built, EntityBuilder, Single};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single};
 use modor_graphics::{
     Alignment, Color, GraphicsModule, Mesh2D, SurfaceSize, Text2D, TextSize, WindowSettings,
 };
@@ -20,12 +20,14 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
+#[derive(Component)]
 struct TextBox;
 
-#[entity]
+#[systems]
 impl TextBox {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Transform2D::new().with_size(Vec2::new(0.6, 0.20) * 1.5))
             .with(Dynamics2D::new())
             .with(

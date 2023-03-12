@@ -5,27 +5,26 @@ use modor::*;
 
 fn main() {}
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C1;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C2;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C3;
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct C4;
 
-struct SingletonEntity;
+#[derive(SingletonComponent, NoSystem)]
+struct Singleton;
 
-#[singleton]
-impl SingletonEntity {}
+#[derive(Component)]
+struct ComponentWithInvalidSystems;
 
-struct EntityWithInvalidSystems;
-
-#[entity]
-impl EntityWithInvalidSystems {
+#[systems]
+impl ComponentWithInvalidSystems {
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
@@ -60,69 +59,45 @@ impl EntityWithInvalidSystems {
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn const_and_mut_same_singleton(
-        _: Single<'_, SingletonEntity>,
-        _: SingleMut<'_, SingletonEntity>,
-    ) {
-    }
+    fn const_and_mut_same_singleton(_: Single<'_, Singleton>, _: SingleMut<'_, Singleton>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn const_and_mut_same_singleton_and_component(
-        _: Single<'_, SingletonEntity>,
-        _: &mut SingletonEntity,
-    ) {
-    }
+    fn const_and_mut_same_singleton_and_component(_: Single<'_, Singleton>, _: &mut Singleton) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_const_same_singleton(
-        _: SingleMut<'_, SingletonEntity>,
-        _: Single<'_, SingletonEntity>,
-    ) {
-    }
+    fn mut_and_const_same_singleton(_: SingleMut<'_, Singleton>, _: Single<'_, Singleton>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_const_same_singleton_and_component(
-        _: SingleMut<'_, SingletonEntity>,
-        _: &SingletonEntity,
-    ) {
-    }
+    fn mut_and_const_same_singleton_and_component(_: SingleMut<'_, Singleton>, _: &Singleton) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_mut_same_singleton(
-        _: SingleMut<'_, SingletonEntity>,
-        _: SingleMut<'_, SingletonEntity>,
-    ) {
-    }
+    fn mut_and_mut_same_singleton(_: SingleMut<'_, Singleton>, _: SingleMut<'_, Singleton>) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
-    fn mut_and_mut_same_singleton_and_component(
-        _: SingleMut<'_, SingletonEntity>,
-        _: &mut SingletonEntity,
-    ) {
-    }
+    fn mut_and_mut_same_singleton_and_component(_: SingleMut<'_, Singleton>, _: &mut Singleton) {}
 
     #[run]
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_same_option_singleton(
-        _: Option<Single<'_, SingletonEntity>>,
-        _: Option<SingleMut<'_, SingletonEntity>>,
+        _: Option<Single<'_, Singleton>>,
+        _: Option<SingleMut<'_, Singleton>>,
     ) {
     }
 
@@ -131,8 +106,8 @@ impl EntityWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_same_option_singleton_and_component(
-        _: Option<Single<'_, SingletonEntity>>,
-        _: Option<&mut SingletonEntity>,
+        _: Option<Single<'_, Singleton>>,
+        _: Option<&mut Singleton>,
     ) {
     }
 
@@ -141,9 +116,9 @@ impl EntityWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_option_same_singleton(
-        _: Single<'_, SingletonEntity>,
+        _: Single<'_, Singleton>,
         _: &C3,
-        _: Option<SingleMut<'_, SingletonEntity>>,
+        _: Option<SingleMut<'_, Singleton>>,
     ) {
     }
 
@@ -152,9 +127,9 @@ impl EntityWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn const_and_mut_option_same_singleton_and_component(
-        _: Single<'_, SingletonEntity>,
+        _: Single<'_, Singleton>,
         _: &C3,
-        _: Option<&mut SingletonEntity>,
+        _: Option<&mut Singleton>,
     ) {
     }
 

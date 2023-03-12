@@ -1,6 +1,6 @@
 #![allow(clippy::cast_precision_loss, clippy::print_stdout, missing_docs)]
 
-use modor::{entity, singleton, App, Built, EntityBuilder};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, SingletonComponent};
 use modor_graphics::{
     Color, GraphicsModule, Mesh2D, Texture, TextureConfig, TextureRef, WindowSettings,
 };
@@ -14,8 +14,8 @@ pub fn main() {
         .with_entity(GraphicsModule::build(
             WindowSettings::default().title("Modor - textures"),
         ))
-        .with_entity(Texture::build(AppTextureRef::Background))
-        .with_entity(Texture::build(AppTextureRef::Smiley))
+        .with_entity(Texture::new(AppTextureRef::Background))
+        .with_entity(Texture::new(AppTextureRef::Smiley))
         .with_entity(Background::build())
         .with_entity(Smiley::build(
             Vec2::new(0.25, -0.25),
@@ -52,22 +52,27 @@ impl TextureRef for AppTextureRef {
     }
 }
 
+#[derive(SingletonComponent)]
 struct Background;
 
-#[singleton]
+#[systems]
 impl Background {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Transform2D::new()).with(
-            Mesh2D::rectangle()
-                .with_color(Color::rgb(0.3, 0.4, 0.6))
-                .with_texture(AppTextureRef::Background),
-        )
+    fn build() -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
+            .with(Transform2D::new())
+            .with(
+                Mesh2D::rectangle()
+                    .with_color(Color::rgb(0.3, 0.4, 0.6))
+                    .with_texture(AppTextureRef::Background),
+            )
     }
 }
 
+#[derive(Component)]
 struct Smiley;
 
-#[entity]
+#[systems]
 impl Smiley {
     const SIZE: Vec2 = Vec2::new(0.2, 0.2);
 
@@ -78,8 +83,9 @@ impl Smiley {
         angular_velocity: f32,
         color: Color,
         texture_color: Color,
-    ) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    ) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(
                 Transform2D::new()
                     .with_position(position)

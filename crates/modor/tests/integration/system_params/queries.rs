@@ -1,16 +1,13 @@
 use crate::system_params::assert_iter;
-use modor::{App, Built, Entity, EntityBuilder, Filter, Query, With};
+use modor::{App, BuiltEntity, Entity, EntityBuilder, Filter, Query, With};
 
+#[derive(SingletonComponent, Default)]
 struct Tester {
     done_count: u32,
 }
 
-#[singleton]
+#[systems]
 impl Tester {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self { done_count: 0 })
-    }
-
     #[run]
     fn iter_with_no_filter(&mut self, query: Query<'_, Entity<'_>>) {
         assert_iter(query.iter().map(Entity::id), [0, 1, 4, 2, 5, 3, 6]);
@@ -110,44 +107,47 @@ impl Tester {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Value1(u32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Value2(u32);
 
-#[derive(Component)]
+#[derive(Component, NoSystem)]
 struct Value3(u32);
 
+#[derive(Component, NoSystem)]
 struct Level1;
 
-#[entity]
 impl Level1 {
-    fn build(value1: u32, value2: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value1: u32, value2: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Value1(value1 + 2))
             .with(Value3(value1 + 2))
             .with_child(Level2::build(value1, value2))
     }
 }
 
+#[derive(Component, NoSystem)]
 struct Level2;
 
-#[entity]
 impl Level2 {
-    fn build(value1: u32, value2: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value1: u32, value2: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Value2(value2 + 1))
             .with_child(Level3::build(value1, value2))
     }
 }
 
+#[derive(Component, NoSystem)]
 struct Level3;
 
-#[entity]
 impl Level3 {
-    fn build(value1: u32, value2: u32) -> impl Built<Self> {
-        EntityBuilder::new(Self)
+    fn build(value1: u32, value2: u32) -> impl BuiltEntity {
+        EntityBuilder::new()
+            .with(Self)
             .with(Value1(value1))
             .with(Value2(value2))
     }
@@ -157,7 +157,7 @@ impl Level3 {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn use_query() {
     App::new()
-        .with_entity(Tester::build())
+        .with_entity(Tester::default())
         .with_entity(Level1::build(10, 20))
         .with_entity(Level1::build(30, 40))
         .updated()

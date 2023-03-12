@@ -128,20 +128,29 @@ impl ComponentStorage {
         self.add_archetype(type_idx, dst_archetype_idx);
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
             if singleton_location == src_location {
-                let location = EntityLocation {
+                self.singleton_locations[type_idx] = Some(EntityLocation {
                     idx: dst_archetype_idx,
                     pos: ArchetypeEntityPos::default(),
-                };
-                self.singleton_locations[type_idx] = Some(location);
+                });
             }
+            // no need to check for last archetype location, like in `ComponentStorage::delete`,
+            // because this case is unreachable due to action ordering in `CoreStorage::update`
         }
     }
 
     pub(super) fn delete(&mut self, type_idx: ComponentTypeIdx, location: EntityLocation) {
         self.archetypes[type_idx].delete_component(location);
         if let Some(singleton_location) = self.singleton_locations[type_idx] {
+            let last_archetype_location = EntityLocation {
+                idx: location.idx,
+                pos: self.archetypes[type_idx]
+                    .component_count(location.idx)
+                    .into(),
+            };
             if singleton_location == location {
                 self.singleton_locations[type_idx] = None;
+            } else if singleton_location == last_archetype_location {
+                self.singleton_locations[type_idx] = Some(location);
             }
         }
     }
@@ -157,6 +166,8 @@ trait ComponentArchetypeLock: Any + Sync + Send {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn component_count(&mut self, archetype_idx: ArchetypeIdx) -> usize;
 
     fn move_component(&mut self, src_location: EntityLocation, dst_archetype_idx: ArchetypeIdx);
 
@@ -175,6 +186,12 @@ where
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn component_count(&mut self, archetype_idx: ArchetypeIdx) -> usize {
+        self.get_mut()
+            .expect("internal error: cannot get number of components in archetype")[archetype_idx]
+            .len()
     }
 
     fn move_component(&mut self, src_location: EntityLocation, dst_archetype_idx: ArchetypeIdx) {

@@ -7,14 +7,9 @@ use std::marker::PhantomData;
 /// Actions are used to constrain systems.
 ///
 /// **Do not implement manually this trait.**<br>
-/// The [`action`](macro@crate::Action) derive macro can be used instead to define an action.
-///
-/// # Examples
-///
-/// See [`entity`](macro@crate::entity).
+/// The [`Action`](macro@crate::Action) derive macro can be used instead to define an action.
 pub trait Action: Any {
     #[doc(hidden)]
-    #[must_use]
     fn dependency_types() -> Vec<TypeId>;
 }
 
@@ -70,4 +65,15 @@ mod internal {
     impl<A> SealedConstraint for (A,) {}
 
     impl<A, C> SealedConstraint for (A, C) {}
+}
+
+#[cfg(test)]
+mod action_tests {
+    use crate::Action;
+    use std::marker::PhantomData;
+
+    #[test]
+    fn retrieve_phantom_actions() {
+        assert!(<PhantomData<()> as Action>::dependency_types().is_empty());
+    }
 }

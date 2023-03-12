@@ -5,16 +5,13 @@
 extern crate modor;
 
 use criterion::{criterion_main, Criterion};
-use modor::{App, Built, EntityBuilder};
+use modor::{App, BuiltEntity, EntityBuilder};
 
+#[derive(Component)]
 struct Data(f32);
 
-#[entity]
+#[systems]
 impl Data {
-    fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self(1.0))
-    }
-
     #[run]
     fn update(&mut self) {
         self.0 *= 2.0;
@@ -24,13 +21,15 @@ impl Data {
 macro_rules! create_entities {
     ($app:ident; $( $variants:ident ),*) => {
         $(
+            #[derive(Component)]
             struct $variants(f32);
 
-            #[entity]
+            #[systems]
             impl $variants {
-                fn build() -> impl Built<Self> {
-                    EntityBuilder::new(Self(0.0))
-                        .inherit_from(Data::build())
+                fn build() -> impl BuiltEntity {
+                    EntityBuilder::new()
+                        .with(Self(0.0))
+                        .with_inherited(Data(1.0))
                 }
             }
 

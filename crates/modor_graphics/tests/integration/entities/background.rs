@@ -5,7 +5,7 @@ use modor_graphics::{testing, BackgroundColor, Capture, Color, GraphicsModule, S
 fn update_background() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
-        .with_entity(BackgroundColor::build(Color::GREEN))
+        .with_entity(BackgroundColor::from(Color::GREEN))
         .with_update::<(), _>(|c: &mut BackgroundColor| c.r = c.g)
         .updated()
         .assert::<With<Capture>>(1, |e| {

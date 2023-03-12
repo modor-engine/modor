@@ -1,34 +1,35 @@
 use crate::data::InputState;
 use crate::utils;
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder};
 use modor_math::Vec2;
 
 /// The state of the keyboard.
 ///
-/// # Modor
-///
-/// - **Type**: singleton entity
-/// - **Lifetime**: same as [`InputModule`](crate::InputModule)
-///
 /// # Examples
 ///
 /// ```rust
-/// # use modor::Single;
-/// # use modor_input::{Key, Keyboard};
+/// # use modor::*;
+/// # use modor_input::*;
 /// #
 /// fn access_keyboard(keyboard: Single<'_, Keyboard>) {
 ///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed);
 ///     println!("Entered text: {:?}", keyboard.text());
 /// }
 /// ```
+#[derive(SingletonComponent, NoSystem)]
 pub struct Keyboard {
     keys: FxHashMap<Key, InputState>,
     text: String,
 }
 
-#[singleton]
 impl Keyboard {
+    pub(crate) fn new() -> Self {
+        Self {
+            keys: FxHashMap::default(),
+            text: String::new(),
+        }
+    }
+
     /// Returns all pressed keys.
     pub fn pressed_keys(&self) -> impl Iterator<Item = Key> + '_ {
         self.keys
@@ -38,7 +39,6 @@ impl Keyboard {
     }
 
     /// Returns the state of a key.
-    #[must_use]
     pub fn key(&self, key: Key) -> InputState {
         self.keys.get(&key).copied().unwrap_or_default()
     }
@@ -46,7 +46,6 @@ impl Keyboard {
     /// Returns a normalized delta indicating a direction from left, right, up and down keys.
     ///
     /// If none of the keys are pressed, the returned delta has all components equal to `0.0`.
-    #[must_use]
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> Vec2 {
         utils::normalized_direction(
             self.key(left).is_pressed,
@@ -59,22 +58,13 @@ impl Keyboard {
     /// Returns a delta between -1. and 1. from left and right keys.
     ///
     /// If none of the keys are pressed, the returned delta is `0.0`.
-    #[must_use]
     pub fn axis(&self, left: Key, right: Key) -> f32 {
         utils::normalized_axis(self.key(left).is_pressed, self.key(right).is_pressed)
     }
 
     /// Returns the entered text.
-    #[must_use]
     pub fn text(&self) -> &str {
         &self.text
-    }
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            keys: FxHashMap::default(),
-            text: String::new(),
-        })
     }
 
     pub(crate) fn reset(&mut self) {

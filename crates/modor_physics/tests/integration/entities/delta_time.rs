@@ -10,7 +10,7 @@ fn update_delta_time() {
         .assert::<With<DeltaTime>>(1, |e| {
             e.has(|t: &DeltaTime| assert_eq!(t.get(), Duration::ZERO))
         })
-        .with_entity(DeltaTime::build(Duration::from_millis(5)))
+        .with_entity(DeltaTime::from(Duration::from_millis(5)))
         .assert::<With<DeltaTime>>(1, |e| {
             e.has(|t: &DeltaTime| assert_eq!(t.get(), Duration::from_millis(5)))
         })

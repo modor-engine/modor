@@ -18,16 +18,17 @@ use std::marker::PhantomData;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct Position;
-/// #[derive(Component)]
+///
+/// #[derive(Component, NoSystem)]
 /// struct Velocity;
 ///
 /// fn list_not_movable_entities(
 ///     query: Query<'_, (Entity<'_>, Filter<Or<(Without<Position>, Without<Velocity>)>>)>
 /// ) {
 ///     for (entity, _) in query.iter() {
-///         println!("Entity {} is not movable", entity.id());
+///         println!("Entity {} has missing position or velocity", entity.id());
 ///     }
 /// }
 /// ```

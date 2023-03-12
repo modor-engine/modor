@@ -4,7 +4,7 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{Built, Component, EntityMainComponent, SystemParam};
+use crate::{BuildableEntity, Component, SystemParam};
 use std::any::{self, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -14,7 +14,7 @@ use std::any::{self, TypeId};
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Component)]
+/// #[derive(Component, NoSystem)]
 /// struct Name(String);
 ///
 /// fn add_string_component(mut world: World<'_>, entity: Entity<'_>) {
@@ -27,14 +27,10 @@ pub struct World<'a> {
 }
 
 impl<'a> World<'a> {
-    /// Creates a new root entity of type `E`.
+    /// Creates a new root entity.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_root_entity<E, B>(&mut self, entity: B)
-    where
-        E: EntityMainComponent,
-        B: Built<E>,
-    {
+    pub fn create_root_entity(&mut self, entity: impl BuildableEntity) {
         self.context
             .storages
             .updates
@@ -44,23 +40,15 @@ impl<'a> World<'a> {
                 None,
                 Box::new(|c| {
                     let entity_idx = entity.build(c, None);
-                    trace!(
-                        "root entity of type `{}` created with ID `{}`",
-                        any::type_name::<E>(),
-                        entity_idx.0
-                    );
+                    trace!("root entity created with ID {}", entity_idx.0);
                 }),
             );
     }
 
-    /// Creates a new entity of type `E` with parent entity with ID `parent_id`.
+    /// Creates a new entity with parent entity with ID `parent_id`.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_child_entity<E, B>(&mut self, parent_id: usize, entity: B)
-    where
-        E: EntityMainComponent,
-        B: Built<E>,
-    {
+    pub fn create_child_entity(&mut self, parent_id: usize, entity: impl BuildableEntity) {
         self.context
             .storages
             .updates
@@ -71,8 +59,7 @@ impl<'a> World<'a> {
                 Box::new(move |c| {
                     let entity_idx = entity.build(c, Some(parent_id.into()));
                     trace!(
-                        "child entity of type `{}` created with ID `{}` for entity with ID {parent_id}",
-                        any::type_name::<E>(),
+                        "child entity created with ID `{}` for entity with ID {parent_id}",
                         entity_idx.0
                     );
                 }),
@@ -95,10 +82,7 @@ impl<'a> World<'a> {
     ///
     /// The component is actually added once all registered systems have been run.
     ///
-    /// If the entity already has a component of type `C`, it is overwritten.<br>
-    /// If `C` is the main component of an entity defined with the [`entity`](macro@crate::entity)
-    /// or [`singleton`](macro@crate::singleton) proc macro, then systems defined for `C` will now
-    /// be run for the entity.
+    /// If the entity already has a component of type `C`, it is overwritten.
     pub fn add_component<C>(&mut self, entity_id: usize, component: C)
     where
         C: Component,
@@ -129,10 +113,7 @@ impl<'a> World<'a> {
     ///
     /// The component is actually deleted once all registered systems have been run.
     ///
-    /// If the entity does not have a component of type `C`, nothing is done.<br>
-    /// If `C` is the main component of an entity defined with the [`entity`](macro@crate::entity)
-    /// or [`singleton`](macro@crate::singleton) proc macro, then systems defined for `C` will now
-    /// be run for the entity.
+    /// If the entity does not have a component of type `C`, nothing is done.
     pub fn delete_component<C>(&mut self, entity_id: usize)
     where
         C: Component,

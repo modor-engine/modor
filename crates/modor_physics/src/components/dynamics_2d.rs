@@ -5,18 +5,13 @@ use rapier2d::na::Vector2;
 
 /// The dynamics properties of a 2D entity.
 ///
-/// # Modor
-///
-/// - **Type**: component
-/// - **Required components**: [`Transform2D`](crate::Transform2D)
-/// - **Updated by**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated during**: [`PhysicsModule`](crate::PhysicsModule)
-/// - **Updated using**: [`Collider2D`](crate::Collider2D)
+/// This component has an effect only if the entity has also a component of type
+/// [`Transform2D`](crate::Transform2D).
 ///
 /// # Example
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, NoSystem)]
 pub struct Dynamics2D {
     /// Linear velocity of the entity in world units per second.
     pub velocity: PhysicsProperty<Vec2>,
@@ -27,7 +22,6 @@ pub struct Dynamics2D {
 
 impl Dynamics2D {
     /// Creates a new body.
-    #[must_use]
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -40,7 +34,6 @@ impl Dynamics2D {
     /// Returns the dynamics with a different `velocity` in world units per second.
     ///
     /// Default value is `Vec2::ZERO`.
-    #[must_use]
     #[inline]
     pub const fn with_velocity(mut self, velocity: Vec2) -> Self {
         self.velocity = PhysicsProperty::new(velocity);
@@ -50,7 +43,6 @@ impl Dynamics2D {
     /// Returns the dynamics with a different `angular_velocity` in radians per second.
     ///
     /// Default value is `0.0`.
-    #[must_use]
     #[inline]
     pub const fn with_angular_velocity(mut self, angular_velocity: f32) -> Self {
         self.angular_velocity = PhysicsProperty::new(angular_velocity);
