@@ -3,11 +3,12 @@ use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{
     GraphicsModule, IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState,
 };
-use modor::{Built, EntityBuilder, Single};
+use modor::Single;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
 pub(crate) type MeshRegistry = ResourceRegistry<Mesh>;
 
+#[derive(Component, Debug)]
 pub(crate) struct Mesh {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
@@ -16,8 +17,33 @@ pub(crate) struct Mesh {
     index_buffer: Option<DynamicBuffer<u16>>,
 }
 
-#[component]
+#[systems]
 impl Mesh {
+    pub(crate) fn rectangle() -> Self {
+        Self::from_memory(
+            MeshKey::Rectangle,
+            vec![
+                Vertex {
+                    position: [-0.5, 0.5, 0.],
+                    texture_position: [0., 0.],
+                },
+                Vertex {
+                    position: [-0.5, -0.5, 0.],
+                    texture_position: [0., 1.],
+                },
+                Vertex {
+                    position: [0.5, -0.5, 0.],
+                    texture_position: [1., 1.],
+                },
+                Vertex {
+                    position: [0.5, 0.5, 0.],
+                    texture_position: [1., 0.],
+                },
+            ],
+            vec![0, 1, 2, 0, 2, 3],
+        )
+    }
+
     fn from_memory(key: impl IntoResourceKey, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
         Self {
             key: key.into_key(),
@@ -77,39 +103,6 @@ impl Resource for Mesh {
         } else {
             ResourceState::NotLoaded
         }
-    }
-}
-
-pub(crate) struct RectangleMesh;
-
-#[singleton]
-impl RectangleMesh {
-    const VERTICES: [Vertex; 4] = [
-        Vertex {
-            position: [-0.5, 0.5, 0.],
-            texture_position: [0., 0.],
-        },
-        Vertex {
-            position: [-0.5, -0.5, 0.],
-            texture_position: [0., 1.],
-        },
-        Vertex {
-            position: [0.5, -0.5, 0.],
-            texture_position: [1., 1.],
-        },
-        Vertex {
-            position: [0.5, 0.5, 0.],
-            texture_position: [1., 0.],
-        },
-    ];
-    const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Mesh::from_memory(
-            MeshKey::Rectangle,
-            Self::VERTICES.to_vec(),
-            Self::INDICES.to_vec(),
-        ))
     }
 }
 

@@ -1,19 +1,20 @@
+use crate::resources::mesh::MeshKey;
 use crate::{IntoResourceKey, ResourceKey};
 
-// TODO: mesh_key should be at model level and not material level (maybe needed to rename to Model2D)
-
 #[must_use]
+#[derive(Component, NoSystem)]
 pub struct Model {
     pub material_key: ResourceKey,
     pub camera_keys: Vec<ResourceKey>,
+    pub(crate) mesh_key: ResourceKey,
 }
 
-#[component]
 impl Model {
-    pub fn new(material_key: impl IntoResourceKey) -> Self {
+    pub fn rectangle(material_key: impl IntoResourceKey) -> Self {
         Self {
             material_key: material_key.into_key(),
             camera_keys: vec![],
+            mesh_key: MeshKey::Rectangle.into_key(),
         }
     }
 

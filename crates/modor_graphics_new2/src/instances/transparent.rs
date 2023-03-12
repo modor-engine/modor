@@ -4,24 +4,24 @@ use crate::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::resources::material::MaterialRegistry;
 use crate::{GraphicsModule, Material, Model};
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder, Filter, Query, Single, SingleMut, World};
+use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
 use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
 use std::ops::Range;
 use wgpu::Device;
 
-#[derive(Debug)]
+#[derive(SingletonComponent, Debug)]
 pub(crate) struct TransparentInstanceRegistry {
     buffer: DynamicBuffer<Instance>,
     instances: Vec<InstanceDetails>,
     entity_positions: EntityPositions,
 }
 
-#[singleton]
+#[systems]
 impl TransparentInstanceRegistry {
-    pub(crate) fn build(device: &Device) -> impl Built<Self> {
-        EntityBuilder::new(Self {
+    pub(crate) fn new(device: &Device) -> Self {
+        Self {
             buffer: DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
@@ -30,7 +30,7 @@ impl TransparentInstanceRegistry {
             ),
             instances: vec![],
             entity_positions: EntityPositions::default(),
-        })
+        }
     }
 
     #[run_after(component(OpaqueInstanceRegistry))]
@@ -64,6 +64,7 @@ impl TransparentInstanceRegistry {
                 let group_key = GroupKey {
                     camera_key: camera_key.clone(),
                     material_key: model.material_key.clone(),
+                    mesh_key: model.mesh_key.clone(),
                 };
                 if let Some(position) = self.entity_positions.add(entity.id(), &group_key) {
                     self.buffer[position] = super::create_instance(transform, z_index, 0.);
@@ -227,10 +228,12 @@ mod entity_positions_tests {
         let group1 = GroupKey {
             camera_key: 1.into_key(),
             material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
         };
         let group2 = GroupKey {
-            camera_key: 3.into_key(),
-            material_key: 4.into_key(),
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
         };
         assert_eq!(positions.add(10, &group1), None);
         assert_eq!(positions.add(10, &group2), None);
@@ -247,10 +250,12 @@ mod entity_positions_tests {
         let group1 = GroupKey {
             camera_key: 1.into_key(),
             material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
         };
         let group2 = GroupKey {
-            camera_key: 3.into_key(),
-            material_key: 4.into_key(),
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
         };
         positions.add(10, &group1);
         positions.add(10, &group2);
@@ -266,14 +271,17 @@ mod entity_positions_tests {
         let group1 = GroupKey {
             camera_key: 1.into_key(),
             material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
         };
         let group2 = GroupKey {
-            camera_key: 3.into_key(),
-            material_key: 4.into_key(),
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
         };
         let group3 = GroupKey {
-            camera_key: 5.into_key(),
-            material_key: 6.into_key(),
+            camera_key: 7.into_key(),
+            material_key: 8.into_key(),
+            mesh_key: 9.into_key(),
         };
         positions.add(10, &group1);
         positions.add(10, &group2);
@@ -293,10 +301,12 @@ mod entity_positions_tests {
         let group1 = GroupKey {
             camera_key: 1.into_key(),
             material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
         };
         let group2 = GroupKey {
-            camera_key: 3.into_key(),
-            material_key: 4.into_key(),
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
         };
         positions.add(10, &group1);
         positions.add(20, &group2);

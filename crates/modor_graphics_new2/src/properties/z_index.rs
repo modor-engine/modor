@@ -1,8 +1,7 @@
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Component, NoSystem, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ZIndex2D(u16);
 
-#[component]
 impl ZIndex2D {
     // offset should be between 0. and 0.5
     pub(crate) fn to_f32(&self, offset: f32) -> f32 {

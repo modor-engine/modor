@@ -1,4 +1,4 @@
-use crate::resources::render_target::RenderTargetUpdate;
+use crate::render_target::RenderTargetUpdate;
 use crate::resources::shader::Shader;
 use crate::{
     GraphicsModule, IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
@@ -18,7 +18,7 @@ use wgpu::{
 pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 
 #[must_use]
-#[derive(Debug)]
+#[derive(Component, Debug)]
 pub struct Texture {
     key: ResourceKey,
     source: TextureSource,
@@ -26,12 +26,8 @@ pub struct Texture {
     state: TextureState,
 }
 
-#[component]
+#[systems]
 impl Texture {
-    pub(crate) fn new_unit(key: impl IntoResourceKey) -> Self {
-        Self::new(key, TextureSource::Unit)
-    }
-
     pub fn from_size(key: impl IntoResourceKey, size: Size) -> Self {
         Self::new(key, TextureSource::Size(size))
     }
@@ -46,6 +42,10 @@ impl Texture {
 
     pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
         Self::new(key, TextureSource::Path(path.into()))
+    }
+
+    pub(crate) fn blank() -> Self {
+        Self::new(TextureKey::Blank, TextureSource::Unit)
     }
 
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {

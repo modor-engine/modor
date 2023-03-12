@@ -1,6 +1,6 @@
 use fxhash::{FxHashMap, FxHashSet};
 use log::{error, warn};
-use modor::{Built, Component, ComponentPart, Entity, EntityBuilder, False, Query};
+use modor::{Component, Entity, Query};
 use modor_jobs::AssetLoadingError;
 use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
@@ -105,13 +105,6 @@ pub trait Resource: Sized {
     fn key(&self) -> &ResourceKey;
 
     fn state(&self) -> ResourceState<'_>;
-
-    fn into_entity(self) -> EntityBuilder<ResourceEntity, ((), ComponentPart<ResourceEntity, Self>)>
-    where
-        Self: Component<IsEntityMainComponent = False>,
-    {
-        ResourceEntity::build(self)
-    }
 }
 
 /// The state of a resource.
@@ -151,26 +144,11 @@ impl Display for ResourceLoadingError {
     }
 }
 
-/// An entity type to quickly create a resource.
-///
-/// # Examples
-///
-/// TODO: add example
-pub struct ResourceEntity;
-
-#[entity]
-impl ResourceEntity {
-    /// Build a resource entity.
-    fn build<R>(resource: R) -> EntityBuilder<Self, ((), ComponentPart<Self, R>)>
-    where
-        R: Resource + Component<IsEntityMainComponent = False>,
-    {
-        EntityBuilder::new(ResourceEntity).with(resource)
-    }
-}
-
-#[derive(Debug)]
-pub struct ResourceRegistry<R> {
+#[derive(SingletonComponent, Debug)]
+pub struct ResourceRegistry<R>
+where
+    R: Any,
+{
     entity_ids: FxHashMap<ResourceKey, usize>,
     duplicated_keys: ResourceOnce<R>,
     missing_keys: ResourceOnce<R>,
@@ -178,19 +156,19 @@ pub struct ResourceRegistry<R> {
     failed_keys: ResourceOnce<R>,
 }
 
-#[singleton]
+#[systems]
 impl<R> ResourceRegistry<R>
 where
     R: Resource + Component,
 {
-    pub fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
+    pub fn new() -> Self {
+        Self {
             entity_ids: FxHashMap::default(),
             duplicated_keys: ResourceOnce::new(),
             missing_keys: ResourceOnce::new(),
             not_loaded_keys: ResourceOnce::new(),
             failed_keys: ResourceOnce::new(),
-        })
+        }
     }
 
     #[run]

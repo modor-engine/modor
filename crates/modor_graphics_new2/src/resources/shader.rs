@@ -1,11 +1,11 @@
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::instances::Instance;
+use crate::render_target::RenderTargetUpdate;
 use crate::resources::mesh::Vertex;
-use crate::resources::render_target::RenderTargetUpdate;
 use crate::{
     GraphicsModule, IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState,
 };
-use modor::{Built, EntityBuilder, Single};
+use modor::Single;
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor, PolygonMode,
@@ -16,7 +16,7 @@ use wgpu::{
 
 pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 
-#[derive(Debug)]
+#[derive(Component, Debug)]
 pub(crate) struct Shader {
     code: String,
     key: ResourceKey,
@@ -24,7 +24,16 @@ pub(crate) struct Shader {
     pipeline: Option<RenderPipeline>,
 }
 
-#[component]
+impl Default for Shader {
+    fn default() -> Self {
+        Self::from_memory(
+            ShaderKey::Default,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")),
+        )
+    }
+}
+
+#[systems]
 impl Shader {
     pub(crate) const DEFAULT_TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
     pub(crate) const CAMERA_GROUP: u32 = 0;
@@ -39,7 +48,14 @@ impl Shader {
         >>::LAYOUT,
     ];
 
-    pub(crate) fn from_memory(key: impl IntoResourceKey, code: impl Into<String>) -> Self {
+    pub(crate) fn ellipse() -> Self {
+        Self::from_memory(
+            ShaderKey::Ellipse,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
+        )
+    }
+
+    fn from_memory(key: impl IntoResourceKey, code: impl Into<String>) -> Self {
         Self {
             code: code.into(),
             key: key.into_key(),
@@ -154,33 +170,8 @@ impl Resource for Shader {
     }
 }
 
-// TODO: replace by into_entity()
-pub(crate) struct RectangleShader;
-
-#[singleton]
-impl RectangleShader {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Shader::from_memory(
-            ShaderKey::Rectangle,
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/rectangle.wgsl")),
-        ))
-    }
-}
-
-pub(crate) struct EllipseShader;
-
-#[singleton]
-impl EllipseShader {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self).with(Shader::from_memory(
-            ShaderKey::Ellipse,
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
-        ))
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum ShaderKey {
-    Rectangle,
+    Default,
     Ellipse,
 }

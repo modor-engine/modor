@@ -1,15 +1,15 @@
 use crate::instances::opaque::OpaqueInstanceRegistry;
 use crate::instances::transparent::TransparentInstanceRegistry;
+use crate::render_target::RenderTargetRegistry;
 use crate::resources::camera::Camera2DRegistry;
 use crate::resources::material::MaterialRegistry;
-use crate::resources::mesh::{MeshRegistry, RectangleMesh};
-use crate::resources::render_target::RenderTargetRegistry;
-use crate::resources::shader::{EllipseShader, RectangleShader, ShaderRegistry};
-use crate::resources::texture::{TextureKey, TextureRegistry};
-use crate::{Resource, Texture};
+use crate::resources::mesh::{Mesh, MeshRegistry};
+use crate::resources::shader::{Shader, ShaderRegistry};
+use crate::resources::texture::TextureRegistry;
+use crate::Texture;
 use futures::executor;
 use instant::Instant;
-use modor::{Built, EntityBuilder};
+use modor::{BuiltEntity, EntityBuilder};
 use modor_input::InputModule;
 use modor_physics::PhysicsModule;
 use std::time::Duration;
@@ -20,7 +20,7 @@ use wgpu::{
     TextureViewDimension,
 };
 
-#[derive(Debug)]
+#[derive(SingletonComponent, Debug)]
 pub struct GraphicsModule {
     pub frame_rate: FrameRate,
     pub(crate) instance: Instance,
@@ -33,45 +33,46 @@ pub struct GraphicsModule {
     pub(crate) window_texture_format: Option<TextureFormat>,
 }
 
-#[singleton]
+#[systems]
 impl GraphicsModule {
-    pub fn build() -> impl Built<Self> {
+    pub fn build() -> impl BuiltEntity {
         Self::build_with(FrameRate::VSync)
     }
 
-    pub fn build_with(frame_rate: FrameRate) -> impl Built<Self> {
+    pub fn build_with(frame_rate: FrameRate) -> impl BuiltEntity {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all);
         let instance = Instance::new(backends);
         let adapter_request = RequestAdapterOptions::default();
         let adapter = executor::block_on(instance.request_adapter(&adapter_request))
             .expect("no supported graphic adapter found");
         let (device, queue) = Self::retrieve_device(&adapter);
-        let transparent_instances = TransparentInstanceRegistry::build(&device);
-        EntityBuilder::new(Self {
-            frame_rate,
-            instance,
-            adapter,
-            camera_bind_group_layout: Self::camera_bind_group_layout(&device),
-            material_bind_group_layout: Self::material_bind_group_layout(&device),
-            texture_bind_group_layout: Self::texture_bind_group_layout(&device),
-            device,
-            queue,
-            window_texture_format: None,
-        })
-        .with_dependency(PhysicsModule::build())
-        .with_dependency(InputModule::build())
-        .with_child(RenderTargetRegistry::build())
-        .with_child(Camera2DRegistry::build())
-        .with_child(ShaderRegistry::build())
-        .with_child(MeshRegistry::build())
-        .with_child(MaterialRegistry::build())
-        .with_child(TextureRegistry::build())
-        .with_child(OpaqueInstanceRegistry::build())
-        .with_child(transparent_instances)
-        .with_child(RectangleShader::build())
-        .with_child(EllipseShader::build())
-        .with_child(RectangleMesh::build())
-        .with_child(Texture::new_unit(TextureKey::Blank).into_entity())
+        let transparent_instances = TransparentInstanceRegistry::new(&device);
+        EntityBuilder::new()
+            .with(Self {
+                frame_rate,
+                instance,
+                adapter,
+                camera_bind_group_layout: Self::camera_bind_group_layout(&device),
+                material_bind_group_layout: Self::material_bind_group_layout(&device),
+                texture_bind_group_layout: Self::texture_bind_group_layout(&device),
+                device,
+                queue,
+                window_texture_format: None,
+            })
+            .with_dependency::<PhysicsModule, _>(PhysicsModule::build())
+            .with_dependency::<InputModule, _>(InputModule::build())
+            .with_child(RenderTargetRegistry::new())
+            .with_child(Camera2DRegistry::new())
+            .with_child(ShaderRegistry::new())
+            .with_child(MeshRegistry::new())
+            .with_child(MaterialRegistry::new())
+            .with_child(TextureRegistry::new())
+            .with_child(OpaqueInstanceRegistry::default())
+            .with_child(transparent_instances)
+            .with_child(Shader::default())
+            .with_child(Shader::ellipse())
+            .with_child(Mesh::rectangle())
+            .with_child(Texture::blank())
     }
 
     pub(crate) fn present_mode(&self, has_immediate_mode: bool) -> PresentMode {

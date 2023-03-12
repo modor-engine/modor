@@ -1,6 +1,6 @@
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
-use crate::resources::render_target::{RenderTargetRegistry, RenderTargetUpdate};
+use crate::render_target::{RenderTargetRegistry, RenderTargetUpdate};
 use crate::{
     GraphicsModule, IntoResourceKey, RenderTarget, Resource, ResourceKey, ResourceRegistry,
     ResourceState, Window,
@@ -13,7 +13,7 @@ use modor_physics::Transform2D;
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
 #[must_use]
-#[derive(Debug)]
+#[derive(Component, Debug)]
 pub struct Camera2D {
     pub target_keys: Vec<ResourceKey>,
     key: ResourceKey,
@@ -21,7 +21,7 @@ pub struct Camera2D {
     target_uniforms: FxHashMap<ResourceKey, Uniform<CameraData>>,
 }
 
-#[component]
+#[systems]
 impl Camera2D {
     const CAMERA_BINDING: u32 = 0;
 

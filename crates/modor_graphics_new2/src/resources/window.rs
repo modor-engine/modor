@@ -7,7 +7,7 @@ use winit::window::{Window as WindowHandle, WindowBuilder, WindowId};
 
 #[must_use]
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug)]
+#[derive(Component, Debug)]
 pub struct Window {
     pub size: Size,
     pub title: String,
@@ -23,6 +23,13 @@ pub struct Window {
 
 impl Default for Window {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[systems]
+impl Window {
+    pub fn new() -> Self {
         Self {
             size: Size::new(800, 600),
             title: String::new(),
@@ -36,10 +43,7 @@ impl Default for Window {
             handle: None,
         }
     }
-}
 
-#[component]
-impl Window {
     pub fn with_size(mut self, size: Size) -> Self {
         self.size = size;
         self

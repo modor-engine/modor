@@ -1,5 +1,5 @@
 use crate::data::size::NonZeroSize;
-use crate::resources::render_target::core::TargetCore;
+use crate::render_target::core::TargetCore;
 use crate::{Color, GraphicsModule, Window};
 use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,

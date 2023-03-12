@@ -6,7 +6,6 @@ struct MaterialUniform {
     color: vec4<f32>,
     texture_part_position: vec2<f32>,
     texture_part_size: vec2<f32>,
-    has_texture: u32,
 }
 
 struct ModelVertex {

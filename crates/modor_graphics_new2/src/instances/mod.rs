@@ -12,6 +12,7 @@ pub(crate) mod transparent;
 pub(crate) struct GroupKey {
     pub(crate) camera_key: ResourceKey,
     pub(crate) material_key: ResourceKey,
+    pub(crate) mesh_key: ResourceKey,
 }
 
 #[repr(C)]

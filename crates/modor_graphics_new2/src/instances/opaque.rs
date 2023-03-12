@@ -4,24 +4,17 @@ use crate::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::resources::material::MaterialRegistry;
 use crate::{GraphicsModule, Material, Model, Resource};
 use fxhash::FxHashMap;
-use modor::{Built, EntityBuilder, Filter, Query, Single, SingleMut, World};
+use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
 
-#[derive(Debug)]
+#[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct OpaqueInstanceRegistry {
     groups: FxHashMap<GroupKey, InstanceGroup>,
     entity_groups: FxHashMap<usize, Vec<GroupKey>>,
 }
 
-#[singleton]
+#[systems]
 impl OpaqueInstanceRegistry {
-    pub(crate) fn build() -> impl Built<Self> {
-        EntityBuilder::new(Self {
-            groups: FxHashMap::default(),
-            entity_groups: FxHashMap::default(),
-        })
-    }
-
     #[run]
     fn move_transparent(
         &mut self,
@@ -83,6 +76,7 @@ impl OpaqueInstanceRegistry {
                 let group_key = GroupKey {
                     camera_key: camera_key.clone(),
                     material_key: model.material_key.clone(),
+                    mesh_key: model.mesh_key.clone(),
                 };
                 let is_new = self
                     .groups

@@ -3,27 +3,25 @@ use crate::gpu_data::buffer::DynamicBuffer;
 use crate::instances::opaque::OpaqueInstanceRegistry;
 use crate::instances::transparent::TransparentInstanceRegistry;
 use crate::instances::{GroupKey, Instance};
+use crate::render_target::window::WindowTarget;
 use crate::resources::camera::Camera2DRegistry;
 use crate::resources::material::MaterialRegistry;
 use crate::resources::mesh::{Mesh, MeshRegistry};
-use crate::resources::render_target::window::WindowTarget;
 use crate::resources::shader::{Shader, ShaderRegistry};
 use crate::resources::texture::{TextureKey, TextureRegistry};
 use crate::{
     Camera2D, Color, GraphicsModule, IntoResourceKey, Material, Resource, ResourceKey,
     ResourceRegistry, ResourceState, Texture, Window,
 };
-use modor::{Component, Query, Single, SingleMut};
+use modor::{Component, ComponentSystems, Query, Single, SingleMut};
 use std::fmt::Debug;
 use std::ops::Range;
 use wgpu::{IndexFormat, RenderPass};
 
 pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 
-// TODO: move this module in root
-
 #[must_use]
-#[derive(Debug)]
+#[derive(Component, Debug)]
 pub struct RenderTarget {
     pub background_color: Color,
     key: ResourceKey,
@@ -31,7 +29,7 @@ pub struct RenderTarget {
     default_texture_key: ResourceKey,
 }
 
-#[component]
+#[systems]
 impl RenderTarget {
     pub fn new(key: impl IntoResourceKey) -> Self {
         Self {
@@ -156,8 +154,8 @@ impl RenderTarget {
             return None;
         }
         let material = material_registry.get(&group_key.material_key, materials)?;
-        let shader = shader_registry.get(material.shader_key(), shaders)?;
-        let mesh = mesh_registry.get(material.mesh_key(), meshes)?;
+        let shader = shader_registry.get(&material.shader_key, shaders)?;
+        let mesh = mesh_registry.get(&group_key.mesh_key, meshes)?;
         let texture_key = material.texture_key.as_ref().unwrap_or(default_texture_key);
         let texture = texture_registry.get(texture_key, textures)?;
         let camera_uniform = camera.uniform(target_key);
@@ -196,7 +194,7 @@ impl Resource for RenderTarget {
 }
 
 #[derive(Action)]
-pub(crate) struct RenderTargetUpdate(<Window as Component>::Action);
+pub(crate) struct RenderTargetUpdate(<Window as ComponentSystems>::Action);
 
 mod core;
 mod window;
