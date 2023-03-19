@@ -1,0 +1,33 @@
+[package]
+name = "modor_examples"
+version = "0.1.0"
+description = "Examples of the Modor game engine"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+instant.workspace = true
+rand.workspace = true
+modor.workspace = true
+modor_math.workspace = true
+modor_graphics.workspace = true
+modor_physics.workspace = true
+modor_input.workspace = true
+modor_graphics_new2 = { version = "0.1.0", path = "../crates/modor_graphics_new2" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-glue.workspace = true
+
+[package.metadata.android]
+build_targets = ["armv7-linux-androideabi"]
+
+[package.metadata.android.sdk]
+target_sdk_version = 31
+
+[[example]]
+name = "android_multi_window"
+crate-type = ["cdylib"]

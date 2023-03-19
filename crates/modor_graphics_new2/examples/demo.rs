@@ -1,19 +1,20 @@
-// TODO: remove this file
+// TODO: remove examples
 // TODO: delete assets folder
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics_new2::{
-    Camera2D, Color, GraphicsModule, Material, Model, RenderTarget, Size, Texture, Window, ZIndex2D,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, Window, ZIndex2D,
 };
 use modor_math::Vec2;
-use modor_physics::{Dynamics2D, Transform2D};
+use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
 use std::time::Duration;
 
 fn main() {
     App::new()
         .with_thread_count(4)
-        .with_entity(GraphicsModule::build())
+        .with_entity(PhysicsModule::build())
+        .with_entity(modor_graphics_new2::renderer())
         .with_entity(primary_render_target())
         .with_entity(secondary_render_target())
         .with_entity(resources())

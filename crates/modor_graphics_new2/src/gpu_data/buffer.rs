@@ -1,4 +1,4 @@
-use crate::GraphicsModule;
+use crate::Renderer;
 use bytemuck::Pod;
 use std::fmt::Debug;
 use std::mem;
@@ -58,21 +58,22 @@ where
         self.buffer.slice(..)
     }
 
-    pub(crate) fn sync(&mut self, module: &GraphicsModule) {
+    pub(crate) fn sync(&mut self, renderer: &Renderer) {
         self.is_new = false;
         if !self.is_changed {
             return;
         }
+        self.is_changed = false;
         if self.buffer_capacity != self.data.capacity() {
             self.buffer_capacity = self.data.capacity();
-            self.buffer = module.device.create_buffer(&BufferDescriptor {
+            self.buffer = renderer.device.create_buffer(&BufferDescriptor {
                 label: Some(&self.label),
                 size: Self::raw_capacity(self.data.capacity()),
                 usage: self.usage.into(),
                 mapped_at_creation: false,
             });
         }
-        module
+        renderer
             .queue
             .write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }

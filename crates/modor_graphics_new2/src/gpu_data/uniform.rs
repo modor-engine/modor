@@ -1,5 +1,5 @@
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::GraphicsModule;
+use crate::Renderer;
 use bytemuck::Pod;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
@@ -51,8 +51,8 @@ where
         &self.bind_group
     }
 
-    pub(crate) fn sync(&mut self, module: &GraphicsModule) {
-        self.buffer.sync(module);
+    pub(crate) fn sync(&mut self, renderer: &Renderer) {
+        self.buffer.sync(renderer);
     }
 
     fn create_bind_group(

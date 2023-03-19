@@ -1,5 +1,5 @@
 use crate::input::Gamepads;
-use crate::{input, FrameRate, GraphicsModule, Window};
+use crate::{input, FrameRate, Window};
 use instant::Instant;
 use modor::App;
 use modor_input::{
@@ -133,13 +133,13 @@ impl RunnerState {
         if self.is_updated {
             return;
         }
-        self.frame_rate().run(self.previous_update_end, || {
-            for event in self.gamepad_events() {
-                self.treat_gamepad_event(event);
-            }
-            self.app.update_components(Window::update);
-            self.app.update();
-        });
+        for event in self.gamepad_events() {
+            self.treat_gamepad_event(event);
+        }
+        self.app.update_components(Window::update);
+        self.app.update();
+        self.frame_rate()
+            .sleep(self.previous_update_end, self.window_frame_rate_mhz());
         let update_end = Instant::now();
         self.update_delta_time(update_end);
         self.previous_update_end = update_end;
@@ -147,11 +147,25 @@ impl RunnerState {
     }
 
     fn frame_rate(&mut self) -> FrameRate {
-        let mut frame_rate = FrameRate::VSync;
-        self.app.update_components(|m: &mut GraphicsModule| {
-            frame_rate = m.frame_rate.clone();
+        let mut frame_rate = FrameRate::default();
+        self.app.update_components(|r: &mut FrameRate| {
+            frame_rate = *r;
         });
         frame_rate
+    }
+
+    fn window_frame_rate_mhz(&mut self) -> Option<u32> {
+        let mut min_frame_rate: Option<u32> = None;
+        self.app.update_components(|w: &mut Window| {
+            if let Some(frame_rate) = w.min_frame_rate_mhz() {
+                if let Some(min_frame_rate) = &mut min_frame_rate {
+                    *min_frame_rate = frame_rate.min(*min_frame_rate);
+                } else {
+                    min_frame_rate = Some(frame_rate);
+                }
+            }
+        });
+        min_frame_rate
     }
 
     fn update_delta_time(&mut self, update_end: Instant) {
