@@ -30,9 +30,10 @@ Modor is a *mo*dular and *d*ata-*or*iented game engine, based on the following p
 
 - Windows
 - Linux
-- macOS
 - Android
 - Web
+
+Modor could also work on some other platforms, like macOS, but they have not been tested.
 
 ## Usage
 
@@ -56,7 +57,8 @@ You can also include the modules you want, like:
 You can use one of the following commands to run an example:
 
 - Desktop: `cargo run --example <name> --release`
-- Android: `cargo apk run --manifest-path=examples/Cargo.toml --example android_<name> --release` (requires [cargo-apk](https://crates.io/crates/cargo-apk))
+- Android: `cargo apk run --manifest-path=examples/Cargo.toml --example android_<name> --release`
+  (requires [cargo-apk](https://crates.io/crates/cargo-apk))
 - Web: `cargo run-wasm --example <name> --release`
 
 For example: `cargo run --example rendering_2d --release`
