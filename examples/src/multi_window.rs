@@ -32,7 +32,7 @@ fn secondary_window() -> impl BuiltEntity {
         .with(
             Window::new()
                 .with_title("Secondary window")
-                .with_close_behavior(WindowCloseBehavior::Destroy),
+                .with_close_behavior(WindowCloseBehavior::None),
         )
         .with(Camera2D::new(CameraKey::Secondary).with_target_key(TargetKey::Secondary))
         .with(Material::new(MaterialKey::Secondary).with_color(Color::WHITE))

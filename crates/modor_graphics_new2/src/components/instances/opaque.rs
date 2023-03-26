@@ -2,7 +2,7 @@ use crate::components::instances::transparent::TransparentInstanceRegistry;
 use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::{Material, Model, Renderer, Resource};
+use crate::{Material, Model, Renderer, RendererInner, Resource, ZIndex2D};
 use fxhash::FxHashMap;
 use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
@@ -15,7 +15,7 @@ pub(crate) struct OpaqueInstanceRegistry {
 
 #[systems]
 impl OpaqueInstanceRegistry {
-    #[run]
+    #[run_after(component(Material))]
     fn move_transparent(
         &mut self,
         materials: Query<'_, &Material>,
@@ -54,17 +54,23 @@ impl OpaqueInstanceRegistry {
     }
 
     #[run_after_previous_and(
+        component(Renderer),
+        component(MaterialRegistry),
+        component(Material),
         component(Transform2D),
         component(Model),
-        component(MaterialRegistry),
-        component(Material)
+        component(ZIndex2D)
     )]
     fn update_models_2d(
         &mut self,
         renderer: Single<'_, Renderer>,
-        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
         (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
+        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
     ) {
+        let renderer = renderer
+            .state(&mut None)
+            .renderer()
+            .expect("internal error: missing renderer");
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
@@ -116,7 +122,7 @@ pub(crate) struct InstanceGroup {
 }
 
 impl InstanceGroup {
-    fn new(renderer: &Renderer, key: &GroupKey) -> Self {
+    fn new(renderer: &RendererInner, key: &GroupKey) -> Self {
         Self {
             buffer: DynamicBuffer::new(
                 vec![],
@@ -146,7 +152,7 @@ impl InstanceGroup {
         }
     }
 
-    fn sync(&mut self, renderer: &Renderer) {
+    fn sync(&mut self, renderer: &RendererInner) {
         self.buffer.sync(renderer);
     }
 }

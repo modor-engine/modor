@@ -1,5 +1,5 @@
 use crate::data::size::NonZeroSize;
-use crate::{Color, Renderer, Texture, TextureTargetBuffer};
+use crate::{Color, RendererInner, Texture, TextureTargetBuffer};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, LoadOp, Operations, RenderPass,
     RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -16,7 +16,7 @@ pub(crate) struct TargetCore {
 }
 
 impl TargetCore {
-    pub(crate) fn new(size: NonZeroSize, renderer: &Renderer) -> Self {
+    pub(crate) fn new(size: NonZeroSize, renderer: &RendererInner) -> Self {
         Self {
             size,
             depth_buffer_view: Self::create_depth_buffer_view(size, renderer),
@@ -29,7 +29,7 @@ impl TargetCore {
         self.size
     }
 
-    pub(crate) fn update(&mut self, size: NonZeroSize, renderer: &Renderer) {
+    pub(crate) fn update(&mut self, size: NonZeroSize, renderer: &RendererInner) {
         if self.size != size {
             self.size = size;
             self.depth_buffer_view = Self::create_depth_buffer_view(self.size, renderer);
@@ -39,7 +39,7 @@ impl TargetCore {
     pub(crate) fn begin_render_pass(
         &mut self,
         background_color: Color,
-        renderer: &Renderer,
+        renderer: &RendererInner,
         view: TextureView,
     ) -> RenderPass<'_> {
         let descriptor = CommandEncoderDescriptor {
@@ -72,7 +72,7 @@ impl TargetCore {
         &mut self,
         texture_buffer: Option<&TextureTargetBuffer>,
         texture: Option<&Texture>,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) {
         let mut encoder = self
             .encoder
@@ -84,7 +84,7 @@ impl TargetCore {
         renderer.queue.submit(Some(encoder.finish()));
     }
 
-    fn create_depth_buffer_view(size: NonZeroSize, renderer: &Renderer) -> TextureView {
+    fn create_depth_buffer_view(size: NonZeroSize, renderer: &RendererInner) -> TextureView {
         let texture = renderer.device.create_texture(&TextureDescriptor {
             label: Some("modor_depth_texture"),
             size: Extent3d {

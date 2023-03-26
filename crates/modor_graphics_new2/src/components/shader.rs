@@ -1,8 +1,10 @@
 use crate::components::instances::Instance;
 use crate::components::mesh::Vertex;
-use crate::components::render_target::WindowTargetUpdate;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{IntoResourceKey, Renderer, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use crate::{
+    IntoResourceKey, Renderer, RendererInner, Resource, ResourceKey, ResourceRegistry,
+    ResourceState,
+};
 use modor::Single;
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
@@ -20,6 +22,7 @@ pub(crate) struct Shader {
     key: ResourceKey,
     texture_format: TextureFormat,
     pipeline: Option<RenderPipeline>,
+    renderer_version: Option<u8>,
 }
 
 impl Default for Shader {
@@ -59,24 +62,27 @@ impl Shader {
             key: key.into_key(),
             texture_format: Self::DEFAULT_TEXTURE_FORMAT,
             pipeline: None,
+            renderer_version: None,
         }
     }
 
-    // run after RenderTarget because WindowTarget::texture_format must be run first
-    #[run_after(WindowTargetUpdate)]
+    #[run_after(component(Renderer))]
     fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
-        self.pipeline = if let Some(renderer) = renderer {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.pipeline = None;
+        }
+        if let Some(renderer) = state.renderer() {
             let texture_format = renderer
-                .window_texture_format
+                .surface_texture_format
                 .unwrap_or(self.texture_format);
-            self.texture_format = texture_format;
             let pipeline = if texture_format == self.texture_format {
                 self.pipeline.take()
             } else {
                 self.texture_format = texture_format;
                 None
             };
-            pipeline.or_else(|| {
+            self.pipeline = pipeline.or_else(|| {
                 Some(Self::create_pipeline(
                     &self.code,
                     &self.key,
@@ -84,9 +90,7 @@ impl Shader {
                     &renderer,
                 ))
             })
-        } else {
-            None
-        };
+        }
     }
 
     pub(crate) fn pipeline(&self) -> &RenderPipeline {
@@ -99,7 +103,7 @@ impl Shader {
         code: &str,
         key: &ResourceKey,
         target_format: TextureFormat,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> RenderPipeline {
         let module = renderer
             .device

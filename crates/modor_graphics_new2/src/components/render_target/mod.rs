@@ -34,6 +34,7 @@ pub struct RenderTarget {
     texture_state: TargetState,
     is_texture_conflict_logged: bool,
     default_texture_key: ResourceKey,
+    renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -48,6 +49,7 @@ impl RenderTarget {
             texture_state: TargetState::NotLoaded,
             is_texture_conflict_logged: false,
             default_texture_key: TextureKey::Blank.into_key(),
+            renderer_version: None,
         }
     }
 
@@ -60,25 +62,28 @@ impl RenderTarget {
     fn update_window_target(
         &mut self,
         window: Option<&mut Window>,
-        renderer: Option<SingleMut<'_, Renderer>>,
+        renderer: Option<Single<'_, Renderer>>,
         frame_rate: Option<Single<'_, FrameRate>>,
     ) {
-        self.window = if let (Some(mut renderer), Some(window)) = (renderer, window) {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() || window.is_none() {
+            self.window = None;
+        }
+        if let (Some(renderer), Some(window)) = (state.renderer(), window) {
             let frame_rate = frame_rate.as_deref().copied().unwrap_or_default();
-            self.window
+            self.window = self
+                .window
                 .take()
-                .or_else(|| WindowTarget::new(window, &mut renderer))
+                .or_else(|| WindowTarget::new(window, renderer))
                 .and_then(|t| {
                     if window.handle_id() == t.handle_id() {
                         Some(t)
                     } else {
-                        WindowTarget::new(window, &mut renderer)
+                        WindowTarget::new(window, renderer)
                     }
                 })
-                .and_then(|t| t.updated(window, &renderer, frame_rate))
-        } else {
-            None
-        };
+                .map(|t| t.updated(window, renderer, frame_rate));
+        }
         self.window_state = if self.window.is_some() {
             TargetState::Loaded
         } else {
@@ -92,16 +97,18 @@ impl RenderTarget {
         texture: Option<&Texture>,
         renderer: Option<Single<'_, Renderer>>,
     ) {
-        self.texture = if let (Some(renderer), Some(texture)) = (&renderer, texture) {
-            (texture.state() == ResourceState::Loaded).then(|| {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() || texture.is_none() {
+            self.texture = None;
+        }
+        if let (Some(renderer), Some(texture)) = (state.renderer(), texture) {
+            self.texture = (texture.state() == ResourceState::Loaded).then(|| {
                 self.texture
                     .take()
                     .unwrap_or_else(|| TextureTarget::new(texture, renderer))
                     .updated(texture, renderer)
-            })
-        } else {
-            None
-        };
+            });
+        }
         self.texture_state = if self.texture.is_some() {
             TargetState::Loaded
         } else {
@@ -149,8 +156,9 @@ impl RenderTarget {
         (mut mesh_registry, meshes): (SingleMut<'_, MeshRegistry>, Query<'_, &Mesh>),
         (mut texture_registry, textures): (SingleMut<'_, TextureRegistry>, Query<'_, &Texture>),
     ) {
+        let Some(renderer) = renderer.state(&mut None).renderer() else { return; };
         if let Some(target) = &mut self.window {
-            let mut pass = target.begin_render_pass(self.background_color, &renderer);
+            let mut pass = target.begin_render_pass(self.background_color, renderer);
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
@@ -188,10 +196,10 @@ impl RenderTarget {
                 );
             }
             drop(pass);
-            target.end_render_pass(&renderer);
+            target.end_render_pass(renderer);
         }
         if let (Some(target), Some(texture)) = (&mut self.texture, texture) {
-            let mut pass = target.begin_render_pass(texture, self.background_color, &renderer);
+            let mut pass = target.begin_render_pass(texture, self.background_color, renderer);
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
@@ -229,7 +237,7 @@ impl RenderTarget {
                 );
             }
             drop(pass);
-            target.end_render_pass(texture_buffer, texture, &renderer);
+            target.end_render_pass(texture_buffer, texture, renderer);
         }
     }
 
@@ -323,10 +331,17 @@ impl Resource for RenderTarget {
 }
 
 #[derive(Action)]
-pub(crate) struct WindowTargetUpdate(<Window as ComponentSystems>::Action);
+pub(crate) struct WindowTargetUpdate(
+    <Window as ComponentSystems>::Action,
+    <Renderer as ComponentSystems>::Action,
+    <FrameRate as ComponentSystems>::Action,
+);
 
 #[derive(Action)]
-pub(crate) struct TextureTargetUpdate(<Texture as ComponentSystems>::Action);
+pub(crate) struct TextureTargetUpdate(
+    <Texture as ComponentSystems>::Action,
+    <Renderer as ComponentSystems>::Action,
+);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub(crate) enum TargetType {

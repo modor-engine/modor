@@ -1,5 +1,5 @@
 use crate::input::Gamepads;
-use crate::{input, FrameRate, Window};
+use crate::{input, FrameRate, Renderer, RendererInner, Window};
 use instant::Instant;
 use modor::App;
 use modor_input::{
@@ -8,22 +8,59 @@ use modor_input::{
 };
 use modor_math::Vec2;
 use modor_physics::DeltaTime;
+use std::sync::Arc;
 use std::time::Duration;
+use wgpu::{Instance, Surface};
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{
     DeviceEvent, ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, Touch,
     TouchPhase, WindowEvent,
 };
-use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
-use winit::window::WindowId;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::{Window as WindowHandle, WindowBuilder, WindowId};
+
+// TODO: rename RendererInner to GpuContext
+// TODO: refactor this module (move some methods in input module + avoid side effect methods)
+
+const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
+
+#[allow(dead_code)]
+const CANVAS_ID: &str = "modor";
 
 pub fn runner(app: App) {
     let event_loop = EventLoop::new();
-    let mut state = RunnerState::new(app);
+    let mut state = RunnerState::new(app, &event_loop);
     state.init();
-    event_loop.run(move |event, event_loop, control_flow| {
-        state.treat_event(event, event_loop, control_flow);
+    event_loop.run(move |event, _event_loop, control_flow| {
+        state.treat_event(event, control_flow);
     });
+}
+
+struct Display {
+    instance: Instance,
+    renderer: Arc<RendererInner>,
+    main_surface: Arc<Surface>,
+}
+
+impl Display {
+    fn new(main_window: &WindowHandle) -> Self {
+        let instance = RendererInner::instance();
+        let main_surface = Arc::new(Self::create_surface(main_window, &instance));
+        Self {
+            renderer: Arc::new(RendererInner::new(&instance, Some(&main_surface))),
+            instance,
+            main_surface,
+        }
+    }
+
+    fn refresh_surface(&mut self, main_window: &WindowHandle) {
+        self.main_surface = Arc::new(Self::create_surface(main_window, &self.instance));
+    }
+
+    #[allow(unsafe_code)]
+    fn create_surface(handle: &WindowHandle, instance: &Instance) -> Surface {
+        unsafe { instance.create_surface(handle) }
+    }
 }
 
 struct RunnerState {
@@ -31,17 +68,32 @@ struct RunnerState {
     gamepads: Gamepads,
     previous_update_end: Instant,
     is_suspended: bool,
-    is_updated: bool,
+    main_window: WindowHandle,
+    main_window_frame_rate_mhz: Option<u32>,
+    display: Option<Display>,
 }
 
 impl RunnerState {
-    fn new(app: App) -> Self {
+    fn new(app: App, event_loop: &EventLoop<()>) -> Self {
+        let main_window = WindowBuilder::new()
+            .with_visible(false)
+            .with_inner_size(PhysicalSize::new(800, 600))
+            .with_title("")
+            .build(event_loop)
+            .expect("internal error: cannot create main window");
+        Self::init_canvas(&main_window);
         Self {
             app,
             gamepads: Gamepads::new(),
             previous_update_end: Instant::now(),
             is_suspended: false,
-            is_updated: false,
+            main_window_frame_rate_mhz: main_window.current_monitor().and_then(|m| {
+                m.video_modes()
+                    .map(|m| m.refresh_rate_millihertz())
+                    .fold(None, |a, b| Some(a.map_or(b, |a: u32| a.min(b))))
+            }),
+            main_window,
+            display: None,
         }
     }
 
@@ -51,17 +103,18 @@ impl RunnerState {
         }
     }
 
-    fn treat_event(
-        &mut self,
-        event: Event<'_, ()>,
-        event_loop: &EventLoopWindowTarget<()>,
-        control_flow: &mut ControlFlow,
-    ) {
+    fn treat_event(&mut self, event: Event<'_, ()>, control_flow: &mut ControlFlow) {
         match event {
             Event::Suspended => self.is_suspended = true,
-            Event::Resumed => self.invalidate_surface(),
-            Event::MainEventsCleared => self.request_redraw(event_loop),
-            Event::RedrawRequested(_) => self.update(),
+            Event::Resumed => {
+                self.invalidate_surface();
+            }
+            Event::MainEventsCleared => {
+                if self.display.is_some() {
+                    self.main_window.request_redraw();
+                    self.update();
+                }
+            }
             Event::DeviceEvent {
                 event: DeviceEvent::MouseMotion { delta },
                 ..
@@ -104,7 +157,8 @@ impl RunnerState {
             | Event::DeviceEvent { .. }
             | Event::UserEvent(_)
             | Event::RedrawEventsCleared
-            | Event::LoopDestroyed => (),
+            | Event::LoopDestroyed
+            | Event::RedrawRequested(_) => (),
         }
     }
 
@@ -117,33 +171,40 @@ impl RunnerState {
     }
 
     fn invalidate_surface(&mut self) {
+        let main_surface = if let Some(display) = &mut self.display {
+            display.refresh_surface(&self.main_window);
+            &display.main_surface
+        } else {
+            let display = self.display.insert(Display::new(&self.main_window));
+            &display.main_surface
+        };
         self.app.update_components(|w: &mut Window| {
-            w.is_surface_invalid = true;
+            w.refresh_surface(main_surface.clone());
         });
-    }
-
-    fn request_redraw(&mut self, event_loop: &EventLoopWindowTarget<()>) {
-        self.app.update_components(|w: &mut Window| {
-            w.request_redraw(event_loop);
-        });
-        self.is_updated = false;
     }
 
     fn update(&mut self) {
-        if self.is_updated {
-            return;
-        }
         for event in self.gamepad_events() {
             self.treat_gamepad_event(event);
         }
-        self.app.update_components(Window::update);
+        self.update_resources();
         self.app.update();
         self.frame_rate()
-            .sleep(self.previous_update_end, self.window_frame_rate_mhz());
+            .sleep(self.previous_update_end, self.main_window_frame_rate_mhz);
         let update_end = Instant::now();
         self.update_delta_time(update_end);
         self.previous_update_end = update_end;
-        self.is_updated = true;
+    }
+
+    fn update_resources(&mut self) {
+        if let Some(display) = &mut self.display {
+            self.app.update_components(|r: &mut Renderer| {
+                r.update(&display.renderer);
+            });
+            self.app.update_components(|w: &mut Window| {
+                w.update(&mut self.main_window, &display.main_surface);
+            });
+        }
     }
 
     fn frame_rate(&mut self) -> FrameRate {
@@ -154,42 +215,47 @@ impl RunnerState {
         frame_rate
     }
 
-    fn window_frame_rate_mhz(&mut self) -> Option<u32> {
-        let mut min_frame_rate: Option<u32> = None;
-        self.app.update_components(|w: &mut Window| {
-            if let Some(frame_rate) = w.min_frame_rate_mhz() {
-                if let Some(min_frame_rate) = &mut min_frame_rate {
-                    *min_frame_rate = frame_rate.min(*min_frame_rate);
-                } else {
-                    min_frame_rate = Some(frame_rate);
-                }
-            }
-        });
-        min_frame_rate
-    }
-
     fn update_delta_time(&mut self, update_end: Instant) {
         let delta_time = if self.is_suspended {
             self.is_suspended = false;
             Duration::ZERO
         } else {
-            update_end - self.previous_update_end
+            (update_end - self.previous_update_end).min(MAX_FRAME_TIME)
         };
         self.app.update_components(|t: &mut DeltaTime| {
             t.set(delta_time);
         });
     }
 
+    fn init_canvas(_handle: &WindowHandle) {
+        #[cfg(target_arch = "wasm32")]
+        {
+            use winit::platform::web::WindowExtWebSys;
+            let canvas = _handle.canvas();
+            canvas.set_id(CANVAS_ID);
+            web_sys::window()
+                .and_then(|win| win.document())
+                .and_then(|doc| doc.body())
+                .and_then(|body| body.append_child(&web_sys::Element::from(canvas)).ok())
+                .expect("cannot append canvas to document body");
+        }
+    }
+
     fn close_window(&mut self, window_id: WindowId, control_flow: &mut ControlFlow) {
-        self.app.update_components(|w: &mut Window| {
-            w.close_window(window_id, control_flow);
-        });
+        if window_id == self.main_window.id() {
+            self.app.update_components(|w: &mut Window| {
+                w.close_window(control_flow, &self.main_window);
+            });
+        }
     }
 
     fn update_window_size(&mut self, size: PhysicalSize<u32>, window_id: WindowId) {
-        let PhysicalSize { width, height } = size;
-        self.app
-            .update_components(|w: &mut Window| w.update_size(width, height, window_id));
+        if window_id == self.main_window.id() {
+            let PhysicalSize { width, height } = size;
+            self.app.update_components(|w: &mut Window| {
+                w.update_size(width, height, &self.main_window);
+            });
+        }
     }
 
     #[allow(clippy::cast_possible_truncation)]

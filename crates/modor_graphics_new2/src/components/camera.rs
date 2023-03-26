@@ -4,8 +4,8 @@ use crate::components::render_target::{
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
 use crate::{
-    IntoResourceKey, RenderTarget, Renderer, Resource, ResourceKey, ResourceRegistry,
-    ResourceState, Window,
+    IntoResourceKey, RenderTarget, Renderer, RendererInner, Resource, ResourceKey,
+    ResourceRegistry, ResourceState, Window,
 };
 use fxhash::FxHashMap;
 use modor::{Query, Single, SingleMut};
@@ -21,6 +21,7 @@ pub struct Camera2D {
     key: ResourceKey,
     transform: Transform2D,
     target_uniforms: FxHashMap<TargetPartKey, Uniform<CameraData>>,
+    renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -33,6 +34,7 @@ impl Camera2D {
             key: key.into_key(),
             transform: Transform2D::default(),
             target_uniforms: FxHashMap::default(),
+            renderer_version: None,
         }
     }
 
@@ -45,7 +47,8 @@ impl Camera2D {
         WindowTargetUpdate,
         TextureTargetUpdate,
         component(Transform2D),
-        component(RenderTargetRegistry)
+        component(RenderTargetRegistry),
+        component(Renderer)
     )]
     fn update(
         &mut self,
@@ -57,7 +60,11 @@ impl Camera2D {
         renderer: Option<Single<'_, Renderer>>,
     ) {
         self.transform = transform.cloned().unwrap_or_default();
-        if let Some(renderer) = renderer {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.target_uniforms.clear();
+        }
+        if let Some(renderer) = state.renderer() {
             for target_key in &self.target_keys {
                 let target = target_registry.get(target_key, &targets);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {
@@ -74,11 +81,18 @@ impl Camera2D {
             }
             self.target_uniforms.retain(|_, u| u.is_changed());
             for uniform in self.target_uniforms.values_mut() {
-                uniform.sync(&renderer);
+                uniform.sync(renderer);
             }
-        } else {
-            self.target_uniforms.clear();
         }
+    }
+
+    pub fn world_position(&self, window: &Window, window_position: Vec2) -> Vec2 {
+        let target_size: Vec2 = window.size.into();
+        self.world_matrix(target_size)
+            * Vec2::new(
+                window_position.x / target_size.x - 0.5,
+                0.5 - window_position.y / target_size.y,
+            )
     }
 
     pub(crate) fn uniform(
@@ -94,7 +108,7 @@ impl Camera2D {
             .expect("internal error: camera uniform not initialized")
     }
 
-    fn create_uniform(renderer: &Renderer, transform: [[f32; 4]; 4]) -> Uniform<CameraData> {
+    fn create_uniform(renderer: &RendererInner, transform: [[f32; 4]; 4]) -> Uniform<CameraData> {
         Uniform::new(
             CameraData { transform },
             Self::CAMERA_BINDING,
@@ -102,15 +116,6 @@ impl Camera2D {
             "camera_2d",
             &renderer.device,
         )
-    }
-
-    pub fn world_position(&self, window: &Window, window_position: Vec2) -> Vec2 {
-        let target_size: Vec2 = window.size.into();
-        self.world_matrix(target_size)
-            * Vec2::new(
-                window_position.x / target_size.x - 0.5,
-                0.5 - window_position.y / target_size.y,
-            )
     }
 
     fn gpu_matrix(&self, surface_size: NonZeroSize) -> Mat4 {

@@ -1,22 +1,20 @@
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
-use modor_graphics_new2::{
-    Camera2D, Color, FrameRate, Material, Model, RenderTarget, Window, ZIndex2D,
-};
+use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
 use rand::Rng;
 use std::time::Duration;
 
+// TODO: remove this example -> create bench
+
 const SPRITE_MATERIAL_COUNT: u32 = 10;
 
-fn main() {
+pub fn main() {
     App::new()
-        .with_thread_count(4)
         .with_entity(PhysicsModule::build())
-        .with_entity(FrameRate::Unlimited)
         .with_entity(modor_graphics_new2::renderer())
-        .with_entity(FpsPrinter)
+        // .with_entity(FpsPrinter)
         .with_entity(window())
         .with_entity(materials())
         .with_entity(sprites(10_000))
@@ -26,7 +24,7 @@ fn main() {
 fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
-        .with(Window::new())
+        .with(Window::new().with_cursor_shown(false))
         .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
 }
 
@@ -105,7 +103,7 @@ struct FpsPrinter;
 impl FpsPrinter {
     #[run]
     fn run(delta: Single<'_, DeltaTime>) {
-        println!("FPS: {}", (1. / delta.get().as_secs_f32()).round() as u32);
+        log::warn!("FPS: {}", (1. / delta.get().as_secs_f32()).round() as u32);
     }
 }
 

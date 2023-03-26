@@ -2,7 +2,7 @@ use crate::components::instances::opaque::OpaqueInstanceRegistry;
 use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::{Material, Model, Renderer};
+use crate::{Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
 use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
@@ -19,8 +19,12 @@ pub(crate) struct TransparentInstanceRegistry {
 
 #[systems]
 impl TransparentInstanceRegistry {
-    #[run]
+    #[run_after(component(Renderer))]
     fn init_buffer(&mut self, renderer: Single<'_, Renderer>) {
+        let renderer = renderer
+            .state(&mut None)
+            .renderer()
+            .expect("internal error: missing renderer");
         if self.buffer.is_none() {
             self.buffer = Some(DynamicBuffer::new(
                 vec![],
@@ -46,13 +50,24 @@ impl TransparentInstanceRegistry {
         }
     }
 
-    #[run_after_previous_and(component(Transform2D), component(Model))]
+    #[run_after_previous_and(
+        component(Renderer),
+        component(MaterialRegistry),
+        component(Material),
+        component(Transform2D),
+        component(Model),
+        component(ZIndex2D)
+    )]
     fn update_models_2d(
         &mut self,
-        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
         renderer: Single<'_, Renderer>,
         (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
+        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
     ) {
+        let renderer = renderer
+            .state(&mut None)
+            .renderer()
+            .expect("internal error: missing renderer");
         let buffer = self
             .buffer
             .as_mut()

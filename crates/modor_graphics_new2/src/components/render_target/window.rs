@@ -1,6 +1,7 @@
 use crate::components::render_target::core::TargetCore;
 use crate::data::size::NonZeroSize;
-use crate::{Color, FrameRate, Renderer, Window};
+use crate::{Color, FrameRate, RendererInner, Window};
+use std::sync::Arc;
 use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
     TextureUsages, TextureViewDescriptor,
@@ -11,16 +12,16 @@ use winit::window::WindowId;
 pub(crate) struct WindowTarget {
     core: TargetCore,
     handle_id: WindowId,
-    surface: Surface,
+    surface: Arc<Surface>,
     surface_config: SurfaceConfiguration,
     current_texture: Option<SurfaceTexture>,
     has_immediate_mode: bool,
 }
 
 impl WindowTarget {
-    pub(crate) fn new(window: &Window, renderer: &mut Renderer) -> Option<Self> {
-        let surface = window.create_surface(&renderer.instance)?;
-        let format = Self::texture_format(&surface, renderer);
+    pub(crate) fn new(window: &Window, renderer: &RendererInner) -> Option<Self> {
+        let surface = window.surface()?;
+        let format = renderer.surface_texture_format?;
         let size = window.surface_size();
         let surface_config = Self::create_surface_config(&surface, format, size, renderer);
         surface.configure(&renderer.device, &surface_config);
@@ -45,26 +46,26 @@ impl WindowTarget {
     pub(crate) fn updated(
         mut self,
         window: &mut Window,
-        renderer: &Renderer,
+        renderer: &RendererInner,
         frame_rate: FrameRate,
-    ) -> Option<Self> {
+    ) -> Self {
         let size = window.surface_size();
         let has_surface_config_changed = self.update_surface_config(frame_rate, size);
-        let was_surface_invalid = self.recreate_surface_if_invalidated(window, renderer)?;
-        if has_surface_config_changed || was_surface_invalid {
+        let is_surface_refreshed = self.recreate_surface_if_refreshed(window);
+        if has_surface_config_changed || is_surface_refreshed {
             self.current_texture = None;
             self.surface
                 .configure(&renderer.device, &self.surface_config);
             self.has_immediate_mode = Self::has_immediate_mode(&self.surface, renderer);
         }
         self.core.update(size, renderer);
-        Some(self)
+        self
     }
 
     pub(crate) fn begin_render_pass(
         &mut self,
         background_color: Color,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> RenderPass<'_> {
         let texture = self.current_texture.insert(
             self.surface
@@ -78,24 +79,12 @@ impl WindowTarget {
             .begin_render_pass(background_color, renderer, view)
     }
 
-    pub(crate) fn end_render_pass(&mut self, renderer: &Renderer) {
+    pub(crate) fn end_render_pass(&mut self, renderer: &RendererInner) {
         self.core.submit_command_queue(None, None, renderer);
         self.current_texture
             .take()
             .expect("internal error: surface texture not initialized")
             .present();
-    }
-
-    fn texture_format(surface: &Surface, renderer: &mut Renderer) -> TextureFormat {
-        *renderer
-            .window_texture_format
-            .insert(renderer.window_texture_format.unwrap_or_else(|| {
-                surface
-                    .get_supported_formats(&renderer.adapter)
-                    .into_iter()
-                    .next()
-                    .expect("internal error: surface is incompatible with adapter")
-            }))
     }
 
     fn update_surface_config(&mut self, frame_rate: FrameRate, size: NonZeroSize) -> bool {
@@ -111,25 +100,20 @@ impl WindowTarget {
         }
     }
 
-    fn recreate_surface_if_invalidated(
-        &mut self,
-        window: &mut Window,
-        renderer: &Renderer,
-    ) -> Option<bool> {
-        Some(if window.is_surface_invalid {
-            self.surface = window.create_surface(&renderer.instance)?;
-            window.is_surface_invalid = false;
+    fn recreate_surface_if_refreshed(&mut self, window: &mut Window) -> bool {
+        if let Some(surface) = window.refreshed_surface() {
+            self.surface = surface;
             true
         } else {
             false
-        })
+        }
     }
 
     fn create_surface_config(
         surface: &Surface,
         format: TextureFormat,
         size: NonZeroSize,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> SurfaceConfiguration {
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
@@ -141,7 +125,7 @@ impl WindowTarget {
         }
     }
 
-    fn has_immediate_mode(surface: &Surface, renderer: &Renderer) -> bool {
+    fn has_immediate_mode(surface: &Surface, renderer: &RendererInner) -> bool {
         surface
             .get_supported_present_modes(&renderer.adapter)
             .contains(&PresentMode::Immediate)

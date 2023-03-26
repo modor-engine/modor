@@ -1,4 +1,4 @@
-use crate::Renderer;
+use crate::RendererInner;
 use bytemuck::Pod;
 use std::fmt::Debug;
 use std::mem;
@@ -58,7 +58,7 @@ where
         self.buffer.slice(..)
     }
 
-    pub(crate) fn sync(&mut self, renderer: &Renderer) {
+    pub(crate) fn sync(&mut self, renderer: &RendererInner) {
         self.is_new = false;
         if !self.is_changed {
             return;

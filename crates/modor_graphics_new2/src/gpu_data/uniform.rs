@@ -1,5 +1,5 @@
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::Renderer;
+use crate::RendererInner;
 use bytemuck::Pod;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
@@ -51,7 +51,7 @@ where
         &self.bind_group
     }
 
-    pub(crate) fn sync(&mut self, renderer: &Renderer) {
+    pub(crate) fn sync(&mut self, renderer: &RendererInner) {
         self.buffer.sync(renderer);
     }
 

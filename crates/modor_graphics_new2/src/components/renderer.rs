@@ -1,42 +1,108 @@
 use futures::executor;
+use modor::Single;
+use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingType, BufferBindingType, Device, DeviceDescriptor, Instance, Limits, Queue,
-    RequestAdapterOptions, SamplerBindingType, ShaderStages, TextureFormat, TextureSampleType,
-    TextureViewDimension,
+    BindingType, BufferBindingType, Device, DeviceDescriptor, Instance, Limits, PowerPreference,
+    Queue, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
+    TextureSampleType, TextureViewDimension,
 };
 
-#[derive(SingletonComponent, Debug)]
+static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
+
+#[derive(SingletonComponent, Debug, Default)]
 pub struct Renderer {
-    pub(crate) instance: Instance,
+    pub(crate) version: Option<u8>,
+    inner: Option<Arc<RendererInner>>,
+}
+
+#[systems]
+impl Renderer {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    #[run]
+    fn init(&mut self) {
+        if self.version.is_none() {
+            self.version = Some(RENDERER_VERSION.fetch_add(1, Ordering::AcqRel));
+        }
+        if self.inner.is_none() {
+            let instance = RendererInner::instance();
+            self.inner = Some(Arc::new(RendererInner::new(&instance, None)));
+        }
+    }
+
+    pub(crate) fn update(&mut self, renderer: &Arc<RendererInner>) {
+        if self.inner.is_none() {
+            self.inner = Some(renderer.clone());
+        }
+    }
+
+    pub(crate) fn state(&self, last_version: &mut Option<u8>) -> RendererState<'_> {
+        if let Some(inner) = &self.inner {
+            let version = self
+                .version
+                .expect("internal error: version not assigned to renderer");
+            *last_version = Some(version);
+            if last_version == &Some(version) {
+                RendererState::Unchanged(inner)
+            } else {
+                RendererState::Changed(inner)
+            }
+        } else {
+            *last_version = None;
+            RendererState::None
+        }
+    }
+
+    pub(crate) fn option_state<'a>(
+        renderer: &'a Option<Single<'_, Self>>,
+        renderer_version: &mut Option<u8>,
+    ) -> RendererState<'a> {
+        renderer
+            .as_ref()
+            .map_or(RendererState::None, |r| r.state(renderer_version))
+    }
+}
+
+#[derive(Debug)]
+pub struct RendererInner {
     pub(crate) adapter: Adapter,
     pub(crate) device: Device,
     pub(crate) queue: Queue,
     pub(crate) camera_bind_group_layout: BindGroupLayout,
     pub(crate) material_bind_group_layout: BindGroupLayout,
     pub(crate) texture_bind_group_layout: BindGroupLayout,
-    pub(crate) window_texture_format: Option<TextureFormat>,
+    pub(crate) surface_texture_format: Option<TextureFormat>,
 }
 
-#[systems]
-impl Renderer {
-    pub(crate) fn new() -> Self {
-        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all);
-        let instance = Instance::new(backends);
-        let adapter_request = RequestAdapterOptions::default();
+impl RendererInner {
+    pub(crate) fn new(instance: &Instance, surface: Option<&Surface>) -> Self {
+        let adapter_request = RequestAdapterOptions {
+            power_preference: PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: surface,
+        };
         let adapter = executor::block_on(instance.request_adapter(&adapter_request))
             .expect("no supported graphic adapter found");
         let (device, queue) = Self::retrieve_device(&adapter);
         Self {
-            instance,
-            adapter,
             camera_bind_group_layout: Self::camera_bind_group_layout(&device),
             material_bind_group_layout: Self::material_bind_group_layout(&device),
             texture_bind_group_layout: Self::texture_bind_group_layout(&device),
+            surface_texture_format: surface
+                .and_then(|s| s.get_supported_formats(&adapter).into_iter().next()),
+            adapter,
             device,
             queue,
-            window_texture_format: None,
         }
+    }
+
+    pub(crate) fn instance() -> Instance {
+        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all);
+        Instance::new(backends)
     }
 
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
@@ -111,5 +177,27 @@ impl Renderer {
             ],
             label: Some("modor_bind_group_layout_texture"),
         })
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) enum RendererState<'a> {
+    #[default]
+    None,
+    Unchanged(&'a RendererInner),
+    Changed(&'a RendererInner),
+}
+
+impl<'a> RendererState<'a> {
+    pub(crate) fn renderer(self) -> Option<&'a RendererInner> {
+        if let Self::Changed(renderer) | Self::Unchanged(renderer) = self {
+            Some(renderer)
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn is_removed(self) -> bool {
+        matches!(self, Self::None | Self::Changed(_))
     }
 }

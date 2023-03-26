@@ -13,6 +13,7 @@ pub(crate) struct Mesh {
     key: ResourceKey,
     vertex_buffer: Option<DynamicBuffer<Vertex>>,
     index_buffer: Option<DynamicBuffer<u16>>,
+    renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -49,12 +50,18 @@ impl Mesh {
             indices,
             vertex_buffer: None,
             index_buffer: None,
+            renderer_version: None,
         }
     }
 
-    #[run]
+    #[run_after(component(Renderer))]
     fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
-        if let Some(renderer) = renderer {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.vertex_buffer = None;
+            self.index_buffer = None;
+        }
+        if let Some(renderer) = state.renderer() {
             if self.vertex_buffer.is_none() {
                 self.vertex_buffer = Some(DynamicBuffer::new(
                     self.vertices.clone(),
@@ -71,9 +78,6 @@ impl Mesh {
                     &renderer.device,
                 ));
             }
-        } else {
-            self.vertex_buffer = None;
-            self.index_buffer = None;
         }
     }
 

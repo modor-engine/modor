@@ -23,6 +23,7 @@ pub struct Material {
     uniform: Option<Uniform<MaterialData>>,
     is_transparent: bool,
     old_is_transparent: bool,
+    renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -68,12 +69,17 @@ impl Material {
             uniform: None,
             is_transparent: false,
             old_is_transparent: false,
+            renderer_version: None,
         }
     }
 
-    #[run]
+    #[run_after(component(Renderer))]
     fn update_uniform(&mut self, renderer: Option<Single<'_, Renderer>>) {
-        if let Some(renderer) = renderer {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.uniform = None;
+        }
+        if let Some(renderer) = state.renderer() {
             let data = MaterialData {
                 color: self.color.into(),
                 texture_part_position: [self.texture_position.x, self.texture_position.y],
@@ -93,8 +99,6 @@ impl Material {
                     &renderer.device,
                 ));
             }
-        } else {
-            self.uniform = None;
         }
     }
 

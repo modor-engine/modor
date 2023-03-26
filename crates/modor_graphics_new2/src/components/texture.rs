@@ -1,10 +1,9 @@
-use crate::components::render_target::WindowTargetUpdate;
 use crate::components::renderer::Renderer;
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{
-    IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry, ResourceState,
-    Size,
+    IntoResourceKey, RendererInner, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
+    ResourceState, Size,
 };
 use image::{DynamicImage, ImageBuffer, ImageError, Rgba, RgbaImage};
 use modor::Single;
@@ -26,6 +25,7 @@ pub struct Texture {
     source: TextureSource,
     is_smooth: bool,
     state: TextureState,
+    renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -55,19 +55,26 @@ impl Texture {
         self
     }
 
-    // run after RenderTarget because WindowTarget::texture_format must be run first
-    #[run_after(WindowTargetUpdate)]
+    #[run_after(component(Renderer))]
     fn load(&mut self, renderer: Option<Single<'_, Renderer>>) {
-        let state = mem::take(&mut self.state);
-        self.state = renderer.map_or(TextureState::NotLoaded, |r| match state {
-            TextureState::NotLoaded => self.start_loading(&r),
-            TextureState::AssetLoading(job) => self.check_asset_job(job, &r),
-            TextureState::DataLoading(job) => self.check_data_job(job, &r),
-            TextureState::Loaded { format, .. } if format != Self::main_texture_format(&r) => {
-                self.start_loading(&r)
-            }
-            state @ (TextureState::Loaded { .. } | TextureState::Error(_)) => state,
-        });
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.state = TextureState::NotLoaded;
+        }
+        if let Some(renderer) = state.renderer() {
+            let state = mem::take(&mut self.state);
+            self.state = match state {
+                TextureState::NotLoaded => self.start_loading(renderer),
+                TextureState::AssetLoading(job) => self.check_asset_job(job, renderer),
+                TextureState::DataLoading(job) => self.check_data_job(job, renderer),
+                TextureState::Loaded { format, .. }
+                    if format != Self::main_texture_format(renderer) =>
+                {
+                    self.start_loading(renderer)
+                }
+                state @ (TextureState::Loaded { .. } | TextureState::Error(_)) => state,
+            };
+        }
     }
 
     pub(crate) fn is_transparent(&self) -> bool {
@@ -124,10 +131,11 @@ impl Texture {
             source,
             is_smooth: true,
             state: TextureState::NotLoaded,
+            renderer_version: None,
         }
     }
 
-    fn start_loading(&mut self, renderer: &Renderer) -> TextureState {
+    fn start_loading(&mut self, renderer: &RendererInner) -> TextureState {
         match &self.source {
             TextureSource::Unit => {
                 self.load_texture(Self::load_image_from_size(Size::new(1, 1)), renderer)
@@ -158,7 +166,7 @@ impl Texture {
     fn check_asset_job(
         &mut self,
         mut job: AssetLoadingJob<Result<RgbaImage, ResourceLoadingError>>,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> TextureState {
         match job.try_poll() {
             Ok(Some(Ok(image))) => self.load_texture(image, renderer),
@@ -171,7 +179,7 @@ impl Texture {
     fn check_data_job(
         &mut self,
         mut job: Job<Result<RgbaImage, ResourceLoadingError>>,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> TextureState {
         match job.try_poll() {
             Ok(Some(Ok(image))) => self.load_texture(image, renderer),
@@ -184,7 +192,7 @@ impl Texture {
         }
     }
 
-    fn load_texture(&mut self, image: RgbaImage, renderer: &Renderer) -> TextureState {
+    fn load_texture(&mut self, image: RgbaImage, renderer: &RendererInner) -> TextureState {
         let format = Self::main_texture_format(renderer);
         let texture = self.create_texture(&image, format, renderer);
         Self::write_texture(&image, &texture, renderer);
@@ -203,7 +211,7 @@ impl Texture {
         &self,
         image: &RgbaImage,
         format: TextureFormat,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> wgpu::Texture {
         renderer.device.create_texture(&TextureDescriptor {
             label: Some(&format!("modor_texture_{:?}", self.key)),
@@ -223,7 +231,7 @@ impl Texture {
         })
     }
 
-    fn create_sampler(&self, renderer: &Renderer) -> Sampler {
+    fn create_sampler(&self, renderer: &RendererInner) -> Sampler {
         renderer.device.create_sampler(&SamplerDescriptor {
             label: Some(&format!("modor_texture_sampler_{:?}", self.key)),
             address_mode_u: AddressMode::Repeat,
@@ -248,7 +256,7 @@ impl Texture {
         &self,
         view: &TextureView,
         sampler: &Sampler,
-        renderer: &Renderer,
+        renderer: &RendererInner,
     ) -> BindGroup {
         renderer.device.create_bind_group(&BindGroupDescriptor {
             layout: &renderer.texture_bind_group_layout,
@@ -276,13 +284,13 @@ impl Texture {
             .map(DynamicImage::into_rgba8)
     }
 
-    fn main_texture_format(renderer: &Renderer) -> TextureFormat {
+    fn main_texture_format(renderer: &RendererInner) -> TextureFormat {
         renderer
-            .window_texture_format
+            .surface_texture_format
             .unwrap_or(Shader::DEFAULT_TEXTURE_FORMAT)
     }
 
-    fn write_texture(image: &RgbaImage, texture: &wgpu::Texture, renderer: &Renderer) {
+    fn write_texture(image: &RgbaImage, texture: &wgpu::Texture, renderer: &RendererInner) {
         renderer.queue.write_texture(
             ImageCopyTexture {
                 aspect: TextureAspect::All,

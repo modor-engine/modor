@@ -45,6 +45,5 @@ wgpu = { workspace = true, features = ["webgl"] }
 approx.workspace = true
 rand.workspace = true # TODO: remove
 
-
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test.workspace = true

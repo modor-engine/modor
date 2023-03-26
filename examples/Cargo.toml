@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 instant.workspace = true
+log.workspace = true
 rand.workspace = true
 modor.workspace = true
 modor_math.workspace = true
@@ -28,9 +29,9 @@ build_targets = ["armv7-linux-androideabi"]
 target_sdk_version = 31
 
 [[example]]
-name = "android_multi_window"
+name = "android_window_dyn"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "android_window_dyn"
+name = "android_rendering_2d_new"
 crate-type = ["cdylib"]
