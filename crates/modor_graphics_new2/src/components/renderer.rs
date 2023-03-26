@@ -14,7 +14,7 @@ static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
 #[derive(SingletonComponent, Debug, Default)]
 pub struct Renderer {
     pub(crate) version: Option<u8>,
-    inner: Option<Arc<RendererInner>>,
+    context: Option<Arc<GpuContext>>,
 }
 
 #[systems]
@@ -28,28 +28,28 @@ impl Renderer {
         if self.version.is_none() {
             self.version = Some(RENDERER_VERSION.fetch_add(1, Ordering::AcqRel));
         }
-        if self.inner.is_none() {
-            let instance = RendererInner::instance();
-            self.inner = Some(Arc::new(RendererInner::new(&instance, None)));
+        if self.context.is_none() {
+            let instance = GpuContext::instance();
+            self.context = Some(Arc::new(GpuContext::new(&instance, None)));
         }
     }
 
-    pub(crate) fn update(&mut self, renderer: &Arc<RendererInner>) {
-        if self.inner.is_none() {
-            self.inner = Some(renderer.clone());
+    pub(crate) fn update(&mut self, renderer: &Arc<GpuContext>) {
+        if self.context.is_none() {
+            self.context = Some(renderer.clone());
         }
     }
 
     pub(crate) fn state(&self, last_version: &mut Option<u8>) -> RendererState<'_> {
-        if let Some(inner) = &self.inner {
+        if let Some(context) = &self.context {
             let version = self
                 .version
                 .expect("internal error: version not assigned to renderer");
             *last_version = Some(version);
             if last_version == &Some(version) {
-                RendererState::Unchanged(inner)
+                RendererState::Unchanged(context)
             } else {
-                RendererState::Changed(inner)
+                RendererState::Changed(context)
             }
         } else {
             *last_version = None;
@@ -68,7 +68,7 @@ impl Renderer {
 }
 
 #[derive(Debug)]
-pub struct RendererInner {
+pub struct GpuContext {
     pub(crate) adapter: Adapter,
     pub(crate) device: Device,
     pub(crate) queue: Queue,
@@ -78,7 +78,7 @@ pub struct RendererInner {
     pub(crate) surface_texture_format: Option<TextureFormat>,
 }
 
-impl RendererInner {
+impl GpuContext {
     pub(crate) fn new(instance: &Instance, surface: Option<&Surface>) -> Self {
         let adapter_request = RequestAdapterOptions {
             power_preference: PowerPreference::default(),
@@ -184,12 +184,12 @@ impl RendererInner {
 pub(crate) enum RendererState<'a> {
     #[default]
     None,
-    Unchanged(&'a RendererInner),
-    Changed(&'a RendererInner),
+    Unchanged(&'a GpuContext),
+    Changed(&'a GpuContext),
 }
 
 impl<'a> RendererState<'a> {
-    pub(crate) fn renderer(self) -> Option<&'a RendererInner> {
+    pub(crate) fn context(self) -> Option<&'a GpuContext> {
         if let Self::Changed(renderer) | Self::Unchanged(renderer) = self {
             Some(renderer)
         } else {

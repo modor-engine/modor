@@ -61,13 +61,13 @@ impl Mesh {
             self.vertex_buffer = None;
             self.index_buffer = None;
         }
-        if let Some(renderer) = state.renderer() {
+        if let Some(context) = state.context() {
             if self.vertex_buffer.is_none() {
                 self.vertex_buffer = Some(DynamicBuffer::new(
                     self.vertices.clone(),
                     DynamicBufferUsage::Vertex,
                     format!("modor_vertex_buffer_{:?}", self.key),
-                    &renderer.device,
+                    &context.device,
                 ));
             }
             if self.index_buffer.is_none() {
@@ -75,7 +75,7 @@ impl Mesh {
                     self.indices.clone(),
                     DynamicBufferUsage::Index,
                     format!("modor_index_buffer_{:?}", self.key),
-                    &renderer.device,
+                    &context.device,
                 ));
             }
         }

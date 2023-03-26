@@ -1,7 +1,7 @@
 use crate::components::render_target::WindowTargetUpdate;
 use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
-use crate::{RenderTarget, RendererInner};
+use crate::{RenderTarget, GpuContext};
 use modor::{ComponentSystems, Single};
 use std::mem;
 use std::num::NonZeroU32;
@@ -37,10 +37,10 @@ impl TextureTargetBuffer {
             self.data = vec![];
         }
         let target = target.and_then(RenderTarget::texture);
-        if let (Some(renderer), Some(target)) = (state.renderer(), target) {
+        if let (Some(context), Some(target)) = (state.context(), target) {
             let size = target.core().size();
             if self.size != Some(size) {
-                self.buffer = Some(Self::create_buffer(renderer, size));
+                self.buffer = Some(Self::create_buffer(context, size));
                 self.size = Some(size);
             }
         }
@@ -48,13 +48,13 @@ impl TextureTargetBuffer {
 
     #[run_after_previous_and(component(RenderTarget), component(Renderer))]
     fn retrieve_buffer(&mut self, renderer: Single<'_, Renderer>) {
-        let Some(renderer) = renderer.state(&mut self.renderer_version).renderer() else { return; };
+        let Some(context) = renderer.state(&mut self.renderer_version).context() else { return; };
         if let (Some(buffer), Some(size)) = (&self.buffer, self.size) {
             let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(size.width.into());
             let padded_row_bytes = Self::calculate_padded_row_bytes(size.width.into());
             let slice = buffer.slice(..);
             slice.map_async(MapMode::Read, |_| ());
-            renderer.device.poll(wgpu::Maintain::Wait);
+            context.device.poll(wgpu::Maintain::Wait);
             self.data = slice
                 .get_mapped_range()
                 .chunks(padded_row_bytes as usize)
@@ -94,9 +94,9 @@ impl TextureTargetBuffer {
         }
     }
 
-    fn create_buffer(renderer: &RendererInner, size: NonZeroSize) -> Buffer {
+    fn create_buffer(context: &GpuContext, size: NonZeroSize) -> Buffer {
         let padded_bytes_per_row = Self::calculate_padded_row_bytes(size.width.into());
-        renderer.device.create_buffer(&wgpu::BufferDescriptor {
+        context.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("modor_target_output_buffer"),
             size: u64::from(padded_bytes_per_row * u32::from(size.height)),
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,

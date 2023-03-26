@@ -4,8 +4,8 @@ use crate::components::render_target::{
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
 use crate::{
-    IntoResourceKey, RenderTarget, Renderer, RendererInner, Resource, ResourceKey,
-    ResourceRegistry, ResourceState, Window,
+    GpuContext, IntoResourceKey, RenderTarget, Renderer, Resource, ResourceKey, ResourceRegistry,
+    ResourceState, Window,
 };
 use fxhash::FxHashMap;
 use modor::{Query, Single, SingleMut};
@@ -64,7 +64,7 @@ impl Camera2D {
         if state.is_removed() {
             self.target_uniforms.clear();
         }
-        if let Some(renderer) = state.renderer() {
+        if let Some(context) = state.context() {
             for target_key in &self.target_keys {
                 let target = target_registry.get(target_key, &targets);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {
@@ -76,12 +76,12 @@ impl Camera2D {
                     self.target_uniforms
                         .entry(target_part_key)
                         .and_modify(|u| u.transform = transform)
-                        .or_insert_with(|| Self::create_uniform(&renderer, transform));
+                        .or_insert_with(|| Self::create_uniform(context, transform));
                 }
             }
             self.target_uniforms.retain(|_, u| u.is_changed());
             for uniform in self.target_uniforms.values_mut() {
-                uniform.sync(renderer);
+                uniform.sync(context);
             }
         }
     }
@@ -108,13 +108,13 @@ impl Camera2D {
             .expect("internal error: camera uniform not initialized")
     }
 
-    fn create_uniform(renderer: &RendererInner, transform: [[f32; 4]; 4]) -> Uniform<CameraData> {
+    fn create_uniform(context: &GpuContext, transform: [[f32; 4]; 4]) -> Uniform<CameraData> {
         Uniform::new(
             CameraData { transform },
             Self::CAMERA_BINDING,
-            &renderer.camera_bind_group_layout,
+            &context.camera_bind_group_layout,
             "camera_2d",
-            &renderer.device,
+            &context.device,
         )
     }
 

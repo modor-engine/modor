@@ -79,7 +79,7 @@ impl Material {
         if state.is_removed() {
             self.uniform = None;
         }
-        if let Some(renderer) = state.renderer() {
+        if let Some(context) = state.context() {
             let data = MaterialData {
                 color: self.color.into(),
                 texture_part_position: [self.texture_position.x, self.texture_position.y],
@@ -88,15 +88,15 @@ impl Material {
             if let Some(uniform) = &mut self.uniform {
                 if data != **uniform {
                     **uniform = data;
-                    uniform.sync(&renderer);
+                    uniform.sync(context);
                 }
             } else {
                 self.uniform = Some(Uniform::new(
                     data,
                     Self::BINDING,
-                    &renderer.material_bind_group_layout,
+                    &context.material_bind_group_layout,
                     &format!("material_{:?}", &self.key),
-                    &renderer.device,
+                    &context.device,
                 ));
             }
         }

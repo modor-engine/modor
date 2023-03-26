@@ -19,17 +19,15 @@ impl FrameRate {
         }
     }
 
-    #[allow(clippy::cast_precision_loss)]
-    pub(crate) fn sleep(self, start: Instant, window_frame_rate_mhz: Option<u32>) {
+    pub(crate) fn sleep(self, start: Instant, window_frame_time: Option<Duration>) {
         if let Self::Fps(frames_per_second) = self {
             if frames_per_second > 0 {
-                let frame_time = Duration::from_secs_f32(1. / f32::from(frames_per_second));
+                let frame_time = Duration::from_secs_f64(1. / f64::from(frames_per_second));
                 Self::sleep_internal(start, frame_time);
             }
-        } else if let (Some(min_frame_rate), Self::VSync) = (window_frame_rate_mhz, self) {
-            // Sleep to reduce input lag.
-            let update_time = Duration::from_secs_f32(1000. / min_frame_rate as f32);
-            Self::sleep_internal(start, update_time);
+        } else if let (Some(window_frame_time), Self::VSync) = (window_frame_time, self) {
+            // sleep to reduce input lag.
+            Self::sleep_internal(start, window_frame_time);
         }
     }
 
@@ -58,7 +56,7 @@ mod utils_tests {
         modor_internal::retry!(10, assert_duration(FrameRate::VSync, 100, 100, 150, None));
         modor_internal::retry!(
             10,
-            assert_duration(FrameRate::VSync, 100, 200, 300, Some(5000))
+            assert_duration(FrameRate::VSync, 100, 200, 300, Some(200))
         );
         modor_internal::retry!(10, assert_duration(FrameRate::Fps(0), 100, 100, 150, None));
         modor_internal::retry!(
@@ -73,11 +71,11 @@ mod utils_tests {
         external_sleep_millis: u64,
         min_millis: u64,
         max_millis: u64,
-        window_frame_rate_mhz: Option<u32>,
+        window_frame_millis: Option<u64>,
     ) {
         let update_start = Instant::now();
         spin_sleep::sleep(Duration::from_millis(external_sleep_millis));
-        frame_rate.sleep(update_start, window_frame_rate_mhz);
+        frame_rate.sleep(update_start, window_frame_millis.map(Duration::from_millis));
         let update_end = Instant::now();
         assert!(update_end.duration_since(update_start) >= Duration::from_millis(min_millis));
         assert!(update_end.duration_since(update_start) <= Duration::from_millis(max_millis));

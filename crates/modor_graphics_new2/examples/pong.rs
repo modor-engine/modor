@@ -21,6 +21,7 @@ fn main() {
         .with_entity(PhysicsModule::build())
         .with_entity(InputModule::build())
         .with_entity(modor_graphics_new2::renderer())
+        .with_entity(FrameRate::VSync)
         .with_entity(window())
         .with_entity(Material::new(MaterialKey::White).with_color(Color::WHITE))
         .with_entity(Material::ellipse(MaterialKey::WhiteEllipse).with_color(Color::WHITE))

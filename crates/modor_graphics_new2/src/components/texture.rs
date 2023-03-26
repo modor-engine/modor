@@ -2,7 +2,7 @@ use crate::components::renderer::Renderer;
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{
-    IntoResourceKey, RendererInner, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
+    GpuContext, IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
     ResourceState, Size,
 };
 use image::{DynamicImage, ImageBuffer, ImageError, Rgba, RgbaImage};
@@ -61,16 +61,16 @@ impl Texture {
         if state.is_removed() {
             self.state = TextureState::NotLoaded;
         }
-        if let Some(renderer) = state.renderer() {
+        if let Some(context) = state.context() {
             let state = mem::take(&mut self.state);
             self.state = match state {
-                TextureState::NotLoaded => self.start_loading(renderer),
-                TextureState::AssetLoading(job) => self.check_asset_job(job, renderer),
-                TextureState::DataLoading(job) => self.check_data_job(job, renderer),
+                TextureState::NotLoaded => self.start_loading(context),
+                TextureState::AssetLoading(job) => self.check_asset_job(job, context),
+                TextureState::DataLoading(job) => self.check_data_job(job, context),
                 TextureState::Loaded { format, .. }
-                    if format != Self::main_texture_format(renderer) =>
+                    if format != Self::main_texture_format(context) =>
                 {
-                    self.start_loading(renderer)
+                    self.start_loading(context)
                 }
                 state @ (TextureState::Loaded { .. } | TextureState::Error(_)) => state,
             };
@@ -135,10 +135,10 @@ impl Texture {
         }
     }
 
-    fn start_loading(&mut self, renderer: &RendererInner) -> TextureState {
+    fn start_loading(&mut self, context: &GpuContext) -> TextureState {
         match &self.source {
             TextureSource::Unit => {
-                self.load_texture(Self::load_image_from_size(Size::new(1, 1)), renderer)
+                self.load_texture(Self::load_image_from_size(Size::new(1, 1)), context)
             }
             TextureSource::Size(size) => {
                 let size = *size;
@@ -166,10 +166,10 @@ impl Texture {
     fn check_asset_job(
         &mut self,
         mut job: AssetLoadingJob<Result<RgbaImage, ResourceLoadingError>>,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> TextureState {
         match job.try_poll() {
-            Ok(Some(Ok(image))) => self.load_texture(image, renderer),
+            Ok(Some(Ok(image))) => self.load_texture(image, context),
             Ok(Some(Err(error))) => TextureState::Error(error),
             Ok(None) => TextureState::AssetLoading(job),
             Err(error) => TextureState::Error(ResourceLoadingError::AssetLoadingError(error)),
@@ -179,10 +179,10 @@ impl Texture {
     fn check_data_job(
         &mut self,
         mut job: Job<Result<RgbaImage, ResourceLoadingError>>,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> TextureState {
         match job.try_poll() {
-            Ok(Some(Ok(image))) => self.load_texture(image, renderer),
+            Ok(Some(Ok(image))) => self.load_texture(image, context),
             Ok(Some(Err(error))) => TextureState::Error(error),
             Ok(None) => TextureState::DataLoading(job),
             Err(_) => TextureState::Error(ResourceLoadingError::LoadingError(format!(
@@ -192,16 +192,16 @@ impl Texture {
         }
     }
 
-    fn load_texture(&mut self, image: RgbaImage, renderer: &RendererInner) -> TextureState {
-        let format = Self::main_texture_format(renderer);
-        let texture = self.create_texture(&image, format, renderer);
-        Self::write_texture(&image, &texture, renderer);
+    fn load_texture(&mut self, image: RgbaImage, context: &GpuContext) -> TextureState {
+        let format = Self::main_texture_format(context);
+        let texture = self.create_texture(&image, format, context);
+        Self::write_texture(&image, &texture, context);
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let sampler = self.create_sampler(renderer);
+        let sampler = self.create_sampler(context);
         TextureState::Loaded {
             texture,
             size: Size::new(image.width(), image.height()).into(),
-            bind_group: self.create_bind_group(&view, &sampler, renderer),
+            bind_group: self.create_bind_group(&view, &sampler, context),
             format,
             is_transparent: image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255),
         }
@@ -211,9 +211,9 @@ impl Texture {
         &self,
         image: &RgbaImage,
         format: TextureFormat,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> wgpu::Texture {
-        renderer.device.create_texture(&TextureDescriptor {
+        context.device.create_texture(&TextureDescriptor {
             label: Some(&format!("modor_texture_{:?}", self.key)),
             size: Extent3d {
                 width: image.width(),
@@ -231,8 +231,8 @@ impl Texture {
         })
     }
 
-    fn create_sampler(&self, renderer: &RendererInner) -> Sampler {
-        renderer.device.create_sampler(&SamplerDescriptor {
+    fn create_sampler(&self, context: &GpuContext) -> Sampler {
+        context.device.create_sampler(&SamplerDescriptor {
             label: Some(&format!("modor_texture_sampler_{:?}", self.key)),
             address_mode_u: AddressMode::Repeat,
             address_mode_v: AddressMode::Repeat,
@@ -256,10 +256,10 @@ impl Texture {
         &self,
         view: &TextureView,
         sampler: &Sampler,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> BindGroup {
-        renderer.device.create_bind_group(&BindGroupDescriptor {
-            layout: &renderer.texture_bind_group_layout,
+        context.device.create_bind_group(&BindGroupDescriptor {
+            layout: &context.texture_bind_group_layout,
             entries: &[
                 BindGroupEntry {
                     binding: 0,
@@ -284,14 +284,14 @@ impl Texture {
             .map(DynamicImage::into_rgba8)
     }
 
-    fn main_texture_format(renderer: &RendererInner) -> TextureFormat {
-        renderer
+    fn main_texture_format(context: &GpuContext) -> TextureFormat {
+        context
             .surface_texture_format
             .unwrap_or(Shader::DEFAULT_TEXTURE_FORMAT)
     }
 
-    fn write_texture(image: &RgbaImage, texture: &wgpu::Texture, renderer: &RendererInner) {
-        renderer.queue.write_texture(
+    fn write_texture(image: &RgbaImage, texture: &wgpu::Texture, context: &GpuContext) {
+        context.queue.write_texture(
             ImageCopyTexture {
                 aspect: TextureAspect::All,
                 texture,

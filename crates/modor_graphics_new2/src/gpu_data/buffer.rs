@@ -1,4 +1,4 @@
-use crate::RendererInner;
+use crate::GpuContext;
 use bytemuck::Pod;
 use std::fmt::Debug;
 use std::mem;
@@ -58,7 +58,7 @@ where
         self.buffer.slice(..)
     }
 
-    pub(crate) fn sync(&mut self, renderer: &RendererInner) {
+    pub(crate) fn sync(&mut self, context: &GpuContext) {
         self.is_new = false;
         if !self.is_changed {
             return;
@@ -66,14 +66,14 @@ where
         self.is_changed = false;
         if self.buffer_capacity != self.data.capacity() {
             self.buffer_capacity = self.data.capacity();
-            self.buffer = renderer.device.create_buffer(&BufferDescriptor {
+            self.buffer = context.device.create_buffer(&BufferDescriptor {
                 label: Some(&self.label),
                 size: Self::raw_capacity(self.data.capacity()),
                 usage: self.usage.into(),
                 mapped_at_creation: false,
             });
         }
-        renderer
+        context
             .queue
             .write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }

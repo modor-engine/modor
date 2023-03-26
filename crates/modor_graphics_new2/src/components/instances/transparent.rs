@@ -21,16 +21,16 @@ pub(crate) struct TransparentInstanceRegistry {
 impl TransparentInstanceRegistry {
     #[run_after(component(Renderer))]
     fn init_buffer(&mut self, renderer: Single<'_, Renderer>) {
-        let renderer = renderer
+        let context = renderer
             .state(&mut None)
-            .renderer()
-            .expect("internal error: missing renderer");
+            .context()
+            .expect("internal error: not initialized GPU context");
         if self.buffer.is_none() {
             self.buffer = Some(DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
                 "transparent_instances",
-                &renderer.device,
+                &context.device,
             ));
         }
     }
@@ -64,10 +64,10 @@ impl TransparentInstanceRegistry {
         (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
         models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
     ) {
-        let renderer = renderer
+        let context = renderer
             .state(&mut None)
-            .renderer()
-            .expect("internal error: missing renderer");
+            .context()
+            .expect("internal error: not initialized GPU context");
         let buffer = self
             .buffer
             .as_mut()
@@ -107,7 +107,7 @@ impl TransparentInstanceRegistry {
             instance.position = position;
         }
         buffer.sort_unstable_by(Self::compare_instances);
-        buffer.sync(&renderer);
+        buffer.sync(context);
     }
 
     pub(crate) fn iter(&self) -> GroupIterator<'_> {

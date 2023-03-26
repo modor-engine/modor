@@ -1,6 +1,6 @@
 use crate::components::render_target::core::TargetCore;
 use crate::data::size::NonZeroSize;
-use crate::{Color, FrameRate, RendererInner, Window};
+use crate::{Color, FrameRate, GpuContext, Window};
 use std::sync::Arc;
 use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
@@ -19,16 +19,16 @@ pub(crate) struct WindowTarget {
 }
 
 impl WindowTarget {
-    pub(crate) fn new(window: &Window, renderer: &RendererInner) -> Option<Self> {
+    pub(crate) fn new(window: &Window, context: &GpuContext) -> Option<Self> {
         let surface = window.surface()?;
-        let format = renderer.surface_texture_format?;
+        let format = context.surface_texture_format?;
         let size = window.surface_size();
-        let surface_config = Self::create_surface_config(&surface, format, size, renderer);
-        surface.configure(&renderer.device, &surface_config);
+        let surface_config = Self::create_surface_config(&surface, format, size, context);
+        surface.configure(&context.device, &surface_config);
         Some(Self {
-            core: TargetCore::new(size, renderer),
+            core: TargetCore::new(size, context),
             handle_id: window.handle_id(),
-            has_immediate_mode: Self::has_immediate_mode(&surface, renderer),
+            has_immediate_mode: Self::has_immediate_mode(&surface, context),
             surface,
             surface_config,
             current_texture: None,
@@ -46,7 +46,7 @@ impl WindowTarget {
     pub(crate) fn updated(
         mut self,
         window: &mut Window,
-        renderer: &RendererInner,
+        context: &GpuContext,
         frame_rate: FrameRate,
     ) -> Self {
         let size = window.surface_size();
@@ -55,17 +55,17 @@ impl WindowTarget {
         if has_surface_config_changed || is_surface_refreshed {
             self.current_texture = None;
             self.surface
-                .configure(&renderer.device, &self.surface_config);
-            self.has_immediate_mode = Self::has_immediate_mode(&self.surface, renderer);
+                .configure(&context.device, &self.surface_config);
+            self.has_immediate_mode = Self::has_immediate_mode(&self.surface, context);
         }
-        self.core.update(size, renderer);
+        self.core.update(size, context);
         self
     }
 
     pub(crate) fn begin_render_pass(
         &mut self,
         background_color: Color,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> RenderPass<'_> {
         let texture = self.current_texture.insert(
             self.surface
@@ -75,12 +75,11 @@ impl WindowTarget {
         let view = texture
             .texture
             .create_view(&TextureViewDescriptor::default());
-        self.core
-            .begin_render_pass(background_color, renderer, view)
+        self.core.begin_render_pass(background_color, context, view)
     }
 
-    pub(crate) fn end_render_pass(&mut self, renderer: &RendererInner) {
-        self.core.submit_command_queue(None, None, renderer);
+    pub(crate) fn end_render_pass(&mut self, context: &GpuContext) {
+        self.core.submit_command_queue(None, None, context);
         self.current_texture
             .take()
             .expect("internal error: surface texture not initialized")
@@ -113,7 +112,7 @@ impl WindowTarget {
         surface: &Surface,
         format: TextureFormat,
         size: NonZeroSize,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> SurfaceConfiguration {
         SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
@@ -121,13 +120,13 @@ impl WindowTarget {
             width: size.width.into(),
             height: size.height.into(),
             present_mode: PresentMode::Fifo,
-            alpha_mode: surface.get_supported_alpha_modes(&renderer.adapter)[0],
+            alpha_mode: surface.get_supported_alpha_modes(&context.adapter)[0],
         }
     }
 
-    fn has_immediate_mode(surface: &Surface, renderer: &RendererInner) -> bool {
+    fn has_immediate_mode(surface: &Surface, context: &GpuContext) -> bool {
         surface
-            .get_supported_present_modes(&renderer.adapter)
+            .get_supported_present_modes(&context.adapter)
             .contains(&PresentMode::Immediate)
     }
 }

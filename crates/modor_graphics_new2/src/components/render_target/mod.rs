@@ -69,20 +69,20 @@ impl RenderTarget {
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
-        if let (Some(renderer), Some(window)) = (state.renderer(), window) {
+        if let (Some(context), Some(window)) = (state.context(), window) {
             let frame_rate = frame_rate.as_deref().copied().unwrap_or_default();
             self.window = self
                 .window
                 .take()
-                .or_else(|| WindowTarget::new(window, renderer))
+                .or_else(|| WindowTarget::new(window, context))
                 .and_then(|t| {
                     if window.handle_id() == t.handle_id() {
                         Some(t)
                     } else {
-                        WindowTarget::new(window, renderer)
+                        WindowTarget::new(window, context)
                     }
                 })
-                .map(|t| t.updated(window, renderer, frame_rate));
+                .map(|t| t.updated(window, context, frame_rate));
         }
         self.window_state = if self.window.is_some() {
             TargetState::Loaded
@@ -101,12 +101,12 @@ impl RenderTarget {
         if state.is_removed() || texture.is_none() {
             self.texture = None;
         }
-        if let (Some(renderer), Some(texture)) = (state.renderer(), texture) {
+        if let (Some(context), Some(texture)) = (state.context(), texture) {
             self.texture = (texture.state() == ResourceState::Loaded).then(|| {
                 self.texture
                     .take()
-                    .unwrap_or_else(|| TextureTarget::new(texture, renderer))
-                    .updated(texture, renderer)
+                    .unwrap_or_else(|| TextureTarget::new(texture, context))
+                    .updated(texture, context)
             });
         }
         self.texture_state = if self.texture.is_some() {
@@ -156,9 +156,9 @@ impl RenderTarget {
         (mut mesh_registry, meshes): (SingleMut<'_, MeshRegistry>, Query<'_, &Mesh>),
         (mut texture_registry, textures): (SingleMut<'_, TextureRegistry>, Query<'_, &Texture>),
     ) {
-        let Some(renderer) = renderer.state(&mut None).renderer() else { return; };
+        let Some(context) = renderer.state(&mut None).context() else { return; };
         if let Some(target) = &mut self.window {
-            let mut pass = target.begin_render_pass(self.background_color, renderer);
+            let mut pass = target.begin_render_pass(self.background_color, context);
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
@@ -196,10 +196,10 @@ impl RenderTarget {
                 );
             }
             drop(pass);
-            target.end_render_pass(renderer);
+            target.end_render_pass(context);
         }
         if let (Some(target), Some(texture)) = (&mut self.texture, texture) {
-            let mut pass = target.begin_render_pass(texture, self.background_color, renderer);
+            let mut pass = target.begin_render_pass(texture, self.background_color, context);
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
@@ -237,7 +237,7 @@ impl RenderTarget {
                 );
             }
             drop(pass);
-            target.end_render_pass(texture_buffer, texture, renderer);
+            target.end_render_pass(texture_buffer, texture, context);
         }
     }
 

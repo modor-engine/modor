@@ -1,5 +1,5 @@
 use crate::data::size::NonZeroSize;
-use crate::{Color, RendererInner, Texture, TextureTargetBuffer};
+use crate::{Color, GpuContext, Texture, TextureTargetBuffer};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, LoadOp, Operations, RenderPass,
     RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -16,10 +16,10 @@ pub(crate) struct TargetCore {
 }
 
 impl TargetCore {
-    pub(crate) fn new(size: NonZeroSize, renderer: &RendererInner) -> Self {
+    pub(crate) fn new(size: NonZeroSize, context: &GpuContext) -> Self {
         Self {
             size,
-            depth_buffer_view: Self::create_depth_buffer_view(size, renderer),
+            depth_buffer_view: Self::create_depth_buffer_view(size, context),
             encoder: None,
             texture: None,
         }
@@ -29,24 +29,24 @@ impl TargetCore {
         self.size
     }
 
-    pub(crate) fn update(&mut self, size: NonZeroSize, renderer: &RendererInner) {
+    pub(crate) fn update(&mut self, size: NonZeroSize, context: &GpuContext) {
         if self.size != size {
             self.size = size;
-            self.depth_buffer_view = Self::create_depth_buffer_view(self.size, renderer);
+            self.depth_buffer_view = Self::create_depth_buffer_view(self.size, context);
         }
     }
 
     pub(crate) fn begin_render_pass(
         &mut self,
         background_color: Color,
-        renderer: &RendererInner,
+        context: &GpuContext,
         view: TextureView,
     ) -> RenderPass<'_> {
         let descriptor = CommandEncoderDescriptor {
             label: Some("modor_render_encoder"),
         };
         self.encoder
-            .insert(renderer.device.create_command_encoder(&descriptor))
+            .insert(context.device.create_command_encoder(&descriptor))
             .begin_render_pass(&RenderPassDescriptor {
                 label: Some("modor_render_pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
@@ -72,7 +72,7 @@ impl TargetCore {
         &mut self,
         texture_buffer: Option<&TextureTargetBuffer>,
         texture: Option<&Texture>,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) {
         let mut encoder = self
             .encoder
@@ -81,11 +81,11 @@ impl TargetCore {
         if let (Some(texture_buffer), Some(texture)) = (texture_buffer, texture) {
             texture_buffer.copy_texture_to_buffer(texture.inner(), &mut encoder);
         }
-        renderer.queue.submit(Some(encoder.finish()));
+        context.queue.submit(Some(encoder.finish()));
     }
 
-    fn create_depth_buffer_view(size: NonZeroSize, renderer: &RendererInner) -> TextureView {
-        let texture = renderer.device.create_texture(&TextureDescriptor {
+    fn create_depth_buffer_view(size: NonZeroSize, context: &GpuContext) -> TextureView {
+        let texture = context.device.create_texture(&TextureDescriptor {
             label: Some("modor_depth_texture"),
             size: Extent3d {
                 width: size.width.into(),

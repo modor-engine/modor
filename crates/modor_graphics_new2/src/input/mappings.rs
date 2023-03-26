@@ -1,35 +1,8 @@
-use gilrs::Gilrs;
-use log::error;
 use modor_input::{GamepadAxis, GamepadButton, Key, MouseButton};
 use winit::event;
 use winit::event::VirtualKeyCode;
 
-pub(crate) struct Gamepads {
-    gilrs: Option<Gilrs>,
-}
-
-impl Gamepads {
-    pub(crate) fn new() -> Self {
-        Self {
-            gilrs: Gilrs::new()
-                .map_err(|e| error!("cannot load gamepads: {}", e))
-                .ok(),
-        }
-    }
-
-    pub(crate) fn plugged_gamepads_ids(&self) -> impl Iterator<Item = u64> + '_ {
-        self.gilrs
-            .iter()
-            .flat_map(Gilrs::gamepads)
-            .map(|(i, _)| <_ as Into<usize>>::into(i) as u64)
-    }
-
-    pub(crate) fn next_event(&mut self) -> Option<gilrs::ev::Event> {
-        self.gilrs.as_mut().and_then(Gilrs::next_event)
-    }
-}
-
-pub(crate) fn convert_mouse_button(button: event::MouseButton) -> MouseButton {
+pub(crate) fn to_mouse_button(button: event::MouseButton) -> MouseButton {
     match button {
         event::MouseButton::Left => MouseButton::Left,
         event::MouseButton::Right => MouseButton::Right,
@@ -39,7 +12,7 @@ pub(crate) fn convert_mouse_button(button: event::MouseButton) -> MouseButton {
 }
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn convert_keyboard_key(code: VirtualKeyCode) -> Key {
+pub(crate) fn to_keyboard_key(code: VirtualKeyCode) -> Key {
     match code {
         VirtualKeyCode::Key1 => Key::Key1,
         VirtualKeyCode::Key2 => Key::Key2,
@@ -207,7 +180,7 @@ pub(crate) fn convert_keyboard_key(code: VirtualKeyCode) -> Key {
     }
 }
 
-pub(crate) fn convert_gamepad_button(button: gilrs::Button) -> Option<GamepadButton> {
+pub(crate) fn to_gamepad_button(button: gilrs::Button) -> Option<GamepadButton> {
     match button {
         gilrs::Button::South => Some(GamepadButton::South),
         gilrs::Button::East => Some(GamepadButton::East),
@@ -232,7 +205,7 @@ pub(crate) fn convert_gamepad_button(button: gilrs::Button) -> Option<GamepadBut
     }
 }
 
-pub(crate) fn convert_gamepad_axis(button: gilrs::Axis) -> Option<GamepadAxis> {
+pub(crate) fn to_gamepad_axis(button: gilrs::Axis) -> Option<GamepadAxis> {
     match button {
         gilrs::Axis::LeftStickX => Some(GamepadAxis::LeftStickX),
         gilrs::Axis::LeftStickY => Some(GamepadAxis::LeftStickY),

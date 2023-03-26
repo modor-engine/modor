@@ -2,8 +2,7 @@ use crate::components::instances::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{
-    IntoResourceKey, Renderer, RendererInner, Resource, ResourceKey, ResourceRegistry,
-    ResourceState,
+    GpuContext, IntoResourceKey, Renderer, Resource, ResourceKey, ResourceRegistry, ResourceState,
 };
 use modor::Single;
 use wgpu::{
@@ -72,8 +71,8 @@ impl Shader {
         if state.is_removed() {
             self.pipeline = None;
         }
-        if let Some(renderer) = state.renderer() {
-            let texture_format = renderer
+        if let Some(context) = state.context() {
+            let texture_format = context
                 .surface_texture_format
                 .unwrap_or(self.texture_format);
             let pipeline = if texture_format == self.texture_format {
@@ -87,9 +86,9 @@ impl Shader {
                     &self.code,
                     &self.key,
                     texture_format,
-                    &renderer,
+                    context,
                 ))
-            })
+            });
         }
     }
 
@@ -103,26 +102,24 @@ impl Shader {
         code: &str,
         key: &ResourceKey,
         target_format: TextureFormat,
-        renderer: &RendererInner,
+        context: &GpuContext,
     ) -> RenderPipeline {
-        let module = renderer
-            .device
-            .create_shader_module(ShaderModuleDescriptor {
-                label: Some(&format!("modor_shader_{:?}", key)),
-                source: ShaderSource::Wgsl(code.into()),
-            });
-        let layout = renderer
+        let module = context.device.create_shader_module(ShaderModuleDescriptor {
+            label: Some(&format!("modor_shader_{:?}", key)),
+            source: ShaderSource::Wgsl(code.into()),
+        });
+        let layout = context
             .device
             .create_pipeline_layout(&PipelineLayoutDescriptor {
                 label: Some(&format!("modor_pipeline_layout_{:?}", key)),
                 bind_group_layouts: &[
-                    &renderer.camera_bind_group_layout,
-                    &renderer.material_bind_group_layout,
-                    &renderer.texture_bind_group_layout,
+                    &context.camera_bind_group_layout,
+                    &context.material_bind_group_layout,
+                    &context.texture_bind_group_layout,
                 ],
                 push_constant_ranges: &[],
             });
-        renderer
+        context
             .device
             .create_render_pipeline(&RenderPipelineDescriptor {
                 label: Some(&format!("modor_render_pipeline_{:?}", key)),

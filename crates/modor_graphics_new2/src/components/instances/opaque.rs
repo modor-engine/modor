@@ -2,7 +2,7 @@ use crate::components::instances::transparent::TransparentInstanceRegistry;
 use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::{Material, Model, Renderer, RendererInner, Resource, ZIndex2D};
+use crate::{GpuContext, Material, Model, Renderer, Resource, ZIndex2D};
 use fxhash::FxHashMap;
 use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
@@ -67,10 +67,10 @@ impl OpaqueInstanceRegistry {
         (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
         models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
     ) {
-        let renderer = renderer
+        let context = renderer
             .state(&mut None)
-            .renderer()
-            .expect("internal error: missing renderer");
+            .context()
+            .expect("internal error: not initialized GPU context");
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
@@ -87,7 +87,7 @@ impl OpaqueInstanceRegistry {
                 let is_new = self
                     .groups
                     .entry(group_key.clone())
-                    .or_insert_with(|| InstanceGroup::new(&renderer, &group_key))
+                    .or_insert_with(|| InstanceGroup::new(context, &group_key))
                     .add((transform, model, z_index, entity));
                 if is_new {
                     self.entity_groups
@@ -98,7 +98,7 @@ impl OpaqueInstanceRegistry {
             }
         }
         for group in self.groups.values_mut() {
-            group.sync(&renderer);
+            group.sync(context);
         }
     }
 
@@ -122,13 +122,13 @@ pub(crate) struct InstanceGroup {
 }
 
 impl InstanceGroup {
-    fn new(renderer: &RendererInner, key: &GroupKey) -> Self {
+    fn new(context: &GpuContext, key: &GroupKey) -> Self {
         Self {
             buffer: DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
                 &format!("opaque_instances_{key:?}"),
-                &renderer.device,
+                &context.device,
             ),
             entity_positions: EntityPositions::default(),
         }
@@ -152,8 +152,8 @@ impl InstanceGroup {
         }
     }
 
-    fn sync(&mut self, renderer: &RendererInner) {
-        self.buffer.sync(renderer);
+    fn sync(&mut self, context: &GpuContext) {
+        self.buffer.sync(context);
     }
 }
 
