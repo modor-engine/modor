@@ -98,9 +98,8 @@ fn filter_by_changed_component() {
         .with_entity(BaseEntity::build().with(StaticEntity))
         .updated()
         .updated()
-        .assert::<With<StaticEntity>>(2, |e| {
-            e.any()
-                .has(|c: &Counter| assert_eq!(c.0, 1))
+        .assert_any::<With<StaticEntity>>(2, |e| {
+            e.has(|c: &Counter| assert_eq!(c.0, 1))
                 .has(|c: &Counter| assert_eq!(c.0, 2))
         });
 }

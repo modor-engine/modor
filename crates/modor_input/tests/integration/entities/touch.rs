@@ -12,26 +12,25 @@ fn update_state() {
             c.push(TouchEvent::Started(2).into());
         })
         .updated()
-        .assert::<With<Finger>>(3, |e| {
-            e.any()
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 0);
-                    assert!(f.state().is_pressed);
-                    assert!(f.state().is_just_pressed);
-                    assert!(!f.state().is_just_released);
-                })
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 1);
-                    assert!(f.state().is_pressed);
-                    assert!(f.state().is_just_pressed);
-                    assert!(!f.state().is_just_released);
-                })
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 2);
-                    assert!(f.state().is_pressed);
-                    assert!(f.state().is_just_pressed);
-                    assert!(!f.state().is_just_released);
-                })
+        .assert_any::<With<Finger>>(3, |e| {
+            e.has(|f: &Finger| {
+                assert_eq!(f.id(), 0);
+                assert!(f.state().is_pressed);
+                assert!(f.state().is_just_pressed);
+                assert!(!f.state().is_just_released);
+            })
+            .has(|f: &Finger| {
+                assert_eq!(f.id(), 1);
+                assert!(f.state().is_pressed);
+                assert!(f.state().is_just_pressed);
+                assert!(!f.state().is_just_released);
+            })
+            .has(|f: &Finger| {
+                assert_eq!(f.id(), 2);
+                assert!(f.state().is_pressed);
+                assert!(f.state().is_just_pressed);
+                assert!(!f.state().is_just_released);
+            })
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
             let position = Vec2::new(2., 5.);
@@ -39,31 +38,29 @@ fn update_state() {
             c.push(TouchEvent::Ended(2).into());
         })
         .updated()
-        .assert::<With<Finger>>(3, |e| {
-            e.any()
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 0);
-                    assert!(f.state().is_pressed);
-                    assert!(!f.state().is_just_pressed);
-                    assert!(!f.state().is_just_released);
-                })
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 1);
-                    assert!(f.state().is_pressed);
-                    assert!(!f.state().is_just_pressed);
-                    assert!(!f.state().is_just_released);
-                })
-                .has(|f: &Finger| {
-                    assert_eq!(f.id(), 2);
-                    assert!(!f.state().is_pressed);
-                    assert!(!f.state().is_just_pressed);
-                    assert!(f.state().is_just_released);
-                })
+        .assert_any::<With<Finger>>(3, |e| {
+            e.has(|f: &Finger| {
+                assert_eq!(f.id(), 0);
+                assert!(f.state().is_pressed);
+                assert!(!f.state().is_just_pressed);
+                assert!(!f.state().is_just_released);
+            })
+            .has(|f: &Finger| {
+                assert_eq!(f.id(), 1);
+                assert!(f.state().is_pressed);
+                assert!(!f.state().is_just_pressed);
+                assert!(!f.state().is_just_released);
+            })
+            .has(|f: &Finger| {
+                assert_eq!(f.id(), 2);
+                assert!(!f.state().is_pressed);
+                assert!(!f.state().is_just_pressed);
+                assert!(f.state().is_just_released);
+            })
         })
         .updated()
-        .assert::<With<Finger>>(2, |e| {
-            e.any()
-                .has(|f: &Finger| assert_eq!(f.id(), 0))
+        .assert_any::<With<Finger>>(2, |e| {
+            e.has(|f: &Finger| assert_eq!(f.id(), 0))
                 .has(|f: &Finger| assert_eq!(f.id(), 1))
         });
 }

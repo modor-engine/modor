@@ -5,12 +5,13 @@ use instant::Instant;
 use modor::App;
 use modor_input::{InputEvent, InputEventCollector};
 use modor_physics::DeltaTime;
+use std::mem;
 use std::sync::Arc;
 use std::time::Duration;
 use wgpu::{Instance, Surface};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, TouchPhase, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder};
 use winit::window::{Window as WindowHandle, WindowBuilder};
 
 const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
@@ -24,6 +25,71 @@ pub fn runner(app: App) {
     event_loop.run(move |event, _event_loop, control_flow| {
         state.treat_event(event, control_flow);
     });
+}
+
+#[doc(hidden)]
+pub fn test_runner(
+    app: App,
+    context: &mut TestRunnerContext,
+    update_count: u32,
+    mut f: impl FnMut(App, &mut WindowHandle, u32) -> App,
+) {
+    // TODO: use cfg aliases ?
+    #[cfg(any(all(unix, not(apple), not(android_platform)), target_os = "windows"))]
+    {
+        use winit::platform::run_return::EventLoopExtRunReturn;
+
+        let event_loop = context
+            .event_loop
+            .as_mut()
+            .expect("internal error: test event loop not initialized");
+        let mut state = RunnerState::new(app, event_loop);
+        let mut update_id = 0;
+        event_loop.run_return(move |event, _event_loop, control_flow| {
+            let is_update = matches!(event, Event::MainEventsCleared);
+            state.treat_event(event, control_flow);
+            if is_update {
+                state.app.app = f(
+                    mem::take(&mut state.app.app),
+                    &mut state.main_window,
+                    update_id,
+                );
+                update_id += 1;
+            }
+            if update_count == update_id {
+                *control_flow = ControlFlow::Exit;
+            }
+        });
+    }
+    #[cfg(not(any(all(unix, not(apple), not(android_platform)), target_os = "windows")))]
+    {
+        panic!("test runner not supported on this platform");
+    }
+}
+
+// should be created only once
+#[doc(hidden)]
+pub struct TestRunnerContext {
+    event_loop: Option<EventLoop<()>>,
+}
+
+impl Default for TestRunnerContext {
+    fn default() -> Self {
+        #[cfg(any(all(unix, not(apple), not(android_platform)), target_os = "windows"))]
+        {
+            #[cfg(all(unix, not(apple), not(android_platform)))]
+            use winit::platform::unix::EventLoopBuilderExtUnix;
+            #[cfg(target_os = "windows")]
+            use winit::platform::windows::EventLoopBuilderExtWindows;
+            Self {
+                event_loop: Some(EventLoopBuilder::new().with_any_thread(true).build()),
+            }
+        }
+        #[cfg(not(any(all(unix, not(apple), not(android_platform)), target_os = "windows")))]
+        {
+            Self { event_loop: None }
+        }
+    }
 }
 
 struct RunnerState {
@@ -55,15 +121,6 @@ impl RunnerState {
             main_window,
             display: None,
         }
-    }
-
-    fn window_frame_time(main_window: &WindowHandle) -> Option<Duration> {
-        main_window.current_monitor().and_then(|m| {
-            m.video_modes()
-                .map(|m| m.refresh_rate_millihertz())
-                .map(|r| Duration::from_secs_f64(1000. / f64::from(r)))
-                .fold(None, |a, b| Some(a.map_or(b, |a: Duration| a.min(b))))
-        })
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
@@ -125,6 +182,15 @@ impl RunnerState {
             },
             _ => (),
         }
+    }
+
+    fn window_frame_time(main_window: &WindowHandle) -> Option<Duration> {
+        main_window.current_monitor().and_then(|m| {
+            m.video_modes()
+                .map(|m| m.refresh_rate_millihertz())
+                .map(|r| Duration::from_secs_f64(1000. / f64::from(r)))
+                .fold(None, |a, b| Some(a.map_or(b, |a: Duration| a.min(b))))
+        })
     }
 
     fn invalidate_surface(&mut self) {
@@ -192,9 +258,16 @@ impl RunnerApp {
             self.app.update_components(|r: &mut Renderer| {
                 r.update(&display.renderer);
             });
+            let mut is_window_found = false;
             self.app.update_components(|w: &mut Window| {
                 w.update(main_window, &display.main_surface);
+                is_window_found = true;
             });
+            if !is_window_found {
+                main_window.set_visible(false);
+                main_window.set_inner_size(PhysicalSize::new(1, 1));
+                main_window.set_title("");
+            }
         }
         self.app.update();
     }
@@ -221,9 +294,14 @@ impl RunnerApp {
     }
 
     fn close_main_window(&mut self, handle: &WindowHandle, control_flow: &mut ControlFlow) {
+        let mut is_window_found = false;
         self.app.update_components(|w: &mut Window| {
             w.close_window(control_flow, handle);
+            is_window_found = true;
         });
+        if !is_window_found {
+            *control_flow = ControlFlow::Exit;
+        }
     }
 
     fn refresh_main_surface(&mut self, surface: &Arc<Surface>) {

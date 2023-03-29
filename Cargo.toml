@@ -43,6 +43,7 @@ rapier2d = "0.17"
 reqwest = "0.11"
 scoped_threadpool = "0.1"
 spin_sleep = "1.1"
+static_assertions = "1.1"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 typed-index-collections = "3.0"
 wasm-bindgen-futures = "0.4"

@@ -125,8 +125,9 @@ fn assert_entity_has_existing_component() {
         .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| {
             e.has(|c: &Component| assert!(c.0 == 10 || c.0 == 20))
-                .any()
-                .has(|c: &Component| assert_eq!(c.0, 10))
+        })
+        .assert_any::<With<Entity>>(2, |e| {
+            e.has(|c: &Component| assert_eq!(c.0, 10))
                 .has(|c: &Component| assert_eq!(c.0, 20))
         })
         .assert::<With<Singleton>>(1, |e| e.has(|c: &Singleton| assert_eq!(c.0, 30)));
@@ -145,7 +146,7 @@ fn assert_entity_has_invalid_component() {
 fn assert_entity_has_invalid_component_in_any_mode() {
     App::new()
         .with_entity(Entity::build(10))
-        .assert::<With<Entity>>(1, |e| e.any().has(|c: &Component| assert_eq!(c.0, 20)));
+        .assert_any::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 20)));
 }
 
 #[test]
@@ -163,7 +164,7 @@ modor::filters::with::With<integration::app::Entity> have component integration:
 fn assert_entity_has_missing_component_in_any_mode() {
     App::new()
         .with_entity(Entity::build(10))
-        .assert::<With<Entity>>(1, |e| e.any().has(|_: &Singleton| ()));
+        .assert_any::<With<Entity>>(1, |e| e.has(|_: &Singleton| ()));
 }
 
 #[test]
@@ -176,7 +177,7 @@ fn assert_entity_has_not_missing_component() {
         .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| e.has_not::<Singleton>())
         .assert::<With<Singleton>>(1, |e| e.has_not::<Component>().has_not::<UnusedComponent>())
-        .assert::<()>(3, |e| e.any().has_not::<Entity>().has_not::<Singleton>());
+        .assert_any::<()>(3, |e| e.has_not::<Entity>().has_not::<Singleton>());
 }
 
 #[test]
@@ -196,7 +197,7 @@ modor::filters::with::With<integration::app::Entity> have not component integrat
 fn assert_entity_has_not_existing_component_in_any_mode() {
     App::new()
         .with_entity(Entity::build(10))
-        .assert::<With<Entity>>(1, |e| e.any().has_not::<Component>());
+        .assert_any::<With<Entity>>(1, |e| e.has_not::<Component>());
 }
 
 #[test]
@@ -207,7 +208,7 @@ fn assert_valid_child_count() {
         .with_entity(Entity::build_with_children(20))
         .with_entity(Singleton(30))
         .assert::<With<Entity>>(2, |e| e.child_count(2))
-        .assert::<()>(7, |e| e.any().child_count(2));
+        .assert_any::<()>(7, |e| e.child_count(2));
 }
 
 #[test]
@@ -225,7 +226,7 @@ modor::filters::with::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count_in_any_mode() {
     App::new()
         .with_entity(Entity::build_with_children(10))
-        .assert::<With<Entity>>(1, |e| e.any().child_count(3));
+        .assert_any::<With<Entity>>(1, |e| e.child_count(3));
 }
 
 #[test]
@@ -236,7 +237,7 @@ fn assert_entity_has_matching_parent() {
         .with_entity(Entity::build_with_children(10))
         .assert::<With<Child1>>(1, |e| e.has_parent::<With<Component>>())
         .assert::<With<Child2>>(1, |e| e.has_parent::<With<Entity>>())
-        .assert::<()>(3, |e| e.any().has_parent::<With<Entity>>());
+        .assert_any::<()>(3, |e| e.has_parent::<With<Entity>>());
 }
 
 #[test]
@@ -258,7 +259,7 @@ modor::filters::with::With<integration::app::Singleton>"]
 fn assert_entity_has_not_matching_parent_in_any_mode() {
     App::new()
         .with_entity(Entity::build_with_children(10))
-        .assert::<With<Child1>>(1, |e| e.any().has_parent::<With<Singleton>>());
+        .assert_any::<With<Child1>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
 #[test]
@@ -280,7 +281,7 @@ modor::filters::with::With<integration::app::Singleton>"]
 fn assert_entity_has_missing_parent_in_any_mode() {
     App::new()
         .with_entity(Entity::build_with_children(10))
-        .assert::<With<Entity>>(1, |e| e.any().has_parent::<With<Singleton>>());
+        .assert_any::<With<Entity>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
 #[test]
@@ -311,15 +312,13 @@ fn update_app_until_any() {
         .with_entity(Counter(0))
         .with_entity(Counter(1))
         .updated_until_any::<(), _>(Some(3), |c: &Counter| c.0 == 5)
-        .assert::<With<Counter>>(2, |e| {
-            e.any()
-                .has(|c: &Counter| assert_eq!(c.0, 4))
+        .assert_any::<With<Counter>>(2, |e| {
+            e.has(|c: &Counter| assert_eq!(c.0, 4))
                 .has(|c: &Counter| assert_eq!(c.0, 5))
         })
         .updated_until_any::<(), _>(None, |c: &Counter| c.0 == 15)
-        .assert::<With<Counter>>(2, |e| {
-            e.any()
-                .has(|c: &Counter| assert_eq!(c.0, 14))
+        .assert_any::<With<Counter>>(2, |e| {
+            e.has(|c: &Counter| assert_eq!(c.0, 14))
                 .has(|c: &Counter| assert_eq!(c.0, 15))
         });
 }
@@ -361,25 +360,8 @@ fn update_components() {
         .with_entity(Entity::build_entity1(20))
         .with_entity(Entity::build_entity2(30));
     app.update_components(|c: &mut Component| c.0 += 1);
-    app.assert::<With<Component>>(3, |e| {
-        e.any()
-            .has(|c: &Component| assert_eq!(c.0, 11))
-            .has(|c: &Component| assert_eq!(c.0, 21))
-            .has(|c: &Component| assert_eq!(c.0, 31))
-    });
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
-fn update_components() {
-    let mut app = App::new()
-        .with_entity(Entity::build(10))
-        .with_entity(Entity::build_entity1(20))
-        .with_entity(Entity::build_entity2(30));
-    app.update_components(|c: &mut Component| c.0 += 1);
-    app.assert::<With<Component>>(3, |e| {
-        e.any()
-            .has(|c: &Component| assert_eq!(c.0, 11))
+    app.assert_any::<With<Component>>(3, |e| {
+        e.has(|c: &Component| assert_eq!(c.0, 11))
             .has(|c: &Component| assert_eq!(c.0, 21))
             .has(|c: &Component| assert_eq!(c.0, 31))
     });

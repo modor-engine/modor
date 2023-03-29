@@ -256,10 +256,9 @@ fn use_world() {
             e.has(|c: &Id| assert_eq!(c.0, 22))
                 .has(|c: &Text| assert_eq!(c.0, "id: 22"))
         })
-        .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| {
-            e.has_not::<Text>()
-                .any()
-                .has(|c: &Id| assert_eq!(c.0, 30))
+        .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| e.has_not::<Text>())
+        .assert_any::<With<EntityWithExistingComponentDeleted>>(2, |e| {
+            e.has(|c: &Id| assert_eq!(c.0, 30))
                 .has(|c: &Id| assert_eq!(c.0, 31))
         })
         .assert::<With<EntityWithMissingComponentDeleted>>(1, |e| {

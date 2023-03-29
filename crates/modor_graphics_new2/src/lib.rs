@@ -27,4 +27,5 @@ pub use runner::*;
 
 // TODO: add logs
 // TODO: add text rendering
-// TODO: add multi-window support
+// TODO: add tests
+// TODO: add doc
