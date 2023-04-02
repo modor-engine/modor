@@ -10,6 +10,7 @@ mod resource;
 mod runner;
 
 pub use components::camera::*;
+pub use components::font::*;
 pub use components::frame_rate::*;
 pub use components::material::*;
 pub use components::model::*;

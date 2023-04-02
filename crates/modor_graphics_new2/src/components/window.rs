@@ -24,13 +24,6 @@ pub struct Window {
 
 impl Default for Window {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[systems]
-impl Window {
-    pub fn new() -> Self {
         Self {
             size: Size::new(800, 600),
             title: String::new(),
@@ -45,7 +38,10 @@ impl Window {
             surface: None,
         }
     }
+}
 
+#[systems]
+impl Window {
     pub fn with_size(mut self, size: Size) -> Self {
         self.size = size;
         self

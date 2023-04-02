@@ -68,10 +68,7 @@ macro_rules! job_future {
 /// }
 /// ```
 #[derive(Debug)]
-pub struct Job<T>
-where
-    T: Any + Send + Debug,
-{
+pub struct Job<T> {
     receiver: Option<Receiver<T>>,
     #[cfg(not(target_arch = "wasm32"))]
     _join: async_std::task::JoinHandle<()>,

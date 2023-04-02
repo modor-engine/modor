@@ -9,7 +9,7 @@ pub(crate) struct TextureTarget {
 
 impl TextureTarget {
     pub(crate) fn new(texture: &Texture, context: &GpuContext) -> Self {
-        let size = texture.size();
+        let size = texture.inner().size;
         Self {
             core: TargetCore::new(size, context),
         }
@@ -20,7 +20,7 @@ impl TextureTarget {
     }
 
     pub(crate) fn updated(mut self, texture: &Texture, context: &GpuContext) -> Self {
-        self.core.update(texture.size(), context);
+        self.core.update(texture.inner().size, context);
         self
     }
 
@@ -32,6 +32,7 @@ impl TextureTarget {
     ) -> RenderPass<'_> {
         let view = texture
             .inner()
+            .texture
             .create_view(&TextureViewDescriptor::default());
         self.core.begin_render_pass(background_color, context, view)
     }

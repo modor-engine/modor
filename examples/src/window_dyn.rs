@@ -17,7 +17,7 @@ pub fn main() {
 
 fn window() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Window::new())
+        .with(Window::default())
         .with(RenderTarget::new(()).with_background_color(Color::BLUE))
         .with(DynWindow::new())
 }

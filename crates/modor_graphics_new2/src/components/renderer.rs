@@ -11,7 +11,7 @@ use wgpu::{
 
 static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
 
-#[derive(SingletonComponent, Debug, Default)]
+#[derive(SingletonComponent, Debug)]
 pub struct Renderer {
     pub(crate) version: Option<u8>,
     context: Option<Arc<GpuContext>>,
@@ -20,7 +20,10 @@ pub struct Renderer {
 #[systems]
 impl Renderer {
     pub(crate) fn new() -> Self {
-        Self::default()
+        Self {
+            version: None,
+            context: None,
+        }
     }
 
     #[run]

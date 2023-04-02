@@ -1,13 +1,13 @@
 use fxhash::{FxHashMap, FxHashSet};
 use log::{error, warn};
 use modor::{Component, Entity, Query};
-use modor_jobs::AssetLoadingError;
+use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::panic::{RefUnwindSafe, UnwindSafe};
-use std::{any, fmt};
+use std::{any, fmt, mem};
 
 // TODO: move in a dedicated crate
 
@@ -156,21 +156,26 @@ where
     failed_keys: ResourceOnce<R>,
 }
 
+impl<R> Default for ResourceRegistry<R>
+where
+    R: Any,
+{
+    fn default() -> Self {
+        Self {
+            entity_ids: FxHashMap::default(),
+            duplicated_keys: ResourceOnce::default(),
+            missing_keys: ResourceOnce::default(),
+            not_loaded_keys: ResourceOnce::default(),
+            failed_keys: ResourceOnce::default(),
+        }
+    }
+}
+
 #[systems]
 impl<R> ResourceRegistry<R>
 where
     R: Resource + Component,
 {
-    pub fn new() -> Self {
-        Self {
-            entity_ids: FxHashMap::default(),
-            duplicated_keys: ResourceOnce::new(),
-            missing_keys: ResourceOnce::new(),
-            not_loaded_keys: ResourceOnce::new(),
-            failed_keys: ResourceOnce::new(),
-        }
-    }
-
     #[run]
     fn update(&mut self, resources: Query<'_, (&R, Entity<'_>)>) {
         self.entity_ids.clear();
@@ -213,18 +218,175 @@ struct ResourceOnce<R> {
     phantom: PhantomData<fn(R)>,
 }
 
-impl<R> ResourceOnce<R> {
-    fn new() -> Self {
+impl<R> Default for ResourceOnce<R> {
+    fn default() -> Self {
         Self {
             keys: FxHashSet::default(),
             phantom: PhantomData,
         }
     }
+}
 
+impl<R> ResourceOnce<R> {
     fn run(&mut self, key: &ResourceKey, f: impl FnOnce(&ResourceKey, &str)) {
         if !self.keys.contains(key) {
             self.keys.insert(key.clone());
             f(key, any::type_name::<R>());
         }
+    }
+}
+
+pub trait Load<D>: Sized {
+    fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError>;
+
+    fn load_from_data(data: &D) -> Result<Self, ResourceLoadingError>;
+}
+
+#[derive(Debug)]
+pub struct ResourceHandler<T, D> {
+    source: ResourceSource<D>,
+    state: ResourceHandlerState<T>,
+    is_used: bool,
+}
+
+impl<T, D> ResourceHandler<T, D>
+where
+    T: Any + Send + Debug + Load<D>,
+    D: Any + Send + Clone,
+{
+    pub fn new(source: ResourceSource<D>) -> Self {
+        Self {
+            source,
+            state: ResourceHandlerState::NotLoaded,
+            is_used: false,
+        }
+    }
+
+    pub fn state(&self) -> ResourceState<'_> {
+        if self.is_used {
+            ResourceState::Loaded
+        } else {
+            match &self.state {
+                ResourceHandlerState::NotLoaded | ResourceHandlerState::NotReloaded => {
+                    ResourceState::NotLoaded
+                }
+                ResourceHandlerState::DataLoading(_)
+                | ResourceHandlerState::PathLoading(_)
+                | ResourceHandlerState::Loaded(_) => ResourceState::Loading,
+                ResourceHandlerState::Error(error) => ResourceState::Error(error),
+                ResourceHandlerState::Used => unreachable!(),
+            }
+        }
+    }
+
+    #[allow(clippy::wildcard_enum_match_arm)]
+    pub fn resource(&mut self) -> Option<T> {
+        let (state, resource) = match mem::take(&mut self.state) {
+            ResourceHandlerState::Loaded(resource) => {
+                self.is_used = true;
+                (ResourceHandlerState::Used, Some(resource))
+            }
+            state => (state, None),
+        };
+        self.state = state;
+        resource
+    }
+
+    pub fn set_source(&mut self, source: ResourceSource<D>) {
+        self.source = source;
+        self.state = ResourceHandlerState::NotReloaded;
+    }
+
+    pub fn reset(&mut self) {
+        self.state = ResourceHandlerState::NotLoaded;
+        self.is_used = false;
+    }
+
+    pub fn reload(&mut self) {
+        self.state = ResourceHandlerState::NotReloaded;
+    }
+
+    pub fn update<R>(&mut self, key: &ResourceKey) {
+        self.state = match mem::take(&mut self.state) {
+            ResourceHandlerState::NotLoaded | ResourceHandlerState::NotReloaded => {
+                self.start_loading()
+            }
+            ResourceHandlerState::DataLoading(job) => Self::check_data_loading_job::<R>(job, key),
+            ResourceHandlerState::PathLoading(job) => Self::check_path_loading_job(job),
+            state @ (ResourceHandlerState::Loaded(_)
+            | ResourceHandlerState::Used
+            | ResourceHandlerState::Error(_)) => state,
+        };
+    }
+
+    fn start_loading(&self) -> ResourceHandlerState<T> {
+        match &self.source {
+            ResourceSource::SyncData(data) => match T::load_from_data(data) {
+                Ok(resource) => ResourceHandlerState::Loaded(resource),
+                Err(error) => ResourceHandlerState::Error(error),
+            },
+            ResourceSource::AsyncData(data) => {
+                let data = data.clone();
+                ResourceHandlerState::DataLoading(Job::new(async move { T::load_from_data(&data) }))
+            }
+            ResourceSource::AsyncPath(path) => {
+                ResourceHandlerState::PathLoading(AssetLoadingJob::new(path, move |d| async move {
+                    T::load_from_file(d)
+                }))
+            }
+        }
+    }
+
+    fn check_data_loading_job<R>(
+        mut job: Job<Result<T, ResourceLoadingError>>,
+        key: &ResourceKey,
+    ) -> ResourceHandlerState<T> {
+        match job.try_poll() {
+            Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
+            Ok(Some(Err(error))) => ResourceHandlerState::Error(error),
+            Ok(None) => ResourceHandlerState::DataLoading(job),
+            Err(_) => ResourceHandlerState::Error(ResourceLoadingError::LoadingError(format!(
+                "loading job panicked for `{:?}` resource of type {:?}",
+                key,
+                any::type_name::<R>()
+            ))),
+        }
+    }
+
+    fn check_path_loading_job(
+        mut job: AssetLoadingJob<Result<T, ResourceLoadingError>>,
+    ) -> ResourceHandlerState<T> {
+        match job.try_poll() {
+            Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
+            Ok(Some(Err(error))) => ResourceHandlerState::Error(error),
+            Ok(None) => ResourceHandlerState::PathLoading(job),
+            Err(error) => {
+                ResourceHandlerState::Error(ResourceLoadingError::AssetLoadingError(error))
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ResourceSource<D> {
+    SyncData(D),
+    AsyncData(D),
+    AsyncPath(String),
+}
+
+#[derive(Debug)]
+enum ResourceHandlerState<T> {
+    NotLoaded,
+    NotReloaded,
+    DataLoading(Job<Result<T, ResourceLoadingError>>),
+    PathLoading(AssetLoadingJob<Result<T, ResourceLoadingError>>),
+    Loaded(T),
+    Used,
+    Error(ResourceLoadingError),
+}
+
+impl<T> Default for ResourceHandlerState<T> {
+    fn default() -> Self {
+        Self::NotLoaded
     }
 }

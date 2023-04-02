@@ -79,7 +79,7 @@ impl TargetCore {
             .take()
             .expect("internal error: encoder not initialized");
         if let (Some(texture_buffer), Some(texture)) = (texture_buffer, texture) {
-            texture_buffer.copy_texture_to_buffer(texture.inner(), &mut encoder);
+            texture_buffer.copy_texture_to_buffer(&texture.inner().texture, &mut encoder);
         }
         context.queue.submit(Some(encoder.finish()));
     }

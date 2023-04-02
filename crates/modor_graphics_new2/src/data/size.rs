@@ -43,6 +43,15 @@ impl From<Size> for NonZeroSize {
     }
 }
 
+impl From<NonZeroSize> for Size {
+    fn from(size: NonZeroSize) -> Self {
+        Self {
+            width: size.width.into(),
+            height: size.height.into(),
+        }
+    }
+}
+
 impl From<NonZeroSize> for Vec2 {
     #[allow(clippy::cast_precision_loss)]
     fn from(size: NonZeroSize) -> Self {

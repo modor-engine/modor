@@ -114,7 +114,7 @@ impl Material {
                     .texture_key
                     .as_ref()
                     .and_then(|k| texture_registry.get(k, &textures))
-                    .map_or(false, Texture::is_transparent);
+                    .map_or(false, |t| t.inner().is_transparent);
         }
     }
 

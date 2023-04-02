@@ -2,17 +2,15 @@ use crate::components::renderer::Renderer;
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{
-    GpuContext, IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
-    ResourceState, Size,
+    GpuContext, IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey,
+    ResourceLoadingError, ResourceRegistry, ResourceSource, ResourceState, Size,
 };
-use image::{DynamicImage, ImageBuffer, ImageError, Rgba, RgbaImage};
+use image::{DynamicImage, ImageError, Rgba, RgbaImage};
 use modor::Single;
-use modor_jobs::{AssetLoadingJob, Job};
-use std::mem;
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
     FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Sampler, SamplerDescriptor,
-    TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
+    TextureAspect, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
     TextureViewDescriptor,
 };
 
@@ -22,32 +20,22 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 #[derive(Component, Debug)]
 pub struct Texture {
     key: ResourceKey,
-    source: TextureSource,
     is_smooth: bool,
-    state: TextureState,
+    handler: ResourceHandler<LoadedImage, TextureData>,
+    texture: Option<LoadedTexture>,
     renderer_version: Option<u8>,
 }
 
 #[systems]
 impl Texture {
-    pub fn from_size(key: impl IntoResourceKey, size: Size) -> Self {
-        Self::new(key, TextureSource::Size(size))
-    }
-
-    pub fn from_static(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
-        Self::new(key, TextureSource::StaticData(data))
-    }
-
-    pub fn from_data(key: impl IntoResourceKey, data: impl Into<Vec<u8>>) -> Self {
-        Self::new(key, TextureSource::Data(data.into()))
-    }
-
-    pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
-        Self::new(key, TextureSource::Path(path.into()))
-    }
-
-    pub(crate) fn blank() -> Self {
-        Self::new(TextureKey::Blank, TextureSource::Unit)
+    pub fn new(key: impl IntoResourceKey, source: TextureSource) -> Self {
+        Self {
+            key: key.into_key(),
+            is_smooth: true,
+            handler: ResourceHandler::new(source.into()),
+            texture: None,
+            renderer_version: None,
+        }
     }
 
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {
@@ -56,163 +44,48 @@ impl Texture {
     }
 
     #[run_after(component(Renderer))]
-    fn load(&mut self, renderer: Option<Single<'_, Renderer>>) {
+    fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
-            self.state = TextureState::NotLoaded;
+            self.texture = None;
+            self.handler.reset();
         }
         if let Some(context) = state.context() {
-            let state = mem::take(&mut self.state);
-            self.state = match state {
-                TextureState::NotLoaded => self.start_loading(context),
-                TextureState::AssetLoading(job) => self.check_asset_job(job, context),
-                TextureState::DataLoading(job) => self.check_data_job(job, context),
-                TextureState::Loaded { format, .. }
-                    if format != Self::main_texture_format(context) =>
-                {
-                    self.start_loading(context)
-                }
-                state @ (TextureState::Loaded { .. } | TextureState::Error(_)) => state,
-            };
-        }
-    }
-
-    pub(crate) fn is_transparent(&self) -> bool {
-        match &self.state {
-            TextureState::Loaded { is_transparent, .. } => *is_transparent,
-            TextureState::NotLoaded
-            | TextureState::AssetLoading(_)
-            | TextureState::DataLoading(_)
-            | TextureState::Error(_) => {
-                panic!("internal error: texture not loaded")
+            self.handler.update::<Self>(&self.key);
+            if let Some(image) = self.handler.resource() {
+                self.texture = Some(self.load_texture(image.0, context));
             }
         }
     }
 
-    pub(crate) fn bind_group(&self) -> &BindGroup {
-        match &self.state {
-            TextureState::Loaded { bind_group, .. } => bind_group,
-            TextureState::NotLoaded
-            | TextureState::AssetLoading(_)
-            | TextureState::DataLoading(_)
-            | TextureState::Error(_) => {
-                panic!("internal error: texture not loaded")
-            }
-        }
+    pub fn size(&self) -> Option<Size> {
+        self.texture.as_ref().map(|t| t.size.into())
     }
 
-    pub(crate) fn size(&self) -> NonZeroSize {
-        match &self.state {
-            TextureState::Loaded { size, .. } => *size,
-            TextureState::NotLoaded
-            | TextureState::AssetLoading(_)
-            | TextureState::DataLoading(_)
-            | TextureState::Error(_) => {
-                panic!("internal error: texture not loaded")
-            }
-        }
+    pub fn set_source(&mut self, source: TextureSource) {
+        self.handler.set_source(source.into());
     }
 
-    pub(crate) fn inner(&self) -> &wgpu::Texture {
-        match &self.state {
-            TextureState::Loaded { texture, .. } => texture,
-            TextureState::NotLoaded
-            | TextureState::AssetLoading(_)
-            | TextureState::DataLoading(_)
-            | TextureState::Error(_) => {
-                panic!("internal error: texture not loaded")
-            }
-        }
+    pub(crate) fn inner(&self) -> &LoadedTexture {
+        self.texture
+            .as_ref()
+            .expect("internal error: not loaded texture")
     }
 
-    fn new(key: impl IntoResourceKey, source: TextureSource) -> Self {
-        Self {
-            key: key.into_key(),
-            source,
-            is_smooth: true,
-            state: TextureState::NotLoaded,
-            renderer_version: None,
-        }
-    }
-
-    fn start_loading(&mut self, context: &GpuContext) -> TextureState {
-        match &self.source {
-            TextureSource::Unit => {
-                self.load_texture(Self::load_image_from_size(Size::new(1, 1)), context)
-            }
-            TextureSource::Size(size) => {
-                let size = *size;
-                TextureState::DataLoading(Job::new(
-                    async move { Ok(Self::load_image_from_size(size)) },
-                ))
-            }
-            TextureSource::StaticData(data) => {
-                TextureState::DataLoading(Job::new(async { Self::load_image_from_memory(data) }))
-            }
-            TextureSource::Data(data) => {
-                let data = data.clone();
-                TextureState::DataLoading(Job::new(
-                    async move { Self::load_image_from_memory(&data) },
-                ))
-            }
-            TextureSource::Path(path) => {
-                TextureState::AssetLoading(AssetLoadingJob::new(path, |d| async move {
-                    Self::load_image_from_memory(&d)
-                }))
-            }
-        }
-    }
-
-    fn check_asset_job(
-        &mut self,
-        mut job: AssetLoadingJob<Result<RgbaImage, ResourceLoadingError>>,
-        context: &GpuContext,
-    ) -> TextureState {
-        match job.try_poll() {
-            Ok(Some(Ok(image))) => self.load_texture(image, context),
-            Ok(Some(Err(error))) => TextureState::Error(error),
-            Ok(None) => TextureState::AssetLoading(job),
-            Err(error) => TextureState::Error(ResourceLoadingError::AssetLoadingError(error)),
-        }
-    }
-
-    fn check_data_job(
-        &mut self,
-        mut job: Job<Result<RgbaImage, ResourceLoadingError>>,
-        context: &GpuContext,
-    ) -> TextureState {
-        match job.try_poll() {
-            Ok(Some(Ok(image))) => self.load_texture(image, context),
-            Ok(Some(Err(error))) => TextureState::Error(error),
-            Ok(None) => TextureState::DataLoading(job),
-            Err(_) => TextureState::Error(ResourceLoadingError::LoadingError(format!(
-                "`{:?}` texture loading job panicked",
-                self.key
-            ))),
-        }
-    }
-
-    fn load_texture(&mut self, image: RgbaImage, context: &GpuContext) -> TextureState {
-        let format = Self::main_texture_format(context);
-        let texture = self.create_texture(&image, format, context);
+    fn load_texture(&mut self, image: RgbaImage, context: &GpuContext) -> LoadedTexture {
+        let texture = self.create_texture(&image, context);
         Self::write_texture(&image, &texture, context);
         let view = texture.create_view(&TextureViewDescriptor::default());
         let sampler = self.create_sampler(context);
-        TextureState::Loaded {
+        LoadedTexture {
             texture,
             size: Size::new(image.width(), image.height()).into(),
             bind_group: self.create_bind_group(&view, &sampler, context),
-            format,
             is_transparent: image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255),
         }
     }
 
-    fn create_texture(
-        &self,
-        image: &RgbaImage,
-        format: TextureFormat,
-        context: &GpuContext,
-    ) -> wgpu::Texture {
+    fn create_texture(&self, image: &RgbaImage, context: &GpuContext) -> wgpu::Texture {
         context.device.create_texture(&TextureDescriptor {
             label: Some(&format!("modor_texture_{:?}", self.key)),
             size: Extent3d {
@@ -223,7 +96,9 @@ impl Texture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format,
+            format: context
+                .surface_texture_format
+                .unwrap_or(Shader::DEFAULT_TEXTURE_FORMAT),
             usage: TextureUsages::TEXTURE_BINDING // for attachment to models
                 | TextureUsages::COPY_DST // for attachment to models
                 | TextureUsages::RENDER_ATTACHMENT // for rendering
@@ -274,22 +149,6 @@ impl Texture {
         })
     }
 
-    fn load_image_from_size(size: Size) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        RgbaImage::from_pixel(size.width, size.height, Rgba([255u8, 255, 255, 255]))
-    }
-
-    fn load_image_from_memory(data: &[u8]) -> Result<RgbaImage, ResourceLoadingError> {
-        image::load_from_memory(data)
-            .map_err(ResourceLoadingError::from)
-            .map(DynamicImage::into_rgba8)
-    }
-
-    fn main_texture_format(context: &GpuContext) -> TextureFormat {
-        context
-            .surface_texture_format
-            .unwrap_or(Shader::DEFAULT_TEXTURE_FORMAT)
-    }
-
     fn write_texture(image: &RgbaImage, texture: &wgpu::Texture, context: &GpuContext) {
         context.queue.write_texture(
             ImageCopyTexture {
@@ -319,17 +178,13 @@ impl Resource for Texture {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        match &self.state {
-            TextureState::NotLoaded => ResourceState::NotLoaded,
-            TextureState::AssetLoading(_) | TextureState::DataLoading(_) => ResourceState::Loading,
-            TextureState::Loaded { .. } => ResourceState::Loaded,
-            TextureState::Error(error) => ResourceState::Error(error),
-        }
+        self.handler.state()
     }
 }
 
+#[non_exhaustive]
 #[derive(Debug)]
-enum TextureSource {
+pub enum TextureSource {
     Unit,
     Size(Size),
     StaticData(&'static [u8]),
@@ -337,34 +192,73 @@ enum TextureSource {
     Path(String),
 }
 
-#[derive(Debug, Default)]
-enum TextureState {
-    #[default]
-    NotLoaded,
-    AssetLoading(AssetLoadingJob<Result<RgbaImage, ResourceLoadingError>>),
-    DataLoading(Job<Result<RgbaImage, ResourceLoadingError>>),
-    Loaded {
-        texture: wgpu::Texture,
-        size: NonZeroSize,
-        bind_group: BindGroup,
-        format: TextureFormat,
-        is_transparent: bool,
-    },
-    Error(ResourceLoadingError),
+impl From<TextureSource> for ResourceSource<TextureData> {
+    fn from(source: TextureSource) -> Self {
+        match source {
+            TextureSource::Unit => Self::SyncData(TextureData::Size(Size::new(1, 1))),
+            TextureSource::Size(size) => Self::AsyncData(TextureData::Size(size)),
+            TextureSource::StaticData(data) => Self::AsyncData(TextureData::StaticData(data)),
+            TextureSource::Data(data) => Self::AsyncData(TextureData::Data(data)),
+            TextureSource::Path(path) => Self::AsyncPath(path),
+        }
+    }
 }
 
-impl From<ImageError> for ResourceLoadingError {
-    fn from(error: ImageError) -> Self {
+#[derive(Debug)]
+pub(crate) struct LoadedTexture {
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) size: NonZeroSize,
+    pub(crate) bind_group: BindGroup,
+    pub(crate) is_transparent: bool,
+}
+
+#[derive(Debug, Clone)]
+enum TextureData {
+    Size(Size),
+    StaticData(&'static [u8]),
+    Data(Vec<u8>),
+}
+
+#[derive(Debug)]
+struct LoadedImage(RgbaImage);
+
+impl LoadedImage {
+    fn load_from_memory(data: &[u8]) -> Result<Self, ResourceLoadingError> {
+        image::load_from_memory(data)
+            .map_err(Self::convert_error)
+            .map(DynamicImage::into_rgba8)
+            .map(Self)
+    }
+
+    fn convert_error(error: ImageError) -> ResourceLoadingError {
         match error {
-            ImageError::Decoding(e) => Self::InvalidFormat(format!("{e}")),
-            ImageError::Unsupported(e) => Self::InvalidFormat(format!("{e}")),
+            ImageError::Decoding(e) => ResourceLoadingError::InvalidFormat(format!("{e}")),
+            ImageError::Unsupported(e) => ResourceLoadingError::InvalidFormat(format!("{e}")),
             // coverage: off (internal errors that shouldn't happen)
             ImageError::Limits(_)
             | ImageError::Parameter(_)
             | ImageError::IoError(_)
             | ImageError::Encoding(_) => {
-                Self::LoadingError(format!("error when reading texture: {error}"))
+                ResourceLoadingError::LoadingError(format!("error when reading texture: {error}"))
             } // coverage: on
+        }
+    }
+}
+
+impl Load<TextureData> for LoadedImage {
+    fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
+        Self::load_from_memory(&data)
+    }
+
+    fn load_from_data(data: &TextureData) -> Result<Self, ResourceLoadingError> {
+        match data {
+            TextureData::Size(size) => Ok(Self(RgbaImage::from_pixel(
+                size.width,
+                size.height,
+                Rgba([255u8, 255, 255, 255]),
+            ))),
+            TextureData::StaticData(data) => Self::load_from_memory(data),
+            TextureData::Data(data) => Self::load_from_memory(data),
         }
     }
 }

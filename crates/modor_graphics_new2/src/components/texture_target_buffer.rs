@@ -1,11 +1,13 @@
 use crate::components::render_target::WindowTargetUpdate;
 use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
-use crate::{RenderTarget, GpuContext};
+use crate::{GpuContext, RenderTarget, Texture};
 use modor::{ComponentSystems, Single};
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{Buffer, CommandEncoder, Extent3d, ImageCopyBuffer, MapMode};
+
+// TODO: generalize to any texture ?
 
 #[derive(Component, Debug, Default)]
 pub struct TextureTargetBuffer {
@@ -17,51 +19,23 @@ pub struct TextureTargetBuffer {
 
 #[systems]
 impl TextureTargetBuffer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn buffer(&self) -> &[u8] {
         &self.data
     }
 
     #[run_as(TextureTargetBufferUpdate)]
-    fn update_buffer(
-        &mut self,
-        target: Option<&RenderTarget>,
-        renderer: Option<Single<'_, Renderer>>,
-    ) {
+    fn update_buffer(&mut self, texture: Option<&Texture>, renderer: Option<Single<'_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
-        if state.is_removed() || target.is_none() {
+        let texture_size = texture.and_then(Texture::size).map(NonZeroSize::from);
+        if state.is_removed() || texture_size.is_none() {
             self.buffer = None;
             self.data = vec![];
         }
-        let target = target.and_then(RenderTarget::texture);
-        if let (Some(context), Some(target)) = (state.context(), target) {
-            let size = target.core().size();
-            if self.size != Some(size) {
-                self.buffer = Some(Self::create_buffer(context, size));
-                self.size = Some(size);
+        if let (Some(context), Some(texture_size)) = (state.context(), texture_size) {
+            if self.size != Some(texture_size) {
+                self.buffer = Some(Self::create_buffer(context, texture_size));
+                self.size = Some(texture_size);
             }
-        }
-    }
-
-    #[run_after_previous_and(component(RenderTarget), component(Renderer))]
-    fn retrieve_buffer(&mut self, renderer: Single<'_, Renderer>) {
-        let Some(context) = renderer.state(&mut self.renderer_version).context() else { return; };
-        if let (Some(buffer), Some(size)) = (&self.buffer, self.size) {
-            let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(size.width.into());
-            let padded_row_bytes = Self::calculate_padded_row_bytes(size.width.into());
-            let slice = buffer.slice(..);
-            slice.map_async(MapMode::Read, |_| ());
-            context.device.poll(wgpu::Maintain::Wait);
-            self.data = slice
-                .get_mapped_range()
-                .chunks(padded_row_bytes as usize)
-                .flat_map(|a| &a[..unpadded_row_bytes as usize])
-                .copied()
-                .collect();
-            buffer.unmap();
         }
     }
 
@@ -91,6 +65,25 @@ impl TextureTargetBuffer {
                     depth_or_array_layers: 1,
                 },
             );
+        }
+    }
+
+    #[run_after_previous_and(component(RenderTarget), component(Renderer))]
+    fn retrieve_buffer(&mut self, renderer: Single<'_, Renderer>) {
+        let Some(context) = renderer.state(&mut self.renderer_version).context() else { return; };
+        if let (Some(buffer), Some(size)) = (&self.buffer, self.size) {
+            let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(size.width.into());
+            let padded_row_bytes = Self::calculate_padded_row_bytes(size.width.into());
+            let slice = buffer.slice(..);
+            slice.map_async(MapMode::Read, |_| ());
+            context.device.poll(wgpu::Maintain::Wait);
+            self.data = slice
+                .get_mapped_range()
+                .chunks(padded_row_bytes as usize)
+                .flat_map(|a| &a[..unpadded_row_bytes as usize])
+                .copied()
+                .collect();
+            buffer.unmap();
         }
     }
 

@@ -1,4 +1,5 @@
 pub(crate) mod camera;
+pub(crate) mod font;
 pub(crate) mod frame_rate;
 pub(crate) mod instances;
 pub(crate) mod material;

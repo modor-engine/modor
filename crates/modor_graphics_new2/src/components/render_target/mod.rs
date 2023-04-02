@@ -301,7 +301,7 @@ impl RenderTarget {
         pass.set_pipeline(shader.pipeline());
         pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::MATERIAL_GROUP, material_uniform.bind_group(), &[]);
-        pass.set_bind_group(Shader::TEXTURE_GROUP, texture.bind_group(), &[]);
+        pass.set_bind_group(Shader::TEXTURE_GROUP, &texture.inner().bind_group, &[]);
         pass.set_vertex_buffer(0, vertex_buffer.buffer());
         pass.set_vertex_buffer(1, instance_buffer.buffer());
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);

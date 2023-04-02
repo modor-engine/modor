@@ -1,6 +1,6 @@
 use modor::{App, BuiltEntity, EntityBuilder};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, Window, ZIndex2D,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window, ZIndex2D,
 };
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
@@ -49,13 +49,16 @@ enum TextureKey {
 fn window_target() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::Window))
-        .with(Window::new())
+        .with(Window::default())
 }
 
 fn texture_target() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::Texture).with_background_color(Color::GRAY))
-        .with(Texture::from_size(TextureKey::Target, Size::new(200, 200)))
+        .with(Texture::new(
+            TextureKey::Target,
+            TextureSource::Size(Size::new(200, 200)),
+        ))
 }
 
 fn target_rectangle() -> impl BuiltEntity {

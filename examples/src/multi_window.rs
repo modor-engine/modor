@@ -20,7 +20,7 @@ pub fn main() {
 fn main_window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::Main).with_background_color(Color::MAROON))
-        .with(Window::new().with_title("Main window"))
+        .with(Window::default().with_title("Main window"))
         .with(Camera2D::new(CameraKey::Main).with_target_key(TargetKey::Main))
         .with(Material::new(MaterialKey::Main).with_color(Color::BLACK))
         .with_child(rectangle(CameraKey::Main, MaterialKey::Main))
@@ -30,7 +30,7 @@ fn secondary_window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::Secondary).with_background_color(Color::GREEN))
         .with(
-            Window::new()
+            Window::default()
                 .with_title("Secondary window")
                 .with_close_behavior(WindowCloseBehavior::None),
         )

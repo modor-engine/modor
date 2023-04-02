@@ -52,10 +52,7 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 /// }
 /// ```
 #[derive(Debug)]
-pub struct AssetLoadingJob<T>
-where
-    T: Any + Send + Debug,
-{
+pub struct AssetLoadingJob<T> {
     /// Actual job instance that can be used to retrieve the job result.
     inner: Job<Result<T, AssetLoadingError>>,
 }

@@ -2,9 +2,9 @@
 // TODO: delete assets folder
 
 use instant::Instant;
-use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
+use modor::{systems, App, BuiltEntity, Component, Entity, EntityBuilder, World};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, Window, ZIndex2D,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window, ZIndex2D,
 };
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
@@ -17,7 +17,7 @@ fn main() {
         .with_entity(modor_graphics_new2::renderer())
         .with_entity(primary_render_target())
         .with_entity(secondary_render_target())
-        .with_entity(resources())
+        .with_entity(texture())
         .with_entity(materials())
         .with_entity(UpdatedMaterialModel::build(Vec2::new(0.2, 0.2)))
         .with_entity(red_rectangle(Vec2::new(-0.35, 0.)))
@@ -44,7 +44,7 @@ fn primary_render_target() -> impl BuiltEntity {
 
     EntityBuilder::new()
         .with(RenderTarget::new(PrimaryTargetKey))
-        .with(Window::new().with_title("Primary window"))
+        .with(Window::default().with_title("Primary window"))
         .with(Camera2D::new(ResourceKey::PrimaryCamera).with_target_key(PrimaryTargetKey))
 }
 
@@ -54,20 +54,24 @@ fn secondary_render_target() -> impl BuiltEntity {
 
     EntityBuilder::new()
         .with(RenderTarget::new(SecondaryTargetKey).with_background_color(Color::DARK_GREEN))
-        .with(
-            Window::new()
-                .with_title("Secondary window")
-                .with_size(Size::new(400, 300)),
-        )
+        .with(Texture::new(
+            SecondaryTargetKey,
+            TextureSource::Size(Size::new(400, 300)),
+        ))
         .with(Camera2D::new(ResourceKey::SecondaryCamera).with_target_key(SecondaryTargetKey))
         .with(Transform2D::new().with_size(Vec2::new(-1., 1.)))
 }
 
-fn resources() -> impl BuiltEntity {
-    EntityBuilder::new().with_child(Texture::from_static(
-        ResourceKey::SmileyTexture,
-        include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/smiley.png")),
-    ))
+fn texture() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with(Texture::new(
+            ResourceKey::SmileyTexture,
+            TextureSource::StaticData(include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/assets/smiley.png"
+            ))),
+        ))
+        .with(UpdatedTexture::new())
 }
 
 fn materials() -> impl BuiltEntity {
@@ -155,6 +159,28 @@ impl UpdatedMaterialModel {
     fn update(&self, material: &mut Material) {
         if self.creation_time.elapsed() > Duration::from_secs(3) {
             material.color.a = 0.5;
+        }
+    }
+}
+
+#[derive(Component)]
+struct UpdatedTexture {
+    creation_time: Instant,
+}
+
+#[systems]
+impl UpdatedTexture {
+    fn new() -> Self {
+        Self {
+            creation_time: Instant::now(),
+        }
+    }
+
+    #[run]
+    fn update(&self, texture: &mut Texture, entity: Entity<'_>, mut world: World<'_>) {
+        if self.creation_time.elapsed() > Duration::from_secs(2) {
+            texture.set_source(TextureSource::Path("ok.png".into()));
+            world.delete_component::<Self>(entity.id());
         }
     }
 }

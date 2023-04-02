@@ -24,7 +24,7 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
-        .with(Window::new().with_cursor_shown(false))
+        .with(Window::default().with_cursor_shown(false))
         .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
 }
 
