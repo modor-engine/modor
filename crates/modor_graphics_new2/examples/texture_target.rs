@@ -1,6 +1,7 @@
-use modor::{App, BuiltEntity, EntityBuilder};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window, ZIndex2D,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
+    Window, ZIndex2D,
 };
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
@@ -11,6 +12,7 @@ fn main() {
         .with_entity(modor_graphics_new2::renderer())
         .with_entity(window_target())
         .with_entity(texture_target())
+        .with_entity(texture())
         .with_entity(Camera2D::new(CameraKey::Window).with_target_key(TargetKey::Window))
         .with_entity(Camera2D::new(CameraKey::Texture).with_target_key(TargetKey::Texture))
         .with_entity(Material::new(MaterialKey::TextureTarget).with_texture(TextureKey::Target))
@@ -59,6 +61,18 @@ fn texture_target() -> impl BuiltEntity {
             TextureKey::Target,
             TextureSource::Size(Size::new(200, 200)),
         ))
+        .with(TextureBuffer::default())
+        .with(DisplayTextureSize)
+}
+
+fn texture() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with(Texture::new(
+            "Texture",
+            TextureSource::Path("smiley.png".into()),
+        ))
+        .with(TextureBuffer::default())
+        .with(DisplayTextureSize)
 }
 
 fn target_rectangle() -> impl BuiltEntity {
@@ -80,4 +94,15 @@ fn window_object() -> impl BuiltEntity {
         .with(Dynamics2D::new().with_velocity(-Vec2::new(0.04, 0.02)))
         .with(Model::rectangle(MaterialKey::Red).with_camera_key(CameraKey::Window))
         .with(ZIndex2D::from(1))
+}
+
+#[derive(Component)]
+struct DisplayTextureSize;
+
+#[systems]
+impl DisplayTextureSize {
+    #[run]
+    fn update(buffer: &TextureBuffer) {
+        println!("{}", buffer.get().iter().filter(|&&b| b != 0).count());
+    }
 }

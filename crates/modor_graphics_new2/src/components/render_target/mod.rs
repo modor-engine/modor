@@ -8,12 +8,11 @@ use crate::components::render_target::texture::TextureTarget;
 use crate::components::render_target::window::WindowTarget;
 use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureKey, TextureRegistry};
-use crate::components::texture_target_buffer::TextureTargetBufferUpdate;
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
 use crate::{
     Camera2D, Color, FrameRate, IntoResourceKey, Material, Renderer, Resource, ResourceKey,
-    ResourceLoadingError, ResourceRegistry, ResourceState, Texture, TextureTargetBuffer, Window,
+    ResourceLoadingError, ResourceRegistry, ResourceState, Texture, Window,
 };
 use log::error;
 use modor::{Component, ComponentSystems, Query, Single, SingleMut};
@@ -129,7 +128,6 @@ impl RenderTarget {
     #[run_after(
         WindowTargetUpdate,
         TextureTargetUpdate,
-        TextureTargetBufferUpdate,
         component(OpaqueInstanceRegistry),
         component(TransparentInstanceRegistry),
         component(Camera2DRegistry),
@@ -146,7 +144,7 @@ impl RenderTarget {
     #[allow(clippy::too_many_arguments)]
     fn render_window_target(
         &mut self,
-        (texture, texture_buffer): (Option<&Texture>, Option<&TextureTargetBuffer>),
+        texture: Option<&Texture>,
         renderer: Single<'_, Renderer>,
         opaque_instances: Single<'_, OpaqueInstanceRegistry>,
         transparent_instances: Single<'_, TransparentInstanceRegistry>,
@@ -237,7 +235,7 @@ impl RenderTarget {
                 );
             }
             drop(pass);
-            target.end_render_pass(texture_buffer, texture, context);
+            target.end_render_pass(context);
         }
     }
 
@@ -252,10 +250,6 @@ impl RenderTarget {
         ]
         .into_iter()
         .flatten()
-    }
-
-    pub(crate) fn texture(&self) -> Option<&TextureTarget> {
-        self.texture.as_ref()
     }
 
     #[allow(clippy::cast_possible_truncation, clippy::too_many_arguments)]

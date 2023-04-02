@@ -1,5 +1,5 @@
 use crate::data::size::NonZeroSize;
-use crate::{Color, GpuContext, Texture, TextureTargetBuffer};
+use crate::{Color, GpuContext};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, LoadOp, Operations, RenderPass,
     RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -68,19 +68,11 @@ impl TargetCore {
             })
     }
 
-    pub(crate) fn submit_command_queue(
-        &mut self,
-        texture_buffer: Option<&TextureTargetBuffer>,
-        texture: Option<&Texture>,
-        context: &GpuContext,
-    ) {
-        let mut encoder = self
+    pub(crate) fn submit_command_queue(&mut self, context: &GpuContext) {
+        let encoder = self
             .encoder
             .take()
             .expect("internal error: encoder not initialized");
-        if let (Some(texture_buffer), Some(texture)) = (texture_buffer, texture) {
-            texture_buffer.copy_texture_to_buffer(&texture.inner().texture, &mut encoder);
-        }
         context.queue.submit(Some(encoder.finish()));
     }
 

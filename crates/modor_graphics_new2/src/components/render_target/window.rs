@@ -79,7 +79,7 @@ impl WindowTarget {
     }
 
     pub(crate) fn end_render_pass(&mut self, context: &GpuContext) {
-        self.core.submit_command_queue(None, None, context);
+        self.core.submit_command_queue(context);
         self.current_texture
             .take()
             .expect("internal error: surface texture not initialized")

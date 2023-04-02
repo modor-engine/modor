@@ -1,5 +1,5 @@
 use crate::components::render_target::core::TargetCore;
-use crate::{Color, GpuContext, Texture, TextureTargetBuffer};
+use crate::{Color, GpuContext, Texture};
 use wgpu::{RenderPass, TextureViewDescriptor};
 
 #[derive(Debug)]
@@ -37,13 +37,7 @@ impl TextureTarget {
         self.core.begin_render_pass(background_color, context, view)
     }
 
-    pub(crate) fn end_render_pass(
-        &mut self,
-        texture_buffer: Option<&TextureTargetBuffer>,
-        texture: &Texture,
-        context: &GpuContext,
-    ) {
-        self.core
-            .submit_command_queue(texture_buffer, Some(texture), context);
+    pub(crate) fn end_render_pass(&mut self, context: &GpuContext) {
+        self.core.submit_command_queue(context);
     }
 }

@@ -17,7 +17,7 @@ pub use components::model::*;
 pub use components::render_target::*;
 pub use components::renderer::*;
 pub use components::texture::*;
-pub use components::texture_target_buffer::*;
+pub use components::texture_buffer::*;
 pub use components::window::*;
 pub use components::z_index::*;
 pub use data::color::*;

@@ -9,6 +9,6 @@ pub(crate) mod render_target;
 pub(crate) mod renderer;
 pub(crate) mod shader;
 pub(crate) mod texture;
-pub(crate) mod texture_target_buffer;
+pub(crate) mod texture_buffer;
 pub(crate) mod window;
 pub(crate) mod z_index;
