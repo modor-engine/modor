@@ -33,6 +33,7 @@ pub struct RenderTarget {
     texture_state: TargetState,
     is_texture_conflict_logged: bool,
     default_texture_key: ResourceKey,
+    default_front_texture_key: ResourceKey,
     renderer_version: Option<u8>,
 }
 
@@ -47,7 +48,8 @@ impl RenderTarget {
             window_state: TargetState::NotLoaded,
             texture_state: TargetState::NotLoaded,
             is_texture_conflict_logged: false,
-            default_texture_key: TextureKey::Blank.into_key(),
+            default_texture_key: TextureKey::White.into_key(),
+            default_front_texture_key: TextureKey::Invisible.into_key(),
             renderer_version: None,
         }
     }
@@ -173,6 +175,7 @@ impl RenderTarget {
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
                     &self.default_texture_key,
+                    &self.default_front_texture_key,
                 );
             }
             for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
@@ -191,6 +194,7 @@ impl RenderTarget {
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
                     &self.default_texture_key,
+                    &self.default_front_texture_key,
                 );
             }
             drop(pass);
@@ -214,6 +218,7 @@ impl RenderTarget {
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
                     &self.default_texture_key,
+                    &self.default_front_texture_key,
                 );
             }
             for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
@@ -232,6 +237,7 @@ impl RenderTarget {
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
                     &self.default_texture_key,
+                    &self.default_front_texture_key,
                 );
             }
             drop(pass);
@@ -268,6 +274,7 @@ impl RenderTarget {
         (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
         is_texture_conflict_logged: &mut bool,
         default_texture_key: &ResourceKey,
+        default_front_texture_key: &ResourceKey,
     ) -> Option<()> {
         let camera = camera_registry.get(&group_key.camera_key, cameras)?;
         if !camera.target_keys.contains(target_key) {
@@ -275,17 +282,28 @@ impl RenderTarget {
         }
         let material = material_registry.get(&group_key.material_key, materials)?;
         let texture_key = material.texture_key.as_ref().unwrap_or(default_texture_key);
-        if target_texture_key == Some(texture_key) {
-            if !*is_texture_conflict_logged {
-                error!(
-                    "texture `{:?}` used at same time as render target `{:?}` and material `{:?}`",
-                    texture_key, target_key, group_key.material_key,
-                );
-                *is_texture_conflict_logged = true;
-            }
-            return None;
-        }
-        let texture = texture_registry.get(texture_key, textures)?;
+        let texture = Self::texture(
+            target_key,
+            group_key,
+            texture_key,
+            target_texture_key,
+            (texture_registry, textures),
+            is_texture_conflict_logged,
+        )?;
+        let texture_bind_ground = &texture.inner().bind_group;
+        let front_texture_key = material
+            .front_texture_key
+            .as_ref()
+            .unwrap_or(default_front_texture_key);
+        let front_texture = Self::texture(
+            target_key,
+            group_key,
+            front_texture_key,
+            target_texture_key,
+            (texture_registry, textures),
+            is_texture_conflict_logged,
+        )?;
+        let front_texture_bind_ground = &front_texture.inner().bind_group;
         let shader = shader_registry.get(&material.shader_key, shaders)?;
         let mesh = mesh_registry.get(&group_key.mesh_key, meshes)?;
         let camera_uniform = camera.uniform(target_key, target_type);
@@ -295,7 +313,8 @@ impl RenderTarget {
         pass.set_pipeline(shader.pipeline());
         pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::MATERIAL_GROUP, material_uniform.bind_group(), &[]);
-        pass.set_bind_group(Shader::TEXTURE_GROUP, &texture.inner().bind_group, &[]);
+        pass.set_bind_group(Shader::TEXTURE_GROUP, texture_bind_ground, &[]);
+        pass.set_bind_group(Shader::FRONT_TEXTURE_GROUP, front_texture_bind_ground, &[]);
         pass.set_vertex_buffer(0, vertex_buffer.buffer());
         pass.set_vertex_buffer(1, instance_buffer.buffer());
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);
@@ -306,6 +325,27 @@ impl RenderTarget {
                 ..(instance_range.map_or_else(|| instance_buffer.len(), |r| r.end) as u32),
         );
         Some(())
+    }
+
+    fn texture<'a>(
+        target_key: &ResourceKey,
+        group_key: &GroupKey,
+        texture_key: &ResourceKey,
+        target_texture_key: Option<&ResourceKey>,
+        (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
+        is_texture_conflict_logged: &mut bool,
+    ) -> Option<&'a Texture> {
+        if target_texture_key == Some(texture_key) {
+            if !*is_texture_conflict_logged {
+                error!(
+                    "texture `{:?}` used at same time as render target `{:?}` and material `{:?}`",
+                    texture_key, target_key, group_key.material_key,
+                );
+                *is_texture_conflict_logged = true;
+            }
+            return None;
+        }
+        texture_registry.get(texture_key, textures)
     }
 }
 

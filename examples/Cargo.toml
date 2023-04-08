@@ -24,6 +24,7 @@ ndk-glue.workspace = true
 
 [package.metadata.android]
 build_targets = ["armv7-linux-androideabi"]
+assets = "assets"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31
@@ -34,4 +35,8 @@ crate-type = ["cdylib"]
 
 [[example]]
 name = "android_rendering_2d_new"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "android_text"
 crate-type = ["cdylib"]

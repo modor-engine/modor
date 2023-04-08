@@ -39,6 +39,7 @@ impl Shader {
     pub(crate) const CAMERA_GROUP: u32 = 0;
     pub(crate) const MATERIAL_GROUP: u32 = 1;
     pub(crate) const TEXTURE_GROUP: u32 = 2;
+    pub(crate) const FRONT_TEXTURE_GROUP: u32 = 3;
 
     #[allow(clippy::cast_possible_truncation)]
     const VERTEX_BUFFER_LAYOUTS: &'static [VertexBufferLayout<'static>] = &[
@@ -115,6 +116,7 @@ impl Shader {
                 bind_group_layouts: &[
                     &context.camera_bind_group_layout,
                     &context.material_bind_group_layout,
+                    &context.texture_bind_group_layout,
                     &context.texture_bind_group_layout,
                 ],
                 push_constant_ranges: &[],

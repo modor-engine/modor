@@ -18,6 +18,8 @@ pub struct Material {
     pub texture_key: Option<ResourceKey>,
     pub texture_position: Vec2,
     pub texture_size: Vec2,
+    pub front_texture_key: Option<ResourceKey>,
+    pub front_color: Color,
     pub(crate) shader_key: ResourceKey,
     key: ResourceKey,
     uniform: Option<Uniform<MaterialData>>,
@@ -58,12 +60,24 @@ impl Material {
         self
     }
 
+    pub fn with_front_texture(mut self, key: impl IntoResourceKey) -> Self {
+        self.front_texture_key = Some(key.into_key());
+        self
+    }
+
+    pub fn with_front_color(mut self, color: Color) -> Self {
+        self.front_color = color;
+        self
+    }
+
     fn new_internal(key: impl IntoResourceKey, shader_key: ShaderKey) -> Self {
         Self {
             color: Color::WHITE,
             texture_key: None,
             texture_position: Vec2::ZERO,
             texture_size: Vec2::ONE,
+            front_texture_key: None,
+            front_color: Color::BLACK,
             key: key.into_key(),
             shader_key: shader_key.into_key(),
             uniform: None,
@@ -84,6 +98,7 @@ impl Material {
                 color: self.color.into(),
                 texture_part_position: [self.texture_position.x, self.texture_position.y],
                 texture_part_size: [self.texture_size.x, self.texture_size.y],
+                front_color: self.front_color.into(),
             };
             if let Some(uniform) = &mut self.uniform {
                 if data != **uniform {
@@ -153,4 +168,5 @@ pub(crate) struct MaterialData {
     pub(crate) color: [f32; 4],
     pub(crate) texture_part_position: [f32; 2],
     pub(crate) texture_part_size: [f32; 2],
+    pub(crate) front_color: [f32; 4],
 }

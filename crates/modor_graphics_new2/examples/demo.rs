@@ -66,7 +66,7 @@ fn texture() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Texture::new(
             ResourceKey::SmileyTexture,
-            TextureSource::StaticData(include_bytes!(concat!(
+            TextureSource::File(include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/assets/smiley.png"
             ))),

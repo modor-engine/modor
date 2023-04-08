@@ -21,6 +21,7 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 pub struct Texture {
     key: ResourceKey,
     is_smooth: bool,
+    is_repeated: bool,
     handler: ResourceHandler<LoadedImage, TextureData>,
     texture: Option<LoadedTexture>,
     renderer_version: Option<u8>,
@@ -32,6 +33,7 @@ impl Texture {
         Self {
             key: key.into_key(),
             is_smooth: true,
+            is_repeated: false,
             handler: ResourceHandler::new(source.into()),
             texture: None,
             renderer_version: None,
@@ -40,6 +42,11 @@ impl Texture {
 
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {
         self.is_smooth = is_smooth;
+        self
+    }
+
+    pub fn with_repeated(mut self, is_repeated: bool) -> Self {
+        self.is_repeated = is_repeated;
         self
     }
 
@@ -107,11 +114,16 @@ impl Texture {
     }
 
     fn create_sampler(&self, context: &GpuContext) -> Sampler {
+        let address_mode = if self.is_repeated {
+            AddressMode::Repeat
+        } else {
+            AddressMode::ClampToEdge
+        };
         context.device.create_sampler(&SamplerDescriptor {
             label: Some(&format!("modor_texture_sampler_{:?}", self.key)),
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
-            address_mode_w: AddressMode::Repeat,
+            address_mode_u: address_mode,
+            address_mode_v: address_mode,
+            address_mode_w: address_mode,
             min_filter: FilterMode::Nearest,
             mag_filter: if self.is_smooth {
                 FilterMode::Linear
@@ -185,21 +197,21 @@ impl Resource for Texture {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum TextureSource {
-    Unit,
     Size(Size),
-    StaticData(&'static [u8]),
-    Data(Vec<u8>),
+    File(&'static [u8]),
     Path(String),
+    RgbaBuffer(Vec<u8>, Size),
 }
 
 impl From<TextureSource> for ResourceSource<TextureData> {
     fn from(source: TextureSource) -> Self {
         match source {
-            TextureSource::Unit => Self::SyncData(TextureData::Size(Size::new(1, 1))),
             TextureSource::Size(size) => Self::AsyncData(TextureData::Size(size)),
-            TextureSource::StaticData(data) => Self::AsyncData(TextureData::StaticData(data)),
-            TextureSource::Data(data) => Self::AsyncData(TextureData::Data(data)),
+            TextureSource::File(data) => Self::AsyncData(TextureData::File(data)),
             TextureSource::Path(path) => Self::AsyncPath(path),
+            TextureSource::RgbaBuffer(buffer, size) => {
+                Self::SyncData(TextureData::RgbaBuffer(buffer, size))
+            }
         }
     }
 }
@@ -215,8 +227,8 @@ pub(crate) struct LoadedTexture {
 #[derive(Debug, Clone)]
 enum TextureData {
     Size(Size),
-    StaticData(&'static [u8]),
-    Data(Vec<u8>),
+    File(&'static [u8]),
+    RgbaBuffer(Vec<u8>, Size),
 }
 
 #[derive(Debug)]
@@ -227,6 +239,18 @@ impl LoadedImage {
         image::load_from_memory(data)
             .map_err(Self::convert_error)
             .map(DynamicImage::into_rgba8)
+            .map(Self)
+    }
+
+    fn load_from_buffer(buffer: Vec<u8>, size: Size) -> Result<Self, ResourceLoadingError> {
+        let buffer_len = buffer.len();
+        RgbaImage::from_raw(size.width, size.height, buffer)
+            .ok_or_else(|| {
+                ResourceLoadingError::InvalidFormat(format!(
+                    "RGBA buffer size ({buffer_len}) does not correspond \
+                    to specified image size ({size:?})",
+                ))
+            })
             .map(Self)
     }
 
@@ -253,17 +277,18 @@ impl Load<TextureData> for LoadedImage {
     fn load_from_data(data: &TextureData) -> Result<Self, ResourceLoadingError> {
         match data {
             TextureData::Size(size) => Ok(Self(RgbaImage::from_pixel(
-                size.width,
-                size.height,
+                size.width.max(1),
+                size.height.max(1),
                 Rgba([255u8, 255, 255, 255]),
             ))),
-            TextureData::StaticData(data) => Self::load_from_memory(data),
-            TextureData::Data(data) => Self::load_from_memory(data),
+            TextureData::File(data) => Self::load_from_memory(data),
+            TextureData::RgbaBuffer(buffer, size) => Self::load_from_buffer(buffer.clone(), *size),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum TextureKey {
-    Blank,
+    White,
+    Invisible,
 }

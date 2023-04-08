@@ -187,6 +187,11 @@ where
                     error!("duplicated `{k:?}` resource of type `{t}`");
                 });
             }
+            if let ResourceState::Error(error) = resource.state() {
+                self.failed_keys.run(key, |k, t| {
+                    error!("loading failed for `{k:?}` resource of type `{t}`: {error}");
+                });
+            }
         }
     }
 
@@ -196,11 +201,8 @@ where
                 ResourceState::NotLoaded => self.not_loaded_keys.run(key, |k, t| {
                     warn!("try to use not loaded `{k:?}` resource of type `{t}`");
                 }),
-                ResourceState::Error(error) => self.failed_keys.run(key, |k, t| {
-                    error!("loading failed for `{k:?}` resource of type `{t}`: {error}");
-                }),
-                ResourceState::Loading => (),
                 ResourceState::Loaded => return Some(resource),
+                ResourceState::Loading | ResourceState::Error(_) => (),
             }
         } else {
             self.missing_keys.run(key, |k, t| {
@@ -312,7 +314,7 @@ where
                 self.start_loading()
             }
             ResourceHandlerState::DataLoading(job) => Self::check_data_loading_job::<R>(job, key),
-            ResourceHandlerState::PathLoading(job) => Self::check_path_loading_job(job),
+            ResourceHandlerState::PathLoading(job) => Self::check_path_loading_job::<R>(job, key),
             state @ (ResourceHandlerState::Loaded(_)
             | ResourceHandlerState::Used
             | ResourceHandlerState::Error(_)) => state,
@@ -345,22 +347,32 @@ where
             Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
             Ok(Some(Err(error))) => ResourceHandlerState::Error(error),
             Ok(None) => ResourceHandlerState::DataLoading(job),
-            Err(_) => ResourceHandlerState::Error(ResourceLoadingError::LoadingError(format!(
-                "loading job panicked for `{:?}` resource of type {:?}",
-                key,
-                any::type_name::<R>()
-            ))),
+            Err(_) => {
+                let error = format!(
+                    "loading job panicked for `{:?}` resource of type {:?}",
+                    key,
+                    any::type_name::<R>()
+                );
+                log::error!("{error}");
+                ResourceHandlerState::Error(ResourceLoadingError::LoadingError(error))
+            }
         }
     }
 
-    fn check_path_loading_job(
+    fn check_path_loading_job<R>(
         mut job: AssetLoadingJob<Result<T, ResourceLoadingError>>,
+        key: &ResourceKey,
     ) -> ResourceHandlerState<T> {
         match job.try_poll() {
             Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
             Ok(Some(Err(error))) => ResourceHandlerState::Error(error),
             Ok(None) => ResourceHandlerState::PathLoading(job),
             Err(error) => {
+                log::error!(
+                    "loading from path failed for `{:?}` resource of type {:?}: {error}",
+                    key,
+                    any::type_name::<R>()
+                );
                 ResourceHandlerState::Error(ResourceLoadingError::AssetLoadingError(error))
             }
         }

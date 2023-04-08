@@ -5,13 +5,12 @@ use instant::Instant;
 use modor::App;
 use modor_input::{InputEvent, InputEventCollector};
 use modor_physics::DeltaTime;
-use std::mem;
 use std::sync::Arc;
 use std::time::Duration;
 use wgpu::{Instance, Surface};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, TouchPhase, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder};
+use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window as WindowHandle, WindowBuilder};
 
 const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
@@ -28,6 +27,7 @@ pub fn runner(app: App) {
 }
 
 #[doc(hidden)]
+#[allow(unused_variables, unused_mut)]
 pub fn test_runner(
     app: App,
     context: &mut TestRunnerContext,
@@ -35,7 +35,10 @@ pub fn test_runner(
     mut f: impl FnMut(App, &mut WindowHandle, u32) -> App,
 ) {
     // TODO: use cfg aliases ?
-    #[cfg(any(all(unix, not(apple), not(android_platform)), target_os = "windows"))]
+    #[cfg(any(
+        all(unix, not(apple), not(target_os = "android")),
+        target_os = "windows"
+    ))]
     {
         use winit::platform::run_return::EventLoopExtRunReturn;
 
@@ -50,7 +53,7 @@ pub fn test_runner(
             state.treat_event(event, control_flow);
             if is_update {
                 state.app.app = f(
-                    mem::take(&mut state.app.app),
+                    std::mem::take(&mut state.app.app),
                     &mut state.main_window,
                     update_id,
                 );
@@ -61,31 +64,45 @@ pub fn test_runner(
             }
         });
     }
-    #[cfg(not(any(all(unix, not(apple), not(android_platform)), target_os = "windows")))]
+    #[cfg(not(any(
+        all(unix, not(apple), not(target_os = "android")),
+        target_os = "windows"
+    )))]
     {
-        panic!("test runner not supported on this platform");
+        log::error!("test runner not supported on this platform");
     }
 }
 
 // should be created only once
 #[doc(hidden)]
 pub struct TestRunnerContext {
+    #[allow(unused)]
     event_loop: Option<EventLoop<()>>,
 }
 
 impl Default for TestRunnerContext {
     fn default() -> Self {
-        #[cfg(any(all(unix, not(apple), not(android_platform)), target_os = "windows"))]
+        #[cfg(any(
+            all(unix, not(apple), not(target_os = "android")),
+            target_os = "windows"
+        ))]
         {
-            #[cfg(all(unix, not(apple), not(android_platform)))]
+            #[cfg(all(unix, not(apple), not(target_os = "android")))]
             use winit::platform::unix::EventLoopBuilderExtUnix;
             #[cfg(target_os = "windows")]
             use winit::platform::windows::EventLoopBuilderExtWindows;
             Self {
-                event_loop: Some(EventLoopBuilder::new().with_any_thread(true).build()),
+                event_loop: Some(
+                    winit::event_loop::EventLoopBuilder::new()
+                        .with_any_thread(true)
+                        .build(),
+                ),
             }
         }
-        #[cfg(not(any(all(unix, not(apple), not(android_platform)), target_os = "windows")))]
+        #[cfg(not(any(
+            all(unix, not(apple), not(target_os = "android")),
+            target_os = "windows"
+        )))]
         {
             Self { event_loop: None }
         }

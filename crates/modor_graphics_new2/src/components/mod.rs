@@ -8,6 +8,7 @@ pub(crate) mod model;
 pub(crate) mod render_target;
 pub(crate) mod renderer;
 pub(crate) mod shader;
+pub(crate) mod text;
 pub(crate) mod texture;
 pub(crate) mod texture_buffer;
 pub(crate) mod window;

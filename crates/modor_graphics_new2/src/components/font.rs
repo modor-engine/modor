@@ -1,16 +1,24 @@
 use crate::resource::ResourceHandler;
 use crate::{
-    IntoResourceKey, Load, Resource, ResourceKey, ResourceLoadingError, ResourceSource,
-    ResourceState,
+    IntoResourceKey, Load, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
+    ResourceSource, ResourceState,
 };
 use ab_glyph::FontVec;
 use std::fmt::Debug;
+
+pub(crate) const DEFAULT_FONT_FILE: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/res/Roboto-Regular.ttf"
+));
+
+pub(crate) type FontRegistry = ResourceRegistry<Font>;
 
 #[derive(Component, Debug)]
 pub struct Font {
     key: ResourceKey,
     handler: ResourceHandler<LoadedFont, Vec<u8>>,
     font: Option<FontVec>,
+    pub(crate) is_just_loaded: bool,
 }
 
 #[systems]
@@ -20,21 +28,28 @@ impl Font {
             key: key.into_key(),
             handler: ResourceHandler::new(source.into()),
             font: None,
+            is_just_loaded: false,
         }
     }
 
-    // TODO: notify all texts that font has been updated
     #[run]
     fn update(&mut self) {
+        self.is_just_loaded = false;
         self.handler.update::<Self>(&self.key);
-        self.font = self
-            .font
-            .take()
-            .or_else(|| self.handler.resource().map(|r| r.0));
+        self.font = self.font.take().or_else(|| {
+            self.handler.resource().map(|r| {
+                self.is_just_loaded = true;
+                r.0
+            })
+        });
     }
 
     pub fn set_source(&mut self, source: FontSource) {
         self.handler.set_source(source.into());
+    }
+
+    pub(crate) fn get(&self) -> &FontVec {
+        self.font.as_ref().expect("internal error: font not loaded")
     }
 }
 
@@ -51,14 +66,14 @@ impl Resource for Font {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FontSource {
-    Data(Vec<u8>),
+    File(&'static [u8]),
     Path(String),
 }
 
 impl From<FontSource> for ResourceSource<Vec<u8>> {
     fn from(source: FontSource) -> Self {
         match source {
-            FontSource::Data(data) => Self::AsyncData(data),
+            FontSource::File(data) => Self::AsyncData(data.into()),
             FontSource::Path(path) => Self::AsyncPath(path),
         }
     }
@@ -77,4 +92,9 @@ impl Load<Vec<u8>> for LoadedFont {
     fn load_from_data(data: &Vec<u8>) -> Result<Self, ResourceLoadingError> {
         Self::load_from_file(data.clone())
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum FontKey {
+    Default,
 }
