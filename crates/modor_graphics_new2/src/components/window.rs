@@ -1,9 +1,9 @@
 use crate::data::size::NonZeroSize;
-use crate::Size;
+use crate::{platform, Size};
 use std::sync::Arc;
 use wgpu::Surface;
 use winit::event_loop::ControlFlow;
-use winit::window::{Window as WindowHandle, WindowId};
+use winit::window::Window as WindowHandle;
 
 #[must_use]
 #[allow(clippy::struct_excessive_bools)]
@@ -18,7 +18,6 @@ pub struct Window {
     old_is_cursor_shown: bool,
     is_surface_refreshed: bool,
     is_closing_requested: bool,
-    handle_id: Option<WindowId>,
     surface: Option<Arc<Surface>>,
 }
 
@@ -34,7 +33,6 @@ impl Default for Window {
             old_is_cursor_shown: true,
             is_surface_refreshed: false,
             is_closing_requested: false,
-            handle_id: None,
             surface: None,
         }
     }
@@ -70,11 +68,6 @@ impl Window {
         self.size.into()
     }
 
-    pub(crate) fn handle_id(&self) -> WindowId {
-        self.handle_id
-            .expect("internal error: window handle not initialized")
-    }
-
     pub(crate) fn refresh_surface(&mut self, surface: Arc<Surface>) {
         self.is_surface_refreshed = true;
         self.surface = Some(surface);
@@ -82,10 +75,6 @@ impl Window {
 
     // on Windows, Window::set_title freezes the application if not run in main thread
     pub(crate) fn update(&mut self, handle: &mut WindowHandle, surface: &Arc<Surface>) {
-        if self.handle_id.is_none() {
-            self.handle_id = Some(handle.id());
-            handle.set_visible(true);
-        }
         if self.surface.is_none() {
             self.surface = Some(surface.clone());
         }
@@ -97,24 +86,18 @@ impl Window {
         });
         Self::on_change(self.is_cursor_shown, &mut self.old_is_cursor_shown, |v| {
             handle.set_cursor_visible(*v);
-            Self::update_canvas_cursor(handle, self.is_cursor_shown);
+            platform::update_canvas_cursor(handle, self.is_cursor_shown);
         });
     }
 
-    pub(crate) fn close_window(&mut self, control_flow: &mut ControlFlow, handle: &WindowHandle) {
-        if self.handle_id != Some(handle.id()) {
-            return;
-        }
+    pub(crate) fn close_window(&mut self, control_flow: &mut ControlFlow) {
         match self.close_behavior {
             WindowCloseBehavior::Exit => *control_flow = ControlFlow::Exit,
             WindowCloseBehavior::None => self.is_closing_requested = true,
         }
     }
 
-    pub(crate) fn update_size(&mut self, width: u32, height: u32, handle: &WindowHandle) {
-        if self.handle_id != Some(handle.id()) {
-            return;
-        }
+    pub(crate) fn update_size(&mut self, width: u32, height: u32) {
         self.size = Size::new(width, height);
         self.old_size = Size::new(width, height);
     }
@@ -139,19 +122,6 @@ impl Window {
         if &property != current_property {
             f(&property);
             *current_property = property;
-        }
-    }
-
-    fn update_canvas_cursor(_handle: &WindowHandle, _is_cursor_show: bool) {
-        #[cfg(target_arch = "wasm32")]
-        {
-            use winit::platform::web::WindowExtWebSys;
-            let canvas = _handle.canvas();
-            let value = if _is_cursor_show { "auto" } else { "none" };
-            canvas
-                .style()
-                .set_property("cursor", value)
-                .expect("cannot update canvas cursor property");
         }
     }
 }

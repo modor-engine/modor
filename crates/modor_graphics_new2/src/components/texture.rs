@@ -1,12 +1,13 @@
 use crate::components::renderer::Renderer;
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
-use crate::{
-    GpuContext, IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey,
-    ResourceLoadingError, ResourceRegistry, ResourceSource, ResourceState, Size,
-};
+use crate::{GpuContext, Size};
 use image::{DynamicImage, ImageError, Rgba, RgbaImage};
 use modor::Single;
+use modor_resources::{
+    IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey, ResourceLoadingError,
+    ResourceRegistry, ResourceSource, ResourceState,
+};
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
     FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Sampler, SamplerDescriptor,
@@ -55,7 +56,7 @@ impl Texture {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.texture = None;
-            self.handler.reset();
+            self.handler.reload();
         }
         if let Some(context) = state.context() {
             self.handler.update::<Self>(&self.key);
@@ -190,7 +191,11 @@ impl Resource for Texture {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        self.handler.state()
+        if self.texture.is_some() {
+            ResourceState::Loaded
+        } else {
+            self.handler.state()
+        }
     }
 }
 

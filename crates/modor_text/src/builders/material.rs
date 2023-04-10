@@ -1,5 +1,7 @@
-use crate::{IntoResourceKey, Material, Size, Text, Texture, TextureSource};
+use crate::Text;
 use modor::{BuiltEntity, EntityBuilder};
+use modor_graphics_new2::{Material, Size, Texture, TextureSource};
+use modor_resources::IntoResourceKey;
 
 pub struct TextMaterialBuilder<K> {
     material_key: K,

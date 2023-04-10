@@ -1,14 +1,15 @@
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single};
 use modor_graphics_new2::{
-    Alignment, Camera2D, Color, Font, FontSource, Material, Model, RenderTarget, Size, Text,
-    Texture, TextureSource, Window,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window,
 };
 use modor_input::{InputModule, Key, Keyboard};
 use modor_physics::Transform2D;
+use modor_text::{Alignment, Font, FontSource, Text};
 
 pub fn main() {
     App::new()
-        .with_entity(modor_graphics_new2::renderer())
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(modor_text::module())
         .with_entity(InputModule::build())
         .with_entity(window())
         .with_entity(Font::new(

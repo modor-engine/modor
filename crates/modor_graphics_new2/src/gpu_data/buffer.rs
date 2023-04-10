@@ -76,6 +76,7 @@ where
         context
             .queue
             .write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
+        trace!("GPU buffer '{}' updated", self.label);
     }
 
     fn raw_capacity(capacity: usize) -> u64 {
@@ -130,7 +131,6 @@ fn nearest_multiple(value: u64, multiple: u64) -> u64 {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod buffers_test {
     #[test]
     fn calculate_nearest_multiple() {

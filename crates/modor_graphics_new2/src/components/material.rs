@@ -1,12 +1,10 @@
 use crate::components::shader::ShaderKey;
 use crate::components::texture::TextureRegistry;
 use crate::gpu_data::uniform::Uniform;
-use crate::{
-    Color, IntoResourceKey, Renderer, Resource, ResourceKey, ResourceRegistry, ResourceState,
-    Texture,
-};
+use crate::{Color, Renderer, Texture};
 use modor::{Query, Single, SingleMut};
 use modor_math::Vec2;
+use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 
 pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 

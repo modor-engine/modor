@@ -9,7 +9,7 @@ use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
 fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(modor_graphics_new2::renderer())
+        .with_entity(modor_graphics_new2::module())
         .with_entity(window_target())
         .with_entity(texture_target())
         .with_entity(texture())

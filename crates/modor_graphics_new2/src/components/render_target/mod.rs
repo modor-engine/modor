@@ -10,12 +10,11 @@ use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureKey, TextureRegistry};
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
-use crate::{
-    Camera2D, Color, FrameRate, IntoResourceKey, Material, Renderer, Resource, ResourceKey,
-    ResourceLoadingError, ResourceRegistry, ResourceState, Texture, Window,
-};
-use log::error;
+use crate::{Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
 use modor::{Component, ComponentSystems, Query, Single, SingleMut};
+use modor_resources::{
+    IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry, ResourceState,
+};
 use std::fmt::Debug;
 use std::ops::Range;
 use wgpu::{IndexFormat, RenderPass};
@@ -76,13 +75,6 @@ impl RenderTarget {
                 .window
                 .take()
                 .or_else(|| WindowTarget::new(window, context))
-                .and_then(|t| {
-                    if window.handle_id() == t.handle_id() {
-                        Some(t)
-                    } else {
-                        WindowTarget::new(window, context)
-                    }
-                })
                 .map(|t| t.updated(window, context, frame_rate));
         }
         self.window_state = if self.window.is_some() {
@@ -199,6 +191,7 @@ impl RenderTarget {
             }
             drop(pass);
             target.end_render_pass(context);
+            trace!("rendering done in window target `{:?}`", self.key);
         }
         if let (Some(target), Some(texture)) = (&mut self.texture, texture) {
             let mut pass = target.begin_render_pass(texture, self.background_color, context);
@@ -242,6 +235,7 @@ impl RenderTarget {
             }
             drop(pass);
             target.end_render_pass(context);
+            trace!("rendering done in texture target `{:?}`", self.key);
         }
     }
 

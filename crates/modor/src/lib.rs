@@ -44,6 +44,7 @@ mod app;
 mod components;
 mod entities;
 mod filters;
+mod platform;
 mod ranges;
 mod storages;
 mod system_params;

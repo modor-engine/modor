@@ -1,5 +1,7 @@
 use crate::storages::core::CoreStorage;
-use crate::{system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange};
+use crate::{
+    platform, system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange,
+};
 use crate::{Entity, Query};
 use std::any;
 use std::marker::PhantomData;
@@ -445,7 +447,7 @@ where
         C: Component + RefUnwindSafe,
         A: Fn(&C) + RefUnwindSafe,
     {
-        Self::check_platform_for_catch_unwind();
+        platform::check_catch_unwind_availability();
         let mut component_count = 0;
         let mut error = None;
         let mut ok_count = 0;
@@ -544,13 +546,5 @@ where
             any::type_name::<P>(),
         );
         self
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn check_platform_for_catch_unwind() {}
-
-    #[cfg(target_arch = "wasm32")]
-    fn check_platform_for_catch_unwind() {
-        panic!("not supported");
     }
 }

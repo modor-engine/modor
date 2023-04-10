@@ -1,10 +1,9 @@
 use crate::components::instances::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{
-    GpuContext, IntoResourceKey, Renderer, Resource, ResourceKey, ResourceRegistry, ResourceState,
-};
+use crate::{GpuContext, Renderer};
 use modor::Single;
+use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor, PolygonMode,

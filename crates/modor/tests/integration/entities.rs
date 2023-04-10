@@ -60,9 +60,9 @@ impl Level3 {
             .with(Value(value))
             .with_option(add_option.then_some(42_u32).map(U32))
             .with_option((!add_option).then_some(42_i8).map(I8))
-            .with_dependency::<Singleton1, _>(Singleton1(10))
-            .with_dependency::<Singleton2, _>(Singleton2(20))
-            .with_dependency::<Singleton3, _>(Singleton3(30))
+            .with_dependency::<Singleton1, _, _>(|| Singleton1(10))
+            .with_dependency::<Singleton2, _, _>(|| Singleton2(20))
+            .with_dependency::<Singleton3, _, _>(|| Singleton3(30))
     }
 }
 

@@ -1,7 +1,6 @@
 use crate::input::events;
-use crate::runner::RunnerApp;
+use crate::runner::app::RunnerApp;
 use gilrs::{EventType, Gilrs};
-use log::error;
 use modor_input::{GamepadEvent, InputEvent};
 
 pub(crate) struct Gamepads {

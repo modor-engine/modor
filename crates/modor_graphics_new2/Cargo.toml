@@ -12,11 +12,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-ab_glyph.workspace = true
 bytemuck.workspace = true
 fxhash.workspace = true
 futures.workspace = true
@@ -33,6 +29,7 @@ modor_internal.workspace = true
 modor_jobs.workspace = true
 modor_math.workspace = true
 modor_physics.workspace = true
+modor_resources.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wgpu.workspace = true

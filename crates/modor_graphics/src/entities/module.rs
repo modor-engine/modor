@@ -68,8 +68,8 @@ impl GraphicsModule {
             .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
             .with_child(BackgroundColor::from(Color::BLACK))
             .with_child(FrameRateLimit::from(FrameRate::VSync))
-            .with_dependency::<PhysicsModule, _>(PhysicsModule::build())
-            .with_dependency::<InputModule, _>(InputModule::build())
+            .with_dependency::<PhysicsModule, _, _>(PhysicsModule::build)
+            .with_dependency::<InputModule, _, _>(InputModule::build)
     }
     // coverage: on
 
@@ -85,7 +85,7 @@ impl GraphicsModule {
             .with(Self)
             .with_child(Capture::build(capture_size))
             .with_child(BackgroundColor::from(Color::BLACK))
-            .with_dependency::<PhysicsModule, _>(PhysicsModule::build())
+            .with_dependency::<PhysicsModule, _, _>(PhysicsModule::build)
     }
 
     #[run_after(component(RenderTarget), component(Capture))]

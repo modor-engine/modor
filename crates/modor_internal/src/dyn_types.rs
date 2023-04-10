@@ -4,6 +4,8 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
+// TODO: remove this module
+
 pub struct DynType(Box<dyn DynTrait>);
 
 impl DynType {

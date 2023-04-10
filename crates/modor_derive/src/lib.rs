@@ -1,4 +1,4 @@
-//! Procedural macros of modor.
+//! Procedural macros of Modor.
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};

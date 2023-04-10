@@ -1,7 +1,8 @@
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{IntoResourceKey, Renderer, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use crate::Renderer;
 use modor::Single;
+use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
 pub(crate) type MeshRegistry = ResourceRegistry<Mesh>;

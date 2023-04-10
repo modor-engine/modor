@@ -2,10 +2,11 @@ use crate::components::instances::transparent::TransparentInstanceRegistry;
 use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::{GpuContext, Material, Model, Renderer, Resource, ZIndex2D};
+use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
 use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
+use modor_resources::Resource;
 
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct OpaqueInstanceRegistry {
@@ -38,6 +39,7 @@ impl OpaqueInstanceRegistry {
                     let group_key = group_key.clone();
                     transparent_instances.add_opaque_instance(*instance, entity_id, group_key);
                     self.delete_entity(entity_id);
+                    debug!("opaque instance with ID `{entity_id}` is now transparent");
                 }
             }
         }
@@ -50,6 +52,7 @@ impl OpaqueInstanceRegistry {
             .chain(world.deleted_entity_ids());
         for entity_id in deleted_entity_ids {
             self.delete_entity(entity_id);
+            debug!("opaque instance with ID {entity_id} unregistered (changed/deleted)");
         }
     }
 
@@ -78,6 +81,7 @@ impl OpaqueInstanceRegistry {
             if is_transparent {
                 continue;
             }
+            let entity_id = entity.id();
             for camera_key in &model.camera_keys {
                 let group_key = GroupKey {
                     camera_key: camera_key.clone(),
@@ -91,11 +95,12 @@ impl OpaqueInstanceRegistry {
                     .add((transform, model, z_index, entity));
                 if is_new {
                     self.entity_groups
-                        .entry(entity.id())
+                        .entry(entity_id)
                         .or_insert_with(Vec::new)
                         .push(group_key);
                 }
             }
+            debug!("opaque instance with ID {entity_id} registered (new/changed)");
         }
         for group in self.groups.values_mut() {
             group.sync(context);

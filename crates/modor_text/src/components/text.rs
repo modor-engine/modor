@@ -1,9 +1,9 @@
 use crate::components::font::{FontKey, FontRegistry};
-use crate::{Font, IntoResourceKey, ResourceKey, Size, Texture, TextureSource};
+use crate::Font;
 use ab_glyph::{Font as AbFont, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::{Query, SingleMut};
-
-// TODO: move in dedicated crate modor_text ?
+use modor_graphics_new2::{Size, Texture, TextureSource};
+use modor_resources::{IntoResourceKey, ResourceKey};
 
 const TEXTURE_PADDING_PX: u32 = 1;
 

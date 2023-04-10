@@ -1,5 +1,5 @@
 use crate::components::mesh::MeshKey;
-use crate::{IntoResourceKey, ResourceKey};
+use modor_resources::{IntoResourceKey, ResourceKey};
 
 #[must_use]
 #[derive(Component, NoSystem)]

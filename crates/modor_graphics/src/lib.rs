@@ -1,4 +1,4 @@
-//! Graphics module of modor.
+//! Graphics module of Modor.
 //!
 //! # Getting started
 //!

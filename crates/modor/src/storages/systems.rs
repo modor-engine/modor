@@ -2,7 +2,7 @@ use crate::storages::actions::ActionIdx;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{LockedSystem, SystemStateStorage};
 use crate::systems::context::{Storages, SystemContext};
-use crate::{ArchetypeFilterFn, SystemWrapper};
+use crate::{platform, ArchetypeFilterFn, SystemWrapper};
 use scoped_threadpool::Pool;
 use std::sync::Mutex;
 use typed_index_collections::TiVec;
@@ -21,17 +21,10 @@ impl SystemStorage {
 
     #[allow(unused_variables)]
     pub(super) fn set_thread_count(&mut self, count: u32) {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            if count < 2 {
-                self.pool = None;
-            } else {
-                self.pool = Some(Pool::new(count - 1));
-            }
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
+        if count < 2 {
             self.pool = None;
+        } else {
+            self.pool = platform::create_pool(count - 1);
         }
     }
 

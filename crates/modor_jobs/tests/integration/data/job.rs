@@ -34,7 +34,7 @@ impl FileLoader {
 fn run_successful_job() {
     App::new()
         .with_log_level(LevelFilter::Trace)
-        .with_entity(FileLoader::new("tests/assets/test.txt"))
+        .with_entity(FileLoader::new("assets/test.txt"))
         .updated_until_all::<(), _>(Some(100), |l: &FileLoader| {
             thread::sleep(Duration::from_millis(10));
             l.size != Ok(None)

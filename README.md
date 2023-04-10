@@ -40,17 +40,19 @@ Modor could also work on some other platforms, like macOS, but they have not bee
 The minimum supported version of Rust is
 defined [in this file](https://github.com/modor-engine/modor/blob/main/Cargo.toml).
 
-To include this library in your project, just add the following dependency in your `Cargo.toml` file:
+You can include some or all engine features in your project by adding the following
+dependencies in your `Cargo.toml` file:
 
 ```toml
 modor = "0.1"
+modor_graphics = "0.1"
+modor_input = "0.1"
+modor_jobs = "0.1"
+modor_math = "0.1"
+modor_physics = "0.1"
+modor_resources = "0.1"
+modor_text = "0.1"
 ```
-
-You can also include the modules you want, like:
-
-- [physics](crates/modor_physics/README.md)
-- [graphics](crates/modor_graphics/README.md)
-- [input](crates/modor_input/README.md)
 
 ## Examples
 

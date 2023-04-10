@@ -14,7 +14,7 @@ fn main() {
     App::new()
         .with_thread_count(4)
         .with_entity(PhysicsModule::build())
-        .with_entity(modor_graphics_new2::renderer())
+        .with_entity(modor_graphics_new2::module())
         .with_entity(primary_render_target())
         .with_entity(secondary_render_target())
         .with_entity(texture())

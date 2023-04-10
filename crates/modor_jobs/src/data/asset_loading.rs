@@ -1,4 +1,4 @@
-use crate::Job;
+use crate::{platform, Job};
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -81,7 +81,7 @@ where
         let asset_path = path.as_ref().to_string();
         Self {
             inner: Job::<Result<T, AssetLoadingError>>::new(async move {
-                match Self::load_asset(asset_path).await {
+                match platform::load_asset(asset_path).await {
                     Ok(b) => Ok(f(b).await),
                     Err(e) => Err(e),
                 }
@@ -101,58 +101,6 @@ where
             .try_poll()
             .expect("internal error: asset loading job has failed")
             .map_or(Ok(None), |result| result.map(|r| Some(r)))
-    }
-
-    #[cfg_attr(target_os = "android", allow(clippy::unused_async))]
-    #[cfg_attr(target_arch = "wasm32", allow(clippy::future_not_send))]
-    async fn load_asset(path: String) -> Result<Vec<u8>, AssetLoadingError> {
-        #[cfg(all(not(target_os = "android"), not(target_arch = "wasm32")))]
-        {
-            let base_path = if let Some(path) = std::env::var_os("CARGO_MANIFEST_DIR") {
-                path.into()
-            } else {
-                std::env::current_exe()
-                    .map_err(|e| AssetLoadingError::IoError(e.to_string()))?
-                    .parent()
-                    .expect("internal error: cannot retrieve executable folder")
-                    .to_path_buf()
-            };
-            async_std::fs::read(base_path.join(ASSET_FOLDER_NAME).join(path))
-                .await
-                .map_err(|e| AssetLoadingError::IoError(e.to_string()))
-        }
-        #[cfg(target_os = "android")]
-        {
-            let path = std::ffi::CString::new(path.into_bytes())
-                .map_err(|_| AssetLoadingError::InvalidAssetPath)?;
-            ndk_glue::native_activity()
-                .asset_manager()
-                .open(&path)
-                .ok_or_else(|| {
-                    AssetLoadingError::IoError(std::io::ErrorKind::NotFound.to_string())
-                })?
-                .get_buffer()
-                .map_err(|e| AssetLoadingError::IoError(e.to_string()))
-                .map(<[u8]>::to_vec)
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            let base_url = web_sys::window()
-                .ok_or(AssetLoadingError::NotFoundDomWindow)?
-                .location()
-                .href()
-                .map_err(|e| AssetLoadingError::InvalidLocationHref(format!("{e:?}")))?;
-            let url = format!("{}/{ASSET_FOLDER_NAME}/{}", base_url, path);
-            reqwest::get(url)
-                .await
-                .map_err(|e| AssetLoadingError::IoError(e.to_string()))?
-                .error_for_status()
-                .map_err(|e| AssetLoadingError::IoError(e.to_string()))?
-                .bytes()
-                .await
-                .map_err(|e| AssetLoadingError::IoError(e.to_string()))
-                .map(Into::into)
-        }
     }
 }
 

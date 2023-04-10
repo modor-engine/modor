@@ -18,6 +18,7 @@ modor_math.workspace = true
 modor_graphics_new2 = { version = "0.1.0", path = "../crates/modor_graphics_new2" }
 modor_physics.workspace = true
 modor_input.workspace = true
+modor_text.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk-glue.workspace = true

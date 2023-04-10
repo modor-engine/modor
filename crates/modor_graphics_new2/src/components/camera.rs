@@ -3,14 +3,12 @@ use crate::components::render_target::{
 };
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
-use crate::{
-    GpuContext, IntoResourceKey, RenderTarget, Renderer, Resource, ResourceKey, ResourceRegistry,
-    ResourceState, Window,
-};
+use crate::{GpuContext, RenderTarget, Renderer, Window};
 use fxhash::FxHashMap;
 use modor::{Query, Single, SingleMut};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
+use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
@@ -77,6 +75,12 @@ impl Camera2D {
                         .entry(target_part_key)
                         .and_modify(|u| u.transform = transform)
                         .or_insert_with(|| Self::create_uniform(context, transform));
+                    trace!(
+                        "2D camera `{:?}` prepared for target `{:?}` of type `{:?}`",
+                        self.key,
+                        target_key,
+                        target_type
+                    );
                 }
             }
             self.target_uniforms.retain(|_, u| u.is_changed());

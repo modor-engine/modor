@@ -1,8 +1,9 @@
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{Model, ResourceKey, ZIndex2D};
+use crate::{Model, ZIndex2D};
 use modor::{Changed, Entity, Or};
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
+use modor_resources::ResourceKey;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
 pub(crate) mod opaque;

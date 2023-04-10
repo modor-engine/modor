@@ -1,3 +1,4 @@
+use crate::platform;
 use instant::Instant;
 use std::time::Duration;
 use wgpu::PresentMode;
@@ -34,15 +35,12 @@ impl FrameRate {
     fn sleep_internal(start: Instant, frame_time: Duration) {
         let update_time = Instant::now().duration_since(start);
         if let Some(remaining_time) = frame_time.checked_sub(update_time) {
-            if !cfg!(target_arch = "wasm32") {
-                spin_sleep::sleep(remaining_time);
-            }
+            platform::sleep(remaining_time);
         }
     }
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod utils_tests {
     use crate::FrameRate;
     use instant::{Duration, Instant};

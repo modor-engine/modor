@@ -1,5 +1,4 @@
 use crate::components::camera::Camera2DRegistry;
-use crate::components::font::{FontKey, FontRegistry, DEFAULT_FONT_FILE};
 use crate::components::instances::opaque::OpaqueInstanceRegistry;
 use crate::components::instances::transparent::TransparentInstanceRegistry;
 use crate::components::material::MaterialRegistry;
@@ -8,21 +7,21 @@ use crate::components::render_target::RenderTargetRegistry;
 use crate::components::renderer::Renderer;
 use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureKey, TextureRegistry};
-use crate::{Font, FontSource, Size, Texture, TextureSource};
+use crate::{Size, Texture, TextureSource};
 use modor::{BuiltEntity, EntityBuilder};
 
-pub fn renderer() -> impl BuiltEntity {
+pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
+        .with(GraphicsModule)
         .with(Renderer::new())
-        .with_child(RenderTargetRegistry::default())
-        .with_child(Camera2DRegistry::default())
-        .with_child(ShaderRegistry::default())
-        .with_child(MeshRegistry::default())
-        .with_child(MaterialRegistry::default())
-        .with_child(TextureRegistry::default())
-        .with_child(FontRegistry::default())
-        .with_child(OpaqueInstanceRegistry::default())
-        .with_child(TransparentInstanceRegistry::default())
+        .with(OpaqueInstanceRegistry::default())
+        .with(TransparentInstanceRegistry::default())
+        .with(RenderTargetRegistry::default())
+        .with(Camera2DRegistry::default())
+        .with(ShaderRegistry::default())
+        .with(MeshRegistry::default())
+        .with(MaterialRegistry::default())
+        .with(TextureRegistry::default())
         .with_child(Shader::default())
         .with_child(Shader::ellipse())
         .with_child(Mesh::rectangle())
@@ -34,8 +33,8 @@ pub fn renderer() -> impl BuiltEntity {
             TextureKey::Invisible,
             TextureSource::RgbaBuffer(vec![0; 4], Size::new(1, 1)),
         ))
-        .with_child(Font::new(
-            FontKey::Default,
-            FontSource::File(DEFAULT_FONT_FILE),
-        ))
 }
+
+#[non_exhaustive]
+#[derive(SingletonComponent, NoSystem)]
+pub struct GraphicsModule;

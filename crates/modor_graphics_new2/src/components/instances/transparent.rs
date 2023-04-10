@@ -46,6 +46,7 @@ impl TransparentInstanceRegistry {
                     buffer.swap_remove(position);
                     self.instances.swap_remove(position);
                 }
+                debug!("transparent instance with ID {entity_id} unregistered (changed/deleted)");
             }
         }
     }
@@ -79,13 +80,14 @@ impl TransparentInstanceRegistry {
             if !is_transparent {
                 continue;
             }
+            let entity_id = entity.id();
             for camera_key in &model.camera_keys {
                 let group_key = GroupKey {
                     camera_key: camera_key.clone(),
                     material_key: model.material_key.clone(),
                     mesh_key: model.mesh_key.clone(),
                 };
-                if let Some(position) = self.entity_positions.add(entity.id(), &group_key) {
+                if let Some(position) = self.entity_positions.add(entity_id, &group_key) {
                     buffer[position] = super::create_instance(transform, z_index, 0.);
                     self.instances[position] = InstanceDetails {
                         group: group_key,
@@ -99,6 +101,7 @@ impl TransparentInstanceRegistry {
                     });
                 };
             }
+            debug!("transparent instance with ID {entity_id} registered (new/changed)");
         }
         self.instances.sort_unstable_by(|a, b| {
             Self::compare_instances(&buffer[a.position], &buffer[b.position])
@@ -243,7 +246,7 @@ impl EntityPositions {
 mod entity_positions_tests {
     use crate::components::instances::transparent::EntityPositions;
     use crate::components::instances::GroupKey;
-    use crate::IntoResourceKey;
+    use modor_resources::IntoResourceKey;
 
     #[test]
     fn add_new_entities() {

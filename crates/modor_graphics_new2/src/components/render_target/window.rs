@@ -6,12 +6,10 @@ use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
     TextureUsages, TextureViewDescriptor,
 };
-use winit::window::WindowId;
 
 #[derive(Debug)]
 pub(crate) struct WindowTarget {
     core: TargetCore,
-    handle_id: WindowId,
     surface: Arc<Surface>,
     surface_config: SurfaceConfiguration,
     current_texture: Option<SurfaceTexture>,
@@ -27,16 +25,11 @@ impl WindowTarget {
         surface.configure(&context.device, &surface_config);
         Some(Self {
             core: TargetCore::new(size, context),
-            handle_id: window.handle_id(),
             has_immediate_mode: Self::has_immediate_mode(&surface, context),
             surface,
             surface_config,
             current_texture: None,
         })
-    }
-
-    pub(crate) fn handle_id(&self) -> WindowId {
-        self.handle_id
     }
 
     pub(crate) fn core(&self) -> &TargetCore {

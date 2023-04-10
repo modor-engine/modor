@@ -39,15 +39,13 @@ pub(crate) fn mouse_position(position: PhysicalPosition<f64>) -> InputEvent {
 }
 
 pub(crate) fn keyboard_key(input: KeyboardInput) -> Option<InputEvent> {
-    if let Some(code) = input.virtual_keycode {
-        let key = mappings::to_keyboard_key(code);
-        Some(InputEvent::Keyboard(match input.state {
+    input.virtual_keycode.map(|c| {
+        let key = mappings::to_keyboard_key(c);
+        InputEvent::Keyboard(match input.state {
             ElementState::Pressed => KeyboardEvent::PressedKey(key),
             ElementState::Released => KeyboardEvent::ReleasedKey(key),
-        }))
-    } else {
-        None
-    }
+        })
+    })
 }
 
 pub(crate) fn character(character: char) -> InputEvent {
@@ -72,26 +70,16 @@ pub(crate) fn ended_touch(touch: Touch) -> InputEvent {
 }
 
 pub(crate) fn pressed_gamepad_button(gamepad_id: u64, button: gilrs::Button) -> Option<InputEvent> {
-    if let Some(button) = mappings::to_gamepad_button(button) {
-        Some(InputEvent::Gamepad(GamepadEvent::PressedButton(
-            gamepad_id, button,
-        )))
-    } else {
-        None
-    }
+    mappings::to_gamepad_button(button)
+        .map(|button| InputEvent::Gamepad(GamepadEvent::PressedButton(gamepad_id, button)))
 }
 
 pub(crate) fn released_gamepad_button(
     gamepad_id: u64,
     button: gilrs::Button,
 ) -> Option<InputEvent> {
-    if let Some(button) = mappings::to_gamepad_button(button) {
-        Some(InputEvent::Gamepad(GamepadEvent::ReleasedButton(
-            gamepad_id, button,
-        )))
-    } else {
-        None
-    }
+    mappings::to_gamepad_button(button)
+        .map(|button| InputEvent::Gamepad(GamepadEvent::ReleasedButton(gamepad_id, button)))
 }
 
 pub(crate) fn changed_gamepad_button(
@@ -99,13 +87,9 @@ pub(crate) fn changed_gamepad_button(
     button: gilrs::Button,
     value: f32,
 ) -> Option<InputEvent> {
-    if let Some(button) = mappings::to_gamepad_button(button) {
-        Some(InputEvent::Gamepad(GamepadEvent::UpdatedButtonValue(
-            gamepad_id, button, value,
-        )))
-    } else {
-        None
-    }
+    mappings::to_gamepad_button(button).map(|button| {
+        InputEvent::Gamepad(GamepadEvent::UpdatedButtonValue(gamepad_id, button, value))
+    })
 }
 
 pub(crate) fn changed_gamepad_axis(
@@ -113,13 +97,8 @@ pub(crate) fn changed_gamepad_axis(
     axis: gilrs::Axis,
     value: f32,
 ) -> Option<InputEvent> {
-    if let Some(axis) = mappings::to_gamepad_axis(axis) {
-        Some(InputEvent::Gamepad(GamepadEvent::UpdatedAxisValue(
-            gamepad_id, axis, value,
-        )))
-    } else {
-        None
-    }
+    mappings::to_gamepad_axis(axis)
+        .map(|axis| InputEvent::Gamepad(GamepadEvent::UpdatedAxisValue(gamepad_id, axis, value)))
 }
 
 #[allow(clippy::cast_possible_truncation)]

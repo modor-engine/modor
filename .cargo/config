@@ -1,2 +1,7 @@
 [alias]
 run-wasm = "run --release --package run-wasm --"
+
+# Target can be uncommented to work with platform-specific files in IDE
+[build]
+#target = "aarch64-linux-android"
+#target = "wasm32-unknown-unknown"

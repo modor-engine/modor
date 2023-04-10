@@ -1,9 +1,8 @@
-use crate::resource::ResourceHandler;
-use crate::{
-    IntoResourceKey, Load, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry,
-    ResourceSource, ResourceState,
-};
 use ab_glyph::FontVec;
+use modor_resources::{
+    IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey, ResourceLoadingError,
+    ResourceRegistry, ResourceSource, ResourceState,
+};
 use std::fmt::Debug;
 
 pub(crate) const DEFAULT_FONT_FILE: &[u8] = include_bytes!(concat!(
@@ -59,7 +58,11 @@ impl Resource for Font {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        self.handler.state()
+        if self.font.is_some() {
+            ResourceState::Loaded
+        } else {
+            self.handler.state()
+        }
     }
 }
 

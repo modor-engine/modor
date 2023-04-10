@@ -33,7 +33,7 @@ fn load_valid_file_with_cargo() {
     // Multiple retries allowed as `load_valid_file_without_cargo` updates `CARGO_MANIFEST_DIR`.
     modor_internal::retry!(3, {
         App::new()
-            .with_entity(FileLoader::new("../tests/assets/test.txt"))
+            .with_entity(FileLoader::new("test.txt"))
             .updated_until_all::<(), _>(Some(100), |l: &FileLoader| {
                 thread::sleep(Duration::from_millis(10));
                 l.size != Ok(None)
@@ -51,7 +51,7 @@ fn load_valid_file_with_cargo() {
 #[test]
 fn load_valid_file_without_cargo() {
     let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let asset_path = PathBuf::from(cargo_manifest_dir).join("tests/assets/test.txt");
+    let asset_path = PathBuf::from(cargo_manifest_dir).join("assets/test.txt");
     let executable_path: PathBuf = std::env::current_exe().unwrap().parent().unwrap().into();
     fs::create_dir_all(executable_path.join("assets")).unwrap();
     fs::copy(asset_path, executable_path.join("assets/copied_test.txt")).unwrap();

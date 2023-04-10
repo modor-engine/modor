@@ -1,11 +1,5 @@
-use modor::{
-    systems, App, BuiltEntity, Component, EntityBuilder, NoSystem, Query, Single,
-    SingletonComponent,
-};
-use modor_graphics_new2::{
-    Camera2D, Color, Font, FontSource, FrameRate, Material, Model, RenderTarget, Text,
-    TextMaterialBuilder, Window,
-};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Query, Single};
+use modor_graphics_new2::{Camera2D, Color, FrameRate, Material, Model, RenderTarget, Window};
 use modor_input::{InputModule, Key, Keyboard, Mouse};
 use modor_math::Vec2;
 use modor_physics::{
@@ -26,17 +20,11 @@ fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(InputModule::build())
-        .with_entity(modor_graphics_new2::renderer())
+        .with_entity(modor_graphics_new2::module())
         .with_entity(FrameRate::VSync)
-        .with_entity(Font::new(
-            FontKey,
-            FontSource::Path("LuckiestGuy-Regular.ttf".into()),
-        ))
         .with_entity(window())
         .with_entity(Material::new(MaterialKey::White).with_color(Color::WHITE))
         .with_entity(Material::ellipse(MaterialKey::WhiteEllipse).with_color(Color::WHITE))
-        .with_entity(left_score())
-        .with_entity(right_score())
         .with_entity(wall(field_left, vertical_wall_size))
         .with_entity(wall(field_right, vertical_wall_size))
         .with_entity(wall(field_top, horizontal_wall_size))
@@ -54,41 +42,6 @@ fn window() -> impl BuiltEntity {
         .with(RenderTarget::new(TargetKey))
         .with(Window::default().with_cursor_shown(false))
         .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
-}
-
-fn left_score() -> impl BuiltEntity {
-    score(-0.25).with(LeftScore).with_inherited(
-        TextMaterialBuilder::new(MaterialKey::LeftScore, "", 100.)
-            .with_material(|m| {
-                m.with_color(Color::INVISIBLE)
-                    .with_front_color(Color::WHITE)
-            })
-            .with_text(|t| t.with_font(FontKey))
-            .build(),
-    )
-}
-
-fn right_score() -> impl BuiltEntity {
-    score(0.25).with(RightScore).with_inherited(
-        TextMaterialBuilder::new(MaterialKey::RightScore, "", 100.)
-            .with_material(|m| {
-                m.with_color(Color::INVISIBLE)
-                    .with_front_color(Color::WHITE)
-            })
-            .with_text(|t| t.with_font(FontKey))
-            .build(),
-    )
-}
-
-fn score(x: f32) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .with(
-            Transform2D::new()
-                .with_position(Vec2::new(x, 0.40))
-                .with_size(Vec2::new(0.3, 0.1)),
-        )
-        .with(Model::rectangle(MaterialKey::LeftScore).with_camera_key(CameraKey))
-        .with(Score(0))
 }
 
 fn wall(position: Vec2, size: Vec2) -> impl BuiltEntity {
@@ -140,23 +93,6 @@ fn cursor() -> impl BuiltEntity {
         .with(Model::rectangle(MaterialKey::WhiteEllipse).with_camera_key(CameraKey))
         .with(Cursor)
 }
-
-#[derive(Component)]
-struct Score(u32);
-
-#[systems]
-impl Score {
-    #[run]
-    fn update(&self, text: &mut Text) {
-        text.content = format!("{}", self.0);
-    }
-}
-
-#[derive(SingletonComponent, NoSystem)]
-struct LeftScore;
-
-#[derive(SingletonComponent, NoSystem)]
-struct RightScore;
 
 #[derive(Component)]
 struct Paddle {
@@ -271,8 +207,6 @@ struct FontKey;
 enum MaterialKey {
     White,
     WhiteEllipse,
-    LeftScore,
-    RightScore,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

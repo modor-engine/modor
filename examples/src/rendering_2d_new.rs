@@ -13,7 +13,7 @@ const SPRITE_MATERIAL_COUNT: u32 = 10;
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(modor_graphics_new2::renderer())
+        .with_entity(modor_graphics_new2::module())
         // .with_entity(FpsPrinter)
         .with_entity(window())
         .with_entity(materials())

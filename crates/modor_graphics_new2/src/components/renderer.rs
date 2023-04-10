@@ -1,18 +1,19 @@
+use crate::platform;
 use futures::executor;
 use modor::Single;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingType, BufferBindingType, Device, DeviceDescriptor, Instance, Limits, PowerPreference,
-    Queue, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
+    BindingType, BufferBindingType, Device, DeviceDescriptor, Instance, PowerPreference, Queue,
+    RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
     TextureSampleType, TextureViewDimension,
 };
 
 static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
 
 #[derive(SingletonComponent, Debug)]
-pub struct Renderer {
+pub(crate) struct Renderer {
     pub(crate) version: Option<u8>,
     context: Option<Arc<GpuContext>>,
 }
@@ -29,17 +30,22 @@ impl Renderer {
     #[run]
     fn init(&mut self) {
         if self.version.is_none() {
-            self.version = Some(RENDERER_VERSION.fetch_add(1, Ordering::AcqRel));
+            let version = self
+                .version
+                .insert(RENDERER_VERSION.fetch_add(1, Ordering::AcqRel));
+            debug!("version {version} assigned to the current renderer");
         }
         if self.context.is_none() {
             let instance = GpuContext::instance();
             self.context = Some(Arc::new(GpuContext::new(&instance, None)));
+            debug!("graphic context created for the current renderer");
         }
     }
 
     pub(crate) fn update(&mut self, renderer: &Arc<GpuContext>) {
         if self.context.is_none() {
             self.context = Some(renderer.clone());
+            debug!("graphic context attached by runner to the current renderer");
         }
     }
 
@@ -71,7 +77,7 @@ impl Renderer {
 }
 
 #[derive(Debug)]
-pub struct GpuContext {
+pub(crate) struct GpuContext {
     pub(crate) adapter: Adapter,
     pub(crate) device: Device,
     pub(crate) queue: Queue,
@@ -111,19 +117,11 @@ impl GpuContext {
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
         let device_descriptor = DeviceDescriptor {
             features: wgpu::Features::empty(),
-            limits: Self::gpu_limits(),
+            limits: platform::gpu_limits(),
             label: None,
         };
         executor::block_on(adapter.request_device(&device_descriptor, None))
             .expect("error when retrieving graphic device")
-    }
-
-    fn gpu_limits() -> Limits {
-        if cfg!(target_arch = "wasm32") {
-            Limits::downlevel_webgl2_defaults()
-        } else {
-            Limits::default()
-        }
     }
 
     fn camera_bind_group_layout(device: &Device) -> BindGroupLayout {
