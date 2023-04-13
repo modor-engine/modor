@@ -21,6 +21,3 @@ mod data;
 pub use components::registry::*;
 pub use data::handler::*;
 pub use data::key::*;
-
-// TODO: add doc
-// TODO: add tests

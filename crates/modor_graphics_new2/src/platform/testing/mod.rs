@@ -1,11 +1,21 @@
-#[cfg(all(unix, not(apple), not(target_os = "android")))]
+#[cfg(all(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
 include!("linux.rs");
 
 #[cfg(target_os = "windows")]
 include!("windows.rs");
 
 #[cfg(not(any(
-    all(unix, not(apple), not(target_os = "android")),
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd",
     target_os = "windows"
 )))]
 include!("not_linux_windows.rs");

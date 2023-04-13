@@ -34,7 +34,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: sudo apt-get update && sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev xorg
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
