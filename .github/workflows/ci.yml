@@ -18,7 +18,7 @@ env:
 
 jobs:
   test-ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,13 +34,13 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: sudo apt-get update && sudo apt-get install libudev-dev xorg xvfb
+        run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
         run: cargo build --all-targets
       - name: Test
-        run: xvfb-run -a -s "-screen 0 1920x1080x32 +extension RANDR" -- cargo test
+        run: cargo test
         env:
           WGPU_BACKEND: vulkan
 
