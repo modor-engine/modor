@@ -34,13 +34,13 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: sudo apt-get update && sudo apt-get install libudev-dev xorg
+        run: sudo apt-get update && sudo apt-get install libudev-dev xorg xvfb
       - name: Install graphics dependencies
         run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
         run: cargo build --all-targets
       - name: Test
-        run: cargo test
+        run: xvfb-run -a -s "-screen 0 1920x1080x32 +extension RANDR" -- cargo test
         env:
           WGPU_BACKEND: vulkan
 
