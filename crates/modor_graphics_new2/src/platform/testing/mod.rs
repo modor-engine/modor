@@ -1,4 +1,4 @@
-#[cfg(all(
+#[cfg(any(
     target_os = "linux",
     target_os = "dragonfly",
     target_os = "freebsd",
