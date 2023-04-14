@@ -36,7 +36,7 @@ jobs:
       - name: Install general dependencies
         run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Install graphics dependencies
-        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
+        run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -161,7 +161,7 @@ jobs:
       - name: Install general dependencies
         run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Install graphics dependencies
-        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
+        run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
         run: cargo install grcov --debug
       - name: Run unit tests
