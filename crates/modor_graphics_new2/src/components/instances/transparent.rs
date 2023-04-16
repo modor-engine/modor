@@ -315,7 +315,7 @@ mod entity_positions_tests {
         positions.add(20, &group1);
         positions.add(30, &group2);
         assert_eq!(positions.delete(10), [2, 1, 0]);
-        assert_eq!(positions.delete(10), []);
+        assert_eq!(positions.delete(10), [] as [usize; 0]);
         assert_eq!(positions.entity_ids, [30, 20]);
         assert_eq!(positions.entity_positions.get(&10), None);
         assert_eq!(positions.entity_positions[&30][&group2], 0);
@@ -340,7 +340,7 @@ mod entity_positions_tests {
         positions.add(30, &group1);
         positions.add(30, &group2);
         assert_eq!(positions.delete(30), [3, 2]);
-        assert_eq!(positions.delete(30), []);
+        assert_eq!(positions.delete(30), [] as [usize; 0]);
         assert_eq!(positions.entity_ids, [10, 20]);
         assert_eq!(positions.entity_positions[&10][&group1], 0);
         assert_eq!(positions.entity_positions[&20][&group2], 1);

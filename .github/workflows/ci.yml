@@ -13,6 +13,7 @@ on:
 env:
   XDG_RUNTIME_DIR: "~"
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
   COV_THRESHOLD: 100.0
   CODECOV_UPLOAD: true
 
@@ -40,7 +41,7 @@ jobs:
       - name: Build
         run: cargo build --all-targets
       - name: Test
-        run: xvfb-run cargo test
+        run: xvfb-run --server-args="-screen 0 1920x1080x24" cargo test
         env:
           WGPU_BACKEND: vulkan
 
@@ -159,13 +160,13 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install general dependencies
-        run: sudo apt-get update && sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev xvfb
       - name: Install graphics dependencies
         run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
         run: cargo install grcov --debug
       - name: Run unit tests
-        run: cargo test --lib --tests
+        run: xvfb-run --server-args="-screen 0 1920x1080x24" cargo test --lib --tests
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
           LLVM_PROFILE_FILE: "%m.profraw"

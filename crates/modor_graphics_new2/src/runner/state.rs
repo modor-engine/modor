@@ -110,6 +110,7 @@ impl RunnerState {
         window.current_monitor().and_then(|m| {
             m.video_modes()
                 .map(|m| m.refresh_rate_millihertz())
+                .filter_map(|r| (r > 0).then_some(r))
                 .map(|r| Duration::from_secs_f64(1000. / f64::from(r)))
                 .fold(None, |a, b| Some(a.map_or(b, |a: Duration| a.min(b))))
         })
