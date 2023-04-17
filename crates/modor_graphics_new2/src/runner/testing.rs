@@ -18,7 +18,7 @@ pub fn test_runner(
     mut f: impl FnMut(App, &mut WindowHandle, u32) -> App,
 ) {
     context.event_loop().map_or_else(
-        || error!("test runner not supported on this platform"),
+        || panic!("test runner only supported on windows and linux platforms"),
         |l| {
             let mut state = RunnerState::new(app, l);
             let mut update_id = 0;

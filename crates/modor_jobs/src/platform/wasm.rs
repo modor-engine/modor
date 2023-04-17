@@ -3,6 +3,7 @@ use std::any::Any;
 use std::future::Future;
 use std::marker::PhantomData;
 
+/// A trait implemented for any future runnable by a job that produces a value of type `T`.
 pub trait JobFuture<T>: Future<Output = T> + Any {}
 
 impl<F, T> JobFuture<T> for F where F: Future<Output = T> + Any {}

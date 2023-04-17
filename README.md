@@ -30,10 +30,11 @@ Modor is a *mo*dular and *d*ata-*or*iented game engine, based on the following p
 
 - Windows
 - Linux
+- macOS (limited support because the maintainer doesn't have access to a physical device)
 - Android
 - Web
 
-Modor could also work on some other platforms, like macOS, but they have not been tested.
+Modor may also work on some other platforms, but they have not been tested.
 
 ## Usage
 

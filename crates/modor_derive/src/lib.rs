@@ -2,15 +2,58 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
-use proc_macro_error::abort;
+use proc_macro_error::{abort, OptionExt};
 use quote::quote;
+use std::collections::HashMap;
+use syn::__private::TokenStream2;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, ItemImpl};
+use syn::{
+    parse_macro_input, AttributeArgs, Data, DeriveInput, Fields, ItemFn, ItemImpl, Meta, NestedMeta,
+};
 
 mod attributes;
 mod idents;
 mod impl_block;
 mod systems;
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_attribute]
+#[proc_macro_error::proc_macro_error]
+pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let conditions: HashMap<_, _> = platform_conditions();
+    let item = parse_macro_input!(item as ItemFn);
+    let attr = parse_macro_input!(attr as AttributeArgs);
+    if attr.len() > 1 {
+        abort!(item, "max one argument is allowed");
+    }
+    let excluded_platforms = attr
+        .first()
+        .map_or_else(|| Some(vec![]), parse_test_meta)
+        .expect_or_abort(
+            "expected syntax: `#[modor_test]` or `#[modor_test(disabled(platform1, ...))]`",
+        );
+    let mut platforms: Vec<_> = conditions.keys().collect();
+    platforms.sort_unstable();
+    for excluded_platform in &excluded_platforms {
+        if !conditions.contains_key(excluded_platform.to_string().as_str()) {
+            abort!(excluded_platform, "allowed platforms are {:?}", platforms);
+        }
+    }
+    let conditions = excluded_platforms
+        .iter()
+        .map(|p| &conditions[p.to_string().as_str()])
+        .collect::<Vec<_>>();
+    let output = quote! {
+        #[cfg_attr(any(#(#conditions),*), allow(unused))]
+        #[cfg_attr(not(any(#(#conditions),*)), test)]
+        #[cfg_attr(
+            all(target_arch = "wasm32", not(any(#(#conditions),*))),
+            ::wasm_bindgen_test::wasm_bindgen_test)
+        ]
+        #item
+    };
+    output.into()
+}
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(Action)]
@@ -26,7 +69,7 @@ pub fn action_derive(item: TokenStream) -> TokenStream {
             Fields::Unit => vec![],
             Fields::Named(_) => abort!(item, "structs with named fields cannot be actions"),
         },
-        Data::Enum(_) | Data::Union(_) => abort!(item.span(), "only structs can be actions"),
+        Data::Enum(_) | Data::Union(_) => abort!(item, "only structs can be actions"),
     };
     let output = quote! {
         impl #impl_generics #crate_ident::Action for #ident #type_generics #where_clause {
@@ -114,6 +157,50 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
         pub struct #action_type_ident #type_generics(#(#actions,)* #action_phantom) #where_clause;
     };
     output.into()
+}
+
+fn platform_conditions() -> HashMap<&'static str, TokenStream2> {
+    [
+        ("windows", quote!(target_os = "windows")),
+        ("macos", quote!(target_os = "macos")),
+        ("android", quote!(target_os = "android")),
+        ("wasm", quote!(target_arch = "wasm32")),
+        (
+            "linux",
+            quote!(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            )),
+        ),
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn parse_test_meta(meta: &NestedMeta) -> Option<Vec<Ident>> {
+    if let NestedMeta::Meta(Meta::List(platforms)) = meta {
+        if platforms.path.segments.len() != 1 || platforms.path.segments[0].ident != "disabled" {
+            None
+        } else {
+            platforms
+                .nested
+                .iter()
+                .map(|n| {
+                    if let NestedMeta::Meta(Meta::Path(path)) = n {
+                        if !path.segments.is_empty() {
+                            return Some(path.segments[0].ident.clone());
+                        }
+                    }
+                    None
+                })
+                .collect::<Option<Vec<_>>>()
+        }
+    } else {
+        None
+    }
 }
 
 fn derive_component(item: TokenStream, is_singleton: bool) -> TokenStream {

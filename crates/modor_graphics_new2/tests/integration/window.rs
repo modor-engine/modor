@@ -2,7 +2,7 @@ use modor::{App, With};
 use modor_graphics_new2::testing::TestRunnerContext;
 use modor_graphics_new2::{testing, Window};
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 pub fn test_window() {
     let mut context = TestRunnerContext::default();
     test_default_window(&mut context);

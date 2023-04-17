@@ -6,6 +6,7 @@ use std::ffi::CString;
 use std::future::Future;
 use std::io::ErrorKind;
 
+/// A trait implemented for any future runnable by a job that produces a value of type `T`.
 pub trait JobFuture<T>: Future<Output = T> + Send + Any {}
 
 impl<F, T> JobFuture<T> for F where F: Future<Output = T> + Send + Any {}

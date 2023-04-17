@@ -87,7 +87,7 @@ jobs:
       # Tests are disabled because there is no available software renderer
 
   test-android:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -111,7 +111,7 @@ jobs:
         run: cargo clippy --all-targets --target aarch64-linux-android -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   test-web:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -141,7 +141,7 @@ jobs:
         run: cargo clippy --all-targets --target wasm32-unknown-unknown -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   check-coverage:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -201,7 +201,7 @@ jobs:
         run: bash .github/workflows/scripts/check_coverage_lcov.sh
 
   generate-doc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -224,7 +224,7 @@ jobs:
           RUSTDOCFLAGS: -Dwarnings
 
   lint-rust:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -259,7 +259,7 @@ jobs:
           CARGO_TERM_COLOR: never
 
   lint-generic:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3

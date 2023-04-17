@@ -396,3 +396,34 @@ pub use modor_derive::NoSystem;
 /// }
 /// ```
 pub use modor_derive::systems;
+
+/// Defines a test method that is conditionally run depending on the platform.
+///
+/// This method adds the `#[test]` attribute to the method if the current platform is not in the
+/// list of disabled platforms.
+/// The list of disabled platforms must be specified in a `disabled(...)` argument.
+///
+/// The allowed platforms are:
+/// - `android`
+/// - `linux`
+/// - `macos`
+/// - `wasm`
+/// - `windows`
+///
+/// # Platform-specific
+///
+/// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
+/// `#[test]`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[modor_test]
+/// fn run_on_all_platforms() { }
+///
+/// #[modor_test(disabled(linux, wasm))]
+/// fn run_on_all_platforms_expect_linux_and_wasm() { }
+/// ```
+pub use modor_derive::modor_test;
