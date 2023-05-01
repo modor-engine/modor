@@ -91,7 +91,7 @@ impl Camera2D {
     }
 
     pub fn world_position(&self, window: &Window, window_position: Vec2) -> Vec2 {
-        let target_size: Vec2 = window.size.into();
+        let target_size: Vec2 = window.size().into();
         self.world_matrix(target_size)
             * Vec2::new(
                 window_position.x / target_size.x - 0.5,

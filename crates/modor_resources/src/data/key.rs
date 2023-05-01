@@ -91,6 +91,7 @@ where
 
 /// A trait implemented for all values convertible to a [`ResourceKey`](ResourceKey).
 pub trait IntoResourceKey {
+    /// Converts the value into a [`ResourceKey`](ResourceKey).
     fn into_key(self) -> ResourceKey;
 }
 
@@ -98,7 +99,6 @@ impl<T> IntoResourceKey for T
 where
     T: Any + Clone + Hash + PartialEq + Eq + Debug + Sync + Send + UnwindSafe + RefUnwindSafe,
 {
-    /// Converts a value into a [`ResourceKey`](ResourceKey).
     fn into_key(self) -> ResourceKey {
         ResourceKey::new(self)
     }

@@ -203,7 +203,7 @@ where
     }
 }
 
-/// A trait to define a loadable resource.
+/// A trait for defining a loadable resource.
 ///
 /// # Examples
 ///

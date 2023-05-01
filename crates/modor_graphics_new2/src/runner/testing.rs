@@ -5,7 +5,14 @@ use winit::event::Event;
 use winit::event_loop::ControlFlow;
 use winit::window::Window as WindowHandle;
 
+// TODO: maybe move dependent tests internally (unit tests) to keep this module pub(crate)
+
 /// Runner mainly used to test windows.
+///
+/// `f` is run after each `app` update.
+///
+/// After `update_count` updates of `app`, the runner returns. `events` parameter contains
+/// all events that should be sent at the end of each update.
 ///
 /// # Platform-specific
 ///
@@ -15,7 +22,7 @@ pub fn test_runner(
     app: App,
     context: &mut TestRunnerContext,
     update_count: u32,
-    mut f: impl FnMut(App, &mut WindowHandle, u32) -> App,
+    mut f: impl FnMut(UpdateState<'_>) -> App,
 ) {
     context.event_loop().map_or_else(
         || panic!("test runner only supported on windows and linux platforms"),
@@ -26,7 +33,20 @@ pub fn test_runner(
                 let is_update = matches!(event, Event::MainEventsCleared);
                 state.treat_event(event, control_flow);
                 if is_update {
-                    state.run(|a, w| f(a, w, update_id));
+                    let mut next_events = Vec::new();
+                    let next_events_mut = &mut next_events;
+                    state.run(|a, w| {
+                        let update_state = UpdateState {
+                            app: a,
+                            window: w,
+                            update_id,
+                            next_events: next_events_mut,
+                        };
+                        f(update_state)
+                    });
+                    for event in next_events {
+                        state.treat_event(event, control_flow);
+                    }
                     update_id += 1;
                 }
                 if update_count == update_id {
@@ -35,4 +55,12 @@ pub fn test_runner(
             });
         },
     );
+}
+
+#[doc(hidden)]
+pub struct UpdateState<'a> {
+    pub app: App,
+    pub window: &'a mut WindowHandle,
+    pub update_id: u32,
+    pub next_events: &'a mut Vec<Event<'static, ()>>,
 }

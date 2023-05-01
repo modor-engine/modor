@@ -156,7 +156,7 @@ fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut 
         }
         WindowEvent::Touch(touch) => match touch.phase {
             TouchPhase::Started => {
-                send_touch_event(app, TouchEvent::Started(touch.id));
+                send_touch_event(app, TouchEvent::Started(touch.id, Vec2::ZERO));
                 send_touch_event(
                     app,
                     TouchEvent::UpdatedPosition(

@@ -20,7 +20,7 @@ impl WindowTarget {
     pub(crate) fn new(window: &Window, context: &GpuContext) -> Option<Self> {
         let surface = window.surface()?;
         let format = context.surface_texture_format?;
-        let size = window.surface_size();
+        let size = window.size().into();
         let surface_config = Self::create_surface_config(&surface, format, size, context);
         surface.configure(&context.device, &surface_config);
         Some(Self {
@@ -42,7 +42,7 @@ impl WindowTarget {
         context: &GpuContext,
         frame_rate: FrameRate,
     ) -> Self {
-        let size = window.surface_size();
+        let size = window.size().into();
         let has_surface_config_changed = self.update_surface_config(frame_rate, size);
         let is_surface_refreshed = self.recreate_surface_if_refreshed(window);
         if has_surface_config_changed || is_surface_refreshed {

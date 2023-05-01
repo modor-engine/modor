@@ -7,9 +7,9 @@ fn update_state() {
     App::new()
         .with_entity(InputModule::build())
         .with_update::<(), _>(|c: &mut InputEventCollector| {
-            c.push(TouchEvent::Started(0).into());
-            c.push(TouchEvent::Started(1).into());
-            c.push(TouchEvent::Started(2).into());
+            c.push(TouchEvent::Started(0, Vec2::ZERO).into());
+            c.push(TouchEvent::Started(1, Vec2::ZERO).into());
+            c.push(TouchEvent::Started(2, Vec2::ZERO).into());
         })
         .updated()
         .assert_any::<With<Finger>>(3, |e| {
@@ -70,12 +70,14 @@ fn update_state() {
 fn update_position() {
     App::new()
         .with_entity(InputModule::build())
-        .with_update::<(), _>(|c: &mut InputEventCollector| c.push(TouchEvent::Started(0).into()))
+        .with_update::<(), _>(|c: &mut InputEventCollector| {
+            c.push(TouchEvent::Started(0, Vec2::new(1., 2.)).into());
+        })
         .updated()
         .assert::<With<Finger>>(1, |e| {
             e.has(|f: &Finger| {
                 assert_eq!(f.id(), 0);
-                assert_approx_eq!(f.position(), Vec2::ZERO);
+                assert_approx_eq!(f.position(), Vec2::new(1., 2.));
                 assert_approx_eq!(f.delta(), Vec2::ZERO);
             })
         })
@@ -88,7 +90,7 @@ fn update_position() {
             e.has(|f: &Finger| {
                 assert_eq!(f.id(), 0);
                 assert_approx_eq!(f.position(), Vec2::new(2., 5.));
-                assert_approx_eq!(f.delta(), Vec2::new(2., 5.));
+                assert_approx_eq!(f.delta(), Vec2::new(1., 3.));
             })
         })
         .updated()

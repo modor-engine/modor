@@ -5,7 +5,6 @@
 [![License](https://img.shields.io/crates/l/modor_internal)](https://github.com/modor-engine/modor_internal)
 [![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
-[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-0-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates%2Fmodor_internal+extension%3Ars+unsafe)
 
 Internal module of Modor for common utils.
 

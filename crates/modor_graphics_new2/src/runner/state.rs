@@ -1,8 +1,8 @@
 use crate::input::events;
 use crate::input::gamepads::Gamepads;
-use crate::platform;
 use crate::runner::app::RunnerApp;
 use crate::runner::display::Display;
+use crate::{platform, Window};
 use instant::Instant;
 use modor::App;
 use std::time::Duration;
@@ -26,10 +26,11 @@ pub(super) struct RunnerState {
 impl RunnerState {
     pub(super) fn new(app: App, event_loop: &EventLoop<()>) -> Self {
         let mut app = RunnerApp::new(app);
+        let window_size = Window::DEFAULT_SIZE;
         let window = WindowBuilder::new()
             .with_visible(false)
-            .with_inner_size(PhysicalSize::new(800, 600))
-            .with_title("")
+            .with_inner_size(PhysicalSize::new(window_size.width, window_size.height))
+            .with_title(Window::DEFAULT_TITLE)
             .build(event_loop)
             .expect("internal error: cannot create main window");
         platform::init_canvas(&window);
@@ -85,11 +86,7 @@ impl RunnerState {
                     self.app.send_event(events::character(character));
                 }
                 WindowEvent::Touch(touch) => match touch.phase {
-                    TouchPhase::Started => {
-                        for event in events::started_touch(touch) {
-                            self.app.send_event(event);
-                        }
-                    }
+                    TouchPhase::Started => self.app.send_event(events::started_touch(touch)),
                     TouchPhase::Moved => self.app.send_event(events::moved_touch(touch)),
                     TouchPhase::Ended | TouchPhase::Cancelled => {
                         self.app.send_event(events::ended_touch(touch));

@@ -6,7 +6,6 @@
 [![CI](https://github.com/modor-engine/modor/actions/workflows/ci.yml/badge.svg)](https://github.com/modor-engine/modor/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/modor-engine/modor)](https://app.codecov.io/gh/modor-engine/modor)
 [![Lines of code](https://tokei.rs/b1/github/modor-engine/modor?category=code)](https://github.com/modor-engine/modor)
-[![Unsafe usage](https://img.shields.io/badge/unsafe%20usage-1-green.svg)](https://github.com/modor-engine/modor/search?q=path%3Acrates+extension%3Ars+unsafe)
 
 Modor is a *mo*dular and *d*ata-*or*iented game engine, based on the following principles:
 

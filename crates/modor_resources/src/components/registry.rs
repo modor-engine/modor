@@ -178,10 +178,16 @@ where
     }
 }
 
-/// A trait to define a resource.
+/// A trait for defining a resource.
+///
+/// # Examples
+///
+/// See [`ResourceRegistry`](ResourceRegistry).
 pub trait Resource: Sized {
+    /// Retrieves the key of the resource.
     fn key(&self) -> &ResourceKey;
 
+    /// Retrieves the state of the resource.
     fn state(&self) -> ResourceState<'_>;
 }
 

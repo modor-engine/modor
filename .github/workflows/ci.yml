@@ -61,6 +61,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - name: Install necessary drivers
+        run: winget install ViGEm.ViGEmBus --silent
       - name: Build
         run: cargo build --all-targets
       - name: Test

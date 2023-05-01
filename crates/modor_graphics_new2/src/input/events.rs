@@ -52,12 +52,9 @@ pub(crate) fn character(character: char) -> InputEvent {
     InputEvent::Keyboard(KeyboardEvent::EnteredText(character.into()))
 }
 
-pub(crate) fn started_touch(touch: Touch) -> [InputEvent; 2] {
+pub(crate) fn started_touch(touch: Touch) -> InputEvent {
     let position = winit_pos_to_vec2(touch.location);
-    [
-        InputEvent::Touch(TouchEvent::Started(touch.id)),
-        InputEvent::Touch(TouchEvent::UpdatedPosition(touch.id, position)),
-    ]
+    InputEvent::Touch(TouchEvent::Started(touch.id, position))
 }
 
 pub(crate) fn moved_touch(touch: Touch) -> InputEvent {

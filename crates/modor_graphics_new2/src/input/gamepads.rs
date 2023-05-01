@@ -1,6 +1,6 @@
 use crate::input::events;
 use crate::runner::app::RunnerApp;
-use gilrs::{EventType, Gilrs};
+use gilrs::{Event, EventType, Gilrs};
 use modor_input::{GamepadEvent, InputEvent};
 
 pub(crate) struct Gamepads {
@@ -20,7 +20,7 @@ impl Gamepads {
 
     pub(crate) fn treat_events(&mut self, app: &mut RunnerApp) {
         while let Some(event) = self.gilrs.as_mut().and_then(Gilrs::next_event) {
-            let gilrs::ev::Event { id, event, .. } = event;
+            let Event { id, event, .. } = event;
             let id = <_ as Into<usize>>::into(id) as u64;
             if let Some(event) = Self::convert_event(event, id) {
                 app.send_event(event);

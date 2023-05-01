@@ -1,21 +1,192 @@
-use modor::{App, With};
+use modor::{App, BuiltEntity, Entity, EntityBuilder, With, World};
 use modor_graphics_new2::testing::TestRunnerContext;
-use modor_graphics_new2::{testing, Window};
+use modor_graphics_new2::{testing, RenderTarget, Size, Window, WindowCloseBehavior};
+use winit::dpi::PhysicalSize;
+use winit::event::{Event, WindowEvent};
 
-#[modor_test(disabled(macos, android, wasm))]
-pub fn test_window() {
-    let mut context = TestRunnerContext::default();
-    test_default_window(&mut context);
+pub fn run_window_tests(context: &mut TestRunnerContext) {
+    create_default_window(context);
+    create_customized_window(context);
+    create_target_window(context);
+    create_window_after_start(context);
+    delete_window(context);
+    set_window_properties(context);
+    resize_window(context);
+    close_window_with_exit_behavior(context);
+    close_window_with_none_behavior(context);
 }
 
-fn test_default_window(context: &mut TestRunnerContext) {
+fn create_default_window(context: &mut TestRunnerContext) {
     App::new().with_entity(Window::default()).run(|a| {
-        testing::test_runner(a, context, 1, |a, _, _| {
-            a.assert::<With<Window>>(1, |e| {
+        testing::test_runner(a, context, 2, |s| {
+            s.app.assert::<With<Window>>(1, |e| {
                 e.has(|w: &Window| assert_eq!(w.title, ""))
-                    .has(|w: &Window| assert_eq!(w.size.width, 800))
-                    .has(|w: &Window| assert_eq!(w.size.height, 600))
+                    .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::Exit))
+                    .has(|w: &Window| assert!(w.is_cursor_shown))
+                    .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                    .has(|w: &Window| assert!(!w.is_closing_requested()))
             })
         });
     });
+}
+
+fn create_customized_window(context: &mut TestRunnerContext) {
+    App::new()
+        .with_entity(
+            Window::default()
+                .with_title("title")
+                .with_close_behavior(WindowCloseBehavior::None)
+                .with_cursor_shown(false),
+        )
+        .run(|a| {
+            testing::test_runner(a, context, 2, |s| {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.title, "title"))
+                        .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::None))
+                        .has(|w: &Window| assert!(!w.is_cursor_shown))
+                        .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                        .has(|w: &Window| assert!(!w.is_closing_requested()))
+                })
+            });
+        });
+}
+
+fn create_target_window(context: &mut TestRunnerContext) {
+    App::new()
+        .with_entity(
+            EntityBuilder::new()
+                .with(Window::default())
+                .with(RenderTarget::new("TargetKey")),
+        )
+        .run(|a| {
+            testing::test_runner(a, context, 2, |s| {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                })
+            });
+        });
+}
+
+fn create_window_after_start(context: &mut TestRunnerContext) {
+    App::new().run(|a| {
+        testing::test_runner(a, context, 2, |s| {
+            assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
+            if s.update_id == 0 {
+                if let Some(is_visible) = s.window.is_visible() {
+                    assert!(!is_visible);
+                }
+                s.app.with_entity(Window::default())
+            } else {
+                if let Some(is_visible) = s.window.is_visible() {
+                    assert!(is_visible);
+                }
+                s.app
+            }
+        });
+    });
+}
+
+fn delete_window(context: &mut TestRunnerContext) {
+    App::new()
+        .with_entity(
+            EntityBuilder::new()
+                .with(Window::default())
+                .with(AutoRemove),
+        )
+        .run(|a| {
+            testing::test_runner(a, context, 2, |s| {
+                assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
+                if let Some(is_visible) = s.window.is_visible() {
+                    if s.update_id == 0 {
+                        assert!(is_visible);
+                    } else {
+                        assert!(!is_visible);
+                    }
+                }
+                s.app
+            });
+        });
+}
+
+fn set_window_properties(context: &mut TestRunnerContext) {
+    App::new().with_entity(Window::default()).run(|a| {
+        testing::test_runner(a, context, 2, |s| {
+            if s.update_id == 0 {
+                s.app.with_update::<(), _>(|w: &mut Window| {
+                    w.title = "new title".into();
+                    w.is_cursor_shown = false;
+                })
+            } else {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.title, "new title"))
+                        .has(|w: &Window| assert!(!w.is_cursor_shown))
+                })
+            }
+        });
+    });
+}
+
+fn resize_window(context: &mut TestRunnerContext) {
+    App::new().with_entity(Window::default()).run(|a| {
+        testing::test_runner(a, context, 2, |s| {
+            if s.update_id == 0 {
+                s.window.set_inner_size(PhysicalSize::new(400, 300));
+                s.app
+            } else {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.size(), Size::new(400, 300)))
+                })
+            }
+        });
+    });
+}
+
+fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
+    let mut update_count = 0;
+    App::new()
+        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::Exit))
+        .run(|a| {
+            testing::test_runner(a, context, 3, |s| {
+                s.next_events.push(Event::WindowEvent {
+                    window_id: s.window.id(),
+                    event: WindowEvent::CloseRequested,
+                });
+                update_count += 1;
+                s.app
+            });
+        });
+    assert_eq!(update_count, 1);
+}
+
+fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
+    App::new()
+        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::None))
+        .run(|a| {
+            testing::test_runner(a, context, 3, |s| {
+                if s.update_id == 0 {
+                    s.next_events.push(Event::WindowEvent {
+                        window_id: s.window.id(),
+                        event: WindowEvent::CloseRequested,
+                    });
+                    s.app.assert::<With<Window>>(1, |e| {
+                        e.has(|w: &Window| assert!(!w.is_closing_requested()))
+                    })
+                } else {
+                    s.app.assert::<With<Window>>(1, |e| {
+                        e.has(|w: &Window| assert!(w.is_closing_requested()))
+                    })
+                }
+            });
+        });
+}
+
+#[derive(Component)]
+struct AutoRemove;
+
+#[systems]
+impl AutoRemove {
+    #[run]
+    fn update(entity: Entity<'_>, mut world: World<'_>) {
+        world.delete_entity(entity.id());
+    }
 }

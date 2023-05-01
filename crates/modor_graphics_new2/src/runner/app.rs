@@ -37,8 +37,9 @@ impl RunnerApp {
                 if is_window_found {
                     window.set_visible(true);
                 } else {
+                    let size = Window::DEFAULT_SIZE;
                     window.set_visible(false);
-                    window.set_inner_size(PhysicalSize::new(1, 1));
+                    window.set_inner_size(PhysicalSize::new(size.width, size.height));
                     window.set_title("");
                 }
                 self.is_window_found = is_window_found;

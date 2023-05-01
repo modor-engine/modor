@@ -2,6 +2,8 @@ use modor_input::{GamepadAxis, GamepadButton, Key, MouseButton};
 use winit::event;
 use winit::event::VirtualKeyCode;
 
+// coverage: off (not necessary to test all match branches)
+
 pub(crate) fn to_mouse_button(button: event::MouseButton) -> MouseButton {
     match button {
         event::MouseButton::Left => MouseButton::Left,
