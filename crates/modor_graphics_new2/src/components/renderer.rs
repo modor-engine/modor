@@ -54,10 +54,10 @@ impl Renderer {
             let version = self
                 .version
                 .expect("internal error: version not assigned to renderer");
-            *last_version = Some(version);
             if last_version == &Some(version) {
                 RendererState::Unchanged(context)
             } else {
+                *last_version = Some(version);
                 RendererState::Changed(context)
             }
         } else {

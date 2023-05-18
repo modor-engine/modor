@@ -10,6 +10,13 @@ use crate::components::texture::{TextureKey, TextureRegistry};
 use crate::{Size, Texture, TextureSource};
 use modor::{BuiltEntity, EntityBuilder};
 
+/// Creates graphics module.
+///
+/// If this entity is not created, no rendering will be performed.
+///
+/// # Platform-specific
+///
+/// - Android and web: next update will panic if the [`runner`](crate::runner()) is not used.
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(GraphicsModule)

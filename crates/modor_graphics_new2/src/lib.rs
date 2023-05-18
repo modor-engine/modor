@@ -11,6 +11,8 @@ mod input;
 mod platform;
 mod runner;
 
+pub mod testing;
+
 pub use components::camera::*;
 pub use components::frame_rate::*;
 pub use components::material::*;
@@ -25,11 +27,6 @@ pub use data::color::*;
 pub use data::size::*;
 pub use entities::module::*;
 pub use runner::*;
-
-pub mod testing {
-    pub use crate::platform::testing::*;
-    pub use crate::runner::testing::*;
-}
 
 // TODO: add doc
 // TODO: add tests

@@ -40,7 +40,6 @@ wgpu = { workspace = true, features = ["webgl"] }
 
 [dev-dependencies]
 approx.workspace = true
-vigem-client.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test.workspace = true

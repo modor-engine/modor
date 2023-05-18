@@ -1,7 +1,7 @@
 use winit::event::Event;
 use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
 
-/// The context of a [test runner](fn@crate::test_runner).
+/// The context of a [test runner](crate::test_runner()).
 ///
 /// Should be created only once during the whole test suite execution.
 ///

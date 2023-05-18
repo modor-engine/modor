@@ -1,6 +1,6 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    platform, system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange,
+    platform, system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange, World,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -128,6 +128,49 @@ impl App {
     pub fn with_entity(mut self, entity: impl BuildableEntity) -> Self {
         entity.build(&mut self.core, None);
         self.core.delete_replaced_entities();
+        self
+    }
+
+    // TODO: test
+    /// Adds the component returned by `component_builder` to all entities matching `F` filter.
+    /// 
+    /// If an entity already has a component of type `C`, it is overwritten.
+    pub fn with_component<F, C>(mut self, mut component_builder: impl FnMut() -> C) -> Self
+    where
+        F: EntityFilter,
+        C: Component,
+    {
+        self.core
+            .run_system(system!(|e: Entity<'_>, mut w: World<'_>, _: Filter<F>| {
+                w.add_component(e.id(), component_builder());
+            }));
+        self
+    }
+
+    // TODO: test
+    /// Deletes all entities matching `F` filter.
+    pub fn with_deleted_entities<F>(mut self) -> Self
+    where
+        F: EntityFilter,
+    {
+        self.core.run_system(system!(
+            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_entity(e.id())
+        ));
+        self
+    }
+
+    // TODO: test
+    /// Deletes component of type `C` of each entity matching `F` filter.
+    ///
+    /// If a matching entity doesn't have a component of type `C`, nothing is done.
+    pub fn with_deleted_components<F, C>(mut self) -> Self
+    where
+        F: EntityFilter,
+        C: Component,
+    {
+        self.core.run_system(system!(
+            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_component::<C>(e.id())
+        ));
         self
     }
 

@@ -7,9 +7,9 @@ use winit::window::Window as WindowHandle;
 /// The main window where rendering is performed.
 ///
 /// The window is open only if the [`App`](modor::App) is run with the graphics
-/// [`runner`](fn@crate::runner).
+/// [`runner`](crate::runner()).
 ///
-/// The rendering is performed only if the graphics [`module`](fn@crate::module) has been
+/// The rendering is performed only if the graphics [`module`](crate::module()) has been
 /// initialized and if the entity contains also a [`RenderTarget`](crate::RenderTarget) component.
 ///
 /// # Example
@@ -50,7 +50,7 @@ pub struct Window {
     /// Action executed when the close button of the window is pressed.
     ///
     /// If equal to [`WindowCloseBehavior::None`](WindowCloseBehavior::None), the method
-    /// [`Window::is_closing_requested`](fn@Window::is_closing_requested) will return `true`.
+    /// [`Window::is_closing_requested`](Window::is_closing_requested()) will return `true`.
     ///
     /// Default is [`WindowCloseBehavior::Exit`](WindowCloseBehavior::Exit).
     pub close_behavior: WindowCloseBehavior,

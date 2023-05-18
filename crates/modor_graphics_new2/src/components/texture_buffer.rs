@@ -1,11 +1,48 @@
 use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
-use crate::{GpuContext, RenderTarget, Texture};
+use crate::{GpuContext, RenderTarget, Size, Texture};
 use modor::Single;
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode, SubmissionIndex};
 
+/// The content of a GPU buffer texture.
+///
+/// This component retrieves the content of the associated [`Texture`](Texture) component at each
+/// update. Note that retrieving GPU data can have a significant impact on performance.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+///
+/// fn screenshot() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(RenderTarget::new(ScreenshotRenderTargetKey))
+///         .with(Texture::new(ScreenshotTextureKey, TextureSource::Size(Size::new(800, 600))))
+///         .with(TextureBuffer::default())
+///         .with(Screenshot)
+/// }
+///
+/// #[derive(Component)]
+/// struct Screenshot;
+///
+/// #[systems]
+/// impl Screenshot {
+///     #[run]
+///     fn save(buffer: &TextureBuffer) {
+///         let rgba_data = buffer.get();
+///         // save screenshot on disk...
+///     }
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct ScreenshotRenderTargetKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct ScreenshotTextureKey;
+/// ```
 #[derive(Component, Debug, Default)]
 pub struct TextureBuffer {
     buffer: Option<BufferDetails>,
@@ -41,8 +78,14 @@ impl TextureBuffer {
         }
     }
 
+    /// Returns the RGBA texture buffer.
     pub fn get(&self) -> &[u8] {
         &self.data
+    }
+
+    /// Returns the texture size.
+    pub fn size(&self) -> Size {
+        self.buffer.as_ref().map_or(Size::ZERO, |b| b.size.into())
     }
 
     fn is_update_needed(&self, texture_size: NonZeroSize) -> bool {
