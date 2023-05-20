@@ -11,12 +11,14 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 /// This component retrieves the content of the associated [`Texture`](Texture) component at each
 /// update. Note that retrieving GPU data can have a significant impact on performance.
 ///
+/// [`module`](crate::module()) needs to be initialized.
+///
 /// # Examples
 ///
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics_new2::*;
-///
+/// #
 /// fn screenshot() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(RenderTarget::new(ScreenshotRenderTargetKey))
@@ -79,11 +81,17 @@ impl TextureBuffer {
     }
 
     /// Returns the RGBA texture buffer.
+    ///
+    /// Returns empty buffer if there is no associated [`Texture`](Texture) component
+    /// or if the buffer is not yet synchronized.
     pub fn get(&self) -> &[u8] {
         &self.data
     }
 
     /// Returns the texture size.
+    ///
+    /// Returns [`Size::ZERO`](Size::ZERO) if there is no associated [`Texture`](Texture) component
+    /// or if the buffer is not yet synchronized.
     pub fn size(&self) -> Size {
         self.buffer.as_ref().map_or(Size::ZERO, |b| b.size.into())
     }

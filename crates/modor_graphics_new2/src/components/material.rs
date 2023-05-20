@@ -8,15 +8,108 @@ use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, 
 
 pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 
-// performance impact if lots of materials
+/// The aspect of a rendered [`Model`](crate::Model).
+///
+/// One material can be used for multiple [`Model`](crate::Model)s, so it is not necessary to create
+/// the material in the same entity as the model. Creating one material for each model is not
+/// recommended as it may impact the rendering performance.
+///
+/// [`module`](crate::module()) needs to be initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_physics::*;
+/// # use modor_math::*;
+/// # use modor_graphics_new2::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(Material::ellipse(MaterialKey::BlueEllipse).with_color(Color::BLUE))
+///         .with_child(Material::new(MaterialKey::FullTex).with_texture_key(TextureKey))
+///         .with_child(texture_quarter_material(MaterialKey::TopLeftTex, Vec2::new(0., 0.)))
+///         .with_child(texture_quarter_material(MaterialKey::TopRightTex, Vec2::new(0.5, 0.)))
+///         .with_child(texture_quarter_material(MaterialKey::BottomLeftTex, Vec2::new(0., 0.5)))
+///         .with_child(texture_quarter_material(MaterialKey::BottomRightTex, Vec2::new(0.5, 0.5)))
+///         .with_child(sprite(Vec2::new(0.4, 0.2)))
+/// }
+///
+/// fn sprite(position: Vec2) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
+///         .with(Model::rectangle(MaterialKey::TopLeftTex).with_camera_key(CameraKey))
+/// }
+///
+/// fn texture_quarter_material(key: MaterialKey, position: Vec2) -> Material {
+///     Material::new(key)
+///         .with_texture_key(TextureKey)
+///         .with_texture_position(position)
+///         .with_texture_size(Vec2::new(0.5, 0.5))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// enum MaterialKey {
+///     BlueEllipse,
+///     FullTex,
+///     TopLeftTex,
+///     TopRightTex,
+///     BottomLeftTex,
+///     BottomRightTex,
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TextureKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+/// ```
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Material {
+    /// Color of the rendered model.
+    ///
+    /// This color is multiplied to the texture when a [`texture_key`](#structfield.texture_key)
+    /// is defined.
+    ///
+    /// Default is [`Color::WHITE`].
     pub color: Color,
+    /// Key of the [`Texture`] used to render the model.
+    ///
+    /// Default is [`None`].
     pub texture_key: Option<ResourceKey>,
+    /// Top-left position of the extracted texture section.
+    ///
+    /// [`Vec2::ZERO`] corresponds to top-left corner, and [`Vec2::ONE`] corresponds to bottom-right
+    /// corner of the texture.
+    ///
+    /// Default is [`Vec2::ZERO`].
     pub texture_position: Vec2,
+    /// Size of the extracted texture section.
+    ///
+    /// [`Vec2::ONE`] corresponds to the entire texture.
+    ///
+    /// Default is [`Vec2::ONE`].
     pub texture_size: Vec2,
+    /// Key of the foreground texture.
+    ///
+    /// This texture is placed on top of the main texture defined using
+    /// [`texture_key`](#structfield.texture_key). In contrary to the main texture, the initial
+    /// aspect ratio is always kept during rendering. For example with a rectangle model:
+    /// - Main texture is stretched to cover the whole rectangle, so the aspect ratio might not be
+    /// kept.
+    /// - Foreground texture is centered on the rectangle and keeps its aspect ratio,
+    /// which means the texture might not cover the whole rectangle.
+    ///
+    /// For example, the foreground texture is useful for rendering a text that should not be
+    /// stretched.
+    ///
+    /// Default is [`None`].
     pub front_texture_key: Option<ResourceKey>,
+    /// Color that is multiplied to the foreground texture when
+    /// [`front_texture_key`](#structfield.front_texture_key) is defined.
+    ///
+    /// Default is [`Color::BLACK`].
     pub front_color: Color,
     pub(crate) shader_key: ResourceKey,
     key: ResourceKey,
@@ -30,41 +123,49 @@ pub struct Material {
 impl Material {
     const BINDING: u32 = 0;
 
+    /// Creates a new material with a unique `key`.
     pub fn new(key: impl IntoResourceKey) -> Self {
         Self::new_internal(key, ShaderKey::Default)
     }
 
+    /// Creates a material with a unique `key` that crops the rendered model to obtain an ellipse.
     pub fn ellipse(key: impl IntoResourceKey) -> Self {
         Self::new_internal(key, ShaderKey::Ellipse)
     }
 
+    /// Returns the material with a given [`color`](#structfield.color).
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self
     }
 
-    pub fn with_texture(mut self, key: impl IntoResourceKey) -> Self {
-        self.texture_key = Some(key.into_key());
+    /// Returns the material with a given [`texture_key`](#structfield.texture_key).
+    pub fn with_texture_key(mut self, texture_key: impl IntoResourceKey) -> Self {
+        self.texture_key = Some(texture_key.into_key());
         self
     }
 
-    pub fn with_texture_position(mut self, position: Vec2) -> Self {
-        self.texture_position = position;
+    /// Returns the material with a given [`texture_position`](#structfield.texture_position).
+    pub fn with_texture_position(mut self, texture_position: Vec2) -> Self {
+        self.texture_position = texture_position;
         self
     }
 
-    pub fn with_texture_size(mut self, size: Vec2) -> Self {
-        self.texture_size = size;
+    /// Returns the material with a given [`texture_size`](#structfield.texture_size).
+    pub fn with_texture_size(mut self, texture_size: Vec2) -> Self {
+        self.texture_size = texture_size;
         self
     }
 
-    pub fn with_front_texture(mut self, key: impl IntoResourceKey) -> Self {
-        self.front_texture_key = Some(key.into_key());
+    /// Returns the material with a given [`front_texture_key`](#structfield.front_texture_key).
+    pub fn with_front_texture_key(mut self, front_texture_key: impl IntoResourceKey) -> Self {
+        self.front_texture_key = Some(front_texture_key.into_key());
         self
     }
 
-    pub fn with_front_color(mut self, color: Color) -> Self {
-        self.front_color = color;
+    /// Returns the material with a given [`front_color`](#structfield.front_color).
+    pub fn with_front_color(mut self, front_color: Color) -> Self {
+        self.front_color = front_color;
         self
     }
 

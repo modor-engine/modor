@@ -1,11 +1,50 @@
+/// The Z-index of a rendered 2D [`Model`](crate::Model).
+///
+/// This component must be created in the same entity as [`Model`](crate::Model).<br>
+/// It is created from a [`u16`] value, where `0` is the farthest from the camera,
+/// and [`u16::MAX`] the closest to the camera.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
+/// #
+/// fn foreground() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5))
+///         .with(Model::rectangle(MaterialKey::Foreground).with_camera_key(CameraKey))
+///         .with(ZIndex2D::from(1))
+/// }
+///
+/// fn background() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Transform2D::new().with_size(Vec2::ONE))
+///         .with(Model::rectangle(MaterialKey::Background).with_camera_key(CameraKey))
+///         .with(ZIndex2D::from(0))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// enum MaterialKey {
+///     Foreground,
+///     Background,
+/// }
+/// ```
 #[must_use]
-#[derive(Component, NoSystem, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Component, NoSystem, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 pub struct ZIndex2D(u16);
 
 impl ZIndex2D {
-    // offset should be between 0. and 0.5
-    pub(crate) fn to_f32(&self, offset: f32) -> f32 {
-        (f32::from(self.0) + 0.5 + offset) / (f32::from(u16::MAX) + 1.)
+    // Returns the model depth between `0.` and `1.`.
+    pub(crate) fn to_normalized_f32(&self) -> f32 {
+        (f32::from(self.0) + 0.5) / (f32::from(u16::MAX) + 1.)
     }
 }
 

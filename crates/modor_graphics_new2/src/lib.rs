@@ -28,7 +28,6 @@ pub use data::size::*;
 pub use entities::module::*;
 pub use runner::*;
 
-// TODO: add doc
 // TODO: add tests
 // TODO: remove old graphics crate
 // TODO: refactor other modules the same way (module structure, separation of component/entities, ...)

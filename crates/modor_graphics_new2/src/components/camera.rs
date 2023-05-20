@@ -12,9 +12,73 @@ use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, 
 
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
+/// A camera used for 2D rendering.
+///
+/// Default camera displays a world zone centered in position [`Vec2::ZERO`] and with size
+/// [`Vec2::ONE`]. If the render target width is different than its height, more parts of the world
+/// might be rendered, but the focused zone is always entirely displayed.
+///
+/// The displayed zone can be configured if a [`Transform2D`] is created in the same entity.
+///
+/// [`module`](crate::module()) needs to be initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_physics::*;
+/// # use modor_math::*;
+/// # use modor_graphics_new2::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(render_target())
+///         .with_child(Camera2D::new(CameraKey::Default).with_target_key(TargetKey))
+///         .with_child(dynamic_camera())
+///         .with_child(object())
+/// }
+///
+/// fn render_target() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Window::default())
+///         .with(RenderTarget::new(TargetKey))
+/// }
+///
+/// fn dynamic_camera() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Camera2D::new(CameraKey::Dynamic).with_target_key(TargetKey))
+///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
+///         .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
+/// }
+///
+/// fn object() -> impl BuiltEntity {
+///     let model = Model::rectangle(MaterialKey)
+///         .with_camera_key(CameraKey::Default)
+///         .with_camera_key(CameraKey::Dynamic);
+///     EntityBuilder::new()
+///         .with(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
+///         .with(model)
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// enum CameraKey {
+///     Default,
+///     Dynamic,
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TargetKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct MaterialKey;
+/// ```
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Camera2D {
+    /// Keys of the [`RenderTarget`]s where the camera should be used.
+    ///
+    /// If the camera is used for a target, all associated [`Model`](crate::Model)s will be rendered
+    /// in this target.
     pub target_keys: Vec<ResourceKey>,
     key: ResourceKey,
     transform: Transform2D,
@@ -26,6 +90,7 @@ pub struct Camera2D {
 impl Camera2D {
     const CAMERA_BINDING: u32 = 0;
 
+    /// Creates a new camera with a unique `key`.
     pub fn new(key: impl IntoResourceKey) -> Self {
         Self {
             target_keys: vec![],
@@ -36,6 +101,7 @@ impl Camera2D {
         }
     }
 
+    /// Returns the camera with a new `key` added to the [`target_keys`](#structfield.target_keys).
     pub fn with_target_key(mut self, key: impl IntoResourceKey) -> Self {
         self.target_keys.push(key.into_key());
         self
@@ -90,6 +156,10 @@ impl Camera2D {
         }
     }
 
+    /// Converts a `window_position` into world position.
+    ///
+    /// `window_position` with a value of [`Vec2::ZERO`] corresponds to top-left corner of the
+    /// window, and a value if [`Window::size()`] corresponds to the bottom-right corner.
     pub fn world_position(&self, window: &Window, window_position: Vec2) -> Vec2 {
         let target_size: Vec2 = window.size().into();
         self.world_matrix(target_size)

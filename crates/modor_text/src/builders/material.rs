@@ -43,8 +43,8 @@ where
     }
 
     pub fn build(self) -> impl BuiltEntity {
-        let material =
-            Material::new(self.material_key.clone()).with_front_texture(self.material_key.clone());
+        let material = Material::new(self.material_key.clone())
+            .with_front_texture_key(self.material_key.clone());
         let texture = Texture::new(self.material_key, TextureSource::Size(Size::ONE));
         let text = Text::new(self.text, self.font_height);
         EntityBuilder::new()

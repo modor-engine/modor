@@ -19,7 +19,6 @@ use winit::window::Window as WindowHandle;
 /// # use modor_graphics_new2::*;
 /// #
 /// # fn no_run() {
-/// # #[allow(unused_qualifications)]
 /// App::new()
 ///     .with_entity(modor_graphics_new2::module())
 ///     .with_entity(window())

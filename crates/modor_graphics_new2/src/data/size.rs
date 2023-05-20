@@ -2,16 +2,22 @@ use modor_math::Vec2;
 use std::num::NonZeroU32;
 use winit::dpi::{PhysicalSize, Size as WinitSize};
 
+/// A size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Size {
+    /// Width component.
     pub width: u32,
+    /// Height component.
     pub height: u32,
 }
 
 impl Size {
+    /// A size with all components equal to `0.0`.
     pub const ZERO: Self = Self::new(0, 0);
+    /// A size with all components equal to `1.0`.
     pub const ONE: Self = Self::new(1, 1);
 
+    /// Creates a new size.
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
     }

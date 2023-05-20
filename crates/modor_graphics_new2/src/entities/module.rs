@@ -14,6 +14,8 @@ use modor::{BuiltEntity, EntityBuilder};
 ///
 /// If this entity is not created, no rendering will be performed.
 ///
+/// The created entity can be identified using the [`GraphicsModule`] component.
+///
 /// # Platform-specific
 ///
 /// - Android and web: next update will panic if the [`runner`](crate::runner()) is not used.
@@ -42,6 +44,7 @@ pub fn module() -> impl BuiltEntity {
         ))
 }
 
+/// The component that identifies the graphics module entity created with [`module()`].
 #[non_exhaustive]
 #[derive(SingletonComponent, NoSystem)]
 pub struct GraphicsModule;

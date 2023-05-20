@@ -88,13 +88,13 @@ impl TransparentInstanceRegistry {
                     mesh_key: model.mesh_key.clone(),
                 };
                 if let Some(position) = self.entity_positions.add(entity_id, &group_key) {
-                    buffer[position] = super::create_instance(transform, z_index, 0.);
+                    buffer[position] = super::create_instance(transform, z_index);
                     self.instances[position] = InstanceDetails {
                         group: group_key,
                         position,
                     };
                 } else {
-                    buffer.push(super::create_instance(transform, z_index, 0.));
+                    buffer.push(super::create_instance(transform, z_index));
                     self.instances.push(InstanceDetails {
                         group: group_key,
                         position: buffer.len() - 1,

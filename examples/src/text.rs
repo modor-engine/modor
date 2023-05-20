@@ -44,7 +44,7 @@ fn text() -> impl BuiltEntity {
             Material::new("MaterialKey::Text")
                 .with_color(Color::rgb(0.1, 0.1, 0.1))
                 .with_front_color(Color::WHITE)
-                .with_front_texture("TextureKey::Text"),
+                .with_front_texture_key("TextureKey::Text"),
         )
         .with(EditableText::default())
 }

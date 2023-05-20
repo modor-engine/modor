@@ -15,7 +15,7 @@ fn main() {
         .with_entity(texture())
         .with_entity(Camera2D::new(CameraKey::Window).with_target_key(TargetKey::Window))
         .with_entity(Camera2D::new(CameraKey::Texture).with_target_key(TargetKey::Texture))
-        .with_entity(Material::new(MaterialKey::TextureTarget).with_texture(TextureKey::Target))
+        .with_entity(Material::new(MaterialKey::TextureTarget).with_texture_key(TextureKey::Target))
         .with_entity(Material::new(MaterialKey::Green).with_color(Color::DARK_GREEN))
         .with_entity(Material::new(MaterialKey::Red).with_color(Color::MAROON))
         .with_entity(target_rectangle())

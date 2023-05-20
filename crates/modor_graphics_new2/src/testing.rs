@@ -1,3 +1,5 @@
+//! Testing utilities.
+
 use crate::{Texture, TextureBuffer};
 use image::ColorType;
 use modor_resources::{Resource, ResourceState};

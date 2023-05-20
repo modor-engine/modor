@@ -35,9 +35,8 @@ impl<const L: u32> VertexBuffer<L> for Instance {
 type Model2D<'a> = (&'a Transform2D, &'a Model, Option<&'a ZIndex2D>, Entity<'a>);
 type ChangedModel2D = Or<(Changed<Transform2D>, Changed<Model>, Changed<ZIndex2D>)>;
 
-// offset should be between 0. and 0.5
-fn create_instance(transform: &Transform2D, z_index: Option<&ZIndex2D>, offset: f32) -> Instance {
-    let z = z_index.cloned().unwrap_or_default().to_f32(offset);
+fn create_instance(transform: &Transform2D, z_index: Option<&ZIndex2D>) -> Instance {
+    let z = z_index.cloned().unwrap_or_default().to_normalized_f32();
     Instance {
         transform: (Mat4::from_scale(transform.size.with_z(0.))
             * Quat::from_z(*transform.rotation).matrix()

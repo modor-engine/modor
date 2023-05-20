@@ -21,9 +21,64 @@ use wgpu::{IndexFormat, RenderPass};
 
 pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 
+/// The target for a rendering.
+///
+/// If the entity has a [`Window`], then the rendering is performed in this window.
+///
+/// If the entity has a [`Texture`], then the rendering is performed in this texture. This texture
+/// can then be displayed in another render target. If the texture is used in its own render target,
+/// then the attached models are not displayed.
+///
+/// [`module`](crate::module()) needs to be initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_physics::*;
+/// # use modor_math::*;
+/// # use modor_graphics_new2::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     let camera = Camera2D::new(CameraKey)
+///         .with_target_key(TargetKey::Window)
+///         .with_target_key(TargetKey::Texture);
+///     EntityBuilder::new()
+///         .with_child(window_target())
+///         .with_child(texture_target())
+///         .with_child(camera)
+/// }
+///
+/// fn window_target() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Window::default())
+///         .with(RenderTarget::new(TargetKey::Texture))
+/// }
+///
+/// fn texture_target() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Texture::new(TextureKey, TextureSource::Size(Size::new(800, 600))))
+///         .with(RenderTarget::new(TargetKey::Texture).with_background_color(Color::GREEN))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// enum TargetKey {
+///     Window,
+///     Texture,
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TextureKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+/// ```
 #[must_use]
 #[derive(Component, Debug)]
 pub struct RenderTarget {
+    /// Background color of the rendering.
+    ///
+    /// Default is [`Color::BLACK`].
     pub background_color: Color,
     key: ResourceKey,
     window: Option<WindowTarget>,
@@ -38,6 +93,7 @@ pub struct RenderTarget {
 
 #[systems]
 impl RenderTarget {
+    /// Creates a new target with a unique `key`.
     pub fn new(key: impl IntoResourceKey) -> Self {
         Self {
             background_color: Color::BLACK,
@@ -53,8 +109,9 @@ impl RenderTarget {
         }
     }
 
-    pub fn with_background_color(mut self, color: Color) -> Self {
-        self.background_color = color;
+    /// Returns the target with a given [`background_color`](#structfield.background_color).
+    pub fn with_background_color(mut self, background_color: Color) -> Self {
+        self.background_color = background_color;
         self
     }
 

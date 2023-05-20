@@ -142,11 +142,11 @@ impl InstanceGroup {
     // returns if the model is new
     fn add(&mut self, (transform, _model, z_index, entity): Model2D<'_>) -> bool {
         if let Some(position) = self.entity_positions.add(entity.id()) {
-            self.buffer[position] = super::create_instance(transform, z_index, 0.);
+            self.buffer[position] = super::create_instance(transform, z_index);
             false
         } else {
             self.buffer
-                .push(super::create_instance(transform, z_index, 0.));
+                .push(super::create_instance(transform, z_index));
             true
         }
     }

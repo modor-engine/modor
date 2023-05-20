@@ -17,6 +17,43 @@ use wgpu::{
 
 pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 
+/// A texture that can be attached to a [`Material`](crate::Material).
+///
+/// This component does not need to be created in the same entity as the
+/// [`Material`](crate::Material).
+///
+/// [`module`](crate::module()) needs to be initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// # use modor_physics::*;
+/// # use modor_math::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(Texture::new(TextureKey, TextureSource::Path("texture.png".into())))
+///         .with_child(Material::new(MaterialKey).with_texture_key(TextureKey))
+///         .with_child(sprite())
+/// }
+///
+/// fn sprite() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Transform2D::new())
+///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TextureKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct MaterialKey;
+/// ```
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Texture {
@@ -30,6 +67,7 @@ pub struct Texture {
 
 #[systems]
 impl Texture {
+    /// Creates a new texture identified by a unique `key` and created from `source`.
     pub fn new(key: impl IntoResourceKey, source: TextureSource) -> Self {
         Self {
             key: key.into_key(),
@@ -41,11 +79,23 @@ impl Texture {
         }
     }
 
+    /// Returns the texture with a given `is_smooth`.
+    ///
+    /// If `true`, a linear sampling is applied to the texture when it appears larger than its
+    /// original size.
+    ///
+    /// Default is `true`.
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {
         self.is_smooth = is_smooth;
         self
     }
 
+    /// Returns the texture with a given `is_repeated`.
+    ///
+    /// If `true`, the texture is repeated when the texture width or height configured in an
+    /// associated [`Material`](crate::Material) is greater than `1.0`.
+    ///
+    /// Default is `false`.
     pub fn with_repeated(mut self, is_repeated: bool) -> Self {
         self.is_repeated = is_repeated;
         self
@@ -66,10 +116,17 @@ impl Texture {
         }
     }
 
+    /// Returns the size of the texture.
+    ///
+    /// [`None`] is returned if the texture is not loaded.
     pub fn size(&self) -> Option<Size> {
         self.texture.as_ref().map(|t| t.size.into())
     }
 
+    /// Sets the texture `source` and start reloading of the texture.
+    ///
+    /// If the previous source is already loaded, the texture remains valid until the new source
+    /// is loaded.
     pub fn set_source(&mut self, source: TextureSource) {
         self.handler.set_source(source.into());
     }
@@ -199,12 +256,37 @@ impl Resource for Texture {
     }
 }
 
+/// The source of a [`Texture`].
+///
+/// Sources loaded synchronously are ready after the next [`App`](modor::App) update. Sources loaded
+/// asynchronously can take more updates to be ready.
+///
+/// # Examples
+///
+/// See [`Texture`].
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum TextureSource {
+    /// White texture created asynchronously with a given size.
     Size(Size),
+    /// Texture loaded asynchronously from given file bytes.
+    ///
+    /// This variant is generally used in combination with [`include_bytes!`].
     File(&'static [u8]),
+    /// Texture loaded asynchronously from a given path.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: HTTP GET call is performed to retrieve the file from URL
+    /// `{current_browser_url}/assets/{path}`.
+    /// - Android: the file is retrieved using the Android
+    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
+    /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
+    /// application is run using a `cargo` command), then the file is retrieved from path
+    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
+    /// `{executable_folder_path}/assets/{path}`.
     Path(String),
+    /// Texture loaded synchronously from given RGBA buffer and size.
     RgbaBuffer(Vec<u8>, Size),
 }
 

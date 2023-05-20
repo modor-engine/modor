@@ -3,11 +3,47 @@ use instant::Instant;
 use std::time::Duration;
 use wgpu::PresentMode;
 
+/// A frame rate limit.
+///
+/// The limit is only applied if the [`runner`](crate::runner()) is used.
+///
+/// Default frame rate is [`FrameRate::VSync`](FrameRate::VSync).
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// #
+/// # fn no_run() {
+/// App::new()
+///     .with_entity(modor_graphics_new2::module())
+///     .with_entity(FrameRate::Fps(120))
+///     .with_entity(window())
+///     .run(modor_graphics_new2::runner);
+/// # }
+///
+/// fn window() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Window::default())
+///         .with(RenderTarget::new(TargetKey))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TargetKey;
+/// ```
 #[derive(SingletonComponent, NoSystem, Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum FrameRate {
+    /// A limit based on vertical synchronization.
+    ///
+    /// This is the most optimal mode for mobile and web.
     #[default]
     VSync,
+    /// A limit in frames per second.
+    ///
+    /// `FrameRate::Fps(0)` is equivalent to `FrameRate::Unlimited`.
     Fps(u16),
+    /// No limitation.
     Unlimited,
 }
 

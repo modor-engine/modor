@@ -81,7 +81,7 @@ fn materials() -> impl BuiltEntity {
         .with_child(
             Material::ellipse(ResourceKey::TransparentMaterial)
                 .with_color(Color::WHITE.with_alpha(0.1))
-                .with_texture(ResourceKey::SmileyTexture),
+                .with_texture_key(ResourceKey::SmileyTexture),
         )
 }
 
