@@ -2,7 +2,7 @@ use crate::components::renderer::Renderer;
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{GpuContext, Size};
-use image::{DynamicImage, ImageError, Rgba, RgbaImage};
+use image::{DynamicImage, ImageError, RgbaImage};
 use modor::Single;
 use modor_resources::{
     IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey, ResourceLoadingError,
@@ -267,8 +267,10 @@ impl Resource for Texture {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum TextureSource {
-    /// White texture created asynchronously with a given size.
+    /// White texture created synchronously with a given size.
     Size(Size),
+    /// Texture loaded synchronously from given RGBA buffer and size.
+    Buffer(Vec<u8>, Size),
     /// Texture loaded asynchronously from given file bytes.
     ///
     /// This variant is generally used in combination with [`include_bytes!`].
@@ -286,19 +288,20 @@ pub enum TextureSource {
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
     Path(String),
-    /// Texture loaded synchronously from given RGBA buffer and size.
-    RgbaBuffer(Vec<u8>, Size),
 }
 
 impl From<TextureSource> for ResourceSource<TextureData> {
     fn from(source: TextureSource) -> Self {
         match source {
-            TextureSource::Size(size) => Self::AsyncData(TextureData::Size(size)),
-            TextureSource::File(data) => Self::AsyncData(TextureData::File(data)),
-            TextureSource::Path(path) => Self::AsyncPath(path),
-            TextureSource::RgbaBuffer(buffer, size) => {
+            TextureSource::Size(size) => Self::SyncData(TextureData::RgbaBuffer(
+                vec![255; (size.width * size.height * 4) as usize],
+                size,
+            )),
+            TextureSource::Buffer(buffer, size) => {
                 Self::SyncData(TextureData::RgbaBuffer(buffer, size))
             }
+            TextureSource::File(data) => Self::AsyncData(TextureData::File(data)),
+            TextureSource::Path(path) => Self::AsyncPath(path),
         }
     }
 }
@@ -313,7 +316,6 @@ pub(crate) struct LoadedTexture {
 
 #[derive(Debug, Clone)]
 enum TextureData {
-    Size(Size),
     File(&'static [u8]),
     RgbaBuffer(Vec<u8>, Size),
 }
@@ -363,11 +365,6 @@ impl Load<TextureData> for LoadedImage {
 
     fn load_from_data(data: &TextureData) -> Result<Self, ResourceLoadingError> {
         match data {
-            TextureData::Size(size) => Ok(Self(RgbaImage::from_pixel(
-                size.width.max(1),
-                size.height.max(1),
-                Rgba([255u8, 255, 255, 255]),
-            ))),
             TextureData::File(data) => Self::load_from_memory(data),
             TextureData::RgbaBuffer(buffer, size) => Self::load_from_buffer(buffer.clone(), *size),
         }

@@ -1,5 +1,5 @@
 use crate::components::instances::transparent::TransparentInstanceRegistry;
-use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
+use crate::components::instances::{ChangedModel2D, GroupKey, GroupKeyState, Instance, Model2D};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
@@ -7,11 +7,12 @@ use fxhash::FxHashMap;
 use modor::{Filter, Query, Single, SingleMut, World};
 use modor_physics::Transform2D;
 use modor_resources::Resource;
+use std::mem;
 
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct OpaqueInstanceRegistry {
     groups: FxHashMap<GroupKey, InstanceGroup>,
-    entity_groups: FxHashMap<usize, Vec<GroupKey>>,
+    entity_states: FxHashMap<usize, Vec<GroupKeyState>>,
 }
 
 #[systems]
@@ -75,32 +76,30 @@ impl OpaqueInstanceRegistry {
             .context()
             .expect("internal error: not initialized GPU context");
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
+            let entity_id = entity.id();
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
                 .map_or(false, Material::is_transparent);
-            if is_transparent {
-                continue;
-            }
-            let entity_id = entity.id();
-            for camera_key in &model.camera_keys {
-                let group_key = GroupKey {
-                    camera_key: camera_key.clone(),
-                    material_key: model.material_key.clone(),
-                    mesh_key: model.mesh_key.clone(),
-                };
-                let is_new = self
-                    .groups
-                    .entry(group_key.clone())
-                    .or_insert_with(|| InstanceGroup::new(context, &group_key))
-                    .add((transform, model, z_index, entity));
-                if is_new {
-                    self.entity_groups
-                        .entry(entity_id)
-                        .or_insert_with(Vec::new)
-                        .push(group_key);
+            self.reset_entity_state(entity_id);
+            if !is_transparent {
+                for camera_key in &model.camera_keys {
+                    let group_key = GroupKey {
+                        camera_key: camera_key.clone(),
+                        material_key: model.material_key.clone(),
+                        mesh_key: model.mesh_key.clone(),
+                    };
+                    let is_new = self
+                        .instances_or_create(context, &group_key)
+                        .add((transform, model, z_index, entity));
+                    if is_new {
+                        self.register_entity_in_group(entity_id, group_key);
+                    } else {
+                        self.update_entity_in_group(entity_id, group_key);
+                    }
                 }
+                debug!("opaque instance with ID {entity_id} registered (new/changed)");
             }
-            debug!("opaque instance with ID {entity_id} registered (new/changed)");
+            self.remove_entity_from_not_updated_groups(entity_id);
         }
         for group in self.groups.values_mut() {
             group.sync(context);
@@ -111,11 +110,76 @@ impl OpaqueInstanceRegistry {
         self.groups.iter().map(|(k, g)| (k, &g.buffer))
     }
 
-    fn delete_entity(&mut self, entity_id: usize) {
-        for group_key in self.entity_groups.remove(&entity_id).iter().flatten() {
-            if let Some(group) = self.groups.get_mut(group_key) {
-                group.delete(entity_id);
+    fn reset_entity_state(&mut self, entity_id: usize) {
+        if let Some(states) = self.entity_states.get_mut(&entity_id) {
+            for state in states {
+                state.is_updated = false;
             }
+        }
+    }
+
+    fn remove_entity_from_not_updated_groups(&mut self, entity_id: usize) {
+        let new_states = self
+            .entity_states
+            .get_mut(&entity_id)
+            .map_or_else(Vec::new, mem::take)
+            .into_iter()
+            .filter(|s| {
+                if s.is_updated {
+                    true
+                } else {
+                    self.delete_entity_from_group(entity_id, &s.group_key);
+                    false
+                }
+            })
+            .collect();
+        if let Some(states) = self.entity_states.get_mut(&entity_id) {
+            *states = new_states;
+        }
+    }
+
+    fn instances_or_create(
+        &mut self,
+        context: &GpuContext,
+        group_key: &GroupKey,
+    ) -> &mut InstanceGroup {
+        self.groups
+            .entry(group_key.clone())
+            .or_insert_with(|| InstanceGroup::new(context, group_key))
+    }
+
+    fn register_entity_in_group(&mut self, entity_id: usize, group_key: GroupKey) {
+        self.entity_states
+            .entry(entity_id)
+            .or_insert_with(Vec::new)
+            .push(GroupKeyState {
+                group_key,
+                is_updated: true,
+            });
+    }
+
+    fn update_entity_in_group(&mut self, entity_id: usize, group_key: GroupKey) {
+        for state in self
+            .entity_states
+            .get_mut(&entity_id)
+            .iter_mut()
+            .flat_map(|s| s.iter_mut())
+        {
+            if state.group_key == group_key {
+                state.is_updated = true;
+            }
+        }
+    }
+
+    fn delete_entity(&mut self, entity_id: usize) {
+        for state in self.entity_states.remove(&entity_id).iter().flatten() {
+            self.delete_entity_from_group(entity_id, &state.group_key);
+        }
+    }
+
+    fn delete_entity_from_group(&mut self, entity_id: usize, group_key: &GroupKey) {
+        if let Some(group) = self.groups.get_mut(group_key) {
+            group.delete(entity_id);
         }
     }
 }
@@ -145,8 +209,7 @@ impl InstanceGroup {
             self.buffer[position] = super::create_instance(transform, z_index);
             false
         } else {
-            self.buffer
-                .push(super::create_instance(transform, z_index));
+            self.buffer.push(super::create_instance(transform, z_index));
             true
         }
     }

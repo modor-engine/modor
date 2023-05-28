@@ -84,7 +84,8 @@ jobs:
           cache-on-failure: true
       - name: Build
         run: cargo build --all-targets
-      # Tests are disabled because there is no available software renderer
+      - name: Test
+        run: cargo test
 
   test-android:
     runs-on: ubuntu-22.04

@@ -4,7 +4,7 @@ use winit::event_loop::EventLoop;
 
 // coverage: off (runner cannot be tested)
 
-/// Run application update for each rendered frame.
+/// Runs application update for each rendered frame.
 ///
 /// [`DeltaTime`](modor_physics::DeltaTime) is automatically updated.<br>
 /// Frame rate is limited depending on [`FrameRate`](crate::FrameRate).

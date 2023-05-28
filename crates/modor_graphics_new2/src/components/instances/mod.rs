@@ -6,14 +6,19 @@ use modor_physics::Transform2D;
 use modor_resources::ResourceKey;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
-pub(crate) mod opaque;
-pub(crate) mod transparent;
+// TODO: try to simplify sub modules
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct GroupKey {
     pub(crate) camera_key: ResourceKey,
     pub(crate) material_key: ResourceKey,
     pub(crate) mesh_key: ResourceKey,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct GroupKeyState {
+    pub(crate) group_key: GroupKey,
+    pub(crate) is_updated: bool,
 }
 
 #[repr(C)]
@@ -44,3 +49,6 @@ fn create_instance(transform: &Transform2D, z_index: Option<&ZIndex2D>) -> Insta
         .to_array(),
     }
 }
+
+pub(crate) mod opaque;
+pub(crate) mod transparent;

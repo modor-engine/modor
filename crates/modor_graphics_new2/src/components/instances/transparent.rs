@@ -42,7 +42,7 @@ impl TransparentInstanceRegistry {
                 .transformed_entity_ids()
                 .chain(world.deleted_entity_ids());
             for entity_id in deleted_entity_ids {
-                for position in self.entity_positions.delete(entity_id) {
+                for position in self.entity_positions.delete_entity(entity_id) {
                     buffer.swap_remove(position);
                     self.instances.swap_remove(position);
                 }
@@ -74,34 +74,47 @@ impl TransparentInstanceRegistry {
             .as_mut()
             .expect("internal error: transparent instance buffer not initialized");
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
+            let entity_id = entity.id();
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
                 .map_or(false, Material::is_transparent);
-            if !is_transparent {
-                continue;
+            for position in self.entity_positions.get(entity_id) {
+                self.instances[position].is_updated = false;
             }
-            let entity_id = entity.id();
-            for camera_key in &model.camera_keys {
-                let group_key = GroupKey {
-                    camera_key: camera_key.clone(),
-                    material_key: model.material_key.clone(),
-                    mesh_key: model.mesh_key.clone(),
-                };
-                if let Some(position) = self.entity_positions.add(entity_id, &group_key) {
-                    buffer[position] = super::create_instance(transform, z_index);
-                    self.instances[position] = InstanceDetails {
-                        group: group_key,
-                        position,
+            if is_transparent {
+                for camera_key in &model.camera_keys {
+                    let group_key = GroupKey {
+                        camera_key: camera_key.clone(),
+                        material_key: model.material_key.clone(),
+                        mesh_key: model.mesh_key.clone(),
                     };
-                } else {
-                    buffer.push(super::create_instance(transform, z_index));
-                    self.instances.push(InstanceDetails {
-                        group: group_key,
-                        position: buffer.len() - 1,
-                    });
-                };
+                    if let Some(position) = self.entity_positions.add(entity_id, &group_key) {
+                        buffer[position] = super::create_instance(transform, z_index);
+                        self.instances[position] = InstanceDetails {
+                            group_key,
+                            position,
+                            is_updated: true,
+                        };
+                    } else {
+                        buffer.push(super::create_instance(transform, z_index));
+                        self.instances.push(InstanceDetails {
+                            group_key,
+                            position: buffer.len() - 1,
+                            is_updated: true,
+                        });
+                    };
+                }
+                debug!("transparent instance with ID {entity_id} registered (new/changed)");
             }
-            debug!("transparent instance with ID {entity_id} registered (new/changed)");
+            for position in self.entity_positions.get(entity_id).collect::<Vec<_>>() {
+                let instance = &self.instances[position];
+                if !instance.is_updated {
+                    self.entity_positions
+                        .delete_instance(position, &instance.group_key);
+                    buffer.swap_remove(position);
+                    self.instances.swap_remove(position);
+                }
+            }
         }
         self.instances.sort_unstable_by(|a, b| {
             Self::compare_instances(&buffer[a.position], &buffer[b.position])
@@ -130,8 +143,9 @@ impl TransparentInstanceRegistry {
         buffer.push(instance);
         self.entity_positions.add(entity_id, &group_key);
         self.instances.push(InstanceDetails {
-            group: group_key,
+            group_key,
             position: buffer.len() - 1,
+            is_updated: true,
         });
     }
 
@@ -144,8 +158,9 @@ impl TransparentInstanceRegistry {
 
 #[derive(Debug)]
 struct InstanceDetails {
-    group: GroupKey,
+    group_key: GroupKey,
     position: usize,
+    is_updated: bool,
 }
 
 pub(crate) struct GroupIterator<'a> {
@@ -168,10 +183,10 @@ impl<'a> Iterator for GroupIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(instance) = self.registry.instances.get(self.next_position) {
-            let group = &instance.group;
+            let group = &instance.group_key;
             let new_next_position = self.registry.instances[self.next_position..]
                 .iter()
-                .filter(|i| &i.group != group)
+                .filter(|i| &i.group_key != group)
                 .map(|i| i.position)
                 .next()
                 .unwrap_or(self.registry.instances.len());
@@ -198,6 +213,14 @@ struct EntityPositions {
 }
 
 impl EntityPositions {
+    fn get(&self, entity_id: usize) -> impl Iterator<Item = usize> + '_ {
+        self.entity_positions
+            .get(&entity_id)
+            .into_iter()
+            .flat_map(HashMap::values)
+            .copied()
+    }
+
     // returns the position if the entity already exists
     fn add(&mut self, entity_id: usize, group_key: &GroupKey) -> Option<usize> {
         if let Some(&position) = self
@@ -217,28 +240,43 @@ impl EntityPositions {
         }
     }
 
+    fn delete_instance(&mut self, position: usize, group_key: &GroupKey) {
+        let entity_id = self.delete_instance_and_fix_moved_instance(position);
+        self.entity_positions
+            .get_mut(&entity_id)
+            .expect("internal error: instance entity not found")
+            .remove(group_key)
+            .expect("internal error: group key does not correspond to instance position");
+    }
+
     // returns the entity positions before deletion
-    fn delete(&mut self, entity_id: usize) -> Vec<usize> {
+    fn delete_entity(&mut self, entity_id: usize) -> Vec<usize> {
         let mut positions = self
             .entity_positions
             .remove(&entity_id)
             .map_or_else(Vec::new, |p| p.into_values().collect::<Vec<_>>());
         positions.sort_unstable_by_key(|&i| Reverse(i));
         for &position in &positions {
-            self.entity_ids.swap_remove(position);
-            if let Some(moved_entity_positions) = self
-                .entity_ids
-                .get(position)
-                .and_then(|i| self.entity_positions.get_mut(i))
-            {
-                for moved_position in moved_entity_positions.values_mut() {
-                    if moved_position == &self.entity_ids.len() {
-                        *moved_position = position;
-                    }
+            self.delete_instance_and_fix_moved_instance(position);
+        }
+        positions
+    }
+
+    // Returns entity ID of the deleted instance
+    fn delete_instance_and_fix_moved_instance(&mut self, position: usize) -> usize {
+        let entity_idx = self.entity_ids.swap_remove(position);
+        if let Some(moved_entity_positions) = self
+            .entity_ids
+            .get(position)
+            .and_then(|i| self.entity_positions.get_mut(i))
+        {
+            for moved_position in moved_entity_positions.values_mut() {
+                if moved_position == &self.entity_ids.len() {
+                    *moved_position = position;
                 }
             }
         }
-        positions
+        entity_idx
     }
 }
 
@@ -292,7 +330,7 @@ mod entity_positions_tests {
     }
 
     #[test]
-    fn remove_first_entities() {
+    fn delete_first_instances() {
         let mut positions = EntityPositions::default();
         let group1 = GroupKey {
             camera_key: 1.into_key(),
@@ -314,16 +352,18 @@ mod entity_positions_tests {
         positions.add(10, &group3);
         positions.add(20, &group1);
         positions.add(30, &group2);
-        assert_eq!(positions.delete(10), [2, 1, 0]);
-        assert_eq!(positions.delete(10), [] as [usize; 0]);
-        assert_eq!(positions.entity_ids, [30, 20]);
-        assert_eq!(positions.entity_positions.get(&10), None);
-        assert_eq!(positions.entity_positions[&30][&group2], 0);
-        assert_eq!(positions.entity_positions[&20][&group1], 1);
+        positions.delete_instance(1, &group2);
+        positions.delete_instance(0, &group1);
+        assert_eq!(positions.entity_ids, [20, 30, 10]);
+        assert_eq!(positions.entity_positions[&10].get(&group1), None);
+        assert_eq!(positions.entity_positions[&10].get(&group2), None);
+        assert_eq!(positions.entity_positions[&20][&group1], 0);
+        assert_eq!(positions.entity_positions[&30][&group2], 1);
+        assert_eq!(positions.entity_positions[&10][&group3], 2);
     }
 
     #[test]
-    fn remove_last_entities() {
+    fn delete_last_instances() {
         let mut positions = EntityPositions::default();
         let group1 = GroupKey {
             camera_key: 1.into_key(),
@@ -339,8 +379,82 @@ mod entity_positions_tests {
         positions.add(20, &group2);
         positions.add(30, &group1);
         positions.add(30, &group2);
-        assert_eq!(positions.delete(30), [3, 2]);
-        assert_eq!(positions.delete(30), [] as [usize; 0]);
+        positions.delete_instance(3, &group2);
+        positions.delete_instance(2, &group1);
+        assert_eq!(positions.entity_ids, [10, 20]);
+        assert_eq!(positions.entity_positions[&10][&group1], 0);
+        assert_eq!(positions.entity_positions[&20][&group2], 1);
+        assert_eq!(positions.entity_positions[&30].len(), 0);
+    }
+
+    #[test]
+    fn delete_first_entities() {
+        let mut positions = EntityPositions::default();
+        let group1 = GroupKey {
+            camera_key: 1.into_key(),
+            material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
+        };
+        let group2 = GroupKey {
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
+        };
+        let group3 = GroupKey {
+            camera_key: 7.into_key(),
+            material_key: 8.into_key(),
+            mesh_key: 9.into_key(),
+        };
+        positions.add(10, &group1);
+        positions.add(10, &group2);
+        positions.add(10, &group3);
+        positions.add(20, &group1);
+        positions.add(30, &group2);
+        assert_eq!(positions.delete_entity(10), [2, 1, 0]);
+        assert_eq!(positions.delete_entity(10), [] as [usize; 0]);
+        assert_eq!(positions.entity_ids, [30, 20]);
+        assert_eq!(positions.entity_positions.get(&10), None);
+        assert_eq!(positions.entity_positions[&30][&group2], 0);
+        assert_eq!(positions.entity_positions[&20][&group1], 1);
+    }
+
+    #[test]
+    #[should_panic = "internal error: group key does not correspond to instance position"]
+    fn delete_instance_with_invalid_group_key() {
+        let mut positions = EntityPositions::default();
+        let group1 = GroupKey {
+            camera_key: 1.into_key(),
+            material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
+        };
+        let group2 = GroupKey {
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
+        };
+        positions.add(10, &group1);
+        positions.delete_instance(0, &group2);
+    }
+
+    #[test]
+    fn delete_last_entities() {
+        let mut positions = EntityPositions::default();
+        let group1 = GroupKey {
+            camera_key: 1.into_key(),
+            material_key: 2.into_key(),
+            mesh_key: 3.into_key(),
+        };
+        let group2 = GroupKey {
+            camera_key: 4.into_key(),
+            material_key: 5.into_key(),
+            mesh_key: 6.into_key(),
+        };
+        positions.add(10, &group1);
+        positions.add(20, &group2);
+        positions.add(30, &group1);
+        positions.add(30, &group2);
+        assert_eq!(positions.delete_entity(30), [3, 2]);
+        assert_eq!(positions.delete_entity(30), [] as [usize; 0]);
         assert_eq!(positions.entity_ids, [10, 20]);
         assert_eq!(positions.entity_positions[&10][&group1], 0);
         assert_eq!(positions.entity_positions[&20][&group2], 1);

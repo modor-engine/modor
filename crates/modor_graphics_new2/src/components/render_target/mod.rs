@@ -88,7 +88,8 @@ pub struct RenderTarget {
     is_texture_conflict_logged: bool,
     default_texture_key: ResourceKey,
     default_front_texture_key: ResourceKey,
-    renderer_version: Option<u8>,
+    window_renderer_version: Option<u8>,
+    texture_renderer_version: Option<u8>,
 }
 
 #[systems]
@@ -105,7 +106,8 @@ impl RenderTarget {
             is_texture_conflict_logged: false,
             default_texture_key: TextureKey::White.into_key(),
             default_front_texture_key: TextureKey::Invisible.into_key(),
-            renderer_version: None,
+            window_renderer_version: None,
+            texture_renderer_version: None,
         }
     }
 
@@ -122,7 +124,7 @@ impl RenderTarget {
         renderer: Option<Single<'_, Renderer>>,
         frame_rate: Option<Single<'_, FrameRate>>,
     ) {
-        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        let state = Renderer::option_state(&renderer, &mut self.window_renderer_version);
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
@@ -147,7 +149,7 @@ impl RenderTarget {
         texture: Option<&Texture>,
         renderer: Option<Single<'_, Renderer>>,
     ) {
-        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        let state = Renderer::option_state(&renderer, &mut self.texture_renderer_version);
         if state.is_removed() || texture.is_none() {
             self.texture = None;
         }

@@ -63,7 +63,7 @@ impl Text {
                 );
                 let mut buffer = vec![0; (size.width * size.height) as usize * 4];
                 self.render_glyphs(font, width, &line_widths, &mut buffer, size);
-                texture.set_source(TextureSource::RgbaBuffer(buffer, size));
+                texture.set_source(TextureSource::Buffer(buffer, size));
                 self.set_as_unchanged();
             }
         }

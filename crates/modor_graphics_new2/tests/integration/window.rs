@@ -1,6 +1,8 @@
 use modor::{App, BuiltEntity, Entity, EntityBuilder, With, World};
 use modor_graphics_new2::testing::TestRunnerContext;
 use modor_graphics_new2::{testing, RenderTarget, Size, Window, WindowCloseBehavior};
+use std::thread;
+use std::time::Duration;
 use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 
@@ -8,7 +10,9 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
     create_default_window(context);
     create_customized_window(context);
     create_target_window(context);
+    #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
     create_window_after_start(context);
+    #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
     delete_window(context);
     set_window_properties(context);
     resize_window(context);
@@ -56,7 +60,7 @@ fn create_target_window(context: &mut TestRunnerContext) {
         .with_entity(
             EntityBuilder::new()
                 .with(Window::default())
-                .with(RenderTarget::new("TargetKey")),
+                .with(RenderTarget::new(TargetKey)),
         )
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
@@ -67,25 +71,23 @@ fn create_target_window(context: &mut TestRunnerContext) {
         });
 }
 
+#[allow(dead_code)]
 fn create_window_after_start(context: &mut TestRunnerContext) {
     App::new().run(|a| {
         testing::test_runner(a, context, 2, |s| {
             assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
             if s.update_id == 0 {
-                if let Some(is_visible) = s.window.is_visible() {
-                    assert!(!is_visible);
-                }
+                assert!(!s.window.is_visible().unwrap());
                 s.app.with_entity(Window::default())
             } else {
-                if let Some(is_visible) = s.window.is_visible() {
-                    assert!(is_visible);
-                }
+                assert!(s.window.is_visible().unwrap());
                 s.app
             }
         });
     });
 }
 
+#[allow(dead_code)]
 fn delete_window(context: &mut TestRunnerContext) {
     App::new()
         .with_entity(
@@ -96,13 +98,7 @@ fn delete_window(context: &mut TestRunnerContext) {
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
                 assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
-                if let Some(is_visible) = s.window.is_visible() {
-                    if s.update_id == 0 {
-                        assert!(is_visible);
-                    } else {
-                        assert!(!is_visible);
-                    }
-                }
+                assert_eq!(s.window.is_visible().unwrap(), s.update_id == 0);
                 s.app
             });
         });
@@ -128,9 +124,10 @@ fn set_window_properties(context: &mut TestRunnerContext) {
 
 fn resize_window(context: &mut TestRunnerContext) {
     App::new().with_entity(Window::default()).run(|a| {
-        testing::test_runner(a, context, 2, |s| {
+        testing::test_runner(a, context, 10, |s| {
             if s.update_id == 0 {
                 s.window.set_inner_size(PhysicalSize::new(400, 300));
+                thread::sleep(Duration::from_millis(100));
                 s.app
             } else {
                 s.app.assert::<With<Window>>(1, |e| {
@@ -190,3 +187,6 @@ impl AutoRemove {
         world.delete_entity(entity.id());
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct TargetKey;

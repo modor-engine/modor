@@ -36,11 +36,11 @@ pub fn module() -> impl BuiltEntity {
         .with_child(Mesh::rectangle())
         .with_child(Texture::new(
             TextureKey::White,
-            TextureSource::RgbaBuffer(vec![255; 4], Size::ONE),
+            TextureSource::Size(Size::ONE),
         ))
         .with_child(Texture::new(
             TextureKey::Invisible,
-            TextureSource::RgbaBuffer(vec![0; 4], Size::ONE),
+            TextureSource::Buffer(vec![0; 4], Size::ONE),
         ))
 }
 
