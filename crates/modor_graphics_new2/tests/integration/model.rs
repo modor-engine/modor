@@ -9,7 +9,7 @@ use modor_physics::Transform2D;
 use modor_resources::IntoResourceKey;
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_with_no_camera() {
+fn create_default() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -21,19 +21,7 @@ fn create_with_no_camera() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_with_one_camera() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_one_camera_and_no_transform() {
+fn create_without_transform() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -43,7 +31,43 @@ fn create_with_one_camera_and_no_transform() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_with_many_cameras() {
+fn configure_opaque_with_one_camera() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(resources())
+        .with_entity(model_with_transform(
+            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"))
+        .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = CameraKey::Offset.into_key())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#other_camera_opaque"))
+        .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = CameraKey::Missing.into_key())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn configure_transparent_with_one_camera() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(resources())
+        .with_entity(model_with_transform(
+            Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent_blue"))
+        .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = CameraKey::Offset.into_key())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#other_camera_transparent"))
+        .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = CameraKey::Missing.into_key())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn configure_many_cameras() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -57,54 +81,8 @@ fn create_with_many_cameras() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_with_missing_camera() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_deleted_entities::<With<Camera2D>>()
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_missing_material() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_deleted_entities::<With<Material>>()
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn update_material_between_opaque_and_transparent() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
-        .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.material_key = MaterialKey::TransparentBlue.into_key();
-        })
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent"))
-        .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.material_key = MaterialKey::OpaqueBlue.into_key();
-        })
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn update_opaque_material() {
+fn configure_material() {
+    // test transition between opaque-opaque, transparent-opaque, opaque-transparent, ...
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -116,65 +94,28 @@ fn update_opaque_material() {
             m.material_key = MaterialKey::OpaqueBlue.into_key();
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn update_transparent_material() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::TransparentRed).with_camera_key(CameraKey::Default),
-        ))
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"))
         .updated()
+        .with_update::<With<Model>, _>(|m: &mut Model| {
+            m.material_key = MaterialKey::TransparentRed.into_key();
+        })
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent_red"))
         .with_update::<With<Model>, _>(|m: &mut Model| {
             m.material_key = MaterialKey::TransparentBlue.into_key();
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn update_cameras_when_opaque() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent_blue"))
         .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.camera_keys.push(CameraKey::Offset.into_key());
+            m.material_key = MaterialKey::OpaqueBlue.into_key();
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#many_cameras_opaque"))
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"))
         .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.camera_keys.remove(1);
+            m.material_key = MaterialKey::Missing.into_key();
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn update_cameras_when_transparent() {
-    App::new()
-        .with_entity(modor_graphics_new2::module())
-        .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
-        ))
-        .updated()
-        .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.camera_keys.push(CameraKey::Offset.into_key());
-        })
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#many_cameras_transparent"))
-        .with_update::<With<Model>, _>(|m: &mut Model| {
-            m.camera_keys.remove(1);
-        })
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_transparent"));
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -217,9 +158,8 @@ fn create_graphics_module() {
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
 }
 
-// TODO: fix test (Changed<> is applied even if entity is recreated)
 #[modor_test(disabled(macos, android, wasm))]
-fn replace_graphics_module() {
+fn replace_graphics_module_with_opaque_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -232,9 +172,25 @@ fn replace_graphics_module() {
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
 }
 
-// TODO: fix test (Changed<> is applied even if entity is recreated)
 #[modor_test(disabled(macos, android, wasm))]
-fn delete_and_recreate_graphics_module() {
+fn replace_graphics_module_with_transparent_model() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(resources())
+        .with_entity(model_with_transform(
+            Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
+        ))
+        .updated()
+        .with_entity(modor_graphics_new2::module())
+        .updated()
+        .assert::<With<TextureBuffer>>(
+            1,
+            assert_exact_texture("model#one_camera_transparent_blue"),
+        );
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn delete_and_recreate_graphics_module_with_opaque_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
@@ -247,6 +203,25 @@ fn delete_and_recreate_graphics_module() {
         .with_entity(modor_graphics_new2::module())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn delete_and_recreate_graphics_module_with_transparent_model() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(resources())
+        .with_entity(model_with_transform(
+            Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
+        ))
+        .updated()
+        .with_deleted_entities::<With<GraphicsModule>>()
+        .updated()
+        .with_entity(modor_graphics_new2::module())
+        .updated()
+        .assert::<With<TextureBuffer>>(
+            1,
+            assert_exact_texture("model#one_camera_transparent_blue"),
+        );
 }
 
 fn resources() -> impl BuiltEntity {
@@ -312,10 +287,12 @@ enum MaterialKey {
     OpaqueRed,
     TransparentBlue,
     TransparentRed,
+    Missing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum CameraKey {
     Default,
     Offset,
+    Missing,
 }

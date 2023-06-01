@@ -3,8 +3,9 @@ use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window,
 };
 use modor_input::{InputModule, Key, Keyboard};
+use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_text::{Alignment, Font, FontSource, Text};
+use modor_text::{Alignment, Font, FontSource, Text, TextMaterialBuilder};
 
 pub fn main() {
     App::new()
@@ -29,22 +30,16 @@ fn window() -> impl BuiltEntity {
 
 fn text() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new())
+        .with(Transform2D::new().with_size(Vec2::new(0.8, 0.5)))
         .with(Model::rectangle("MaterialKey::Text").with_camera_key("CameraKey"))
-        .with(Texture::new(
-            "TextureKey::Text",
-            TextureSource::Size(Size::ONE),
-        ))
-        .with(
-            Text::new("Hello", 300.)
-                .with_font("FontKey")
-                .with_alignment(Alignment::Center),
-        )
-        .with(
-            Material::new("MaterialKey::Text")
-                .with_color(Color::rgb(0.1, 0.1, 0.1))
-                .with_front_color(Color::WHITE)
-                .with_front_texture_key("TextureKey::Text"),
+        .with_inherited(
+            TextMaterialBuilder::new("MaterialKey::Text", "Hello", 300.)
+                .with_text(|t| t.with_font("FontKey").with_alignment(Alignment::Center))
+                .with_material(|t| {
+                    t.with_color(Color::rgb(0.1, 0.1, 0.1))
+                        .with_front_color(Color::WHITE)
+                })
+                .build(),
         )
         .with(EditableText::default())
 }

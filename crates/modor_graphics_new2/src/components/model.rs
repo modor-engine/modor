@@ -50,7 +50,8 @@ use modor_resources::{IntoResourceKey, ResourceKey};
 pub struct Model {
     /// Key of the [`Material`](crate::Material) used to render the model.
     ///
-    /// If this material has a not loaded texture attached, then the model is not rendered.
+    /// If this material does not exist or has a not loaded texture attached,
+    /// then the model is not rendered.
     pub material_key: ResourceKey,
     /// Keys of the [`Camera2D`](crate::Camera2D)s that must render the model.
     ///
@@ -60,7 +61,8 @@ pub struct Model {
 }
 
 impl Model {
-    /// Creates a new model from a rectangle mesh.
+    /// Creates a new model from a rectangle mesh and a unique
+    /// [`material_key`](#structfield.material_key).
     pub fn rectangle(material_key: impl IntoResourceKey) -> Self {
         Self {
             material_key: material_key.into_key(),

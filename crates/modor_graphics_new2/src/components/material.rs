@@ -76,6 +76,8 @@ pub struct Material {
     pub color: Color,
     /// Key of the [`Texture`] used to render the model.
     ///
+    /// If the texture is not loaded, then the models attached to the material are not rendered.
+    ///
     /// Default is [`None`].
     pub texture_key: Option<ResourceKey>,
     /// Top-left position of the extracted texture section.
@@ -103,6 +105,8 @@ pub struct Material {
     ///
     /// For example, the foreground texture is useful for rendering a text that should not be
     /// stretched.
+    ///
+    /// If the texture is not loaded, then the models attached to the material are not rendered.
     ///
     /// Default is [`None`].
     pub front_texture_key: Option<ResourceKey>,

@@ -1,10 +1,12 @@
 use crate::components::instances::transparent::TransparentInstanceRegistry;
-use crate::components::instances::{ChangedModel2D, GroupKey, GroupKeyState, Instance, Model2D};
+use crate::components::instances::{
+    ChangedModel2D, GroupKey, GroupKeyState, Instance, Model2D, Model2DResources,
+};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{Filter, Query, Single, SingleMut, World};
+use modor::{EntityFilter, Query, SingleMut, World};
 use modor_physics::Transform2D;
 use modor_resources::Resource;
 use std::mem;
@@ -13,6 +15,7 @@ use std::mem;
 pub(crate) struct OpaqueInstanceRegistry {
     groups: FxHashMap<GroupKey, InstanceGroup>,
     entity_states: FxHashMap<usize, Vec<GroupKeyState>>,
+    is_initialized: bool,
 }
 
 #[systems]
@@ -65,12 +68,30 @@ impl OpaqueInstanceRegistry {
         component(Model),
         component(ZIndex2D)
     )]
-    fn update_models_2d(
+    fn update_models_2d(&mut self, resources: Model2DResources<'_, '_, ChangedModel2D>) {
+        if self.is_initialized {
+            self.register_models_2d(resources);
+        }
+    }
+
+    #[run_after_previous]
+    fn init_models_2d(&mut self, resources: Model2DResources<'_, '_, ()>) {
+        if !self.is_initialized {
+            self.register_models_2d(resources);
+            self.is_initialized = true;
+        }
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&GroupKey, &DynamicBuffer<Instance>)> {
+        self.groups.iter().map(|(k, g)| (k, &g.buffer))
+    }
+
+    fn register_models_2d<F>(
         &mut self,
-        renderer: Single<'_, Renderer>,
-        (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
-        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
-    ) {
+        (renderer, (mut material_registry, materials), models_2d): Model2DResources<'_, '_, F>,
+    ) where
+        F: EntityFilter,
+    {
         let context = renderer
             .state(&mut None)
             .context()
@@ -104,10 +125,6 @@ impl OpaqueInstanceRegistry {
         for group in self.groups.values_mut() {
             group.sync(context);
         }
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (&GroupKey, &DynamicBuffer<Instance>)> {
-        self.groups.iter().map(|(k, g)| (k, &g.buffer))
     }
 
     fn reset_entity_state(&mut self, entity_id: usize) {

@@ -1,20 +1,35 @@
 use crate::components::instances::opaque::OpaqueInstanceRegistry;
-use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2D};
+use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2DResources};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{Filter, Query, Single, SingleMut, World};
+use modor::{EntityFilter, Single, World};
 use modor_physics::Transform2D;
 use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
 use std::ops::Range;
+
+/*
+New structure:
+
+- buffer: Vec<Instance>
+- positions: HashMap<EntityId, HashMap<GroupKey, usize>>
+- instances: Vec<(EntityId, GroupKey, usize))>
+
+- add new Instance with EntityId and GroupKey
+- update Instance with EntityId and GroupKey
+- remove Instance with EntityId and GroupKey
+- remove Instance(s) with EntityId
+- sort instances by ZIndex
+ */
 
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct TransparentInstanceRegistry {
     buffer: Option<DynamicBuffer<Instance>>,
     instances: Vec<InstanceDetails>,
     entity_positions: EntityPositions,
+    is_initialized: bool,
 }
 
 #[systems]
@@ -59,12 +74,49 @@ impl TransparentInstanceRegistry {
         component(Model),
         component(ZIndex2D)
     )]
-    fn update_models_2d(
+    fn update_models_2d(&mut self, resources: Model2DResources<'_, '_, ChangedModel2D>) {
+        if self.is_initialized {
+            self.register_models_2d(resources);
+        }
+    }
+
+    #[run_after_previous]
+    fn init_models_2d(&mut self, resources: Model2DResources<'_, '_, ()>) {
+        if !self.is_initialized {
+            self.register_models_2d(resources);
+            self.is_initialized = true;
+        }
+    }
+
+    pub(crate) fn iter(&self) -> GroupIterator<'_> {
+        GroupIterator::new(self)
+    }
+
+    pub(crate) fn add_opaque_instance(
         &mut self,
-        renderer: Single<'_, Renderer>,
-        (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
-        models_2d: Query<'_, (Model2D<'_>, Filter<ChangedModel2D>)>,
+        instance: Instance,
+        entity_id: usize,
+        group_key: GroupKey,
     ) {
+        let buffer = self
+            .buffer
+            .as_mut()
+            .expect("internal error: transparent instance buffer not initialized");
+        buffer.push(instance);
+        self.entity_positions.add(entity_id, &group_key);
+        self.instances.push(InstanceDetails {
+            group_key,
+            position: buffer.len() - 1,
+            is_updated: true,
+        });
+    }
+
+    fn register_models_2d<F>(
+        &mut self,
+        (renderer, (mut material_registry, materials), models_2d): Model2DResources<'_, '_, F>,
+    ) where
+        F: EntityFilter,
+    {
         let context = renderer
             .state(&mut None)
             .context()
@@ -78,7 +130,8 @@ impl TransparentInstanceRegistry {
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
                 .map_or(false, Material::is_transparent);
-            for position in self.entity_positions.get(entity_id) {
+            let positions = self.entity_positions.get(entity_id);
+            for &position in &positions {
                 self.instances[position].is_updated = false;
             }
             if is_transparent {
@@ -106,7 +159,7 @@ impl TransparentInstanceRegistry {
                 }
                 debug!("transparent instance with ID {entity_id} registered (new/changed)");
             }
-            for position in self.entity_positions.get(entity_id).collect::<Vec<_>>() {
+            for position in positions {
                 let instance = &self.instances[position];
                 if !instance.is_updated {
                     self.entity_positions
@@ -124,29 +177,6 @@ impl TransparentInstanceRegistry {
         }
         buffer.sort_unstable_by(Self::compare_instances);
         buffer.sync(context);
-    }
-
-    pub(crate) fn iter(&self) -> GroupIterator<'_> {
-        GroupIterator::new(self)
-    }
-
-    pub(crate) fn add_opaque_instance(
-        &mut self,
-        instance: Instance,
-        entity_id: usize,
-        group_key: GroupKey,
-    ) {
-        let buffer = self
-            .buffer
-            .as_mut()
-            .expect("internal error: transparent instance buffer not initialized");
-        buffer.push(instance);
-        self.entity_positions.add(entity_id, &group_key);
-        self.instances.push(InstanceDetails {
-            group_key,
-            position: buffer.len() - 1,
-            is_updated: true,
-        });
     }
 
     fn compare_instances(a: &Instance, b: &Instance) -> Ordering {
@@ -213,12 +243,16 @@ struct EntityPositions {
 }
 
 impl EntityPositions {
-    fn get(&self, entity_id: usize) -> impl Iterator<Item = usize> + '_ {
-        self.entity_positions
+    fn get(&self, entity_id: usize) -> Vec<usize> {
+        let mut positions = self
+            .entity_positions
             .get(&entity_id)
             .into_iter()
             .flat_map(HashMap::values)
             .copied()
+            .collect::<Vec<_>>();
+        positions.sort_unstable_by_key(|&i| Reverse(i));
+        positions
     }
 
     // returns the position if the entity already exists
@@ -302,10 +336,8 @@ mod entity_positions_tests {
         assert_eq!(positions.add(10, &group1), None);
         assert_eq!(positions.add(10, &group2), None);
         assert_eq!(positions.add(20, &group1), None);
-        assert_eq!(positions.entity_ids, [10, 10, 20]);
-        assert_eq!(positions.entity_positions[&10][&group1], 0);
-        assert_eq!(positions.entity_positions[&10][&group2], 1);
-        assert_eq!(positions.entity_positions[&20][&group1], 2);
+        assert_eq!(positions.get(10), [1, 0]);
+        assert_eq!(positions.get(20), [2]);
     }
 
     #[test]
@@ -324,9 +356,7 @@ mod entity_positions_tests {
         positions.add(10, &group1);
         positions.add(10, &group2);
         assert_eq!(positions.add(10, &group2), Some(1));
-        assert_eq!(positions.entity_ids, [10, 10]);
-        assert_eq!(positions.entity_positions[&10][&group1], 0);
-        assert_eq!(positions.entity_positions[&10][&group2], 1);
+        assert_eq!(positions.get(10), [1, 0]);
     }
 
     #[test]
@@ -354,12 +384,9 @@ mod entity_positions_tests {
         positions.add(30, &group2);
         positions.delete_instance(1, &group2);
         positions.delete_instance(0, &group1);
-        assert_eq!(positions.entity_ids, [20, 30, 10]);
-        assert_eq!(positions.entity_positions[&10].get(&group1), None);
-        assert_eq!(positions.entity_positions[&10].get(&group2), None);
-        assert_eq!(positions.entity_positions[&20][&group1], 0);
-        assert_eq!(positions.entity_positions[&30][&group2], 1);
-        assert_eq!(positions.entity_positions[&10][&group3], 2);
+        assert_eq!(positions.get(10), [2]);
+        assert_eq!(positions.get(20), [0]);
+        assert_eq!(positions.get(30), [1]);
     }
 
     #[test]
@@ -381,10 +408,9 @@ mod entity_positions_tests {
         positions.add(30, &group2);
         positions.delete_instance(3, &group2);
         positions.delete_instance(2, &group1);
-        assert_eq!(positions.entity_ids, [10, 20]);
-        assert_eq!(positions.entity_positions[&10][&group1], 0);
-        assert_eq!(positions.entity_positions[&20][&group2], 1);
-        assert_eq!(positions.entity_positions[&30].len(), 0);
+        assert_eq!(positions.get(10), [0]);
+        assert_eq!(positions.get(20), [1]);
+        assert_eq!(positions.get(30), []);
     }
 
     #[test]
@@ -412,10 +438,9 @@ mod entity_positions_tests {
         positions.add(30, &group2);
         assert_eq!(positions.delete_entity(10), [2, 1, 0]);
         assert_eq!(positions.delete_entity(10), [] as [usize; 0]);
-        assert_eq!(positions.entity_ids, [30, 20]);
-        assert_eq!(positions.entity_positions.get(&10), None);
-        assert_eq!(positions.entity_positions[&30][&group2], 0);
-        assert_eq!(positions.entity_positions[&20][&group1], 1);
+        assert_eq!(positions.get(10), []);
+        assert_eq!(positions.get(20), [1]);
+        assert_eq!(positions.get(30), [0]);
     }
 
     #[test]
@@ -455,9 +480,8 @@ mod entity_positions_tests {
         positions.add(30, &group2);
         assert_eq!(positions.delete_entity(30), [3, 2]);
         assert_eq!(positions.delete_entity(30), [] as [usize; 0]);
-        assert_eq!(positions.entity_ids, [10, 20]);
-        assert_eq!(positions.entity_positions[&10][&group1], 0);
-        assert_eq!(positions.entity_positions[&20][&group2], 1);
-        assert_eq!(positions.entity_positions.get(&30), None);
+        assert_eq!(positions.get(10), [0]);
+        assert_eq!(positions.get(20), [1]);
+        assert_eq!(positions.get(30), []);
     }
 }

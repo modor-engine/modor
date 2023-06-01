@@ -195,7 +195,7 @@ impl RenderTarget {
         component(Texture)
     )]
     #[allow(clippy::too_many_arguments)]
-    fn render_window_target(
+    fn render(
         &mut self,
         texture: Option<&Texture>,
         renderer: Single<'_, Renderer>,

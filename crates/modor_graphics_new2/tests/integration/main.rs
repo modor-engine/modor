@@ -30,12 +30,12 @@ pub mod model;
 pub mod testing;
 pub mod texture_buffer;
 pub mod window;
+pub mod z_index;
 
 /*
 TODO: add missing tests
-    - material
-    - texture
-    - z_index
+    - texture (e.g. what if texture not loaded/with failed loading)
+    - z_index (e.g. ordered/unordered display of transparent/opaque rectangles)
     - camera
-    - render_target (target in target)
+    - render_target (e.g. target in target)
  */

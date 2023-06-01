@@ -4,29 +4,6 @@ use modor_resources::{
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, PartialEq, Eq)]
-struct LoadedSize(usize);
-
-impl Load<String> for LoadedSize {
-    fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
-        thread::sleep(Duration::from_millis(1));
-        if data.is_empty() {
-            Err(ResourceLoadingError::LoadingError("empty file".into()))
-        } else {
-            Ok(Self(data.len()))
-        }
-    }
-
-    fn load_from_data(data: &String) -> Result<Self, ResourceLoadingError> {
-        thread::sleep(Duration::from_millis(1));
-        if data.is_empty() {
-            Err(ResourceLoadingError::LoadingError("empty data".into()))
-        } else {
-            Ok(Self(data.len()))
-        }
-    }
-}
-
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn load_valid_resource_from_sync_data() {
@@ -204,4 +181,27 @@ fn change_resource_source() {
     handler.update::<LoadedSize>(&"key".into_key());
     assert_eq!(handler.resource(), Some(LoadedSize(11)));
     assert_eq!(handler.state(), ResourceState::Loaded);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct LoadedSize(usize);
+
+impl Load<String> for LoadedSize {
+    fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
+        thread::sleep(Duration::from_millis(1));
+        if data.is_empty() {
+            Err(ResourceLoadingError::LoadingError("empty file".into()))
+        } else {
+            Ok(Self(data.len()))
+        }
+    }
+
+    fn load_from_data(data: &String) -> Result<Self, ResourceLoadingError> {
+        thread::sleep(Duration::from_millis(1));
+        if data.is_empty() {
+            Err(ResourceLoadingError::LoadingError("empty data".into()))
+        } else {
+            Ok(Self(data.len()))
+        }
+    }
 }
