@@ -6,29 +6,13 @@ use crate::{Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
 use modor::{EntityFilter, Single, World};
 use modor_physics::Transform2D;
-use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
 use std::ops::Range;
-
-/*
-New structure:
-
-- buffer: Vec<Instance>
-- positions: HashMap<EntityId, HashMap<GroupKey, usize>>
-- instances: Vec<(EntityId, GroupKey, usize))>
-
-- add new Instance with EntityId and GroupKey
-- update Instance with EntityId and GroupKey
-- remove Instance with EntityId and GroupKey
-- remove Instance(s) with EntityId
-- sort instances by ZIndex
- */
 
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct TransparentInstanceRegistry {
     buffer: Option<DynamicBuffer<Instance>>,
-    instances: Vec<InstanceDetails>,
-    entity_positions: EntityPositions,
+    instances: InstanceDetails,
     is_initialized: bool,
 }
 
@@ -57,9 +41,8 @@ impl TransparentInstanceRegistry {
                 .transformed_entity_ids()
                 .chain(world.deleted_entity_ids());
             for entity_id in deleted_entity_ids {
-                for position in self.entity_positions.delete_entity(entity_id) {
+                for position in self.instances.delete_entity(entity_id) {
                     buffer.swap_remove(position);
-                    self.instances.swap_remove(position);
                 }
                 debug!("transparent instance with ID {entity_id} unregistered (changed/deleted)");
             }
@@ -98,17 +81,8 @@ impl TransparentInstanceRegistry {
         entity_id: usize,
         group_key: GroupKey,
     ) {
-        let buffer = self
-            .buffer
-            .as_mut()
-            .expect("internal error: transparent instance buffer not initialized");
-        buffer.push(instance);
-        self.entity_positions.add(entity_id, &group_key);
-        self.instances.push(InstanceDetails {
-            group_key,
-            position: buffer.len() - 1,
-            is_updated: true,
-        });
+        Self::buffer_mut(&mut self.buffer).push(instance);
+        self.instances.add(entity_id, group_key);
     }
 
     fn register_models_2d<F>(
@@ -121,19 +95,13 @@ impl TransparentInstanceRegistry {
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
-        let buffer = self
-            .buffer
-            .as_mut()
-            .expect("internal error: transparent instance buffer not initialized");
+        let buffer = Self::buffer_mut(&mut self.buffer);
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let entity_id = entity.id();
             let is_transparent = material_registry
                 .get(&model.material_key, &materials)
                 .map_or(false, Material::is_transparent);
-            let positions = self.entity_positions.get(entity_id);
-            for &position in &positions {
-                self.instances[position].is_updated = false;
-            }
+            self.instances.reset_entity_update_state(entity_id);
             if is_transparent {
                 for camera_key in &model.camera_keys {
                     let group_key = GroupKey {
@@ -141,56 +109,158 @@ impl TransparentInstanceRegistry {
                         material_key: model.material_key.clone(),
                         mesh_key: model.mesh_key.clone(),
                     };
-                    if let Some(position) = self.entity_positions.add(entity_id, &group_key) {
+                    if let Some(position) = self.instances.add(entity_id, group_key) {
                         buffer[position] = super::create_instance(transform, z_index);
-                        self.instances[position] = InstanceDetails {
-                            group_key,
-                            position,
-                            is_updated: true,
-                        };
                     } else {
                         buffer.push(super::create_instance(transform, z_index));
-                        self.instances.push(InstanceDetails {
-                            group_key,
-                            position: buffer.len() - 1,
-                            is_updated: true,
-                        });
-                    };
+                    }
                 }
                 debug!("transparent instance with ID {entity_id} registered (new/changed)");
             }
-            for position in positions {
-                let instance = &self.instances[position];
-                if !instance.is_updated {
-                    self.entity_positions
-                        .delete_instance(position, &instance.group_key);
-                    buffer.swap_remove(position);
-                    self.instances.swap_remove(position);
-                }
+            for position in self.instances.delete_not_updated(entity_id) {
+                buffer.swap_remove(position);
             }
         }
-        self.instances.sort_unstable_by(|a, b| {
-            Self::compare_instances(&buffer[a.position], &buffer[b.position])
-        });
-        for (position, instance) in self.instances.iter_mut().enumerate() {
-            instance.position = position;
-        }
-        buffer.sort_unstable_by(Self::compare_instances);
+        self.instances.sort(buffer);
+        buffer.sort_unstable_by(Instance::cmp_z);
         buffer.sync(context);
     }
 
-    fn compare_instances(a: &Instance, b: &Instance) -> Ordering {
-        a.transform[3][2]
-            .partial_cmp(&b.transform[3][2])
-            .unwrap_or(Ordering::Equal)
+    fn buffer(buffer: &Option<DynamicBuffer<Instance>>) -> &DynamicBuffer<Instance> {
+        buffer
+            .as_ref()
+            .expect("internal error: transparent instance buffer not initialized")
+    }
+
+    fn buffer_mut(buffer: &mut Option<DynamicBuffer<Instance>>) -> &mut DynamicBuffer<Instance> {
+        buffer
+            .as_mut()
+            .expect("internal error: transparent instance buffer not initialized")
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct InstanceDetails {
-    group_key: GroupKey,
-    position: usize,
-    is_updated: bool,
+    instances: Vec<InstanceProperties>,
+    entity_positions: FxHashMap<usize, FxHashMap<GroupKey, usize>>,
+}
+
+impl InstanceDetails {
+    fn next_group(&self, first_position: usize) -> Option<(&GroupKey, Range<usize>)> {
+        self.instances.get(first_position).map(|instance| {
+            let group_key = &instance.group_key;
+            let next_range_position = self.instances[first_position..]
+                .iter()
+                .filter(|i| &i.group_key != group_key)
+                .map(|i| i.position)
+                .next()
+                .unwrap_or(self.instances.len());
+            (group_key, first_position..next_range_position)
+        })
+    }
+
+    // returns existing position if the instance already exists, else returns None
+    fn add(&mut self, entity_id: usize, group_key: GroupKey) -> Option<usize> {
+        let entity_positions = self
+            .entity_positions
+            .entry(entity_id)
+            .or_insert_with(FxHashMap::default);
+        if let Some(&position) = entity_positions.get(&group_key) {
+            self.instances[position].is_updated = true;
+            Some(position)
+        } else {
+            let position = self.instances.len();
+            entity_positions.insert(group_key.clone(), position);
+            self.instances.push(InstanceProperties {
+                entity_id,
+                group_key,
+                position,
+                is_updated: true,
+            });
+            None
+        }
+    }
+
+    fn delete(&mut self, position: usize) {
+        let instance = self.instances.swap_remove(position);
+        if let Some(positions) = self.entity_positions.get_mut(&instance.entity_id) {
+            positions.remove(&instance.group_key);
+        }
+        if let Some(instance) = self.instances.get_mut(position) {
+            instance.position = position;
+            Self::set_position(
+                instance.entity_id,
+                &instance.group_key,
+                position,
+                &mut self.entity_positions,
+            );
+        };
+    }
+
+    fn sort(&mut self, buffer: &DynamicBuffer<Instance>) {
+        self.instances
+            .sort_unstable_by(|a, b| buffer[a.position].cmp_z(&buffer[b.position]));
+        for (position, instance) in self.instances.iter_mut().enumerate() {
+            instance.position = position;
+        }
+        for instance in &self.instances {
+            Self::set_position(
+                instance.entity_id,
+                &instance.group_key,
+                instance.position,
+                &mut self.entity_positions,
+            );
+        }
+    }
+
+    // returns the ordered positions of deleted instances
+    fn delete_entity(&mut self, entity_id: usize) -> impl Iterator<Item = usize> + '_ {
+        self.entity_positions
+            .remove(&entity_id)
+            .into_iter()
+            .flat_map(HashMap::into_values)
+            .inspect(|&p| self.delete(p))
+    }
+
+    fn reset_entity_update_state(&mut self, entity_id: usize) {
+        for &position in self
+            .entity_positions
+            .get(&entity_id)
+            .iter()
+            .flat_map(|p| p.values())
+        {
+            self.instances[position].is_updated = false;
+        }
+    }
+
+    // returns the ordered positions of deleted instances
+    fn delete_not_updated(&mut self, entity_id: usize) -> Vec<usize> {
+        let deleted_positions = self
+            .entity_positions
+            .get(&entity_id)
+            .iter()
+            .flat_map(|p| p.values())
+            .copied()
+            .filter(|&p| !self.instances[p].is_updated)
+            .collect::<Vec<_>>();
+        for &position in &deleted_positions {
+            self.delete(position);
+        }
+        deleted_positions
+    }
+
+    fn set_position(
+        entity_id: usize,
+        group_key: &GroupKey,
+        position: usize,
+        entity_positions: &mut FxHashMap<usize, FxHashMap<GroupKey, usize>>,
+    ) {
+        *entity_positions
+            .get_mut(&entity_id)
+            .expect("internal error: not found position of entity")
+            .get_mut(group_key)
+            .expect("internal error: not found position of entity group") = position;
+    }
 }
 
 pub(crate) struct GroupIterator<'a> {
@@ -212,276 +282,23 @@ impl<'a> Iterator for GroupIterator<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(instance) = self.registry.instances.get(self.next_position) {
-            let group = &instance.group_key;
-            let new_next_position = self.registry.instances[self.next_position..]
-                .iter()
-                .filter(|i| &i.group_key != group)
-                .map(|i| i.position)
-                .next()
-                .unwrap_or(self.registry.instances.len());
-            let item = (
-                group,
-                self.registry
-                    .buffer
-                    .as_ref()
-                    .expect("internal error: transparent instance buffer not initialized"),
-                self.next_position..new_next_position,
-            );
-            self.next_position = new_next_position;
-            Some(item)
+        if let Some((group_key, range)) = self.registry.instances.next_group(self.next_position) {
+            self.next_position = range.end;
+            Some((
+                group_key,
+                TransparentInstanceRegistry::buffer(&self.registry.buffer),
+                range,
+            ))
         } else {
             None
         }
     }
 }
 
-#[derive(Debug, Default)]
-struct EntityPositions {
-    entity_ids: Vec<usize>,
-    entity_positions: FxHashMap<usize, FxHashMap<GroupKey, usize>>,
-}
-
-impl EntityPositions {
-    fn get(&self, entity_id: usize) -> Vec<usize> {
-        let mut positions = self
-            .entity_positions
-            .get(&entity_id)
-            .into_iter()
-            .flat_map(HashMap::values)
-            .copied()
-            .collect::<Vec<_>>();
-        positions.sort_unstable_by_key(|&i| Reverse(i));
-        positions
-    }
-
-    // returns the position if the entity already exists
-    fn add(&mut self, entity_id: usize, group_key: &GroupKey) -> Option<usize> {
-        if let Some(&position) = self
-            .entity_positions
-            .get(&entity_id)
-            .and_then(|p| p.get(group_key))
-        {
-            Some(position)
-        } else {
-            self.entity_positions
-                .entry(entity_id)
-                .or_insert_with(HashMap::default)
-                .entry(group_key.clone())
-                .or_insert_with(|| self.entity_ids.len());
-            self.entity_ids.push(entity_id);
-            None
-        }
-    }
-
-    fn delete_instance(&mut self, position: usize, group_key: &GroupKey) {
-        let entity_id = self.delete_instance_and_fix_moved_instance(position);
-        self.entity_positions
-            .get_mut(&entity_id)
-            .expect("internal error: instance entity not found")
-            .remove(group_key)
-            .expect("internal error: group key does not correspond to instance position");
-    }
-
-    // returns the entity positions before deletion
-    fn delete_entity(&mut self, entity_id: usize) -> Vec<usize> {
-        let mut positions = self
-            .entity_positions
-            .remove(&entity_id)
-            .map_or_else(Vec::new, |p| p.into_values().collect::<Vec<_>>());
-        positions.sort_unstable_by_key(|&i| Reverse(i));
-        for &position in &positions {
-            self.delete_instance_and_fix_moved_instance(position);
-        }
-        positions
-    }
-
-    // Returns entity ID of the deleted instance
-    fn delete_instance_and_fix_moved_instance(&mut self, position: usize) -> usize {
-        let entity_idx = self.entity_ids.swap_remove(position);
-        if let Some(moved_entity_positions) = self
-            .entity_ids
-            .get(position)
-            .and_then(|i| self.entity_positions.get_mut(i))
-        {
-            for moved_position in moved_entity_positions.values_mut() {
-                if moved_position == &self.entity_ids.len() {
-                    *moved_position = position;
-                }
-            }
-        }
-        entity_idx
-    }
-}
-
-#[cfg(test)]
-mod entity_positions_tests {
-    use crate::components::instances::transparent::EntityPositions;
-    use crate::components::instances::GroupKey;
-    use modor_resources::IntoResourceKey;
-
-    #[test]
-    fn add_new_entities() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        assert_eq!(positions.add(10, &group1), None);
-        assert_eq!(positions.add(10, &group2), None);
-        assert_eq!(positions.add(20, &group1), None);
-        assert_eq!(positions.get(10), [1, 0]);
-        assert_eq!(positions.get(20), [2]);
-    }
-
-    #[test]
-    fn add_existing_entity() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.add(10, &group2);
-        assert_eq!(positions.add(10, &group2), Some(1));
-        assert_eq!(positions.get(10), [1, 0]);
-    }
-
-    #[test]
-    fn delete_first_instances() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        let group3 = GroupKey {
-            camera_key: 7.into_key(),
-            material_key: 8.into_key(),
-            mesh_key: 9.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.add(10, &group2);
-        positions.add(10, &group3);
-        positions.add(20, &group1);
-        positions.add(30, &group2);
-        positions.delete_instance(1, &group2);
-        positions.delete_instance(0, &group1);
-        assert_eq!(positions.get(10), [2]);
-        assert_eq!(positions.get(20), [0]);
-        assert_eq!(positions.get(30), [1]);
-    }
-
-    #[test]
-    fn delete_last_instances() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.add(20, &group2);
-        positions.add(30, &group1);
-        positions.add(30, &group2);
-        positions.delete_instance(3, &group2);
-        positions.delete_instance(2, &group1);
-        assert_eq!(positions.get(10), [0]);
-        assert_eq!(positions.get(20), [1]);
-        assert_eq!(positions.get(30), []);
-    }
-
-    #[test]
-    fn delete_first_entities() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        let group3 = GroupKey {
-            camera_key: 7.into_key(),
-            material_key: 8.into_key(),
-            mesh_key: 9.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.add(10, &group2);
-        positions.add(10, &group3);
-        positions.add(20, &group1);
-        positions.add(30, &group2);
-        assert_eq!(positions.delete_entity(10), [2, 1, 0]);
-        assert_eq!(positions.delete_entity(10), [] as [usize; 0]);
-        assert_eq!(positions.get(10), []);
-        assert_eq!(positions.get(20), [1]);
-        assert_eq!(positions.get(30), [0]);
-    }
-
-    #[test]
-    #[should_panic = "internal error: group key does not correspond to instance position"]
-    fn delete_instance_with_invalid_group_key() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.delete_instance(0, &group2);
-    }
-
-    #[test]
-    fn delete_last_entities() {
-        let mut positions = EntityPositions::default();
-        let group1 = GroupKey {
-            camera_key: 1.into_key(),
-            material_key: 2.into_key(),
-            mesh_key: 3.into_key(),
-        };
-        let group2 = GroupKey {
-            camera_key: 4.into_key(),
-            material_key: 5.into_key(),
-            mesh_key: 6.into_key(),
-        };
-        positions.add(10, &group1);
-        positions.add(20, &group2);
-        positions.add(30, &group1);
-        positions.add(30, &group2);
-        assert_eq!(positions.delete_entity(30), [3, 2]);
-        assert_eq!(positions.delete_entity(30), [] as [usize; 0]);
-        assert_eq!(positions.get(10), [0]);
-        assert_eq!(positions.get(20), [1]);
-        assert_eq!(positions.get(30), []);
-    }
+#[derive(Debug)]
+struct InstanceProperties {
+    entity_id: usize,
+    group_key: GroupKey,
+    position: usize,
+    is_updated: bool,
 }

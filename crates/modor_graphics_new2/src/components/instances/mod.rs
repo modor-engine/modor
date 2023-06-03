@@ -6,9 +6,8 @@ use modor::{Changed, Entity, Filter, Or, Query, Single, SingleMut};
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
 use modor_resources::ResourceKey;
+use std::cmp::Ordering;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
-
-// TODO: try to simplify sub modules
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct GroupKey {
@@ -27,6 +26,14 @@ pub(crate) struct GroupKeyState {
 #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
 pub(crate) struct Instance {
     transform: [[f32; 4]; 4],
+}
+
+impl Instance {
+    pub(crate) fn cmp_z(&self, other: &Self) -> Ordering {
+        self.transform[3][2]
+            .partial_cmp(&other.transform[3][2])
+            .unwrap_or(Ordering::Equal)
+    }
 }
 
 impl<const L: u32> VertexBuffer<L> for Instance {

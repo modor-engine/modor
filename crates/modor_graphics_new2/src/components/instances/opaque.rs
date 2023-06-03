@@ -11,6 +11,8 @@ use modor_physics::Transform2D;
 use modor_resources::Resource;
 use std::mem;
 
+// TODO: try to simplify module
+
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct OpaqueInstanceRegistry {
     groups: FxHashMap<GroupKey, InstanceGroup>,
