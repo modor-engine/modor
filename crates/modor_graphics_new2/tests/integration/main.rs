@@ -23,19 +23,14 @@ where
     |e| e.has(|b: &TextureBuffer| assert_texture(b, key, MaxTextureDiff::Zero))
 }
 
+pub mod camera;
 pub mod color;
 pub mod input;
 pub mod material;
 pub mod model;
+pub mod render_target;
 pub mod testing;
+pub mod texture;
 pub mod texture_buffer;
 pub mod window;
 pub mod z_index;
-
-/*
-TODO: add missing tests
-    - texture (e.g. what if texture not loaded/with failed loading)
-    - z_index (e.g. ordered/unordered display of transparent/opaque rectangles)
-    - camera
-    - render_target (e.g. target in target)
- */

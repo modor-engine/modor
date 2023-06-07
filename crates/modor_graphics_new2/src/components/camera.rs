@@ -3,7 +3,7 @@ use crate::components::render_target::{
 };
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
-use crate::{GpuContext, RenderTarget, Renderer, Window};
+use crate::{GpuContext, RenderTarget, Renderer, Size};
 use fxhash::FxHashMap;
 use modor::{Query, Single, SingleMut};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
@@ -156,16 +156,16 @@ impl Camera2D {
         }
     }
 
-    /// Converts a `window_position` into world position.
+    /// Converts a `surface_position` for a surface of size `surface_size` into world position.
     ///
-    /// `window_position` with a value of [`Vec2::ZERO`] corresponds to top-left corner of the
-    /// window, and a value if [`Window::size()`] corresponds to the bottom-right corner.
-    pub fn world_position(&self, window: &Window, window_position: Vec2) -> Vec2 {
-        let target_size: Vec2 = window.size().into();
+    /// `surface_position` with a value of [`Vec2::ZERO`] corresponds to top-left corner of the
+    /// surface, and a value of [`Window::size()`] corresponds to the bottom-right corner.
+    pub fn world_position(&self, surface_size: Size, surface_position: Vec2) -> Vec2 {
+        let target_size: Vec2 = surface_size.into();
         self.world_matrix(target_size)
             * Vec2::new(
-                window_position.x / target_size.x - 0.5,
-                0.5 - window_position.y / target_size.y,
+                surface_position.x / target_size.x - 0.5,
+                0.5 - surface_position.y / target_size.y,
             )
     }
 

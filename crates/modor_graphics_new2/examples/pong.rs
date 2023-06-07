@@ -190,7 +190,7 @@ impl Cursor {
     ) {
         let Some(camera) = camera.iter().next() else { return; };
         let Some(window) = window.iter().next() else { return; };
-        *transform.position = camera.world_position(window, mouse.position());
+        *transform.position = camera.world_position(window.size(), mouse.position());
     }
 }
 

@@ -132,8 +132,9 @@ impl App {
     }
 
     // TODO: test
+    // TODO: see where can be used instead of with_update
     /// Adds the component returned by `component_builder` to all entities matching `F` filter.
-    /// 
+    ///
     /// If an entity already has a component of type `C`, it is overwritten.
     pub fn with_component<F, C>(mut self, mut component_builder: impl FnMut() -> C) -> Self
     where

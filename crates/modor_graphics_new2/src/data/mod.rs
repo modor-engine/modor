@@ -1,2 +1,2 @@
-pub mod color;
-pub mod size;
+pub(crate) mod color;
+pub(crate) mod size;

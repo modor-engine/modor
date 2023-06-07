@@ -111,6 +111,9 @@ pub fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDif
 
 /// Returns whether the texture is loaded, and sleeps 10ms if not yet loaded.
 ///
+/// The texture is considered as loaded if the state is [`ResourceState::Loaded`] or
+/// [`ResourceState::Error`].
+///
 /// # Platform-specific
 ///
 /// - Web: sleep is not supported, so the function panics.
@@ -119,7 +122,10 @@ pub fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDif
 ///
 /// See [`assert_texture`](assert_texture()).
 pub fn wait_texture_loading(texture: &Texture) -> bool {
-    if texture.state() == ResourceState::Loaded {
+    if matches!(
+        texture.state(),
+        ResourceState::Loaded | ResourceState::Error(_)
+    ) {
         true
     } else {
         thread::sleep(Duration::from_micros(10));

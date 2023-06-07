@@ -15,6 +15,7 @@ use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
 pub struct TestRunnerContext;
 
 impl TestRunnerContext {
+    #[allow(clippy::unused_self)]
     pub(crate) fn event_loop(&mut self) -> Option<&mut EventLoop<()>> {
         None
     }

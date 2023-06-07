@@ -13,9 +13,7 @@ fn create_default() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(Model::rectangle(
-            MaterialKey::OpaqueBlue,
-        )))
+        .with_entity(transform().with(Model::rectangle(MaterialKey::OpaqueBlue)))
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
 }
@@ -35,9 +33,11 @@ fn configure_opaque_with_one_camera() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"))
         .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = CameraKey::Offset.into_key())
@@ -53,7 +53,7 @@ fn configure_transparent_with_one_camera() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
+        .with_entity(transform().with(
             Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
         ))
         .updated()
@@ -71,11 +71,13 @@ fn configure_many_cameras() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue)
-                .with_camera_key(CameraKey::Default)
-                .with_camera_key(CameraKey::Offset),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue)
+                    .with_camera_key(CameraKey::Default)
+                    .with_camera_key(CameraKey::Offset),
+            ),
+        )
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#many_cameras_opaque"));
 }
@@ -86,9 +88,10 @@ fn configure_material() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueRed).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform()
+                .with(Model::rectangle(MaterialKey::OpaqueRed).with_camera_key(CameraKey::Default)),
+        )
         .updated()
         .with_update::<With<Model>, _>(|m: &mut Model| {
             m.material_key = MaterialKey::OpaqueBlue.into_key();
@@ -123,10 +126,12 @@ fn delete_entity() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
-        .with_entity(model_with_transform(
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
+        .with_entity(transform().with(
             Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
         ))
         .updated()
@@ -139,9 +144,11 @@ fn delete_entity() {
 fn create_without_graphics_module() {
     App::new()
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
         .updated();
 }
 
@@ -149,9 +156,11 @@ fn create_without_graphics_module() {
 fn create_graphics_module() {
     App::new()
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
         .updated()
         .with_entity(modor_graphics_new2::module())
         .updated()
@@ -163,9 +172,11 @@ fn replace_graphics_module_with_opaque_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
         .updated()
         .with_entity(modor_graphics_new2::module())
         .updated()
@@ -177,7 +188,7 @@ fn replace_graphics_module_with_transparent_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
+        .with_entity(transform().with(
             Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
         ))
         .updated()
@@ -194,9 +205,11 @@ fn delete_and_recreate_graphics_module_with_opaque_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
-            Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(
+            transform().with(
+                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
+            ),
+        )
         .updated()
         .with_deleted_entities::<With<GraphicsModule>>()
         .updated()
@@ -210,7 +223,7 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(model_with_transform(
+        .with_entity(transform().with(
             Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
         ))
         .updated()
@@ -271,8 +284,8 @@ fn offset_camera() -> impl BuiltEntity {
         .with(Transform2D::new().with_position(Vec2::new(0.5, 0.5)))
 }
 
-fn model_with_transform(model: Model) -> impl BuiltEntity {
-    EntityBuilder::new().with(Transform2D::new()).with(model)
+fn transform() -> impl BuiltEntity {
+    EntityBuilder::new().with(Transform2D::new())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
