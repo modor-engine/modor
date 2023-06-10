@@ -81,6 +81,11 @@ fn render_target_in_target() {
         .assert::<With<MainTarget>>(
             1,
             assert_exact_texture("render_target#target_texture_in_use"),
+        )
+        .updated()
+        .assert::<With<MainTarget>>(
+            1,
+            assert_exact_texture("render_target#target_texture_in_use"),
         );
 }
 

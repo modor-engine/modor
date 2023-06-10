@@ -36,16 +36,15 @@ impl TransparentInstanceRegistry {
 
     #[run_after_previous_and(component(OpaqueInstanceRegistry))]
     fn delete_models(&mut self, world: World<'_>) {
-        if let Some(buffer) = &mut self.buffer {
-            let deleted_entity_ids = world
-                .transformed_entity_ids()
-                .chain(world.deleted_entity_ids());
-            for entity_id in deleted_entity_ids {
-                for position in self.instances.delete_entity(entity_id) {
-                    buffer.swap_remove(position);
-                }
-                debug!("transparent instance with ID {entity_id} unregistered (changed/deleted)");
+        let buffer = Self::buffer_mut(&mut self.buffer);
+        let deleted_entity_ids = world
+            .transformed_entity_ids()
+            .chain(world.deleted_entity_ids());
+        for entity_id in deleted_entity_ids {
+            for position in self.instances.delete_entity(entity_id) {
+                buffer.swap_remove(position);
             }
+            debug!("transparent instance with ID {entity_id} unregistered (changed/deleted)");
         }
     }
 

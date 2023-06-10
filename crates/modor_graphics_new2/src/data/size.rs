@@ -1,6 +1,5 @@
 use modor_math::Vec2;
 use std::num::NonZeroU32;
-use winit::dpi::{PhysicalSize, Size as WinitSize};
 
 /// A size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -20,12 +19,6 @@ impl Size {
     /// Creates a new size.
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
-    }
-}
-
-impl From<Size> for WinitSize {
-    fn from(size: Size) -> Self {
-        Self::Physical(PhysicalSize::new(size.width, size.height))
     }
 }
 
