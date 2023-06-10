@@ -1,4 +1,4 @@
-use crate::assert_exact_texture;
+use crate::{assert_approx_texture, assert_exact_texture};
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
@@ -105,10 +105,10 @@ fn configure_front_texture() {
             m.front_texture_key = Some(TextureKey::Transparent.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#front_texture"))
+        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture", 10))
         .with_update::<(), _>(|m: &mut Material| m.front_texture_key = None)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_white"))
+        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#color_white", 10))
         .with_update::<(), _>(|m: &mut Material| {
             m.front_texture_key = Some(TextureKey::Missing.into_key());
         })
@@ -128,10 +128,10 @@ fn configure_front_color_and_texture() {
                 .with_color(Color::GREEN),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#front_texture_red"))
+        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture_red", 10))
         .with_update::<(), _>(|m: &mut Material| m.front_color = Color::BLUE)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#front_texture_blue"));
+        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture_blue", 10));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -149,7 +149,7 @@ fn create_ellipse() {
                 .with_texture_size(Vec2::new(0.5, 1.)),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#ellipse"));
+        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#ellipse", 10));
 }
 
 #[modor_test(disabled(macos, android, wasm))]

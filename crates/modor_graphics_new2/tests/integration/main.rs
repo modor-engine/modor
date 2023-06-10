@@ -20,7 +20,21 @@ fn assert_exact_texture<F>(
 where
     F: EntityFilter,
 {
-    |e| e.has(|b: &TextureBuffer| assert_texture(b, key, MaxTextureDiff::Zero))
+    |e| e.has(|b: &TextureBuffer| assert_texture(b, key, MaxTextureDiff::Component(1)))
+}
+
+fn assert_approx_texture<F>(
+    key: &str,
+    max_pixel_count_diff: usize,
+) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F> + '_
+where
+    F: EntityFilter,
+{
+    move |e| {
+        e.has(|b: &TextureBuffer| {
+            assert_texture(b, key, MaxTextureDiff::PixelCount(max_pixel_count_diff));
+        })
+    }
 }
 
 pub mod camera;

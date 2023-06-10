@@ -142,8 +142,8 @@ fn are_texture_similar(texture1: &[u8], texture2: &[u8], max_diff: MaxTextureDif
             .any(|(a, b)| a.abs_diff(*b) > epsilon),
         MaxTextureDiff::PixelCount(pixel_count) => {
             texture1
-                .iter()
-                .zip(texture2)
+                .chunks(4)
+                .zip(texture2.chunks(4))
                 .filter(|(a, b)| a != b)
                 .count()
                 <= pixel_count

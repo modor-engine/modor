@@ -160,6 +160,7 @@ fn same_texture() -> impl BuiltEntity {
 fn different_texture() -> impl BuiltEntity {
     let mut buffer = load_image_data(EXPECTED_TEXTURE_PATH);
     buffer[40] += 2;
+    buffer[41] += 2;
     texture(TextureSource::Buffer(Size::new(4, 4), buffer))
 }
 
