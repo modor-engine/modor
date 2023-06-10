@@ -1,7 +1,5 @@
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single};
-use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureSource, Window,
-};
+use modor_graphics_new2::{Camera2D, Color, Model, RenderTarget, Window};
 use modor_input::{InputModule, Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::Transform2D;

@@ -1,6 +1,6 @@
 use crate::Text;
 use modor::{BuiltEntity, EntityBuilder};
-use modor_graphics_new2::{Material, Size, Texture, TextureSource};
+use modor_graphics_new2::{Material, Size, Texture};
 use modor_resources::IntoResourceKey;
 
 pub struct TextMaterialBuilder<K> {
@@ -45,7 +45,7 @@ where
     pub fn build(self) -> impl BuiltEntity {
         let material = Material::new(self.material_key.clone())
             .with_front_texture_key(self.material_key.clone());
-        let texture = Texture::new(self.material_key, TextureSource::Size(Size::ONE));
+        let texture = Texture::from_size(self.material_key, Size::ONE);
         let text = Text::new(self.text, self.font_height);
         EntityBuilder::new()
             .with(if let Some(material_fn) = self.material_fn {

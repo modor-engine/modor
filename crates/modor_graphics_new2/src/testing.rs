@@ -57,7 +57,7 @@ pub enum MaxTextureDiff {
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::new(TextureKey, TextureSource::Path("image.png".into())))
+///         .with(Texture::from_path(TextureKey, "image.png"))
 ///         .with(TextureBuffer::default())
 /// }
 ///

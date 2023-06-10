@@ -23,13 +23,23 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 
 /// The target for a rendering.
 ///
-/// If the entity has a [`Window`], then the rendering is performed in this window.
+/// If a [`Window`] component is in the same entity, then the rendering is performed in this window.
 ///
-/// If the entity has a [`Texture`], then the rendering is performed in this texture. This texture
-/// can then be displayed in another render target. If the texture is used in its own render target,
-/// then the attached models are not displayed.
+/// If a [`Texture`] component is in the same entity, then the rendering is performed in this
+/// texture. This texture can then be displayed in another render target.
+/// If the texture is used in its own render target, then the attached models are not displayed.
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// # Requirements
+///
+/// The rendering is performed only if:
+/// - graphics [`module`](crate::module()) is initialized
+/// - either [`Window`] or [`Texture`] component is in the same entity
+///
+/// # Related components
+///
+/// - [`Window`]
+/// - [`Texture`]
+/// - [`Camera2D`]
 ///
 /// # Examples
 ///
@@ -57,7 +67,7 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 ///
 /// fn texture_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::new(TextureKey, TextureSource::Size(Size::new(800, 600))))
+///         .with(Texture::from_size(TextureKey, Size::new(800, 600)))
 ///         .with(RenderTarget::new(TargetKey::Texture).with_background_color(Color::GREEN))
 /// }
 ///

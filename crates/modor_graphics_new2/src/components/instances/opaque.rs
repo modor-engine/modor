@@ -9,9 +9,9 @@ use fxhash::FxHashMap;
 use modor::{EntityFilter, Query, SingleMut, World};
 use modor_physics::Transform2D;
 use modor_resources::Resource;
+use std::iter::Zip;
 use std::mem;
-
-// TODO: try to simplify module
+use std::vec::IntoIter;
 
 #[derive(SingletonComponent, Debug, Default)]
 pub(crate) struct OpaqueInstanceRegistry {
@@ -40,10 +40,9 @@ impl OpaqueInstanceRegistry {
                     .groups
                     .remove(&group_key)
                     .expect("internal error: opaque group not found");
-                let entity_ids = group.entity_positions.entity_ids;
-                for (instance, entity_id) in group.buffer.iter().zip(entity_ids) {
+                for (entity_id, instance) in group.into_iter() {
                     let group_key = group_key.clone();
-                    transparent_instances.add_opaque_instance(*instance, entity_id, group_key);
+                    transparent_instances.add_opaque_instance(instance, entity_id, group_key);
                     self.delete_entity(entity_id);
                     debug!("opaque instance with ID `{entity_id}` is now transparent");
                 }
@@ -206,7 +205,8 @@ impl OpaqueInstanceRegistry {
 #[derive(Debug)]
 pub(crate) struct InstanceGroup {
     buffer: DynamicBuffer<Instance>,
-    entity_positions: EntityPositions,
+    entity_ids: Vec<usize>,
+    entity_positions: FxHashMap<usize, usize>,
 }
 
 impl InstanceGroup {
@@ -215,26 +215,38 @@ impl InstanceGroup {
             buffer: DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
-                &format!("opaque_instances_{key:?}"),
+                format!("opaque_instances_{key:?}"),
                 &context.device,
             ),
-            entity_positions: EntityPositions::default(),
+            entity_ids: vec![],
+            entity_positions: FxHashMap::default(),
         }
     }
 
     // returns if the model is new
     fn add(&mut self, (transform, _model, z_index, entity): Model2D<'_>) -> bool {
-        if let Some(position) = self.entity_positions.add(entity.id()) {
+        if let Some(&position) = self.entity_positions.get(&entity.id()) {
             self.buffer[position] = super::create_instance(transform, z_index);
             false
         } else {
+            let position = self.entity_ids.len();
+            self.entity_positions.insert(entity.id(), position);
+            self.entity_ids.push(entity.id());
             self.buffer.push(super::create_instance(transform, z_index));
             true
         }
     }
 
     fn delete(&mut self, entity_id: usize) {
-        if let Some(position) = self.entity_positions.delete(entity_id) {
+        if let Some(position) = self.entity_positions.remove(&entity_id) {
+            self.entity_ids.swap_remove(position);
+            if let Some(moved_entity_id) = self.entity_ids.get(position) {
+                let last_entity_position = self
+                    .entity_positions
+                    .get_mut(moved_entity_id)
+                    .expect("internal error: last entity position not found in opaque instance");
+                *last_entity_position = position;
+            }
             self.buffer.swap_remove(position);
         }
     }
@@ -242,90 +254,8 @@ impl InstanceGroup {
     fn sync(&mut self, context: &GpuContext) {
         self.buffer.sync(context);
     }
-}
 
-#[derive(Debug, Default)]
-struct EntityPositions {
-    entity_ids: Vec<usize>,
-    entity_positions: FxHashMap<usize, usize>,
-}
-
-impl EntityPositions {
-    // returns the position if the entity already exists
-    fn add(&mut self, entity_id: usize) -> Option<usize> {
-        if let Some(&position) = self.entity_positions.get(&entity_id) {
-            Some(position)
-        } else {
-            self.entity_positions
-                .insert(entity_id, self.entity_ids.len());
-            self.entity_ids.push(entity_id);
-            None
-        }
-    }
-
-    // returns the entity position before deletion
-    fn delete(&mut self, entity_id: usize) -> Option<usize> {
-        let position = self.entity_positions.remove(&entity_id)?;
-        self.entity_ids.swap_remove(position);
-        if let Some(moved_entity_id) = self.entity_ids.get(position) {
-            let last_entity_position = self
-                .entity_positions
-                .get_mut(moved_entity_id)
-                .expect("internal error: last entity position not found in opaque instance");
-            *last_entity_position = position;
-        }
-        Some(position)
-    }
-}
-
-#[cfg(test)]
-mod entity_positions_tests {
-    use crate::components::instances::opaque::EntityPositions;
-
-    #[test]
-    fn add_new_entities() {
-        let mut positions = EntityPositions::default();
-        assert_eq!(positions.add(10), None);
-        assert_eq!(positions.add(20), None);
-        assert_eq!(positions.entity_ids, [10, 20]);
-        assert_eq!(positions.entity_positions[&10], 0);
-        assert_eq!(positions.entity_positions[&20], 1);
-    }
-
-    #[test]
-    fn add_existing_entity() {
-        let mut positions = EntityPositions::default();
-        positions.add(10);
-        assert_eq!(positions.add(10), Some(0));
-        assert_eq!(positions.entity_ids, [10]);
-        assert_eq!(positions.entity_positions[&10], 0);
-    }
-
-    #[test]
-    fn remove_first_entity() {
-        let mut positions = EntityPositions::default();
-        positions.add(10);
-        positions.add(20);
-        positions.add(30);
-        assert_eq!(positions.delete(10), Some(0));
-        assert_eq!(positions.delete(10), None);
-        assert_eq!(positions.entity_ids, [30, 20]);
-        assert_eq!(positions.entity_positions.get(&10), None);
-        assert_eq!(positions.entity_positions[&20], 1);
-        assert_eq!(positions.entity_positions[&30], 0);
-    }
-
-    #[test]
-    fn remove_last_entity() {
-        let mut positions = EntityPositions::default();
-        positions.add(10);
-        positions.add(20);
-        positions.add(30);
-        assert_eq!(positions.delete(30), Some(2));
-        assert_eq!(positions.delete(30), None);
-        assert_eq!(positions.entity_ids, [10, 20]);
-        assert_eq!(positions.entity_positions[&10], 0);
-        assert_eq!(positions.entity_positions[&20], 1);
-        assert_eq!(positions.entity_positions.get(&30), None);
+    fn into_iter(self) -> Zip<IntoIter<usize>, IntoIter<Instance>> {
+        self.entity_ids.into_iter().zip(Vec::from(self.buffer))
     }
 }

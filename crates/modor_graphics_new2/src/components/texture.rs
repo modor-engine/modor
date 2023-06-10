@@ -19,10 +19,16 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 
 /// A texture that can be attached to a [`Material`](crate::Material).
 ///
-/// This component does not need to be created in the same entity as the
-/// [`Material`](crate::Material).
+/// # Requirements
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// The texture can be loaded only if:
+/// - graphics [`module`](crate::module()) is initialized
+///
+/// # Related components
+///
+/// - [`Material`](crate::Material)
+/// - [`RenderTarget`](crate::RenderTarget)
+/// - [`TextureBuffer`](crate::TextureBuffer)
 ///
 /// # Examples
 ///
@@ -34,7 +40,7 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 /// #
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Texture::new(TextureKey, TextureSource::Path("texture.png".into())))
+///         .with_child(Texture::from_path(TextureKey, "texture.png"))
 ///         .with_child(Material::new(MaterialKey).with_texture_key(TextureKey))
 ///         .with_child(sprite())
 /// }
@@ -77,6 +83,35 @@ impl Texture {
             texture: None,
             renderer_version: None,
         }
+    }
+
+    /// Creates a white texture identified by a unique `key` and created with a given `size`.
+    ///
+    /// This method is equivalent to [`Texture::new`] with [`TextureSource::Size`] source.
+    pub fn from_size(key: impl IntoResourceKey, size: Size) -> Self {
+        Self::new(key, TextureSource::Size(size))
+    }
+
+    /// Creates a new texture identified by a unique `key` and created with a given `size` and RGBA
+    /// `buffer`.
+    ///
+    /// This method is equivalent to [`Texture::new`] with [`TextureSource::Buffer`] source.
+    pub fn from_buffer(key: impl IntoResourceKey, size: Size, buffer: Vec<u8>) -> Self {
+        Self::new(key, TextureSource::Buffer(size, buffer))
+    }
+
+    /// Creates a new texture identified by a unique `key` and created with given file `data`.
+    ///
+    /// This method is equivalent to [`Texture::new`] with [`TextureSource::File`] source.
+    pub fn from_file(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
+        Self::new(key, TextureSource::File(data))
+    }
+
+    /// Creates a new texture identified by a unique `key` and created with a given file `path`.
+    ///
+    /// This method is equivalent to [`Texture::new`] with [`TextureSource::Path`] source.
+    pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
+        Self::new(key, TextureSource::Path(path.into()))
     }
 
     /// Returns the texture with a given `is_smooth`.
@@ -269,8 +304,8 @@ impl Resource for Texture {
 pub enum TextureSource {
     /// White texture created synchronously with a given size.
     Size(Size),
-    /// Texture loaded synchronously from given RGBA buffer and size.
-    Buffer(Vec<u8>, Size),
+    /// Texture loaded synchronously from given size and RGBA buffer.
+    Buffer(Size, Vec<u8>),
     /// Texture loaded asynchronously from given file bytes.
     ///
     /// This variant is generally used in combination with [`include_bytes!`].
@@ -294,11 +329,11 @@ impl From<TextureSource> for ResourceSource<TextureData> {
     fn from(source: TextureSource) -> Self {
         match source {
             TextureSource::Size(size) => Self::SyncData(TextureData::RgbaBuffer(
-                vec![255; (size.width * size.height * 4) as usize],
                 size,
+                vec![255; (size.width * size.height * 4) as usize],
             )),
-            TextureSource::Buffer(buffer, size) => {
-                Self::SyncData(TextureData::RgbaBuffer(buffer, size))
+            TextureSource::Buffer(size, buffer) => {
+                Self::SyncData(TextureData::RgbaBuffer(size, buffer))
             }
             TextureSource::File(data) => Self::AsyncData(TextureData::File(data)),
             TextureSource::Path(path) => Self::AsyncPath(path),
@@ -317,7 +352,7 @@ pub(crate) struct LoadedTexture {
 #[derive(Debug, Clone)]
 enum TextureData {
     File(&'static [u8]),
-    RgbaBuffer(Vec<u8>, Size),
+    RgbaBuffer(Size, Vec<u8>),
 }
 
 #[derive(Debug)]
@@ -366,7 +401,7 @@ impl Load<TextureData> for LoadedImage {
     fn load_from_data(data: &TextureData) -> Result<Self, ResourceLoadingError> {
         match data {
             TextureData::File(data) => Self::load_from_memory(data),
-            TextureData::RgbaBuffer(buffer, size) => Self::load_from_buffer(buffer.clone(), *size),
+            TextureData::RgbaBuffer(size, buffer) => Self::load_from_buffer(buffer.clone(), *size),
         }
     }
 }

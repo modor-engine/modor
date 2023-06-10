@@ -8,10 +8,18 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 
 /// The content of a GPU buffer texture.
 ///
-/// This component retrieves the content of the associated [`Texture`](Texture) component at each
-/// update. Note that retrieving GPU data can have a significant impact on performance.
+/// This component retrieves the content of a texture at each update.
+/// Note that retrieving GPU data may have a significant impact on performance.
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// # Requirements
+///
+/// The component retrieves texture content only if:
+/// - graphics [`module`](crate::module()) is initialized
+/// - [`Texture`](Texture) component is in the same entity
+///
+/// # Related components
+///
+/// - [`Texture`](Texture)
 ///
 /// # Examples
 ///
@@ -22,7 +30,7 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 /// fn screenshot() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(RenderTarget::new(ScreenshotRenderTargetKey))
-///         .with(Texture::new(ScreenshotTextureKey, TextureSource::Size(Size::new(800, 600))))
+///         .with(Texture::from_size(ScreenshotTextureKey, Size::new(800, 600)))
 ///         .with(TextureBuffer::default())
 ///         .with(Screenshot)
 /// }

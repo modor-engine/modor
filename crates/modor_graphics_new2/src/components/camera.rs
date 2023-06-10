@@ -14,13 +14,20 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
 /// A camera used for 2D rendering.
 ///
-/// Default camera displays a world zone centered in position [`Vec2::ZERO`] and with size
+/// By default, camera displays a world zone centered in position [`Vec2::ZERO`] and with size
 /// [`Vec2::ONE`]. If the render target width is different than its height, more parts of the world
 /// might be rendered, but the focused zone is always entirely displayed.
 ///
-/// The displayed zone can be configured if a [`Transform2D`] is created in the same entity.
+/// The displayed zone can be configured with a [`Transform2D`] created in the same entity.
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// # Requirements
+///
+/// The component is effective only if:
+/// - graphics [`module`](crate::module()) is initialized
+///
+/// # Related components
+///
+/// - [`Transform2D`]
 ///
 /// # Examples
 ///
@@ -159,7 +166,8 @@ impl Camera2D {
     /// Converts a `surface_position` for a surface of size `surface_size` into world position.
     ///
     /// `surface_position` with a value of [`Vec2::ZERO`] corresponds to top-left corner of the
-    /// surface, and a value of [`Window::size()`] corresponds to the bottom-right corner.
+    /// surface, and a value of [`Window::size()`](crate::Window::size) corresponds to the
+    /// bottom-right corner.
     pub fn world_position(&self, surface_size: Size, surface_position: Vec2) -> Vec2 {
         let target_size: Vec2 = surface_size.into();
         self.world_matrix(target_size)

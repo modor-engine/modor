@@ -2,7 +2,6 @@ use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics_new2::{
     Camera2D, Color, GraphicsModule, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
-    TextureSource,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -251,10 +250,7 @@ fn resources() -> impl BuiltEntity {
 fn target() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
-        .with(Texture::new(
-            TargetTextureKey,
-            TextureSource::Size(Size::new(30, 20)),
-        ))
+        .with(Texture::from_size(TargetTextureKey, Size::new(30, 20)))
         .with(TextureBuffer::default())
 }
 

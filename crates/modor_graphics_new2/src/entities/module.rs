@@ -7,10 +7,10 @@ use crate::components::render_target::RenderTargetRegistry;
 use crate::components::renderer::Renderer;
 use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureKey, TextureRegistry};
-use crate::{Size, Texture, TextureSource};
+use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 
-/// Creates graphics module.
+/// Creates the graphics module.
 ///
 /// If this entity is not created, no rendering will be performed.
 ///
@@ -18,7 +18,8 @@ use modor::{BuiltEntity, EntityBuilder};
 ///
 /// # Platform-specific
 ///
-/// - Android and web: next update will panic if the [`runner`](crate::runner()) is not used.
+/// - Android and web: next update will panic if the graphics [`runner`](crate::runner()) is not
+/// used.
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(GraphicsModule)
@@ -34,13 +35,11 @@ pub fn module() -> impl BuiltEntity {
         .with_child(Shader::default())
         .with_child(Shader::ellipse())
         .with_child(Mesh::rectangle())
-        .with_child(Texture::new(
-            TextureKey::White,
-            TextureSource::Size(Size::ONE),
-        ))
-        .with_child(Texture::new(
+        .with_child(Texture::from_size(TextureKey::White, Size::ONE))
+        .with_child(Texture::from_buffer(
             TextureKey::Invisible,
-            TextureSource::Buffer(vec![0; 4], Size::ONE),
+            Size::ONE,
+            vec![0; 4],
         ))
 }
 

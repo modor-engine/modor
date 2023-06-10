@@ -5,9 +5,7 @@ use winit::event::Event;
 use winit::event_loop::ControlFlow;
 use winit::window::Window as WindowHandle;
 
-// TODO: maybe move dependent tests internally (unit tests) to keep this module pub(crate)
-
-/// Runner mainly used to test windows.
+/// Runner mainly used to test with a window.
 ///
 /// `f` is run after each `app` update.
 ///

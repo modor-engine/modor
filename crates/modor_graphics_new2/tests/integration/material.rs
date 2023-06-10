@@ -1,7 +1,7 @@
 use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -176,10 +176,7 @@ fn resources() -> impl BuiltEntity {
 fn target() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey).with_background_color(Color::DARK_GRAY))
-        .with(Texture::new(
-            TextureKey::Target,
-            TextureSource::Size(Size::new(30, 20)),
-        ))
+        .with(Texture::from_size(TextureKey::Target, Size::new(30, 20)))
         .with(TextureBuffer::default())
 }
 
@@ -201,11 +198,7 @@ fn opaque_texture() -> Texture {
     .into_iter()
     .flat_map(|l| l.into_iter().flatten())
     .collect();
-    Texture::new(
-        TextureKey::Opaque,
-        TextureSource::Buffer(texture, Size::new(4, 4)),
-    )
-    .with_smooth(false)
+    Texture::from_buffer(TextureKey::Opaque, Size::new(4, 4), texture).with_smooth(false)
 }
 
 fn transparent_texture() -> Texture {
@@ -220,11 +213,7 @@ fn transparent_texture() -> Texture {
     .into_iter()
     .flat_map(|l| l.into_iter().flatten())
     .collect();
-    Texture::new(
-        TextureKey::Transparent,
-        TextureSource::Buffer(texture, Size::new(4, 4)),
-    )
-    .with_smooth(false)
+    Texture::from_buffer(TextureKey::Transparent, Size::new(4, 4), texture).with_smooth(false)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

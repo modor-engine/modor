@@ -143,7 +143,7 @@ fn assert_texture_with_different_texture_and_generate_diff_texture() {
             })
         });
     let expected_diff = load_image_data(EXPECTED_TEXTURE_DIFF_PATH);
-    let actual_diff = load_image_data(&env::temp_dir().join("diff_testing#texture.png"));
+    let actual_diff = load_image_data(env::temp_dir().join("diff_testing#texture.png"));
     assert_eq!(expected_diff, actual_diff);
 }
 
@@ -160,19 +160,19 @@ fn same_texture() -> impl BuiltEntity {
 fn different_texture() -> impl BuiltEntity {
     let mut buffer = load_image_data(EXPECTED_TEXTURE_PATH);
     buffer[40] += 2;
-    texture(TextureSource::Buffer(buffer, Size::new(4, 4)))
+    texture(TextureSource::Buffer(Size::new(4, 4), buffer))
 }
 
 fn texture_with_different_width() -> impl BuiltEntity {
     let mut buffer = load_image_data(EXPECTED_TEXTURE_PATH);
     buffer.drain(48..);
-    texture(TextureSource::Buffer(buffer, Size::new(3, 4)))
+    texture(TextureSource::Buffer(Size::new(3, 4), buffer))
 }
 
 fn texture_with_different_height() -> impl BuiltEntity {
     let mut buffer = load_image_data(EXPECTED_TEXTURE_PATH);
     buffer.drain(48..);
-    texture(TextureSource::Buffer(buffer, Size::new(4, 3)))
+    texture(TextureSource::Buffer(Size::new(4, 3), buffer))
 }
 
 fn texture(source: TextureSource) -> impl BuiltEntity {

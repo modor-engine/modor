@@ -1,7 +1,7 @@
 use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -42,10 +42,7 @@ fn resize_texture() {
         )
         .updated()
         .with_component::<With<RenderTarget>, _>(|| {
-            Texture::new(
-                TargetTextureKey::Main,
-                TextureSource::Size(Size::new(20, 30)),
-            )
+            Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
         })
         .updated()
         .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#red2"));
@@ -63,10 +60,7 @@ fn recreate_texture() {
         .with_deleted_components::<With<MainTarget>, Texture>()
         .updated()
         .with_component::<With<RenderTarget>, _>(|| {
-            Texture::new(
-                TargetTextureKey::Main,
-                TextureSource::Size(Size::new(20, 30)),
-            )
+            Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
         })
         .updated()
         .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#red2"));
@@ -92,9 +86,9 @@ fn render_target_in_target() {
 
 fn main_texture() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Texture::new(
+        .with(Texture::from_size(
             TargetTextureKey::Main,
-            TextureSource::Size(Size::new(30, 20)),
+            Size::new(30, 20),
         ))
         .with(TextureBuffer::default())
         .with(MainTarget)
@@ -115,9 +109,9 @@ fn resource() -> impl BuiltEntity {
 
 fn secondary_target() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Texture::new(
+        .with(Texture::from_size(
             TargetTextureKey::Secondary,
-            TextureSource::Size(Size::new(20, 50)),
+            Size::new(20, 50),
         ))
         .with(TextureBuffer::default())
         .with(RenderTarget::new(TargetKey::Secondary).with_background_color(Color::GREEN))

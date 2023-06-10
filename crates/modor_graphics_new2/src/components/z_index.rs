@@ -1,8 +1,18 @@
 /// The Z-index of a rendered 2D [`Model`](crate::Model).
 ///
-/// This component must be created in the same entity as [`Model`](crate::Model).<br>
 /// It is created from a [`u16`] value, where `0` is the farthest from the camera,
 /// and [`u16::MAX`] the closest to the camera.
+///
+/// By default, the z-index of a [`Model`](crate::Model) is `0`.
+///
+/// # Requirements
+///
+/// The component is effective only if:
+/// - [`Model`](crate::Model) component is in the same entity
+///
+/// # Related components
+///
+/// - [`Model`](crate::Model)
 ///
 /// # Examples
 ///

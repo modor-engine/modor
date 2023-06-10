@@ -10,11 +10,19 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 
 /// The aspect of a rendered [`Model`](crate::Model).
 ///
-/// One material can be used for multiple [`Model`](crate::Model)s, so it is not necessary to create
-/// the material in the same entity as the model. Creating one material for each model is not
-/// recommended as it may impact the rendering performance.
+/// # Requirements
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// The material is effective only if:
+/// - graphics [`module`](crate::module()) is initialized
+///
+/// # Related components
+///
+/// - [`Model`](crate::Model)
+///
+/// # Performance
+///
+/// As models are rendered by batch based on the material, recreating the same material for each
+/// model is less performant than creating it once for all models.
 ///
 /// # Examples
 ///

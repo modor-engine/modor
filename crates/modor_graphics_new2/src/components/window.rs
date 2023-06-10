@@ -6,11 +6,18 @@ use winit::window::Window as WindowHandle;
 
 /// The main window where rendering is performed.
 ///
-/// The window is open only if the [`App`](modor::App) is run with the graphics
-/// [`runner`](crate::runner()).
+/// # Requirements
 ///
-/// The rendering is performed only if the graphics [`module`](crate::module()) has been
-/// initialized and if the entity contains also a [`RenderTarget`](crate::RenderTarget) component.
+/// The window is open only if:
+/// - [`App`](modor::App) is run with the graphics [`runner`](crate::runner())
+///
+/// The rendering is performed only if:
+/// - [`App`](modor::App) is run with the graphics [`runner`](crate::runner())
+/// - [`RenderTarget`](crate::RenderTarget) component is in the same entity
+///
+/// # Related components
+///
+/// - [`RenderTarget`](crate::RenderTarget)
 ///
 /// # Example
 ///

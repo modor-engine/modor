@@ -1,7 +1,7 @@
 use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
+    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
@@ -172,9 +172,9 @@ fn resources() -> impl BuiltEntity {
 fn target1() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::First))
-        .with(Texture::new(
+        .with(Texture::from_size(
             TargetTextureKey::First,
-            TextureSource::Size(Size::new(30, 20)),
+            Size::new(30, 20),
         ))
         .with(TextureBuffer::default())
         .with(Target1)
@@ -183,9 +183,9 @@ fn target1() -> impl BuiltEntity {
 fn target2() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey::Second))
-        .with(Texture::new(
+        .with(Texture::from_size(
             TargetTextureKey::Second,
-            TextureSource::Size(Size::new(20, 30)),
+            Size::new(20, 30),
         ))
         .with(TextureBuffer::default())
         .with(Target2)

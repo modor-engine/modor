@@ -1,12 +1,20 @@
 use crate::components::mesh::MeshKey;
 use modor_resources::{IntoResourceKey, ResourceKey};
 
+// TODO: adapt doc everywhere the same way
+
 /// A rendered model.
 ///
-/// The entity also needs a [`Transform2D`](modor_physics::Transform2D) to define how the model
-/// is rendered.
+/// # Requirements
 ///
-/// [`module`](crate::module()) needs to be initialized.
+/// Model is rendered only if:
+/// - graphics [`module`](crate::module()) is initialized
+/// - [`Transform2D`](modor_physics::Transform2D) component is in same entity
+///
+/// # Related components
+///
+/// - [`Transform2D`](modor_physics::Transform2D)
+/// - [`ZIndex2D`](crate::ZIndex2D)
 ///
 /// # Examples
 ///

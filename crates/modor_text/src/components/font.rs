@@ -31,6 +31,14 @@ impl Font {
         }
     }
 
+    pub fn from_file(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
+        Self::new(key, FontSource::File(data))
+    }
+
+    pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
+        Self::new(key, FontSource::Path(path.into()))
+    }
+
     #[run]
     fn update(&mut self) {
         self.is_just_loaded = false;
