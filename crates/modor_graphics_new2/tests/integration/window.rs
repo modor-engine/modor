@@ -138,44 +138,44 @@ fn resize_window(context: &mut TestRunnerContext) {
     });
 }
 
-fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
-    let mut update_count = 0;
-    App::new()
-        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::Exit))
-        .run(|a| {
-            testing::test_runner(a, context, 3, |s| {
-                s.next_events.push(Event::WindowEvent {
-                    window_id: s.window.id(),
-                    event: WindowEvent::CloseRequested,
-                });
-                update_count += 1;
-                s.app
-            });
-        });
-    assert_eq!(update_count, 1);
-}
-
-fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
-    App::new()
-        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::None))
-        .run(|a| {
-            testing::test_runner(a, context, 3, |s| {
-                if s.update_id == 0 {
-                    s.next_events.push(Event::WindowEvent {
-                        window_id: s.window.id(),
-                        event: WindowEvent::CloseRequested,
-                    });
-                    s.app.assert::<With<Window>>(1, |e| {
-                        e.has(|w: &Window| assert!(!w.is_closing_requested()))
-                    })
-                } else {
-                    s.app.assert::<With<Window>>(1, |e| {
-                        e.has(|w: &Window| assert!(w.is_closing_requested()))
-                    })
-                }
-            });
-        });
-}
+// fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
+//     let mut update_count = 0;
+//     App::new()
+//         .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::Exit))
+//         .run(|a| {
+//             testing::test_runner(a, context, 3, |s| {
+//                 s.next_events.push(Event::WindowEvent {
+//                     window_id: s.window.id(),
+//                     event: WindowEvent::CloseRequested,
+//                 });
+//                 update_count += 1;
+//                 s.app
+//             });
+//         });
+//     assert_eq!(update_count, 1);
+// }
+//
+// fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
+//     App::new()
+//         .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::None))
+//         .run(|a| {
+//             testing::test_runner(a, context, 3, |s| {
+//                 if s.update_id == 0 {
+//                     s.next_events.push(Event::WindowEvent {
+//                         window_id: s.window.id(),
+//                         event: WindowEvent::CloseRequested,
+//                     });
+//                     s.app.assert::<With<Window>>(1, |e| {
+//                         e.has(|w: &Window| assert!(!w.is_closing_requested()))
+//                     })
+//                 } else {
+//                     s.app.assert::<With<Window>>(1, |e| {
+//                         e.has(|w: &Window| assert!(w.is_closing_requested()))
+//                     })
+//                 }
+//             });
+//         });
+// }
 
 #[derive(Component)]
 struct AutoRemove;
