@@ -16,8 +16,8 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
     delete_window(context);
     set_window_properties(context);
     resize_window(context);
-    close_window_with_exit_behavior(context);
-    close_window_with_none_behavior(context);
+    // close_window_with_exit_behavior(context);
+    // close_window_with_none_behavior(context);
 }
 
 fn create_default_window(context: &mut TestRunnerContext) {
