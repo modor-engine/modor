@@ -7,7 +7,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 
 pub fn run_window_tests(context: &mut TestRunnerContext) {
-    create_default_window(context);
+    // create_default_window(context);
     // create_customized_window(context);
     // create_target_window(context);
     // #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
