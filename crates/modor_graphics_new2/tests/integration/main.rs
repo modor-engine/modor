@@ -10,7 +10,7 @@ use modor_graphics_new2::TextureBuffer;
 #[modor_test(disabled(macos, android, wasm))]
 pub fn run_window_tests() {
     let mut context = modor_graphics_new2::testing::TestRunnerContext::default();
-    // window::run_window_tests(&mut context);
+    window::run_window_tests(&mut context);
     // input::run_window_tests(&mut context);
 }
 
