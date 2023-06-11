@@ -23,7 +23,11 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
 fn create_default_window(context: &mut TestRunnerContext) {
     App::new()
         .with_entity(modor_graphics_new2::module())
-        .with_entity(Window::default())
+        .with_entity(
+            EntityBuilder::new()
+                .with(Window::default())
+                .with(RenderTarget::new("TargetKey")),
+        )
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
                 s.app.assert::<With<Window>>(1, |e| {
