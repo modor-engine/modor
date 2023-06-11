@@ -7,7 +7,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 
 pub fn run_window_tests(context: &mut TestRunnerContext) {
-    // create_default_window(context);
+    create_default_window(context);
     // create_customized_window(context);
     // create_target_window(context);
     // #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
@@ -21,17 +21,20 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
 }
 
 fn create_default_window(context: &mut TestRunnerContext) {
-    App::new().with_entity(Window::default()).run(|a| {
-        testing::test_runner(a, context, 2, |s| {
-            s.app.assert::<With<Window>>(1, |e| {
-                e.has(|w: &Window| assert_eq!(w.title, ""))
-                    .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::Exit))
-                    .has(|w: &Window| assert!(w.is_cursor_shown))
-                    .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
-                    .has(|w: &Window| assert!(!w.is_closing_requested()))
-            })
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(Window::default())
+        .run(|a| {
+            testing::test_runner(a, context, 2, |s| {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.title, ""))
+                        .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::Exit))
+                        .has(|w: &Window| assert!(w.is_cursor_shown))
+                        .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                        .has(|w: &Window| assert!(!w.is_closing_requested()))
+                })
+            });
         });
-    });
 }
 
 fn create_customized_window(context: &mut TestRunnerContext) {

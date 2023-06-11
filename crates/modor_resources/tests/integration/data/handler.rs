@@ -44,7 +44,7 @@ fn load_valid_resource_from_async_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    for _ in 0..100 {
+    for _ in 0..1000 {
         handler.update::<LoadedSize>(&"key".into_key());
         if let Some(resource) = handler.resource() {
             assert_eq!(resource, LoadedSize(4));
@@ -65,7 +65,7 @@ fn load_invalid_resource_from_async_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    for _ in 0..100 {
+    for _ in 0..1000 {
         handler.update::<LoadedSize>(&"key".into_key());
         if handler.state() != ResourceState::Loading {
             break;
@@ -87,7 +87,7 @@ fn load_valid_resource_from_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    for _ in 0..100 {
+    for _ in 0..1000 {
         handler.update::<LoadedSize>(&"key".into_key());
         if let Some(resource) = handler.resource() {
             assert_eq!(resource, LoadedSize(12));
@@ -108,7 +108,7 @@ fn load_invalid_resource_from_valid_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    for _ in 0..100 {
+    for _ in 0..1000 {
         handler.update::<LoadedSize>(&"key".into_key());
         if handler.state() != ResourceState::Loading {
             break;
@@ -131,7 +131,7 @@ fn load_invalid_resource_from_invalid_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    for _ in 0..100 {
+    for _ in 0..1000 {
         handler.update::<LoadedSize>(&"key".into_key());
         if handler.state() != ResourceState::Loading {
             break;
