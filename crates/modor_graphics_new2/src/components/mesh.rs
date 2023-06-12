@@ -79,6 +79,8 @@ impl Mesh {
                     &context.device,
                 ));
             }
+        } else {
+            unreachable!("internal error: unreachable mesh state")
         }
     }
 

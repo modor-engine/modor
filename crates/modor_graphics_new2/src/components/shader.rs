@@ -89,6 +89,8 @@ impl Shader {
                     context,
                 ))
             });
+        } else {
+            unreachable!("internal error: unreachable shader state")
         }
     }
 

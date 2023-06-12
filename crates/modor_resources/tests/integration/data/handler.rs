@@ -82,6 +82,37 @@ fn load_invalid_resource_from_async_data() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+fn load_resource_from_async_data_that_panics_during_loading() {
+    let source = ResourceSource::AsyncData("x".into());
+    let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
+    assert_eq!(handler.state(), ResourceState::NotLoaded);
+    assert_eq!(handler.resource(), None);
+    for _ in 0..1000 {
+        handler.update::<LoadedSize>(&"key".into_key());
+        if handler.state() != ResourceState::Loading {
+            break;
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
+    assert!(matches!(
+        handler.state(),
+        ResourceState::Error(&ResourceLoadingError::LoadingError(_))
+    ));
+    assert_eq!(handler.resource(), None);
+    assert!(matches!(
+        handler.state(),
+        ResourceState::Error(&ResourceLoadingError::LoadingError(_))
+    ));
+    handler.update::<LoadedSize>(&"key".into_key());
+    assert!(matches!(
+        handler.state(),
+        ResourceState::Error(&ResourceLoadingError::LoadingError(_))
+    ));
+    assert_eq!(handler.resource(), None);
+}
+
+#[test]
 fn load_valid_resource_from_async_path() {
     let source = ResourceSource::AsyncPath("not_empty.txt".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -191,6 +222,8 @@ impl Load<String> for LoadedSize {
         thread::sleep(Duration::from_millis(1));
         if data.is_empty() {
             Err(ResourceLoadingError::LoadingError("empty file".into()))
+        } else if data.len() == 1 {
+            panic!("example of panic during loading");
         } else {
             Ok(Self(data.len()))
         }
@@ -200,6 +233,8 @@ impl Load<String> for LoadedSize {
         thread::sleep(Duration::from_millis(1));
         if data.is_empty() {
             Err(ResourceLoadingError::LoadingError("empty data".into()))
+        } else if data.len() == 1 {
+            panic!("example of panic during loading");
         } else {
             Ok(Self(data.len()))
         }

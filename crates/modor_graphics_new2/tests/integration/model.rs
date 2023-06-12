@@ -1,4 +1,5 @@
 use crate::assert_exact_texture;
+use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics_new2::{
     Camera2D, Color, GraphicsModule, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
@@ -30,6 +31,7 @@ fn create_without_transform() {
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_opaque_with_one_camera() {
     App::new()
+        .with_log_level(LevelFilter::Trace)
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
         .with_entity(
@@ -125,18 +127,14 @@ fn delete_entity() {
     App::new()
         .with_entity(modor_graphics_new2::module())
         .with_entity(resources())
-        .with_entity(
-            transform().with(
-                Model::rectangle(MaterialKey::OpaqueBlue).with_camera_key(CameraKey::Default),
-            ),
-        )
-        .with_entity(transform().with(
-            Model::rectangle(MaterialKey::TransparentBlue).with_camera_key(CameraKey::Default),
-        ))
+        .with_entity(rectangle(MaterialKey::OpaqueRed, Vec2::ONE * 0.2).with(ToDelete))
+        .with_entity(rectangle(MaterialKey::OpaqueBlue, Vec2::ONE * 0.4).with(ToDelete))
+        .with_entity(rectangle(MaterialKey::OpaqueBlue, Vec2::ZERO).with(BlankComponent))
+        .with_entity(rectangle(MaterialKey::TransparentBlue, -Vec2::ONE * 0.2).with(ToDelete))
         .updated()
-        .with_deleted_entities::<With<Model>>()
+        .with_deleted_entities::<With<ToDelete>>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#empty"));
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("model#one_camera_opaque"));
 }
 
 #[modor_test]
@@ -280,9 +278,21 @@ fn offset_camera() -> impl BuiltEntity {
         .with(Transform2D::new().with_position(Vec2::new(0.5, 0.5)))
 }
 
+fn rectangle(material_key: MaterialKey, position: Vec2) -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with(Transform2D::new().with_position(position))
+        .with(Model::rectangle(material_key).with_camera_key(CameraKey::Default))
+}
+
 fn transform() -> impl BuiltEntity {
     EntityBuilder::new().with(Transform2D::new())
 }
+
+#[derive(Component, NoSystem)]
+struct ToDelete;
+
+#[derive(Component, NoSystem)]
+struct BlankComponent; // used to control insertion order of instances
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct TargetKey;

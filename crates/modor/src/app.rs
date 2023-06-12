@@ -131,8 +131,6 @@ impl App {
         self
     }
 
-    // TODO: test
-    // TODO: see where can be used instead of with_update
     /// Adds the component returned by `component_builder` to all entities matching `F` filter.
     ///
     /// If an entity already has a component of type `C`, it is overwritten.
@@ -148,19 +146,6 @@ impl App {
         self
     }
 
-    // TODO: test
-    /// Deletes all entities matching `F` filter.
-    pub fn with_deleted_entities<F>(mut self) -> Self
-    where
-        F: EntityFilter,
-    {
-        self.core.run_system(system!(
-            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_entity(e.id())
-        ));
-        self
-    }
-
-    // TODO: test
     /// Deletes component of type `C` of each entity matching `F` filter.
     ///
     /// If a matching entity doesn't have a component of type `C`, nothing is done.
@@ -171,6 +156,17 @@ impl App {
     {
         self.core.run_system(system!(
             |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_component::<C>(e.id())
+        ));
+        self
+    }
+
+    /// Deletes all entities matching `F` filter.
+    pub fn with_deleted_entities<F>(mut self) -> Self
+    where
+        F: EntityFilter,
+    {
+        self.core.run_system(system!(
+            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_entity(e.id())
         ));
         self
     }

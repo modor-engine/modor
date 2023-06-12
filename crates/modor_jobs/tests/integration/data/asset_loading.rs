@@ -28,7 +28,7 @@ impl FileLoader {
     }
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_valid_file_with_cargo() {
     // Multiple retries allowed as `load_valid_file_without_cargo` updates `CARGO_MANIFEST_DIR`.
     modor_internal::retry!(3, {
@@ -48,7 +48,7 @@ fn load_valid_file_with_cargo() {
     });
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_valid_file_without_cargo() {
     let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
     let asset_path = PathBuf::from(cargo_manifest_dir).join("assets/test.txt");
@@ -70,7 +70,7 @@ fn load_valid_file_without_cargo() {
     std::env::set_var("CARGO_MANIFEST_DIR", cargo_manifest_dir);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_missing_file() {
     App::new()
         .with_entity(FileLoader::new("invalid.txt"))

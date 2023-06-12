@@ -1,10 +1,12 @@
 use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
+use modor_graphics_new2::testing::wait_texture_loading;
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
+use modor_resources::{Resource, ResourceState};
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_default() {
@@ -13,6 +15,25 @@ fn create_default() {
         .with_entity(main_texture().with(RenderTarget::new(TargetKey::Main)))
         .updated()
         .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#black"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_with_invalid_texture() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(
+            EntityBuilder::new()
+                .with(Texture::from_path(TargetTextureKey::Main, "invalid.png"))
+                .with(RenderTarget::new(TargetKey::Main)),
+        )
+        .updated()
+        .assert::<With<RenderTarget>>(1, |e| {
+            e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Loading)))
+        })
+        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
+        .assert::<With<RenderTarget>>(1, |e| {
+            e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Error(_))))
+        });
 }
 
 #[modor_test(disabled(macos, android, wasm))]

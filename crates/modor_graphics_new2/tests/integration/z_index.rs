@@ -44,6 +44,25 @@ fn create_for_transparent() {
         .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_reversed"));
 }
 
+#[modor_test(disabled(macos, android, wasm))]
+fn create_for_opaque_and_transparent() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(resources())
+        .with_entity(rectangle(-0.09, 0, MaterialKey::OpaqueBlue))
+        .with_entity(rectangle(0.03, u16::MAX - 1, MaterialKey::OpaqueBlue))
+        .with_entity(rectangle(-0.03, 1, MaterialKey::TransparentGreen))
+        .with_entity(rectangle(0.09, u16::MAX, MaterialKey::TransparentGreen).with(Marker))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix"))
+        .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix_reversed"))
+        .with_deleted_components::<With<Marker>, ZIndex2D>()
+        .updated()
+        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix_reversed"));
+}
+
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .with_child(target())

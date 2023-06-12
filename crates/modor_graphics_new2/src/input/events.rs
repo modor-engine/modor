@@ -66,6 +66,8 @@ pub(crate) fn ended_touch(touch: Touch) -> InputEvent {
     InputEvent::Touch(TouchEvent::Ended(touch.id))
 }
 
+// coverage: off (gamepads are not easily testable)
+
 pub(crate) fn pressed_gamepad_button(gamepad_id: u64, button: gilrs::Button) -> Option<InputEvent> {
     mappings::to_gamepad_button(button)
         .map(|button| InputEvent::Gamepad(GamepadEvent::PressedButton(gamepad_id, button)))
@@ -97,6 +99,8 @@ pub(crate) fn changed_gamepad_axis(
     mappings::to_gamepad_axis(axis)
         .map(|axis| InputEvent::Gamepad(GamepadEvent::UpdatedAxisValue(gamepad_id, axis, value)))
 }
+
+// coverage: on
 
 #[allow(clippy::cast_possible_truncation)]
 fn winit_pos_to_vec2(position: PhysicalPosition<f64>) -> Vec2 {

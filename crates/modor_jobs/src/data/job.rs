@@ -87,7 +87,7 @@ where
     async fn job_future(future: impl JobFuture<T>, sender: Sender<T>) {
         sender.send(future.await).is_err().then(|| {
             panic!(
-                "job producing value of type {} dropped before future finishes",
+                "job producing value of type `{}` dropped before future finishes",
                 any::type_name::<T>()
             )
         });

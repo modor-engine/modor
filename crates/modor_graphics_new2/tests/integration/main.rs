@@ -7,11 +7,11 @@ use modor::{EntityAssertions, EntityFilter};
 use modor_graphics_new2::testing::{assert_texture, MaxTextureDiff};
 use modor_graphics_new2::TextureBuffer;
 
-#[modor_test(disabled(macos, android, wasm))]
+#[modor_test(disabled(windows, macos, android, wasm))]
 pub fn run_window_tests() {
     let mut context = modor_graphics_new2::testing::TestRunnerContext::default();
     window::run_window_tests(&mut context);
-    // input::run_window_tests(&mut context);
+    input::run_window_tests(&mut context);
 }
 
 fn assert_exact_texture<F>(

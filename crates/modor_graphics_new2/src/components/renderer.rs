@@ -50,19 +50,18 @@ impl Renderer {
     }
 
     pub(crate) fn state(&self, last_version: &mut Option<u8>) -> RendererState<'_> {
-        if let Some(context) = &self.context {
-            let version = self
-                .version
-                .expect("internal error: version not assigned to renderer");
-            if last_version == &Some(version) {
-                RendererState::Unchanged(context)
-            } else {
-                *last_version = Some(version);
-                RendererState::Changed(context)
-            }
+        let context = self
+            .context
+            .as_ref()
+            .expect("internal error: renderer not initialized");
+        let version = self
+            .version
+            .expect("internal error: version not assigned to renderer");
+        if last_version == &Some(version) {
+            RendererState::Unchanged(context)
         } else {
-            *last_version = None;
-            RendererState::None
+            *last_version = Some(version);
+            RendererState::Changed(context)
         }
     }
 

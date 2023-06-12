@@ -36,3 +36,12 @@ fn construct_color_with_alpha() {
     assert_approx_eq!(color.b, 0.25);
     assert_approx_eq!(color.a, 0.4);
 }
+
+#[modor_test]
+fn construct_opaque_color() {
+    let color = Color::rgb(1., 0.5, 0.25);
+    assert_approx_eq!(color.r, 1.);
+    assert_approx_eq!(color.g, 0.5);
+    assert_approx_eq!(color.b, 0.25);
+    assert_approx_eq!(color.a, 1.);
+}

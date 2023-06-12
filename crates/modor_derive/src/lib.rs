@@ -24,7 +24,7 @@ pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemFn);
     let attr = parse_macro_input!(attr as AttributeArgs);
     if attr.len() > 1 {
-        abort!(item, "max one argument is allowed");
+        abort!(attr[1], "max one argument is allowed");
     }
     let excluded_platforms = attr
         .first()

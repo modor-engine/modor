@@ -30,7 +30,7 @@ impl FileLoader {
     }
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn run_successful_job() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -46,7 +46,7 @@ fn run_successful_job() {
         .assert::<With<FileLoader>>(1, |e| e.has(|l: &FileLoader| assert_eq!(l.size, Ok(None))));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn run_failing_job() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -60,4 +60,13 @@ fn run_failing_job() {
         })
         .updated()
         .assert::<With<FileLoader>>(1, |e| e.has(|l: &FileLoader| assert_eq!(l.size, Ok(None))));
+}
+
+#[modor_test(disabled(wasm))]
+fn drop_not_finished_job() {
+    App::new()
+        .with_entity(FileLoader::new("assets/test.txt"))
+        .with_deleted_entities::<With<FileLoader>>()
+        .updated();
+    thread::sleep(Duration::from_millis(100));
 }

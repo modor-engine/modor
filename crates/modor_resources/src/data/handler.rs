@@ -173,7 +173,7 @@ where
             Ok(None) => ResourceHandlerState::DataLoading(job),
             Err(_) => {
                 let error = format!(
-                    "loading job panicked for `{:?}` resource of type {:?}",
+                    "loading job panicked for `{:?}` resource of type `{}`",
                     key,
                     any::type_name::<R>()
                 );
@@ -193,7 +193,7 @@ where
             Ok(None) => ResourceHandlerState::PathLoading(job),
             Err(error) => {
                 error!(
-                    "loading from path failed for `{:?}` resource of type {:?}: {error}",
+                    "loading from path failed for `{:?}` resource of type `{}`: {error}",
                     key,
                     any::type_name::<R>()
                 );

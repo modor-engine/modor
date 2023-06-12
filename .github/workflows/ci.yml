@@ -61,29 +61,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - name: Build
+        run: cargo build --all-targets
       - name: Test
-        run: cargo test --test integration --package modor_graphics_new2
-
-#  test-windows:
-#    runs-on: windows-2022
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v3
-#      - name: Retrieve minimal supported rust version
-#        id: rust_version
-#        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
-#      - name: Install Rust toolchain
-#        uses: dtolnay/rust-toolchain@stable
-#        with:
-#          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-#      - name: Setup cache
-#        uses: Swatinem/rust-cache@v2
-#        with:
-#          cache-on-failure: true
-#      - name: Build
-#        run: cargo build --all-targets
-#      - name: Test
-#        run: cargo test
+        run: cargo test
 
   test-macos:
     runs-on: macos-11

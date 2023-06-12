@@ -3,6 +3,7 @@ use fxhash::{FxHashMap, FxHashSet};
 use modor::{Component, Entity, Query};
 use modor_jobs::AssetLoadingError;
 use std::any::Any;
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::{any, fmt};
@@ -217,16 +218,17 @@ pub enum ResourceLoadingError {
     LoadingError(String),
 }
 
-#[allow(clippy::use_debug)]
 impl Display for ResourceLoadingError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidFormat(e) => write!(f, "invalid resource format: {e:?}"),
+            Self::InvalidFormat(e) => write!(f, "invalid resource format: {e}"),
             Self::AssetLoadingError(e) => write!(f, "asset loading error: {e}"),
             Self::LoadingError(e) => write!(f, "resource loading error: {e}"),
         }
     }
 }
+
+impl Error for ResourceLoadingError {}
 
 // used to avoid log spam
 #[derive(Debug)]
@@ -250,5 +252,32 @@ impl<R> ResourceOnce<R> {
             self.keys.insert(key.clone());
             f(key, any::type_name::<R>());
         }
+    }
+}
+
+#[cfg(test)]
+mod resource_loading_error_tests {
+    use crate::ResourceLoadingError;
+    use modor_jobs::AssetLoadingError;
+
+    #[test]
+    fn display_invalid_format_error() {
+        let error = ResourceLoadingError::InvalidFormat("error message".into());
+        let message = format!("{error}");
+        assert_eq!(message, "invalid resource format: error message");
+    }
+
+    #[test]
+    fn display_asset_loading_error() {
+        let error = ResourceLoadingError::AssetLoadingError(AssetLoadingError::InvalidAssetPath);
+        let message = format!("{error}");
+        assert_eq!(message, "asset loading error: invalid asset path");
+    }
+
+    #[test]
+    fn display_loading_error() {
+        let error = ResourceLoadingError::LoadingError("error message".into());
+        let message = format!("{error}");
+        assert_eq!(message, "resource loading error: error message");
     }
 }

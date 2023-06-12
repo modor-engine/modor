@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 // TODO: remove this module
+// coverage: off
 
 pub struct DynType(Box<dyn DynTrait>);
 

@@ -34,3 +34,7 @@ fn nok5() {}
 #[modor_test(disabled(platform))]
 //~^ error: allowed platforms are ["android", "linux", "macos", "wasm", "windows"]
 fn nok6() {}
+
+#[modor_test(disabled(windows), enabled(linux))]
+//~^ error: max one argument is allowed
+fn nok7() {}

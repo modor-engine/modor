@@ -3,6 +3,8 @@ use crate::runner::app::RunnerApp;
 use gilrs::{Event, EventType, Gilrs};
 use modor_input::{GamepadEvent, InputEvent};
 
+// coverage: off (gamepads are not easily testable)
+
 pub(crate) struct Gamepads {
     gilrs: Option<Gilrs>,
 }

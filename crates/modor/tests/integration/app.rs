@@ -8,6 +8,9 @@ struct Singleton(u32);
 struct Component(u32);
 
 #[derive(Component, NoSystem)]
+struct OtherComponent(u32);
+
+#[derive(Component, NoSystem)]
 struct UnusedComponent;
 
 #[derive(Component, NoSystem)]
@@ -373,4 +376,43 @@ fn start_runner() {
     let mut run = false;
     App::new().run(|_| run = true);
     assert!(run);
+}
+
+#[test]
+fn add_component() {
+    App::new()
+        .with_entity(Entity::build_entity1(10))
+        .with_entity(Entity::build_entity2(20))
+        .with_component::<With<Entity1>, _>(|| OtherComponent(0))
+        .assert::<With<OtherComponent>>(1, |e| {
+            e.has::<Entity1, _>(|_| ())
+                .has(|c: &OtherComponent| assert_eq!(c.0, 0))
+        })
+        .with_component::<With<Entity1>, _>(|| OtherComponent(1))
+        .assert::<With<OtherComponent>>(1, |e| {
+            e.has::<Entity1, _>(|_| ())
+                .has(|c: &OtherComponent| assert_eq!(c.0, 1))
+        });
+}
+
+#[test]
+fn delete_component() {
+    App::new()
+        .with_entity(Entity::build_entity1(10))
+        .with_entity(Entity::build_entity2(20))
+        .with_deleted_components::<With<Entity1>, Entity1>()
+        .assert::<With<Entity1>>(0, |e| e)
+        .assert::<With<Entity2>>(1, |e| e)
+        .assert::<With<Entity>>(2, |e| e);
+}
+
+#[test]
+fn delete_entity() {
+    App::new()
+        .with_entity(Entity::build_entity1(10))
+        .with_entity(Entity::build_entity2(20))
+        .with_deleted_entities::<With<Entity1>>()
+        .assert::<With<Entity1>>(0, |e| e)
+        .assert::<With<Entity2>>(1, |e| e)
+        .assert::<With<Entity>>(1, |e| e);
 }

@@ -10,6 +10,9 @@ use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
 use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 
+// TODO: https://app.codecov.io/gh/modor-engine/modor/blob/137-improve-maintenance-and-performance/crates%2Fmodor_derive%2Fsrc%2Flib.rs
+// TODO: https://app.codecov.io/gh/modor-engine/modor/blob/137-improve-maintenance-and-performance/crates%2Fmodor%2Fsrc%2Fapp.rs
+
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
 /// A camera used for 2D rendering.
@@ -124,8 +127,8 @@ impl Camera2D {
     fn update(
         &mut self,
         transform: Option<&Transform2D>,
-        (mut target_registry, targets): (
-            SingleMut<'_, RenderTargetRegistry>,
+        (target_registry, targets): (
+            Option<SingleMut<'_, RenderTargetRegistry>>,
             Query<'_, &RenderTarget>,
         ),
         renderer: Option<Single<'_, Renderer>>,
@@ -135,7 +138,7 @@ impl Camera2D {
         if state.is_removed() {
             self.target_uniforms.clear();
         }
-        if let Some(context) = state.context() {
+        if let (Some(context), Some(mut target_registry)) = (state.context(), target_registry) {
             for target_key in &self.target_keys {
                 let target = target_registry.get(target_key, &targets);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {

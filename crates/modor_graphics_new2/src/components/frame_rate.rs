@@ -80,6 +80,23 @@ impl FrameRate {
 mod utils_tests {
     use crate::FrameRate;
     use instant::{Duration, Instant};
+    use wgpu::PresentMode;
+
+    #[test]
+    fn retrieve_present_mode() {
+        assert_eq!(
+            FrameRate::Unlimited.present_mode(true),
+            PresentMode::Immediate
+        );
+        assert_eq!(
+            FrameRate::Fps(60).present_mode(true),
+            PresentMode::Immediate
+        );
+        assert_eq!(FrameRate::VSync.present_mode(true), PresentMode::Fifo);
+        assert_eq!(FrameRate::Unlimited.present_mode(false), PresentMode::Fifo);
+        assert_eq!(FrameRate::Fps(60).present_mode(false), PresentMode::Fifo);
+        assert_eq!(FrameRate::VSync.present_mode(false), PresentMode::Fifo);
+    }
 
     #[test]
     fn run_with_frame_rate() {

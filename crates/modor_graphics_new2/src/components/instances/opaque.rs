@@ -238,16 +238,18 @@ impl InstanceGroup {
     }
 
     fn delete(&mut self, entity_id: usize) {
-        if let Some(position) = self.entity_positions.remove(&entity_id) {
-            self.entity_ids.swap_remove(position);
-            if let Some(moved_entity_id) = self.entity_ids.get(position) {
-                let last_entity_position = self
-                    .entity_positions
-                    .get_mut(moved_entity_id)
-                    .expect("internal error: last entity position not found in opaque instance");
-                *last_entity_position = position;
-            }
-            self.buffer.swap_remove(position);
+        let position = self
+            .entity_positions
+            .remove(&entity_id)
+            .expect("internal error: entity not found in instance group");
+        self.buffer.swap_remove(position);
+        self.entity_ids.swap_remove(position);
+        if let Some(moved_entity_id) = self.entity_ids.get(position) {
+            let last_entity_position = self
+                .entity_positions
+                .get_mut(moved_entity_id)
+                .expect("internal error: last entity position not found in opaque instance");
+            *last_entity_position = position;
         }
     }
 
