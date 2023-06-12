@@ -62,10 +62,12 @@ impl RunnerState {
                     self.app.close_window(control_flow);
                 }
                 WindowEvent::Resized(size)
+                // coverage: off (untestable as new_inner_size is a reference)
                 | WindowEvent::ScaleFactorChanged {
                     new_inner_size: &mut size,
                     ..
                 } => {
+                // coverage: on
                     self.app.update_window_size(size);
                 }
                 WindowEvent::MouseInput { button, state, .. } => {
@@ -114,14 +116,12 @@ impl RunnerState {
     }
 
     fn invalidate_surface(&mut self) {
-        let surface = if let Some(display) = &mut self.display {
+        if let Some(display) = &mut self.display {
             display.refresh_surface(&self.window);
-            &display.surface
         } else {
-            let display = self.display.insert(Display::new(&self.window));
-            &display.surface
+            self.display = Some(Display::new(&self.window));
         };
-        self.app.refresh_surface(surface);
+        self.app.refresh_surface();
     }
 
     fn update(&mut self) {

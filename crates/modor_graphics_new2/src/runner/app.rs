@@ -3,9 +3,7 @@ use crate::{FrameRate, Renderer, Window};
 use modor::App;
 use modor_input::{InputEvent, InputEventCollector};
 use modor_physics::DeltaTime;
-use std::sync::Arc;
 use std::time::Duration;
-use wgpu::Surface;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ControlFlow;
 use winit::window::Window as WindowHandle;
@@ -85,9 +83,9 @@ impl RunnerApp {
         }
     }
 
-    pub(super) fn refresh_surface(&mut self, surface: &Arc<Surface>) {
+    pub(super) fn refresh_surface(&mut self) {
         self.app.update_components(|w: &mut Window| {
-            w.refresh_surface(surface.clone());
+            w.refresh_surface();
         });
     }
 

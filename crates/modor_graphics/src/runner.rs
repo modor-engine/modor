@@ -111,12 +111,10 @@ pub fn runner(mut app: App) {
 fn treat_window_event(app: &mut App, event: WindowEvent<'_>, control_flow: &mut ControlFlow) {
     match event {
         WindowEvent::Resized(size)
-        // coverage: off (untestable as new_inner_size is a reference)
         | WindowEvent::ScaleFactorChanged {
             new_inner_size: &mut size,
             ..
         } => {
-        // coverage: on
             app.update_components(|w: &mut Window| {
                 w.set_size(SurfaceSize {
                     width: size.width,

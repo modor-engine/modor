@@ -124,9 +124,9 @@ impl Window {
         self.is_closing_requested
     }
 
-    pub(crate) fn refresh_surface(&mut self, surface: Arc<Surface>) {
+    pub(crate) fn refresh_surface(&mut self) {
         self.is_surface_refreshed = true;
-        self.surface = Some(surface);
+        self.surface = None;
     }
 
     // on Windows, Window::set_title freezes the application if not run in main thread
