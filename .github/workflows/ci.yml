@@ -38,6 +38,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install libudev-dev xvfb
       - name: Install graphics dependencies
         run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
+      - name: Clean # Avoid compilation tests failures
+        run: rm -rf target/debug/deps/*modor*
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -61,6 +63,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - name: Clean # Avoid compilation tests failures
+        run: rm -rf target/debug/deps/*modor*
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -166,6 +170,8 @@ jobs:
         run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
         run: cargo install grcov --debug
+      - name: Clean # Avoid compilation tests failures
+        run: rm -rf target/debug/deps/*modor*
       - name: Run unit tests
         run: xvfb-run --server-args="-screen 0 1920x1080x24" cargo test --lib --tests
         env:
