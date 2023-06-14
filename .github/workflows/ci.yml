@@ -59,10 +59,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
+#      - name: Setup cache
+#        uses: Swatinem/rust-cache@v2
+#        with:
+#          cache-on-failure: true
       - name: Build
         run: cargo build --all-targets
       - name: Prepare compilation tests
