@@ -88,6 +88,8 @@ jobs:
           cache-on-failure: true
       - name: Build
         run: cargo build --all-targets
+      - name: Prepare compilation tests
+        run: bash -x .github/workflows/scripts/prepare_compilation_tests.sh
       - name: Test
         run: cargo test
 
