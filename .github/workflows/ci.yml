@@ -59,11 +59,11 @@ jobs:
       - name: Install Linux general dependencies
         run: sudo apt-get update && sudo apt-get install libudev-dev
         if: matrix.target == 'x86_64-unknown-linux-gnu'
-      - name: List clippy lints
+      - name: List clippy lints  # TODO: fix for Windows
         run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\n' ' ')" >> $GITHUB_OUTPUT
         id: list_lints
       - name: Run clippy
-        run: cargo clippy --all-targets --target ${{ matrix.target }} -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+        run: cargo clippy --all-targets -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   test:
     strategy:
@@ -106,7 +106,7 @@ jobs:
       - name: Prepare compilation tests
         run: bash -x .github/workflows/scripts/prepare_compilation_tests.sh
       - name: Test
-        run: ${{ matrix.command_prefix }} cargo test --target ${{ matrix.target }}
+        run: ${{ matrix.command_prefix }} cargo test
         env:
           WGPU_BACKEND: vulkan
 
