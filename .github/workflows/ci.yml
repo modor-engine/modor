@@ -64,7 +64,7 @@ jobs:
         id: list_lints
         shell: bash
       - name: Run clippy
-        run: cargo clippy --all-targets -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+        run: cargo clippy --all-targets --target ${{ matrix.target }} -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
 
   test:
     strategy:
