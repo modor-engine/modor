@@ -1,5 +1,5 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics_new2::testing::has_pixel_diff;
+use modor_graphics_new2::testing::{has_component_diff, has_pixel_diff};
 use modor_graphics_new2::{Camera2D, Color, Model, RenderTarget, Size, Texture, TextureBuffer};
 use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
@@ -13,7 +13,7 @@ fn create_default_text_material() {
         .with_entity(text())
         .with_entity(TextMaterialBuilder::new(MaterialKey, "rendered\ntext", 30.).build())
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("builders#text_material_default", 20));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("builders#text_material_default", 50));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -30,7 +30,7 @@ fn create_custom_text_material() {
                 .build(),
         )
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("builders#text_material_custom", 20));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("builders#text_material_custom", 50));
 }
 
 fn target() -> impl BuiltEntity {
