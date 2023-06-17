@@ -49,7 +49,6 @@
 //! struct MaterialKey;
 //! ```
 
-
 #[macro_use]
 extern crate modor;
 

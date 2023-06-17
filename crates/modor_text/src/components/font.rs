@@ -133,7 +133,7 @@ impl Resource for Font {
 ///
 /// # Examples
 ///
-/// See [`Texture`].
+/// See [`Texture`](modor_graphics_new2::Texture).
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FontSource {

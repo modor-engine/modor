@@ -1,5 +1,5 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
-use modor_graphics_new2::testing::is_same;
+use modor_graphics_new2::testing::{has_component_diff, is_same};
 use modor_graphics_new2::{
     Camera2D, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
 };
@@ -115,7 +115,7 @@ fn create_with_default_params() {
         .with_entity(rectangle())
         .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA))
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
