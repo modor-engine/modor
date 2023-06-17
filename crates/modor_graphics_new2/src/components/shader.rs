@@ -107,13 +107,13 @@ impl Shader {
         context: &GpuContext,
     ) -> RenderPipeline {
         let module = context.device.create_shader_module(ShaderModuleDescriptor {
-            label: Some(&format!("modor_shader_{:?}", key)),
+            label: Some(&format!("modor_shader_{key:?}")),
             source: ShaderSource::Wgsl(code.into()),
         });
         let layout = context
             .device
             .create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some(&format!("modor_pipeline_layout_{:?}", key)),
+                label: Some(&format!("modor_pipeline_layout_{key:?}")),
                 bind_group_layouts: &[
                     &context.camera_bind_group_layout,
                     &context.material_bind_group_layout,
@@ -125,7 +125,7 @@ impl Shader {
         context
             .device
             .create_render_pipeline(&RenderPipelineDescriptor {
-                label: Some(&format!("modor_render_pipeline_{:?}", key)),
+                label: Some(&format!("modor_render_pipeline_{key:?}")),
                 layout: Some(&layout),
                 vertex: VertexState {
                     module: &module,

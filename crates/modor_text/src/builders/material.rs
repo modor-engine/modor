@@ -3,6 +3,50 @@ use modor::{BuiltEntity, EntityBuilder};
 use modor_graphics_new2::{Material, Size, Texture};
 use modor_resources::IntoResourceKey;
 
+/// A builder for constructing an entity with a text [`Material`].
+///
+/// The created entity contains the following components:
+/// - [`Text`]
+/// - [`Texture`]
+/// - [`Material`]
+///
+/// # Requirements
+///
+/// - text [`module`](crate::module()) is initialized
+///
+/// # Example
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// # use modor_physics::*;
+/// # use modor_text::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(text())
+/// }
+///
+/// fn text() -> impl BuiltEntity {
+///     TextMaterialBuilder::new(MaterialKey, "my text", 30.)
+///         .with_text(|t| t.with_font(FontKey))
+///         .with_material(|m| m.with_color(Color::GREEN))       // background color
+///         .with_material(|m| m.with_front_color(Color::BLACK)) // text color
+///         .build()
+///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+///         .with(Transform2D::new())
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct FontKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct MaterialKey;
+/// ```
 pub struct TextMaterialBuilder<K> {
     material_key: K,
     text: String,
@@ -16,6 +60,7 @@ impl<K> TextMaterialBuilder<K>
 where
     K: IntoResourceKey + Clone,
 {
+    /// Creates a new text material builder.
     pub fn new(material_key: K, text: impl Into<String>, font_height: f32) -> Self {
         Self {
             material_key,
@@ -27,21 +72,25 @@ where
         }
     }
 
+    /// Overrides the configuration of the created [`Material`] component.
     pub fn with_material(mut self, f: impl FnOnce(Material) -> Material + 'static) -> Self {
         self.material_fn = Some(Box::new(f));
         self
     }
 
+    /// Overrides the configuration of the created [`Texture`] component.
     pub fn with_texture(mut self, f: impl FnOnce(Texture) -> Texture + 'static) -> Self {
         self.texture_fn = Some(Box::new(f));
         self
     }
 
+    /// Overrides the configuration of the created [`Text`] component.
     pub fn with_text(mut self, f: impl FnOnce(Text) -> Text + 'static) -> Self {
         self.text_fn = Some(Box::new(f));
         self
     }
 
+    /// Builds the entity.
     pub fn build(self) -> impl BuiltEntity {
         let material = Material::new(self.material_key.clone())
             .with_front_texture_key(self.material_key.clone());

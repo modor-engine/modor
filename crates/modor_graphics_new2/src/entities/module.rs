@@ -20,6 +20,15 @@ use modor::{BuiltEntity, EntityBuilder};
 ///
 /// - Android and web: next update will panic if the graphics [`runner`](crate::runner()) is not
 /// used.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// App::new()
+///     .with_entity(modor_graphics_new2::module());
+/// ```
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(GraphicsModule)

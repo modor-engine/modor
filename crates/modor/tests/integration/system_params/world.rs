@@ -217,6 +217,7 @@ impl WorldState {
     }
 }
 
+#[allow(clippy::redundant_closure_for_method_calls)]
 #[test]
 fn use_world() {
     App::new()

@@ -7,11 +7,73 @@ use modor_resources::{IntoResourceKey, ResourceKey};
 
 const TEXTURE_PADDING_PX: u32 = 1;
 
+/// A text to render in a [`Texture`].
+///
+/// The size of the generated texture is calculated to exactly fit the text.
+///
+/// # Requirements
+///
+/// - text [`module`](crate::module()) is initialized
+/// - [`Texture`] component is in the same entity
+///
+/// # Related components
+///
+/// - [`Texture`]
+/// - [`Font`]
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// # use modor_physics::*;
+/// # use modor_text::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(text())
+/// }
+///
+/// fn text() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Text::new("my text", 30.).with_font(FontKey))
+///         .with(Texture::from_size(TextureKey, Size::ONE))
+///         .with(Material::new(MaterialKey).with_front_texture_key(TextureKey))
+///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+///         .with(Transform2D::new())
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct CameraKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct FontKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TextureKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct MaterialKey;
+/// ```
+///
+/// See also [`TextMaterialBuilder`](crate::TextMaterialBuilder) for a less verbose creation of
+/// text.
 #[derive(Component, Debug)]
 pub struct Text {
+    /// Text to render.
     pub content: String,
+    /// Font height of the rendered text.
     pub font_height: f32,
+    /// Key of the [`Font`] used to render the text.
+    ///
+    /// If the font is not loaded, then the text is not rendered in the [`Texture`].
+    ///
+    /// Default is [Roboto](https://fonts.google.com/specimen/Roboto).
     pub font_key: ResourceKey,
+    /// Alignment of the rendered text.
+    ///
+    /// Default is [`Alignment::Center`].
     pub alignment: Alignment,
     old_content: String,
     old_font_height: f32,
@@ -21,6 +83,7 @@ pub struct Text {
 
 #[systems]
 impl Text {
+    /// Creates a new text with a given `content` and `font_height`.
     pub fn new(content: impl Into<String>, font_height: f32) -> Self {
         Self {
             content: content.into(),
@@ -34,11 +97,13 @@ impl Text {
         }
     }
 
-    pub fn with_font(mut self, font: impl IntoResourceKey) -> Self {
-        self.font_key = font.into_key();
+    /// Returns the text with a given [`font_key`](#structfield.font_key).
+    pub fn with_font(mut self, font_key: impl IntoResourceKey) -> Self {
+        self.font_key = font_key.into_key();
         self
     }
 
+    /// Returns the text with a given [`alignment`](#structfield.alignment).
     pub fn with_alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
         self
@@ -176,10 +241,14 @@ impl Text {
     }
 }
 
+/// The alignment of a rendered text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Alignment {
+    /// Center alignment.
     #[default]
     Center,
+    /// Left alignment.
     Left,
+    /// Right alignment.
     Right,
 }

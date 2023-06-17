@@ -9,12 +9,13 @@ use modor_resources::{IntoResourceKey, ResourceKey};
 ///
 /// Model is rendered only if:
 /// - graphics [`module`](crate::module()) is initialized
-/// - [`Transform2D`](modor_physics::Transform2D) component is in same entity
+/// - [`Transform2D`](modor_physics::Transform2D) component is in the same entity
 ///
 /// # Related components
 ///
 /// - [`Transform2D`](modor_physics::Transform2D)
 /// - [`ZIndex2D`](crate::ZIndex2D)
+/// - [`Camera2D`](crate::Camera2D)
 ///
 /// # Examples
 ///

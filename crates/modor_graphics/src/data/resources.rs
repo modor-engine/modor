@@ -39,7 +39,7 @@ pub(crate) trait ResourceLoading: Any + Resource {
         job: &mut AssetLoadingJob<Result<Self::ResourceType, ResourceLoadingError>>,
         load_fn: impl FnOnce(Self::ResourceType),
     ) {
-        if let ResourceState::Loading = state {
+        if matches!(state, ResourceState::Loading) {
             *state = match job.try_poll() {
                 Ok(Some(Ok(r))) => {
                     load_fn(r);
@@ -77,7 +77,7 @@ pub(crate) trait ResourceLoading: Any + Resource {
         job: &mut Job<Result<Self::ResourceType, ResourceLoadingError>>,
         load_fn: impl FnOnce(Self::ResourceType),
     ) {
-        if let ResourceState::Loading = state {
+        if matches!(state, ResourceState::Loading) {
             if let Some(result) = job
                 .try_poll()
                 .expect("internal error: resource loading from memory has failed")

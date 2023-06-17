@@ -85,6 +85,7 @@ impl Texture {
         }
     }
 
+    // TODO: what happens if size is zero ?
     /// Creates a white texture identified by a unique `key` and created with a given `size`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Size`] source.

@@ -28,7 +28,7 @@ where
         let buffer = DynamicBuffer::new(
             vec![value],
             DynamicBufferUsage::Uniform,
-            format!("modor_uniform_buffer_{}", label_suffix),
+            format!("modor_uniform_buffer_{label_suffix}"),
             device,
         );
         Self {
@@ -65,7 +65,7 @@ where
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: bind_group_layout,
             entries: &[wgpu::BindGroupEntry { binding, resource }],
-            label: Some(&format!("modor_uniform_bind_group_{}", label_suffix)),
+            label: Some(&format!("modor_uniform_bind_group_{label_suffix}")),
         })
     }
 }

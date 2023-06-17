@@ -12,6 +12,47 @@ pub(crate) const DEFAULT_FONT_FILE: &[u8] = include_bytes!(concat!(
 
 pub(crate) type FontRegistry = ResourceRegistry<Font>;
 
+/// A font that can be attached to a [`Text`](crate::Text).
+///
+/// Following font formats are supported:
+/// - TrueType Fonts (TTF)
+/// - OpenType Fonts (OTF)
+///
+/// # Requirements
+///
+/// - text [`module`](crate::module()) is initialized
+///
+/// # Related components
+///
+/// - [`Text`](crate::Text)
+///
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics_new2::*;
+/// # use modor_physics::*;
+/// # use modor_text::*;
+/// #
+/// fn root() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(text())
+/// }
+///
+/// fn text() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .with(Text::new("my text", 30.).with_font(FontKey))
+///         .with(Texture::from_size(TextureKey, Size::ONE))
+/// }
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct FontKey;
+///
+/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// struct TextureKey;
+/// ```
 #[derive(Component, Debug)]
 pub struct Font {
     key: ResourceKey,
@@ -22,6 +63,7 @@ pub struct Font {
 
 #[systems]
 impl Font {
+    /// Creates a new font identified by a unique `key` and created from `source`.
     pub fn new(key: impl IntoResourceKey, source: FontSource) -> Self {
         Self {
             key: key.into_key(),
@@ -31,10 +73,16 @@ impl Font {
         }
     }
 
+    /// Creates a new font identified by a unique `key` and created with given file `data`.
+    ///
+    /// This method is equivalent to [`Font::new`] with [`FontSource::File`] source.
     pub fn from_file(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
         Self::new(key, FontSource::File(data))
     }
 
+    /// Creates a new font identified by a unique `key` and created with a given file `path`.
+    ///
+    /// This method is equivalent to [`Font::new`] with [`FontSource::Path`] source.
     pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
         Self::new(key, FontSource::Path(path.into()))
     }
@@ -51,6 +99,10 @@ impl Font {
         });
     }
 
+    /// Sets the font `source` and start reloading of the font.
+    ///
+    /// If the previous source is already loaded, the font remains valid until the new source
+    /// is loaded.
     pub fn set_source(&mut self, source: FontSource) {
         self.handler.set_source(source.into());
     }
@@ -74,10 +126,33 @@ impl Resource for Font {
     }
 }
 
+/// The source of a [`Font`].
+///
+/// Sources loaded synchronously are ready after the next [`App`](modor::App) update. Sources loaded
+/// asynchronously can take more updates to be ready.
+///
+/// # Examples
+///
+/// See [`Texture`].
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FontSource {
+    /// Font loaded asynchronously from given file bytes.
+    ///
+    /// This variant is generally used in combination with [`include_bytes!`].
     File(&'static [u8]),
+    /// Font loaded asynchronously from a given path.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: HTTP GET call is performed to retrieve the file from URL
+    /// `{current_browser_url}/assets/{path}`.
+    /// - Android: the file is retrieved using the Android
+    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
+    /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
+    /// application is run using a `cargo` command), then the file is retrieved from path
+    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
+    /// `{executable_folder_path}/assets/{path}`.
     Path(String),
 }
 
