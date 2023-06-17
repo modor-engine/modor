@@ -1,5 +1,5 @@
-use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor_graphics_new2::testing::is_same;
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
@@ -16,8 +16,8 @@ fn create_default() {
         .with_entity(resources())
         .with_entity(Camera2D::new(CameraKey))
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#empty2"))
+        .assert::<With<Target1>>(1, is_same("camera#empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#empty2"))
         .assert::<With<Camera2D>>(
             1,
             assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(-2. / 3., 0.5)),
@@ -69,20 +69,20 @@ fn create_with_one_target() {
         .with_entity(resources())
         .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#not_empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#empty2"))
+        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#empty2"))
         .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| {
             c.target_keys[0] = TargetKey::Second.into_key();
         })
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#not_empty2"))
+        .assert::<With<Target1>>(1, is_same("camera#empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#not_empty2"))
         .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| {
             c.target_keys[0] = TargetKey::Missing.into_key();
         })
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#empty2"));
+        .assert::<With<Target1>>(1, is_same("camera#empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#empty2"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -96,8 +96,8 @@ fn create_with_many_targets() {
                 .with_target_key(TargetKey::Second),
         )
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#not_empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#not_empty2"));
+        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#not_empty2"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -114,7 +114,7 @@ fn create_with_transform() {
                 .with_rotation(FRAC_PI_2)
         })
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#not_empty_offset1"))
+        .assert::<With<Target1>>(1, is_same("camera#not_empty_offset1"))
         .assert::<With<Camera2D>>(
             1,
             assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(1.5, 11. / 6.)),
@@ -141,7 +141,7 @@ fn create_with_transform() {
         )
         .with_deleted_components::<With<Camera2D>, Transform2D>()
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#not_empty1"));
+        .assert::<With<Target1>>(1, is_same("camera#not_empty1"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -153,12 +153,12 @@ fn recreate_entity() {
         .updated()
         .with_deleted_entities::<With<Camera2D>>()
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#empty2"))
+        .assert::<With<Target1>>(1, is_same("camera#empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#empty2"))
         .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
         .updated()
-        .assert::<With<Target1>>(1, assert_exact_texture("camera#not_empty1"))
-        .assert::<With<Target2>>(1, assert_exact_texture("camera#empty2"));
+        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
+        .assert::<With<Target2>>(1, is_same("camera#empty2"));
 }
 
 fn resources() -> impl BuiltEntity {

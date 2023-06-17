@@ -91,12 +91,12 @@ impl Font {
     fn update(&mut self) {
         self.is_just_loaded = false;
         self.handler.update::<Self>(&self.key);
-        self.font = self.font.take().or_else(|| {
-            self.handler.resource().map(|r| {
-                self.is_just_loaded = true;
-                r.0
-            })
-        });
+        self.font = if let Some(resource) = self.handler.resource() {
+            self.is_just_loaded = true;
+            Some(resource.0)
+        } else {
+            self.font.take()
+        };
     }
 
     /// Sets the font `source` and start reloading of the font.

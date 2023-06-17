@@ -6,7 +6,7 @@ pub(crate) fn check_catch_unwind_availability() {
     panic!("`panic::catch_unwind` unsupported on this platform");
 }
 
-pub(crate) fn create_pool(thread_count: u32) -> Option<Pool> {
+pub(crate) fn create_pool(_thread_count: u32) -> Option<Pool> {
     None
 }
 

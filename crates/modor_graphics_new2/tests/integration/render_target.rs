@@ -1,11 +1,11 @@
-use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics_new2::testing::wait_texture_loading;
+use modor_graphics_new2::testing::is_same;
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
+use modor_resources::testing::wait_resource_loading;
 use modor_resources::{Resource, ResourceState};
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -14,7 +14,7 @@ fn create_default() {
         .with_entity(modor_graphics_new2::module())
         .with_entity(main_texture().with(RenderTarget::new(TargetKey::Main)))
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#black"));
+        .assert::<With<MainTarget>>(1, is_same("render_target#black"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -30,7 +30,7 @@ fn create_with_invalid_texture() {
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Loading)))
         })
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Error(_))))
         });
@@ -45,12 +45,12 @@ fn create_with_background_color() {
                 .with(RenderTarget::new(TargetKey::Main).with_background_color(Color::RED)),
         )
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#red"))
+        .assert::<With<MainTarget>>(1, is_same("render_target#red"))
         .with_update::<With<RenderTarget>, _>(|t: &mut RenderTarget| {
             t.background_color = Color::BLACK;
         })
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#black"));
+        .assert::<With<MainTarget>>(1, is_same("render_target#black"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -66,7 +66,7 @@ fn resize_texture() {
             Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
         })
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#red2"));
+        .assert::<With<MainTarget>>(1, is_same("render_target#red2"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -84,7 +84,7 @@ fn recreate_texture() {
             Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
         })
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#red2"));
+        .assert::<With<MainTarget>>(1, is_same("render_target#red2"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -94,20 +94,14 @@ fn render_target_in_target() {
         .with_entity(resource())
         .with_entity(main_texture().with(RenderTarget::new(TargetKey::Main)))
         .updated()
-        .assert::<With<MainTarget>>(1, assert_exact_texture("render_target#target_in_target"))
+        .assert::<With<MainTarget>>(1, is_same("render_target#target_in_target"))
         .with_component::<With<BlueRectangle>, _>(|| {
             Model::rectangle(MaterialKey::Target).with_camera_key(CameraKey::Secondary)
         })
         .updated()
-        .assert::<With<MainTarget>>(
-            1,
-            assert_exact_texture("render_target#target_texture_in_use"),
-        )
+        .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
         .updated()
-        .assert::<With<MainTarget>>(
-            1,
-            assert_exact_texture("render_target#target_texture_in_use"),
-        );
+        .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"));
 }
 
 fn main_texture() -> impl BuiltEntity {

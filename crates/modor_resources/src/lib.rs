@@ -18,6 +18,8 @@ extern crate log;
 mod components;
 mod data;
 
+pub mod testing;
+
 pub use components::registry::*;
 pub use data::handler::*;
 pub use data::key::*;

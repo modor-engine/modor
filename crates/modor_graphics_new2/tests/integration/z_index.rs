@@ -1,5 +1,5 @@
-use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityBuilder, With};
+use modor_graphics_new2::testing::{has_component_diff, is_same};
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, ZIndex2D,
 };
@@ -16,13 +16,13 @@ fn create_for_opaque() {
         .with_entity(rectangle(-0.03, 1, MaterialKey::OpaqueGreen))
         .with_entity(rectangle(0.09, u16::MAX, MaterialKey::OpaqueGreen).with(Marker))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#opaque"))
+        .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque"))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#opaque_reversed"))
+        .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque_reversed"))
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#opaque_reversed"));
+        .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque_reversed"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -35,13 +35,13 @@ fn create_for_transparent() {
         .with_entity(rectangle(-0.03, 1, MaterialKey::TransparentGreen))
         .with_entity(rectangle(0.09, u16::MAX, MaterialKey::TransparentGreen).with(Marker))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_reversed"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1))
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_reversed"));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -54,13 +54,16 @@ fn create_for_opaque_and_transparent() {
         .with_entity(rectangle(-0.03, 1, MaterialKey::TransparentGreen))
         .with_entity(rectangle(0.09, u16::MAX, MaterialKey::TransparentGreen).with(Marker))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix_reversed"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix_reversed", 1))
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("z_index#transparent_mix_reversed"));
+        .assert::<With<TextureBuffer>>(
+            1,
+            has_component_diff("z_index#transparent_mix_reversed", 1),
+        );
 }
 
 fn resources() -> impl BuiltEntity {

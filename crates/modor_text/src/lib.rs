@@ -9,9 +9,46 @@
 //! modor_text = "0.1"
 //! ```
 //!
-//! You can then use the components provided by this crate to render texts.
+//! You can then create a window rendering a text with the following code:
+//!
+//! ```rust
+//! # use modor::*;
+//! # use modor_physics::*;
+//! # use modor_graphics_new2::*;
+//! # use modor_text::*;
+//! #
+//! # fn no_run() {
+//! App::new()
+//!     .with_entity(modor_text::module())
+//!     .with_entity(window())
+//!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+//!     .with_entity(text())
+//!     .run(modor_graphics_new2::runner);
+//! # }
+//!
+//! fn window() -> impl BuiltEntity {
+//!     EntityBuilder::new()
+//!         .with(Window::default())
+//!         .with(RenderTarget::new(TargetKey))
+//! }
+//!
+//! fn text() -> impl BuiltEntity {
+//!     TextMaterialBuilder::new(MaterialKey, "my text", 100.)
+//!         .build()
+//!         .with(Transform2D::new())
+//!         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+//! }
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct TargetKey;
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct CameraKey;
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct MaterialKey;
+//! ```
 
-// TODO: add example in doc
 
 #[macro_use]
 extern crate modor;
@@ -24,6 +61,3 @@ pub use builders::material::*;
 pub use components::font::*;
 pub use components::text::*;
 pub use entities::module::*;
-
-// TODO: add doc
-// TODO: add tests

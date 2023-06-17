@@ -1,11 +1,11 @@
-use crate::assert_exact_texture;
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
-use modor_graphics_new2::testing::wait_texture_loading;
+use modor_graphics_new2::testing::is_same;
 use modor_graphics_new2::{
     Camera2D, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
+use modor_resources::testing::wait_resource_loading;
 use modor_resources::{Resource, ResourceLoadingError, ResourceState};
 
 const TEXTURE_DATA: &[u8] = include_bytes!(concat!(
@@ -20,7 +20,7 @@ fn create_from_size() {
         .with_entity(buffer().with(Texture::from_size(TextureKey::Rectangle, Size::new(40, 20))))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#size"))
+        .assert::<With<TextureBuffer>>(1, is_same("texture#size"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(40, 20)));
 }
 
@@ -35,7 +35,7 @@ fn create_from_buffer() {
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#buffer"))
+        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)));
 }
 
@@ -47,8 +47,8 @@ fn create_from_file() {
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#file"))
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
 
@@ -63,8 +63,8 @@ fn create_from_path() {
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#file"))
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
 
@@ -77,7 +77,7 @@ fn create_from_unsupported_format() {
             "../tests/assets/text.txt",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, assert_invalid_format());
 }
 
@@ -90,7 +90,7 @@ fn create_from_corrupted_file() {
             "../tests/assets/corrupted-texture.png",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, assert_invalid_format());
 }
 
@@ -114,8 +114,8 @@ fn create_with_default_params() {
         .with_entity(target())
         .with_entity(rectangle())
         .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA))
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#render_default"));
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -125,8 +125,8 @@ fn create_with_not_smooth() {
         .with_entity(target())
         .with_entity(rectangle())
         .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_smooth(false))
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading)
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#render_not_smooth"));
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -136,7 +136,7 @@ fn create_with_repeated() {
         .with_entity(target())
         .with_entity(rectangle())
         .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_repeated(true))
-        .updated_until_all::<With<Texture>, _>(Some(100), wait_texture_loading);
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading);
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -149,19 +149,19 @@ fn set_source() {
             vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
         )))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#buffer"))
+        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
         .with_update::<With<TextureBuffer>, _>(|t: &mut Texture| {
             t.set_source(TextureSource::File(TEXTURE_DATA));
         })
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#buffer"))
+        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
         .updated_until_any::<With<TextureBuffer>, _>(Some(100), |t: &Texture| {
             t.size() == Some(Size::new(4, 4))
         })
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("texture#file"))
+        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
 

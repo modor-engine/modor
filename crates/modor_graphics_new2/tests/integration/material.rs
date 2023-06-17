@@ -1,5 +1,5 @@
-use crate::{assert_approx_texture, assert_exact_texture};
 use modor::{App, BuiltEntity, EntityBuilder, With};
+use modor_graphics_new2::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics_new2::{
     Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
 };
@@ -14,7 +14,7 @@ fn create_default() {
         .with_entity(resources())
         .with_entity(Material::new(MaterialKey))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_white"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#color_white"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -24,10 +24,10 @@ fn configure_color() {
         .with_entity(resources())
         .with_entity(Material::new(MaterialKey).with_color(Color::GREEN))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_green"))
+        .assert::<With<TextureBuffer>>(1, is_same("material#color_green"))
         .with_update::<(), _>(|m: &mut Material| m.color = Color::RED)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_red"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#color_red"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -37,20 +37,20 @@ fn configure_texture() {
         .with_entity(resources())
         .with_entity(Material::new(MaterialKey).with_texture_key(TextureKey::Opaque))
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#opaque_texture"))
+        .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture"))
         .with_update::<(), _>(|m: &mut Material| {
             m.texture_key = Some(TextureKey::Transparent.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#transparent_texture"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#transparent_texture", 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = None)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_white"))
+        .assert::<With<TextureBuffer>>(1, is_same("material#color_white"))
         .with_update::<(), _>(|m: &mut Material| {
             m.texture_key = Some(TextureKey::Missing.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#empty"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#empty"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -64,15 +64,15 @@ fn configure_color_and_texture() {
                 .with_color(Color::RED),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#opaque_texture_red"))
+        .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture_red"))
         .with_update::<(), _>(|m: &mut Material| {
             m.texture_key = Some(TextureKey::Transparent.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#transparent_texture_red"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#transparent_texture_red", 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = None)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#color_red"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#color_red"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -87,11 +87,11 @@ fn configure_cropped_texture() {
                 .with_texture_size(Vec2::new(0.5, 1.)),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#cropped_texture"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#cropped_texture", 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_position = Vec2::ZERO)
         .with_update::<(), _>(|m: &mut Material| m.texture_size = Vec2::ONE)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#opaque_texture"));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#opaque_texture", 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -105,15 +105,15 @@ fn configure_front_texture() {
             m.front_texture_key = Some(TextureKey::Transparent.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture", 10))
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#front_texture", 10))
         .with_update::<(), _>(|m: &mut Material| m.front_texture_key = None)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#color_white", 10))
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#color_white", 10))
         .with_update::<(), _>(|m: &mut Material| {
             m.front_texture_key = Some(TextureKey::Missing.into_key());
         })
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#empty"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#empty"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -128,10 +128,10 @@ fn configure_front_color_and_texture() {
                 .with_color(Color::GREEN),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture_red", 10))
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#front_texture_red", 10))
         .with_update::<(), _>(|m: &mut Material| m.front_color = Color::BLUE)
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#front_texture_blue", 10));
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#front_texture_blue", 10));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -149,7 +149,7 @@ fn create_ellipse() {
                 .with_texture_size(Vec2::new(0.5, 1.)),
         )
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_approx_texture("material#ellipse", 10));
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#ellipse", 10));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -161,7 +161,7 @@ fn delete_entity() {
         .updated()
         .with_deleted_entities::<With<Material>>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, assert_exact_texture("material#empty"));
+        .assert::<With<TextureBuffer>>(1, is_same("material#empty"));
 }
 
 fn resources() -> impl BuiltEntity {

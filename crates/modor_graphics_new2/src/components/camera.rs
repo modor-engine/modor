@@ -10,9 +10,6 @@ use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
 use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 
-// TODO: https://app.codecov.io/gh/modor-engine/modor/blob/137-improve-maintenance-and-performance/crates%2Fmodor_derive%2Fsrc%2Flib.rs
-// TODO: https://app.codecov.io/gh/modor-engine/modor/blob/137-improve-maintenance-and-performance/crates%2Fmodor%2Fsrc%2Fapp.rs
-
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
 /// A camera used for 2D rendering.
