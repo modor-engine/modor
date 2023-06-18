@@ -5,8 +5,7 @@ use modor_resources::{
     IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry, ResourceState,
 };
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_not_loaded_resource() {
     App::new()
         .with_entity(ValueRegistry::default())
@@ -19,8 +18,7 @@ fn retrieve_not_loaded_resource() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_loading_resource() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -34,8 +32,7 @@ fn retrieve_loading_resource() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_loaded_resource() {
     App::new()
         .with_entity(ValueRegistry::default())
@@ -48,8 +45,7 @@ fn retrieve_loaded_resource() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_error_resource() {
     const ERROR: ResourceLoadingError =
         ResourceLoadingError::AssetLoadingError(AssetLoadingError::InvalidAssetPath);
@@ -65,8 +61,7 @@ fn retrieve_error_resource() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_resource_with_duplicated_key() {
     App::new()
         .with_entity(ValueRegistry::default())
@@ -79,8 +74,7 @@ fn retrieve_resource_with_duplicated_key() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_resource_with_replaced_key() {
     App::new()
         .with_entity(ValueRegistry::default())
@@ -102,8 +96,7 @@ fn retrieve_resource_with_replaced_key() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_resource_with_missing_key() {
     App::new()
         .with_entity(ValueRegistry::default())

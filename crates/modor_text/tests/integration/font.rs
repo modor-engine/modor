@@ -85,7 +85,7 @@ fn set_source() {
 
 fn text() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Texture::from_size(TextureKey, Size::ONE))
+        .with(Texture::from_size(TextureKey, Size::ZERO))
         .with(TextureBuffer::default())
         .with(Text::new("text", 20.).with_font(FontKey))
 }

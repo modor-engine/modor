@@ -84,8 +84,7 @@ fn entities() -> impl BuiltEntity {
         .with_child(Number::build_with_additional_component(3).with(RegisteredNumber))
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn iterate_on_component_reference() {
     App::new()
         .with_entity(entities())
@@ -94,8 +93,7 @@ fn iterate_on_component_reference() {
         .assert::<With<QueryTester>>(1, |e| e.has(|c: &QueryTester| assert!(c.done)));
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
     modor_internal::retry!(60, {
         let start = instant::Instant::now();
@@ -107,8 +105,7 @@ fn run_systems_in_parallel() {
     });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_entity() {
     App::new()
         .with_entity(Parent::build())

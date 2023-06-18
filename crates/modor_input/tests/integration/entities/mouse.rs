@@ -4,8 +4,7 @@ use modor_input::{
 };
 use modor_math::Vec2;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_pressed_buttons() {
     App::new()
         .with_entity(InputModule::build())
@@ -57,8 +56,7 @@ fn update_pressed_buttons() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_scroll() {
     App::new()
         .with_entity(InputModule::build())
@@ -91,8 +89,7 @@ fn update_scroll() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_position() {
     App::new()
         .with_entity(InputModule::build())
@@ -109,8 +106,7 @@ fn update_position() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_delta() {
     App::new()
         .with_entity(InputModule::build())

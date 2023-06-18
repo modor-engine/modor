@@ -25,6 +25,17 @@ fn create_from_size() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
+fn create_from_zero_size() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(buffer().with(Texture::from_size(TextureKey::Rectangle, Size::ZERO)))
+        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
+        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(1, 1)));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
 fn create_from_buffer() {
     App::new()
         .with_entity(modor_graphics_new2::module())
@@ -37,6 +48,21 @@ fn create_from_buffer() {
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_from_empty_buffer() {
+    App::new()
+        .with_entity(modor_graphics_new2::module())
+        .with_entity(buffer().with(Texture::from_buffer(
+            TextureKey::Rectangle,
+            Size::ZERO,
+            vec![],
+        )))
+        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
+        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(1, 1)));
 }
 
 #[modor_test(disabled(macos, android, wasm))]

@@ -4,7 +4,7 @@ use modor_resources::{
 use std::thread;
 use std::time::Duration;
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_valid_resource_from_sync_data() {
     let source = ResourceSource::SyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -19,7 +19,7 @@ fn load_valid_resource_from_sync_data() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_invalid_resource_from_sync_data() {
     let source = ResourceSource::SyncData(String::new());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -35,7 +35,7 @@ fn load_invalid_resource_from_sync_data() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_valid_resource_from_async_data() {
     let source = ResourceSource::AsyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -55,7 +55,7 @@ fn load_valid_resource_from_async_data() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_invalid_resource_from_async_data() {
     let source = ResourceSource::AsyncData(String::new());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -77,7 +77,7 @@ fn load_invalid_resource_from_async_data() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_resource_from_async_data_that_panics_during_loading() {
     let source = ResourceSource::AsyncData("x".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -107,7 +107,7 @@ fn load_resource_from_async_data_that_panics_during_loading() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_valid_resource_from_async_path() {
     let source = ResourceSource::AsyncPath("not_empty.txt".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -127,7 +127,7 @@ fn load_valid_resource_from_async_path() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_invalid_resource_from_valid_async_path() {
     let source = ResourceSource::AsyncPath("empty.txt".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -149,7 +149,7 @@ fn load_invalid_resource_from_valid_async_path() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn load_invalid_resource_from_invalid_async_path() {
     let source = ResourceSource::AsyncPath("invalid.txt".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -179,7 +179,7 @@ fn load_invalid_resource_from_invalid_async_path() {
     assert_eq!(handler.resource(), None);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn reload_resource() {
     let source = ResourceSource::SyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
@@ -192,7 +192,7 @@ fn reload_resource() {
     assert_eq!(handler.state(), ResourceState::Loaded);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn change_resource_source() {
     let source = ResourceSource::SyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);

@@ -1,8 +1,7 @@
 use modor_resources::ResourceKey;
 use std::collections::HashSet;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_key_in_set() {
     let type1_key1 = ResourceKey::new(11_u32);
     let type1_key2 = ResourceKey::new(12_u32);
@@ -22,8 +21,7 @@ fn use_key_in_set() {
     assert!(!set.contains(&missing_key));
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn retrieve_debug_key_value() {
     let key1 = ResourceKey::new(1_u32);
     let key2 = ResourceKey::new(2_i8);

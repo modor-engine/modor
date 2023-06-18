@@ -1,8 +1,7 @@
 use modor::{App, With};
 use modor_graphics::{FrameRate, FrameRateLimit};
 
-#[modor_test(disabled(macos, android, wasm))]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_frame_rate_limit() {
     App::new()
         .with_entity(FrameRateLimit::from(FrameRate::FPS(60)))

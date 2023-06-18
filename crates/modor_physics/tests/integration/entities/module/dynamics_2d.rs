@@ -11,8 +11,7 @@ struct Source;
 #[derive(Component, NoSystem)]
 struct Destination;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_velocity() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
@@ -39,8 +38,7 @@ fn update_velocity() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_angular_velocity() {
     let entity = EntityBuilder::new()
         .with(
@@ -72,8 +70,7 @@ fn update_angular_velocity() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn remove_and_put_back_dynamics() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
@@ -94,8 +91,7 @@ fn remove_and_put_back_dynamics() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn move_dynamics() {
     let source = EntityBuilder::new()
         .with(Source)
@@ -124,8 +120,7 @@ fn move_dynamics() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_with_relative_transform() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new())

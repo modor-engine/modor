@@ -2,7 +2,7 @@ use modor::{App, With};
 use modor_input::{Finger, InputEventCollector, InputModule, TouchEvent};
 use modor_math::Vec2;
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn update_state() {
     App::new()
         .with_entity(InputModule::build())
@@ -65,8 +65,7 @@ fn update_state() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_position() {
     App::new()
         .with_entity(InputModule::build())

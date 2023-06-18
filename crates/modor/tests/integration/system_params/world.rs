@@ -218,7 +218,7 @@ impl WorldState {
 }
 
 #[allow(clippy::redundant_closure_for_method_calls)]
-#[test]
+#[modor_test(disabled(wasm))]
 fn use_world() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -293,8 +293,7 @@ fn use_world() {
         });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
     let start = instant::Instant::now();
     App::new()

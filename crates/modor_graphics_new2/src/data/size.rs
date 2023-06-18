@@ -13,6 +13,7 @@ pub struct Size {
 impl Size {
     /// A size with all components equal to `0.0`.
     pub const ZERO: Self = Self::new(0, 0);
+
     /// A size with all components equal to `1.0`.
     pub const ONE: Self = Self::new(1, 1);
 

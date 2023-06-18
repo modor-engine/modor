@@ -76,7 +76,7 @@ impl Counter {
     }
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn create_app_with_thread_count_and_log_level() {
     let app = App::new()
         .with_thread_count(2)
@@ -88,8 +88,7 @@ fn create_app_with_thread_count_and_log_level() {
     assert_eq!(app.thread_count(), 1);
 }
 
-#[allow(dead_code)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test(disabled(windows, linux, macos, android))]
 fn create_app_with_thread_count_and_log_level_for_wasm() {
     let app = App::new()
         .with_thread_count(2)
@@ -97,8 +96,7 @@ fn create_app_with_thread_count_and_log_level_for_wasm() {
     assert_eq!(app.thread_count(), 1);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn assert_valid_entity_count() {
     App::new()
         .with_entity(Entity::build(10))
@@ -111,7 +109,7 @@ fn assert_valid_entity_count() {
         .assert::<With<UnusedComponent>>(0, |e| e);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: 2 entities matching \
 modor::filters::with::With<integration::app::Entity>, actual count: 1"]
 fn assert_invalid_entity_count() {
@@ -120,7 +118,7 @@ fn assert_invalid_entity_count() {
         .assert::<With<Entity>>(2, |e| e);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn assert_entity_has_existing_component() {
     App::new()
         .with_entity(Entity::build(10))
@@ -137,7 +135,7 @@ fn assert_entity_has_existing_component() {
         .assert::<With<Singleton>>(1, |e| e.has(|c: &Singleton| assert_eq!(c.0, 30)));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: `(left == right)"]
 fn assert_entity_has_invalid_component() {
     App::new()
@@ -145,7 +143,7 @@ fn assert_entity_has_invalid_component() {
         .assert::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 20)));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: `(left == right)"]
 fn assert_entity_has_invalid_component_in_any_mode() {
     App::new()
@@ -153,7 +151,7 @@ fn assert_entity_has_invalid_component_in_any_mode() {
         .assert_any::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 20)));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component() {
@@ -162,7 +160,7 @@ fn assert_entity_has_missing_component() {
         .assert::<With<Entity>>(1, |e| e.has(|_: &Singleton| ()));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have component integration::app::Singleton"]
 fn assert_entity_has_missing_component_in_any_mode() {
@@ -171,8 +169,7 @@ fn assert_entity_has_missing_component_in_any_mode() {
         .assert_any::<With<Entity>>(1, |e| e.has(|_: &Singleton| ()));
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_not_missing_component() {
     App::new()
@@ -184,7 +181,7 @@ fn assert_entity_has_not_missing_component() {
         .assert_any::<()>(3, |e| e.has_not::<Entity>().has_not::<Singleton>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
@@ -194,7 +191,7 @@ fn assert_entity_has_not_existing_component() {
         .assert::<With<Entity>>(1, |e| e.has_not::<Component>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have not component integration::app::Component"]
 #[allow(clippy::redundant_closure_for_method_calls)]
@@ -204,8 +201,7 @@ fn assert_entity_has_not_existing_component_in_any_mode() {
         .assert_any::<With<Entity>>(1, |e| e.has_not::<Component>());
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn assert_valid_child_count() {
     App::new()
         .with_entity(Entity::build_with_children(10))
@@ -215,7 +211,7 @@ fn assert_valid_child_count() {
         .assert_any::<()>(7, |e| e.child_count(2));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count() {
@@ -224,7 +220,7 @@ fn assert_invalid_child_count() {
         .assert::<With<Entity>>(1, |e| e.child_count(3));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have 3 children"]
 fn assert_invalid_child_count_in_any_mode() {
@@ -233,8 +229,7 @@ fn assert_invalid_child_count_in_any_mode() {
         .assert_any::<With<Entity>>(1, |e| e.child_count(3));
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 #[allow(clippy::redundant_closure_for_method_calls)]
 fn assert_entity_has_matching_parent() {
     App::new()
@@ -244,7 +239,7 @@ fn assert_entity_has_matching_parent() {
         .assert_any::<()>(3, |e| e.has_parent::<With<Entity>>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Child1> have parent matching \
 modor::filters::with::With<integration::app::Singleton>"]
@@ -255,7 +250,7 @@ fn assert_entity_has_not_matching_parent() {
         .assert::<With<Child1>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Child1> have parent matching \
 modor::filters::with::With<integration::app::Singleton>"]
@@ -266,7 +261,7 @@ fn assert_entity_has_not_matching_parent_in_any_mode() {
         .assert_any::<With<Child1>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have parent matching \
 modor::filters::with::With<integration::app::Singleton>"]
@@ -277,7 +272,7 @@ fn assert_entity_has_missing_parent() {
         .assert::<With<Entity>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "assertion failed: entities matching \
 modor::filters::with::With<integration::app::Entity> have parent matching \
 modor::filters::with::With<integration::app::Singleton>"]
@@ -288,8 +283,7 @@ fn assert_entity_has_missing_parent_in_any_mode() {
         .assert_any::<With<Entity>>(1, |e| e.has_parent::<With<Singleton>>());
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_component() {
     App::new()
         .with_entity(Entity::build_entity1(10))
@@ -299,8 +293,7 @@ fn update_component() {
         .assert::<With<Entity2>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 20)));
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_app() {
     let mut app = App::new()
         .with_entity(Entity::build(10))
@@ -310,7 +303,7 @@ fn update_app() {
     app.assert::<With<Entity>>(1, |e| e.has(|c: &Component| assert_eq!(c.0, 12)));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn update_app_until_any() {
     App::new()
         .with_entity(Counter(0))
@@ -327,7 +320,7 @@ fn update_app_until_any() {
         });
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "max number of retries reached"]
 fn update_app_until_any_with_max_retries_reached() {
     App::new()
@@ -336,8 +329,7 @@ fn update_app_until_any_with_max_retries_reached() {
         .updated_until_any::<(), _>(Some(2), |c: &Counter| c.0 == 5);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_app_until_all() {
     App::new()
         .with_entity(Counter(1))
@@ -348,7 +340,7 @@ fn update_app_until_all() {
         .assert::<With<Counter>>(2, |e| e.has(|c: &Counter| assert_eq!(c.0, 15)));
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 #[should_panic = "max number of retries reached"]
 fn update_app_until_all_with_max_retries_reached() {
     App::new()
@@ -357,7 +349,7 @@ fn update_app_until_all_with_max_retries_reached() {
         .updated_until_all::<(), _>(Some(2), |c: &Counter| c.0 == 5);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn update_components() {
     let mut app = App::new()
         .with_entity(Entity::build(10))
@@ -371,15 +363,14 @@ fn update_components() {
     });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn start_runner() {
     let mut run = false;
     App::new().run(|_| run = true);
     assert!(run);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn add_component() {
     App::new()
         .with_entity(Entity::build_entity1(10))
@@ -396,7 +387,7 @@ fn add_component() {
         });
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn delete_component() {
     App::new()
         .with_entity(Entity::build_entity1(10))
@@ -407,7 +398,7 @@ fn delete_component() {
         .assert::<With<Entity>>(2, |e| e);
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn delete_entity() {
     App::new()
         .with_entity(Entity::build_entity1(10))

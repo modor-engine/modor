@@ -74,7 +74,7 @@ impl ResultCollector {
     }
 }
 
-#[test]
+#[modor_test]
 fn filter_entities_in_query() {
     App::new()
         .with_entity(ResultCollector::build())

@@ -38,7 +38,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// fn text() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Text::new("my text", 30.).with_font(FontKey))
-///         .with(Texture::from_size(TextureKey, Size::ONE))
+///         .with(Texture::from_size(TextureKey, Size::ZERO))
 ///         .with(Material::new(MaterialKey).with_front_texture_key(TextureKey))
 ///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
 ///         .with(Transform2D::new())

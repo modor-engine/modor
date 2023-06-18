@@ -17,8 +17,7 @@ impl RegisteredNumber {
     }
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn iterate_using_filter() {
     App::new()
         .with_entity(Numbers::default())

@@ -39,7 +39,7 @@ impl Value3 {
     }
 }
 
-#[test]
+#[modor_test]
 fn run_systems_depending_on_entities() {
     App::new()
         .with_entity(Counter(1))

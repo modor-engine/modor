@@ -85,7 +85,6 @@ impl Texture {
         }
     }
 
-    // TODO: what happens if size is zero ?
     /// Creates a white texture identified by a unique `key` and created with a given `size`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Size`] source.
@@ -304,8 +303,12 @@ impl Resource for Texture {
 #[derive(Debug)]
 pub enum TextureSource {
     /// White texture created synchronously with a given size.
+    ///
+    /// If width or height is zero, then the created texture will have a size of 1x1.
     Size(Size),
     /// Texture loaded synchronously from given size and RGBA buffer.
+    ///
+    /// If width or height is zero, then a white texture is created with size 1x1.
     Buffer(Size, Vec<u8>),
     /// Texture loaded asynchronously from given file bytes.
     ///
@@ -329,12 +332,20 @@ pub enum TextureSource {
 impl From<TextureSource> for ResourceSource<TextureData> {
     fn from(source: TextureSource) -> Self {
         match source {
-            TextureSource::Size(size) => Self::SyncData(TextureData::RgbaBuffer(
-                size,
-                vec![255; (size.width * size.height * 4) as usize],
-            )),
+            TextureSource::Size(size) => {
+                let size = NonZeroSize::from(size);
+                Self::SyncData(TextureData::RgbaBuffer(
+                    size,
+                    vec![255; (u32::from(size.width) * u32::from(size.height) * 4) as usize],
+                ))
+            }
             TextureSource::Buffer(size, buffer) => {
-                Self::SyncData(TextureData::RgbaBuffer(size, buffer))
+                let buffer = if buffer.is_empty() {
+                    vec![255; 4]
+                } else {
+                    buffer
+                };
+                Self::SyncData(TextureData::RgbaBuffer(NonZeroSize::from(size), buffer))
             }
             TextureSource::File(data) => Self::AsyncData(TextureData::File(data)),
             TextureSource::Path(path) => Self::AsyncPath(path),
@@ -353,7 +364,7 @@ pub(crate) struct LoadedTexture {
 #[derive(Debug, Clone)]
 enum TextureData {
     File(&'static [u8]),
-    RgbaBuffer(Size, Vec<u8>),
+    RgbaBuffer(NonZeroSize, Vec<u8>),
 }
 
 #[derive(Debug)]
@@ -367,9 +378,9 @@ impl LoadedImage {
             .map(Self)
     }
 
-    fn load_from_buffer(buffer: Vec<u8>, size: Size) -> Result<Self, ResourceLoadingError> {
+    fn load_from_buffer(buffer: Vec<u8>, size: NonZeroSize) -> Result<Self, ResourceLoadingError> {
         let buffer_len = buffer.len();
-        RgbaImage::from_raw(size.width, size.height, buffer)
+        RgbaImage::from_raw(u32::from(size.width), u32::from(size.height), buffer)
             .ok_or_else(|| {
                 ResourceLoadingError::InvalidFormat(format!(
                     "RGBA buffer size ({buffer_len}) does not correspond \

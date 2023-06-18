@@ -5,7 +5,6 @@ use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
 use modor_text::{Alignment, Font, TextMaterialBuilder};
 
-// TODO: use modor_test everywhere
 #[modor_test(disabled(macos, android, wasm))]
 fn create_default_text_material() {
     App::new()
