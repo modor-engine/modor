@@ -132,6 +132,7 @@ fn assert_entity_has_existing_component() {
         .assert_any::<With<Entity>>(2, |e| {
             e.has(|c: &Component| assert_eq!(c.0, 10))
                 .has(|c: &Component| assert_eq!(c.0, 20))
+                .has(|c: &Component| assert!(c.0 > 0))
         })
         .assert::<With<Singleton>>(1, |e| e.has(|c: &Singleton| assert_eq!(c.0, 30)));
 }

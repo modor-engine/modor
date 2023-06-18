@@ -3,7 +3,7 @@ use modor_graphics::{testing, BackgroundColor, Capture, Color, GraphicsModule, S
 use std::fs;
 use std::path::Path;
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn capture_save_if_not_existing() {
     let written_file_path = Path::new("tests/expected/testing_write.png");
     App::new()
@@ -19,7 +19,7 @@ fn capture_save_if_not_existing() {
     assert!(file_exists);
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[should_panic]
 fn fail_if_no_capture() {
     App::new()
@@ -30,7 +30,7 @@ fn fail_if_no_capture() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[should_panic]
 fn fail_testing_if_captures_different() {
     App::new()

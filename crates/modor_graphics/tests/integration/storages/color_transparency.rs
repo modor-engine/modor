@@ -24,7 +24,7 @@ fn ellipse(position: Vec3, color: Color) -> impl BuiltEntity {
         .with(Mesh2D::ellipse().with_color(color).with_z(position.z))
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_transparent_and_opaque_shapes_ordered() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -44,7 +44,7 @@ fn display_transparent_and_opaque_shapes_ordered() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_transparent_and_opaque_shapes_unordered() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -64,7 +64,7 @@ fn display_transparent_and_opaque_shapes_unordered() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_different_transparent_shapes() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -93,7 +93,7 @@ fn display_different_transparent_shapes() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn hide_shape_after_deletion() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

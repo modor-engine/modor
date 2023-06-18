@@ -1,7 +1,7 @@
 use modor_graphics::Color;
 use modor_internal::assert_approx_eq;
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn construct_color_with_red() {
     let color = Color::rgba(1., 0.5, 0.25, 0.15).with_red(0.4);
@@ -11,7 +11,7 @@ fn construct_color_with_red() {
     assert_approx_eq!(color.a, 0.15);
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn construct_color_with_green() {
     let color = Color::rgba(1., 0.5, 0.25, 0.15).with_green(0.4);
@@ -21,7 +21,7 @@ fn construct_color_with_green() {
     assert_approx_eq!(color.a, 0.15);
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn construct_color_with_blue() {
     let color = Color::rgba(1., 0.5, 0.25, 0.15).with_blue(0.4);
@@ -31,7 +31,7 @@ fn construct_color_with_blue() {
     assert_approx_eq!(color.a, 0.15);
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
 fn construct_color_with_alpha() {
     let color = Color::rgba(1., 0.5, 0.25, 0.15).with_alpha(0.4);

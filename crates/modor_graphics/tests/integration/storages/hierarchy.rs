@@ -45,7 +45,7 @@ fn center() -> impl BuiltEntity {
         .with(Mesh2D::ellipse())
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_hierarchy() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

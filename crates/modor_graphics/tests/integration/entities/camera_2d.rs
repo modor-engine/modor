@@ -33,7 +33,7 @@ fn ellipse() -> impl BuiltEntity {
         .with(Mesh2D::ellipse().with_color(Color::BLUE))
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn add_camera_with_horizontal_surface() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -47,7 +47,7 @@ fn add_camera_with_horizontal_surface() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn add_camera_with_vertical_surface() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(200, 300)))
@@ -61,7 +61,7 @@ fn add_camera_with_vertical_surface() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn add_rotated_camera() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

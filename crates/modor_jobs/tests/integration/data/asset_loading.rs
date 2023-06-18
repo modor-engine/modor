@@ -12,6 +12,7 @@ struct FileLoader {
 
 #[systems]
 impl FileLoader {
+    #[allow(unused_variables)]
     fn new(path: impl AsRef<str>) -> Self {
         Self {
             job: AssetLoadingJob::new(path, |b| async move {

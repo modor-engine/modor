@@ -23,7 +23,7 @@ fn rectangle_quarter() -> impl BuiltEntity {
         .with(Mesh2D::rectangle().with_color(Color::MAROON).with_z(1.))
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn resize_capture() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

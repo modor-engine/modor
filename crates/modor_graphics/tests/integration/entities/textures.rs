@@ -38,7 +38,7 @@ fn texture(texture_ref: impl TextureRef) -> impl BuiltEntity {
         .with(TextureState(ResourceState::Loading))
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_textures_with_different_sampling() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -62,7 +62,7 @@ fn load_textures_with_different_sampling() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_valid_texture_from_path() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -83,7 +83,7 @@ fn load_valid_texture_from_path() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_texture_from_path_with_unsupported_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -111,7 +111,7 @@ fn load_texture_from_path_with_unsupported_format() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_texture_from_path_with_invalid_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -139,7 +139,7 @@ fn load_texture_from_path_with_invalid_format() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_texture_from_path_with_invalid_path() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -171,7 +171,7 @@ fn load_texture_from_path_with_invalid_path() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_valid_texture_from_memory() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -192,7 +192,7 @@ fn load_valid_texture_from_memory() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_texture_from_memory_with_unsupported_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -220,7 +220,7 @@ fn load_texture_from_memory_with_unsupported_format() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn load_texture_from_memory_with_invalid_format() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

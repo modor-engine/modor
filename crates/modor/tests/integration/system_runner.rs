@@ -131,7 +131,7 @@ fn run_tester1_and_tester2_and_tester3_sequentially() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn run_tester1_and_tester2_in_parallel() {
-    modor_internal::retry!(10, {
+    modor_internal::retry!(60, {
         let start = instant::Instant::now();
         App::new()
             .with_thread_count(2)

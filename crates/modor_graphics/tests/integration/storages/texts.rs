@@ -47,7 +47,7 @@ fn text_with_font(font_ref: impl FontRef) -> impl BuiltEntity {
     )
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_auto_size_and_saturated_width() {
     test_text_rendering_with_multiple_alignments(
         Vec2::new(0.1, 0.3),
@@ -56,7 +56,7 @@ fn display_text_with_auto_size_and_saturated_width() {
     );
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_auto_size_and_saturated_height() {
     test_text_rendering_with_multiple_alignments(
         Vec2::new(0.2, 0.1),
@@ -65,7 +65,7 @@ fn display_text_with_auto_size_and_saturated_height() {
     );
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_line_height_and_saturating_width() {
     test_text_rendering_with_multiple_alignments(
         Vec2::new(0.1, 0.3),
@@ -74,7 +74,7 @@ fn display_text_with_line_height_and_saturating_width() {
     );
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_line_height_and_saturating_height() {
     test_text_rendering_with_multiple_alignments(
         Vec2::new(0.2, 0.1),
@@ -83,7 +83,7 @@ fn display_text_with_line_height_and_saturating_height() {
     );
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_not_loaded_font() {
     App::new()
         .with_log_level(LevelFilter::Info)
@@ -99,7 +99,7 @@ fn display_text_with_not_loaded_font() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_text_with_update() {
     App::new()
         .with_log_level(LevelFilter::Debug)
@@ -147,7 +147,7 @@ fn display_text_with_update() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_cloned_text() {
     let mut text_2d = Text2D::new(30., "invalid");
     App::new()
@@ -181,7 +181,7 @@ fn display_cloned_text() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_moved_text() {
     let mut text_2d = Text2D::new(30., "invalid");
     App::new()

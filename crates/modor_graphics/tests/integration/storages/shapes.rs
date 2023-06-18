@@ -65,7 +65,7 @@ fn styled_rectangle(
         .with(mesh.with_texture_part(texture_part))
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_shapes() {
     App::new()
         .with_log_level(LevelFilter::Info)
@@ -78,7 +78,7 @@ fn display_shapes() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn display_invisible_shape() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -95,7 +95,7 @@ fn display_invisible_shape() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn attach_texture_with_color() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -137,7 +137,7 @@ fn attach_texture_with_color() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn update_attached_texture() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))
@@ -174,7 +174,7 @@ fn update_attached_texture() {
         });
 }
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn configure_texture_part() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

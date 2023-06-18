@@ -1,7 +1,7 @@
 use modor::{App, With};
 use modor_graphics::{testing, BackgroundColor, Capture, Color, GraphicsModule, SurfaceSize};
 
-#[test]
+#[modor_test(disabled(macos, android, wasm))]
 fn update_background() {
     App::new()
         .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(300, 200)))

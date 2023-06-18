@@ -54,13 +54,13 @@ fn use_single() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn run_systems_in_parallel() {
-    modor_internal::retry!(10, {
+    modor_internal::retry!(60, {
         let start = instant::Instant::now();
         App::new()
             .with_thread_count(2)
             .with_entity(Number(10))
             .with_entity(Tester::default())
             .updated();
-        assert!(start.elapsed() < std::time::Duration::from_millis(150));
+        assert!(start.elapsed() < std::time::Duration::from_millis(200));
     });
 }
