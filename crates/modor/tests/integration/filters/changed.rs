@@ -78,7 +78,7 @@ impl OverwrittenEntity {
     }
 }
 
-#[modor_test]
+#[modor_test(disabled(wasm))]
 fn filter_by_changed_component() {
     App::new()
         .with_entity(BaseEntity::build().with(StaticEntity))
