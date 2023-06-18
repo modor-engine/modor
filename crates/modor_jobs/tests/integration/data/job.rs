@@ -13,6 +13,7 @@ struct FileLoader {
 
 #[systems]
 impl FileLoader {
+    #[allow(unused_variables)]
     fn new(path: impl Into<PathBuf>) -> Self {
         let path = path.into();
         Self {

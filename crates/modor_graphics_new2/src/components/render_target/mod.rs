@@ -177,11 +177,13 @@ impl RenderTarget {
             match (&renderer, &texture) {
                 (None, _) | (_, None) => TargetState::NotLoaded,
                 (Some(_), Some(texture)) => match texture.state() {
-                    ResourceState::NotLoaded => TargetState::NotLoaded,
                     ResourceState::Loading => TargetState::Loading,
                     ResourceState::Error(e) => TargetState::Error(e.clone()),
+                    ResourceState::NotLoaded => {
+                        unreachable!("internal error: renderer existing but texture not loaded")
+                    }
                     ResourceState::Loaded => {
-                        unreachable!("internal error: target texture loaded but not target")
+                        unreachable!("internal error: target texture loaded but target not loaded")
                     }
                 },
             }

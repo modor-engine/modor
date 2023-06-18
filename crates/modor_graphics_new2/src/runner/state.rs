@@ -125,12 +125,13 @@ impl RunnerState {
     }
 
     fn update(&mut self) {
-        if self.display.is_none() {
-            return;
-        }
+        let display = self
+            .display
+            .as_ref()
+            .expect("internal error: display not initialized");
         self.gamepads.treat_events(&mut self.app);
         self.window.request_redraw();
-        self.app.update(&mut self.window, &self.display);
+        self.app.update(&mut self.window, display);
         self.app
             .frame_rate()
             .sleep(self.previous_update_end, self.window_frame_time);

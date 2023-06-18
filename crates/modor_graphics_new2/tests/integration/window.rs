@@ -1,7 +1,8 @@
 use modor::{App, BuiltEntity, Entity, EntityBuilder, With, World};
 use modor_graphics_new2::testing::TestRunnerContext;
 use modor_graphics_new2::{
-    testing, Camera2D, Color, Material, Model, RenderTarget, Size, Window, WindowCloseBehavior,
+    testing, Camera2D, Color, FrameRate, Material, Model, RenderTarget, Size, Window,
+    WindowCloseBehavior,
 };
 use modor_physics::Transform2D;
 use std::thread;
@@ -13,9 +14,7 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
     create_default_window(context);
     create_customized_window(context);
     create_target_window(context);
-    #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
     create_window_after_start(context);
-    #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
     delete_window(context);
     set_window_properties(context);
     resize_window(context);
@@ -66,6 +65,7 @@ fn create_target_window(context: &mut TestRunnerContext) {
                 .with(Window::default())
                 .with(RenderTarget::new(TargetKey)),
         )
+        .with_entity(FrameRate::Unlimited)
         .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
         .with_entity(opaque_rectangle())
         .with_entity(transparent_rectangle())
@@ -92,9 +92,11 @@ fn create_window_after_start(context: &mut TestRunnerContext) {
         testing::test_runner(a, context, 2, |s| {
             assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
             if s.update_id == 0 {
+                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
                 assert!(!s.window.is_visible().unwrap());
                 s.app.with_entity(Window::default())
             } else {
+                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
                 assert!(s.window.is_visible().unwrap());
                 s.app
             }
@@ -113,6 +115,7 @@ fn delete_window(context: &mut TestRunnerContext) {
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
                 assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
+                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
                 assert_eq!(s.window.is_visible().unwrap(), s.update_id == 0);
                 s.app
             });

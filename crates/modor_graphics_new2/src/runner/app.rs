@@ -21,27 +21,25 @@ impl RunnerApp {
         }
     }
 
-    pub(super) fn update(&mut self, window: &mut WindowHandle, display: &Option<Display>) {
-        if let Some(display) = display {
-            self.app.update_components(|r: &mut Renderer| {
-                r.update(&display.renderer);
-            });
-            let mut is_window_found = false;
-            self.app.update_components(|w: &mut Window| {
-                w.update(window, &display.surface);
-                is_window_found = true;
-            });
-            if is_window_found != self.is_window_found {
-                if is_window_found {
-                    window.set_visible(true);
-                } else {
-                    let size = Window::DEFAULT_SIZE;
-                    window.set_visible(false);
-                    window.set_inner_size(PhysicalSize::new(size.width, size.height));
-                    window.set_title("");
-                }
-                self.is_window_found = is_window_found;
+    pub(super) fn update(&mut self, window: &mut WindowHandle, display: &Display) {
+        self.app.update_components(|r: &mut Renderer| {
+            r.update(&display.renderer);
+        });
+        let mut is_window_found = false;
+        self.app.update_components(|w: &mut Window| {
+            w.update(window, &display.surface);
+            is_window_found = true;
+        });
+        if is_window_found != self.is_window_found {
+            if is_window_found {
+                window.set_visible(true);
+            } else {
+                let size = Window::DEFAULT_SIZE;
+                window.set_visible(false);
+                window.set_inner_size(PhysicalSize::new(size.width, size.height));
+                window.set_title("");
             }
+            self.is_window_found = is_window_found;
         }
         self.app.update();
     }
@@ -73,14 +71,9 @@ impl RunnerApp {
     }
 
     pub(super) fn close_window(&mut self, control_flow: &mut ControlFlow) {
-        let mut is_window_found = false;
         self.app.update_components(|w: &mut Window| {
             w.close_window(control_flow);
-            is_window_found = true;
         });
-        if !is_window_found {
-            *control_flow = ControlFlow::Exit;
-        }
     }
 
     pub(super) fn refresh_surface(&mut self) {

@@ -190,11 +190,10 @@ fn parse_test_meta(meta: &NestedMeta) -> Option<Vec<Ident>> {
                 .iter()
                 .map(|n| {
                     if let NestedMeta::Meta(Meta::Path(path)) = n {
-                        if !path.segments.is_empty() {
-                            return Some(path.segments[0].ident.clone());
-                        }
+                        Some(path.segments[0].ident.clone())
+                    } else {
+                        None
                     }
-                    None
                 })
                 .collect::<Option<Vec<_>>>()
         }
