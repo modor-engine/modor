@@ -84,6 +84,7 @@ where
         }
     }
 
+    #[allow(clippy::future_not_send)]
     async fn job_future(future: impl JobFuture<T>, sender: Sender<T>) {
         sender.send(future.await).is_err().then(|| {
             panic!(

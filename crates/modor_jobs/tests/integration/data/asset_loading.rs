@@ -15,8 +15,15 @@ impl FileLoader {
     fn new(path: impl AsRef<str>) -> Self {
         Self {
             job: AssetLoadingJob::new(path, |b| async move {
-                async_std::task::sleep(Duration::from_millis(10)).await;
-                b.len()
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    async_std::task::sleep(Duration::from_millis(10)).await;
+                    b.len()
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    0
+                }
             }),
             size: Ok(None),
         }

@@ -30,7 +30,7 @@ jobs:
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
           - name: macOS
-            os: macos-11
+            os: macos-13
             target: x86_64-apple-darwin
           - name: Android
             os: ubuntu-22.04
@@ -81,7 +81,7 @@ jobs:
             command_prefix: xvfb-run --server-args="-screen 0 1920x1080x24"
             wgpu_backend: vulkan
           - name: macOS
-            os: macos-11
+            os: macos-13
             target: x86_64-apple-darwin
           - name: WASM
             os: ubuntu-22.04

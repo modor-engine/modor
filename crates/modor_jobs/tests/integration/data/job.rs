@@ -17,8 +17,15 @@ impl FileLoader {
         let path = path.into();
         Self {
             job: Job::new(async {
-                async_std::task::sleep(Duration::from_millis(10)).await;
-                async_std::fs::read(path).await.unwrap().len()
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    async_std::task::sleep(Duration::from_millis(10)).await;
+                    async_std::fs::read(path).await.unwrap().len()
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    0
+                }
             }),
             size: Ok(None),
         }
