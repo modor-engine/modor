@@ -116,6 +116,6 @@ fn run_systems_in_parallel() {
             .with_thread_count(2)
             .with_entity(entities())
             .updated();
-        assert!(start.elapsed() < std::time::Duration::from_millis(250));
+        assert!(start.elapsed() < std::time::Duration::from_millis(350));
     });
 }

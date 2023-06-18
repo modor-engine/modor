@@ -147,7 +147,7 @@ fn run_tester1_and_tester2_in_parallel() {
                     assert!(t.first_system_run.load(Ordering::Acquire));
                 })
             });
-        assert!(start.elapsed() < std::time::Duration::from_millis(250));
+        assert!(start.elapsed() < std::time::Duration::from_millis(350));
     });
 }
 

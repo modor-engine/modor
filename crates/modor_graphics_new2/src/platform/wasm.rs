@@ -29,6 +29,6 @@ pub(crate) fn gpu_limits() -> Limits {
     Limits::downlevel_webgl2_defaults()
 }
 
-pub(crate) fn sleep(duration: Duration) {
+pub(crate) fn sleep(_duration: Duration) {
     // sleep not supported, do nothing
 }

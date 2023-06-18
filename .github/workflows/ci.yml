@@ -118,7 +118,7 @@ jobs:
         run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
         if: matrix.target == 'wasm32-unknown-unknown'
       - name: Test other
-        run: ${{ matrix.command_prefix }} cargo test
+        run: ${{ matrix.command_prefix }} cargo test --no-fail-fast
         if: matrix.target != 'wasm32-unknown-unknown'
         env:
           WGPU_BACKEND: ${{ matrix.wgpu_backend }}
