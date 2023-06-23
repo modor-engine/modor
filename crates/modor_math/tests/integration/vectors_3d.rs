@@ -1,5 +1,5 @@
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
-use modor_math::Vec3;
+use modor_math::{Vec2, Vec3};
 use std::{f32::consts::FRAC_PI_2, iter};
 
 #[modor_test]
@@ -213,4 +213,5 @@ fn use_vector() {
     let vec = Vec3::new(1., 2., 3.);
     assert_approx_eq!(vec.magnitude(), 14_f32.sqrt());
     assert_approx_eq!(vec.distance(Vec3::new(4., 3., 2.)), 11_f32.sqrt());
+    assert_approx_eq!(vec.xy(), Vec2::new(1., 2.));
 }
