@@ -1,6 +1,6 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics_new2::testing::is_same;
-use modor_graphics_new2::{Size, Texture, TextureBuffer};
+use modor_graphics::testing::is_same;
+use modor_graphics::{Size, Texture, TextureBuffer};
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::{Resource, ResourceLoadingError, ResourceState};
 use modor_text::{Font, FontSource, Text};

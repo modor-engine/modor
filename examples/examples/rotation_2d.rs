@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use modor::{App, BuiltEntity, EntityBuilder};
-use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, RelativeTransform2D, Transform2D};
 use std::f32::consts::FRAC_PI_2;
@@ -15,7 +15,7 @@ pub fn main() {
         .with_entity(Material::new(MaterialKey::Child).with_color(Color::MAGENTA))
         .with_entity(window())
         .with_entity(object())
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

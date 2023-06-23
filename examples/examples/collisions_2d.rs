@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use modor::{systems, App, BuiltEntity, Component, Entity, EntityBuilder, Query, Single, World};
-use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_input::{InputModule, Mouse};
 use modor_math::Vec2;
 use modor_physics::{
@@ -14,7 +14,7 @@ pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(InputModule::build())
-        .with_entity(modor_graphics_new2::module())
+        .with_entity(modor_graphics::module())
         .with_entity(window())
         .with_entity(Material::new(MaterialKey::NotCollidingCursor).with_color(Color::GREEN))
         .with_entity(Material::new(MaterialKey::CollidingCursor).with_color(Color::RED))
@@ -27,7 +27,7 @@ pub fn main() {
         .with_entity(cursor())
         .with_entity(rectangle())
         .with_entity(circle())
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

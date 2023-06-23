@@ -1,7 +1,7 @@
 use crate::components::font::{FontKey, FontRegistry, DEFAULT_FONT_FILE};
 use crate::{Font, FontSource};
 use modor::{BuiltEntity, EntityBuilder};
-use modor_graphics_new2::GraphicsModule;
+use modor_graphics::GraphicsModule;
 
 /// Creates the text module.
 ///
@@ -25,7 +25,7 @@ pub fn module() -> impl BuiltEntity {
             FontKey::Default,
             FontSource::File(DEFAULT_FONT_FILE),
         ))
-        .with_dependency::<GraphicsModule, _, _>(modor_graphics_new2::module)
+        .with_dependency::<GraphicsModule, _, _>(modor_graphics::module)
 }
 
 /// The component that identifies the text module entity created with [`module()`].

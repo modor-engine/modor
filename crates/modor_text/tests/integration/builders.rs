@@ -1,6 +1,6 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics_new2::testing::has_pixel_diff;
-use modor_graphics_new2::{Camera2D, Color, Model, RenderTarget, Size, Texture, TextureBuffer};
+use modor_graphics::testing::has_pixel_diff;
+use modor_graphics::{Camera2D, Color, Model, RenderTarget, Size, Texture, TextureBuffer};
 use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
 use modor_text::{Alignment, Font, TextMaterialBuilder};

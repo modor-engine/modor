@@ -2,7 +2,7 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
-use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
 use rand::Rng;
@@ -26,12 +26,12 @@ const COLORS: [Color; 10] = [
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(modor_graphics_new2::module())
+        .with_entity(modor_graphics::module())
         .with_entity(FpsPrinter)
         .with_entity(window())
         .with_entity(materials())
         .with_entity(sprites())
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

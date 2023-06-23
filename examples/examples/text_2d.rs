@@ -2,7 +2,7 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
-use modor_graphics_new2::{Camera2D, Color, Model, RenderTarget, Window};
+use modor_graphics::{Camera2D, Color, Model, RenderTarget, Window};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_text::{Font, Text, TextMaterialBuilder};
@@ -15,7 +15,7 @@ pub fn main() {
         .with_entity(window())
         .with_entity(Font::from_path(FontKey, "IrishGrover-Regular.ttf"))
         .with_entity(text())
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

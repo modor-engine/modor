@@ -1,6 +1,6 @@
 use crate::Text;
 use modor::{BuiltEntity, EntityBuilder};
-use modor_graphics_new2::{Material, Size, Texture};
+use modor_graphics::{Material, Size, Texture};
 use modor_resources::IntoResourceKey;
 
 /// A builder for constructing an entity with a text [`Material`].
@@ -18,7 +18,7 @@ use modor_resources::IntoResourceKey;
 ///
 /// ```rust
 /// # use modor::*;
-/// # use modor_graphics_new2::*;
+/// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
 /// #

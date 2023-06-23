@@ -2,7 +2,7 @@ use crate::components::font::{FontKey, FontRegistry};
 use crate::Font;
 use ab_glyph::{Font as AbFont, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::{Query, SingleMut};
-use modor_graphics_new2::{Size, Texture, TextureSource};
+use modor_graphics::{Size, Texture, TextureSource};
 use modor_resources::{IntoResourceKey, ResourceKey};
 
 const TEXTURE_PADDING_PX: u32 = 1;
@@ -25,7 +25,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///
 /// ```rust
 /// # use modor::*;
-/// # use modor_graphics_new2::*;
+/// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
 /// #

@@ -14,7 +14,7 @@
 //! ```rust
 //! # use modor::*;
 //! # use modor_physics::*;
-//! # use modor_graphics_new2::*;
+//! # use modor_graphics::*;
 //! # use modor_text::*;
 //! #
 //! # fn no_run() {
@@ -23,7 +23,7 @@
 //!     .with_entity(window())
 //!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
 //!     .with_entity(text())
-//!     .run(modor_graphics_new2::runner);
+//!     .run(modor_graphics::runner);
 //! # }
 //!
 //! fn window() -> impl BuiltEntity {

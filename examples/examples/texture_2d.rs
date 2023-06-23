@@ -1,9 +1,7 @@
 #![allow(missing_docs)]
 
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
-use modor_graphics_new2::{
-    Camera2D, Color, Material, Model, RenderTarget, Texture, Window, ZIndex2D,
-};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Texture, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
@@ -14,7 +12,7 @@ use std::hash::Hash;
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(modor_graphics_new2::module())
+        .with_entity(modor_graphics::module())
         .with_entity(Texture::from_file(
             TextureKey::Background,
             include_bytes!("../assets/background.png"),
@@ -49,7 +47,7 @@ pub fn main() {
             Vec2::new(0.5, -0.4),
             FRAC_PI_4,
         ))
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

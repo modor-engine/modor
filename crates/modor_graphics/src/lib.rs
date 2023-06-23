@@ -6,57 +6,80 @@
 //! ```toml
 //! modor = "0.1"
 //! modor_graphics = "0.1"
+//! modor_physics = "0.1"
 //! modor_math = "0.1"
 //! ```
 //!
-//! You can then create a window with the following code:
+//! You can then create a window rendering a rectangle with the following code:
 //!
 //! ```rust
-//! use modor::App;
-//! use modor_graphics::{GraphicsModule, SurfaceSize, WindowSettings};
-//!
+//! # use modor::*;
+//! # use modor_physics::*;
+//! # use modor_math::*;
+//! # use modor_graphics::*;
+//! #
 //! # fn no_run() {
-//! let mut app = App::new()
-//!      .with_entity(GraphicsModule::build(
-//!          WindowSettings::default()
-//!              .size(SurfaceSize::new(640, 480))
-//!              .title("Title"),
-//!      ))
+//! App::new()
+//!     .with_entity(modor_graphics::module())
+//!     .with_entity(window())
+//!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+//!     .with_entity(Material::new(MaterialKey).with_color(Color::RED))
+//!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);
 //! # }
-//! ```
 //!
-//! Examples of [`Mesh2D`](crate::Mesh2D) show how to create renderable shapes.
+//! fn window() -> impl BuiltEntity {
+//!     EntityBuilder::new()
+//!         .with(Window::default())
+//!         .with(RenderTarget::new(TargetKey))
+//! }
+//!
+//! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
+//!     EntityBuilder::new()
+//!         .with(Transform2D::new().with_position(position).with_size(size))
+//!         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+//! }
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct TargetKey;
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct CameraKey;
+//!
+//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+//! struct MaterialKey;
+//! ```
 
 #[macro_use]
 extern crate modor;
 #[macro_use]
-extern crate modor_internal;
-#[macro_use]
 extern crate log;
 
-mod backend;
 mod components;
 mod data;
 mod entities;
+mod gpu_data;
+mod input;
+mod platform;
 mod runner;
-mod storages;
-mod utils;
 
 pub mod testing;
 
-pub use components::mesh_2d::*;
-pub use components::text_2d::*;
-pub use data::colors::*;
-pub use data::fonts::*;
-pub use data::resources::*;
-pub use data::surfaces::*;
-pub use data::textures::*;
-pub use entities::background::*;
-pub use entities::camera_2d::*;
-pub use entities::fonts::*;
-pub use entities::frame_rate::*;
+pub use components::camera::*;
+pub use components::frame_rate::*;
+pub use components::material::*;
+pub use components::model::*;
+pub use components::render_target::*;
+pub use components::renderer::*;
+pub use components::texture::*;
+pub use components::texture_buffer::*;
+pub use components::window::*;
+pub use components::z_index::*;
+pub use data::color::*;
+pub use data::size::*;
 pub use entities::module::*;
-pub use entities::render_target::*;
-pub use entities::textures::*;
 pub use runner::*;
+
+// TODO: port examples to new graphics crate
+// TODO: remove old graphics crate
+// TODO: refactor other crates the same way (module structure, separation of component/entities, ...)

@@ -5,7 +5,7 @@ use modor::{
     systems, App, BuiltEntity, Component, Entity, EntityBuilder, Filter, NoSystem, Query,
     SingletonComponent, With, World,
 };
-use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use std::fmt::Debug;
@@ -18,13 +18,13 @@ const REFRESH_PERIOD: Duration = Duration::from_millis(100);
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_entity(modor_graphics_new2::module())
+        .with_entity(modor_graphics::module())
         .with_entity(window())
         .with_entity(Material::new(MaterialKey::Background).with_color(Color::WHITE))
         .with_entity(Material::new(MaterialKey::AliveCell).with_color(Color::BLACK))
         .with_entity(Grid::load())
         .with_entity(background())
-        .run(modor_graphics_new2::runner);
+        .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {

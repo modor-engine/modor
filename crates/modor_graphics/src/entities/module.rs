@@ -1,139 +1,58 @@
-use crate::entities::render_target::{RenderTarget, WindowInit};
-use crate::{BackgroundColor, Camera2D, Capture, Color, FrameRate, FrameRateLimit, SurfaceSize};
+use crate::components::camera::Camera2DRegistry;
+use crate::components::instances::opaque::OpaqueInstanceRegistry;
+use crate::components::instances::transparent::TransparentInstanceRegistry;
+use crate::components::material::MaterialRegistry;
+use crate::components::mesh::{Mesh, MeshRegistry};
+use crate::components::render_target::RenderTargetRegistry;
+use crate::components::renderer::Renderer;
+use crate::components::shader::{Shader, ShaderRegistry};
+use crate::components::texture::{TextureKey, TextureRegistry};
+use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
-use modor_input::InputModule;
-use modor_math::Vec2;
-use modor_physics::PhysicsModule;
 
-/// The main entity of the graphics module.
+/// Creates the graphics module.
 ///
-/// When this module is initialized, the following modules are also created if not existing:
-/// - [`PhysicsModule`](PhysicsModule)
-/// - [`InputModule`](InputModule) (if window mode)
+/// If this entity is not created, no rendering will be performed.
+///
+/// The created entity can be identified using the [`GraphicsModule`] component.
+///
+/// # Platform-specific
+///
+/// - Android and web: next update will panic if the graphics [`runner`](crate::runner()) is not
+/// used.
 ///
 /// # Examples
 ///
-/// With window:
 /// ```rust
 /// # use modor::*;
-/// # use modor_graphics::*;
 /// #
-/// # fn no_run() {
-/// let app = App::new()
-///      .with_entity(GraphicsModule::build(
-///          WindowSettings::default()
-///              .size(SurfaceSize::new(640, 480))
-///              .title("window title"),
-///      ));
-/// # }
-///
-/// fn print_window_size(window: Single<'_, Window>) {
-///     println!("Window size: {:?}", window.size());
-/// }
+/// App::new()
+///     .with_entity(modor_graphics::module());
 /// ```
-///
-/// Without window:
-/// ```rust
-/// # use modor::*;
-/// # use modor_graphics::*;
-/// #
-/// # fn no_run() {
-/// let app = App::new()
-///     .with_entity(GraphicsModule::build_windowless(SurfaceSize::new(640, 480)));
-/// # }
-///
-/// fn retrieve_capture(capture: Single<'_, Capture>) {
-///     if let Some(buffer) = capture.buffer() {
-///         println!("Capture buffer size: {:?}", capture.buffer());
-///     } else {
-///         println!("No capture yet");
-///     }
-/// }
-/// ```
+pub fn module() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .with(GraphicsModule)
+        .with(Renderer::new())
+        .with(OpaqueInstanceRegistry::default())
+        .with(TransparentInstanceRegistry::default())
+        .with(RenderTargetRegistry::default())
+        .with(Camera2DRegistry::default())
+        .with(ShaderRegistry::default())
+        .with(MeshRegistry::default())
+        .with(MaterialRegistry::default())
+        .with(TextureRegistry::default())
+        .with_child(Shader::default())
+        .with_child(Shader::ellipse())
+        .with_child(Mesh::rectangle())
+        .with_child(Texture::from_size(TextureKey::White, Size::ONE))
+        .with_child(Texture::from_buffer(
+            TextureKey::Invisible,
+            Size::ONE,
+            vec![0; 4],
+        ))
+}
+
+/// The component that identifies the graphics module entity created with [`module()`].
 #[non_exhaustive]
-#[derive(SingletonComponent)]
+#[derive(SingletonComponent, NoSystem)]
 pub struct GraphicsModule;
-
-#[systems]
-impl GraphicsModule {
-    // coverage: off (window cannot be tested)
-    /// Builds the module with a window.
-    ///
-    /// Window properties can be accessed using the [`Window`](crate::Window) entity.
-    pub fn build(settings: WindowSettings) -> impl BuiltEntity {
-        info!("graphics module created with `{settings:?}`");
-        EntityBuilder::new()
-            .with(Self)
-            .with_child(WindowInit::from(settings))
-            .with_child(Camera2D::build(Vec2::ZERO, Vec2::ONE))
-            .with_child(BackgroundColor::from(Color::BLACK))
-            .with_child(FrameRateLimit::from(FrameRate::VSync))
-            .with_dependency::<PhysicsModule, _, _>(PhysicsModule::build)
-            .with_dependency::<InputModule, _, _>(InputModule::build)
-    }
-    // coverage: on
-
-    /// Builds the module without a window.
-    ///
-    /// Rendering result can be access using the [`Capture`](crate::Capture) entity.
-    ///
-    /// This mode is particularly useful for testing. You can use the
-    /// [`assert_capture`](crate::testing::assert_capture) method to easily compare captures.
-    pub fn build_windowless(capture_size: SurfaceSize) -> impl BuiltEntity {
-        info!("graphics module created without window and with `{capture_size:?}`");
-        EntityBuilder::new()
-            .with(Self)
-            .with_child(Capture::build(capture_size))
-            .with_child(BackgroundColor::from(Color::BLACK))
-            .with_dependency::<PhysicsModule, _, _>(PhysicsModule::build)
-    }
-
-    #[run_after(component(RenderTarget), component(Capture))]
-    fn finish() {}
-}
-
-// coverage: off (window cannot be tested)
-/// The settings of a window to create.
-#[derive(Debug)]
-pub struct WindowSettings {
-    pub(crate) size: SurfaceSize,
-    pub(crate) title: String,
-    pub(crate) has_visible_cursor: bool,
-}
-
-impl Default for WindowSettings {
-    fn default() -> Self {
-        Self {
-            size: SurfaceSize {
-                width: 800,
-                height: 600,
-            },
-            title: "My app".into(),
-            has_visible_cursor: true,
-        }
-    }
-}
-
-impl WindowSettings {
-    /// Defines the window size (800x600 by default).
-    pub fn size(mut self, size: SurfaceSize) -> Self {
-        self.size = size;
-        self
-    }
-
-    /// Defines the window title (`"My app"` by default).
-    pub fn title<T>(mut self, title: T) -> Self
-    where
-        T: Into<String>,
-    {
-        self.title = title.into();
-        self
-    }
-
-    /// Defines whether the mouse cursor is visible in the window (`true` by default).
-    pub fn has_visible_cursor(mut self, has_visible_cursor: bool) -> Self {
-        self.has_visible_cursor = has_visible_cursor;
-        self
-    }
-}
-// coverage: on

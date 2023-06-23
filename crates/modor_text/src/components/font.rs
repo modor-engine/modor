@@ -31,7 +31,7 @@ pub(crate) type FontRegistry = ResourceRegistry<Font>;
 ///
 /// ```rust
 /// # use modor::*;
-/// # use modor_graphics_new2::*;
+/// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
 /// #
@@ -133,7 +133,7 @@ impl Resource for Font {
 ///
 /// # Examples
 ///
-/// See [`Texture`](modor_graphics_new2::Texture).
+/// See [`Texture`](modor_graphics::Texture).
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FontSource {
