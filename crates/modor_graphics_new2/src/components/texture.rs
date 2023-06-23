@@ -196,9 +196,7 @@ impl Texture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: context
-                .surface_texture_format
-                .unwrap_or(Shader::DEFAULT_TEXTURE_FORMAT),
+            format: Shader::TEXTURE_FORMAT,
             usage: TextureUsages::TEXTURE_BINDING // for attachment to models
                 | TextureUsages::COPY_DST // for attachment to models
                 | TextureUsages::RENDER_ATTACHMENT // for rendering

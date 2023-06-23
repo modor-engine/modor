@@ -123,8 +123,8 @@ impl Text {
                 let width = line_widths.iter().fold(0.0_f32, |a, &b| a.max(b)).max(1.);
                 let height = self.height(font).max(1);
                 let size = Size::new(
-                    width.ceil() as u32 + TEXTURE_PADDING_PX * 2,
-                    height + TEXTURE_PADDING_PX * 2,
+                    width.ceil() as u32 + TEXTURE_PADDING_PX * 2 + 2,
+                    height + TEXTURE_PADDING_PX * 2 + 2,
                 );
                 let mut buffer = vec![0; (size.width * size.height) as usize * 4];
                 self.render_glyphs(font, width, &line_widths, &mut buffer, size);
@@ -229,8 +229,8 @@ impl Text {
         if let Some(outlined) = font.outline_glyph(glyph) {
             let bounds = outlined.px_bounds();
             outlined.draw(|x, y, v| {
-                let x = x + bounds.min.x as u32 + TEXTURE_PADDING_PX;
-                let y = y + bounds.min.y as u32 + TEXTURE_PADDING_PX;
+                let x = x + bounds.min.x as u32 + TEXTURE_PADDING_PX + 1;
+                let y = y + bounds.min.y as u32 + TEXTURE_PADDING_PX + 1;
                 let idx = (y * size.width + x) as usize * 4;
                 buffer[idx] = 255;
                 buffer[idx + 1] = 255;

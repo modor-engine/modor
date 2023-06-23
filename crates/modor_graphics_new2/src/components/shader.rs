@@ -2,6 +2,7 @@ use crate::components::instances::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{GpuContext, Renderer};
+use fxhash::FxHashMap;
 use modor::Single;
 use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
 use wgpu::{
@@ -18,8 +19,7 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 pub(crate) struct Shader {
     code: String,
     key: ResourceKey,
-    texture_format: TextureFormat,
-    pipeline: Option<RenderPipeline>,
+    pipelines: FxHashMap<TextureFormat, RenderPipeline>,
     renderer_version: Option<u8>,
 }
 
@@ -34,7 +34,7 @@ impl Default for Shader {
 
 #[systems]
 impl Shader {
-    pub(crate) const DEFAULT_TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
+    pub(crate) const TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
     pub(crate) const CAMERA_GROUP: u32 = 0;
     pub(crate) const MATERIAL_GROUP: u32 = 1;
     pub(crate) const TEXTURE_GROUP: u32 = 2;
@@ -59,8 +59,7 @@ impl Shader {
         Self {
             code: code.into(),
             key: key.into_key(),
-            texture_format: Self::DEFAULT_TEXTURE_FORMAT,
-            pipeline: None,
+            pipelines: FxHashMap::default(),
             renderer_version: None,
         }
     }
@@ -69,41 +68,33 @@ impl Shader {
     fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
-            self.pipeline = None;
+            self.pipelines.clear();
         }
         if let Some(context) = state.context() {
-            let texture_format = context
-                .surface_texture_format
-                .unwrap_or(self.texture_format);
-            let pipeline = if texture_format == self.texture_format {
-                self.pipeline.take()
-            } else {
-                self.texture_format = texture_format;
-                None
-            };
-            self.pipeline = pipeline.or_else(|| {
-                Some(Self::create_pipeline(
-                    &self.code,
-                    &self.key,
-                    texture_format,
-                    context,
-                ))
-            });
+            let texture_formats = context.surface_texture_format.map_or_else(
+                || vec![Self::TEXTURE_FORMAT],
+                |format| vec![Self::TEXTURE_FORMAT, format],
+            );
+            for texture_format in texture_formats {
+                self.pipelines.entry(texture_format).or_insert_with(|| {
+                    Self::create_pipeline(&self.code, &self.key, texture_format, context)
+                });
+            }
         } else {
             unreachable!("internal error: unreachable shader state")
         }
     }
 
-    pub(crate) fn pipeline(&self) -> &RenderPipeline {
-        self.pipeline
-            .as_ref()
+    pub(crate) fn pipeline(&self, texture_format: TextureFormat) -> &RenderPipeline {
+        self.pipelines
+            .get(&texture_format)
             .expect("internal error: render pipeline not loaded")
     }
 
     fn create_pipeline(
         code: &str,
         key: &ResourceKey,
-        target_format: TextureFormat,
+        texture_format: TextureFormat,
         context: &GpuContext,
     ) -> RenderPipeline {
         let module = context.device.create_shader_module(ShaderModuleDescriptor {
@@ -136,7 +127,7 @@ impl Shader {
                     module: &module,
                     entry_point: "fs_main",
                     targets: &[Some(ColorTargetState {
-                        format: target_format,
+                        format: texture_format,
                         blend: Some(BlendState::ALPHA_BLENDING),
                         write_mask: ColorWrites::ALL,
                     })],
@@ -169,10 +160,10 @@ impl Resource for Shader {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        if self.pipeline.is_some() {
-            ResourceState::Loaded
-        } else {
+        if self.pipelines.is_empty() {
             ResourceState::NotLoaded
+        } else {
+            ResourceState::Loaded
         }
     }
 }

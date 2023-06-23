@@ -59,7 +59,7 @@ modor_text = "0.1"
 You can use one of the following commands to run an example:
 
 - Desktop: `cargo run --example <name> --release`
-- Android: `cargo apk run --manifest-path=examples/Cargo.toml --example android_<name> --release`
+- Android: `cargo apk run --manifest-path=examples/Cargo.toml --example <name>_android --release`
   (requires [cargo-apk](https://crates.io/crates/cargo-apk))
 - Web: `cargo run-wasm --example <name> --release`
 

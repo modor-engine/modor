@@ -1,3 +1,5 @@
+#![allow(missing_docs, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
 use modor_graphics_new2::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
@@ -6,67 +8,63 @@ use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
 use rand::Rng;
 use std::time::Duration;
 
-// TODO: remove this example -> create bench
+const SPRITE_COUNT: usize = 1000;
+const COLORS: [Color; 10] = [
+    Color::RED,
+    Color::GREEN,
+    Color::BLUE,
+    Color::WHITE,
+    Color::YELLOW,
+    Color::CYAN,
+    Color::PURPLE,
+    Color::MAROON,
+    Color::GRAY,
+    Color::OLIVE,
+];
 
-const SPRITE_MATERIAL_COUNT: u32 = 10;
-
+#[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics_new2::module())
-        // .with_entity(FpsPrinter)
+        .with_entity(FpsPrinter)
         .with_entity(window())
         .with_entity(materials())
-        .with_entity(sprites(10_000))
+        .with_entity(sprites())
         .run(modor_graphics_new2::runner);
 }
 
 fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
-        .with(Window::default().with_cursor_shown(false))
+        .with(Window::default())
         .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
 }
 
 fn materials() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .with_child(Material::ellipse(MaterialKey::Sprite(0)).with_color(Color::RED))
-        .with_child(Material::ellipse(MaterialKey::Sprite(1)).with_color(Color::GREEN))
-        .with_child(Material::ellipse(MaterialKey::Sprite(2)).with_color(Color::BLUE))
-        .with_child(Material::ellipse(MaterialKey::Sprite(3)).with_color(Color::WHITE))
-        .with_child(Material::ellipse(MaterialKey::Sprite(4)).with_color(Color::YELLOW))
-        .with_child(Material::ellipse(MaterialKey::Sprite(5)).with_color(Color::CYAN))
-        .with_child(Material::ellipse(MaterialKey::Sprite(6)).with_color(Color::PURPLE))
-        .with_child(Material::ellipse(MaterialKey::Sprite(7)).with_color(Color::MAROON))
-        .with_child(Material::ellipse(MaterialKey::Sprite(8)).with_color(Color::GRAY))
-        .with_child(Material::ellipse(MaterialKey::Sprite(9)).with_color(Color::OLIVE))
+    EntityBuilder::new().with_children(|b| {
+        for (color_id, color) in COLORS.into_iter().enumerate() {
+            b.add(Material::ellipse(MaterialKey(color_id)).with_color(color));
+        }
+    })
 }
 
-fn sprites(entity_count: u32) -> impl BuiltEntity {
+fn sprites() -> impl BuiltEntity {
     EntityBuilder::new().with_children(move |b| {
-        for entity_id in 0..entity_count {
+        for entity_id in 0..SPRITE_COUNT {
             b.add(sprite(entity_id));
         }
     })
 }
 
-fn sprite(entity_id: u32) -> impl BuiltEntity {
+fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
+    let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
+    let size = Vec2::ONE * 0.01;
     EntityBuilder::new()
-        .with(
-            Transform2D::new()
-                .with_position(Vec2::new(
-                    rng.gen_range(-0.2..0.2),
-                    rng.gen_range(-0.2..0.2),
-                ))
-                .with_size(Vec2::ONE * 0.01),
-        )
+        .with(Transform2D::new().with_position(position).with_size(size))
         .with(Dynamics2D::new())
-        // .with_option((entity_id % 1 == 0).then(Dynamics2D::new))
-        .with(
-            Model::rectangle(MaterialKey::Sprite(entity_id % SPRITE_MATERIAL_COUNT))
-                .with_camera_key(CameraKey),
-        )
+        .with(Model::rectangle(MaterialKey(entity_id % COLORS.len())).with_camera_key(CameraKey))
         .with(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .with(RandomMovement::new())
 }
@@ -114,6 +112,4 @@ struct TargetKey;
 struct CameraKey;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-enum MaterialKey {
-    Sprite(u32),
-}
+struct MaterialKey(usize);

@@ -125,19 +125,18 @@ impl RunnerState {
     }
 
     fn update(&mut self) {
-        let display = self
-            .display
-            .as_ref()
-            .expect("internal error: display not initialized");
-        self.gamepads.treat_events(&mut self.app);
-        self.window.request_redraw();
-        self.app.update(&mut self.window, display);
-        self.app
-            .frame_rate()
-            .sleep(self.previous_update_end, self.window_frame_time);
-        let update_end = Instant::now();
-        self.update_delta_time(update_end);
-        self.previous_update_end = update_end;
+        if let Some(display) = &self.display {
+            self.gamepads.treat_events(&mut self.app);
+            self.window.request_redraw();
+            self.app.update(&mut self.window, display);
+            self.app
+                .frame_rate()
+                .sleep(self.previous_update_end, self.window_frame_time);
+            let update_end = Instant::now();
+            self.update_delta_time(update_end);
+            self.previous_update_end = update_end;
+        } // coverage: off (`else` case only happens on Android)
+          // coverage: on
     }
 
     fn update_delta_time(&mut self, update_end: Instant) {

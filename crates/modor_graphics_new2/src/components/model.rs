@@ -1,8 +1,6 @@
 use crate::components::mesh::MeshKey;
 use modor_resources::{IntoResourceKey, ResourceKey};
 
-// TODO: adapt doc everywhere the same way
-
 /// A rendered model.
 ///
 /// # Requirements

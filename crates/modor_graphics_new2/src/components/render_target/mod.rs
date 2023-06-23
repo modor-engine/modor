@@ -17,7 +17,7 @@ use modor_resources::{
 };
 use std::fmt::Debug;
 use std::ops::Range;
-use wgpu::{IndexFormat, RenderPass};
+use wgpu::{IndexFormat, RenderPass, TextureFormat};
 
 pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 
@@ -221,12 +221,16 @@ impl RenderTarget {
     ) {
         let Some(context) = renderer.state(&mut None).context() else { return; };
         if let Some(target) = &mut self.window {
+            let target_texture_format = context
+                .surface_texture_format
+                .expect("internal error: cannot determine window format");
             let mut pass = target.begin_render_pass(self.background_color, context);
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
                     &self.key,
                     TargetType::Window,
+                    target_texture_format,
                     group_key,
                     None,
                     instance_buffer,
@@ -246,6 +250,7 @@ impl RenderTarget {
                     &mut pass,
                     &self.key,
                     TargetType::Window,
+                    target_texture_format,
                     group_key,
                     None,
                     instance_buffer,
@@ -271,6 +276,7 @@ impl RenderTarget {
                     &mut pass,
                     &self.key,
                     TargetType::Texture,
+                    Shader::TEXTURE_FORMAT,
                     group_key,
                     Some(texture.key()),
                     instance_buffer,
@@ -290,6 +296,7 @@ impl RenderTarget {
                     &mut pass,
                     &self.key,
                     TargetType::Texture,
+                    Shader::TEXTURE_FORMAT,
                     group_key,
                     Some(texture.key()),
                     instance_buffer,
@@ -328,6 +335,7 @@ impl RenderTarget {
         pass: &mut RenderPass<'a>,
         target_key: &ResourceKey,
         target_type: TargetType,
+        target_texture_format: TextureFormat,
         group_key: &GroupKey,
         target_texture_key: Option<&ResourceKey>,
         instance_buffer: &'a DynamicBuffer<Instance>,
@@ -375,7 +383,7 @@ impl RenderTarget {
         let material_uniform = material.uniform();
         let vertex_buffer = mesh.vertex_buffer();
         let index_buffer = mesh.index_buffer();
-        pass.set_pipeline(shader.pipeline());
+        pass.set_pipeline(shader.pipeline(target_texture_format));
         pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::MATERIAL_GROUP, material_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::TEXTURE_GROUP, texture_bind_ground, &[]);

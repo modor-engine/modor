@@ -73,18 +73,24 @@ where
     }
 
     /// Overrides the configuration of the created [`Material`] component.
+    ///
+    /// If this method is called more than once, only the last call is taken into account.
     pub fn with_material(mut self, f: impl FnOnce(Material) -> Material + 'static) -> Self {
         self.material_fn = Some(Box::new(f));
         self
     }
 
     /// Overrides the configuration of the created [`Texture`] component.
+    ///
+    /// If this method is called more than once, only the last call is taken into account.
     pub fn with_texture(mut self, f: impl FnOnce(Texture) -> Texture + 'static) -> Self {
         self.texture_fn = Some(Box::new(f));
         self
     }
 
     /// Overrides the configuration of the created [`Text`] component.
+    ///
+    /// If this method is called more than once, only the last call is taken into account.
     pub fn with_text(mut self, f: impl FnOnce(Text) -> Text + 'static) -> Self {
         self.text_fn = Some(Box::new(f));
         self
