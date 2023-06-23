@@ -1,4 +1,4 @@
-//! Input module of modor.
+//! Input module of Modor.
 //!
 //! # Getting started
 //!

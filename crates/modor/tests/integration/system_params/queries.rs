@@ -153,8 +153,7 @@ impl Level3 {
     }
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_query() {
     App::new()
         .with_entity(Tester::default())

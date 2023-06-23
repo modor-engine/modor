@@ -1,3 +1,5 @@
+//
+//~^ error: cycle detected when computing layout of `Component2Action`
 extern crate modor;
 
 use modor::*;
@@ -7,8 +9,6 @@ struct Component1;
 
 #[systems]
 impl Component1 {
-    //~^ error: overflow evaluating the requirement `Component2Action: Sized`
-
     #[run_after(component(Component2))]
     fn f() {}
 }

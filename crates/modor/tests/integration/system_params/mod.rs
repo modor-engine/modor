@@ -14,14 +14,12 @@ where
         assert_eq!(
             actual.len(),
             expected_len - pos,
-            "wrong size at position {}",
-            pos
+            "wrong size at position {pos}"
         );
         assert_eq!(
             actual.next(),
             Some(expected_item),
-            "wrong item at position {}",
-            pos
+            "wrong item at position {pos}"
         );
     }
     assert_eq!(actual.len(), 0, "size not zero after last item");

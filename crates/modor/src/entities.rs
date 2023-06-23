@@ -56,13 +56,14 @@ pub trait BuiltEntity: BuildableEntity + Any + Sync + Send {
     /// Creates an entity if the singleton of type `C` does not already exist.
     ///
     /// The created entity has no parent.
-    fn with_dependency<C, E>(
+    fn with_dependency<C, E, F>(
         self,
-        dependency: E,
-    ) -> EntityBuilder<(Self::Parts, DependencyPart<C, E>)>
+        f: F,
+    ) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
     where
         C: Component<IsSingleton = True>,
-        E: BuildableEntity;
+        E: BuildableEntity,
+        F: FnOnce() -> E + Any + Sync + Send;
 }
 
 /// A trait implemented for a type that can be used to create an entity.
@@ -202,19 +203,17 @@ where
         }
     }
 
-    fn with_dependency<C, E>(
-        self,
-        dependency: E,
-    ) -> EntityBuilder<(Self::Parts, DependencyPart<C, E>)>
+    fn with_dependency<C, E, F>(self, f: F) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
     where
         C: Component<IsSingleton = True>,
         E: BuildableEntity,
+        F: FnOnce() -> E + Any + Sync + Send,
     {
         EntityBuilder {
             parts: (
                 self.parts,
                 DependencyPart {
-                    dependency,
+                    dependency_creation_fn: f,
                     phantom: PhantomData,
                 },
             ),
@@ -450,15 +449,16 @@ mod internal {
         }
     }
 
-    pub struct DependencyPart<C, E> {
-        pub(crate) dependency: E,
-        pub(crate) phantom: PhantomData<C>,
+    pub struct DependencyPart<C, E, F> {
+        pub(crate) dependency_creation_fn: F,
+        pub(crate) phantom: PhantomData<(C, fn() -> E)>,
     }
 
-    impl<C, E> BuiltEntityPart for DependencyPart<C, E>
+    impl<C, E, F> BuiltEntityPart for DependencyPart<C, E, F>
     where
         C: Component<IsSingleton = True>,
         E: BuildableEntity,
+        F: FnOnce() -> E + Any + Sync + Send,
     {
         fn create_other_entities(self, core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
             let singleton_exists = core
@@ -469,13 +469,13 @@ mod internal {
             if singleton_exists {
                 trace!(
                     "dependency entity for singleton of type `{}` not created as already existing",
-                    any::type_name::<E>(),
+                    any::type_name::<F>(),
                 );
             } else {
-                self.dependency.build(core, None);
+                (self.dependency_creation_fn)().build(core, None);
                 trace!(
                     "dependency entity for singleton of type `{}` created",
-                    any::type_name::<E>(),
+                    any::type_name::<F>(),
                 );
             }
         }

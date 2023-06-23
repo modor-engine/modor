@@ -15,7 +15,7 @@ use modor_math::Vec2;
 /// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
 ///     collector.push(MouseEvent::Scroll(Vec2::new(0., 0.5), MouseScrollUnit::Line).into());
 ///     collector.push(KeyboardEvent::ReleasedKey(Key::Left).into());
-///     collector.push(TouchEvent::Started(10).into());
+///     collector.push(TouchEvent::Started(10, Vec2::new(10., 15.)).into());
 ///     collector.push(TouchEvent::UpdatedPosition(10, Vec2::new(20., 42.)).into());
 ///     collector.push(GamepadEvent::Plugged(5).into());
 ///     collector.push(GamepadEvent::UpdatedAxisValue(5, GamepadAxis::LeftStickX, 0.68).into());
@@ -54,7 +54,9 @@ impl InputEventCollector {
                 InputEvent::Mouse(event) => mouse.apply_event(event),
                 InputEvent::Keyboard(event) => keyboard.apply_event(event),
                 InputEvent::Touch(event) => match event {
-                    TouchEvent::Started(id) => Self::create_finger(id, module_id, &mut world),
+                    TouchEvent::Started(id, position) => {
+                        Self::create_finger(id, position, module_id, &mut world);
+                    }
                     TouchEvent::Ended(id) => Self::release_finger(id, &mut fingers),
                     TouchEvent::UpdatedPosition(id, position) => {
                         Self::update_finger(id, position, &mut fingers);
@@ -80,8 +82,8 @@ impl InputEventCollector {
         self.events.push(event);
     }
 
-    fn create_finger(id: u64, module_id: usize, world: &mut World<'_>) {
-        world.create_child_entity(module_id, Finger::new(id));
+    fn create_finger(id: u64, position: Vec2, module_id: usize, world: &mut World<'_>) {
+        world.create_child_entity(module_id, Finger::new(id, position));
     }
 
     fn release_finger(id: u64, fingers: &mut Query<'_, (Entity<'_>, &mut Finger)>) {

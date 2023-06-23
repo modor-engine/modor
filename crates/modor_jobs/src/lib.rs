@@ -1,4 +1,4 @@
-//! Jobs module of modor.
+//! Jobs module of Modor.
 //!
 //! # Getting started
 //!
@@ -13,8 +13,9 @@
 #[macro_use]
 extern crate log;
 
-mod asset_loading;
-mod job;
+mod data;
+mod platform;
 
-pub use asset_loading::*;
-pub use job::*;
+pub use data::asset_loading::*;
+pub use data::job::*;
+pub use platform::*;

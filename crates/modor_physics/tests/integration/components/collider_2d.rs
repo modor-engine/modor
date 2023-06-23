@@ -122,8 +122,7 @@ fn assert_no_collision_internal(entity1: impl BuildableEntity, entity2: impl Bui
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn check_collision_rectangle_rectangle() {
     assert_collision(
         Transform2D::new()
@@ -152,8 +151,7 @@ fn check_collision_rectangle_rectangle() {
     );
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn check_collision_circle_circle() {
     assert_collision(
         Transform2D::new()
@@ -182,8 +180,7 @@ fn check_collision_circle_circle() {
     );
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn check_collision_circle_rectangle() {
     assert_collision(
         Transform2D::new()

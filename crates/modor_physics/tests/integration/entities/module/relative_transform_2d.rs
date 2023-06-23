@@ -13,8 +13,7 @@ struct RelativeChild;
 #[derive(Component, NoSystem)]
 struct AbsoluteChild;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_relative_position() {
     let relative_child = EntityBuilder::new()
         .with(RelativeChild)
@@ -77,8 +76,7 @@ fn update_relative_position() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_relative_size() {
     let relative_child = EntityBuilder::new()
         .with(RelativeChild)
@@ -134,8 +132,7 @@ fn update_relative_size() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_relative_rotation() {
     let relative_child = EntityBuilder::new()
         .with(RelativeChild)

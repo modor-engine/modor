@@ -1,16 +1,28 @@
-//! Modor is a modular and kind of object-oriented game engine.
+//! Modor is a *mo*dular and *d*ata-*or*iented game engine, based on the following principles:
 //!
-//! This game engine is based on the
-//! [entity-component-system](https://en.wikipedia.org/wiki/Entity_component_system) pattern, but
-//! provides an API that represents entities like strongly typed objects, and provides tools similar
-//! to the object-oriented paradigm:
-//! - data are represented by components
-//! - logic is put in systems associated to a component type, and are only run for entities containing the linked component type
-//! - data and logic inheritance is possible between entity types
+//! - *Modularity*: the
+//! [entity component system](https://en.wikipedia.org/wiki/Entity_component_system) pattern makes
+//! it very easy to:
+//!   - Extend functionalities of the engine in reusable modules.
+//!   - Split a project into multiple independent crates.
+//!   - Reduce coupling between parts of an application.
+//! - *Simplicity*:
+//!   - Everything is stored in an entity, even resources, settings or loaded modules.
+//!   - Systems are always linked to component types to facilitate system import and limit their
+//! side effects.
+//!   - The ability to define a component as system dependency makes system ordering easy and
+//! maintainable.
+//! - *Compile-time checking*: compile-time checks are used extensively to avoid as many errors as
+//! possible during runtime:
+//!   - System parameters are checked to avoid mutability issues at runtime, e.g. if the same
+//! component type is mutably
+//! queried twice by the same system.
+//!   - System execution order is checked to avoid dependency cycles.
+//!   - The API is designed to avoid runtime panics as much as possible.
 //!
 //! # Examples
 //!
-//! See [`App`] and [`Component`](macro@crate::Component).
+//! See [`App`], [`Component`](macro@crate::Component) and [`systems`](macro@crate::systems).
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::multiple_inherent_impl))]
 
 #[macro_use]
@@ -32,6 +44,7 @@ mod app;
 mod components;
 mod entities;
 mod filters;
+mod platform;
 mod ranges;
 mod storages;
 mod system_params;
@@ -100,56 +113,34 @@ pub use modor_derive::Action;
 ///
 /// # Examples
 ///
-/// Components are generally used in 3 different ways.
+/// Components are generally used in 2 different ways.
 ///
-/// ## As encapsulated entity
+/// ## As property/extension of an entity
 ///
-/// It is common to define a component type as a type of entity, and encapsulate in this component
-/// type the builder methods and systems of the entity:
+/// Components are a good way to extend entities and bring additional features:
 ///
 /// ```rust
 /// # use modor::*;
 /// #
-/// # struct Color(u8, u8, u8);
-/// #
-/// # #[derive(Component, NoSystem, Default)]
-/// # struct Position(f32, f32);
-/// #
-/// # #[derive(Component, NoSystem)]
-/// # struct Sprite(Color);
-/// #
-/// # impl Sprite {
-/// #    fn new(color: Color) -> Self { Self(color) }
-/// # }
-/// #
 /// App::new()
-///     .with_entity(Ball::build(Color(255, 255, 0), 0., 0.));
+///     .with_entity(build_complex_entity().with(AutoRemoved));
 ///
-/// #[derive(Component)]
-/// struct Ball {
-///     hit_count: u32,
-///     direction: (f32, f32),
+/// fn build_complex_entity() -> impl BuiltEntity {
+///     EntityBuilder::new()
+///     // ...
 /// }
 ///
+/// #[derive(Component)]
+/// struct AutoRemoved;
+///
 /// #[systems]
-/// impl Ball {
-///     const SPEED: f32 = 0.01;
-///
-///     fn build(color: Color, x: f32, y: f32) -> impl BuiltEntity {
-///         EntityBuilder::new()
-///             .with(Self { hit_count: 0, direction: (1., 0.) })
-///             .with(Position(x, y))
-///             .with(Sprite::new(color))
-///     }
-///
+/// impl AutoRemoved {
 ///     #[run]
-///     fn move_(&self, position: &mut Position) {
-///         position.0 += self.direction.0 * Self::SPEED;
-///         position.1 += self.direction.1 * Self::SPEED;
+///     fn update(&mut self, entity: Entity<'_>, mut world: World<'_>) {
+///         world.delete_entity(entity.id());
 ///     }
 /// }
 /// ```
-///
 ///
 /// ## As self-contained entity
 ///
@@ -177,33 +168,6 @@ pub use modor_derive::Action;
 ///     #[run]
 ///     fn update_left(&mut self, count: Single<'_, LeftPlayerHitCount>) {
 ///         self.left_player += count.0;
-///     }
-/// }
-/// ```
-///
-/// ## As property/extension of an entity
-///
-/// Components are also a good way to extend entities and bring additional features:
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// App::new()
-///     .with_entity(build_complex_entity().with(AutoRemoved));
-///
-/// fn build_complex_entity() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///     // ...
-/// }
-///
-/// #[derive(Component)]
-/// struct AutoRemoved;
-///
-/// #[systems]
-/// impl AutoRemoved {
-///     #[run]
-///     fn update(&mut self, entity: Entity<'_>, mut world: World<'_>) {
-///         world.delete_entity(entity.id());
 ///     }
 /// }
 /// ```
@@ -432,3 +396,34 @@ pub use modor_derive::NoSystem;
 /// }
 /// ```
 pub use modor_derive::systems;
+
+/// Defines a test method that is conditionally run depending on the platform.
+///
+/// This method adds the `#[test]` attribute to the method if the current platform is not in the
+/// list of disabled platforms.
+/// The list of disabled platforms must be specified in a `disabled(...)` argument.
+///
+/// The allowed platforms are:
+/// - `android`
+/// - `linux`
+/// - `macos`
+/// - `wasm`
+/// - `windows`
+///
+/// # Platform-specific
+///
+/// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
+/// `#[test]`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[modor_test]
+/// fn run_on_all_platforms() { }
+///
+/// #[modor_test(disabled(linux, wasm))]
+/// fn run_on_all_platforms_expect_linux_and_wasm() { }
+/// ```
+pub use modor_derive::modor_test;

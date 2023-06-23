@@ -217,7 +217,8 @@ impl WorldState {
     }
 }
 
-#[test]
+#[allow(clippy::redundant_closure_for_method_calls)]
+#[modor_test(disabled(wasm))]
 fn use_world() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -256,10 +257,9 @@ fn use_world() {
             e.has(|c: &Id| assert_eq!(c.0, 22))
                 .has(|c: &Text| assert_eq!(c.0, "id: 22"))
         })
-        .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| {
-            e.has_not::<Text>()
-                .any()
-                .has(|c: &Id| assert_eq!(c.0, 30))
+        .assert::<With<EntityWithExistingComponentDeleted>>(2, |e| e.has_not::<Text>())
+        .assert_any::<With<EntityWithExistingComponentDeleted>>(2, |e| {
+            e.has(|c: &Id| assert_eq!(c.0, 30))
                 .has(|c: &Id| assert_eq!(c.0, 31))
         })
         .assert::<With<EntityWithMissingComponentDeleted>>(1, |e| {
@@ -293,8 +293,7 @@ fn use_world() {
         });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
     let start = instant::Instant::now();
     App::new()

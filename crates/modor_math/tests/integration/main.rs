@@ -1,6 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::suboptimal_flops)]
 
 #[macro_use]
+extern crate modor;
+#[macro_use]
 extern crate modor_internal;
 
 pub mod matrices_4d;

@@ -90,8 +90,7 @@ const COLLISION_NORMAL: Vec2 = Vec2::X;
 const COLLISION_POSITION1: Vec2 = Vec2::new(-1., 2.);
 const COLLISION_POSITION2: Vec2 = Vec2::new(-1.5, 2.);
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_same_colliding_group() {
     let mut entity2_id = 0;
     App::new()
@@ -126,8 +125,7 @@ fn add_collider_with_dynamics_and_same_colliding_group() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_same_rapier_group_but_different_modor_group() {
     App::new()
         .with_entity(PhysicsModule::build())
@@ -174,8 +172,7 @@ fn add_collider_with_dynamics_and_same_rapier_group_but_different_modor_group() 
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_different_colliding_groups() {
     let mut entity2_id = 0;
     App::new()
@@ -209,8 +206,7 @@ fn add_collider_with_dynamics_and_different_colliding_groups() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_same_colliding_group_with_reversed_condition() {
     let mut entity2_id = 0;
     App::new()
@@ -244,8 +240,7 @@ fn add_collider_with_dynamics_and_same_colliding_group_with_reversed_condition()
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_same_not_colliding_group() {
     App::new()
         .with_entity(PhysicsModule::build())
@@ -262,8 +257,7 @@ fn add_collider_with_dynamics_and_same_not_colliding_group() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_with_dynamics_and_different_not_colliding_groups() {
     App::new()
         .with_entity(PhysicsModule::build())
@@ -280,8 +274,7 @@ fn add_collider_with_dynamics_and_different_not_colliding_groups() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_collider_without_dynamics() {
     let mut entity2_id = 0;
     App::new()
@@ -315,8 +308,7 @@ fn add_collider_without_dynamics() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn remove_and_put_back_collider_without_dynamics() {
     let mut collider = Collider2D::rectangle(CollisionGroup::Group2);
     App::new()
@@ -339,8 +331,7 @@ fn remove_and_put_back_collider_without_dynamics() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn remove_and_put_back_dynamics_with_collider() {
     let mut dynamics = Dynamics2D::new();
     App::new()
@@ -361,8 +352,7 @@ fn remove_and_put_back_dynamics_with_collider() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn remove_and_put_back_collider_with_dynamics() {
     let mut collider = Collider2D::rectangle(CollisionGroup::Group2);
     App::new()
@@ -385,8 +375,7 @@ fn remove_and_put_back_collider_with_dynamics() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn move_collider() {
     let entity3 = EntityBuilder::new()
         .with(Entity3)

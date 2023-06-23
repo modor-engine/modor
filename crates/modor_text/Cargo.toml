@@ -1,0 +1,23 @@
+[package]
+name = "modor_text"
+description = "Text module of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "graphics", "font", "text", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/modor-engine/modor"
+rust-version.workspace = true
+
+[dependencies]
+ab_glyph.workspace = true
+modor.workspace = true
+modor_graphics.workspace = true
+modor_resources.workspace = true
+
+
+[dev-dependencies]
+modor_physics.workspace = true
