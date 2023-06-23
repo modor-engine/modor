@@ -3,8 +3,6 @@ use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 
-// TODO: remove this module
-
 #[macro_export]
 macro_rules! dyn_clone_trait {
     ($vis:vis $trait_name:ident, $returned_trait_name:ident) => {

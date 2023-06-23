@@ -79,7 +79,3 @@ pub use data::color::*;
 pub use data::size::*;
 pub use entities::module::*;
 pub use runner::*;
-
-// TODO: port examples to new graphics crate
-// TODO: remove old graphics crate
-// TODO: refactor other crates the same way (module structure, separation of component/entities, ...)
