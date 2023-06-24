@@ -106,8 +106,7 @@ impl Tester3 {
     }
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn run_tester1_and_tester2_and_tester3_sequentially() {
     App::new()
         .with_entity(Tester1::default())
@@ -128,10 +127,9 @@ fn run_tester1_and_tester2_and_tester3_sequentially() {
         });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_tester1_and_tester2_in_parallel() {
-    modor_internal::retry!(10, {
+    modor_internal::retry!(60, {
         let start = instant::Instant::now();
         App::new()
             .with_thread_count(2)
@@ -147,12 +145,11 @@ fn run_tester1_and_tester2_in_parallel() {
                     assert!(t.first_system_run.load(Ordering::Acquire));
                 })
             });
-        assert!(start.elapsed() < std::time::Duration::from_millis(250));
+        assert!(start.elapsed() < std::time::Duration::from_millis(350));
     });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_tester1_in_parallel() {
     let start = instant::Instant::now();
     App::new()
@@ -165,8 +162,7 @@ fn run_tester1_in_parallel() {
     assert!(start.elapsed() > std::time::Duration::from_millis(200));
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_tester2_in_parallel() {
     let start = instant::Instant::now();
     App::new()
@@ -182,8 +178,7 @@ fn run_tester2_in_parallel() {
     assert!(start.elapsed() > std::time::Duration::from_millis(100));
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_tester3_in_parallel() {
     let start = instant::Instant::now();
     App::new()

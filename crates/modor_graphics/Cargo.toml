@@ -13,10 +13,10 @@ repository = "https://github.com/modor-engine/modor"
 rust-version.workspace = true
 
 [dependencies]
-ab_glyph.workspace = true
 bytemuck.workspace = true
 fxhash.workspace = true
 futures.workspace = true
+gilrs.workspace = true
 image.workspace = true
 instant.workspace = true
 log.workspace = true
@@ -29,9 +29,7 @@ modor_internal.workspace = true
 modor_jobs.workspace = true
 modor_math.workspace = true
 modor_physics.workspace = true
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-gilrs.workspace = true
+modor_resources.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wgpu.workspace = true

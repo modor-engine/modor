@@ -15,7 +15,6 @@ fn main() {
     if let Some(name) = args.finish().get(0) {
         let source_folder = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../examples")
-            .join(name)
             .join("assets");
         if source_folder.exists() {
             let destination_folder = Path::new(env!("CARGO_MANIFEST_DIR"))

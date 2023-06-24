@@ -90,7 +90,7 @@ impl EntityWithValidSystems {
     fn filters_with_same_component(_: Filter<With<C1>>, _: Filter<With<C1>>) {}
 }
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn check_compilation_failures() {
     let root_path = env!("CARGO_MANIFEST_DIR");
     let target_debug_path = [root_path, "..", "..", "target", "debug"]

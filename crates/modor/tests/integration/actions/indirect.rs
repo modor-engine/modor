@@ -27,7 +27,7 @@ impl Runner {
     }
 }
 
-#[test]
+#[modor_test]
 fn run_systems_in_order_with_never_used_action_dependency_between_two_systems() {
     App::new()
         .with_entity(Runner::default())

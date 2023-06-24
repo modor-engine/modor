@@ -1,0 +1,82 @@
+[package]
+name = "modor_examples"
+version = "0.1.0"
+description = "Examples of the Modor game engine"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+instant.workspace = true
+log.workspace = true
+rand.workspace = true
+modor.workspace = true
+modor_math.workspace = true
+modor_graphics.workspace = true
+modor_input.workspace = true
+modor_physics.workspace = true
+modor_resources.workspace = true
+modor_text.workspace = true
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-glue.workspace = true
+
+[package.metadata.android]
+build_targets = ["armv7-linux-androideabi"]
+assets = "assets"
+
+[package.metadata.android.sdk]
+target_sdk_version = 31
+
+[[example]]
+name = "rendering_2d_android"
+path = "examples/rendering_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "rendering_2d"
+path = "examples/rendering_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "rotation_2d_android"
+path = "examples/rotation_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "rotation_2d"
+path = "examples/rotation_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "text_2d_android"
+path = "examples/text_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "text_2d"
+path = "examples/text_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "texture_2d_android"
+path = "examples/texture_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "texture_2d"
+path = "examples/texture_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "game_of_life_android"
+path = "examples/game_of_life.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "game_of_life"
+path = "examples/game_of_life.rs"
+crate-type = ["bin"]

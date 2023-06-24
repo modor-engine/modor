@@ -5,7 +5,7 @@ use modor_input::{
 };
 use modor_math::Vec2;
 
-#[test]
+#[modor_test(disabled(wasm))]
 fn handle_gamepads() {
     App::new()
         .with_entity(InputModule::build())
@@ -14,9 +14,8 @@ fn handle_gamepads() {
             c.push(GamepadEvent::Plugged(1).into());
         })
         .updated()
-        .assert::<With<Gamepad>>(2, |e| {
-            e.any()
-                .has(|g: &Gamepad| assert_eq!(g.id(), 0))
+        .assert_any::<With<Gamepad>>(2, |e| {
+            e.has(|g: &Gamepad| assert_eq!(g.id(), 0))
                 .has(|g: &Gamepad| assert_eq!(g.id(), 1))
         })
         .with_update::<(), _>(|c: &mut InputEventCollector| {
@@ -24,15 +23,13 @@ fn handle_gamepads() {
             c.push(GamepadEvent::Plugged(2).into());
         })
         .updated()
-        .assert::<With<Gamepad>>(2, |e| {
-            e.any()
-                .has(|g: &Gamepad| assert_eq!(g.id(), 0))
+        .assert_any::<With<Gamepad>>(2, |e| {
+            e.has(|g: &Gamepad| assert_eq!(g.id(), 0))
                 .has(|g: &Gamepad| assert_eq!(g.id(), 2))
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_button_state() {
     App::new()
         .with_entity(InputModule::build())
@@ -92,8 +89,7 @@ fn update_button_state() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_button_value() {
     let button = GamepadButton::BackLeftTrigger;
     App::new()
@@ -116,8 +112,7 @@ fn update_button_value() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_axis() {
     App::new()
         .with_entity(InputModule::build())

@@ -2,8 +2,7 @@ use modor::{App, With};
 use modor_input::{InputEventCollector, InputModule, Key, Keyboard, KeyboardEvent};
 use modor_math::Vec2;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_pressed_keys() {
     App::new()
         .with_entity(InputModule::build())
@@ -53,8 +52,7 @@ fn update_pressed_keys() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_text() {
     App::new()
         .with_entity(InputModule::build())
@@ -71,8 +69,7 @@ fn update_text() {
         .assert::<With<Keyboard>>(1, |e| e.has(|k: &Keyboard| assert_eq!(k.text(), "")));
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_direction() {
     let diagonal = 1. / 2.0f32.sqrt();
     assert_direction(&[Key::Left], -1., 0.);
@@ -92,8 +89,7 @@ fn calculate_direction() {
     assert_direction(&[Key::Left, Key::Right, Key::Up, Key::Down], 0., 0.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_axis() {
     assert_axis(&[], 0.);
     assert_axis(&[Key::Left], -1.);

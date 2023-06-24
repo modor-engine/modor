@@ -37,3 +37,4 @@
 -A clippy::needless_pass_by_value # not accurate
 -A clippy::redundant_pub_crate # not working well for now
 -A clippy::return_self_not_must_use # many false positives
+-A clippy::significant_drop_tightening # many false positives

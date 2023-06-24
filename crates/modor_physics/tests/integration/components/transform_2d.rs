@@ -2,8 +2,7 @@ use modor_math::Vec2;
 use modor_physics::Transform2D;
 use std::f32::consts::PI;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_default_transform() {
     let body = Transform2D::default();
     assert_approx_eq!(*body.position, Vec2::ZERO);
@@ -11,8 +10,7 @@ fn create_default_transform() {
     assert_approx_eq!(*body.rotation, 0.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_new_transform() {
     let body = Transform2D::new();
     assert_approx_eq!(*body.position, Vec2::ZERO);
@@ -20,8 +18,7 @@ fn create_new_transform() {
     assert_approx_eq!(*body.rotation, 0.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_customized_transform() {
     let body = Transform2D::new()
         .with_position(Vec2::new(1., 2.))

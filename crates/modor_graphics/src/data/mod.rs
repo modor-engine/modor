@@ -1,5 +1,2 @@
-pub(crate) mod colors;
-pub(crate) mod fonts;
-pub(crate) mod resources;
-pub(crate) mod surfaces;
-pub(crate) mod textures;
+pub(crate) mod color;
+pub(crate) mod size;

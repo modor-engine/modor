@@ -60,9 +60,9 @@ impl Level3 {
             .with(Value(value))
             .with_option(add_option.then_some(42_u32).map(U32))
             .with_option((!add_option).then_some(42_i8).map(I8))
-            .with_dependency::<Singleton1, _>(Singleton1(10))
-            .with_dependency::<Singleton2, _>(Singleton2(20))
-            .with_dependency::<Singleton3, _>(Singleton3(30))
+            .with_dependency::<Singleton1, _, _>(|| Singleton1(10))
+            .with_dependency::<Singleton2, _, _>(|| Singleton2(20))
+            .with_dependency::<Singleton3, _, _>(|| Singleton3(30))
     }
 }
 
@@ -88,8 +88,7 @@ impl Inherited {
     }
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_complex_entities() {
     App::new()
         .with_log_level(LevelFilter::Trace)
@@ -132,8 +131,7 @@ fn create_complex_entities() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_entity_with_same_singleton_in_children() {
     App::new()
         .with_entity(

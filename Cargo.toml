@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "run-wasm", "examples/*"]
+members = ["crates/*", "run-wasm", "examples"]
 resolver = "2"
 
 [workspace.package]
@@ -8,7 +8,7 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
-rust-version = "1.65.0"
+rust-version = "1.70.0"
 
 [workspace.dependencies]
 ab_glyph = "0.2"
@@ -18,7 +18,7 @@ bytemuck = { version = "1.8", features = ["derive"] }
 cargo-run-wasm = "0.2"
 compiletest_rs = "0.9"
 console_error_panic_hook = "0.1"
-console_log = "0.2"
+console_log = "1.0"
 criterion = { version = "0.4", default-features = false, features = [
     "plotters",
     "cargo_bench_support",
@@ -43,6 +43,7 @@ rapier2d = "0.17"
 reqwest = "0.11"
 scoped_threadpool = "0.1"
 spin_sleep = "1.1"
+static_assertions = "1.1"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 typed-index-collections = "3.0"
 wasm-bindgen-futures = "0.4"
@@ -50,6 +51,7 @@ wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
 wgpu = "0.15"
 winit = "0.27"
+
 modor = { version = "0.1.0", path = "crates/modor" }
 modor_derive = { version = "0.1.0", path = "crates/modor_derive" }
 modor_graphics = { version = "0.1.0", path = "crates/modor_graphics" }
@@ -58,3 +60,5 @@ modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
 modor_jobs = { version = "0.1.0", path = "crates/modor_jobs" }
 modor_math = { version = "0.1.0", path = "crates/modor_math" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
+modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
+modor_text = { version = "0.1.0", path = "crates/modor_text" }
