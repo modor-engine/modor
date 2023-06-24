@@ -201,6 +201,7 @@ impl Texture {
                 | TextureUsages::COPY_DST // for attachment to models
                 | TextureUsages::RENDER_ATTACHMENT // for rendering
                 | TextureUsages::COPY_SRC, // for rendering
+            view_formats: &[Shader::TEXTURE_FORMAT],
         })
     }
 

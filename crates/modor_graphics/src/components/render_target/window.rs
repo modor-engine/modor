@@ -113,13 +113,15 @@ impl WindowTarget {
             width: size.width.into(),
             height: size.height.into(),
             present_mode: PresentMode::Fifo,
-            alpha_mode: surface.get_supported_alpha_modes(&context.adapter)[0],
+            alpha_mode: surface.get_capabilities(&context.adapter).alpha_modes[0],
+            view_formats: vec![surface.get_capabilities(&context.adapter).formats[0]],
         }
     }
 
     fn has_immediate_mode(surface: &Surface, context: &GpuContext) -> bool {
         surface
-            .get_supported_present_modes(&context.adapter)
+            .get_capabilities(&context.adapter)
+            .present_modes
             .contains(&PresentMode::Immediate)
     }
 }

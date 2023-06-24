@@ -26,6 +26,10 @@ impl Display {
 
     #[allow(unsafe_code)]
     pub(super) fn create_surface(window: &WindowHandle, instance: &Instance) -> Surface {
-        unsafe { instance.create_surface(window) }
+        unsafe {
+            instance
+                .create_surface(window)
+                .expect("graphics backend not supported")
+        }
     }
 }
