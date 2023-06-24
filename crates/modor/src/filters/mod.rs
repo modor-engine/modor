@@ -25,6 +25,6 @@ pub trait EntityFilter: Any {
 
 pub(crate) mod and;
 pub(crate) mod changed;
+pub(crate) mod not;
 pub(crate) mod or;
 pub(crate) mod with;
-pub(crate) mod without;
