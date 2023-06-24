@@ -69,7 +69,7 @@ fn create_for_opaque_and_transparent() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .with_child(target())
-        .with_child(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with_child(Camera2D::new(CameraKey, TargetKey))
         .with_child(Material::new(MaterialKey::OpaqueBlue).with_color(Color::BLUE))
         .with_child(Material::new(MaterialKey::OpaqueGreen).with_color(Color::GREEN))
         .with_child(
@@ -95,7 +95,7 @@ fn rectangle(position: f32, z_index: u16, material: MaterialKey) -> impl BuiltEn
                 .with_size(Vec2::ONE * 0.3),
         )
         .with(ZIndex2D::from(z_index))
-        .with(Model::rectangle(material).with_camera_key(CameraKey))
+        .with(Model::rectangle(material, CameraKey))
 }
 
 #[derive(Component, NoSystem)]

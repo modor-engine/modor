@@ -22,7 +22,7 @@
 //! App::new()
 //!     .with_entity(modor_graphics::module())
 //!     .with_entity(window())
-//!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+//!     .with_entity(Camera2D::new(CameraKey, TargetKey))
 //!     .with_entity(Material::new(MaterialKey).with_color(Color::RED))
 //!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);

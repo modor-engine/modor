@@ -34,13 +34,13 @@ use modor_resources::{IntoResourceKey, ResourceKey};
 /// fn red_rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_position(position).with_size(size))
-///         .with(Model::rectangle(MaterialKey::RedRectangle).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey::RedRectangle, CameraKey))
 /// }
 ///
 /// fn green_ellipse(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_position(position).with_size(size))
-///         .with(Model::rectangle(MaterialKey::GreenEllipse).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey::GreenEllipse, CameraKey))
 /// }
 ///
 /// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,9 +68,20 @@ pub struct Model {
 }
 
 impl Model {
-    /// Creates a new model from a rectangle mesh and a unique
-    /// [`material_key`](#structfield.material_key).
-    pub fn rectangle(material_key: impl IntoResourceKey) -> Self {
+    /// Creates a new model from a rectangle mesh with a unique
+    /// [`material_key`](#structfield.material_key) and linked to a [`Camera2D`](crate::Camera2D).
+    pub fn rectangle(material_key: impl IntoResourceKey, camera_key: impl IntoResourceKey) -> Self {
+        Self {
+            material_key: material_key.into_key(),
+            camera_keys: vec![camera_key.into_key()],
+            mesh_key: MeshKey::Rectangle.into_key(),
+        }
+    }
+
+    /// Creates a new model from a rectangle mesh with a unique
+    /// [`material_key`](#structfield.material_key) and not linked to a
+    /// [`Camera2D`](crate::Camera2D).
+    pub fn hidden_rectangle(material_key: impl IntoResourceKey) -> Self {
         Self {
             material_key: material_key.into_key(),
             camera_keys: vec![],

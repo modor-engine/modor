@@ -38,7 +38,7 @@ fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn materials() -> impl BuiltEntity {
@@ -61,10 +61,11 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
     let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
     let size = Vec2::ONE * 0.01;
+    let material_id = entity_id % COLORS.len();
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Dynamics2D::new())
-        .with(Model::rectangle(MaterialKey(entity_id % COLORS.len())).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey(material_id), CameraKey))
         .with(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .with(RandomMovement::new())
 }

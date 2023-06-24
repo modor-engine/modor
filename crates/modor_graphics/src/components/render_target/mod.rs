@@ -50,8 +50,7 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// # use modor_graphics::*;
 /// #
 /// fn root() -> impl BuiltEntity {
-///     let camera = Camera2D::new(CameraKey)
-///         .with_target_key(TargetKey::Window)
+///     let camera = Camera2D::new(CameraKey, TargetKey::Window)
 ///         .with_target_key(TargetKey::Texture);
 ///     EntityBuilder::new()
 ///         .with_child(window_target())

@@ -22,7 +22,7 @@ fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn object() -> impl BuiltEntity {
@@ -31,7 +31,7 @@ fn object() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
-        .with(Model::rectangle(MaterialKey::Object).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Object, CameraKey))
         .with_child(child())
 }
 
@@ -45,7 +45,7 @@ fn child() -> impl BuiltEntity {
                 .with_position(relative_position)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(MaterialKey::Child).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Child, CameraKey))
         .with(ZIndex2D::from(1))
 }
 

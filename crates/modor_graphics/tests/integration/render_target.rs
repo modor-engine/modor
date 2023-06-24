@@ -96,7 +96,7 @@ fn render_target_in_target() {
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_target"))
         .with_component::<With<BlueRectangle>, _>(|| {
-            Model::rectangle(MaterialKey::Target).with_camera_key(CameraKey::Secondary)
+            Model::rectangle(MaterialKey::Target, CameraKey::Secondary)
         })
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
@@ -116,8 +116,8 @@ fn main_texture() -> impl BuiltEntity {
 
 fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(Camera2D::new(CameraKey::Main).with_target_key(TargetKey::Main))
-        .with_child(Camera2D::new(CameraKey::Secondary).with_target_key(TargetKey::Secondary))
+        .with_child(Camera2D::new(CameraKey::Main, TargetKey::Main))
+        .with_child(Camera2D::new(CameraKey::Secondary, TargetKey::Secondary))
         .with_child(Material::new(MaterialKey::Rectangle).with_color(Color::BLUE))
         .with_child(
             Material::new(MaterialKey::Target).with_texture_key(TargetTextureKey::Secondary),
@@ -145,14 +145,17 @@ fn blue_rectangle() -> impl BuiltEntity {
                 .with_position(Vec2::ONE * 0.25)
                 .with_size(Vec2::ONE * 0.5),
         )
-        .with(Model::rectangle(MaterialKey::Rectangle).with_camera_key(CameraKey::Secondary))
+        .with(Model::rectangle(
+            MaterialKey::Rectangle,
+            CameraKey::Secondary,
+        ))
         .with(BlueRectangle)
 }
 
 fn target_rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Target).with_camera_key(CameraKey::Main))
+        .with(Model::rectangle(MaterialKey::Target, CameraKey::Main))
 }
 
 #[derive(SingletonComponent, NoSystem)]

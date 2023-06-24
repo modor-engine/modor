@@ -34,14 +34,14 @@ fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
         .with(Window::default().with_cursor_shown(false))
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn cursor() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_size(Vec2::new(0.05, 0.1)))
         .with(Collider2D::rectangle(CollisionGroup::Cursor))
-        .with(Model::rectangle(MaterialKey::NotCollidingCursor).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::NotCollidingCursor, CameraKey))
         .with(ZIndex2D::from(1))
         .with(Cursor)
 }
@@ -52,7 +52,7 @@ fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Collider2D::rectangle(CollisionGroup::Shape))
-        .with(Model::rectangle(MaterialKey::Rectangle).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Rectangle, CameraKey))
         .with(Shape)
 }
 
@@ -62,7 +62,7 @@ fn circle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Collider2D::circle(CollisionGroup::Shape))
-        .with(Model::rectangle(MaterialKey::Circle).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Circle, CameraKey))
         .with(Shape)
 }
 
@@ -80,7 +80,7 @@ fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEn
                 .with_size(size)
                 .with_rotation(Vec2::X.rotation(normal)),
         )
-        .with(Model::rectangle(material_key).with_camera_key(CameraKey))
+        .with(Model::rectangle(material_key, CameraKey))
         .with(ZIndex2D::from(2))
         .with(AutoRemoved)
         .with_child(collision_normal(is_cursor))
@@ -111,7 +111,7 @@ fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
                 .with_size(Vec2::ONE)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(material_key).with_camera_key(CameraKey))
+        .with(Model::rectangle(material_key, CameraKey))
         .with(ZIndex2D::from(2))
 }
 

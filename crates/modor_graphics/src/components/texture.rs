@@ -48,7 +48,7 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 /// fn sprite() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new())
-///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey, CameraKey))
 /// }
 ///
 /// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
