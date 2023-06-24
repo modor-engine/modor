@@ -145,14 +145,21 @@ fn create_with_default_params() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_with_not_smooth() {
+fn create_with_smooth() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(target())
         .with_entity(rectangle())
-        .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_smooth(false))
+        .with_entity(
+            EntityBuilder::new()
+                .with(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_smooth(false))
+                .with(TestedTexture),
+        )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"));
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"))
+        .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_smooth = true)
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -161,8 +168,16 @@ fn create_with_repeated() {
         .with_entity(modor_graphics::module())
         .with_entity(target())
         .with_entity(rectangle())
-        .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_repeated(true))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading);
+        .with_entity(
+            EntityBuilder::new()
+                .with(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_repeated(true))
+                .with(TestedTexture),
+        )
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_repeated"))
+        .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_repeated = false)
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -264,6 +279,9 @@ fn rectangle() -> impl BuiltEntity {
                 .with_texture_size(Vec2::ONE * 2.),
         )
 }
+
+#[derive(Component, NoSystem)]
+struct TestedTexture;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct TargetKey;
