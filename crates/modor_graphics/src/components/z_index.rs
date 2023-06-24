@@ -25,14 +25,14 @@
 /// fn foreground() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5))
-///         .with(Model::rectangle(MaterialKey::Foreground).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey::Foreground, CameraKey))
 ///         .with(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::ONE))
-///         .with(Model::rectangle(MaterialKey::Background).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey::Background, CameraKey))
 ///         .with(ZIndex2D::from(0))
 /// }
 ///

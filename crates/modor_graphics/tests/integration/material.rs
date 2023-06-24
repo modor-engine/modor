@@ -169,7 +169,7 @@ fn resources() -> impl BuiltEntity {
         .with_child(target())
         .with_child(opaque_texture())
         .with_child(transparent_texture())
-        .with_child(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with_child(Camera2D::new(CameraKey, TargetKey))
         .with_child(rectangle())
 }
 
@@ -183,7 +183,7 @@ fn target() -> impl BuiltEntity {
 fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_size(Vec2::new(0.8, 0.5)))
-        .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey, CameraKey))
 }
 
 fn opaque_texture() -> Texture {

@@ -31,13 +31,13 @@ fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Background).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Background, CameraKey))
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
@@ -45,7 +45,7 @@ fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
     let size = Vec2::ONE / GRID_SIZE as f32;
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Model::rectangle(MaterialKey::AliveCell).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::AliveCell, CameraKey))
         .with(ZIndex2D::from(1))
         .with(AliveCell)
 }

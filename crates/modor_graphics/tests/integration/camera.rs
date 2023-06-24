@@ -10,11 +10,11 @@ use modor_resources::IntoResourceKey;
 use std::f32::consts::FRAC_PI_2;
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_default() {
+fn create_hidden() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey))
+        .with_entity(Camera2D::hidden(CameraKey))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
@@ -67,7 +67,7 @@ fn create_with_one_target() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
+        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
@@ -90,11 +90,7 @@ fn create_with_many_targets() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(
-            Camera2D::new(CameraKey)
-                .with_target_key(TargetKey::First)
-                .with_target_key(TargetKey::Second),
-        )
+        .with_entity(Camera2D::new(CameraKey, TargetKey::First).with_target_key(TargetKey::Second))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#not_empty2"));
@@ -105,7 +101,7 @@ fn create_with_transform() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
+        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
         .updated()
         .with_component::<With<Camera2D>, _>(|| {
             Transform2D::new()
@@ -149,13 +145,13 @@ fn recreate_entity() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
+        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
         .updated()
         .with_deleted_entities::<With<Camera2D>>()
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey::First))
+        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"));
@@ -198,7 +194,7 @@ fn model() -> impl BuiltEntity {
                 .with_position(Vec2::ONE * 0.25)
                 .with_size(Vec2::ONE * 0.5),
         )
-        .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey, CameraKey))
 }
 
 #[derive(SingletonComponent, NoSystem)]

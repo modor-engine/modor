@@ -251,13 +251,13 @@ fn target() -> impl BuiltEntity {
         .with(RenderTarget::new(TargetKey))
         .with(Texture::from_size(TextureKey::Target, Size::new(30, 20)))
         .with(TextureBuffer::default())
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey, CameraKey))
         .with(
             Material::new(MaterialKey)
                 .with_texture_key(TextureKey::Rectangle)

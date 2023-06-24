@@ -40,7 +40,7 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with_child(render_target())
-///         .with_child(Camera2D::new(CameraKey::Default).with_target_key(TargetKey))
+///         .with_child(Camera2D::new(CameraKey::Default, TargetKey))
 ///         .with_child(dynamic_camera())
 ///         .with_child(object())
 /// }
@@ -53,14 +53,13 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 ///
 /// fn dynamic_camera() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Camera2D::new(CameraKey::Dynamic).with_target_key(TargetKey))
+///         .with(Camera2D::new(CameraKey::Dynamic, TargetKey))
 ///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
 ///         .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
-///     let model = Model::rectangle(MaterialKey)
-///         .with_camera_key(CameraKey::Default)
+///     let model = Model::rectangle(MaterialKey, CameraKey::Default)
 ///         .with_camera_key(CameraKey::Dynamic);
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
@@ -97,8 +96,21 @@ pub struct Camera2D {
 impl Camera2D {
     const CAMERA_BINDING: u32 = 0;
 
-    /// Creates a new camera with a unique `key`.
-    pub fn new(key: impl IntoResourceKey) -> Self {
+    /// Creates a new camera with a unique `key` and linked to a
+    /// [`RenderTarget`](RenderTarget).
+    pub fn new(key: impl IntoResourceKey, target_key: impl IntoResourceKey) -> Self {
+        Self {
+            target_keys: vec![target_key.into_key()],
+            key: key.into_key(),
+            transform: Transform2D::default(),
+            target_uniforms: FxHashMap::default(),
+            renderer_version: None,
+        }
+    }
+
+    /// Creates a new camera with a unique `key` and not linked to
+    /// a [`RenderTarget`](RenderTarget).
+    pub fn hidden(key: impl IntoResourceKey) -> Self {
         Self {
             target_keys: vec![],
             key: key.into_key(),

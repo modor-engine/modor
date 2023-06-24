@@ -22,7 +22,7 @@
 //! App::new()
 //!     .with_entity(modor_graphics::module())
 //!     .with_entity(window())
-//!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+//!     .with_entity(Camera2D::new(CameraKey, TargetKey))
 //!     .with_entity(Material::new(MaterialKey).with_color(Color::RED))
 //!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);
@@ -37,7 +37,7 @@
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 //!     EntityBuilder::new()
 //!         .with(Transform2D::new().with_position(position).with_size(size))
-//!         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+//!         .with(Model::rectangle(MaterialKey, CameraKey))
 //! }
 //!
 //! #[derive(Debug, Clone, PartialEq, Eq, Hash)]

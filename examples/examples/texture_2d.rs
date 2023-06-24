@@ -54,13 +54,13 @@ fn window() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(RenderTarget::new(TargetKey))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with(Camera2D::new(CameraKey, TargetKey))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Background).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Background, CameraKey))
 }
 
 fn smiley(
@@ -81,7 +81,7 @@ fn smiley(
                 .with_velocity(velocity)
                 .with_angular_velocity(angular_velocity),
         )
-        .with(Model::rectangle(material_key).with_camera_key(CameraKey))
+        .with(Model::rectangle(material_key, CameraKey))
         .with(ZIndex2D::from(z_index))
         .with(Smiley)
 }

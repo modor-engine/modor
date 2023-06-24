@@ -66,7 +66,7 @@ fn create_target_window(context: &mut TestRunnerContext) {
                 .with(RenderTarget::new(TargetKey)),
         )
         .with_entity(FrameRate::Unlimited)
-        .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+        .with_entity(Camera2D::new(CameraKey, TargetKey))
         .with_entity(opaque_rectangle())
         .with_entity(transparent_rectangle())
         .run(|a| {
@@ -198,14 +198,14 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 fn opaque_rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Material::new(MaterialKey::Opaque))
-        .with(Model::rectangle(MaterialKey::Opaque).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Opaque, CameraKey))
         .with(Transform2D::new())
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Material::new(MaterialKey::Transparent).with_color(Color::WHITE.with_alpha(0.5)))
-        .with(Model::rectangle(MaterialKey::Transparent).with_camera_key(CameraKey))
+        .with(Model::rectangle(MaterialKey::Transparent, CameraKey))
         .with(Transform2D::new())
 }
 

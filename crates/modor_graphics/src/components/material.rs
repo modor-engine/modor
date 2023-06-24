@@ -46,7 +46,7 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
-///         .with(Model::rectangle(MaterialKey::TopLeftTex).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey::TopLeftTex, CameraKey))
 /// }
 ///
 /// fn texture_quarter_material(key: MaterialKey, position: Vec2) -> Material {
