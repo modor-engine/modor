@@ -226,7 +226,7 @@ impl Texture {
             lod_min_clamp: 0.0,
             lod_max_clamp: f32::MAX,
             compare: None,
-            anisotropy_clamp: None,
+            anisotropy_clamp: 1,
             border_color: None,
         })
     }
@@ -264,8 +264,8 @@ impl Texture {
             image,
             ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(4 * image.width()),
-                rows_per_image: std::num::NonZeroU32::new(image.height()),
+                bytes_per_row: Some(4 * image.width()),
+                rows_per_image: Some(image.height()),
             },
             Extent3d {
                 width: image.width(),
