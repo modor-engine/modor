@@ -34,7 +34,7 @@ use modor_resources::IntoResourceKey;
 ///         .with_material(|m| m.with_color(Color::GREEN))       // background color
 ///         .with_material(|m| m.with_front_color(Color::BLACK)) // text color
 ///         .build()
-///         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+///         .with(Model::rectangle(MaterialKey, CameraKey))
 ///         .with(Transform2D::new())
 /// }
 ///

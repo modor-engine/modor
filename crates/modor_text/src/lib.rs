@@ -21,7 +21,7 @@
 //! App::new()
 //!     .with_entity(modor_text::module())
 //!     .with_entity(window())
-//!     .with_entity(Camera2D::new(CameraKey).with_target_key(TargetKey))
+//!     .with_entity(Camera2D::new(CameraKey, TargetKey))
 //!     .with_entity(text())
 //!     .run(modor_graphics::runner);
 //! # }
@@ -36,7 +36,7 @@
 //!     TextMaterialBuilder::new(MaterialKey, "my text", 100.)
 //!         .build()
 //!         .with(Transform2D::new())
-//!         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+//!         .with(Model::rectangle(MaterialKey, CameraKey))
 //! }
 //!
 //! #[derive(Debug, Clone, PartialEq, Eq, Hash)]

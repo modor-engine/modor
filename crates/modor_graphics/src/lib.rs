@@ -37,7 +37,7 @@
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 //!     EntityBuilder::new()
 //!         .with(Transform2D::new().with_position(position).with_size(size))
-//!         .with(Model::rectangle(MaterialKey).with_camera_key(CameraKey))
+//!         .with(Model::rectangle(MaterialKey, CameraKey))
 //! }
 //!
 //! #[derive(Debug, Clone, PartialEq, Eq, Hash)]

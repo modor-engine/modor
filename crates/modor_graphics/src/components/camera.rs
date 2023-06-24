@@ -59,8 +59,7 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
-///     let model = Model::rectangle(MaterialKey)
-///         .with_camera_key(CameraKey::Default)
+///     let model = Model::rectangle(MaterialKey, CameraKey::Default)
 ///         .with_camera_key(CameraKey::Dynamic);
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
