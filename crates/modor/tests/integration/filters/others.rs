@@ -1,5 +1,5 @@
 use fxhash::FxHashSet;
-use modor::{App, BuiltEntity, EntityBuilder, Filter, Or, Query, With, Without};
+use modor::{App, BuiltEntity, EntityBuilder, Filter, Not, Or, Query, With};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -40,20 +40,20 @@ impl ResultCollector {
     fn run_filtered_queries(
         &mut self,
         with: Query<'_, (&C1, Filter<With<C2>>)>,
-        without: Query<'_, (&C1, Filter<Without<C2>>)>,
+        without: Query<'_, (&C1, Filter<Not<With<C2>>>)>,
         (and_empty, and_1_with, and_many_with, and_1_without, and_many_without): (
             Query<'_, (&C1, Filter<()>)>,
             Query<'_, (&C1, Filter<(With<C2>,)>)>,
             Query<'_, (&C1, Filter<(With<C2>, With<C3>)>)>,
-            Query<'_, (&C1, Filter<(Without<C2>,)>)>,
-            Query<'_, (&C1, Filter<(Without<C2>, Without<C3>)>)>,
+            Query<'_, (&C1, Filter<(Not<With<C2>>,)>)>,
+            Query<'_, (&C1, Filter<(Not<With<C2>>, Not<With<C3>>)>)>,
         ),
         (or_empty, or_1_with, or_many_with, or_1_without, or_many_without): (
             Query<'_, (&C1, Filter<Or<()>>)>,
             Query<'_, (&C1, Filter<Or<(With<C2>,)>>)>,
             Query<'_, (&C1, Filter<Or<(With<C2>, With<C3>)>>)>,
-            Query<'_, (&C1, Filter<Or<(Without<C2>,)>>)>,
-            Query<'_, (&C1, Filter<Or<(Without<C2>, Without<C3>)>>)>,
+            Query<'_, (&C1, Filter<Or<(Not<With<C2>>,)>>)>,
+            Query<'_, (&C1, Filter<Or<(Not<With<C2>>, Not<With<C3>>)>>)>,
         ),
         nested: Query<'_, (&C1, Filter<Or<(With<C3>, (With<C1>, With<C2>))>>)>,
     ) {
