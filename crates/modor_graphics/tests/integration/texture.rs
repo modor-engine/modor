@@ -159,7 +159,7 @@ fn create_with_smooth() {
         .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"))
         .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_smooth = true)
         .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -174,10 +174,10 @@ fn create_with_repeated() {
                 .with(TestedTexture),
         )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_repeated"))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_repeated", 1))
         .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_repeated = false)
         .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_default"));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
