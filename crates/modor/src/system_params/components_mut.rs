@@ -126,6 +126,8 @@ where
     where
         'b: 'a,
     {
+        let type_idx = guard.context.component_type_idx::<C>();
+        guard.context.add_mutated_component(type_idx, location.idx);
         guard
             .components
             .get_mut(location.idx)
@@ -144,6 +146,9 @@ where
     where
         'b: 'a,
     {
+        let type_idx = guard.context.component_type_idx::<C>();
+        guard.context.add_mutated_component(type_idx, location1.idx);
+        guard.context.add_mutated_component(type_idx, location2.idx);
         utils::get_both_mut(guard.components, location1, location2)
     }
 }
@@ -285,6 +290,8 @@ pub(crate) mod internal {
     impl<'a, C> DoubleEndedIterator for ArchetypeComponentIter<'a, C> {
         fn next_back(&mut self) -> Option<Self::Item> {
             let archetype_idx = self.sorted_archetype_idxs.next_back()?;
+            self.context
+                .add_mutated_component(self.type_idx, archetype_idx);
             let nth_back = self.components.len() - usize::from(archetype_idx) - 1;
             self.components.nth_back(nth_back).map(|c| c.iter_mut())
         }

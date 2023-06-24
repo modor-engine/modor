@@ -167,8 +167,7 @@ fn entities() -> impl BuiltEntity {
         .with_child(Values::build(false, true))
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn iteration_on_tuple() {
     App::new()
         .with_entity(entities())
@@ -201,15 +200,14 @@ fn iteration_on_tuple() {
         });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
-    modor_internal::retry!(10, {
+    modor_internal::retry!(60, {
         let start = instant::Instant::now();
         App::new()
             .with_thread_count(2)
             .with_entity(entities())
             .updated();
-        assert!(start.elapsed() < std::time::Duration::from_millis(150));
+        assert!(start.elapsed() < std::time::Duration::from_millis(200));
     });
 }

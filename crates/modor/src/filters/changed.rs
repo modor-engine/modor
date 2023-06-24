@@ -34,6 +34,7 @@ use std::marker::PhantomData;
 /// #[derive(SingletonComponent, Default)]
 /// struct PositionStorage {
 ///     positions: Vec<Option<Position>>,
+///     is_initialized: bool,
 /// }
 ///
 /// #[systems]
@@ -56,6 +57,27 @@ use std::marker::PhantomData;
 ///         &mut self,
 ///         query: Query<'_, (Entity<'_>, &Position, Filter<Changed<Position>>)>
 ///     ) {
+///         if self.is_initialized {
+///             self.register_entities(query);
+///         }
+///     }
+///
+///     // necessary in case the entity is recreated
+///     #[run_after_previous]
+///     fn init_entities(
+///         &mut self,
+///         query: Query<'_, (Entity<'_>, &Position, Filter<()>)>
+///     ) {
+///         if !self.is_initialized {
+///             self.register_entities(query);
+///             self.is_initialized = true;
+///         }
+///     }
+///
+///     fn register_entities<F>(&mut self, query: Query<'_, (Entity<'_>, &Position, Filter<F>)>)
+///     where
+///         F: EntityFilter
+///     {
 ///         for (entity, &position, _) in query.iter() {
 ///             for _ in self.positions.len()..=entity.id() {
 ///                 self.positions.push(None);

@@ -2,8 +2,7 @@ use modor::{App, With};
 use modor_physics::{DeltaTime, PhysicsModule};
 use std::time::Duration;
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_delta_time() {
     App::new()
         .with_entity(PhysicsModule::build())

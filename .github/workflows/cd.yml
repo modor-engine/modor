@@ -7,7 +7,7 @@ env:
 
 jobs:
   check-version:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.retrieve-version.outputs.version }}
     steps:
@@ -22,7 +22,7 @@ jobs:
         run: bash .github/workflows/scripts/get_version.sh
 
   test-ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: check-version
     steps:
       - name: Checkout
@@ -77,7 +77,7 @@ jobs:
       # Tests are disabled because there is no available software renderer
 
   test-web:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -97,7 +97,7 @@ jobs:
 
   publish:
     environment: Deployment
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - test-ubuntu
       - test-windows
@@ -119,7 +119,7 @@ jobs:
 
   create-release:
     environment: Deployment
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - publish
     steps:

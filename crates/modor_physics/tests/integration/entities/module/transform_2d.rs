@@ -15,8 +15,7 @@ impl CollisionGroupRef for CollisionGroup {
     }
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_position() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
@@ -37,8 +36,7 @@ fn update_position() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_size() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new().with_size(Vec2::new(1., 2.)))
@@ -59,8 +57,7 @@ fn update_size() {
         });
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn update_rotation() {
     let entity = EntityBuilder::new()
         .with(Transform2D::new().with_rotation(PI))

@@ -1,4 +1,4 @@
-//! Math module of modor.
+//! Math module of Modor.
 
 mod matrices_4d;
 mod quaternion;

@@ -1,9 +1,8 @@
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
-use modor_math::Vec3;
+use modor_math::{Vec2, Vec3};
 use std::{f32::consts::FRAC_PI_2, iter};
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create() {
     let vec = Vec3::default();
     assert_approx_eq!(vec.x, 0.);
@@ -18,8 +17,7 @@ fn create() {
     assert_approx_eq!(vec.z, 0.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_with_scale() {
     let vec = Vec3::new(1., 2., 3.).with_scale(Vec3::new(5., 3., 4.));
     assert_approx_eq!(vec.x, 5.);
@@ -27,8 +25,7 @@ fn create_with_scale() {
     assert_approx_eq!(vec.z, 12.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn create_with_magnitude() {
     let vec = Vec3::new(1., 2., 3.).with_magnitude(56_f32.sqrt()).unwrap();
     assert_approx_eq!(vec.x, 2.);
@@ -37,8 +34,7 @@ fn create_with_magnitude() {
     assert!(Vec3::new(0., 0., 0.).with_magnitude(2.).is_none());
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_rotation_between_2_vecs() {
     let rotation = Vec3::new(0.5, 0.5, 0.).rotation(Vec3::new(0.5, -0.5, 0.));
     assert_approx_eq!(rotation.angle(), FRAC_PI_2);
@@ -52,15 +48,13 @@ fn calculate_rotation_between_2_vecs() {
     assert_approx_eq!(rotation.axis().unwrap().z, 1.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_dot_product() {
     let dot = Vec3::new(1., 2., 3.).dot(Vec3::new(4., 5., 6.));
     assert_approx_eq!(dot, 32.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_cross_product() {
     let cross = Vec3::new(1., 2., 3.).cross(Vec3::new(4., 5., 6.));
     assert_approx_eq!(cross.x, -3.);
@@ -68,16 +62,14 @@ fn calculate_cross_product() {
     assert_approx_eq!(cross.z, -3.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn calculate_mirror_vec() {
     let mirror = Vec3::new(0.7, 0.3, 0.).mirror(Vec3::new(2., 2., 0.));
     assert_approx_eq!(mirror.x, 0.3);
     assert_approx_eq!(mirror.y, 0.7);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn add_vec() {
     let new_vec = Vec3::new(1., 2., 3.) + Vec3::new(3., 5., 7.);
     assert_approx_eq!(new_vec.x, 4.);
@@ -90,8 +82,7 @@ fn add_vec() {
     assert_approx_eq!(new_vec.z, 10.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn sub_vec() {
     let new_vec = Vec3::new(1., 2., 3.) - Vec3::new(3., 5., 7.);
     assert_approx_eq!(new_vec.x, -2.);
@@ -104,8 +95,7 @@ fn sub_vec() {
     assert_approx_eq!(new_vec.z, -4.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn mul_float() {
     let new_vec = Vec3::new(1., 2., 3.) * 5.;
     assert_approx_eq!(new_vec.x, 5.);
@@ -122,8 +112,7 @@ fn mul_float() {
     assert_approx_eq!(new_vec.z, 15.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn div_float() {
     let new_vec = Vec3::new(1., 2., 3.) / 5.;
     assert_approx_eq!(new_vec.x, 0.2);
@@ -136,8 +125,7 @@ fn div_float() {
     assert_approx_eq!(new_vec.z, 0.6);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn neg_vec() {
     let new_vec = -Vec3::new(1., 2., 3.);
     assert_approx_eq!(new_vec.x, -1.);
@@ -145,8 +133,7 @@ fn neg_vec() {
     assert_approx_eq!(new_vec.z, -3.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn sum_vecs() {
     let sum: Vec3 = [
         Vec3::new(1., 2., 3.),
@@ -164,8 +151,7 @@ fn sum_vecs() {
     assert_approx_eq!(sum.z, 0.);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn abs_diff_eq() {
     assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1., 2., 3.), f32::EPSILON));
     assert!(Vec3::new(1., 2., 3.).abs_diff_eq(&Vec3::new(1. + f32::EPSILON, 2., 3.), f32::EPSILON));
@@ -178,8 +164,7 @@ fn abs_diff_eq() {
     assert_approx_eq!(Vec3::default_epsilon(), f32::EPSILON);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn relative_eq() {
     assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(1., 2., 3.), f32::EPSILON, 0.1));
     assert!(Vec3::new(1., 2., 3.).relative_eq(&Vec3::new(0.91, 2., 3.), f32::EPSILON, 0.1));
@@ -191,8 +176,7 @@ fn relative_eq() {
     assert_approx_eq!(Vec3::default_max_relative(), f32::EPSILON);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn ulps_eq() {
     assert!(Vec3::new(1., 2., 3.).ulps_eq(&Vec3::new(1., 2., 3.), f32::EPSILON, 1));
     assert!(Vec3::new(1., 2., 3.).ulps_eq(&Vec3::new(1. + f32::EPSILON, 2., 3.), f32::EPSILON, 1));
@@ -224,10 +208,10 @@ fn ulps_eq() {
     assert_eq!(Vec3::default_max_ulps(), 4);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_vector() {
     let vec = Vec3::new(1., 2., 3.);
     assert_approx_eq!(vec.magnitude(), 14_f32.sqrt());
     assert_approx_eq!(vec.distance(Vec3::new(4., 3., 2.)), 11_f32.sqrt());
+    assert_approx_eq!(vec.xy(), Vec2::new(1., 2.));
 }

@@ -27,7 +27,7 @@ pub struct Finger {
 }
 
 impl Finger {
-    pub(crate) fn new(id: u64) -> Self {
+    pub(crate) fn new(id: u64, position: Vec2) -> Self {
         Self {
             id,
             state: {
@@ -35,7 +35,7 @@ impl Finger {
                 state.press();
                 state
             },
-            position: Vec2::ZERO,
+            position,
             delta: Vec2::ZERO,
         }
     }
@@ -84,8 +84,8 @@ impl Finger {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum TouchEvent {
-    /// Finger added.
-    Started(u64),
+    /// Finger added with a position in pixels from the top-left corner of the app window updated.
+    Started(u64, Vec2),
     /// Finger removed.
     Ended(u64),
     /// Finger position in pixels from the top-left corner of the app window updated.

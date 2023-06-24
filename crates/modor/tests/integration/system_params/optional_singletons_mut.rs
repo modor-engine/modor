@@ -35,8 +35,7 @@ struct Number(u32);
 #[derive(SingletonComponent, NoSystem)]
 struct Other(u32);
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[modor_test]
 fn use_single_mut() {
     App::new()
         .with_entity(Number(10))
@@ -51,8 +50,7 @@ fn use_single_mut() {
         });
 }
 
-#[test]
-#[cfg(not(target_arch = "wasm32"))]
+#[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
     let start = instant::Instant::now();
     App::new()

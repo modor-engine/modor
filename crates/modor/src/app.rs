@@ -1,5 +1,7 @@
 use crate::storages::core::CoreStorage;
-use crate::{system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange};
+use crate::{
+    platform, system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange, World,
+};
 use crate::{Entity, Query};
 use std::any;
 use std::marker::PhantomData;
@@ -39,7 +41,7 @@ pub use log::LevelFilter;
 ///
 /// See [`EntityBuilder`](crate::EntityBuilder) for details about how to create entities.
 ///
-/// [`App`](crate::App) can also be used for testing:
+/// [`App`](App) can also be used for testing:
 ///
 /// ```rust
 /// # use modor::*;
@@ -126,6 +128,46 @@ impl App {
     pub fn with_entity(mut self, entity: impl BuildableEntity) -> Self {
         entity.build(&mut self.core, None);
         self.core.delete_replaced_entities();
+        self
+    }
+
+    /// Adds the component returned by `component_builder` to all entities matching `F` filter.
+    ///
+    /// If an entity already has a component of type `C`, it is overwritten.
+    pub fn with_component<F, C>(mut self, mut component_builder: impl FnMut() -> C) -> Self
+    where
+        F: EntityFilter,
+        C: Component,
+    {
+        self.core
+            .run_system(system!(|e: Entity<'_>, mut w: World<'_>, _: Filter<F>| {
+                w.add_component(e.id(), component_builder());
+            }));
+        self
+    }
+
+    /// Deletes component of type `C` of each entity matching `F` filter.
+    ///
+    /// If a matching entity doesn't have a component of type `C`, nothing is done.
+    pub fn with_deleted_components<F, C>(mut self) -> Self
+    where
+        F: EntityFilter,
+        C: Component,
+    {
+        self.core.run_system(system!(
+            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_component::<C>(e.id())
+        ));
+        self
+    }
+
+    /// Deletes all entities matching `F` filter.
+    pub fn with_deleted_entities<F>(mut self) -> Self
+    where
+        F: EntityFilter,
+    {
+        self.core.run_system(system!(
+            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_entity(e.id())
+        ));
         self
     }
 
@@ -222,19 +264,33 @@ impl App {
     where
         F: EntityFilter,
     {
-        let mut entity_count = 0;
-        self.core
-            .run_system(system!(|_: Filter<F>| entity_count += 1));
-        assert!(
-            count.contains_value(entity_count),
-            "assertion failed: {:?} entities matching {}, actual count: {}",
-            count,
-            any::type_name::<F>(),
-            entity_count,
-        );
+        self.assert_entity_count::<F>(count);
         f(EntityAssertions {
             core: &mut self.core,
-            any_mode: false,
+            phantom: PhantomData,
+        });
+        self
+    }
+
+    /// Asserts there are `count` entities matching `F` and run `f` on each of these entities.
+    ///
+    /// In contrary to [`App::assert_any`](App::assert_any), the assertions will not fail if they
+    /// are true for at least one filtered entity.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if `F` does not match `count` entities.
+    pub fn assert_any<F>(
+        mut self,
+        count: impl UsizeRange,
+        f: impl FnOnce(EntityAnyAssertions<'_, F>) -> EntityAnyAssertions<'_, F>,
+    ) -> Self
+    where
+        F: EntityFilter,
+    {
+        self.assert_entity_count::<F>(count);
+        f(EntityAnyAssertions {
+            core: &mut self.core,
             phantom: PhantomData,
         });
         self
@@ -262,77 +318,64 @@ impl App {
         self.core.update();
         debug!("`App` updated");
     }
+
+    fn assert_entity_count<F>(&mut self, count: impl UsizeRange + Sized)
+    where
+        F: EntityFilter,
+    {
+        let mut entity_count = 0;
+        self.core
+            .run_system(system!(|_: Filter<F>| entity_count += 1));
+        assert!(
+            count.contains_value(entity_count),
+            "assertion failed: {:?} entities matching {}, actual count: {}",
+            count,
+            any::type_name::<F>(),
+            entity_count,
+        );
+    }
 }
 
-/// A utility for asserting on an entity matching `F` filter.
+/// A utility for asserting on all entities matching `F` filter.
 ///
 /// # Examples
 ///
-/// See [`App`](crate::App).
+/// See [`App`](App).
 pub struct EntityAssertions<'a, F> {
     core: &'a mut CoreStorage,
-    any_mode: bool,
     phantom: PhantomData<F>,
 }
 
-impl<F> EntityAssertions<'_, F>
+impl<'a, F> EntityAssertions<'a, F>
 where
     F: EntityFilter,
 {
-    /// Configures the next assertions to pass in case they are true for any entity.
-    ///
-    /// By default, assertions must be true for all entities.
-    pub fn any(mut self) -> Self {
-        self.any_mode = true;
-        self
-    }
-
     /// Asserts the entity has a component of type `C` and run `f` on this component.
     ///
     /// # Panics
     ///
     /// This will panic if the entity does not have a component of type `C` or if `f` panics.
-    ///
-    /// # Platform-specific
-    ///
-    /// - Web: panics if [`any`](crate::EntityAssertions::any) has been previously called
-    /// because internal call to [`catch_unwind`](std::panic::catch_unwind) is unsupported.
     pub fn has<C, A>(self, f: A) -> Self
     where
-        C: Component + RefUnwindSafe,
-        A: Fn(&C) + RefUnwindSafe,
+        C: Component,
+        A: Fn(&C),
     {
-        self.check_platform_for_catch_unwind();
         let mut entity_count = 0;
         let mut component_count = 0;
-        let mut error = None;
-        let mut ok_count = 0;
         self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
             entity_count += 1;
             if let Some(component) = c {
                 component_count += 1;
-                if let Err(unwind_error) = panic::catch_unwind(|| f(component)) {
-                    error = Some(unwind_error);
-                } else {
-                    ok_count += 1;
-                }
+                f(component);
             }
         }));
-        assert!(
-            if self.any_mode {
-                component_count > 0
-            } else {
-                entity_count == component_count
-            },
+        assert_eq!(
+            entity_count,
+            component_count,
             "assertion failed: entities matching {} have component {}",
             any::type_name::<F>(),
             any::type_name::<C>(),
         );
-        if let Some(error) = error {
-            if !self.any_mode || ok_count == 0 {
-                panic::resume_unwind(error);
-            }
-        }
         self
     }
 
@@ -345,20 +388,15 @@ where
     where
         C: Component,
     {
-        let mut entity_count = 0;
         let mut component_count = 0;
         self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
-            entity_count += 1;
             if c.is_some() {
                 component_count += 1;
             }
         }));
-        assert!(
-            if self.any_mode {
-                component_count < entity_count
-            } else {
-                component_count == 0
-            },
+        assert_eq!(
+            component_count,
+            0,
             "assertion failed: entities matching {} have not component {}",
             any::type_name::<F>(),
             any::type_name::<C>(),
@@ -380,12 +418,9 @@ where
                 correct_entity_count += 1;
             }
         }));
-        assert!(
-            if self.any_mode {
-                correct_entity_count > 0
-            } else {
-                correct_entity_count == entity_count
-            },
+        assert_eq!(
+            correct_entity_count,
+            entity_count,
             "assertion failed: entities matching {} have {:?} children",
             any::type_name::<F>(),
             count,
@@ -414,27 +449,142 @@ where
                 }
             }
         ));
-        assert!(
-            if self.any_mode {
-                correct_entity_count > 0
-            } else {
-                correct_entity_count == entity_count
-            },
+        assert_eq!(
+            correct_entity_count,
+            entity_count,
             "assertion failed: entities matching {} have parent matching {}",
             any::type_name::<F>(),
             any::type_name::<P>(),
         );
         self
     }
+}
 
-    // coverage: off (platform check)
-    #[cfg(not(target_arch = "wasm32"))]
-    #[allow(clippy::unused_self)]
-    fn check_platform_for_catch_unwind(&self) {}
+/// A utility for asserting on any entity matching `F` filter.
+///
+/// # Examples
+///
+/// See [`App`](App).
+pub struct EntityAnyAssertions<'a, F> {
+    core: &'a mut CoreStorage,
+    phantom: PhantomData<F>,
+}
 
-    #[cfg(target_arch = "wasm32")]
-    fn check_platform_for_catch_unwind(&self) {
-        assert!(!self.any_mode, "not supported");
+impl<F> EntityAnyAssertions<'_, F>
+where
+    F: EntityFilter,
+{
+    /// Asserts the entity has a component of type `C` and run `f` on this component.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity does not have a component of type `C` or if `f` panics.
+    ///
+    /// The method will also panic for Web platform as [`catch_unwind`](panic::catch_unwind)
+    /// is unsupported.
+    pub fn has<C, A>(self, f: A) -> Self
+    where
+        C: Component + RefUnwindSafe,
+        A: Fn(&C) + RefUnwindSafe,
+    {
+        platform::check_catch_unwind_availability();
+        let mut component_count = 0;
+        let mut error = None;
+        let mut ok_count = 0;
+        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
+            if let Some(component) = c {
+                component_count += 1;
+                if let Err(unwind_error) = panic::catch_unwind(|| f(component)) {
+                    error = Some(unwind_error);
+                } else {
+                    ok_count += 1;
+                }
+            }
+        }));
+        assert!(
+            component_count > 0,
+            "assertion failed: entities matching {} have component {}",
+            any::type_name::<F>(),
+            any::type_name::<C>(),
+        );
+        if let Some(error) = error {
+            if ok_count == 0 {
+                panic::resume_unwind(error);
+            }
+        }
+        self
     }
-    // coverage: on
+
+    /// Asserts the entity has not a component of type `C`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity has a component of type `C`.
+    pub fn has_not<C>(self) -> Self
+    where
+        C: Component,
+    {
+        let mut missing_component_count = 0;
+        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
+            if c.is_none() {
+                missing_component_count += 1;
+            }
+        }));
+        assert!(
+            missing_component_count > 0,
+            "assertion failed: entities matching {} have not component {}",
+            any::type_name::<F>(),
+            any::type_name::<C>(),
+        );
+        self
+    }
+
+    /// Asserts the entity has `count` children.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity has not `count` children.
+    pub fn child_count(self, count: impl UsizeRange) -> Self {
+        let mut correct_entity_count = 0;
+        self.core.run_system(system!(|e: Entity<'_>, _: Filter<F>| {
+            if count.contains_value(e.children().len()) {
+                correct_entity_count += 1;
+            }
+        }));
+        assert!(
+            correct_entity_count > 0,
+            "assertion failed: entities matching {} have {:?} children",
+            any::type_name::<F>(),
+            count,
+        );
+        self
+    }
+
+    /// Asserts the entity has a parent matching `P`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the entity parent does not match `P`.
+    pub fn has_parent<P>(self) -> Self
+    where
+        P: EntityFilter,
+    {
+        let mut correct_entity_count = 0;
+        self.core.run_system(system!(
+            |e: Entity<'_>, _: Filter<F>, p: Query<'_, Filter<P>>| {
+                if let Some(parent) = e.parent() {
+                    if p.get(parent.id()).is_some() {
+                        correct_entity_count += 1;
+                    }
+                }
+            }
+        ));
+        assert!(
+            correct_entity_count > 0,
+            "assertion failed: entities matching {} have parent matching {}",
+            any::type_name::<F>(),
+            any::type_name::<P>(),
+        );
+        self
+    }
 }

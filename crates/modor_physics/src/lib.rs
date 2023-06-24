@@ -1,4 +1,4 @@
-//! Physics module of modor.
+//! Physics module of Modor.
 //!
 //! # Getting started
 //!

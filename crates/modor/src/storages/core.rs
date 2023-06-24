@@ -188,6 +188,7 @@ impl CoreStorage {
             item_count: storages.item_count(None, system.archetype_filter_fn, None),
             storages,
         });
+        self.apply_updates();
     }
 
     pub(crate) fn update(&mut self) {
@@ -206,6 +207,10 @@ impl CoreStorage {
             .get_mut()
             .expect("internal error: cannot reset archetype state")
             .reset_state();
+        self.apply_updates();
+    }
+
+    fn apply_updates(&mut self) {
         let mut updates = mem::take(
             self.updates
                 .get_mut()
