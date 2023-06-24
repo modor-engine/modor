@@ -63,9 +63,21 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Texture {
+    /// Whether the texture is smooth.
+    ///
+    /// If `true`, a linear sampling is applied to the texture when it is rendered larger than its
+    /// original size.
+    ///
+    /// Default is `true`.
+    pub is_smooth: bool,
+    /// Whether the texture is repeated.
+    ///
+    /// If `true`, the texture is rendered repeated when the texture width or height configured in
+    /// an associated [`Material`](crate::Material) is greater than `1.0`.
+    ///
+    /// Default is `false`.
+    pub is_repeated: bool,
     key: ResourceKey,
-    is_smooth: bool,
-    is_repeated: bool,
     handler: ResourceHandler<LoadedImage, TextureData>,
     texture: Option<LoadedTexture>,
     renderer_version: Option<u8>,
@@ -114,23 +126,13 @@ impl Texture {
         Self::new(key, TextureSource::Path(path.into()))
     }
 
-    /// Returns the texture with a given `is_smooth`.
-    ///
-    /// If `true`, a linear sampling is applied to the texture when it appears larger than its
-    /// original size.
-    ///
-    /// Default is `true`.
+    /// Returns the texture with a given [`is_smooth`](#structfield.is_smooth).
     pub fn with_smooth(mut self, is_smooth: bool) -> Self {
         self.is_smooth = is_smooth;
         self
     }
 
-    /// Returns the texture with a given `is_repeated`.
-    ///
-    /// If `true`, the texture is repeated when the texture width or height configured in an
-    /// associated [`Material`](crate::Material) is greater than `1.0`.
-    ///
-    /// Default is `false`.
+    /// Returns the texture with a given [`is_repeated`](#structfield.is_repeated).
     pub fn with_repeated(mut self, is_repeated: bool) -> Self {
         self.is_repeated = is_repeated;
         self
@@ -144,6 +146,7 @@ impl Texture {
             self.handler.reload();
         }
         if let Some(context) = state.context() {
+            self.update_loaded_texture(context);
             self.handler.update::<Self>(&self.key);
             if let Some(image) = self.handler.resource() {
                 self.texture = Some(self.load_texture(image.0, context));
@@ -182,6 +185,23 @@ impl Texture {
             size: Size::new(image.width(), image.height()).into(),
             bind_group: self.create_bind_group(&view, &sampler, context),
             is_transparent: image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255),
+            is_repeated: self.is_repeated,
+            is_smooth: self.is_smooth,
+        }
+    }
+
+    fn update_loaded_texture(&mut self, context: &GpuContext) {
+        self.texture = if let Some(mut texture) = self.texture.take() {
+            if texture.is_smooth != self.is_smooth || texture.is_repeated != self.is_repeated {
+                let view = texture
+                    .texture
+                    .create_view(&TextureViewDescriptor::default());
+                let sampler = self.create_sampler(context);
+                texture.bind_group = self.create_bind_group(&view, &sampler, context);
+            }
+            Some(texture)
+        } else {
+            None
         }
     }
 
@@ -358,6 +378,8 @@ pub(crate) struct LoadedTexture {
     pub(crate) size: NonZeroSize,
     pub(crate) bind_group: BindGroup,
     pub(crate) is_transparent: bool,
+    pub(crate) is_repeated: bool,
+    pub(crate) is_smooth: bool,
 }
 
 #[derive(Debug, Clone)]
