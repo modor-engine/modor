@@ -89,6 +89,7 @@ impl TargetCore {
             dimension: TextureDimension::D2,
             format: TextureFormat::Depth32Float,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            view_formats: &[TextureFormat::Depth32Float],
         });
         texture.create_view(&TextureViewDescriptor::default())
     }

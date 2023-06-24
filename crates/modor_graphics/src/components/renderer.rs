@@ -101,7 +101,7 @@ impl GpuContext {
             material_bind_group_layout: Self::material_bind_group_layout(&device),
             texture_bind_group_layout: Self::texture_bind_group_layout(&device),
             surface_texture_format: surface
-                .and_then(|s| s.get_supported_formats(&adapter).into_iter().next()),
+                .and_then(|s| s.get_capabilities(&adapter).formats.into_iter().next()),
             adapter,
             device,
             queue,
@@ -109,8 +109,10 @@ impl GpuContext {
     }
 
     pub(crate) fn instance() -> Instance {
-        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all);
-        Instance::new(backends)
+        Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all),
+            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+        })
     }
 
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {

@@ -138,7 +138,8 @@ impl TextureBuffer {
                     offset: 0,
                     bytes_per_row: Some(
                         NonZeroU32::new(padded_row_bytes)
-                            .expect("internal error: cannot render empty buffer"),
+                            .expect("internal error: cannot render empty buffer")
+                            .into(),
                     ),
                     rows_per_image: None,
                 },
