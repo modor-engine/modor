@@ -8,7 +8,7 @@ exclude = [".github", "README.md", "assets"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-repository.license = true
+license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
