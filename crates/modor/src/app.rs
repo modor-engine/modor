@@ -1,6 +1,7 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    platform, system, utils, BuildableEntity, Component, EntityFilter, Filter, UsizeRange, World,
+    platform, system, utils, BuildableEntity, Component, EntityFilter, EntityMut, Filter,
+    UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -140,8 +141,8 @@ impl App {
         C: Component,
     {
         self.core
-            .run_system(system!(|e: Entity<'_>, mut w: World<'_>, _: Filter<F>| {
-                w.add_component(e.id(), component_builder());
+            .run_system(system!(|mut e: EntityMut<'_>, _: Filter<F>| {
+                e.add_component(component_builder());
             }));
         self
     }
@@ -155,7 +156,7 @@ impl App {
         C: Component,
     {
         self.core.run_system(system!(
-            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_component::<C>(e.id())
+            |mut e: EntityMut<'_>, _: Filter<F>| e.delete_component::<C>()
         ));
         self
     }
@@ -165,9 +166,8 @@ impl App {
     where
         F: EntityFilter,
     {
-        self.core.run_system(system!(
-            |e: Entity<'_>, mut w: World<'_>, _: Filter<F>| w.delete_entity(e.id())
-        ));
+        self.core
+            .run_system(system!(|mut e: EntityMut<'_>, _: Filter<F>| e.delete()));
         self
     }
 
@@ -355,10 +355,9 @@ where
     /// # Panics
     ///
     /// This will panic if the entity does not have a component of type `C` or if `f` panics.
-    pub fn has<C, A>(self, f: A) -> Self
+    pub fn has<C>(self, f: impl Fn(&C)) -> Self
     where
         C: Component,
-        A: Fn(&C),
     {
         let mut entity_count = 0;
         let mut component_count = 0;
@@ -482,10 +481,9 @@ where
     ///
     /// The method will also panic for Web platform as [`catch_unwind`](panic::catch_unwind)
     /// is unsupported.
-    pub fn has<C, A>(self, f: A) -> Self
+    pub fn has<C>(self, f: impl Fn(&C) + RefUnwindSafe) -> Self
     where
         C: Component + RefUnwindSafe,
-        A: Fn(&C) + RefUnwindSafe,
     {
         platform::check_catch_unwind_availability();
         let mut component_count = 0;

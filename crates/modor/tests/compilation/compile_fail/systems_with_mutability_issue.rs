@@ -143,6 +143,12 @@ impl ComponentWithInvalidSystems {
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn world_and_entity_mut(_: World<'_>, _: EntityMut<'_>) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn incompatible_tuples(_: (&C1,), _: &C3, _: (&mut C1,)) {}
 
     #[run]

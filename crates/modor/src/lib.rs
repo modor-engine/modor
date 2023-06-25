@@ -62,6 +62,7 @@ pub use filters::with::*;
 pub use filters::*;
 pub use ranges::*;
 pub use system_params::entity::*;
+pub use system_params::entity_mut::*;
 pub use system_params::filters::*;
 pub use system_params::queries::*;
 pub use system_params::singletons::*;
@@ -136,8 +137,8 @@ pub use modor_derive::Action;
 /// #[systems]
 /// impl AutoRemoved {
 ///     #[run]
-///     fn update(&mut self, entity: Entity<'_>, mut world: World<'_>) {
-///         world.delete_entity(entity.id());
+///     fn update(&mut self, mut entity: EntityMut<'_>) {
+///         entity.delete();
 ///     }
 /// }
 /// ```
@@ -344,6 +345,7 @@ pub use modor_derive::NoSystem;
 /// #
 /// #[derive(Component)]
 /// struct Id(u32);
+///
 /// #[derive(Component)]
 /// struct Text(String);
 ///

@@ -377,12 +377,12 @@ fn add_component() {
         .with_entity(Entity::build_entity2(20))
         .with_component::<With<Entity1>, _>(|| OtherComponent(0))
         .assert::<With<OtherComponent>>(1, |e| {
-            e.has::<Entity1, _>(|_| ())
+            e.has::<Entity1>(|_| ())
                 .has(|c: &OtherComponent| assert_eq!(c.0, 0))
         })
         .with_component::<With<Entity1>, _>(|| OtherComponent(1))
         .assert::<With<OtherComponent>>(1, |e| {
-            e.has::<Entity1, _>(|_| ())
+            e.has::<Entity1>(|_| ())
                 .has(|c: &OtherComponent| assert_eq!(c.0, 1))
         });
 }

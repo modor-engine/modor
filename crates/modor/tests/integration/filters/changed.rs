@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, Changed, Entity, EntityBuilder, Filter, Query, With, World};
+use modor::{App, BuiltEntity, Changed, EntityBuilder, EntityMut, Filter, Query, With};
 
 #[derive(Component, NoSystem)]
 struct TrackedComponent;
@@ -73,8 +73,8 @@ struct OverwrittenEntity;
 #[systems]
 impl OverwrittenEntity {
     #[run]
-    fn update(entity: Entity<'_>, mut world: World<'_>) {
-        world.add_component(entity.id(), TrackedComponent);
+    fn update(mut entity: EntityMut<'_>) {
+        entity.add_component(TrackedComponent);
     }
 }
 

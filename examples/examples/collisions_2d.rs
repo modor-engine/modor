@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use modor::{systems, App, BuiltEntity, Component, Entity, EntityBuilder, Query, Single, World};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, EntityMut, Query, Single, World};
 use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_input::{InputModule, Mouse};
 use modor_math::Vec2;
@@ -163,8 +163,8 @@ struct AutoRemoved;
 #[systems]
 impl AutoRemoved {
     #[run]
-    fn remove(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_entity(entity.id());
+    fn remove(mut entity: EntityMut<'_>) {
+        entity.delete();
     }
 }
 
