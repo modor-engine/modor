@@ -68,6 +68,7 @@ impl OtherNumber {
 pub mod components;
 pub mod components_mut;
 pub mod entity;
+pub mod entity_mut;
 pub mod filters;
 pub mod optional_components;
 pub mod optional_components_mut;

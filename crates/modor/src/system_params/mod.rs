@@ -8,6 +8,7 @@ use crate::EntityFilter;
 pub(crate) mod components;
 pub(crate) mod components_mut;
 pub(crate) mod entity;
+pub(crate) mod entity_mut;
 pub(crate) mod filters;
 pub(crate) mod optional_components;
 pub(crate) mod optional_components_mut;

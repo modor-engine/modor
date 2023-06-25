@@ -22,6 +22,8 @@ use std::any::{self, TypeId};
 ///     world.add_component(entity.id(), component);
 /// }
 /// ```
+///
+/// Note that for this specific case, it is shorter to use [`EntityMut`](crate::EntityMut).
 pub struct World<'a> {
     context: SystemContext<'a>,
 }
@@ -209,9 +211,7 @@ impl SystemParam for World<'_> {
     where
         'b: 'a,
     {
-        stream.item_positions.next().map(move |_| World {
-            context: stream.context,
-        })
+        stream.next()
     }
 }
 
@@ -220,8 +220,9 @@ impl LockableSystemParam for World<'_> {
     type Mutability = Mut;
 }
 
-mod internal {
+pub(super) mod internal {
     use crate::systems::context::SystemContext;
+    use crate::World;
     use std::ops::Range;
 
     pub struct WorldGuard<'a> {
@@ -257,6 +258,12 @@ mod internal {
                 context: guard.context,
                 item_positions: 0..guard.item_count,
             }
+        }
+
+        pub(crate) fn next(&mut self) -> Option<World<'_>> {
+            self.item_positions.next().map(move |_| World {
+                context: self.context,
+            })
         }
     }
 }

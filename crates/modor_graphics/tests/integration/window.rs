@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, Entity, EntityBuilder, With, World};
+use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With};
 use modor_graphics::testing::TestRunnerContext;
 use modor_graphics::{
     testing, Camera2D, Color, FrameRate, Material, Model, RenderTarget, Size, Window,
@@ -215,8 +215,8 @@ struct AutoRemove;
 #[systems]
 impl AutoRemove {
     #[run]
-    fn update(entity: Entity<'_>, mut world: World<'_>) {
-        world.delete_entity(entity.id());
+    fn update(mut entity: EntityMut<'_>) {
+        entity.delete();
     }
 }
 
