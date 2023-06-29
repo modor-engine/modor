@@ -1,9 +1,9 @@
-use crate::components::font::{FontKey, FontRegistry};
+use crate::components::font::{FontRegistry, DEFAULT_FONT};
 use crate::Font;
 use ab_glyph::{Font as AbFont, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::{Query, SingleMut};
 use modor_graphics::{Size, Texture, TextureSource};
-use modor_resources::{IntoResourceKey, ResourceKey};
+use modor_resources::ResKey;
 
 const TEXTURE_PADDING_PX: u32 = 1;
 
@@ -28,19 +28,25 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
+/// # use modor_resources::*;
 /// #
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+/// const FONT: ResKey<Font> = ResKey::new("custom");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(Font::from_path(FONT, "font.ttf"))
 ///         .with_child(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
+///     let texture_key = ResKey::unique("text");
+///     let material_key = ResKey::unique("text");
 ///     EntityBuilder::new()
-///         .with(Text::new("my text", 30.).with_font(FontKey))
-///         .with(Texture::from_size(TextureKey, Size::ZERO))
-///         .with(Material::new(MaterialKey).with_front_texture_key(TextureKey))
-///         .with(Model::rectangle(MaterialKey, CameraKey))
+///         .with(Text::new("my text", 30.).with_font(FONT))
+///         .with(Texture::from_size(texture_key, Size::ZERO))
+///         .with(Material::new(material_key).with_front_texture_key(texture_key))
+///         .with(Model::rectangle(material_key, CAMERA))
 ///         .with(Transform2D::new())
 /// }
 ///
@@ -70,14 +76,14 @@ pub struct Text {
     /// If the font is not loaded, then the text is not rendered in the [`Texture`].
     ///
     /// Default is [Roboto](https://fonts.google.com/specimen/Roboto).
-    pub font_key: ResourceKey,
+    pub font_key: ResKey<Font>,
     /// Alignment of the rendered text.
     ///
     /// Default is [`Alignment::Center`].
     pub alignment: Alignment,
     old_content: String,
     old_font_height: f32,
-    old_font_key: ResourceKey,
+    old_font_key: ResKey<Font>,
     old_alignment: Alignment,
 }
 
@@ -88,18 +94,18 @@ impl Text {
         Self {
             content: content.into(),
             font_height,
-            font_key: FontKey::Default.into_key(),
+            font_key: DEFAULT_FONT,
             alignment: Alignment::default(),
             old_content: String::new(),
             old_font_height: font_height,
-            old_font_key: FontKey::Default.into_key(),
+            old_font_key: DEFAULT_FONT,
             old_alignment: Alignment::default(),
         }
     }
 
     /// Returns the text with a given [`font_key`](#structfield.font_key).
-    pub fn with_font(mut self, font_key: impl IntoResourceKey) -> Self {
-        self.font_key = font_key.into_key();
+    pub fn with_font(mut self, font_key: ResKey<Font>) -> Self {
+        self.font_key = font_key;
         self
     }
 
@@ -116,7 +122,7 @@ impl Text {
         texture: &mut Texture,
         (mut font_registry, fonts): (SingleMut<'_, FontRegistry>, Query<'_, &Font>),
     ) {
-        if let Some(font) = font_registry.get(&self.font_key, &fonts) {
+        if let Some(font) = font_registry.get(self.font_key, &fonts) {
             if self.has_changed() || font.is_just_loaded {
                 let font = font.get().as_scaled(self.font_height);
                 let line_widths = self.line_widths(font);
@@ -151,7 +157,7 @@ impl Text {
     fn set_as_unchanged(&mut self) {
         self.old_content = self.content.clone();
         self.old_font_height = self.font_height;
-        self.old_font_key = self.font_key.clone();
+        self.old_font_key = self.font_key;
         self.old_alignment = self.alignment;
     }
 

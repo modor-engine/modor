@@ -4,7 +4,7 @@ use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{GpuContext, Renderer};
 use fxhash::FxHashMap;
 use modor::Single;
-use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor, PolygonMode,
@@ -15,10 +15,13 @@ use wgpu::{
 
 pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 
+pub(crate) const DEFAULT_SHADER: ResKey<Shader> = ResKey::new("default(modor_graphics)");
+pub(crate) const ELLIPSE_SHADER: ResKey<Shader> = ResKey::new("ellipse(modor_graphics)");
+
 #[derive(Component, Debug)]
 pub(crate) struct Shader {
     code: String,
-    key: ResourceKey,
+    key: ResKey<Self>,
     pipelines: FxHashMap<TextureFormat, RenderPipeline>,
     renderer_version: Option<u8>,
 }
@@ -26,7 +29,7 @@ pub(crate) struct Shader {
 impl Default for Shader {
     fn default() -> Self {
         Self::from_memory(
-            ShaderKey::Default,
+            DEFAULT_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")),
         )
     }
@@ -50,15 +53,15 @@ impl Shader {
 
     pub(crate) fn ellipse() -> Self {
         Self::from_memory(
-            ShaderKey::Ellipse,
+            ELLIPSE_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
         )
     }
 
-    fn from_memory(key: impl IntoResourceKey, code: impl Into<String>) -> Self {
+    fn from_memory(key: ResKey<Self>, code: impl Into<String>) -> Self {
         Self {
             code: code.into(),
-            key: key.into_key(),
+            key,
             pipelines: FxHashMap::default(),
             renderer_version: None,
         }
@@ -77,7 +80,7 @@ impl Shader {
             );
             for texture_format in texture_formats {
                 self.pipelines.entry(texture_format).or_insert_with(|| {
-                    Self::create_pipeline(&self.code, &self.key, texture_format, context)
+                    Self::create_pipeline(&self.code, self.key, texture_format, context)
                 });
             }
         } else {
@@ -93,18 +96,18 @@ impl Shader {
 
     fn create_pipeline(
         code: &str,
-        key: &ResourceKey,
+        key: ResKey<Self>,
         texture_format: TextureFormat,
         context: &GpuContext,
     ) -> RenderPipeline {
         let module = context.device.create_shader_module(ShaderModuleDescriptor {
-            label: Some(&format!("modor_shader_{key:?}")),
+            label: Some(&format!("modor_shader_{}", key.label())),
             source: ShaderSource::Wgsl(code.into()),
         });
         let layout = context
             .device
             .create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some(&format!("modor_pipeline_layout_{key:?}")),
+                label: Some(&format!("modor_pipeline_layout_{}", key.label())),
                 bind_group_layouts: &[
                     &context.camera_bind_group_layout,
                     &context.material_bind_group_layout,
@@ -116,7 +119,7 @@ impl Shader {
         context
             .device
             .create_render_pipeline(&RenderPipelineDescriptor {
-                label: Some(&format!("modor_render_pipeline_{key:?}")),
+                label: Some(&format!("modor_render_pipeline_{}", key.label())),
                 layout: Some(&layout),
                 vertex: VertexState {
                     module: &module,
@@ -155,8 +158,8 @@ impl Shader {
 }
 
 impl Resource for Shader {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {
@@ -166,10 +169,4 @@ impl Resource for Shader {
             ResourceState::Loaded
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum ShaderKey {
-    Default,
-    Ellipse,
 }

@@ -5,36 +5,42 @@ use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics::{Camera2D, Color, Model, RenderTarget, Window};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
+use modor_resources::ResKey;
 use modor_text::{Font, Text, TextMaterialBuilder};
 use std::time::Duration;
+
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const FONT: ResKey<Font> = ResKey::new("main");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(modor_text::module())
         .with_entity(window())
-        .with_entity(Font::from_path(FontKey, "IrishGrover-Regular.ttf"))
+        .with_entity(Font::from_path(FONT, "IrishGrover-Regular.ttf"))
         .with_entity(text())
         .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn text() -> impl BuiltEntity {
-    TextMaterialBuilder::new(MaterialKey, "Loading", 300.)
-        .with_text(|t| t.with_font(FontKey))
+    let material_key = ResKey::unique("text");
+    TextMaterialBuilder::new(material_key, "Loading", 300.)
+        .with_text(|t| t.with_font(FONT))
         .with_material(|t| {
             t.with_color(Color::rgb(0.1, 0.1, 0.1))
                 .with_front_color(Color::WHITE)
         })
         .build()
         .with(Transform2D::new().with_size(Vec2::new(1., 0.2)))
-        .with(Model::rectangle(MaterialKey, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(LoadingText::default())
 }
 
@@ -67,15 +73,3 @@ impl LoadingText {
         }
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-struct MaterialKey;
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-struct FontKey;

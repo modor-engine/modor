@@ -2,16 +2,18 @@ use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::Renderer;
 use modor::Single;
-use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
 pub(crate) type MeshRegistry = ResourceRegistry<Mesh>;
+
+pub(crate) const RECTANGLE_MESH: ResKey<Mesh> = ResKey::new("rectangle(modor_graphics)");
 
 #[derive(Component, Debug)]
 pub(crate) struct Mesh {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
-    key: ResourceKey,
+    key: ResKey<Self>,
     vertex_buffer: Option<DynamicBuffer<Vertex>>,
     index_buffer: Option<DynamicBuffer<u16>>,
     renderer_version: Option<u8>,
@@ -21,7 +23,7 @@ pub(crate) struct Mesh {
 impl Mesh {
     pub(crate) fn rectangle() -> Self {
         Self::from_memory(
-            MeshKey::Rectangle,
+            RECTANGLE_MESH,
             vec![
                 Vertex {
                     position: [-0.5, 0.5, 0.],
@@ -44,9 +46,9 @@ impl Mesh {
         )
     }
 
-    fn from_memory(key: impl IntoResourceKey, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
+    fn from_memory(key: ResKey<Self>, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
         Self {
-            key: key.into_key(),
+            key,
             vertices,
             indices,
             vertex_buffer: None,
@@ -98,8 +100,8 @@ impl Mesh {
 }
 
 impl Resource for Mesh {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {
@@ -109,11 +111,6 @@ impl Resource for Mesh {
             ResourceState::NotLoaded
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum MeshKey {
-    Rectangle,
 }
 
 #[repr(C)]

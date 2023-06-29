@@ -4,9 +4,15 @@ use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Texture, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
+use modor_resources::ResKey;
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
-use std::fmt::Debug;
-use std::hash::Hash;
+
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const BACKGROUND_TEXTURE: ResKey<Texture> = ResKey::new("background");
+const SMILEY_TEXTURE: ResKey<Texture> = ResKey::new("smiley");
+const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
+const YELLOW_SMILEY_MATERIAL: ResKey<Material> = ResKey::new("yellow-smiley");
+const GREEN_SMILEY_MATERIAL: ResKey<Material> = ResKey::new("green-smiley");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
@@ -14,34 +20,32 @@ pub fn main() {
         .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(Texture::from_file(
-            TextureKey::Background,
+            BACKGROUND_TEXTURE,
             include_bytes!("../assets/background.png"),
         ))
-        .with_entity(Texture::from_path(TextureKey::Smiley, "smiley.png"))
+        .with_entity(Texture::from_path(SMILEY_TEXTURE, "smiley.png"))
+        .with_entity(Material::new(BACKGROUND_MATERIAL).with_texture_key(BACKGROUND_TEXTURE))
         .with_entity(
-            Material::new(MaterialKey::Background).with_texture_key(TextureKey::Background),
-        )
-        .with_entity(
-            Material::new(MaterialKey::YellowSmiley)
-                .with_texture_key(TextureKey::Smiley)
+            Material::new(YELLOW_SMILEY_MATERIAL)
+                .with_texture_key(SMILEY_TEXTURE)
                 .with_color(Color::WHITE.with_alpha(0.7)),
         )
         .with_entity(
-            Material::new(MaterialKey::GreenSmiley)
-                .with_texture_key(TextureKey::Smiley)
+            Material::new(GREEN_SMILEY_MATERIAL)
+                .with_texture_key(SMILEY_TEXTURE)
                 .with_color(Color::CYAN),
         )
         .with_entity(window())
         .with_entity(background())
         .with_entity(smiley(
-            MaterialKey::GreenSmiley,
+            GREEN_SMILEY_MATERIAL,
             Vec2::new(0.25, -0.25),
             1,
             Vec2::new(0.3, -0.8),
             FRAC_PI_2,
         ))
         .with_entity(smiley(
-            MaterialKey::YellowSmiley,
+            YELLOW_SMILEY_MATERIAL,
             Vec2::new(-0.25, 0.25),
             2,
             Vec2::new(0.5, -0.4),
@@ -51,20 +55,21 @@ pub fn main() {
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Background, CameraKey))
+        .with(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 }
 
 fn smiley(
-    material_key: MaterialKey,
+    material_key: ResKey<Material>,
     position: Vec2,
     z_index: u16,
     velocity: Vec2,
@@ -81,7 +86,7 @@ fn smiley(
                 .with_velocity(velocity)
                 .with_angular_velocity(angular_velocity),
         )
-        .with(Model::rectangle(material_key, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(ZIndex2D::from(z_index))
         .with(Smiley)
 }
@@ -110,23 +115,4 @@ impl Smiley {
             transform.position.y = 0.5 - transform.size.y / 2.;
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-enum MaterialKey {
-    Background,
-    YellowSmiley,
-    GreenSmiley,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-enum TextureKey {
-    Background,
-    Smiley,
 }

@@ -1,7 +1,7 @@
 use ab_glyph::FontVec;
 use modor_resources::{
-    IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey, ResourceLoadingError,
-    ResourceRegistry, ResourceSource, ResourceState,
+    Load, ResKey, Resource, ResourceHandler, ResourceLoadingError, ResourceRegistry,
+    ResourceSource, ResourceState,
 };
 use std::fmt::Debug;
 
@@ -9,6 +9,7 @@ pub(crate) const DEFAULT_FONT_FILE: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/res/Roboto-Regular.ttf"
 ));
+pub(crate) const DEFAULT_FONT: ResKey<Font> = ResKey::new("default(modor_text)");
 
 pub(crate) type FontRegistry = ResourceRegistry<Font>;
 
@@ -34,28 +35,26 @@ pub(crate) type FontRegistry = ResourceRegistry<Font>;
 /// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
+/// # use modor_resources::*;
 /// #
+/// const FONT: ResKey<Font> = ResKey::new("custom");
+/// const TEXTURE: ResKey<Texture> = ResKey::new("text");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(Font::from_path(FONT, "font.ttf"))
 ///         .with_child(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Text::new("my text", 30.).with_font(FontKey))
-///         .with(Texture::from_size(TextureKey, Size::ZERO))
+///         .with(Text::new("my text", 30.).with_font(FONT))
+///         .with(Texture::from_size(TEXTURE, Size::ZERO))
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct FontKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TextureKey;
 /// ```
 #[derive(Component, Debug)]
 pub struct Font {
-    key: ResourceKey,
+    key: ResKey<Self>,
     handler: ResourceHandler<LoadedFont, Vec<u8>>,
     font: Option<FontVec>,
     pub(crate) is_just_loaded: bool,
@@ -64,9 +63,9 @@ pub struct Font {
 #[systems]
 impl Font {
     /// Creates a new font identified by a unique `key` and created from `source`.
-    pub fn new(key: impl IntoResourceKey, source: FontSource) -> Self {
+    pub fn new(key: ResKey<Self>, source: FontSource) -> Self {
         Self {
-            key: key.into_key(),
+            key,
             handler: ResourceHandler::new(source.into()),
             font: None,
             is_just_loaded: false,
@@ -76,21 +75,21 @@ impl Font {
     /// Creates a new font identified by a unique `key` and created with given file `data`.
     ///
     /// This method is equivalent to [`Font::new`] with [`FontSource::File`] source.
-    pub fn from_file(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
+    pub fn from_file(key: ResKey<Self>, data: &'static [u8]) -> Self {
         Self::new(key, FontSource::File(data))
     }
 
     /// Creates a new font identified by a unique `key` and created with a given file `path`.
     ///
     /// This method is equivalent to [`Font::new`] with [`FontSource::Path`] source.
-    pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
+    pub fn from_path(key: ResKey<Self>, path: impl Into<String>) -> Self {
         Self::new(key, FontSource::Path(path.into()))
     }
 
     #[run]
     fn update(&mut self) {
         self.is_just_loaded = false;
-        self.handler.update::<Self>(&self.key);
+        self.handler.update::<Self>(self.key);
         self.font = if let Some(resource) = self.handler.resource() {
             self.is_just_loaded = true;
             Some(resource.0)
@@ -113,8 +112,8 @@ impl Font {
 }
 
 impl Resource for Font {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {
@@ -178,9 +177,4 @@ impl Load<Vec<u8>> for LoadedFont {
     fn load_from_data(data: &Vec<u8>) -> Result<Self, ResourceLoadingError> {
         Self::load_from_file(data.clone())
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum FontKey {
-    Default,
 }

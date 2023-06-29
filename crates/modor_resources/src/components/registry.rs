@@ -1,11 +1,11 @@
-use crate::ResourceKey;
+use crate::ResKey;
+use derivative::Derivative;
 use fxhash::{FxHashMap, FxHashSet};
 use modor::{Component, Entity, Query};
 use modor_jobs::AssetLoadingError;
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::marker::PhantomData;
 use std::{any, fmt};
 
 /// A registry that keeps track of resources of type `R` identified by a unique
@@ -19,33 +19,30 @@ use std::{any, fmt};
 /// #
 /// type CounterRegistry = ResourceRegistry<Counter>;
 ///
+/// const COUNTER1: ResKey<Counter> = ResKey::new("counter-1");
+/// const COUNTER2: ResKey<Counter> = ResKey::new("counter-2");
+/// const IGNORED_COUNTER: ResKey<Counter> = ResKey::new("ignored");
+///
 /// App::new()
 ///     .with_entity(CounterRegistry::default())
-///     .with_entity(Counter::new(CounterKey::Counter1))
-///     .with_entity(Counter::new(CounterKey::Counter2))
-///     .with_entity(Counter::new(CounterKey::Ignored))
+///     .with_entity(Counter::new(COUNTER1))
+///     .with_entity(Counter::new(COUNTER2))
+///     .with_entity(Counter::new(IGNORED_COUNTER))
 ///     .with_entity(TotalCount::default())
 ///     .update();
-///
-/// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-/// enum CounterKey {
-///     Counter1,
-///     Counter2,
-///     Ignored,
-/// }
 ///
 /// #[derive(Component)]
 /// struct Counter {
 ///     count: u32,
-///     key: ResourceKey,
+///     key: ResKey<Counter>,
 /// }
 ///
 /// #[systems]
 /// impl Counter {
-///     fn new(key: impl IntoResourceKey) -> Self {
+///     fn new(key: ResKey<Counter>) -> Self {
 ///         Self {
 ///             count: 0,
-///             key: key.into_key(),
+///             key,
 ///         }
 ///     }
 ///
@@ -56,8 +53,8 @@ use std::{any, fmt};
 /// }
 ///
 /// impl Resource for Counter {
-///     fn key(&self) -> &ResourceKey {
-///         &self.key
+///     fn key(&self) -> ResKey<Counter> {
+///         self.key
 ///     }
 ///
 ///     fn state(&self) -> ResourceState<'_> {
@@ -78,13 +75,11 @@ use std::{any, fmt};
 ///         mut counter_registry: SingleMut<'_, CounterRegistry>,
 ///         counters: Query<'_, &Counter>
 ///      ) {
-///         let counter1_key = CounterKey::Counter1.into_key();
-///         let counter2_key = CounterKey::Counter2.into_key();
 ///         self.count = 0;
-///         if let Some(counter) = counter_registry.get(&counter1_key, &counters) {
+///         if let Some(counter) = counter_registry.get(COUNTER1, &counters) {
 ///             self.count += counter.count;
 ///         }
-///         if let Some(counter) = counter_registry.get(&counter2_key, &counters) {
+///         if let Some(counter) = counter_registry.get(COUNTER2, &counters) {
 ///             self.count += counter.count;
 ///         }
 ///     }
@@ -97,7 +92,7 @@ pub struct ResourceRegistry<R>
 where
     R: Any,
 {
-    entity_ids: FxHashMap<ResourceKey, usize>,
+    entity_ids: FxHashMap<ResKey<R>, usize>,
     duplicated_keys: ResourceOnce<R>,
     missing_keys: ResourceOnce<R>,
     not_loaded_keys: ResourceOnce<R>,
@@ -129,20 +124,23 @@ where
         self.entity_ids.clear();
         for (resource, entity) in resources.iter() {
             let key = resource.key();
-            let previous = self.entity_ids.insert(key.clone(), entity.id());
+            let previous = self.entity_ids.insert(key, entity.id());
             trace!(
-                "`{:?}` resource of type `{}` detected",
-                key,
+                "`{}` resource of type `{}` detected",
+                key.label(),
                 any::type_name::<R>()
             );
             if previous.is_some() {
-                self.duplicated_keys.run(key, |k, t| {
-                    error!("duplicated `{k:?}` resource of type `{t}`");
+                self.duplicated_keys.run(key, |t| {
+                    error!("duplicated `{}` resource of type `{t}`", key.label());
                 });
             }
             if let ResourceState::Error(error) = resource.state() {
-                self.failed_keys.run(key, |k, t| {
-                    error!("loading failed for `{k:?}` resource of type `{t}`: {error}");
+                self.failed_keys.run(key, |t| {
+                    error!(
+                        "loading failed for `{}` resource of type `{t}`: {error}",
+                        key.label()
+                    );
                 });
             }
         }
@@ -150,29 +148,37 @@ where
 
     /// Returns the resource corresponding to the `key` if it exists and is in
     /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
-    pub fn get<'a>(&mut self, key: &ResourceKey, query: &'a Query<'_, &R>) -> Option<&'a R> {
-        if let Some(resource) = self.entity_ids.get(key).and_then(|&i| query.get(i)) {
+    pub fn get<'a>(&mut self, key: ResKey<R>, query: &'a Query<'_, &R>) -> Option<&'a R> {
+        if let Some(resource) = self.entity_ids.get(&key).and_then(|&i| query.get(i)) {
             match resource.state() {
-                ResourceState::NotLoaded => self.not_loaded_keys.run(key, |k, t| {
-                    warn!("try to use not loaded `{k:?}` resource of type `{t}`");
+                ResourceState::NotLoaded => self.not_loaded_keys.run(key, |t| {
+                    warn!(
+                        "try to use not loaded `{}` resource of type `{t}`",
+                        key.label()
+                    );
                 }),
                 ResourceState::Loading => {
                     trace!(
-                        "`{key:?}` resource of type `{}` ignored as currently loading",
+                        "`{}` resource of type `{}` ignored as currently loading",
+                        key.label(),
                         any::type_name::<R>()
                     );
                 }
                 ResourceState::Error(_) => {
                     trace!(
-                        "`{key:?}` resource of type `{}` ignored as loading failed",
+                        "`{}` resource of type `{}` ignored as loading failed",
+                        key.label(),
                         any::type_name::<R>()
                     );
                 }
                 ResourceState::Loaded => return Some(resource),
             }
         } else {
-            self.missing_keys.run(key, |k, t| {
-                warn!("try to use not found `{k:?}` resource of type `{t}`");
+            self.missing_keys.run(key, |t| {
+                warn!(
+                    "try to use not found `{}` resource of type `{t}`",
+                    key.label()
+                );
             });
         }
         None
@@ -186,7 +192,7 @@ where
 /// See [`ResourceRegistry`](ResourceRegistry).
 pub trait Resource: Sized {
     /// Retrieves the key of the resource.
-    fn key(&self) -> &ResourceKey;
+    fn key(&self) -> ResKey<Self>;
 
     /// Retrieves the state of the resource.
     fn state(&self) -> ResourceState<'_>;
@@ -231,26 +237,17 @@ impl Display for ResourceLoadingError {
 impl Error for ResourceLoadingError {}
 
 // used to avoid log spam
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug(bound = ""), Default(bound = ""))]
 struct ResourceOnce<R> {
-    keys: FxHashSet<ResourceKey>,
-    phantom: PhantomData<fn(R)>,
-}
-
-impl<R> Default for ResourceOnce<R> {
-    fn default() -> Self {
-        Self {
-            keys: FxHashSet::default(),
-            phantom: PhantomData,
-        }
-    }
+    keys: FxHashSet<ResKey<R>>,
 }
 
 impl<R> ResourceOnce<R> {
-    fn run(&mut self, key: &ResourceKey, f: impl FnOnce(&ResourceKey, &str)) {
-        if !self.keys.contains(key) {
-            self.keys.insert(key.clone());
-            f(key, any::type_name::<R>());
+    fn run(&mut self, key: ResKey<R>, f: impl FnOnce(&str)) {
+        if !self.keys.contains(&key) {
+            self.keys.insert(key);
+            f(any::type_name::<R>());
         }
     }
 }

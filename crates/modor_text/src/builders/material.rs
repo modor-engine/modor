@@ -1,7 +1,7 @@
 use crate::Text;
 use modor::{BuiltEntity, EntityBuilder};
 use modor_graphics::{Material, Size, Texture};
-use modor_resources::IntoResourceKey;
+use modor_resources::ResKey;
 
 /// A builder for constructing an entity with a text [`Material`].
 ///
@@ -21,34 +21,30 @@ use modor_resources::IntoResourceKey;
 /// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_text::*;
+/// # use modor_resources::*;
 /// #
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+/// const FONT: ResKey<Font> = ResKey::new("custom");
+/// const MATERIAL: ResKey<Material> = ResKey::new("text");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FontKey, "font.ttf"))
+///         .with_child(Font::from_path(FONT, "font.ttf"))
 ///         .with_child(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
-///     TextMaterialBuilder::new(MaterialKey, "my text", 30.)
-///         .with_text(|t| t.with_font(FontKey))
+///     TextMaterialBuilder::new(MATERIAL, "my text", 30.)
+///         .with_text(|t| t.with_font(FONT))
 ///         .with_material(|m| m.with_color(Color::GREEN))       // background color
 ///         .with_material(|m| m.with_front_color(Color::BLACK)) // text color
 ///         .build()
-///         .with(Model::rectangle(MaterialKey, CameraKey))
+///         .with(Model::rectangle(MATERIAL, CAMERA))
 ///         .with(Transform2D::new())
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct FontKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct MaterialKey;
 /// ```
-pub struct TextMaterialBuilder<K> {
-    material_key: K,
+pub struct TextMaterialBuilder {
+    material_key: ResKey<Material>,
     text: String,
     font_height: f32,
     material_fn: Option<Box<dyn FnOnce(Material) -> Material>>,
@@ -56,12 +52,9 @@ pub struct TextMaterialBuilder<K> {
     text_fn: Option<Box<dyn FnOnce(Text) -> Text>>,
 }
 
-impl<K> TextMaterialBuilder<K>
-where
-    K: IntoResourceKey + Clone,
-{
+impl TextMaterialBuilder {
     /// Creates a new text material builder.
-    pub fn new(material_key: K, text: impl Into<String>, font_height: f32) -> Self {
+    pub fn new(material_key: ResKey<Material>, text: impl Into<String>, font_height: f32) -> Self {
         Self {
             material_key,
             text: text.into(),
@@ -98,9 +91,9 @@ where
 
     /// Builds the entity.
     pub fn build(self) -> impl BuiltEntity {
-        let material = Material::new(self.material_key.clone())
-            .with_front_texture_key(self.material_key.clone());
-        let texture = Texture::from_size(self.material_key, Size::ZERO);
+        let texture_key = ResKey::unique("text-material(modor_text)");
+        let material = Material::new(self.material_key).with_front_texture_key(texture_key);
+        let texture = Texture::from_size(texture_key, Size::ZERO);
         let text = Text::new(self.text, self.font_height);
         EntityBuilder::new()
             .with(if let Some(material_fn) = self.material_fn {

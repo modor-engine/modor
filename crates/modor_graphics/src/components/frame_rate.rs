@@ -14,6 +14,7 @@ use wgpu::PresentMode;
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
 /// # fn no_run() {
 /// App::new()
@@ -26,11 +27,10 @@ use wgpu::PresentMode;
 /// fn window() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Window::default())
-///         .with(RenderTarget::new(TargetKey))
+///         .with(RenderTarget::new(TARGET))
 /// }
 ///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TargetKey;
+/// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
 /// ```
 #[derive(SingletonComponent, NoSystem, Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum FrameRate {

@@ -1,6 +1,5 @@
-use modor_resources::{IndexResKey, ResKey, ResKeyId, Resource, ResourceKey, ResourceState};
+use modor_resources::{IndexResKey, ResKey, ResKeyId, Resource, ResourceState};
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 #[modor_test]
@@ -61,43 +60,14 @@ fn hash(key: ResKey<TestResource>) -> u64 {
     hasher.finish()
 }
 
-struct TestResource;
+struct TestResource(ResKey<Self>);
 
 impl Resource for TestResource {
-    fn key(&self) -> &ResourceKey {
-        unimplemented!()
+    fn key(&self) -> ResKey<Self> {
+        self.0
     }
 
     fn state(&self) -> ResourceState<'_> {
         ResourceState::NotLoaded
     }
-}
-
-#[modor_test]
-fn use_key_in_set() {
-    let type1_key1 = ResourceKey::new(11_u32);
-    let type1_key2 = ResourceKey::new(12_u32);
-    let type2_key1 = ResourceKey::new(21_i8);
-    let type2_same_key1 = ResourceKey::new(21_i8);
-    let missing_key = ResourceKey::new(3_i8);
-    let mut set = HashSet::new();
-    set.insert(type1_key1.clone());
-    set.insert(type1_key2.clone());
-    set.insert(type2_key1.clone());
-    set.insert(type2_same_key1.clone());
-    assert_eq!(set.len(), 3);
-    assert!(set.contains(&type1_key1));
-    assert!(set.contains(&type1_key2));
-    assert!(set.contains(&type2_key1));
-    assert!(set.contains(&type2_same_key1));
-    assert!(!set.contains(&missing_key));
-}
-
-#[modor_test]
-fn retrieve_debug_key_value() {
-    let key1 = ResourceKey::new(1_u32);
-    let key2 = ResourceKey::new(2_i8);
-    let key3 = ResourceKey::new(2_i8);
-    assert_ne!(format!("{key1:?}"), format!("{key2:?}"));
-    assert_eq!(format!("{key2:?}"), format!("{key3:?}"));
 }

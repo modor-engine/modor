@@ -1,22 +1,23 @@
 use crate::components::material::MaterialRegistry;
+use crate::components::mesh::Mesh;
 use crate::components::renderer::Renderer;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{Material, Model, ZIndex2D};
+use crate::{Camera2D, Material, Model, ZIndex2D};
 use modor::{Changed, Entity, Filter, Or, Query, Single, SingleMut};
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
-use modor_resources::ResourceKey;
+use modor_resources::ResKey;
 use std::cmp::Ordering;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct GroupKey {
-    pub(crate) camera_key: ResourceKey,
-    pub(crate) material_key: ResourceKey,
-    pub(crate) mesh_key: ResourceKey,
+    pub(crate) camera_key: ResKey<Camera2D>,
+    pub(crate) material_key: ResKey<Material>,
+    pub(crate) mesh_key: ResKey<Mesh>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct GroupKeyState {
     pub(crate) group_key: GroupKey,
     pub(crate) is_updated: bool,

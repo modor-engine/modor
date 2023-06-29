@@ -5,16 +5,17 @@ use modor_graphics::{
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
+use modor_resources::ResKey;
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_for_opaque() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, MaterialKey::OpaqueBlue))
-        .with_entity(rectangle(0.03, u16::MAX - 1, MaterialKey::OpaqueBlue))
-        .with_entity(rectangle(-0.03, 1, MaterialKey::OpaqueGreen))
-        .with_entity(rectangle(0.09, u16::MAX, MaterialKey::OpaqueGreen).with(Marker))
+        .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
+        .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
+        .with_entity(rectangle(-0.03, 1, OPAQUE_GREEN_MATERIAL))
+        .with_entity(rectangle(0.09, u16::MAX, OPAQUE_GREEN_MATERIAL).with(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque"))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -30,10 +31,10 @@ fn create_for_transparent() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, MaterialKey::TransparentBlue))
-        .with_entity(rectangle(0.03, u16::MAX - 1, MaterialKey::TransparentBlue))
-        .with_entity(rectangle(-0.03, 1, MaterialKey::TransparentGreen))
-        .with_entity(rectangle(0.09, u16::MAX, MaterialKey::TransparentGreen).with(Marker))
+        .with_entity(rectangle(-0.09, 0, TRANSPARENT_BLUE_MATERIAL))
+        .with_entity(rectangle(0.03, u16::MAX - 1, TRANSPARENT_BLUE_MATERIAL))
+        .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
+        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).with(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -49,10 +50,10 @@ fn create_for_opaque_and_transparent() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, MaterialKey::OpaqueBlue))
-        .with_entity(rectangle(0.03, u16::MAX - 1, MaterialKey::OpaqueBlue))
-        .with_entity(rectangle(-0.03, 1, MaterialKey::TransparentGreen))
-        .with_entity(rectangle(0.09, u16::MAX, MaterialKey::TransparentGreen).with(Marker))
+        .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
+        .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
+        .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
+        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).with(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -69,25 +70,27 @@ fn create_for_opaque_and_transparent() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .with_child(target())
-        .with_child(Camera2D::new(CameraKey, TargetKey))
-        .with_child(Material::new(MaterialKey::OpaqueBlue).with_color(Color::BLUE))
-        .with_child(Material::new(MaterialKey::OpaqueGreen).with_color(Color::GREEN))
+        .with_child(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
+        .with_child(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
         .with_child(
-            Material::new(MaterialKey::TransparentBlue).with_color(Color::BLUE.with_alpha(0.5)),
+            Material::new(TRANSPARENT_BLUE_MATERIAL).with_color(Color::BLUE.with_alpha(0.5)),
         )
         .with_child(
-            Material::new(MaterialKey::TransparentGreen).with_color(Color::GREEN.with_alpha(0.5)),
+            Material::new(TRANSPARENT_GREEN_MATERIAL).with_color(Color::GREEN.with_alpha(0.5)),
         )
 }
 
 fn target() -> impl BuiltEntity {
+    let target_key = ResKey::new("main");
+    let texture_key = ResKey::new("target");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
-        .with(Texture::from_size(TargetTextureKey, Size::new(30, 20)))
+        .with(RenderTarget::new(target_key))
+        .with(Texture::from_size(texture_key, Size::new(30, 20)))
         .with(TextureBuffer::default())
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
-fn rectangle(position: f32, z_index: u16, material: MaterialKey) -> impl BuiltEntity {
+fn rectangle(position: f32, z_index: u16, material_key: ResKey<Material>) -> impl BuiltEntity {
     EntityBuilder::new()
         .with(
             Transform2D::new()
@@ -95,25 +98,14 @@ fn rectangle(position: f32, z_index: u16, material: MaterialKey) -> impl BuiltEn
                 .with_size(Vec2::ONE * 0.3),
         )
         .with(ZIndex2D::from(z_index))
-        .with(Model::rectangle(material, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
 }
 
 #[derive(Component, NoSystem)]
 struct Marker;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetTextureKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MaterialKey {
-    OpaqueBlue,
-    OpaqueGreen,
-    TransparentBlue,
-    TransparentGreen,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const OPAQUE_BLUE_MATERIAL: ResKey<Material> = ResKey::new("opaque-blue");
+const OPAQUE_GREEN_MATERIAL: ResKey<Material> = ResKey::new("opaque-green");
+const TRANSPARENT_BLUE_MATERIAL: ResKey<Material> = ResKey::new("transparent-blue");
+const TRANSPARENT_GREEN_MATERIAL: ResKey<Material> = ResKey::new("transparent-green");
