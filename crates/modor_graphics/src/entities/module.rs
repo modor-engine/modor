@@ -6,7 +6,7 @@ use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::RenderTargetRegistry;
 use crate::components::renderer::Renderer;
 use crate::components::shader::{Shader, ShaderRegistry};
-use crate::components::texture::{TextureKey, TextureRegistry};
+use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 
@@ -44,9 +44,9 @@ pub fn module() -> impl BuiltEntity {
         .with_child(Shader::default())
         .with_child(Shader::ellipse())
         .with_child(Mesh::rectangle())
-        .with_child(Texture::from_size(TextureKey::White, Size::ONE))
+        .with_child(Texture::from_size(WHITE_TEXTURE, Size::ONE))
         .with_child(Texture::from_buffer(
-            TextureKey::Invisible,
+            INVISIBLE_TEXTURE,
             Size::ONE,
             vec![0; 4],
         ))

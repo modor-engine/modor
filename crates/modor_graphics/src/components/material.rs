@@ -1,10 +1,10 @@
-use crate::components::shader::ShaderKey;
+use crate::components::shader::{Shader, DEFAULT_SHADER, ELLIPSE_SHADER};
 use crate::components::texture::TextureRegistry;
 use crate::gpu_data::uniform::Uniform;
 use crate::{Color, Renderer, Texture};
 use modor::{Query, Single, SingleMut};
 use modor_math::Vec2;
-use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 
 pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 
@@ -31,46 +31,40 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// # use modor_physics::*;
 /// # use modor_math::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
+/// const BLUE_ELLIPSE_MATERIAL: ResKey<Material> = ResKey::new("blue-ellipse");
+/// const FULL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("full-texture");
+/// const TL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("top-left-texture");
+/// const TR_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("top-right-texture");
+/// const BL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("bottom-left-texture");
+/// const BR_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("bottom-right-texture");
+/// const TEXTURE: ResKey<Texture> = ResKey::new("sprite");
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Material::ellipse(MaterialKey::BlueEllipse).with_color(Color::BLUE))
-///         .with_child(Material::new(MaterialKey::FullTex).with_texture_key(TextureKey))
-///         .with_child(texture_quarter_material(MaterialKey::TopLeftTex, Vec2::new(0., 0.)))
-///         .with_child(texture_quarter_material(MaterialKey::TopRightTex, Vec2::new(0.5, 0.)))
-///         .with_child(texture_quarter_material(MaterialKey::BottomLeftTex, Vec2::new(0., 0.5)))
-///         .with_child(texture_quarter_material(MaterialKey::BottomRightTex, Vec2::new(0.5, 0.5)))
+///         .with_child(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
+///         .with_child(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
+///         .with_child(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
+///         .with_child(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
+///         .with_child(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
+///         .with_child(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
 ///         .with_child(sprite(Vec2::new(0.4, 0.2)))
 /// }
 ///
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
-///         .with(Model::rectangle(MaterialKey::TopLeftTex, CameraKey))
+///         .with(Model::rectangle(TL_TEXTURE_MATERIAL, CAMERA))
 /// }
 ///
-/// fn texture_quarter_material(key: MaterialKey, position: Vec2) -> Material {
+/// fn texture_quarter_material(key: ResKey<Material>, position: Vec2) -> Material {
 ///     Material::new(key)
-///         .with_texture_key(TextureKey)
+///         .with_texture_key(TEXTURE)
 ///         .with_texture_position(position)
 ///         .with_texture_size(Vec2::new(0.5, 0.5))
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// enum MaterialKey {
-///     BlueEllipse,
-///     FullTex,
-///     TopLeftTex,
-///     TopRightTex,
-///     BottomLeftTex,
-///     BottomRightTex,
-/// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TextureKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
 /// ```
 #[must_use]
 #[derive(Component, Debug)]
@@ -87,7 +81,7 @@ pub struct Material {
     /// If the texture is not loaded, then the models attached to the material are not rendered.
     ///
     /// Default is [`None`].
-    pub texture_key: Option<ResourceKey>,
+    pub texture_key: Option<ResKey<Texture>>,
     /// Top-left position of the extracted texture section.
     ///
     /// [`Vec2::ZERO`] corresponds to top-left corner, and [`Vec2::ONE`] corresponds to bottom-right
@@ -117,14 +111,14 @@ pub struct Material {
     /// If the texture is not loaded, then the models attached to the material are not rendered.
     ///
     /// Default is [`None`].
-    pub front_texture_key: Option<ResourceKey>,
+    pub front_texture_key: Option<ResKey<Texture>>,
     /// Color that is multiplied to the foreground texture when
     /// [`front_texture_key`](#structfield.front_texture_key) is defined.
     ///
     /// Default is [`Color::BLACK`].
     pub front_color: Color,
-    pub(crate) shader_key: ResourceKey,
-    key: ResourceKey,
+    pub(crate) shader_key: ResKey<Shader>,
+    key: ResKey<Self>,
     uniform: Option<Uniform<MaterialData>>,
     is_transparent: bool,
     old_is_transparent: bool,
@@ -136,13 +130,13 @@ impl Material {
     const BINDING: u32 = 0;
 
     /// Creates a new material with a unique `key`.
-    pub fn new(key: impl IntoResourceKey) -> Self {
-        Self::new_internal(key, ShaderKey::Default)
+    pub fn new(key: ResKey<Self>) -> Self {
+        Self::new_internal(key, DEFAULT_SHADER)
     }
 
     /// Creates a material with a unique `key` that crops the rendered model to obtain an ellipse.
-    pub fn ellipse(key: impl IntoResourceKey) -> Self {
-        Self::new_internal(key, ShaderKey::Ellipse)
+    pub fn ellipse(key: ResKey<Self>) -> Self {
+        Self::new_internal(key, ELLIPSE_SHADER)
     }
 
     /// Returns the material with a given [`color`](#structfield.color).
@@ -152,8 +146,8 @@ impl Material {
     }
 
     /// Returns the material with a given [`texture_key`](#structfield.texture_key).
-    pub fn with_texture_key(mut self, texture_key: impl IntoResourceKey) -> Self {
-        self.texture_key = Some(texture_key.into_key());
+    pub fn with_texture_key(mut self, texture_key: ResKey<Texture>) -> Self {
+        self.texture_key = Some(texture_key);
         self
     }
 
@@ -170,8 +164,8 @@ impl Material {
     }
 
     /// Returns the material with a given [`front_texture_key`](#structfield.front_texture_key).
-    pub fn with_front_texture_key(mut self, front_texture_key: impl IntoResourceKey) -> Self {
-        self.front_texture_key = Some(front_texture_key.into_key());
+    pub fn with_front_texture_key(mut self, front_texture_key: ResKey<Texture>) -> Self {
+        self.front_texture_key = Some(front_texture_key);
         self
     }
 
@@ -181,7 +175,7 @@ impl Material {
         self
     }
 
-    fn new_internal(key: impl IntoResourceKey, shader_key: ShaderKey) -> Self {
+    fn new_internal(key: ResKey<Self>, shader_key: ResKey<Shader>) -> Self {
         Self {
             color: Color::WHITE,
             texture_key: None,
@@ -189,8 +183,8 @@ impl Material {
             texture_size: Vec2::ONE,
             front_texture_key: None,
             front_color: Color::BLACK,
-            key: key.into_key(),
-            shader_key: shader_key.into_key(),
+            key,
+            shader_key,
             uniform: None,
             is_transparent: false,
             old_is_transparent: false,
@@ -239,7 +233,7 @@ impl Material {
                 || self
                     .texture_key
                     .as_ref()
-                    .and_then(|k| texture_registry.get(k, &textures))
+                    .and_then(|&k| texture_registry.get(k, &textures))
                     .map_or(false, |t| t.inner().is_transparent);
         }
     }
@@ -260,8 +254,8 @@ impl Material {
 }
 
 impl Resource for Material {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {

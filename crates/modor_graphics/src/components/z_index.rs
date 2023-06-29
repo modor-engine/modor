@@ -21,28 +21,24 @@
 /// # use modor_graphics::*;
 /// # use modor_math::*;
 /// # use modor_physics::*;
+/// # use modor_resources::*;
 /// #
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+/// const FOREGROUND_MATERIAL: ResKey<Material> = ResKey::new("foreground");
+/// const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
+///
 /// fn foreground() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5))
-///         .with(Model::rectangle(MaterialKey::Foreground, CameraKey))
+///         .with(Model::rectangle(FOREGROUND_MATERIAL, CAMERA))
 ///         .with(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::ONE))
-///         .with(Model::rectangle(MaterialKey::Background, CameraKey))
+///         .with(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 ///         .with(ZIndex2D::from(0))
-/// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// enum MaterialKey {
-///     Foreground,
-///     Background,
 /// }
 /// ```
 #[must_use]

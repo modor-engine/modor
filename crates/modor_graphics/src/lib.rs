@@ -17,13 +17,14 @@
 //! # use modor_physics::*;
 //! # use modor_math::*;
 //! # use modor_graphics::*;
+//! # use modor_resources::*;
 //! #
 //! # fn no_run() {
 //! App::new()
 //!     .with_entity(modor_graphics::module())
 //!     .with_entity(window())
-//!     .with_entity(Camera2D::new(CameraKey, TargetKey))
-//!     .with_entity(Material::new(MaterialKey).with_color(Color::RED))
+//!     .with_entity(Camera2D::new(CAMERA, TARGET))
+//!     .with_entity(Material::new(MATERIAL).with_color(Color::RED))
 //!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);
 //! # }
@@ -31,23 +32,18 @@
 //! fn window() -> impl BuiltEntity {
 //!     EntityBuilder::new()
 //!         .with(Window::default())
-//!         .with(RenderTarget::new(TargetKey))
+//!         .with(RenderTarget::new(TARGET))
 //! }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 //!     EntityBuilder::new()
 //!         .with(Transform2D::new().with_position(position).with_size(size))
-//!         .with(Model::rectangle(MaterialKey, CameraKey))
+//!         .with(Model::rectangle(MATERIAL, CAMERA))
 //! }
 //!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct TargetKey;
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct CameraKey;
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct MaterialKey;
+//! const TARGET: ResKey<RenderTarget> = ResKey::new("main");
+//! const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+//! const MATERIAL: ResKey<Material> = ResKey::new("rectangle");
 //! ```
 
 #[macro_use]

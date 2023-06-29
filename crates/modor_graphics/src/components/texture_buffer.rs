@@ -26,11 +26,14 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
 /// fn screenshot() -> impl BuiltEntity {
+///     let target_key = ResKey::unique("main");
+///     let texture_key = ResKey::unique("main");
 ///     EntityBuilder::new()
-///         .with(RenderTarget::new(ScreenshotRenderTargetKey))
-///         .with(Texture::from_size(ScreenshotTextureKey, Size::new(800, 600)))
+///         .with(RenderTarget::new(target_key))
+///         .with(Texture::from_size(texture_key, Size::new(800, 600)))
 ///         .with(TextureBuffer::default())
 ///         .with(Screenshot)
 /// }
@@ -46,12 +49,6 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 ///         // save screenshot on disk...
 ///     }
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct ScreenshotRenderTargetKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct ScreenshotTextureKey;
 /// ```
 #[derive(Component, Debug, Default)]
 pub struct TextureBuffer {

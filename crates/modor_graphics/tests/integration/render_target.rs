@@ -6,13 +6,13 @@ use modor_graphics::{
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
-use modor_resources::{Resource, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceState};
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_default() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(main_texture().with(RenderTarget::new(TargetKey::Main)))
+        .with_entity(main_texture().with(RenderTarget::new(MAIN_TARGET)))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#black"));
 }
@@ -23,8 +23,8 @@ fn create_with_invalid_texture() {
         .with_entity(modor_graphics::module())
         .with_entity(
             EntityBuilder::new()
-                .with(Texture::from_path(TargetTextureKey::Main, "invalid.png"))
-                .with(RenderTarget::new(TargetKey::Main)),
+                .with(Texture::from_path(MAIN_TARGET_TEXTURE, "invalid.png"))
+                .with(RenderTarget::new(MAIN_TARGET)),
         )
         .updated()
         .assert::<With<RenderTarget>>(1, |e| {
@@ -41,8 +41,7 @@ fn create_with_background_color() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(
-            main_texture()
-                .with(RenderTarget::new(TargetKey::Main).with_background_color(Color::RED)),
+            main_texture().with(RenderTarget::new(MAIN_TARGET).with_background_color(Color::RED)),
         )
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#red"))
@@ -58,12 +57,11 @@ fn resize_texture() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(
-            main_texture()
-                .with(RenderTarget::new(TargetKey::Main).with_background_color(Color::RED)),
+            main_texture().with(RenderTarget::new(MAIN_TARGET).with_background_color(Color::RED)),
         )
         .updated()
         .with_component::<With<RenderTarget>, _>(|| {
-            Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
+            Texture::from_size(MAIN_TARGET_TEXTURE, Size::new(20, 30))
         })
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#red2"));
@@ -74,14 +72,13 @@ fn recreate_texture() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(
-            main_texture()
-                .with(RenderTarget::new(TargetKey::Main).with_background_color(Color::RED)),
+            main_texture().with(RenderTarget::new(MAIN_TARGET).with_background_color(Color::RED)),
         )
         .updated()
         .with_deleted_components::<With<MainTarget>, Texture>()
         .updated()
         .with_component::<With<RenderTarget>, _>(|| {
-            Texture::from_size(TargetTextureKey::Main, Size::new(20, 30))
+            Texture::from_size(MAIN_TARGET_TEXTURE, Size::new(20, 30))
         })
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#red2"));
@@ -92,11 +89,11 @@ fn render_target_in_target() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resource())
-        .with_entity(main_texture().with(RenderTarget::new(TargetKey::Main)))
+        .with_entity(main_texture().with(RenderTarget::new(MAIN_TARGET)))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_target"))
         .with_component::<With<BlueRectangle>, _>(|| {
-            Model::rectangle(MaterialKey::Target, CameraKey::Secondary)
+            Model::rectangle(TARGET_MATERIAL, SECONDARY_CAMERA)
         })
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
@@ -106,22 +103,17 @@ fn render_target_in_target() {
 
 fn main_texture() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Texture::from_size(
-            TargetTextureKey::Main,
-            Size::new(30, 20),
-        ))
+        .with(Texture::from_size(MAIN_TARGET_TEXTURE, Size::new(30, 20)))
         .with(TextureBuffer::default())
         .with(MainTarget)
 }
 
 fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(Camera2D::new(CameraKey::Main, TargetKey::Main))
-        .with_child(Camera2D::new(CameraKey::Secondary, TargetKey::Secondary))
-        .with_child(Material::new(MaterialKey::Rectangle).with_color(Color::BLUE))
-        .with_child(
-            Material::new(MaterialKey::Target).with_texture_key(TargetTextureKey::Secondary),
-        )
+        .with_child(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
+        .with_child(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
+        .with_child(Material::new(RECTANGLE_MATERIAL).with_color(Color::BLUE))
+        .with_child(Material::new(TARGET_MATERIAL).with_texture_key(SECONDARY_TARGET_TEXTURE))
         .with_child(secondary_target())
         .with_child(blue_rectangle())
         .with_child(target_rectangle())
@@ -130,11 +122,11 @@ fn resource() -> impl BuiltEntity {
 fn secondary_target() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Texture::from_size(
-            TargetTextureKey::Secondary,
+            SECONDARY_TARGET_TEXTURE,
             Size::new(20, 50),
         ))
         .with(TextureBuffer::default())
-        .with(RenderTarget::new(TargetKey::Secondary).with_background_color(Color::GREEN))
+        .with(RenderTarget::new(SECONDARY_TARGET).with_background_color(Color::GREEN))
         .with(SecondaryTarget)
 }
 
@@ -145,17 +137,14 @@ fn blue_rectangle() -> impl BuiltEntity {
                 .with_position(Vec2::ONE * 0.25)
                 .with_size(Vec2::ONE * 0.5),
         )
-        .with(Model::rectangle(
-            MaterialKey::Rectangle,
-            CameraKey::Secondary,
-        ))
+        .with(Model::rectangle(RECTANGLE_MATERIAL, SECONDARY_CAMERA))
         .with(BlueRectangle)
 }
 
 fn target_rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Target, CameraKey::Main))
+        .with(Model::rectangle(TARGET_MATERIAL, MAIN_CAMERA))
 }
 
 #[derive(SingletonComponent, NoSystem)]
@@ -167,26 +156,11 @@ struct SecondaryTarget;
 #[derive(SingletonComponent, NoSystem)]
 struct BlueRectangle;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum TargetKey {
-    Main,
-    Secondary,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum TargetTextureKey {
-    Main,
-    Secondary,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum CameraKey {
-    Main,
-    Secondary,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum MaterialKey {
-    Target,
-    Rectangle,
-}
+const MAIN_TARGET: ResKey<RenderTarget> = ResKey::new("main");
+const SECONDARY_TARGET: ResKey<RenderTarget> = ResKey::new("secondary");
+const MAIN_TARGET_TEXTURE: ResKey<Texture> = ResKey::new("main");
+const SECONDARY_TARGET_TEXTURE: ResKey<Texture> = ResKey::new("secondary");
+const MAIN_CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const SECONDARY_CAMERA: ResKey<Camera2D> = ResKey::new("secondary");
+const TARGET_MATERIAL: ResKey<Material> = ResKey::new("target");
+const RECTANGLE_MATERIAL: ResKey<Material> = ResKey::new("rectangle");
