@@ -9,7 +9,7 @@ use std::fmt::{Display, Formatter};
 use std::{any, fmt};
 
 /// A registry that keeps track of resources of type `R` identified by a unique
-/// [`ResourceKey`](ResourceKey).
+/// [`ResKey`](ResKey).
 ///
 /// # Examples
 ///
