@@ -5,6 +5,7 @@ use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, Singlet
 use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
+use modor_resources::{IndexResKey, ResKey};
 use rand::Rng;
 use std::time::Duration;
 
@@ -22,6 +23,9 @@ const COLORS: [Color; 10] = [
     Color::OLIVE,
 ];
 
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const MATERIAL: IndexResKey<Material> = IndexResKey::new("sprite");
+
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
@@ -35,16 +39,17 @@ pub fn main() {
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn materials() -> impl BuiltEntity {
     EntityBuilder::new().with_children(|b| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
-            b.add(Material::ellipse(MaterialKey(color_id)).with_color(color));
+            b.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
         }
     })
 }
@@ -65,7 +70,7 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Dynamics2D::new())
-        .with(Model::rectangle(MaterialKey(material_id), CameraKey))
+        .with(Model::rectangle(MATERIAL.get(material_id), CAMERA))
         .with(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .with(RandomMovement::new())
 }
@@ -105,12 +110,3 @@ impl FpsPrinter {
         log::warn!("FPS: {}", (1. / delta.get().as_secs_f32()).round() as u32);
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-struct MaterialKey(usize);

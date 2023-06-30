@@ -7,7 +7,17 @@ use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroupRef, CollisionType, PhysicsModule, RelativeTransform2D, Transform2D,
 };
-use modor_resources::IntoResourceKey;
+use modor_resources::ResKey;
+
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const NOT_COLLIDING_CURSOR_MATERIAL: ResKey<Material> = ResKey::new("not-colliding-cursor");
+const COLLIDING_CURSOR_MATERIAL: ResKey<Material> = ResKey::new("colliding-cursor");
+const RECTANGLE_MATERIAL: ResKey<Material> = ResKey::new("rectangle");
+const CIRCLE_MATERIAL: ResKey<Material> = ResKey::new("circle");
+const CURSOR_COLLISION_POS_MATERIAL: ResKey<Material> = ResKey::new("cursor-collision-position");
+const SHAPE_COLLISION_POS_MATERIAL: ResKey<Material> = ResKey::new("shape-collision-position");
+const CURSOR_COLLISION_DIR_MATERIAL: ResKey<Material> = ResKey::new("cursor-collision-direction");
+const SHAPE_COLLISION_DIR_MATERIAL: ResKey<Material> = ResKey::new("shape-collision-direction");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
@@ -16,14 +26,14 @@ pub fn main() {
         .with_entity(InputModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(window())
-        .with_entity(Material::new(MaterialKey::NotCollidingCursor).with_color(Color::GREEN))
-        .with_entity(Material::new(MaterialKey::CollidingCursor).with_color(Color::RED))
-        .with_entity(Material::new(MaterialKey::Rectangle).with_color(Color::BLUE))
-        .with_entity(Material::ellipse(MaterialKey::Circle).with_color(Color::BLUE))
-        .with_entity(Material::ellipse(MaterialKey::CursorCollisionPos).with_color(Color::YELLOW))
-        .with_entity(Material::ellipse(MaterialKey::ShapeCollisionPos).with_color(Color::DARK_GRAY))
-        .with_entity(Material::new(MaterialKey::CursorCollisionDir).with_color(Color::YELLOW))
-        .with_entity(Material::new(MaterialKey::ShapeCollisionDir).with_color(Color::DARK_GRAY))
+        .with_entity(Material::new(NOT_COLLIDING_CURSOR_MATERIAL).with_color(Color::GREEN))
+        .with_entity(Material::new(COLLIDING_CURSOR_MATERIAL).with_color(Color::RED))
+        .with_entity(Material::new(RECTANGLE_MATERIAL).with_color(Color::BLUE))
+        .with_entity(Material::ellipse(CIRCLE_MATERIAL).with_color(Color::BLUE))
+        .with_entity(Material::ellipse(CURSOR_COLLISION_POS_MATERIAL).with_color(Color::YELLOW))
+        .with_entity(Material::ellipse(SHAPE_COLLISION_POS_MATERIAL).with_color(Color::DARK_GRAY))
+        .with_entity(Material::new(CURSOR_COLLISION_DIR_MATERIAL).with_color(Color::YELLOW))
+        .with_entity(Material::new(SHAPE_COLLISION_DIR_MATERIAL).with_color(Color::DARK_GRAY))
         .with_entity(cursor())
         .with_entity(rectangle())
         .with_entity(circle())
@@ -31,17 +41,18 @@ pub fn main() {
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default().with_cursor_shown(false))
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn cursor() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_size(Vec2::new(0.05, 0.1)))
         .with(Collider2D::rectangle(CollisionGroup::Cursor))
-        .with(Model::rectangle(MaterialKey::NotCollidingCursor, CameraKey))
+        .with(Model::rectangle(NOT_COLLIDING_CURSOR_MATERIAL, CAMERA))
         .with(ZIndex2D::from(1))
         .with(Cursor)
 }
@@ -52,7 +63,7 @@ fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Collider2D::rectangle(CollisionGroup::Shape))
-        .with(Model::rectangle(MaterialKey::Rectangle, CameraKey))
+        .with(Model::rectangle(RECTANGLE_MATERIAL, CAMERA))
         .with(Shape)
 }
 
@@ -62,16 +73,16 @@ fn circle() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Collider2D::circle(CollisionGroup::Shape))
-        .with(Model::rectangle(MaterialKey::Circle, CameraKey))
+        .with(Model::rectangle(CIRCLE_MATERIAL, CAMERA))
         .with(Shape)
 }
 
 fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEntity {
     let size = Vec2::ONE * 0.02;
     let material_key = if is_cursor {
-        MaterialKey::CursorCollisionPos
+        CURSOR_COLLISION_POS_MATERIAL
     } else {
-        MaterialKey::ShapeCollisionPos
+        SHAPE_COLLISION_POS_MATERIAL
     };
     EntityBuilder::new()
         .with(
@@ -80,7 +91,7 @@ fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEn
                 .with_size(size)
                 .with_rotation(Vec2::X.rotation(normal)),
         )
-        .with(Model::rectangle(material_key, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(ZIndex2D::from(2))
         .with(AutoRemoved)
         .with_child(collision_normal(is_cursor))
@@ -99,9 +110,9 @@ fn collision_normal(is_cursor: bool) -> impl BuiltEntity {
 
 fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
     let material_key = if is_cursor {
-        MaterialKey::CursorCollisionDir
+        CURSOR_COLLISION_DIR_MATERIAL
     } else {
-        MaterialKey::ShapeCollisionDir
+        SHAPE_COLLISION_DIR_MATERIAL
     };
     EntityBuilder::new()
         .with(Transform2D::new())
@@ -111,7 +122,7 @@ fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
                 .with_size(Vec2::ONE)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(material_key, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(ZIndex2D::from(2))
 }
 
@@ -134,9 +145,9 @@ impl Cursor {
     #[run]
     fn update_material(model: &mut Model, collider: &Collider2D, mut world: World<'_>) {
         model.material_key = if collider.collisions().is_empty() {
-            MaterialKey::NotCollidingCursor.into_key()
+            NOT_COLLIDING_CURSOR_MATERIAL
         } else {
-            MaterialKey::CollidingCursor.into_key()
+            COLLIDING_CURSOR_MATERIAL
         };
         for collision in collider.collisions() {
             world.create_root_entity(collision_mark(collision.position, collision.normal, true));
@@ -181,22 +192,4 @@ impl CollisionGroupRef for CollisionGroup {
             _ => CollisionType::None,
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MaterialKey {
-    NotCollidingCursor,
-    CollidingCursor,
-    Rectangle,
-    Circle,
-    CursorCollisionPos,
-    ShapeCollisionPos,
-    CursorCollisionDir,
-    ShapeCollisionDir,
 }

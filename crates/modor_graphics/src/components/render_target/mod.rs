@@ -7,14 +7,12 @@ use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::texture::TextureTarget;
 use crate::components::render_target::window::WindowTarget;
 use crate::components::shader::{Shader, ShaderRegistry};
-use crate::components::texture::{TextureKey, TextureRegistry};
+use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
 use crate::{Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
 use modor::{Component, ComponentSystems, Query, Single, SingleMut};
-use modor_resources::{
-    IntoResourceKey, Resource, ResourceKey, ResourceLoadingError, ResourceRegistry, ResourceState,
-};
+use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceRegistry, ResourceState};
 use std::fmt::Debug;
 use std::ops::Range;
 use wgpu::{IndexFormat, RenderPass, TextureFormat};
@@ -48,10 +46,16 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// # use modor_physics::*;
 /// # use modor_math::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+/// const TARGET_TEXTURE: ResKey<Texture> = ResKey::new("target");
+/// const WINDOW_TARGET: ResKey<RenderTarget> = ResKey::new("window");
+/// const TEXTURE_TARGET: ResKey<RenderTarget> = ResKey::new("texture");
+///
 /// fn root() -> impl BuiltEntity {
-///     let camera = Camera2D::new(CameraKey, TargetKey::Window)
-///         .with_target_key(TargetKey::Texture);
+///     let camera = Camera2D::new(CAMERA, WINDOW_TARGET)
+///         .with_target_key(TEXTURE_TARGET);
 ///     EntityBuilder::new()
 ///         .with_child(window_target())
 ///         .with_child(texture_target())
@@ -61,26 +65,14 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// fn window_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Window::default())
-///         .with(RenderTarget::new(TargetKey::Texture))
+///         .with(RenderTarget::new(WINDOW_TARGET))
 /// }
 ///
 /// fn texture_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_size(TextureKey, Size::new(800, 600)))
-///         .with(RenderTarget::new(TargetKey::Texture).with_background_color(Color::GREEN))
+///         .with(Texture::from_size(TARGET_TEXTURE, Size::new(800, 600)))
+///         .with(RenderTarget::new(TEXTURE_TARGET).with_background_color(Color::GREEN))
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// enum TargetKey {
-///     Window,
-///     Texture,
-/// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TextureKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
 /// ```
 #[must_use]
 #[derive(Component, Debug)]
@@ -89,14 +81,12 @@ pub struct RenderTarget {
     ///
     /// Default is [`Color::BLACK`].
     pub background_color: Color,
-    key: ResourceKey,
+    key: ResKey<Self>,
     window: Option<WindowTarget>,
     texture: Option<TextureTarget>,
     window_state: TargetState,
     texture_state: TargetState,
     is_texture_conflict_logged: bool,
-    default_texture_key: ResourceKey,
-    default_front_texture_key: ResourceKey,
     window_renderer_version: Option<u8>,
     texture_renderer_version: Option<u8>,
 }
@@ -104,17 +94,15 @@ pub struct RenderTarget {
 #[systems]
 impl RenderTarget {
     /// Creates a new target with a unique `key`.
-    pub fn new(key: impl IntoResourceKey) -> Self {
+    pub fn new(key: ResKey<Self>) -> Self {
         Self {
             background_color: Color::BLACK,
-            key: key.into_key(),
+            key,
             window: None,
             texture: None,
             window_state: TargetState::NotLoaded,
             texture_state: TargetState::NotLoaded,
             is_texture_conflict_logged: false,
-            default_texture_key: TextureKey::White.into_key(),
-            default_front_texture_key: TextureKey::Invisible.into_key(),
             window_renderer_version: None,
             texture_renderer_version: None,
         }
@@ -227,7 +215,7 @@ impl RenderTarget {
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
-                    &self.key,
+                    self.key,
                     TargetType::Window,
                     target_texture_format,
                     group_key,
@@ -240,14 +228,12 @@ impl RenderTarget {
                     (&mut mesh_registry, &meshes),
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
-                    &self.default_texture_key,
-                    &self.default_front_texture_key,
                 );
             }
             for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
                 Self::draw(
                     &mut pass,
-                    &self.key,
+                    self.key,
                     TargetType::Window,
                     target_texture_format,
                     group_key,
@@ -260,8 +246,6 @@ impl RenderTarget {
                     (&mut mesh_registry, &meshes),
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
-                    &self.default_texture_key,
-                    &self.default_front_texture_key,
                 );
             }
             drop(pass);
@@ -273,7 +257,7 @@ impl RenderTarget {
             for (group_key, instance_buffer) in opaque_instances.iter() {
                 Self::draw(
                     &mut pass,
-                    &self.key,
+                    self.key,
                     TargetType::Texture,
                     Shader::TEXTURE_FORMAT,
                     group_key,
@@ -286,14 +270,12 @@ impl RenderTarget {
                     (&mut mesh_registry, &meshes),
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
-                    &self.default_texture_key,
-                    &self.default_front_texture_key,
                 );
             }
             for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
                 Self::draw(
                     &mut pass,
-                    &self.key,
+                    self.key,
                     TargetType::Texture,
                     Shader::TEXTURE_FORMAT,
                     group_key,
@@ -306,8 +288,6 @@ impl RenderTarget {
                     (&mut mesh_registry, &meshes),
                     (&mut texture_registry, &textures),
                     &mut self.is_texture_conflict_logged,
-                    &self.default_texture_key,
-                    &self.default_front_texture_key,
                 );
             }
             drop(pass);
@@ -332,11 +312,11 @@ impl RenderTarget {
     #[allow(clippy::cast_possible_truncation, clippy::too_many_arguments)]
     fn draw<'a>(
         pass: &mut RenderPass<'a>,
-        target_key: &ResourceKey,
+        target_key: ResKey<Self>,
         target_type: TargetType,
         target_texture_format: TextureFormat,
-        group_key: &GroupKey,
-        target_texture_key: Option<&ResourceKey>,
+        group_key: GroupKey,
+        target_texture_key: Option<ResKey<Texture>>,
         instance_buffer: &'a DynamicBuffer<Instance>,
         instance_range: Option<Range<usize>>,
         (camera_registry, cameras): (&mut Camera2DRegistry, &'a Query<'_, &Camera2D>),
@@ -345,15 +325,13 @@ impl RenderTarget {
         (mesh_registry, meshes): (&mut MeshRegistry, &'a Query<'_, &Mesh>),
         (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
         is_texture_conflict_logged: &mut bool,
-        default_texture_key: &ResourceKey,
-        default_front_texture_key: &ResourceKey,
     ) -> Option<()> {
-        let camera = camera_registry.get(&group_key.camera_key, cameras)?;
-        if !camera.target_keys.contains(target_key) {
+        let camera = camera_registry.get(group_key.camera_key, cameras)?;
+        if !camera.target_keys.contains(&target_key) {
             return None;
         }
-        let material = material_registry.get(&group_key.material_key, materials)?;
-        let texture_key = material.texture_key.as_ref().unwrap_or(default_texture_key);
+        let material = material_registry.get(group_key.material_key, materials)?;
+        let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
         let texture = Self::texture(
             target_key,
             group_key,
@@ -363,10 +341,7 @@ impl RenderTarget {
             is_texture_conflict_logged,
         )?;
         let texture_bind_ground = &texture.inner().bind_group;
-        let front_texture_key = material
-            .front_texture_key
-            .as_ref()
-            .unwrap_or(default_front_texture_key);
+        let front_texture_key = material.front_texture_key.unwrap_or(INVISIBLE_TEXTURE);
         let front_texture = Self::texture(
             target_key,
             group_key,
@@ -376,8 +351,8 @@ impl RenderTarget {
             is_texture_conflict_logged,
         )?;
         let front_texture_bind_ground = &front_texture.inner().bind_group;
-        let shader = shader_registry.get(&material.shader_key, shaders)?;
-        let mesh = mesh_registry.get(&group_key.mesh_key, meshes)?;
+        let shader = shader_registry.get(material.shader_key, shaders)?;
+        let mesh = mesh_registry.get(group_key.mesh_key, meshes)?;
         let camera_uniform = camera.uniform(target_key, target_type);
         let material_uniform = material.uniform();
         let vertex_buffer = mesh.vertex_buffer();
@@ -400,10 +375,10 @@ impl RenderTarget {
     }
 
     fn texture<'a>(
-        target_key: &ResourceKey,
-        group_key: &GroupKey,
-        texture_key: &ResourceKey,
-        target_texture_key: Option<&ResourceKey>,
+        target_key: ResKey<Self>,
+        group_key: GroupKey,
+        texture_key: ResKey<Texture>,
+        target_texture_key: Option<ResKey<Texture>>,
         (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
         is_texture_conflict_logged: &mut bool,
     ) -> Option<&'a Texture> {
@@ -422,8 +397,8 @@ impl RenderTarget {
 }
 
 impl Resource for RenderTarget {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {

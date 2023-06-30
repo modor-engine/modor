@@ -5,8 +5,8 @@ use crate::{GpuContext, Size};
 use image::{DynamicImage, ImageError, RgbaImage};
 use modor::Single;
 use modor_resources::{
-    IntoResourceKey, Load, Resource, ResourceHandler, ResourceKey, ResourceLoadingError,
-    ResourceRegistry, ResourceSource, ResourceState,
+    Load, ResKey, Resource, ResourceHandler, ResourceLoadingError, ResourceRegistry,
+    ResourceSource, ResourceState,
 };
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
@@ -16,6 +16,9 @@ use wgpu::{
 };
 
 pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
+
+pub(crate) const WHITE_TEXTURE: ResKey<Texture> = ResKey::new("white(modor_graphics)");
+pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(modor_graphics)");
 
 /// A texture that can be attached to a [`Material`](crate::Material).
 ///
@@ -37,28 +40,24 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 /// # use modor_graphics::*;
 /// # use modor_physics::*;
 /// # use modor_math::*;
+/// # use modor_resources::*;
 /// #
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+/// const TEXTURE: ResKey<Texture> = ResKey::new("sprite");
+/// const MATERIAL: ResKey<Material> = ResKey::new("sprite");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Texture::from_path(TextureKey, "texture.png"))
-///         .with_child(Material::new(MaterialKey).with_texture_key(TextureKey))
+///         .with_child(Texture::from_path(TEXTURE, "texture.png"))
+///         .with_child(Material::new(MATERIAL).with_texture_key(TEXTURE))
 ///         .with_child(sprite())
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new())
-///         .with(Model::rectangle(MaterialKey, CameraKey))
+///         .with(Model::rectangle(MATERIAL, CAMERA))
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TextureKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct MaterialKey;
 /// ```
 #[must_use]
 #[derive(Component, Debug)]
@@ -77,7 +76,7 @@ pub struct Texture {
     ///
     /// Default is `false`.
     pub is_repeated: bool,
-    key: ResourceKey,
+    key: ResKey<Self>,
     handler: ResourceHandler<LoadedImage, TextureData>,
     texture: Option<LoadedTexture>,
     renderer_version: Option<u8>,
@@ -86,9 +85,9 @@ pub struct Texture {
 #[systems]
 impl Texture {
     /// Creates a new texture identified by a unique `key` and created from `source`.
-    pub fn new(key: impl IntoResourceKey, source: TextureSource) -> Self {
+    pub fn new(key: ResKey<Self>, source: TextureSource) -> Self {
         Self {
-            key: key.into_key(),
+            key,
             is_smooth: true,
             is_repeated: false,
             handler: ResourceHandler::new(source.into()),
@@ -100,7 +99,7 @@ impl Texture {
     /// Creates a white texture identified by a unique `key` and created with a given `size`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Size`] source.
-    pub fn from_size(key: impl IntoResourceKey, size: Size) -> Self {
+    pub fn from_size(key: ResKey<Self>, size: Size) -> Self {
         Self::new(key, TextureSource::Size(size))
     }
 
@@ -108,21 +107,21 @@ impl Texture {
     /// `buffer`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Buffer`] source.
-    pub fn from_buffer(key: impl IntoResourceKey, size: Size, buffer: Vec<u8>) -> Self {
+    pub fn from_buffer(key: ResKey<Self>, size: Size, buffer: Vec<u8>) -> Self {
         Self::new(key, TextureSource::Buffer(size, buffer))
     }
 
     /// Creates a new texture identified by a unique `key` and created with given file `data`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::File`] source.
-    pub fn from_file(key: impl IntoResourceKey, data: &'static [u8]) -> Self {
+    pub fn from_file(key: ResKey<Self>, data: &'static [u8]) -> Self {
         Self::new(key, TextureSource::File(data))
     }
 
     /// Creates a new texture identified by a unique `key` and created with a given file `path`.
     ///
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Path`] source.
-    pub fn from_path(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
+    pub fn from_path(key: ResKey<Self>, path: impl Into<String>) -> Self {
         Self::new(key, TextureSource::Path(path.into()))
     }
 
@@ -147,7 +146,7 @@ impl Texture {
         }
         if let Some(context) = state.context() {
             self.update_loaded_texture(context);
-            self.handler.update::<Self>(&self.key);
+            self.handler.update::<Self>(self.key);
             if let Some(image) = self.handler.resource() {
                 self.texture = Some(self.load_texture(image.0, context));
             }
@@ -297,8 +296,8 @@ impl Texture {
 }
 
 impl Resource for Texture {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {
@@ -437,10 +436,4 @@ impl Load<TextureData> for LoadedImage {
             TextureData::RgbaBuffer(size, buffer) => Self::load_from_buffer(buffer.clone(), *size),
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum TextureKey {
-    White,
-    Invisible,
 }

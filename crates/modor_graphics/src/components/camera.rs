@@ -8,7 +8,7 @@ use fxhash::FxHashMap;
 use modor::{Query, Single, SingleMut};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
-use modor_resources::{IntoResourceKey, Resource, ResourceKey, ResourceRegistry, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
@@ -36,11 +36,17 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// # use modor_physics::*;
 /// # use modor_math::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
+/// const DEFAULT_CAMERA: ResKey<Camera2D> = ResKey::new("default");
+/// const DYNAMIC_CAMERA: ResKey<Camera2D> = ResKey::new("dynamic");
+/// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
+/// const MATERIAL: ResKey<Material> = ResKey::new("main");
+///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with_child(render_target())
-///         .with_child(Camera2D::new(CameraKey::Default, TargetKey))
+///         .with_child(Camera2D::new(DEFAULT_CAMERA, TARGET))
 ///         .with_child(dynamic_camera())
 ///         .with_child(object())
 /// }
@@ -48,35 +54,23 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// fn render_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Window::default())
-///         .with(RenderTarget::new(TargetKey))
+///         .with(RenderTarget::new(TARGET))
 /// }
 ///
 /// fn dynamic_camera() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Camera2D::new(CameraKey::Dynamic, TargetKey))
+///         .with(Camera2D::new(DYNAMIC_CAMERA, TARGET))
 ///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
 ///         .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
-///     let model = Model::rectangle(MaterialKey, CameraKey::Default)
-///         .with_camera_key(CameraKey::Dynamic);
+///     let model = Model::rectangle(MATERIAL, DEFAULT_CAMERA)
+///         .with_camera_key(DYNAMIC_CAMERA);
 ///     EntityBuilder::new()
 ///         .with(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
 ///         .with(model)
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// enum CameraKey {
-///     Default,
-///     Dynamic,
-/// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TargetKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct MaterialKey;
 /// ```
 #[must_use]
 #[derive(Component, Debug)]
@@ -85,8 +79,8 @@ pub struct Camera2D {
     ///
     /// If the camera is used for a target, all associated [`Model`](crate::Model)s will be rendered
     /// in this target.
-    pub target_keys: Vec<ResourceKey>,
-    key: ResourceKey,
+    pub target_keys: Vec<ResKey<RenderTarget>>,
+    key: ResKey<Self>,
     transform: Transform2D,
     target_uniforms: FxHashMap<TargetPartKey, Uniform<CameraData>>,
     renderer_version: Option<u8>,
@@ -98,10 +92,10 @@ impl Camera2D {
 
     /// Creates a new camera with a unique `key` and linked to a
     /// [`RenderTarget`](RenderTarget).
-    pub fn new(key: impl IntoResourceKey, target_key: impl IntoResourceKey) -> Self {
+    pub fn new(key: ResKey<Self>, target_key: ResKey<RenderTarget>) -> Self {
         Self {
-            target_keys: vec![target_key.into_key()],
-            key: key.into_key(),
+            target_keys: vec![target_key],
+            key,
             transform: Transform2D::default(),
             target_uniforms: FxHashMap::default(),
             renderer_version: None,
@@ -110,10 +104,10 @@ impl Camera2D {
 
     /// Creates a new camera with a unique `key` and not linked to
     /// a [`RenderTarget`](RenderTarget).
-    pub fn hidden(key: impl IntoResourceKey) -> Self {
+    pub fn hidden(key: ResKey<Self>) -> Self {
         Self {
             target_keys: vec![],
-            key: key.into_key(),
+            key,
             transform: Transform2D::default(),
             target_uniforms: FxHashMap::default(),
             renderer_version: None,
@@ -121,8 +115,8 @@ impl Camera2D {
     }
 
     /// Returns the camera with a new `key` added to the [`target_keys`](#structfield.target_keys).
-    pub fn with_target_key(mut self, key: impl IntoResourceKey) -> Self {
-        self.target_keys.push(key.into_key());
+    pub fn with_target_key(mut self, key: ResKey<RenderTarget>) -> Self {
+        self.target_keys.push(key);
         self
     }
 
@@ -148,11 +142,11 @@ impl Camera2D {
             self.target_uniforms.clear();
         }
         if let (Some(context), Some(mut target_registry)) = (state.context(), target_registry) {
-            for target_key in &self.target_keys {
+            for &target_key in &self.target_keys {
                 let target = target_registry.get(target_key, &targets);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {
                     let target_part_key = TargetPartKey {
-                        target_key: target_key.clone(),
+                        target_key,
                         type_: target_type,
                     };
                     let transform = self.gpu_matrix(surface_size).to_array();
@@ -191,12 +185,12 @@ impl Camera2D {
 
     pub(crate) fn uniform(
         &self,
-        target_key: &ResourceKey,
+        target_key: ResKey<RenderTarget>,
         target_type: TargetType,
     ) -> &Uniform<CameraData> {
         self.target_uniforms
             .get(&TargetPartKey {
-                target_key: target_key.clone(),
+                target_key,
                 type_: target_type,
             })
             .expect("internal error: camera uniform not initialized")
@@ -241,8 +235,8 @@ impl Camera2D {
 }
 
 impl Resource for Camera2D {
-    fn key(&self) -> &ResourceKey {
-        &self.key
+    fn key(&self) -> ResKey<Self> {
+        self.key
     }
 
     fn state(&self) -> ResourceState<'_> {
@@ -258,6 +252,6 @@ pub(crate) struct CameraData {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct TargetPartKey {
-    target_key: ResourceKey,
+    target_key: ResKey<RenderTarget>,
     type_: TargetType,
 }

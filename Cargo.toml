@@ -23,6 +23,7 @@ criterion = { version = "0.4", default-features = false, features = [
     "plotters",
     "cargo_bench_support",
 ] }
+derivative = "2.2"
 doc-comment = "0.3"
 fs_extra = "1.2"
 futures = "0.3"
@@ -33,7 +34,7 @@ instant = "0.1"
 log = "0.4"
 ndk-glue = "0.7"
 pico-args = "0.5"
-pretty_env_logger = "0.4"
+pretty_env_logger = "0.5"
 proc-macro-crate = "1.1"
 proc-macro-error = "1.0"
 proc-macro2 = "1.0"

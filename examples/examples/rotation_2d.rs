@@ -4,40 +4,45 @@ use modor::{App, BuiltEntity, EntityBuilder};
 use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, RelativeTransform2D, Transform2D};
+use modor_resources::ResKey;
 use std::f32::consts::FRAC_PI_2;
+
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(modor_text::module())
-        .with_entity(Material::new(MaterialKey::Object).with_color(Color::YELLOW))
-        .with_entity(Material::new(MaterialKey::Child).with_color(Color::MAGENTA))
         .with_entity(window())
         .with_entity(object())
         .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn object() -> impl BuiltEntity {
     let position = Vec2::new(0.15, 0.15);
     let size = Vec2::new(0.25, 0.5);
+    let material_key = ResKey::unique("object");
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
         .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
-        .with(Model::rectangle(MaterialKey::Object, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
+        .with(Material::new(material_key).with_color(Color::YELLOW))
         .with_child(child())
 }
 
 fn child() -> impl BuiltEntity {
     let size = Vec2::new(0.1, 0.2);
     let relative_position = Vec2::ONE * 0.5;
+    let material_key = ResKey::unique("child");
     EntityBuilder::new()
         .with(Transform2D::new().with_size(size))
         .with(
@@ -45,18 +50,7 @@ fn child() -> impl BuiltEntity {
                 .with_position(relative_position)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(MaterialKey::Child, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(ZIndex2D::from(1))
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-enum MaterialKey {
-    Object,
-    Child,
+        .with(Material::new(material_key).with_color(Color::MAGENTA))
 }

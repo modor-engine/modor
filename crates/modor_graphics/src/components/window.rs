@@ -24,6 +24,7 @@ use winit::window::Window as WindowHandle;
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// #
 /// # fn no_run() {
 /// App::new()
@@ -35,11 +36,10 @@ use winit::window::Window as WindowHandle;
 /// fn window() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .with(Window::default().with_title("My app"))
-///         .with(RenderTarget::new(TargetKey).with_background_color(Color::GREEN))
+///         .with(RenderTarget::new(TARGET).with_background_color(Color::GREEN))
 /// }
 ///
-/// #[derive(Clone, PartialEq, Eq, Debug, Hash)]
-/// struct TargetKey;
+/// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
 /// ```
 #[must_use]
 #[allow(clippy::struct_excessive_bools)]

@@ -1,4 +1,4 @@
-use crate::{ResourceKey, ResourceLoadingError, ResourceState};
+use crate::{ResKey, Resource, ResourceLoadingError, ResourceState};
 use modor_jobs::{AssetLoadingJob, Job};
 use std::any::Any;
 use std::fmt::Debug;
@@ -14,24 +14,24 @@ use std::{any, mem};
 /// #
 /// #[derive(Component)]
 /// struct ContentSize {
-///     key: ResourceKey,
+///     key: ResKey<Self>,
 ///     handler: ResourceHandler<LoadedSize, String>,
 ///     size: Option<usize>,
 /// }
 ///
 /// #[systems]
 /// impl ContentSize {
-///     fn from_file(key: impl IntoResourceKey, path: impl Into<String>) -> Self {
+///     fn from_file(key: ResKey<Self>, path: impl Into<String>) -> Self {
 ///         Self {
-///             key: key.into_key(),
+///             key,
 ///             handler: ResourceHandler::new(ResourceSource::AsyncPath(path.into())),
 ///             size: None,
 ///         }
 ///     }
 ///
-///     fn from_string(key: impl IntoResourceKey, string: impl Into<String>) -> Self {
+///     fn from_string(key: ResKey<Self>, string: impl Into<String>) -> Self {
 ///         Self {
-///             key: key.into_key(),
+///             key,
 ///             handler: ResourceHandler::new(ResourceSource::AsyncData(string.into())),
 ///             size: None,
 ///         }
@@ -39,7 +39,7 @@ use std::{any, mem};
 ///
 ///     #[run]
 ///     fn update(&mut self) {
-///         self.handler.update::<Self>(&self.key);
+///         self.handler.update::<Self>(self.key);
 ///         self.size = self.size.take().or_else(|| self.handler.resource().map(|s| s.0));
 ///     }
 ///
@@ -49,8 +49,8 @@ use std::{any, mem};
 /// }
 ///
 /// impl Resource for ContentSize {
-///     fn key(&self) -> &ResourceKey {
-///         &self.key
+///     fn key(&self) -> ResKey<Self> {
+///         self.key
 ///     }
 ///
 ///     fn state(&self) -> ResourceState<'_> {
@@ -134,11 +134,14 @@ where
     ///
     /// Loading is performed only if this method is called. It is necessary to call this method
     /// multiple times until loading is finished.
-    pub fn update<R>(&mut self, key: &ResourceKey) {
+    pub fn update<R>(&mut self, key: ResKey<R>)
+    where
+        R: Resource,
+    {
         self.state = match mem::take(&mut self.state) {
             ResourceHandlerState::NotLoaded => self.start_loading(),
-            ResourceHandlerState::DataLoading(job) => Self::check_data_loading_job::<R>(job, key),
-            ResourceHandlerState::PathLoading(job) => Self::check_path_loading_job::<R>(job, key),
+            ResourceHandlerState::DataLoading(job) => Self::check_data_loading_job(job, key),
+            ResourceHandlerState::PathLoading(job) => Self::check_path_loading_job(job, key),
             state @ (ResourceHandlerState::Loaded(_)
             | ResourceHandlerState::Used
             | ResourceHandlerState::Error(_)) => state,
@@ -165,7 +168,7 @@ where
 
     fn check_data_loading_job<R>(
         mut job: Job<Result<T, ResourceLoadingError>>,
-        key: &ResourceKey,
+        key: ResKey<R>,
     ) -> ResourceHandlerState<T> {
         match job.try_poll() {
             Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
@@ -173,8 +176,8 @@ where
             Ok(None) => ResourceHandlerState::DataLoading(job),
             Err(_) => {
                 let error = format!(
-                    "loading job panicked for `{:?}` resource of type `{}`",
-                    key,
+                    "loading job panicked for `{}` resource of type `{}`",
+                    key.label(),
                     any::type_name::<R>()
                 );
                 error!("{error}");
@@ -185,7 +188,7 @@ where
 
     fn check_path_loading_job<R>(
         mut job: AssetLoadingJob<Result<T, ResourceLoadingError>>,
-        key: &ResourceKey,
+        key: ResKey<R>,
     ) -> ResourceHandlerState<T> {
         match job.try_poll() {
             Ok(Some(Ok(resource))) => ResourceHandlerState::Loaded(resource),
@@ -193,8 +196,8 @@ where
             Ok(None) => ResourceHandlerState::PathLoading(job),
             Err(error) => {
                 error!(
-                    "loading from path failed for `{:?}` resource of type `{}`: {error}",
-                    key,
+                    "loading from path failed for `{}` resource of type `{}`: {error}",
+                    key.label(),
                     any::type_name::<R>()
                 );
                 ResourceHandlerState::Error(ResourceLoadingError::AssetLoadingError(error))

@@ -2,6 +2,7 @@ use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{Size, Texture, TextureBuffer, TextureSource};
 use modor_resources::testing::wait_resource_loading;
+use modor_resources::ResKey;
 use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::{env, fs, panic};
@@ -150,14 +151,12 @@ fn texture_with_different_height() -> impl BuiltEntity {
 }
 
 fn texture(source: TextureSource) -> impl BuiltEntity {
+    let texture_key = ResKey::unique("main");
     EntityBuilder::new()
-        .with(Texture::new(TextureKey, source))
+        .with(Texture::new(texture_key, source))
         .with(TextureBuffer::default())
 }
 
 fn load_image_data(path: impl AsRef<Path>) -> Vec<u8> {
     image::open(path).unwrap().to_rgba8().into_raw()
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TextureKey;
