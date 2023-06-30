@@ -8,36 +8,40 @@ use modor::{
 use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use std::fmt::Debug;
-use std::hash::Hash;
+use modor_resources::ResKey;
 use std::time::Duration;
 
 const GRID_SIZE: usize = 150;
 const REFRESH_PERIOD: Duration = Duration::from_millis(100);
+
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
+const ALIVE_CELL_MATERIAL: ResKey<Material> = ResKey::new("alive-cell");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(window())
-        .with_entity(Material::new(MaterialKey::Background).with_color(Color::WHITE))
-        .with_entity(Material::new(MaterialKey::AliveCell).with_color(Color::BLACK))
+        .with_entity(Material::new(BACKGROUND_MATERIAL).with_color(Color::WHITE))
+        .with_entity(Material::new(ALIVE_CELL_MATERIAL).with_color(Color::BLACK))
         .with_entity(Grid::load())
         .with_entity(background())
         .run(modor_graphics::runner);
 }
 
 fn window() -> impl BuiltEntity {
+    let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
+        .with(RenderTarget::new(target_key))
         .with(Window::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey::Background, CameraKey))
+        .with(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
@@ -45,7 +49,7 @@ fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
     let size = Vec2::ONE / GRID_SIZE as f32;
     EntityBuilder::new()
         .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Model::rectangle(MaterialKey::AliveCell, CameraKey))
+        .with(Model::rectangle(ALIVE_CELL_MATERIAL, CAMERA))
         .with(ZIndex2D::from(1))
         .with(AliveCell)
 }
@@ -140,15 +144,3 @@ impl Grid {
 
 #[derive(Component, NoSystem)]
 struct AliveCell;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MaterialKey {
-    Background,
-    AliveCell,
-}

@@ -2,7 +2,7 @@ use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{Size, Texture, TextureBuffer};
 use modor_resources::testing::wait_resource_loading;
-use modor_resources::IntoResourceKey;
+use modor_resources::ResKey;
 use modor_text::{Alignment, Font, Text};
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -33,19 +33,17 @@ fn create_with_font() {
     App::new()
         .with_entity(modor_text::module())
         .with_entity(Font::from_path(
-            FontKey::Ttf,
+            TTF_FONT,
             "../tests/assets/IrishGrover-Regular.ttf",
         ))
         .with_entity(Font::from_path(
-            FontKey::Otf,
+            OTF_FONT,
             "../tests/assets/Foglihtenno07.otf",
         ))
-        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(FontKey::Ttf)))
+        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"))
-        .with_update::<With<TextureBuffer>, _>(|t: &mut Text| {
-            t.font_key = FontKey::Otf.into_key();
-        })
+        .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.font_key = OTF_FONT)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("text#font_otf"));
 }
@@ -54,10 +52,10 @@ fn create_with_font() {
 fn create_before_font() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(FontKey::Ttf)))
+        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
         .updated()
         .with_entity(Font::from_path(
-            FontKey::Ttf,
+            TTF_FONT,
             "../tests/assets/IrishGrover-Regular.ttf",
         ))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
@@ -65,16 +63,11 @@ fn create_before_font() {
 }
 
 fn texture() -> impl BuiltEntity {
+    let texture_key = ResKey::unique("text");
     EntityBuilder::new()
-        .with(Texture::from_size(TextureKey, Size::ZERO))
+        .with(Texture::from_size(texture_key, Size::ZERO))
         .with(TextureBuffer::default())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TextureKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum FontKey {
-    Ttf,
-    Otf,
-}
+const TTF_FONT: ResKey<Font> = ResKey::new("ttf");
+const OTF_FONT: ResKey<Font> = ResKey::new("otf");

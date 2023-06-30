@@ -6,7 +6,7 @@ use modor_graphics::{
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_resources::IntoResourceKey;
+use modor_resources::ResKey;
 use std::f32::consts::FRAC_PI_2;
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -14,7 +14,7 @@ fn create_hidden() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::hidden(CameraKey))
+        .with_entity(Camera2D::hidden(CAMERA))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
@@ -64,22 +64,19 @@ where
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_with_one_target() {
+    let missing_target_key = ResKey::new("missing");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
+        .with_entity(Camera2D::new(CAMERA, TARGET1))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| {
-            c.target_keys[0] = TargetKey::Second.into_key();
-        })
+        .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| c.target_keys[0] = TARGET2)
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#not_empty2"))
-        .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| {
-            c.target_keys[0] = TargetKey::Missing.into_key();
-        })
+        .with_update::<With<Camera2D>, _>(|c: &mut Camera2D| c.target_keys[0] = missing_target_key)
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"));
@@ -90,7 +87,7 @@ fn create_with_many_targets() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey, TargetKey::First).with_target_key(TargetKey::Second))
+        .with_entity(Camera2D::new(CAMERA, TARGET1).with_target_key(TARGET2))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#not_empty2"));
@@ -101,7 +98,7 @@ fn create_with_transform() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
+        .with_entity(Camera2D::new(CAMERA, TARGET1))
         .updated()
         .with_component::<With<Camera2D>, _>(|| {
             Transform2D::new()
@@ -145,13 +142,13 @@ fn recreate_entity() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
+        .with_entity(Camera2D::new(CAMERA, TARGET1))
         .updated()
         .with_deleted_entities::<With<Camera2D>>()
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .with_entity(Camera2D::new(CameraKey, TargetKey::First))
+        .with_entity(Camera2D::new(CAMERA, TARGET1))
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#empty2"));
@@ -161,28 +158,24 @@ fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .with_child(target1())
         .with_child(target2())
-        .with_child(Material::new(MaterialKey).with_color(Color::BLUE))
+        .with_child(Material::new(MATERIAL).with_color(Color::BLUE))
         .with_child(model())
 }
 
 fn target1() -> impl BuiltEntity {
+    let texture_key = ResKey::unique("target-1");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey::First))
-        .with(Texture::from_size(
-            TargetTextureKey::First,
-            Size::new(30, 20),
-        ))
+        .with(RenderTarget::new(TARGET1))
+        .with(Texture::from_size(texture_key, Size::new(30, 20)))
         .with(TextureBuffer::default())
         .with(Target1)
 }
 
 fn target2() -> impl BuiltEntity {
+    let texture_key = ResKey::unique("target-2");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey::Second))
-        .with(Texture::from_size(
-            TargetTextureKey::Second,
-            Size::new(20, 30),
-        ))
+        .with(RenderTarget::new(TARGET2))
+        .with(Texture::from_size(texture_key, Size::new(20, 30)))
         .with(TextureBuffer::default())
         .with(Target2)
 }
@@ -194,30 +187,16 @@ fn model() -> impl BuiltEntity {
                 .with_position(Vec2::ONE * 0.25)
                 .with_size(Vec2::ONE * 0.5),
         )
-        .with(Model::rectangle(MaterialKey, CameraKey))
+        .with(Model::rectangle(MATERIAL, CAMERA))
 }
+
+const TARGET1: ResKey<RenderTarget> = ResKey::new("1");
+const TARGET2: ResKey<RenderTarget> = ResKey::new("2");
+const MATERIAL: ResKey<Material> = ResKey::new("main");
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 
 #[derive(SingletonComponent, NoSystem)]
 struct Target1;
 
 #[derive(SingletonComponent, NoSystem)]
 struct Target2;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum TargetKey {
-    First,
-    Second,
-    Missing,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum TargetTextureKey {
-    First,
-    Second,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct MaterialKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;

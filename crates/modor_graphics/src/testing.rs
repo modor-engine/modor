@@ -35,16 +35,16 @@ pub use crate::runner::testing::*;
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// # use modor_graphics::testing::*;
+/// # use modor_resources::*;
 /// #
 /// # fn f() {
 /// use modor_resources::testing::wait_resource_loading;
 ///
-/// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-/// struct TextureKey;
+/// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TextureKey, "image.png"))
+///         .with(Texture::from_path(TEXTURE, "image.png"))
 ///         .with(TextureBuffer::default())
 /// }
 ///
@@ -89,16 +89,16 @@ where
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// # use modor_graphics::testing::*;
+/// # use modor_resources::*;
 /// #
 /// # fn f() {
 /// use modor_resources::testing::wait_resource_loading;
 ///
-/// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-/// struct TextureKey;
+/// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TextureKey, "image.png"))
+///         .with(Texture::from_path(TEXTURE, "image.png"))
 ///         .with(TextureBuffer::default())
 /// }
 ///
@@ -149,17 +149,20 @@ where
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics::*;
+/// # use modor_resources::*;
 /// # use modor_graphics::testing::*;
 /// #
 /// # fn f() {
 /// use modor_resources::testing::wait_resource_loading;
+///
+/// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
 ///
 /// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// struct TextureKey;
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TextureKey, "image.png"))
+///         .with(Texture::from_path(TEXTURE, "image.png"))
 ///         .with(TextureBuffer::default())
 /// }
 ///

@@ -6,7 +6,7 @@ use modor_graphics::{
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
-use modor_resources::{Resource, ResourceLoadingError, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceState};
 
 const TEXTURE_DATA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -17,7 +17,7 @@ const TEXTURE_DATA: &[u8] = include_bytes!(concat!(
 fn create_from_size() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer().with(Texture::from_size(TextureKey::Rectangle, Size::new(40, 20))))
+        .with_entity(buffer().with(Texture::from_size(RECTANGLE_TEXTURE, Size::new(40, 20))))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("texture#size"))
@@ -28,7 +28,7 @@ fn create_from_size() {
 fn create_from_zero_size() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer().with(Texture::from_size(TextureKey::Rectangle, Size::ZERO)))
+        .with_entity(buffer().with(Texture::from_size(RECTANGLE_TEXTURE, Size::ZERO)))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
@@ -40,7 +40,7 @@ fn create_from_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_buffer(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             Size::new(3, 1),
             vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
         )))
@@ -54,11 +54,7 @@ fn create_from_buffer() {
 fn create_from_empty_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer().with(Texture::from_buffer(
-            TextureKey::Rectangle,
-            Size::ZERO,
-            vec![],
-        )))
+        .with_entity(buffer().with(Texture::from_buffer(RECTANGLE_TEXTURE, Size::ZERO, vec![])))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
@@ -69,7 +65,7 @@ fn create_from_empty_buffer() {
 fn create_from_file() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer().with(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA)))
+        .with_entity(buffer().with(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA)))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_loading())
@@ -83,7 +79,7 @@ fn create_from_path() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_path(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             "../tests/assets/opaque-texture.png",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
@@ -99,7 +95,7 @@ fn create_from_unsupported_format() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_path(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             "../tests/assets/text.txt",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
@@ -112,7 +108,7 @@ fn create_from_corrupted_file() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_path(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             "../tests/assets/corrupted-texture.png",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
@@ -125,7 +121,7 @@ fn create_from_buffer_with_too_big_size() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_buffer(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             Size::new(4, 1),
             vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
         )))
@@ -139,7 +135,7 @@ fn create_with_default_params() {
         .with_entity(modor_graphics::module())
         .with_entity(target())
         .with_entity(rectangle())
-        .with_entity(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA))
+        .with_entity(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1));
 }
@@ -152,7 +148,7 @@ fn create_with_smooth() {
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
-                .with(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_smooth(false))
+                .with(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA).with_smooth(false))
                 .with(TestedTexture),
         )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
@@ -170,7 +166,7 @@ fn create_with_repeated() {
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
-                .with(Texture::from_file(TextureKey::Rectangle, TEXTURE_DATA).with_repeated(true))
+                .with(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA).with_repeated(true))
                 .with(TestedTexture),
         )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
@@ -185,7 +181,7 @@ fn set_source() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(buffer().with(Texture::from_buffer(
-            TextureKey::Rectangle,
+            RECTANGLE_TEXTURE,
             Size::new(3, 1),
             vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
         )))
@@ -262,20 +258,23 @@ fn buffer() -> impl BuiltEntity {
 }
 
 fn target() -> impl BuiltEntity {
+    let target_key = ResKey::unique("main");
+    let texture_key = ResKey::unique("target");
     EntityBuilder::new()
-        .with(RenderTarget::new(TargetKey))
-        .with(Texture::from_size(TextureKey::Target, Size::new(30, 20)))
+        .with(RenderTarget::new(target_key))
+        .with(Texture::from_size(texture_key, Size::new(30, 20)))
         .with(TextureBuffer::default())
-        .with(Camera2D::new(CameraKey, TargetKey))
+        .with(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle() -> impl BuiltEntity {
+    let material_key = ResKey::unique("rectangle");
     EntityBuilder::new()
         .with(Transform2D::new())
-        .with(Model::rectangle(MaterialKey, CameraKey))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(
-            Material::new(MaterialKey)
-                .with_texture_key(TextureKey::Rectangle)
+            Material::new(material_key)
+                .with_texture_key(RECTANGLE_TEXTURE)
                 .with_texture_size(Vec2::ONE * 2.),
         )
 }
@@ -283,17 +282,5 @@ fn rectangle() -> impl BuiltEntity {
 #[derive(Component, NoSystem)]
 struct TestedTexture;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct MaterialKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum TextureKey {
-    Target,
-    Rectangle,
-}
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");
+const RECTANGLE_TEXTURE: ResKey<Texture> = ResKey::new("rectangle");

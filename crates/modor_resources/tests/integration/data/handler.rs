@@ -1,8 +1,10 @@
 use modor_resources::{
-    IntoResourceKey, Load, ResourceHandler, ResourceLoadingError, ResourceSource, ResourceState,
+    Load, ResKey, Resource, ResourceHandler, ResourceLoadingError, ResourceSource, ResourceState,
 };
 use std::thread;
 use std::time::Duration;
+
+const RESOURCE: ResKey<SizeResource> = ResKey::new("size");
 
 #[modor_test(disabled(wasm))]
 fn load_valid_resource_from_sync_data() {
@@ -10,11 +12,11 @@ fn load_valid_resource_from_sync_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Loading);
     assert_eq!(handler.resource(), Some(LoadedSize(4)));
     assert_eq!(handler.state(), ResourceState::Loaded);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Loaded);
     assert_eq!(handler.resource(), None);
 }
@@ -25,12 +27,12 @@ fn load_invalid_resource_from_sync_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     let error = ResourceLoadingError::LoadingError("empty data".into());
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
     assert_eq!(handler.state(), ResourceState::Error(&error));
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
 }
@@ -42,7 +44,7 @@ fn load_valid_resource_from_async_data() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if let Some(resource) = handler.resource() {
             assert_eq!(resource, LoadedSize(4));
             break;
@@ -50,7 +52,7 @@ fn load_valid_resource_from_async_data() {
         thread::sleep(Duration::from_millis(1));
     }
     assert_eq!(handler.state(), ResourceState::Loaded);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Loaded);
     assert_eq!(handler.resource(), None);
 }
@@ -62,7 +64,7 @@ fn load_invalid_resource_from_async_data() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
             break;
         }
@@ -72,7 +74,7 @@ fn load_invalid_resource_from_async_data() {
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
     assert_eq!(handler.state(), ResourceState::Error(&error));
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
 }
@@ -84,7 +86,7 @@ fn load_resource_from_async_data_that_panics_during_loading() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
             break;
         }
@@ -99,7 +101,7 @@ fn load_resource_from_async_data_that_panics_during_loading() {
         handler.state(),
         ResourceState::Error(&ResourceLoadingError::LoadingError(_))
     ));
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert!(matches!(
         handler.state(),
         ResourceState::Error(&ResourceLoadingError::LoadingError(_))
@@ -114,7 +116,7 @@ fn load_valid_resource_from_async_path() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if let Some(resource) = handler.resource() {
             assert_eq!(resource, LoadedSize(12));
             break;
@@ -122,7 +124,7 @@ fn load_valid_resource_from_async_path() {
         thread::sleep(Duration::from_millis(1));
     }
     assert_eq!(handler.state(), ResourceState::Loaded);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Loaded);
     assert_eq!(handler.resource(), None);
 }
@@ -134,7 +136,7 @@ fn load_invalid_resource_from_valid_async_path() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
             break;
         }
@@ -144,7 +146,7 @@ fn load_invalid_resource_from_valid_async_path() {
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
     assert_eq!(handler.state(), ResourceState::Error(&error));
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.state(), ResourceState::Error(&error));
     assert_eq!(handler.resource(), None);
 }
@@ -156,7 +158,7 @@ fn load_invalid_resource_from_invalid_async_path() {
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
     for _ in 0..1000 {
-        handler.update::<LoadedSize>(&"key".into_key());
+        handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
             break;
         }
@@ -171,7 +173,7 @@ fn load_invalid_resource_from_invalid_async_path() {
         handler.state(),
         ResourceState::Error(ResourceLoadingError::AssetLoadingError(_))
     ));
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert!(matches!(
         handler.state(),
         ResourceState::Error(ResourceLoadingError::AssetLoadingError(_))
@@ -183,11 +185,11 @@ fn load_invalid_resource_from_invalid_async_path() {
 fn reload_resource() {
     let source = ResourceSource::SyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     handler.resource().unwrap();
     handler.reload();
     assert_eq!(handler.state(), ResourceState::NotLoaded);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.resource(), Some(LoadedSize(4)));
     assert_eq!(handler.state(), ResourceState::Loaded);
 }
@@ -196,13 +198,25 @@ fn reload_resource() {
 fn change_resource_source() {
     let source = ResourceSource::SyncData("text".into());
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     handler.resource().unwrap();
     handler.set_source(ResourceSource::SyncData("longer text".into()));
     assert_eq!(handler.state(), ResourceState::NotLoaded);
-    handler.update::<LoadedSize>(&"key".into_key());
+    handler.update(RESOURCE);
     assert_eq!(handler.resource(), Some(LoadedSize(11)));
     assert_eq!(handler.state(), ResourceState::Loaded);
+}
+
+struct SizeResource(ResKey<Self>);
+
+impl Resource for SizeResource {
+    fn key(&self) -> ResKey<Self> {
+        self.0
+    }
+
+    fn state(&self) -> ResourceState<'_> {
+        ResourceState::NotLoaded
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

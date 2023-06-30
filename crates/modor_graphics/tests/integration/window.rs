@@ -5,6 +5,7 @@ use modor_graphics::{
     WindowCloseBehavior,
 };
 use modor_physics::Transform2D;
+use modor_resources::ResKey;
 use std::thread;
 use std::time::Duration;
 use winit::dpi::PhysicalSize;
@@ -58,15 +59,16 @@ fn create_customized_window(context: &mut TestRunnerContext) {
 }
 
 fn create_target_window(context: &mut TestRunnerContext) {
+    let target_key = ResKey::new("main");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(
             EntityBuilder::new()
                 .with(Window::default())
-                .with(RenderTarget::new(TargetKey)),
+                .with(RenderTarget::new(target_key)),
         )
         .with_entity(FrameRate::Unlimited)
-        .with_entity(Camera2D::new(CameraKey, TargetKey))
+        .with_entity(Camera2D::new(CAMERA, target_key))
         .with_entity(opaque_rectangle())
         .with_entity(transparent_rectangle())
         .run(|a| {
@@ -196,16 +198,18 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 }
 
 fn opaque_rectangle() -> impl BuiltEntity {
+    let material_key = ResKey::unique("opaque-rectangle");
     EntityBuilder::new()
-        .with(Material::new(MaterialKey::Opaque))
-        .with(Model::rectangle(MaterialKey::Opaque, CameraKey))
+        .with(Material::new(material_key))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(Transform2D::new())
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
+    let material_key = ResKey::unique("transparent-rectangle");
     EntityBuilder::new()
-        .with(Material::new(MaterialKey::Transparent).with_color(Color::WHITE.with_alpha(0.5)))
-        .with(Model::rectangle(MaterialKey::Transparent, CameraKey))
+        .with(Material::new(material_key).with_color(Color::WHITE.with_alpha(0.5)))
+        .with(Model::rectangle(material_key, CAMERA))
         .with(Transform2D::new())
 }
 
@@ -220,14 +224,4 @@ impl AutoRemove {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TargetKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CameraKey;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MaterialKey {
-    Opaque,
-    Transparent,
-}
+const CAMERA: ResKey<Camera2D> = ResKey::new("main");

@@ -15,38 +15,34 @@
 //! # use modor::*;
 //! # use modor_physics::*;
 //! # use modor_graphics::*;
+//! # use modor_resources::*;
 //! # use modor_text::*;
 //! #
 //! # fn no_run() {
 //! App::new()
 //!     .with_entity(modor_text::module())
 //!     .with_entity(window())
-//!     .with_entity(Camera2D::new(CameraKey, TargetKey))
 //!     .with_entity(text())
 //!     .run(modor_graphics::runner);
 //! # }
 //!
 //! fn window() -> impl BuiltEntity {
+//!     let target_key = ResKey::unique("window");
 //!     EntityBuilder::new()
 //!         .with(Window::default())
-//!         .with(RenderTarget::new(TargetKey))
+//!         .with(RenderTarget::new(target_key))
+//!         .with(Camera2D::new(CAMERA, target_key))
 //! }
 //!
 //! fn text() -> impl BuiltEntity {
-//!     TextMaterialBuilder::new(MaterialKey, "my text", 100.)
+//!     let material_key = ResKey::unique("text");
+//!     TextMaterialBuilder::new(material_key, "my text", 100.)
 //!         .build()
 //!         .with(Transform2D::new())
-//!         .with(Model::rectangle(MaterialKey, CameraKey))
+//!         .with(Model::rectangle(material_key, CAMERA))
 //! }
 //!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct TargetKey;
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct CameraKey;
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-//! struct MaterialKey;
+//! const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 //! ```
 
 #[macro_use]

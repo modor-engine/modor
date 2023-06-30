@@ -98,15 +98,15 @@ impl TransparentInstanceRegistry {
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let entity_id = entity.id();
             let is_transparent = material_registry
-                .get(&model.material_key, &materials)
+                .get(model.material_key, &materials)
                 .map_or(false, Material::is_transparent);
             self.instances.reset_entity_update_state(entity_id);
             if is_transparent {
-                for camera_key in &model.camera_keys {
+                for &camera_key in &model.camera_keys {
                     let group_key = GroupKey {
-                        camera_key: camera_key.clone(),
-                        material_key: model.material_key.clone(),
-                        mesh_key: model.mesh_key.clone(),
+                        camera_key,
+                        material_key: model.material_key,
+                        mesh_key: model.mesh_key,
                     };
                     if let Some(position) = self.instances.add(entity_id, group_key) {
                         buffer[position] = super::create_instance(transform, z_index);
@@ -145,12 +145,12 @@ struct InstanceDetails {
 }
 
 impl InstanceDetails {
-    fn next_group(&self, first_position: usize) -> Option<(&GroupKey, Range<usize>)> {
+    fn next_group(&self, first_position: usize) -> Option<(GroupKey, Range<usize>)> {
         self.instances.get(first_position).map(|instance| {
-            let group_key = &instance.group_key;
+            let group_key = instance.group_key;
             let next_range_position = self.instances[first_position..]
                 .iter()
-                .filter(|i| &i.group_key != group_key)
+                .filter(|i| i.group_key != group_key)
                 .map(|i| i.position)
                 .next()
                 .unwrap_or(self.instances.len());
@@ -169,7 +169,7 @@ impl InstanceDetails {
             Some(position)
         } else {
             let position = self.instances.len();
-            entity_positions.insert(group_key.clone(), position);
+            entity_positions.insert(group_key, position);
             self.instances.push(InstanceProperties {
                 entity_id,
                 group_key,
@@ -189,7 +189,7 @@ impl InstanceDetails {
             instance.position = position;
             Self::set_position(
                 instance.entity_id,
-                &instance.group_key,
+                instance.group_key,
                 position,
                 &mut self.entity_positions,
             );
@@ -205,7 +205,7 @@ impl InstanceDetails {
         for instance in &self.instances {
             Self::set_position(
                 instance.entity_id,
-                &instance.group_key,
+                instance.group_key,
                 instance.position,
                 &mut self.entity_positions,
             );
@@ -250,14 +250,14 @@ impl InstanceDetails {
 
     fn set_position(
         entity_id: usize,
-        group_key: &GroupKey,
+        group_key: GroupKey,
         position: usize,
         entity_positions: &mut FxHashMap<usize, FxHashMap<GroupKey, usize>>,
     ) {
         *entity_positions
             .get_mut(&entity_id)
             .expect("internal error: not found position of entity")
-            .get_mut(group_key)
+            .get_mut(&group_key)
             .expect("internal error: not found position of entity group") = position;
     }
 }
@@ -277,7 +277,7 @@ impl<'a> GroupIterator<'a> {
 }
 
 impl<'a> Iterator for GroupIterator<'a> {
-    type Item = (&'a GroupKey, &'a DynamicBuffer<Instance>, Range<usize>);
+    type Item = (GroupKey, &'a DynamicBuffer<Instance>, Range<usize>);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
