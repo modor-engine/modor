@@ -107,6 +107,7 @@ impl<C> BuiltEntityPart for C
 where
     C: ComponentSystems,
 {
+    // coverage: off (unreachable)
     fn create_archetype(
         &mut self,
         _core: &mut CoreStorage,
@@ -122,6 +123,7 @@ where
     fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
         unreachable!()
     }
+    // coverage: on
 
     fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
         EntityComponentBuilder {
