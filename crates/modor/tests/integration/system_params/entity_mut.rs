@@ -24,7 +24,7 @@ macro_rules! entity_tester {
 fn access_entity() {
     entity_tester!(Tester, |e| assert_eq!(e.entity().depth(), 0));
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<With<Tester>>(1, |e| e.has(|a: &Tester| assert!(a.0)));
 }
@@ -33,7 +33,7 @@ fn access_entity() {
 fn access_world() {
     entity_tester!(Tester, |e| e.world().create_root_entity(C1(2)));
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<With<C1>>(2, |e| e);
 }
@@ -42,7 +42,7 @@ fn access_world() {
 fn create_child() {
     entity_tester!(Tester, |e| e.create_child(entity(10)));
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<Not<With<Tester>>>(1, |e| e.has_parent::<With<Tester>>());
 }
@@ -51,7 +51,7 @@ fn create_child() {
 fn delete() {
     entity_tester!(Tester, |e| e.delete());
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<With<Tester>>(0, |e| e);
 }
@@ -60,7 +60,7 @@ fn delete() {
 fn add_component() {
     entity_tester!(Tester, |e| e.add_component(C3(2)));
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<With<Tester>>(1, |e| e.has(|c: &C3| assert_eq!(c.0, 2)));
 }
@@ -69,13 +69,15 @@ fn add_component() {
 fn delete_component() {
     entity_tester!(Tester, |e| e.delete_component::<C2>());
     App::new()
-        .with_entity(entity(0).with(Tester::default()))
+        .with_entity(entity(0).component(Tester::default()))
         .updated()
         .assert::<With<Tester>>(1, |e| e.has::<C1>(|_| ()).has_not::<C2>());
 }
 
 fn entity(offset: u32) -> impl BuiltEntity {
-    EntityBuilder::new().with(C1(offset)).with(C2(offset + 1))
+    EntityBuilder::new()
+        .component(C1(offset))
+        .component(C2(offset + 1))
 }
 
 #[derive(Component, NoSystem)]

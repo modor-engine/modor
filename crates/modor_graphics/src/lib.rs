@@ -31,14 +31,14 @@
 //!
 //! fn window() -> impl BuiltEntity {
 //!     EntityBuilder::new()
-//!         .with(Window::default())
-//!         .with(RenderTarget::new(TARGET))
+//!         .component(Window::default())
+//!         .component(RenderTarget::new(TARGET))
 //! }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 //!     EntityBuilder::new()
-//!         .with(Transform2D::new().with_position(position).with_size(size))
-//!         .with(Model::rectangle(MATERIAL, CAMERA))
+//!         .component(Transform2D::new().with_position(position).with_size(size))
+//!         .component(Model::rectangle(MATERIAL, CAMERA))
 //! }
 //!
 //! const TARGET: ResKey<RenderTarget> = ResKey::new("main");

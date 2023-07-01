@@ -57,21 +57,21 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 ///     let camera = Camera2D::new(CAMERA, WINDOW_TARGET)
 ///         .with_target_key(TEXTURE_TARGET);
 ///     EntityBuilder::new()
-///         .with_child(window_target())
-///         .with_child(texture_target())
-///         .with_child(camera)
+///         .child_entity(window_target())
+///         .child_entity(texture_target())
+///         .child_entity(camera)
 /// }
 ///
 /// fn window_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Window::default())
-///         .with(RenderTarget::new(WINDOW_TARGET))
+///         .component(Window::default())
+///         .component(RenderTarget::new(WINDOW_TARGET))
 /// }
 ///
 /// fn texture_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_size(TARGET_TEXTURE, Size::new(800, 600)))
-///         .with(RenderTarget::new(TEXTURE_TARGET).with_background_color(Color::GREEN))
+///         .component(Texture::from_size(TARGET_TEXTURE, Size::new(800, 600)))
+///         .component(RenderTarget::new(TEXTURE_TARGET).with_background_color(Color::GREEN))
 /// }
 /// ```
 #[must_use]

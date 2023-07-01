@@ -35,19 +35,19 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FONT, "font.ttf"))
-///         .with_child(text())
+///         .child_entity(Font::from_path(FONT, "font.ttf"))
+///         .child_entity(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
 ///     let texture_key = ResKey::unique("text");
 ///     let material_key = ResKey::unique("text");
 ///     EntityBuilder::new()
-///         .with(Text::new("my text", 30.).with_font(FONT))
-///         .with(Texture::from_size(texture_key, Size::ZERO))
-///         .with(Material::new(material_key).with_front_texture_key(texture_key))
-///         .with(Model::rectangle(material_key, CAMERA))
-///         .with(Transform2D::new())
+///         .component(Text::new("my text", 30.).with_font(FONT))
+///         .component(Texture::from_size(texture_key, Size::ZERO))
+///         .component(Material::new(material_key).with_front_texture_key(texture_key))
+///         .component(Model::rectangle(material_key, CAMERA))
+///         .component(Transform2D::new())
 /// }
 ///
 /// #[derive(Debug, Clone, PartialEq, Eq, Hash)]

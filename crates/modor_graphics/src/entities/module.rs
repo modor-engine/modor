@@ -31,21 +31,21 @@ use modor::{BuiltEntity, EntityBuilder};
 /// ```
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(GraphicsModule)
-        .with(Renderer::new())
-        .with(OpaqueInstanceRegistry::default())
-        .with(TransparentInstanceRegistry::default())
-        .with(RenderTargetRegistry::default())
-        .with(Camera2DRegistry::default())
-        .with(ShaderRegistry::default())
-        .with(MeshRegistry::default())
-        .with(MaterialRegistry::default())
-        .with(TextureRegistry::default())
-        .with_child(Shader::default())
-        .with_child(Shader::ellipse())
-        .with_child(Mesh::rectangle())
-        .with_child(Texture::from_size(WHITE_TEXTURE, Size::ONE))
-        .with_child(Texture::from_buffer(
+        .component(GraphicsModule)
+        .component(Renderer::new())
+        .component(OpaqueInstanceRegistry::default())
+        .component(TransparentInstanceRegistry::default())
+        .component(RenderTargetRegistry::default())
+        .component(Camera2DRegistry::default())
+        .component(ShaderRegistry::default())
+        .component(MeshRegistry::default())
+        .component(MaterialRegistry::default())
+        .component(TextureRegistry::default())
+        .child_entity(Shader::default())
+        .child_entity(Shader::ellipse())
+        .child_entity(Mesh::rectangle())
+        .child_entity(Texture::from_size(WHITE_TEXTURE, Size::ONE))
+        .child_entity(Texture::from_buffer(
             INVISIBLE_TEXTURE,
             Size::ONE,
             vec![0; 4],

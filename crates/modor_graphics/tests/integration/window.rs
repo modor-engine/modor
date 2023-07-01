@@ -64,8 +64,8 @@ fn create_target_window(context: &mut TestRunnerContext) {
         .with_entity(modor_graphics::module())
         .with_entity(
             EntityBuilder::new()
-                .with(Window::default())
-                .with(RenderTarget::new(target_key)),
+                .component(Window::default())
+                .component(RenderTarget::new(target_key)),
         )
         .with_entity(FrameRate::Unlimited)
         .with_entity(Camera2D::new(CAMERA, target_key))
@@ -111,8 +111,8 @@ fn delete_window(context: &mut TestRunnerContext) {
     App::new()
         .with_entity(
             EntityBuilder::new()
-                .with(Window::default())
-                .with(AutoRemove),
+                .component(Window::default())
+                .component(AutoRemove),
         )
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
@@ -200,17 +200,17 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 fn opaque_rectangle() -> impl BuiltEntity {
     let material_key = ResKey::unique("opaque-rectangle");
     EntityBuilder::new()
-        .with(Material::new(material_key))
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(Transform2D::new())
+        .component(Material::new(material_key))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(Transform2D::new())
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
     let material_key = ResKey::unique("transparent-rectangle");
     EntityBuilder::new()
-        .with(Material::new(material_key).with_color(Color::WHITE.with_alpha(0.5)))
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(Transform2D::new())
+        .component(Material::new(material_key).with_color(Color::WHITE.with_alpha(0.5)))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(Transform2D::new())
 }
 
 #[derive(Component)]

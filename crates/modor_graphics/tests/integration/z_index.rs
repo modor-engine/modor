@@ -15,7 +15,7 @@ fn create_for_opaque() {
         .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
         .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
         .with_entity(rectangle(-0.03, 1, OPAQUE_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, OPAQUE_GREEN_MATERIAL).with(Marker))
+        .with_entity(rectangle(0.09, u16::MAX, OPAQUE_GREEN_MATERIAL).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque"))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -34,7 +34,7 @@ fn create_for_transparent() {
         .with_entity(rectangle(-0.09, 0, TRANSPARENT_BLUE_MATERIAL))
         .with_entity(rectangle(0.03, u16::MAX - 1, TRANSPARENT_BLUE_MATERIAL))
         .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).with(Marker))
+        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -53,7 +53,7 @@ fn create_for_opaque_and_transparent() {
         .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
         .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
         .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).with(Marker))
+        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -69,13 +69,13 @@ fn create_for_opaque_and_transparent() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(target())
-        .with_child(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
-        .with_child(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
-        .with_child(
+        .child_entity(target())
+        .child_entity(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
+        .child_entity(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
+        .child_entity(
             Material::new(TRANSPARENT_BLUE_MATERIAL).with_color(Color::BLUE.with_alpha(0.5)),
         )
-        .with_child(
+        .child_entity(
             Material::new(TRANSPARENT_GREEN_MATERIAL).with_color(Color::GREEN.with_alpha(0.5)),
         )
 }
@@ -84,21 +84,21 @@ fn target() -> impl BuiltEntity {
     let target_key = ResKey::new("main");
     let texture_key = ResKey::new("target");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Texture::from_size(texture_key, Size::new(30, 20)))
-        .with(TextureBuffer::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Texture::from_size(texture_key, Size::new(30, 20)))
+        .component(TextureBuffer::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle(position: f32, z_index: u16, material_key: ResKey<Material>) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(position, position))
                 .with_size(Vec2::ONE * 0.3),
         )
-        .with(ZIndex2D::from(z_index))
-        .with(Model::rectangle(material_key, CAMERA))
+        .component(ZIndex2D::from(z_index))
+        .component(Model::rectangle(material_key, CAMERA))
 }
 
 #[derive(Component, NoSystem)]

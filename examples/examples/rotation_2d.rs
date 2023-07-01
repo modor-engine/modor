@@ -22,9 +22,9 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn object() -> impl BuiltEntity {
@@ -32,11 +32,11 @@ fn object() -> impl BuiltEntity {
     let size = Vec2::new(0.25, 0.5);
     let material_key = ResKey::unique("object");
     EntityBuilder::new()
-        .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(Material::new(material_key).with_color(Color::YELLOW))
-        .with_child(child())
+        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(Material::new(material_key).with_color(Color::YELLOW))
+        .child_entity(child())
 }
 
 fn child() -> impl BuiltEntity {
@@ -44,13 +44,13 @@ fn child() -> impl BuiltEntity {
     let relative_position = Vec2::ONE * 0.5;
     let material_key = ResKey::unique("child");
     EntityBuilder::new()
-        .with(Transform2D::new().with_size(size))
-        .with(
+        .component(Transform2D::new().with_size(size))
+        .component(
             RelativeTransform2D::new()
                 .with_position(relative_position)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(ZIndex2D::from(1))
-        .with(Material::new(material_key).with_color(Color::MAGENTA))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(ZIndex2D::from(1))
+        .component(Material::new(material_key).with_color(Color::MAGENTA))
 }

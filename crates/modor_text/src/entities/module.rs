@@ -19,10 +19,10 @@ use modor_graphics::GraphicsModule;
 /// ```
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(TextModule)
-        .with(FontRegistry::default())
-        .with_child(Font::new(DEFAULT_FONT, FontSource::File(DEFAULT_FONT_FILE)))
-        .with_dependency::<GraphicsModule, _, _>(modor_graphics::module)
+        .component(TextModule)
+        .component(FontRegistry::default())
+        .child_entity(Font::new(DEFAULT_FONT, FontSource::File(DEFAULT_FONT_FILE)))
+        .dependency::<GraphicsModule, _, _>(modor_graphics::module)
 }
 
 /// The component that identifies the text module entity created with [`module()`].

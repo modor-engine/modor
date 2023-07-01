@@ -54,8 +54,8 @@ struct Parent {
 impl Parent {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self { done: false })
-            .with_child(Number::build(20))
+            .component(Self { done: false })
+            .child_entity(Number::build(20))
     }
 
     #[run]
@@ -75,13 +75,13 @@ impl Parent {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(QueryTester::default())
-        .with_child(EntityIds::default())
-        .with_child(Number::build(1).with(RegisteredNumber))
-        .with_child(OtherNumber::build(10))
-        .with_child(Number::build(2).with(RegisteredNumber))
-        .with_child(Number::build_without_value().with(RegisteredNumber))
-        .with_child(Number::build_with_additional_component(3).with(RegisteredNumber))
+        .child_entity(QueryTester::default())
+        .child_entity(EntityIds::default())
+        .child_entity(Number::build(1).component(RegisteredNumber))
+        .child_entity(OtherNumber::build(10))
+        .child_entity(Number::build(2).component(RegisteredNumber))
+        .child_entity(Number::build_without_value().component(RegisteredNumber))
+        .child_entity(Number::build_with_additional_component(3).component(RegisteredNumber))
 }
 
 #[modor_test]

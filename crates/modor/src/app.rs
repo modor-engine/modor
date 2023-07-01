@@ -35,8 +35,8 @@ pub use log::LevelFilter;
 ///
 /// fn button(label: &str) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Button)
-///         .with(Label(label.into()))
+///         .component(Button)
+///         .component(Label(label.into()))
 /// }
 /// ```
 ///

@@ -44,8 +44,8 @@ pub use crate::runner::testing::*;
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TEXTURE, "image.png"))
-///         .with(TextureBuffer::default())
+///         .component(Texture::from_path(TEXTURE, "image.png"))
+///         .component(TextureBuffer::default())
 /// }
 ///
 /// App::new()
@@ -98,8 +98,8 @@ where
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TEXTURE, "image.png"))
-///         .with(TextureBuffer::default())
+///         .component(Texture::from_path(TEXTURE, "image.png"))
+///         .component(TextureBuffer::default())
 /// }
 ///
 /// App::new()
@@ -162,8 +162,8 @@ where
 ///
 /// fn texture() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Texture::from_path(TEXTURE, "image.png"))
-///         .with(TextureBuffer::default())
+///         .component(Texture::from_path(TEXTURE, "image.png"))
+///         .component(TextureBuffer::default())
 /// }
 ///
 /// App::new()

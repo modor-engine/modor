@@ -156,38 +156,38 @@ fn recreate_entity() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(target1())
-        .with_child(target2())
-        .with_child(Material::new(MATERIAL).with_color(Color::BLUE))
-        .with_child(model())
+        .child_entity(target1())
+        .child_entity(target2())
+        .child_entity(Material::new(MATERIAL).with_color(Color::BLUE))
+        .child_entity(model())
 }
 
 fn target1() -> impl BuiltEntity {
     let texture_key = ResKey::unique("target-1");
     EntityBuilder::new()
-        .with(RenderTarget::new(TARGET1))
-        .with(Texture::from_size(texture_key, Size::new(30, 20)))
-        .with(TextureBuffer::default())
-        .with(Target1)
+        .component(RenderTarget::new(TARGET1))
+        .component(Texture::from_size(texture_key, Size::new(30, 20)))
+        .component(TextureBuffer::default())
+        .component(Target1)
 }
 
 fn target2() -> impl BuiltEntity {
     let texture_key = ResKey::unique("target-2");
     EntityBuilder::new()
-        .with(RenderTarget::new(TARGET2))
-        .with(Texture::from_size(texture_key, Size::new(20, 30)))
-        .with(TextureBuffer::default())
-        .with(Target2)
+        .component(RenderTarget::new(TARGET2))
+        .component(Texture::from_size(texture_key, Size::new(20, 30)))
+        .component(TextureBuffer::default())
+        .component(Target2)
 }
 
 fn model() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(
+        .component(
             Transform2D::new()
                 .with_position(Vec2::ONE * 0.25)
                 .with_size(Vec2::ONE * 0.5),
         )
-        .with(Model::rectangle(MATERIAL, CAMERA))
+        .component(Model::rectangle(MATERIAL, CAMERA))
 }
 
 const TARGET1: ResKey<RenderTarget> = ResKey::new("1");

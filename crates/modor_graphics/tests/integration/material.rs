@@ -158,26 +158,26 @@ fn delete_entity() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(target())
-        .with_child(opaque_texture())
-        .with_child(transparent_texture())
-        .with_child(rectangle())
+        .child_entity(target())
+        .child_entity(opaque_texture())
+        .child_entity(transparent_texture())
+        .child_entity(rectangle())
 }
 
 fn target() -> impl BuiltEntity {
     let target_key = ResKey::unique("main");
     let texture_key = ResKey::unique("target");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key).with_background_color(Color::DARK_GRAY))
-        .with(Texture::from_size(texture_key, Size::new(30, 20)))
-        .with(TextureBuffer::default())
-        .with_child(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key).with_background_color(Color::DARK_GRAY))
+        .component(Texture::from_size(texture_key, Size::new(30, 20)))
+        .component(TextureBuffer::default())
+        .child_entity(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new().with_size(Vec2::new(0.8, 0.5)))
-        .with(Model::rectangle(MATERIAL, CAMERA))
+        .component(Transform2D::new().with_size(Vec2::new(0.8, 0.5)))
+        .component(Model::rectangle(MATERIAL, CAMERA))
 }
 
 fn opaque_texture() -> Texture {

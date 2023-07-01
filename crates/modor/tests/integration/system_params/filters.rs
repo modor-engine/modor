@@ -21,11 +21,11 @@ impl RegisteredNumber {
 fn iterate_using_filter() {
     App::new()
         .with_entity(Numbers::default())
-        .with_entity(Number::build(1).with(RegisteredNumber))
+        .with_entity(Number::build(1).component(RegisteredNumber))
         .with_entity(OtherNumber::build(10))
-        .with_entity(Number::build(2).with(RegisteredNumber))
-        .with_entity(Number::build_without_value().with(RegisteredNumber))
-        .with_entity(Number::build_with_additional_component(3).with(RegisteredNumber))
+        .with_entity(Number::build(2).component(RegisteredNumber))
+        .with_entity(Number::build_without_value().component(RegisteredNumber))
+        .with_entity(Number::build_with_additional_component(3).component(RegisteredNumber))
         .updated()
         .assert::<With<Numbers>>(1, |e| e.has(|c: &Numbers| assert_eq!(c.0, [3])));
 }

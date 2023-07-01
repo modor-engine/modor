@@ -25,29 +25,31 @@ struct Entity;
 #[systems]
 impl Entity {
     fn build(value: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Component(value))
+        EntityBuilder::new()
+            .component(Self)
+            .component(Component(value))
     }
 
     fn build_entity1(value: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Component(value))
-            .with(Entity1)
+            .component(Self)
+            .component(Component(value))
+            .component(Entity1)
     }
 
     fn build_entity2(value: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Component(value))
-            .with(Entity2)
+            .component(Self)
+            .component(Component(value))
+            .component(Entity2)
     }
 
     fn build_with_children(value: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Component(value))
-            .with_child(EntityBuilder::new().with(Child1))
-            .with_child(EntityBuilder::new().with(Child2))
+            .component(Self)
+            .component(Component(value))
+            .child_entity(EntityBuilder::new().component(Child1))
+            .child_entity(EntityBuilder::new().component(Child2))
     }
 
     #[run]

@@ -29,15 +29,15 @@ struct Transform(Mat4);
 impl Transform {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self(Mat4(
+            .component(Self(Mat4(
                 Vec4(1., 0., 0., 0.),
                 Vec4(0., 1., 0., 0.),
                 Vec4(0., 0., 1., 0.),
                 Vec4(0., 0., 0., 1.),
             )))
-            .with(Position(Vec3(1., 0., 0.)))
-            .with(Rotation(Vec3(1., 0., 0.)))
-            .with(Velocity(Vec3(1., 0., 0.)))
+            .component(Position(Vec3(1., 0., 0.)))
+            .component(Rotation(Vec3(1., 0., 0.)))
+            .component(Velocity(Vec3(1., 0., 0.)))
     }
 
     #[run]

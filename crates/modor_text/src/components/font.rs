@@ -42,14 +42,14 @@ pub(crate) type FontRegistry = ResourceRegistry<Font>;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FONT, "font.ttf"))
-///         .with_child(text())
+///         .child_entity(Font::from_path(FONT, "font.ttf"))
+///         .child_entity(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Text::new("my text", 30.).with_font(FONT))
-///         .with(Texture::from_size(TEXTURE, Size::ZERO))
+///         .component(Text::new("my text", 30.).with_font(FONT))
+///         .component(Texture::from_size(TEXTURE, Size::ZERO))
 /// }
 /// ```
 #[derive(Component, Debug)]

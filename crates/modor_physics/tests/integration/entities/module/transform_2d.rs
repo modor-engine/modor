@@ -18,9 +18,9 @@ impl CollisionGroupRef for CollisionGroup {
 #[modor_test]
 fn update_position() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
-        .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroup));
+        .component(Transform2D::new().with_position(Vec2::new(1., 2.)))
+        .component(Dynamics2D::new())
+        .component(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -39,9 +39,9 @@ fn update_position() {
 #[modor_test]
 fn update_size() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new().with_size(Vec2::new(1., 2.)))
-        .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroup));
+        .component(Transform2D::new().with_size(Vec2::new(1., 2.)))
+        .component(Dynamics2D::new())
+        .component(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -60,9 +60,9 @@ fn update_size() {
 #[modor_test]
 fn update_rotation() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new().with_rotation(PI))
-        .with(Dynamics2D::new())
-        .with(Collider2D::rectangle(CollisionGroup));
+        .component(Transform2D::new().with_rotation(PI))
+        .component(Dynamics2D::new())
+        .component(Collider2D::rectangle(CollisionGroup));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))

@@ -16,24 +16,24 @@ struct AbsoluteChild;
 #[modor_test]
 fn update_relative_position() {
     let relative_child = EntityBuilder::new()
-        .with(RelativeChild)
-        .with(Transform2D::new().with_position(Vec2::new(0.1, 0.2)))
-        .with(RelativeTransform2D::new().with_position(Vec2::new(0.5, 0.2)));
+        .component(RelativeChild)
+        .component(Transform2D::new().with_position(Vec2::new(0.1, 0.2)))
+        .component(RelativeTransform2D::new().with_position(Vec2::new(0.5, 0.2)));
     let absolute_child = EntityBuilder::new()
-        .with(AbsoluteChild)
-        .with(Transform2D::new().with_position(Vec2::new(0.3, 0.4)))
-        .with(RelativeTransform2D::new());
+        .component(AbsoluteChild)
+        .component(Transform2D::new().with_position(Vec2::new(0.3, 0.4)))
+        .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
-        .with(RootEntity)
-        .with(
+        .component(RootEntity)
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(1., 2.))
                 .with_size(Vec2::new(2., 4.))
                 .with_rotation(FRAC_PI_2),
         )
-        .with(RelativeTransform2D::new().with_position(Vec2::new(3., 4.)))
-        .with_child(relative_child)
-        .with_child(absolute_child);
+        .component(RelativeTransform2D::new().with_position(Vec2::new(3., 4.)))
+        .child_entity(relative_child)
+        .child_entity(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -79,19 +79,19 @@ fn update_relative_position() {
 #[modor_test]
 fn update_relative_size() {
     let relative_child = EntityBuilder::new()
-        .with(RelativeChild)
-        .with(Transform2D::new().with_size(Vec2::new(2., 4.)))
-        .with(RelativeTransform2D::new().with_size(Vec2::new(0.5, 0.2)));
+        .component(RelativeChild)
+        .component(Transform2D::new().with_size(Vec2::new(2., 4.)))
+        .component(RelativeTransform2D::new().with_size(Vec2::new(0.5, 0.2)));
     let absolute_child = EntityBuilder::new()
-        .with(AbsoluteChild)
-        .with(Transform2D::new().with_size(Vec2::new(5., 10.)))
-        .with(RelativeTransform2D::new());
+        .component(AbsoluteChild)
+        .component(Transform2D::new().with_size(Vec2::new(5., 10.)))
+        .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
-        .with(RootEntity)
-        .with(Transform2D::new().with_size(Vec2::new(2., 4.)))
-        .with(RelativeTransform2D::new().with_size(Vec2::new(3., 5.)))
-        .with_child(relative_child)
-        .with_child(absolute_child);
+        .component(RootEntity)
+        .component(Transform2D::new().with_size(Vec2::new(2., 4.)))
+        .component(RelativeTransform2D::new().with_size(Vec2::new(3., 5.)))
+        .child_entity(relative_child)
+        .child_entity(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -135,19 +135,19 @@ fn update_relative_size() {
 #[modor_test]
 fn update_relative_rotation() {
     let relative_child = EntityBuilder::new()
-        .with(RelativeChild)
-        .with(Transform2D::new().with_rotation(0.))
-        .with(RelativeTransform2D::new().with_rotation(FRAC_PI_2));
+        .component(RelativeChild)
+        .component(Transform2D::new().with_rotation(0.))
+        .component(RelativeTransform2D::new().with_rotation(FRAC_PI_2));
     let absolute_child = EntityBuilder::new()
-        .with(AbsoluteChild)
-        .with(Transform2D::new().with_rotation(FRAC_PI_4))
-        .with(RelativeTransform2D::new());
+        .component(AbsoluteChild)
+        .component(Transform2D::new().with_rotation(FRAC_PI_4))
+        .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
-        .with(RootEntity)
-        .with(Transform2D::new().with_rotation(0.))
-        .with(RelativeTransform2D::new().with_rotation(PI))
-        .with_child(relative_child)
-        .with_child(absolute_child);
+        .component(RootEntity)
+        .component(Transform2D::new().with_rotation(0.))
+        .component(RelativeTransform2D::new().with_rotation(PI))
+        .child_entity(relative_child)
+        .child_entity(absolute_child);
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))

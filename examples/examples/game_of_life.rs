@@ -33,25 +33,25 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new())
-        .with(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
+        .component(Transform2D::new())
+        .component(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
     let position = to_word_position(x, y);
     let size = Vec2::ONE / GRID_SIZE as f32;
     EntityBuilder::new()
-        .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Model::rectangle(ALIVE_CELL_MATERIAL, CAMERA))
-        .with(ZIndex2D::from(1))
-        .with(AliveCell)
+        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Model::rectangle(ALIVE_CELL_MATERIAL, CAMERA))
+        .component(ZIndex2D::from(1))
+        .component(AliveCell)
 }
 
 fn to_word_position(x: usize, y: usize) -> Vec2 {

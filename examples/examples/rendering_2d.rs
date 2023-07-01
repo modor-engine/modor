@@ -41,13 +41,13 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn materials() -> impl BuiltEntity {
-    EntityBuilder::new().with_children(|b| {
+    EntityBuilder::new().children(|b| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
             b.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
         }
@@ -55,7 +55,7 @@ fn materials() -> impl BuiltEntity {
 }
 
 fn sprites() -> impl BuiltEntity {
-    EntityBuilder::new().with_children(move |b| {
+    EntityBuilder::new().children(move |b| {
         for entity_id in 0..SPRITE_COUNT {
             b.add(sprite(entity_id));
         }
@@ -68,11 +68,11 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     let size = Vec2::ONE * 0.01;
     let material_id = entity_id % COLORS.len();
     EntityBuilder::new()
-        .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Dynamics2D::new())
-        .with(Model::rectangle(MATERIAL.get(material_id), CAMERA))
-        .with(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
-        .with(RandomMovement::new())
+        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Dynamics2D::new())
+        .component(Model::rectangle(MATERIAL.get(material_id), CAMERA))
+        .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
+        .component(RandomMovement::new())
 }
 
 #[derive(Component)]

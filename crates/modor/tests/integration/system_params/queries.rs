@@ -122,10 +122,10 @@ struct Level1;
 impl Level1 {
     fn build(value1: u32, value2: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Value1(value1 + 2))
-            .with(Value3(value1 + 2))
-            .with_child(Level2::build(value1, value2))
+            .component(Self)
+            .component(Value1(value1 + 2))
+            .component(Value3(value1 + 2))
+            .child_entity(Level2::build(value1, value2))
     }
 }
 
@@ -135,9 +135,9 @@ struct Level2;
 impl Level2 {
     fn build(value1: u32, value2: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Value2(value2 + 1))
-            .with_child(Level3::build(value1, value2))
+            .component(Self)
+            .component(Value2(value2 + 1))
+            .child_entity(Level3::build(value1, value2))
     }
 }
 
@@ -147,9 +147,9 @@ struct Level3;
 impl Level3 {
     fn build(value1: u32, value2: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Value1(value1))
-            .with(Value2(value2))
+            .component(Self)
+            .component(Value1(value1))
+            .component(Value2(value2))
     }
 }
 

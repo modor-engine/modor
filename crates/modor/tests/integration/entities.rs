@@ -27,9 +27,9 @@ struct Level1;
 impl Level1 {
     fn build(value: u32) -> impl BuiltEntity {
         EntityBuilder::default()
-            .with(Self)
-            .with(Value(value))
-            .with_child(Level2::build(value + 1))
+            .component(Self)
+            .component(Value(value))
+            .child_entity(Level2::build(value + 1))
     }
 }
 
@@ -39,10 +39,10 @@ struct Level2;
 impl Level2 {
     fn build(value: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with_inherited(Inherited::build(i64::from(value)))
-            .with(Value(value + 100))
-            .with_children(move |b| {
+            .component(Self)
+            .inherited(Inherited::build(i64::from(value)))
+            .component(Value(value + 100))
+            .children(move |b| {
                 for i in 2..4 {
                     b.add(Level3::build(value + i, i == 2));
                 }
@@ -56,13 +56,13 @@ struct Level3;
 impl Level3 {
     fn build(value: u32, add_option: bool) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Value(value))
-            .with_option(add_option.then_some(42_u32).map(U32))
-            .with_option((!add_option).then_some(42_i8).map(I8))
-            .with_dependency::<Singleton1, _, _>(|| Singleton1(10))
-            .with_dependency::<Singleton2, _, _>(|| Singleton2(20))
-            .with_dependency::<Singleton3, _, _>(|| Singleton3(30))
+            .component(Self)
+            .component(Value(value))
+            .component_option(add_option.then_some(42_u32).map(U32))
+            .component_option((!add_option).then_some(42_i8).map(I8))
+            .dependency::<Singleton1, _, _>(|| Singleton1(10))
+            .dependency::<Singleton2, _, _>(|| Singleton2(20))
+            .dependency::<Singleton3, _, _>(|| Singleton3(30))
     }
 }
 
@@ -75,16 +75,16 @@ struct Inherited;
 impl Inherited {
     fn build(value: i64) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(I64(value))
-            .with_child(Self::build_child(value + 1))
+            .component(Self)
+            .component(I64(value))
+            .child_entity(Self::build_child(value + 1))
     }
 
     fn build_child(value: i64) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(I64(value))
-            .with(InheritedChild)
+            .component(Self)
+            .component(I64(value))
+            .component(InheritedChild)
     }
 }
 
@@ -136,9 +136,9 @@ fn create_entity_with_same_singleton_in_children() {
     App::new()
         .with_entity(
             EntityBuilder::new()
-                .with(Singleton1(0))
-                .with_child(Singleton1(1))
-                .with_child(Singleton1(2)),
+                .component(Singleton1(0))
+                .child_entity(Singleton1(1))
+                .child_entity(Singleton1(2)),
         )
         .assert::<With<Singleton1>>(0, |e| e);
 }
