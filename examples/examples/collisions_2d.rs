@@ -43,38 +43,38 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default().with_cursor_shown(false))
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default().with_cursor_shown(false))
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn cursor() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new().with_size(Vec2::new(0.05, 0.1)))
-        .with(Collider2D::rectangle(CollisionGroup::Cursor))
-        .with(Model::rectangle(NOT_COLLIDING_CURSOR_MATERIAL, CAMERA))
-        .with(ZIndex2D::from(1))
-        .with(Cursor)
+        .component(Transform2D::new().with_size(Vec2::new(0.05, 0.1)))
+        .component(Collider2D::rectangle(CollisionGroup::Cursor))
+        .component(Model::rectangle(NOT_COLLIDING_CURSOR_MATERIAL, CAMERA))
+        .component(ZIndex2D::from(1))
+        .component(Cursor)
 }
 
 fn rectangle() -> impl BuiltEntity {
     let position = Vec2::X * 0.25;
     let size = Vec2::new(0.2, 0.3);
     EntityBuilder::new()
-        .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Collider2D::rectangle(CollisionGroup::Shape))
-        .with(Model::rectangle(RECTANGLE_MATERIAL, CAMERA))
-        .with(Shape)
+        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Collider2D::rectangle(CollisionGroup::Shape))
+        .component(Model::rectangle(RECTANGLE_MATERIAL, CAMERA))
+        .component(Shape)
 }
 
 fn circle() -> impl BuiltEntity {
     let position = -Vec2::X * 0.25;
     let size = Vec2::ONE * 0.4;
     EntityBuilder::new()
-        .with(Transform2D::new().with_position(position).with_size(size))
-        .with(Collider2D::circle(CollisionGroup::Shape))
-        .with(Model::rectangle(CIRCLE_MATERIAL, CAMERA))
-        .with(Shape)
+        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Collider2D::circle(CollisionGroup::Shape))
+        .component(Model::rectangle(CIRCLE_MATERIAL, CAMERA))
+        .component(Shape)
 }
 
 fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEntity {
@@ -85,27 +85,27 @@ fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEn
         SHAPE_COLLISION_POS_MATERIAL
     };
     EntityBuilder::new()
-        .with(
+        .component(
             Transform2D::new()
                 .with_position(position)
                 .with_size(size)
                 .with_rotation(Vec2::X.rotation(normal)),
         )
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(ZIndex2D::from(2))
-        .with(AutoRemoved)
-        .with_child(collision_normal(is_cursor))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(ZIndex2D::from(2))
+        .component(AutoRemoved)
+        .child_entity(collision_normal(is_cursor))
 }
 
 fn collision_normal(is_cursor: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new().with_size(Vec2::new(0.05, 0.005)))
-        .with(
+        .component(Transform2D::new().with_size(Vec2::new(0.05, 0.005)))
+        .component(
             RelativeTransform2D::new()
                 .with_position(Vec2::ZERO)
                 .with_rotation(0.),
         )
-        .with_child(collision_normal_rectangle(is_cursor))
+        .child_entity(collision_normal_rectangle(is_cursor))
 }
 
 fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
@@ -115,15 +115,15 @@ fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
         SHAPE_COLLISION_DIR_MATERIAL
     };
     EntityBuilder::new()
-        .with(Transform2D::new())
-        .with(
+        .component(Transform2D::new())
+        .component(
             RelativeTransform2D::new()
                 .with_position(Vec2::X * 0.5)
                 .with_size(Vec2::ONE)
                 .with_rotation(0.),
         )
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(ZIndex2D::from(2))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(ZIndex2D::from(2))
 }
 
 #[derive(Component)]

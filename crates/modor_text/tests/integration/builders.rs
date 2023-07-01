@@ -40,16 +40,16 @@ fn target() -> impl BuiltEntity {
     let target_key = ResKey::unique("main");
     let texture_key = ResKey::unique("target");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Texture::from_size(texture_key, Size::new(100, 50)))
-        .with(TextureBuffer::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Texture::from_size(texture_key, Size::new(100, 50)))
+        .component(TextureBuffer::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn text() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Model::rectangle(MATERIAL, CAMERA))
-        .with(Transform2D::new())
+        .component(Model::rectangle(MATERIAL, CAMERA))
+        .component(Transform2D::new())
 }
 
 const CAMERA: ResKey<Camera2D> = ResKey::new("main");

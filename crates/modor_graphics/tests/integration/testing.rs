@@ -153,8 +153,8 @@ fn texture_with_different_height() -> impl BuiltEntity {
 fn texture(source: TextureSource) -> impl BuiltEntity {
     let texture_key = ResKey::unique("main");
     EntityBuilder::new()
-        .with(Texture::new(texture_key, source))
-        .with(TextureBuffer::default())
+        .component(Texture::new(texture_key, source))
+        .component(TextureBuffer::default())
 }
 
 fn load_image_data(path: impl AsRef<Path>) -> Vec<u8> {

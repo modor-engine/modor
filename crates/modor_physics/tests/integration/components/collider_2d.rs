@@ -23,18 +23,18 @@ struct Entity2;
 
 fn entity1(transform: Transform2D, collider: Collider2D, with_dynamics: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Entity1)
-        .with(transform)
-        .with_option(with_dynamics.then(Dynamics2D::new))
-        .with(collider)
+        .component(Entity1)
+        .component(transform)
+        .component_option(with_dynamics.then(Dynamics2D::new))
+        .component(collider)
 }
 
 fn entity2(transform: Transform2D, collider: Collider2D, with_dynamics: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Entity2)
-        .with(transform)
-        .with_option(with_dynamics.then(Dynamics2D::new))
-        .with(collider)
+        .component(Entity2)
+        .component(transform)
+        .component_option(with_dynamics.then(Dynamics2D::new))
+        .component(collider)
 }
 
 fn assert_collision(

@@ -27,7 +27,10 @@ struct Item1;
 #[systems]
 impl Item1 {
     fn build() -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(A(0.0)).with(B(0.0))
+        EntityBuilder::new()
+            .component(Self)
+            .component(A(0.0))
+            .component(B(0.0))
     }
 
     #[run]
@@ -53,10 +56,10 @@ struct Item2;
 impl Item2 {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(A(0.0))
-            .with(B(0.0))
-            .with(C(0.0))
+            .component(Self)
+            .component(A(0.0))
+            .component(B(0.0))
+            .component(C(0.0))
     }
 
     #[run]
@@ -82,11 +85,11 @@ struct Item3;
 impl Item3 {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(A(0.0))
-            .with(B(0.0))
-            .with(C(0.0))
-            .with(D(0.0))
+            .component(Self)
+            .component(A(0.0))
+            .component(B(0.0))
+            .component(C(0.0))
+            .component(D(0.0))
     }
 
     #[run]
@@ -112,11 +115,11 @@ struct Item4;
 impl Item4 {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(A(0.0))
-            .with(B(0.0))
-            .with(C(0.0))
-            .with(E(0.0))
+            .component(Self)
+            .component(A(0.0))
+            .component(B(0.0))
+            .component(C(0.0))
+            .component(E(0.0))
     }
 
     #[run]

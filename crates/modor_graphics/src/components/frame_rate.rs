@@ -26,8 +26,8 @@ use wgpu::PresentMode;
 ///
 /// fn window() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Window::default())
-///         .with(RenderTarget::new(TARGET))
+///         .component(Window::default())
+///         .component(RenderTarget::new(TARGET))
 /// }
 ///
 /// const TARGET: ResKey<RenderTarget> = ResKey::new("main");

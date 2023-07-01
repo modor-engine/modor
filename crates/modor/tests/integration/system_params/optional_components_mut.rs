@@ -73,21 +73,21 @@ impl RegisteredNumber {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(QueryTester::default())
-        .with_child(Numbers::default())
-        .with_child(
+        .child_entity(QueryTester::default())
+        .child_entity(Numbers::default())
+        .child_entity(
             Number::build(1)
-                .with(RegisteredNumber)
-                .with(OptionalValue(1)),
+                .component(RegisteredNumber)
+                .component(OptionalValue(1)),
         )
-        .with_child(OtherNumber::build(10))
-        .with_child(
+        .child_entity(OtherNumber::build(10))
+        .child_entity(
             Number::build(2)
-                .with(RegisteredNumber)
-                .with(OptionalValue(2)),
+                .component(RegisteredNumber)
+                .component(OptionalValue(2)),
         )
-        .with_child(Number::build_without_value().with(RegisteredNumber))
-        .with_child(Number::build_with_additional_component(3).with(RegisteredNumber))
+        .child_entity(Number::build_without_value().component(RegisteredNumber))
+        .child_entity(Number::build_with_additional_component(3).component(RegisteredNumber))
 }
 
 #[modor_test]

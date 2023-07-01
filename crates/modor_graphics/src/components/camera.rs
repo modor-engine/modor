@@ -45,31 +45,31 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(render_target())
-///         .with_child(Camera2D::new(DEFAULT_CAMERA, TARGET))
-///         .with_child(dynamic_camera())
-///         .with_child(object())
+///         .child_entity(render_target())
+///         .child_entity(Camera2D::new(DEFAULT_CAMERA, TARGET))
+///         .child_entity(dynamic_camera())
+///         .child_entity(object())
 /// }
 ///
 /// fn render_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Window::default())
-///         .with(RenderTarget::new(TARGET))
+///         .component(Window::default())
+///         .component(RenderTarget::new(TARGET))
 /// }
 ///
 /// fn dynamic_camera() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Camera2D::new(DYNAMIC_CAMERA, TARGET))
-///         .with(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
-///         .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
+///         .component(Camera2D::new(DYNAMIC_CAMERA, TARGET))
+///         .component(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
+///         .component(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
 ///     let model = Model::rectangle(MATERIAL, DEFAULT_CAMERA)
 ///         .with_camera_key(DYNAMIC_CAMERA);
 ///     EntityBuilder::new()
-///         .with(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
-///         .with(model)
+///         .component(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
+///         .component(model)
 /// }
 /// ```
 #[must_use]

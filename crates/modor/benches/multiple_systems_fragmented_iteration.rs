@@ -19,7 +19,9 @@ macro_rules! create_entities {
             #[systems]
             impl $variants {
                 fn build() -> impl BuiltEntity {
-                    EntityBuilder::new().with(Self(0.0)).with(Data(1.0))
+                    EntityBuilder::new()
+                        .component(Self(0.0))
+                        .component(Data(1.0))
                 }
 
                 #[run]

@@ -13,9 +13,9 @@ struct BaseEntity;
 impl BaseEntity {
     fn build() -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(TrackedComponent)
-            .with(Counter(0))
+            .component(Self)
+            .component(TrackedComponent)
+            .component(Counter(0))
     }
 
     #[run_after(component(StaticEntity), component(MutatedEntity))]
@@ -81,12 +81,12 @@ impl OverwrittenEntity {
 #[modor_test(disabled(wasm))]
 fn filter_by_changed_component() {
     App::new()
-        .with_entity(BaseEntity::build().with(StaticEntity))
-        .with_entity(BaseEntity::build().with(MutatedEntity))
-        .with_entity(BaseEntity::build().with(UnusedQueryMutatedEntity))
-        .with_entity(BaseEntity::build().with(ConstQueryMutatedEntity))
-        .with_entity(BaseEntity::build().with(MutQueryMutatedEntity))
-        .with_entity(BaseEntity::build().with(OverwrittenEntity))
+        .with_entity(BaseEntity::build().component(StaticEntity))
+        .with_entity(BaseEntity::build().component(MutatedEntity))
+        .with_entity(BaseEntity::build().component(UnusedQueryMutatedEntity))
+        .with_entity(BaseEntity::build().component(ConstQueryMutatedEntity))
+        .with_entity(BaseEntity::build().component(MutQueryMutatedEntity))
+        .with_entity(BaseEntity::build().component(OverwrittenEntity))
         .updated()
         .updated()
         .assert::<With<StaticEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 1)))
@@ -95,7 +95,7 @@ fn filter_by_changed_component() {
         .assert::<With<ConstQueryMutatedEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 1)))
         .assert::<With<MutQueryMutatedEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 2)))
         .assert::<With<OverwrittenEntity>>(1, |e| e.has(|c: &Counter| assert_eq!(c.0, 2)))
-        .with_entity(BaseEntity::build().with(StaticEntity))
+        .with_entity(BaseEntity::build().component(StaticEntity))
         .updated()
         .updated()
         .assert_any::<With<StaticEntity>>(2, |e| {

@@ -16,14 +16,17 @@ pub trait BuiltEntity: BuildableEntity + Any + Sync + Send {
     /// Adds a component of type `C`.
     ///
     /// If a component of type `C` already exists, it is overwritten.
-    fn with<C>(self, component: C) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
+    fn component<C>(self, component: C) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
     where
         C: Component + ComponentSystems;
 
     /// Adds a component of type `C` only if `component` is not `None`.
     ///
     /// If `component` is not `None` and a component of type `C` already exists, it is overwritten.
-    fn with_option<C>(self, component: Option<C>) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
+    fn component_option<C>(
+        self,
+        component: Option<C>,
+    ) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
     where
         C: Component + ComponentSystems;
 
@@ -35,31 +38,28 @@ pub trait BuiltEntity: BuildableEntity + Any + Sync + Send {
     /// component overwrites the existing one.<br>
     /// If after calling this method, a component with a type contained in the parent entity is
     /// added to the built entity, the new component overwrites the parent's.
-    fn with_inherited<E>(self, entity: E) -> EntityBuilder<(Self::Parts, InheritedPart<E>)>
+    fn inherited<E>(self, entity: E) -> EntityBuilder<(Self::Parts, InheritedPart<E>)>
     where
         E: BuildableEntity;
 
     /// Creates a child entity.
-    fn with_child<E>(self, child: E) -> EntityBuilder<(Self::Parts, ChildPart<E>)>
+    fn child_entity<E>(self, child: E) -> EntityBuilder<(Self::Parts, ChildPart<E>)>
     where
         E: BuildableEntity;
 
     /// Creates child entities.
     ///
     /// This method can be used instead of
-    /// [`EntityBuilder::with_child`](EntityBuilder::with_child) when children are
+    /// [`EntityBuilder::with_child`](EntityBuilder::child_entity) when children are
     /// created dynamically (e.g. with conditional creation or loops).
-    fn with_children<F>(self, builder: F) -> EntityBuilder<(Self::Parts, ChildrenPart<F>)>
+    fn children<F>(self, builder: F) -> EntityBuilder<(Self::Parts, ChildrenPart<F>)>
     where
         F: FnOnce(&mut EntityChildBuilder<'_>) + Any + Sync + Send;
 
     /// Creates an entity if the singleton of type `C` does not already exist.
     ///
     /// The created entity has no parent.
-    fn with_dependency<C, E, F>(
-        self,
-        f: F,
-    ) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
+    fn dependency<C, E, F>(self, f: F) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
     where
         C: Component<IsSingleton = True>,
         E: BuildableEntity,
@@ -102,9 +102,9 @@ where
 ///
 /// fn movable_entity(is_accelerating: bool) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Position(0., 0.))
-///         .with(Velocity(1., 2.))
-///         .with_option(is_accelerating.then(|| Acceleration(0.01, 0.08)))
+///         .component(Position(0., 0.))
+///         .component(Velocity(1., 2.))
+///         .component_option(is_accelerating.then(|| Acceleration(0.01, 0.08)))
 /// }
 ///
 /// App::new()
@@ -146,7 +146,7 @@ where
 {
     type Parts = P;
 
-    fn with<C>(self, component: C) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
+    fn component<C>(self, component: C) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
     where
         C: Component + ComponentSystems,
     {
@@ -161,7 +161,10 @@ where
         }
     }
 
-    fn with_option<C>(self, component: Option<C>) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
+    fn component_option<C>(
+        self,
+        component: Option<C>,
+    ) -> EntityBuilder<(Self::Parts, ComponentPart<C>)>
     where
         C: Component + ComponentSystems,
     {
@@ -176,7 +179,7 @@ where
         }
     }
 
-    fn with_inherited<E>(self, entity: E) -> EntityBuilder<(Self::Parts, InheritedPart<E>)>
+    fn inherited<E>(self, entity: E) -> EntityBuilder<(Self::Parts, InheritedPart<E>)>
     where
         E: BuildableEntity,
     {
@@ -185,7 +188,7 @@ where
         }
     }
 
-    fn with_child<E>(self, child: E) -> EntityBuilder<(Self::Parts, ChildPart<E>)>
+    fn child_entity<E>(self, child: E) -> EntityBuilder<(Self::Parts, ChildPart<E>)>
     where
         E: BuildableEntity,
     {
@@ -194,7 +197,7 @@ where
         }
     }
 
-    fn with_children<F>(self, builder: F) -> EntityBuilder<(Self::Parts, ChildrenPart<F>)>
+    fn children<F>(self, builder: F) -> EntityBuilder<(Self::Parts, ChildrenPart<F>)>
     where
         F: FnOnce(&mut EntityChildBuilder<'_>) + Any + Sync + Send,
     {
@@ -203,7 +206,7 @@ where
         }
     }
 
-    fn with_dependency<C, E, F>(self, f: F) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
+    fn dependency<C, E, F>(self, f: F) -> EntityBuilder<(Self::Parts, DependencyPart<C, E, F>)>
     where
         C: Component<IsSingleton = True>,
         E: BuildableEntity,
@@ -256,8 +259,8 @@ where
 ///
 /// fn build_root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Value(0))
-///         .with_children(|b| {
+///         .component(Value(0))
+///         .children(|b| {
 ///             for i in 1..=10 {
 ///                 b.add(build_child(i));
 ///             }
@@ -265,7 +268,7 @@ where
 /// }
 ///
 /// fn build_child(value: u32) -> impl BuiltEntity {
-///     EntityBuilder::new().with(Value(value))
+///     EntityBuilder::new().component(Value(value))
 /// }
 /// ```
 pub struct EntityChildBuilder<'a> {

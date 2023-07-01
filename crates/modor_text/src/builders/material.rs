@@ -29,8 +29,8 @@ use modor_resources::ResKey;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Font::from_path(FONT, "font.ttf"))
-///         .with_child(text())
+///         .child_entity(Font::from_path(FONT, "font.ttf"))
+///         .child_entity(text())
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
@@ -39,8 +39,8 @@ use modor_resources::ResKey;
 ///         .with_material(|m| m.with_color(Color::GREEN))       // background color
 ///         .with_material(|m| m.with_front_color(Color::BLACK)) // text color
 ///         .build()
-///         .with(Model::rectangle(MATERIAL, CAMERA))
-///         .with(Transform2D::new())
+///         .component(Model::rectangle(MATERIAL, CAMERA))
+///         .component(Transform2D::new())
 /// }
 /// ```
 pub struct TextMaterialBuilder {
@@ -96,17 +96,17 @@ impl TextMaterialBuilder {
         let texture = Texture::from_size(texture_key, Size::ZERO);
         let text = Text::new(self.text, self.font_height);
         EntityBuilder::new()
-            .with(if let Some(material_fn) = self.material_fn {
+            .component(if let Some(material_fn) = self.material_fn {
                 material_fn(material)
             } else {
                 material
             })
-            .with(if let Some(texture_fn) = self.texture_fn {
+            .component(if let Some(texture_fn) = self.texture_fn {
                 texture_fn(texture)
             } else {
                 texture
             })
-            .with(if let Some(text_fn) = self.text_fn {
+            .component(if let Some(text_fn) = self.text_fn {
                 text_fn(text)
             } else {
                 text

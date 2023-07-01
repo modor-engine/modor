@@ -41,18 +41,18 @@ struct Number;
 #[systems]
 impl Number {
     fn build(value: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Value(value))
+        EntityBuilder::new().component(Self).component(Value(value))
     }
 
     fn build_without_value() -> impl BuiltEntity {
-        EntityBuilder::new().with(Self)
+        EntityBuilder::new().component(Self)
     }
 
     fn build_with_additional_component(value: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Value(value))
-            .with(Text(String::from("other")))
+            .component(Self)
+            .component(Value(value))
+            .component(Text(String::from("other")))
     }
 }
 
@@ -61,7 +61,7 @@ struct OtherNumber;
 
 impl OtherNumber {
     fn build(value: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Value(value))
+        EntityBuilder::new().component(Self).component(Value(value))
     }
 }
 

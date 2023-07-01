@@ -32,7 +32,7 @@ struct ResultCollector {
 #[systems]
 impl ResultCollector {
     fn build() -> impl BuiltEntity {
-        EntityBuilder::new().with(Self { done: false })
+        EntityBuilder::new().component(Self { done: false })
     }
 
     #[allow(clippy::type_complexity, clippy::too_many_arguments)]
@@ -78,10 +78,16 @@ impl ResultCollector {
 fn filter_entities_in_query() {
     App::new()
         .with_entity(ResultCollector::build())
-        .with_entity(EntityBuilder::new().with(C1(1)).with(C2).with(C3).with(C4))
-        .with_entity(EntityBuilder::new().with(C1(2)).with(C3))
-        .with_entity(EntityBuilder::new().with(C1(3)).with(C2))
-        .with_entity(EntityBuilder::new().with(C1(4)))
+        .with_entity(
+            EntityBuilder::new()
+                .component(C1(1))
+                .component(C2)
+                .component(C3)
+                .component(C4),
+        )
+        .with_entity(EntityBuilder::new().component(C1(2)).component(C3))
+        .with_entity(EntityBuilder::new().component(C1(3)).component(C2))
+        .with_entity(EntityBuilder::new().component(C1(4)))
         .updated()
         .assert::<With<ResultCollector>>(1, |e| e.has(|c: &ResultCollector| assert!(c.done)));
 }

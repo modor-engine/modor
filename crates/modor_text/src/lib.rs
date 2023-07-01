@@ -29,17 +29,17 @@
 //! fn window() -> impl BuiltEntity {
 //!     let target_key = ResKey::unique("window");
 //!     EntityBuilder::new()
-//!         .with(Window::default())
-//!         .with(RenderTarget::new(target_key))
-//!         .with(Camera2D::new(CAMERA, target_key))
+//!         .component(Window::default())
+//!         .component(RenderTarget::new(target_key))
+//!         .component(Camera2D::new(CAMERA, target_key))
 //! }
 //!
 //! fn text() -> impl BuiltEntity {
 //!     let material_key = ResKey::unique("text");
 //!     TextMaterialBuilder::new(material_key, "my text", 100.)
 //!         .build()
-//!         .with(Transform2D::new())
-//!         .with(Model::rectangle(material_key, CAMERA))
+//!         .component(Transform2D::new())
+//!         .component(Model::rectangle(material_key, CAMERA))
 //! }
 //!
 //! const CAMERA: ResKey<Camera2D> = ResKey::new("main");

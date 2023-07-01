@@ -35,8 +35,8 @@ use winit::window::Window as WindowHandle;
 ///
 /// fn window() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Window::default().with_title("My app"))
-///         .with(RenderTarget::new(TARGET).with_background_color(Color::GREEN))
+///         .component(Window::default().with_title("My app"))
+///         .component(RenderTarget::new(TARGET).with_background_color(Color::GREEN))
 /// }
 ///
 /// const TARGET: ResKey<RenderTarget> = ResKey::new("main");

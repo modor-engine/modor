@@ -48,15 +48,15 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Texture::from_path(TEXTURE, "texture.png"))
-///         .with_child(Material::new(MATERIAL).with_texture_key(TEXTURE))
-///         .with_child(sprite())
+///         .child_entity(Texture::from_path(TEXTURE, "texture.png"))
+///         .child_entity(Material::new(MATERIAL).with_texture_key(TEXTURE))
+///         .child_entity(sprite())
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Transform2D::new())
-///         .with(Model::rectangle(MATERIAL, CAMERA))
+///         .component(Transform2D::new())
+///         .component(Model::rectangle(MATERIAL, CAMERA))
 /// }
 /// ```
 #[must_use]

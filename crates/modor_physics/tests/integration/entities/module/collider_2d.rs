@@ -63,27 +63,27 @@ impl CollisionGroupRef for BigCollisionGroup {
 
 fn collider_entity1(group: impl CollisionGroupRef, with_dynamics: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Entity1)
-        .with(
+        .component(Entity1)
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(-2., 2.))
                 .with_size(Vec2::ONE * 2.),
         )
-        .with(RelativeTransform2D::new()) // make sure it has no impact on the collider
-        .with_option(with_dynamics.then(Dynamics2D::new))
-        .with(Collider2D::rectangle(group))
+        .component(RelativeTransform2D::new()) // make sure it has no impact on the collider
+        .component_option(with_dynamics.then(Dynamics2D::new))
+        .component(Collider2D::rectangle(group))
 }
 
 fn collider_entity2(group: impl CollisionGroupRef, with_dynamics: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Entity2)
-        .with(
+        .component(Entity2)
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(-1., 2.))
                 .with_size(Vec2::ONE),
         )
-        .with_option(with_dynamics.then(Dynamics2D::new))
-        .with(Collider2D::rectangle(group))
+        .component_option(with_dynamics.then(Dynamics2D::new))
+        .component(Collider2D::rectangle(group))
 }
 
 const COLLISION_NORMAL: Vec2 = Vec2::X;
@@ -378,13 +378,13 @@ fn remove_and_put_back_collider_with_dynamics() {
 #[modor_test]
 fn move_collider() {
     let entity3 = EntityBuilder::new()
-        .with(Entity3)
-        .with(
+        .component(Entity3)
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(-5., 2.))
                 .with_size(Vec2::ONE),
         )
-        .with(Collider2D::rectangle(CollisionGroup::Group3));
+        .component(Collider2D::rectangle(CollisionGroup::Group3));
     let mut collider = Collider2D::rectangle(CollisionGroup::Group3);
     App::new()
         .with_entity(PhysicsModule::build())

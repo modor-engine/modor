@@ -124,7 +124,7 @@ pub use modor_derive::Action;
 /// # use modor::*;
 /// #
 /// App::new()
-///     .with_entity(build_complex_entity().with(AutoRemoved));
+///     .with_entity(build_complex_entity().component(AutoRemoved));
 ///
 /// fn build_complex_entity() -> impl BuiltEntity {
 ///     EntityBuilder::new()

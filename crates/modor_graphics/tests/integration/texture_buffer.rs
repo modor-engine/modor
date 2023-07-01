@@ -108,16 +108,16 @@ fn delete_and_recreate_graphics_module() {
 
 fn buffer(size: Size) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Texture::from_size(TEXTURE, size))
-        .with(TextureBuffer::default())
+        .component(Texture::from_size(TEXTURE, size))
+        .component(TextureBuffer::default())
 }
 
 fn target_buffer(size: Size, color: Color) -> impl BuiltEntity {
     let target_key = ResKey::unique("main");
     EntityBuilder::new()
-        .with(Texture::from_size(TEXTURE, size))
-        .with(TextureBuffer::default())
-        .with(RenderTarget::new(target_key).with_background_color(color))
+        .component(Texture::from_size(TEXTURE, size))
+        .component(TextureBuffer::default())
+        .component(RenderTarget::new(target_key).with_background_color(color))
 }
 
 fn is_buffer_empty<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>

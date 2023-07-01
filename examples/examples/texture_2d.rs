@@ -57,15 +57,15 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform2D::new())
-        .with(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
+        .component(Transform2D::new())
+        .component(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 }
 
 fn smiley(
@@ -76,19 +76,19 @@ fn smiley(
     angular_velocity: f32,
 ) -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(
+        .component(
             Transform2D::new()
                 .with_position(position)
                 .with_size(Vec2::new(0.2, 0.2)),
         )
-        .with(
+        .component(
             Dynamics2D::new()
                 .with_velocity(velocity)
                 .with_angular_velocity(angular_velocity),
         )
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(ZIndex2D::from(z_index))
-        .with(Smiley)
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(ZIndex2D::from(z_index))
+        .component(Smiley)
 }
 
 #[derive(Component)]

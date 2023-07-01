@@ -41,8 +41,8 @@ fn create_from_unsupported_format() {
         .with_entity(modor_text::module())
         .with_entity(
             EntityBuilder::new()
-                .with(Font::from_path(FONT, "../tests/assets/text.txt"))
-                .with(CustomFont),
+                .component(Font::from_path(FONT, "../tests/assets/text.txt"))
+                .component(CustomFont),
         )
         .assert::<With<CustomFont>>(1, |e| {
             e.has(|f: &Font| assert_eq!(f.state(), ResourceState::NotLoaded))
@@ -65,11 +65,11 @@ fn set_source() {
         .with_entity(text())
         .with_entity(
             EntityBuilder::new()
-                .with(Font::from_path(
+                .component(Font::from_path(
                     FONT,
                     "../tests/assets/IrishGrover-Regular.ttf",
                 ))
-                .with(CustomFont),
+                .component(CustomFont),
         )
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("font#text_ttf"))
@@ -86,9 +86,9 @@ fn set_source() {
 fn text() -> impl BuiltEntity {
     let texture_key = ResKey::unique("text");
     EntityBuilder::new()
-        .with(Texture::from_size(texture_key, Size::ZERO))
-        .with(TextureBuffer::default())
-        .with(Text::new("text", 20.).with_font(FONT))
+        .component(Texture::from_size(texture_key, Size::ZERO))
+        .component(TextureBuffer::default())
+        .component(Text::new("text", 20.).with_font(FONT))
 }
 
 #[derive(Component, NoSystem)]

@@ -9,7 +9,7 @@ use modor_text::{Alignment, Font, Text};
 fn create_default() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(texture().with(Text::new("text\nto\nrender", 30.)))
+        .with_entity(texture().component(Text::new("text\nto\nrender", 30.)))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#default"));
 }
@@ -19,7 +19,7 @@ fn create_with_alignment() {
     App::new()
         .with_entity(modor_text::module())
         .with_entity(
-            texture().with(Text::new("text\nto\nrender", 30.).with_alignment(Alignment::Left)),
+            texture().component(Text::new("text\nto\nrender", 30.).with_alignment(Alignment::Left)),
         )
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#left"))
@@ -40,7 +40,7 @@ fn create_with_font() {
             OTF_FONT,
             "../tests/assets/Foglihtenno07.otf",
         ))
-        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
+        .with_entity(texture().component(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"))
         .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.font_key = OTF_FONT)
@@ -52,7 +52,7 @@ fn create_with_font() {
 fn create_before_font() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(texture().with(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
+        .with_entity(texture().component(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
         .updated()
         .with_entity(Font::from_path(
             TTF_FONT,
@@ -65,8 +65,8 @@ fn create_before_font() {
 fn texture() -> impl BuiltEntity {
     let texture_key = ResKey::unique("text");
     EntityBuilder::new()
-        .with(Texture::from_size(texture_key, Size::ZERO))
-        .with(TextureBuffer::default())
+        .component(Texture::from_size(texture_key, Size::ZERO))
+        .component(TextureBuffer::default())
 }
 
 const TTF_FONT: ResKey<Font> = ResKey::new("ttf");

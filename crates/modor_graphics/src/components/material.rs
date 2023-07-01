@@ -44,19 +44,19 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with_child(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
-///         .with_child(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
-///         .with_child(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
-///         .with_child(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
-///         .with_child(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
-///         .with_child(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
-///         .with_child(sprite(Vec2::new(0.4, 0.2)))
+///         .child_entity(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
+///         .child_entity(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
+///         .child_entity(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
+///         .child_entity(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
+///         .child_entity(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
+///         .child_entity(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
+///         .child_entity(sprite(Vec2::new(0.4, 0.2)))
 /// }
 ///
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
-///         .with(Model::rectangle(TL_TEXTURE_MATERIAL, CAMERA))
+///         .component(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
+///         .component(Model::rectangle(TL_TEXTURE_MATERIAL, CAMERA))
 /// }
 ///
 /// fn texture_quarter_material(key: ResKey<Material>, position: Vec2) -> Material {

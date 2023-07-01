@@ -28,8 +28,8 @@ macro_rules! create_entities {
             impl $variants {
                 fn build() -> impl BuiltEntity {
                     EntityBuilder::new()
-                        .with(Self(0.0))
-                        .with_inherited(Data(1.0))
+                        .component(Self(0.0))
+                        .inherited(Data(1.0))
                 }
             }
 

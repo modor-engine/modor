@@ -25,14 +25,14 @@ type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransfo
 ///
 /// fn build_object() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .with(
+///         .component(
 ///             Transform2D::new()
 ///                 .with_position(Vec2::new(0.2, 0.3))
 ///                 .with_size(Vec2::new(0.25, 0.5))
 ///                 .with_rotation(20_f32.to_radians())
 ///         )
-///         .with(RelativeTransform2D::new().with_rotation(PI / 2.))
-///         .with(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
+///         .component(RelativeTransform2D::new().with_rotation(PI / 2.))
+///         .component(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
 /// }
 /// ```
 ///
@@ -72,9 +72,9 @@ type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransfo
 /// impl Ally {
 ///     fn build() -> impl BuiltEntity {
 ///         EntityBuilder::new()
-///             .with(Self)
-///             .with(Transform2D::new())
-///             .with(Collider2D::circle(CollisionGroup::Ally))
+///             .component(Self)
+///             .component(Transform2D::new())
+///             .component(Collider2D::circle(CollisionGroup::Ally))
 ///     }
 /// }
 /// ```
@@ -90,10 +90,10 @@ impl PhysicsModule {
     pub fn build() -> impl BuiltEntity {
         info!("physics module created");
         EntityBuilder::new()
-            .with(Self {
+            .component(Self {
                 core_2d: Core2DStorage::default(),
             })
-            .with_child(DeltaTime::from(Duration::ZERO))
+            .child_entity(DeltaTime::from(Duration::ZERO))
     }
 
     #[run]

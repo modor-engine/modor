@@ -11,7 +11,7 @@ struct EntityToDelete;
 #[systems]
 impl EntityToDelete {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]
@@ -31,9 +31,9 @@ struct ParentEntityToDelete;
 impl ParentEntityToDelete {
     fn build(id: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Id(id))
-            .with_child(DeletedChild)
+            .component(Self)
+            .component(Id(id))
+            .child_entity(DeletedChild)
     }
 
     #[run]
@@ -48,9 +48,13 @@ struct ParentOfEntityToDelete;
 impl ParentOfEntityToDelete {
     fn build(id: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Id(id))
-            .with_child(EntityBuilder::new().with(Id(id)).with(EntityToDelete))
+            .component(Self)
+            .component(Id(id))
+            .child_entity(
+                EntityBuilder::new()
+                    .component(Id(id))
+                    .component(EntityToDelete),
+            )
     }
 }
 
@@ -60,7 +64,7 @@ struct EntityWithMissingComponentAdded;
 #[systems]
 impl EntityWithMissingComponentAdded {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]
@@ -77,9 +81,9 @@ struct EntityWithExistingComponentAdded;
 impl EntityWithExistingComponentAdded {
     fn build(id: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Text(String::from("empty")))
-            .with(Id(id))
+            .component(Self)
+            .component(Text(String::from("empty")))
+            .component(Id(id))
     }
 
     #[run]
@@ -94,7 +98,7 @@ struct SingletonWithComponentAdded;
 #[systems]
 impl SingletonWithComponentAdded {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]
@@ -110,9 +114,9 @@ struct EntityWithExistingComponentDeleted;
 impl EntityWithExistingComponentDeleted {
     fn build(id: u32) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self)
-            .with(Id(id))
-            .with(Text(String::from("existing")))
+            .component(Self)
+            .component(Id(id))
+            .component(Text(String::from("existing")))
     }
 
     #[run]
@@ -127,7 +131,7 @@ struct EntityWithMissingComponentDeleted;
 #[systems]
 impl EntityWithMissingComponentDeleted {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]
@@ -145,7 +149,7 @@ struct EntityWithNotRegisteredComponentTypeDeleted;
 #[systems]
 impl EntityWithNotRegisteredComponentTypeDeleted {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]
@@ -160,7 +164,7 @@ struct EntityWithAddedChild;
 #[systems]
 impl EntityWithAddedChild {
     fn build(id: u32) -> impl BuiltEntity {
-        EntityBuilder::new().with(Self).with(Id(id))
+        EntityBuilder::new().component(Self).component(Id(id))
     }
 
     #[run]

@@ -26,10 +26,10 @@ impl InputModule {
     pub fn build() -> impl BuiltEntity {
         info!("input module created");
         EntityBuilder::new()
-            .with(Self)
-            .with_child(InputEventCollector::new())
-            .with_child(Mouse::new())
-            .with_child(Keyboard::new())
+            .component(Self)
+            .child_entity(InputEventCollector::new())
+            .child_entity(Mouse::new())
+            .child_entity(Keyboard::new())
     }
 
     #[run_after(component(InputEventCollector))]

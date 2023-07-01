@@ -25,9 +25,9 @@ pub fn main() {
 fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
-        .with(RenderTarget::new(target_key))
-        .with(Window::default())
-        .with(Camera2D::new(CAMERA, target_key))
+        .component(RenderTarget::new(target_key))
+        .component(Window::default())
+        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn text() -> impl BuiltEntity {
@@ -39,9 +39,9 @@ fn text() -> impl BuiltEntity {
                 .with_front_color(Color::WHITE)
         })
         .build()
-        .with(Transform2D::new().with_size(Vec2::new(1., 0.2)))
-        .with(Model::rectangle(material_key, CAMERA))
-        .with(LoadingText::default())
+        .component(Transform2D::new().with_size(Vec2::new(1., 0.2)))
+        .component(Model::rectangle(material_key, CAMERA))
+        .component(LoadingText::default())
 }
 
 #[derive(Component)]

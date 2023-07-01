@@ -27,15 +27,15 @@ struct Transform(Mat4);
 
 fn build_entity() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with(Transform(Mat4(
+        .component(Transform(Mat4(
             Vec4(1., 0., 0., 0.),
             Vec4(0., 1., 0., 0.),
             Vec4(0., 0., 1., 0.),
             Vec4(0., 0., 0., 1.),
         )))
-        .with(Position(Vec3(1., 0., 0.)))
-        .with(Rotation(Vec3(1., 0., 0.)))
-        .with(Velocity(Vec3(1., 0., 0.)))
+        .component(Position(Vec3(1., 0., 0.)))
+        .component(Rotation(Vec3(1., 0., 0.)))
+        .component(Velocity(Vec3(1., 0., 0.)))
 }
 
 fn run(c: &mut Criterion) {

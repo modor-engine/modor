@@ -14,8 +14,8 @@ struct Destination;
 #[modor_test]
 fn update_velocity() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
-        .with(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)));
+        .component(Transform2D::new().with_position(Vec2::new(1., 2.)))
+        .component(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -41,12 +41,12 @@ fn update_velocity() {
 #[modor_test]
 fn update_angular_velocity() {
     let entity = EntityBuilder::new()
-        .with(
+        .component(
             Transform2D::new()
                 .with_position(Vec2::new(1., 2.))
                 .with_rotation(PI),
         )
-        .with(Dynamics2D::new().with_angular_velocity(FRAC_PI_4));
+        .component(Dynamics2D::new().with_angular_velocity(FRAC_PI_4));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
@@ -73,8 +73,8 @@ fn update_angular_velocity() {
 #[modor_test]
 fn remove_and_put_back_dynamics() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
-        .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
+        .component(Transform2D::new().with_position(Vec2::new(1., 2.)))
+        .component(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
     let mut dynamics = Dynamics2D::new();
     App::new()
         .with_entity(PhysicsModule::build())
@@ -94,13 +94,13 @@ fn remove_and_put_back_dynamics() {
 #[modor_test]
 fn move_dynamics() {
     let source = EntityBuilder::new()
-        .with(Source)
-        .with(Transform2D::new().with_position(Vec2::new(1., 2.)))
-        .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
+        .component(Source)
+        .component(Transform2D::new().with_position(Vec2::new(1., 2.)))
+        .component(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
     let destination = EntityBuilder::new()
-        .with(Destination)
-        .with(Transform2D::new().with_position(Vec2::new(2., 1.)))
-        .with(Dynamics2D::new());
+        .component(Destination)
+        .component(Transform2D::new().with_position(Vec2::new(2., 1.)))
+        .component(Dynamics2D::new());
     let mut dynamics = Dynamics2D::new();
     App::new()
         .with_entity(PhysicsModule::build())
@@ -123,9 +123,9 @@ fn move_dynamics() {
 #[modor_test]
 fn create_with_relative_transform() {
     let entity = EntityBuilder::new()
-        .with(Transform2D::new())
-        .with(RelativeTransform2D::new())
-        .with(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
+        .component(Transform2D::new())
+        .component(RelativeTransform2D::new())
+        .component(Dynamics2D::new().with_velocity(Vec2::new(1., 0.)));
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))

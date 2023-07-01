@@ -118,7 +118,7 @@ struct Values {
 impl Values {
     fn build(value1: bool, value2: bool) -> impl BuiltEntity {
         EntityBuilder::new()
-            .with(Self {
+            .component(Self {
                 value1,
                 value2,
                 empty_done: false,
@@ -126,8 +126,8 @@ impl Values {
                 two_item_done: false,
                 more_than_two_item_done: false,
             })
-            .with_option(value1.then_some(Value1(10)))
-            .with_option(value2.then_some(Value2(20)))
+            .component_option(value1.then_some(Value1(10)))
+            .component_option(value2.then_some(Value2(20)))
     }
 
     #[run]
@@ -161,10 +161,10 @@ impl Values {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .with_child(QueryTester::default())
-        .with_child(Values::build(true, true))
-        .with_child(Values::build(true, false))
-        .with_child(Values::build(false, true))
+        .child_entity(QueryTester::default())
+        .child_entity(Values::build(true, true))
+        .child_entity(Values::build(true, false))
+        .child_entity(Values::build(false, true))
 }
 
 #[modor_test]

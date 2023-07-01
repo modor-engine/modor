@@ -32,10 +32,10 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 ///     let target_key = ResKey::unique("main");
 ///     let texture_key = ResKey::unique("main");
 ///     EntityBuilder::new()
-///         .with(RenderTarget::new(target_key))
-///         .with(Texture::from_size(texture_key, Size::new(800, 600)))
-///         .with(TextureBuffer::default())
-///         .with(Screenshot)
+///         .component(RenderTarget::new(target_key))
+///         .component(Texture::from_size(texture_key, Size::new(800, 600)))
+///         .component(TextureBuffer::default())
+///         .component(Screenshot)
 /// }
 ///
 /// #[derive(Component)]
