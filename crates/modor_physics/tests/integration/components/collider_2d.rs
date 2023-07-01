@@ -1,4 +1,4 @@
-use modor::{App, BuildableEntity, BuiltEntity, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroupRef, CollisionType, DeltaTime, Dynamics2D, PhysicsModule, Transform2D,
@@ -58,8 +58,8 @@ fn assert_collision(
 }
 
 fn assert_collision_internal(
-    entity1: impl BuildableEntity,
-    entity2: impl BuildableEntity,
+    entity1: impl BuiltEntity,
+    entity2: impl BuiltEntity,
     normal_1: Vec2,
     position1: Vec2,
     position2: Vec2,
@@ -107,7 +107,7 @@ fn assert_no_collision(
     }
 }
 
-fn assert_no_collision_internal(entity1: impl BuildableEntity, entity2: impl BuildableEntity) {
+fn assert_no_collision_internal(entity1: impl BuiltEntity, entity2: impl BuiltEntity) {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(DeltaTime::from(Duration::from_secs(2)))
