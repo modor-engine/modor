@@ -5,6 +5,10 @@ on: workflow_dispatch
 env:
   CARGO_TERM_COLOR: always
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # avoid cancelling a deployment partially done
+
 jobs:
   check-version:
     runs-on: ubuntu-22.04
