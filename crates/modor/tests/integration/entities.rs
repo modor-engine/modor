@@ -42,7 +42,7 @@ impl Level2 {
             .component(Self)
             .inherited(Inherited::build(i64::from(value)))
             .component(Value(value + 100))
-            .children(move |b| {
+            .child_entities(move |b| {
                 for i in 2..4 {
                     b.add(Level3::build(value + i, i == 2));
                 }

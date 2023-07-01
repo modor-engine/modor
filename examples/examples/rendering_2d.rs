@@ -47,7 +47,7 @@ fn window() -> impl BuiltEntity {
 }
 
 fn materials() -> impl BuiltEntity {
-    EntityBuilder::new().children(|b| {
+    EntityBuilder::new().child_entities(|b| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
             b.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
         }
@@ -55,7 +55,7 @@ fn materials() -> impl BuiltEntity {
 }
 
 fn sprites() -> impl BuiltEntity {
-    EntityBuilder::new().children(move |b| {
+    EntityBuilder::new().child_entities(move |b| {
         for entity_id in 0..SPRITE_COUNT {
             b.add(sprite(entity_id));
         }

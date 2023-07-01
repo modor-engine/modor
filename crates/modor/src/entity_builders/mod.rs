@@ -72,9 +72,9 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
     /// Creates child entities.
     ///
     /// This method can be used instead of
-    /// [`EntityBuilder::with_child`](EntityBuilder::child_entity) when children are
+    /// [`BuiltEntity::child_entity`](BuiltEntity::child_entity) when children are
     /// created dynamically (e.g. with conditional creation or loops).
-    fn children<F>(self, builder: F) -> EntityChildrenBuilder<F, Self>
+    fn child_entities<F>(self, builder: F) -> EntityChildrenBuilder<F, Self>
     where
         F: FnOnce(&mut EntityGenerator<'_>),
     {

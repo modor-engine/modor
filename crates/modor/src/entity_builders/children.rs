@@ -48,7 +48,7 @@ where
 /// fn build_root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Value(0))
-///         .children(|b| {
+///         .child_entities(|b| {
 ///             for i in 1..=10 {
 ///                 b.add(build_child(i));
 ///             }
