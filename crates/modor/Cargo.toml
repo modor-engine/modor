@@ -28,6 +28,7 @@ console_error_panic_hook.workspace = true
 console_log.workspace = true
 
 [dev-dependencies]
+approx.workspace = true
 doc-comment.workspace = true
 instant.workspace = true
 spin_sleep.workspace = true

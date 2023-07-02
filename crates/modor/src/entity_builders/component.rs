@@ -17,6 +17,21 @@ pub struct EntityComponentBuilder<C, P> {
     pub(crate) previous: P,
 }
 
+impl<C, P> EntityComponentBuilder<C, P>
+where
+    C: ComponentSystems,
+{
+    /// Updates the component that has just been added to the entity.
+    ///
+    /// If the component is optional, then the update is performed only if the component exists.
+    pub fn with(mut self, updater: impl FnOnce(&mut C)) -> Self {
+        if let Some(component) = &mut self.component {
+            updater(component);
+        }
+        self
+    }
+}
+
 impl<C, P> BuiltEntityPart for EntityComponentBuilder<C, P>
 where
     C: ComponentSystems,
