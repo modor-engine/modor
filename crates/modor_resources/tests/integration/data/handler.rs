@@ -43,6 +43,8 @@ fn load_valid_resource_from_async_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if let Some(resource) = handler.resource() {
@@ -63,6 +65,8 @@ fn load_invalid_resource_from_async_data() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
@@ -85,6 +89,8 @@ fn load_resource_from_async_data_that_panics_during_loading() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
@@ -115,6 +121,8 @@ fn load_valid_resource_from_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if let Some(resource) = handler.resource() {
@@ -135,6 +143,8 @@ fn load_invalid_resource_from_valid_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
@@ -157,6 +167,8 @@ fn load_invalid_resource_from_invalid_async_path() {
     let mut handler = ResourceHandler::<LoadedSize, _>::new(source);
     assert_eq!(handler.state(), ResourceState::NotLoaded);
     assert_eq!(handler.resource(), None);
+    handler.update(RESOURCE);
+    assert_eq!(handler.state(), ResourceState::Loading);
     for _ in 0..1000 {
         handler.update(RESOURCE);
         if handler.state() != ResourceState::Loading {
@@ -224,7 +236,7 @@ struct LoadedSize(usize);
 
 impl Load<String> for LoadedSize {
     fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
-        thread::sleep(Duration::from_millis(1));
+        thread::sleep(Duration::from_millis(2));
         if data.is_empty() {
             Err(ResourceLoadingError::LoadingError("empty file".into()))
         } else if data.len() == 1 {
@@ -235,7 +247,7 @@ impl Load<String> for LoadedSize {
     }
 
     fn load_from_data(data: &String) -> Result<Self, ResourceLoadingError> {
-        thread::sleep(Duration::from_millis(1));
+        thread::sleep(Duration::from_millis(2));
         if data.is_empty() {
             Err(ResourceLoadingError::LoadingError("empty data".into()))
         } else if data.len() == 1 {
