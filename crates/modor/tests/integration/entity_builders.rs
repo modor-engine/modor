@@ -133,6 +133,21 @@ fn build_entity_with_inherited() {
         });
 }
 
+#[modor_test]
+fn build_entity_with_updated_component() {
+    App::new()
+        .with_entity(
+            EntityBuilder::new()
+                .component(Integer(10))
+                .child_entity(Singleton1(1))
+                .child_entities(|_| ())
+                .dependency::<Singleton2, _, _>(|| Singleton2(2))
+                .inherited(EntityBuilder::new().component(Singleton3(3)))
+                .updated(|i: &mut Integer| i.0 += 1),
+        )
+        .assert::<With<Integer>>(1, |e| e.has(|i: &Integer| assert_eq!(i.0, 11)));
+}
+
 #[derive(Component, NoSystem)]
 struct Integer(u32);
 

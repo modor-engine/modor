@@ -99,6 +99,17 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
             phantom: PhantomData,
         }
     }
+
+    /// Updates the component of type `C` already added to the entity.
+    ///
+    /// If the entity does not have a component of type `C`, nothing is done.
+    fn updated<C>(mut self, updater: impl FnMut(&mut C)) -> Self
+    where
+        C: Component,
+    {
+        self.update_component(updater);
+        self
+    }
 }
 
 impl<E> BuiltEntity for E where E: BuiltEntityPart {}
@@ -121,6 +132,13 @@ where
     }
 
     fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
+        unreachable!()
+    }
+
+    fn update_component<C2>(&mut self, _updater: impl FnMut(&mut C2))
+    where
+        C2: Component,
+    {
         unreachable!()
     }
     // coverage: on
@@ -197,6 +215,12 @@ impl BuiltEntityPart for EntityBuilder {
     fn add_components(&mut self, _core: &mut CoreStorage, _location: EntityLocation) {}
 
     fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {}
+
+    fn update_component<C>(&mut self, _updater: impl FnMut(&mut C))
+    where
+        C: Component,
+    {
+    }
 }
 
 pub(crate) mod child;
