@@ -139,6 +139,7 @@ fn build_entity_with_updated_component() {
         .with_entity(
             EntityBuilder::new()
                 .component(Integer(10))
+                .component_option::<Text>(None)
                 .child_entity(Singleton1(1))
                 .child_entities(|_| ())
                 .dependency::<Singleton2, _, _>(|| Singleton2(2))
