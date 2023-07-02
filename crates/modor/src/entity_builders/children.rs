@@ -2,7 +2,7 @@ use crate::entity_builders::internal::BuiltEntityPart;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::BuiltEntity;
+use crate::{BuiltEntity, Component};
 
 /// A builder for defining children of an entity.
 ///
@@ -33,6 +33,13 @@ where
         self.previous.create_other_entities(core, parent_idx);
         (self.builder)(&mut EntityGenerator { core, parent_idx });
     }
+
+    fn update_component<C>(&mut self, updater: impl FnMut(&mut C))
+    where
+        C: Component,
+    {
+        self.previous.update_component(updater);
+    }
 }
 
 /// An entity generator.
@@ -48,9 +55,9 @@ where
 /// fn build_root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Value(0))
-///         .child_entities(|b| {
+///         .child_entities(|g| {
 ///             for i in 1..=10 {
-///                 b.add(build_child(i));
+///                 g.add(build_child(i));
 ///             }
 ///         })
 /// }

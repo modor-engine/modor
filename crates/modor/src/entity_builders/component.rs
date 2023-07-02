@@ -4,9 +4,9 @@ use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{ComponentSystems, SystemRunner, True};
+use crate::{Component, ComponentSystems, SystemRunner, True};
 use std::any;
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 
 /// A builder for defining component of an entity.
 ///
@@ -86,5 +86,17 @@ where
 
     fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
         self.previous.create_other_entities(core, parent_idx);
+    }
+
+    fn update_component<C2>(&mut self, mut updater: impl FnMut(&mut C2))
+    where
+        C2: Component,
+    {
+        if let Some(component) = &mut self.component {
+            if let Some(component) = (component as &mut dyn Any).downcast_mut() {
+                updater(component);
+            }
+        }
+        self.previous.update_component(updater);
     }
 }

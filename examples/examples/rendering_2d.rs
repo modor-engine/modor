@@ -47,9 +47,9 @@ fn window() -> impl BuiltEntity {
 }
 
 fn materials() -> impl BuiltEntity {
-    EntityBuilder::new().child_entities(|b| {
+    EntityBuilder::new().child_entities(|g| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
-            b.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
+            g.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
         }
     })
 }

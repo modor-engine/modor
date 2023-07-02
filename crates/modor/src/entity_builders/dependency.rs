@@ -55,4 +55,11 @@ where
             );
         }
     }
+
+    fn update_component<C2>(&mut self, updater: impl FnMut(&mut C2))
+    where
+        C2: Component,
+    {
+        self.previous.update_component(updater);
+    }
 }
