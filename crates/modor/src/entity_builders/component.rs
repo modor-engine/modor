@@ -21,7 +21,7 @@ impl<C, P> EntityComponentBuilder<C, P>
 where
     C: ComponentSystems,
 {
-    /// Updates the component that has just been added to the entity.
+    /// Updates the previously added component.
     ///
     /// If the component is optional, then the update is performed only if the component exists.
     pub fn with(mut self, updater: impl FnOnce(&mut C)) -> Self {

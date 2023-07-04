@@ -1,5 +1,5 @@
-use crate::entity_builders::child::EntityChildBuilder;
-use crate::entity_builders::children::{EntityChildrenBuilder, EntityGenerator};
+use crate::entity_builders::child_entities::{EntityChildEntitiesBuilder, EntityGenerator};
+use crate::entity_builders::child_entity::EntityChildEntityBuilder;
 use crate::entity_builders::component::EntityComponentBuilder;
 use crate::entity_builders::dependency::EntityDependencyBuilder;
 use crate::entity_builders::inherited::EntityInheritedBuilder;
@@ -7,7 +7,7 @@ use crate::entity_builders::internal::BuiltEntityPart;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{Component, ComponentSystems, True};
+use crate::{Component, ComponentSystems, EntityChildComponentBuilder, True};
 use std::marker::PhantomData;
 
 /// A trait implemented for an entity builder.
@@ -58,12 +58,23 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
         }
     }
 
+    /// Creates a child entity containing a single `component`.
+    fn child_component<C>(self, component: C) -> EntityChildComponentBuilder<C, Self>
+    where
+        C: ComponentSystems,
+    {
+        EntityChildComponentBuilder {
+            component,
+            previous: self,
+        }
+    }
+
     /// Creates a child entity.
-    fn child_entity<E>(self, child: E) -> EntityChildBuilder<E, Self>
+    fn child_entity<E>(self, child: E) -> EntityChildEntityBuilder<E, Self>
     where
         E: BuiltEntity,
     {
-        EntityChildBuilder {
+        EntityChildEntityBuilder {
             child,
             previous: self,
         }
@@ -74,11 +85,11 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
     /// This method can be used instead of
     /// [`BuiltEntity::child_entity`](BuiltEntity::child_entity) when children are
     /// created dynamically (e.g. with conditional creation or loops).
-    fn child_entities<F>(self, builder: F) -> EntityChildrenBuilder<F, Self>
+    fn child_entities<F>(self, builder: F) -> EntityChildEntitiesBuilder<F, Self>
     where
         F: FnOnce(&mut EntityGenerator<'_>),
     {
-        EntityChildrenBuilder {
+        EntityChildEntitiesBuilder {
             builder,
             previous: self,
         }
@@ -223,8 +234,9 @@ impl BuiltEntityPart for EntityBuilder {
     }
 }
 
-pub(crate) mod child;
-pub(crate) mod children;
+pub(crate) mod child_component;
+pub(crate) mod child_entities;
+pub(crate) mod child_entity;
 pub(crate) mod component;
 pub(crate) mod dependency;
 pub(crate) mod inherited;

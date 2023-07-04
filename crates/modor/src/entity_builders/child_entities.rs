@@ -7,12 +7,12 @@ use crate::{BuiltEntity, Component};
 /// A builder for defining children of an entity.
 ///
 /// [`EntityBuilder`](crate::EntityBuilder) needs to be used to instantiate this builder.
-pub struct EntityChildrenBuilder<F, P> {
+pub struct EntityChildEntitiesBuilder<F, P> {
     pub(crate) builder: F,
     pub(crate) previous: P,
 }
 
-impl<F, P> BuiltEntityPart for EntityChildrenBuilder<F, P>
+impl<F, P> BuiltEntityPart for EntityChildEntitiesBuilder<F, P>
 where
     F: FnOnce(&mut EntityGenerator<'_>),
     P: BuiltEntity,
