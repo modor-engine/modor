@@ -160,6 +160,7 @@ fn build_entity_with_updated_component() {
             EntityBuilder::new()
                 .component(Integer(10))
                 .component_option::<Text>(None)
+                .child_component(Float(2.))
                 .child_entity(Singleton1(1))
                 .child_entities(|_| ())
                 .dependency::<Singleton2, _, _>(|| Singleton2(2))
