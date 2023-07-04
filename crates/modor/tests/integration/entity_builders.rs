@@ -71,7 +71,27 @@ fn build_entity_with_dependency() {
 }
 
 #[modor_test]
-fn build_entity_with_child() {
+fn build_entity_with_child_component() {
+    App::new()
+        .with_entity(
+            EntityBuilder::new()
+                .component(Singleton1(1))
+                .child_component(Singleton2(4))
+                .child_component(Singleton2(2))
+                .with(|s| s.0 += 1)
+                .child_component(Singleton3(3)),
+        )
+        .assert::<With<Singleton1>>(1, |e| e.child_count(2))
+        .assert::<With<Singleton2>>(1, |e| {
+            e.child_count(0)
+                .has_parent::<With<Singleton1>>()
+                .has(|s: &Singleton2| assert_eq!(s.0, 3))
+        })
+        .assert::<With<Singleton3>>(1, |e| e.child_count(0).has_parent::<With<Singleton1>>());
+}
+
+#[modor_test]
+fn build_entity_with_child_entity() {
     let level3 = EntityBuilder::new().component(Singleton3(3));
     let level2 = EntityBuilder::new()
         .component(Singleton2(2))
@@ -87,7 +107,7 @@ fn build_entity_with_child() {
 }
 
 #[modor_test]
-fn build_entity_with_children() {
+fn build_entity_with_child_entities() {
     App::new()
         .with_entity(
             EntityBuilder::new()
@@ -140,6 +160,7 @@ fn build_entity_with_updated_component() {
             EntityBuilder::new()
                 .component(Integer(10))
                 .component_option::<Text>(None)
+                .child_component(Float(2.))
                 .child_entity(Singleton1(1))
                 .child_entities(|_| ())
                 .dependency::<Singleton2, _, _>(|| Singleton2(2))
