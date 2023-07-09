@@ -131,7 +131,7 @@ pub trait BuildableEntity<S> {
     fn build_entity(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
 }
 
-/// The [`BuildableEntity`] when the entity is created from a single component.
+/// The [`BuildableEntity`] source when the entity is created from a single component.
 pub struct ComponentSource;
 
 /// The [`BuildableEntity`] source when the entity is created from a type implementing [`BuiltEntity`].

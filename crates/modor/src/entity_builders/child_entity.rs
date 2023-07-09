@@ -3,7 +3,7 @@ use crate::entity_builders::BuiltEntity;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{BuildableEntity, Component, BuiltEntitySource};
+use crate::{BuildableEntity, BuiltEntitySource, Component};
 
 /// A builder for defining child of an entity.
 ///
