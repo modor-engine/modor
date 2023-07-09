@@ -70,12 +70,12 @@ fn create_for_opaque_and_transparent() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target())
-        .child_entity(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
-        .child_entity(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
-        .child_entity(
+        .child_component(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
+        .child_component(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
+        .child_component(
             Material::new(TRANSPARENT_BLUE_MATERIAL).with_color(Color::BLUE.with_alpha(0.5)),
         )
-        .child_entity(
+        .child_component(
             Material::new(TRANSPARENT_GREEN_MATERIAL).with_color(Color::GREEN.with_alpha(0.5)),
         )
 }

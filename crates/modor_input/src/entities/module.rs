@@ -27,9 +27,9 @@ impl InputModule {
         info!("input module created");
         EntityBuilder::new()
             .component(Self)
-            .child_entity(InputEventCollector::new())
-            .child_entity(Mouse::new())
-            .child_entity(Keyboard::new())
+            .child_component(InputEventCollector::new())
+            .child_component(Mouse::new())
+            .child_component(Keyboard::new())
     }
 
     #[run_after(component(InputEventCollector))]

@@ -161,7 +161,7 @@ impl Values {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(QueryTester::default())
+        .child_component(QueryTester::default())
         .child_entity(Values::build(true, true))
         .child_entity(Values::build(true, false))
         .child_entity(Values::build(false, true))

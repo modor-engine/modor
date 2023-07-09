@@ -209,11 +209,11 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target())
-        .child_entity(opaque_blue_material())
-        .child_entity(opaque_red_material())
-        .child_entity(transparent_blue_material())
-        .child_entity(transparent_red_material())
-        .child_entity(default_camera())
+        .child_component(opaque_blue_material())
+        .child_component(opaque_red_material())
+        .child_component(transparent_blue_material())
+        .child_component(transparent_red_material())
+        .child_component(default_camera())
         .child_entity(offset_camera())
 }
 

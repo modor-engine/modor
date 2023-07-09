@@ -125,42 +125,38 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
 
 impl<E> BuiltEntity for E where E: BuiltEntityPart {}
 
-impl<C> BuiltEntityPart for C
+/// A trait implemented for types that can be used to create an entity.
+pub trait BuildableEntity<S> {
+    #[doc(hidden)]
+    fn build_entity(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx;
+}
+
+/// The [`BuildableEntity`] source when the entity is created from a single component.
+pub struct ComponentSource;
+
+/// The [`BuildableEntity`] source when the entity is created from a type implementing [`BuiltEntity`].
+pub struct BuiltEntitySource;
+
+impl<C> BuildableEntity<ComponentSource> for C
 where
     C: ComponentSystems,
 {
-    // coverage: off (unreachable)
-    fn create_archetype(
-        &mut self,
-        _core: &mut CoreStorage,
-        _archetype_idx: ArchetypeIdx,
-    ) -> ArchetypeIdx {
-        unreachable!()
-    }
-
-    fn add_components(&mut self, _core: &mut CoreStorage, _location: EntityLocation) {
-        unreachable!()
-    }
-
-    fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
-        unreachable!()
-    }
-
-    fn update_component<C2>(&mut self, _updater: impl FnMut(&mut C2))
-    where
-        C2: Component,
-    {
-        unreachable!()
-    }
-    // coverage: on
-
-    fn build(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
+    fn build_entity(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
         EntityComponentBuilder {
             component: Some(self),
             type_idx: None,
             previous: EntityBuilder::new(),
         }
         .build(core, parent_idx)
+    }
+}
+
+impl<E> BuildableEntity<BuiltEntitySource> for E
+where
+    E: BuiltEntity,
+{
+    fn build_entity(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
+        BuiltEntityPart::build(self, core, parent_idx)
     }
 }
 
@@ -223,14 +219,19 @@ impl BuiltEntityPart for EntityBuilder {
         archetype_idx
     }
 
-    fn add_components(&mut self, _core: &mut CoreStorage, _location: EntityLocation) {}
+    fn add_components(&mut self, _core: &mut CoreStorage, _location: EntityLocation) {
+        // do nothing
+    }
 
-    fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {}
+    fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
+        // do nothing
+    }
 
     fn update_component<C>(&mut self, _updater: impl FnMut(&mut C))
     where
         C: Component,
     {
+        // do nothing
     }
 }
 

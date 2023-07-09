@@ -113,10 +113,10 @@ fn main_texture() -> impl BuiltEntity {
 
 fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
-        .child_entity(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
-        .child_entity(Material::new(RECTANGLE_MATERIAL).with_color(Color::BLUE))
-        .child_entity(Material::new(TARGET_MATERIAL).with_texture_key(SECONDARY_TARGET_TEXTURE))
+        .child_component(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
+        .child_component(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
+        .child_component(Material::new(RECTANGLE_MATERIAL).with_color(Color::BLUE))
+        .child_component(Material::new(TARGET_MATERIAL).with_texture_key(SECONDARY_TARGET_TEXTURE))
         .child_entity(secondary_target())
         .child_entity(blue_rectangle())
         .child_entity(target_rectangle())

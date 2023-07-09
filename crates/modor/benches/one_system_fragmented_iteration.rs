@@ -29,7 +29,7 @@ macro_rules! create_entities {
                 fn build() -> impl BuiltEntity {
                     EntityBuilder::new()
                         .component(Self(0.0))
-                        .inherited(Data(1.0))
+                        .component(Data(1.0))
                 }
             }
 

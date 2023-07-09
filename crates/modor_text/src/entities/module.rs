@@ -21,7 +21,7 @@ pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(TextModule)
         .component(FontRegistry::default())
-        .child_entity(Font::new(DEFAULT_FONT, FontSource::File(DEFAULT_FONT_FILE)))
+        .child_component(Font::new(DEFAULT_FONT, FontSource::File(DEFAULT_FONT_FILE)))
         .dependency::<GraphicsModule, _, _>(modor_graphics::module)
 }
 

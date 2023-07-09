@@ -55,9 +55,9 @@ fn build_entity_with_dependency() {
         .with_entity(Singleton1(41))
         .with_entity(
             EntityBuilder::new()
-                .dependency::<Singleton1, _, _>(|| Singleton1(10))
-                .dependency::<Singleton2, _, _>(|| Singleton2(20))
-                .dependency::<Singleton3, _, _>(|| Singleton3(30)),
+                .dependency::<Singleton1, _, _>(|| EntityBuilder::new().component(Singleton1(10)))
+                .dependency::<Singleton2, _, _>(|| EntityBuilder::new().component(Singleton2(20)))
+                .dependency::<Singleton3, _, _>(|| EntityBuilder::new().component(Singleton3(30))),
         )
         .with_entity(Singleton3(50))
         .assert::<With<Singleton1>>(1, |e| e.has(|s: &Singleton1| assert_eq!(s.0, 41)))
@@ -129,13 +129,13 @@ fn build_entity_with_inherited() {
         .component(Integer(10))
         .component(Float(2.))
         .component(Text("child"))
-        .child_entity(Singleton3(3));
+        .child_component(Singleton3(3));
     App::new()
         .with_entity(
             EntityBuilder::new()
                 .component(Integer(1))
                 .component(Singleton1(1))
-                .child_entity(Singleton2(2))
+                .child_component(Singleton2(2))
                 .inherited(child)
                 .component(Text("new child")),
         )
@@ -161,9 +161,9 @@ fn build_entity_with_updated_component() {
                 .component(Integer(10))
                 .component_option::<Text>(None)
                 .child_component(Float(2.))
-                .child_entity(Singleton1(1))
+                .child_entity(EntityBuilder::new().component(Singleton1(1)))
                 .child_entities(|_| ())
-                .dependency::<Singleton2, _, _>(|| Singleton2(2))
+                .dependency::<Singleton2, _, _>(|| EntityBuilder::new().component(Singleton2(2)))
                 .inherited(EntityBuilder::new().component(Singleton3(3)))
                 .updated(|i: &mut Integer| i.0 += 1),
         )

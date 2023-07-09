@@ -52,8 +52,8 @@ impl RegisteredNumber {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(QueryTester::default())
-        .child_entity(Numbers::default())
+        .child_component(QueryTester::default())
+        .child_component(Numbers::default())
         .child_entity(Number::build(1).component(RegisteredNumber))
         .child_entity(OtherNumber::build(10))
         .child_entity(Number::build(2).component(RegisteredNumber))

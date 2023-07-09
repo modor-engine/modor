@@ -29,7 +29,7 @@ use modor_resources::ResKey;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_entity(Font::from_path(FONT, "font.ttf"))
+///         .child_component(Font::from_path(FONT, "font.ttf"))
 ///         .child_entity(text())
 /// }
 ///

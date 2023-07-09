@@ -33,7 +33,7 @@ impl ParentEntityToDelete {
         EntityBuilder::new()
             .component(Self)
             .component(Id(id))
-            .child_entity(DeletedChild)
+            .child_component(DeletedChild)
     }
 
     #[run]

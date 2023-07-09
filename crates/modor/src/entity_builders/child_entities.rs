@@ -2,7 +2,7 @@ use crate::entity_builders::internal::BuiltEntityPart;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{BuiltEntity, Component};
+use crate::{BuildableEntity, BuiltEntity, Component};
 
 /// A builder for defining children of an entity.
 ///
@@ -73,7 +73,7 @@ pub struct EntityGenerator<'a> {
 
 impl EntityGenerator<'_> {
     /// Adds a entity.
-    pub fn add(&mut self, entity: impl BuiltEntity) {
-        entity.build(self.core, self.parent_idx);
+    pub fn add<T>(&mut self, entity: impl BuildableEntity<T>) {
+        entity.build_entity(self.core, self.parent_idx);
     }
 }

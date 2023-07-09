@@ -54,12 +54,11 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// const TEXTURE_TARGET: ResKey<RenderTarget> = ResKey::new("texture");
 ///
 /// fn root() -> impl BuiltEntity {
-///     let camera = Camera2D::new(CAMERA, WINDOW_TARGET)
-///         .with_target_key(TEXTURE_TARGET);
 ///     EntityBuilder::new()
 ///         .child_entity(window_target())
 ///         .child_entity(texture_target())
-///         .child_entity(camera)
+///         .child_component(Camera2D::new(CAMERA, WINDOW_TARGET))
+///         .with(|c| c.target_keys.push(TEXTURE_TARGET))
 /// }
 ///
 /// fn window_target() -> impl BuiltEntity {

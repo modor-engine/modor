@@ -32,8 +32,8 @@ use modor_resources::ResKey;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_entity(Material::new(RED_RECTANGLE_MATERIAL).with_color(Color::RED))
-///         .child_entity(Material::ellipse(GREEN_ELLIPSE_MATERIAL).with_color(Color::GREEN))
+///         .child_component(Material::new(RED_RECTANGLE_MATERIAL).with_color(Color::RED))
+///         .child_component(Material::ellipse(GREEN_ELLIPSE_MATERIAL).with_color(Color::GREEN))
 ///         .child_entity(red_rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 ///         .child_entity(green_ellipse(Vec2::new(-0.25, 0.25), Vec2::new(0.1, 0.1)))
 /// }
