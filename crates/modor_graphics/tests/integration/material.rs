@@ -159,8 +159,8 @@ fn delete_entity() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target())
-        .child_entity(opaque_texture())
-        .child_entity(transparent_texture())
+        .child_component(opaque_texture())
+        .child_component(transparent_texture())
         .child_entity(rectangle())
 }
 
@@ -171,7 +171,7 @@ fn target() -> impl BuiltEntity {
         .component(RenderTarget::new(target_key).with_background_color(Color::DARK_GRAY))
         .component(Texture::from_size(texture_key, Size::new(30, 20)))
         .component(TextureBuffer::default())
-        .child_entity(Camera2D::new(CAMERA, target_key))
+        .child_component(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle() -> impl BuiltEntity {

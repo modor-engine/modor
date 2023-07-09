@@ -41,11 +41,11 @@ pub fn module() -> impl BuiltEntity {
         .component(MeshRegistry::default())
         .component(MaterialRegistry::default())
         .component(TextureRegistry::default())
-        .child_entity(Shader::default())
-        .child_entity(Shader::ellipse())
-        .child_entity(Mesh::rectangle())
-        .child_entity(Texture::from_size(WHITE_TEXTURE, Size::ONE))
-        .child_entity(Texture::from_buffer(
+        .child_component(Shader::default())
+        .child_component(Shader::ellipse())
+        .child_component(Mesh::rectangle())
+        .child_component(Texture::from_size(WHITE_TEXTURE, Size::ONE))
+        .child_component(Texture::from_buffer(
             INVISIBLE_TEXTURE,
             Size::ONE,
             vec![0; 4],

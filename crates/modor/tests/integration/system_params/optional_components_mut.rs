@@ -73,8 +73,8 @@ impl RegisteredNumber {
 
 fn entities() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(QueryTester::default())
-        .child_entity(Numbers::default())
+        .child_component(QueryTester::default())
+        .child_component(Numbers::default())
         .child_entity(
             Number::build(1)
                 .component(RegisteredNumber)

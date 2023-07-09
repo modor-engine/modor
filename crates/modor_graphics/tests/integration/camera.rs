@@ -158,7 +158,7 @@ fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target1())
         .child_entity(target2())
-        .child_entity(Material::new(MATERIAL).with_color(Color::BLUE))
+        .child_component(Material::new(MATERIAL).with_color(Color::BLUE))
         .child_entity(model())
 }
 

@@ -1,6 +1,7 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    platform, system, utils, BuiltEntity, Component, EntityFilter, EntityMut, Filter, UsizeRange,
+    platform, system, utils, BuildableEntity, Component, EntityFilter, EntityMut, Filter,
+    UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -125,8 +126,8 @@ impl App {
     }
 
     /// Creates a new entity.
-    pub fn with_entity(mut self, entity: impl BuiltEntity) -> Self {
-        entity.build(&mut self.core, None);
+    pub fn with_entity<T>(mut self, entity: impl BuildableEntity<T>) -> Self {
+        entity.build_entity(&mut self.core, None);
         self.core.delete_replaced_entities();
         self
     }

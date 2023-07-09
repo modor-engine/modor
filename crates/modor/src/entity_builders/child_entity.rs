@@ -3,7 +3,7 @@ use crate::entity_builders::BuiltEntity;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::Component;
+use crate::{BuildableEntity, Component, BuiltEntitySource};
 
 /// A builder for defining child of an entity.
 ///
@@ -15,7 +15,7 @@ pub struct EntityChildEntityBuilder<E, P> {
 
 impl<E, P> BuiltEntityPart for EntityChildEntityBuilder<E, P>
 where
-    E: BuiltEntity,
+    E: BuildableEntity<BuiltEntitySource>,
     P: BuiltEntity,
 {
     fn create_archetype(
@@ -32,7 +32,7 @@ where
 
     fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
         self.previous.create_other_entities(core, parent_idx);
-        self.child.build(core, parent_idx);
+        self.child.build_entity(core, parent_idx);
     }
 
     fn update_component<C>(&mut self, updater: impl FnMut(&mut C))

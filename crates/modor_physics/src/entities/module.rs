@@ -93,7 +93,7 @@ impl PhysicsModule {
             .component(Self {
                 core_2d: Core2DStorage::default(),
             })
-            .child_entity(DeltaTime::from(Duration::ZERO))
+            .child_component(DeltaTime::from(Duration::ZERO))
     }
 
     #[run]

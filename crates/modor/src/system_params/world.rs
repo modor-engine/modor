@@ -4,7 +4,7 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{BuiltEntity, Component, SystemParam};
+use crate::{BuildableEntity, Component, SystemParam};
 use std::any::{self, Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -32,7 +32,7 @@ impl<'a> World<'a> {
     /// Creates a new root entity.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_root_entity(&mut self, entity: impl BuiltEntity + Any + Sync + Send) {
+    pub fn create_root_entity<T>(&mut self, entity: impl BuildableEntity<T> + Any + Sync + Send) {
         self.context
             .storages
             .updates
@@ -41,7 +41,7 @@ impl<'a> World<'a> {
             .create_entity(
                 None,
                 Box::new(|c| {
-                    let entity_idx = entity.build(c, None);
+                    let entity_idx = entity.build_entity(c, None);
                     trace!("root entity created with ID {}", entity_idx.0);
                 }),
             );
@@ -50,10 +50,10 @@ impl<'a> World<'a> {
     /// Creates a new entity with parent entity with ID `parent_id`.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_child_entity(
+    pub fn create_child_entity<T>(
         &mut self,
         parent_id: usize,
-        entity: impl BuiltEntity + Any + Sync + Send,
+        entity: impl BuildableEntity<T> + Any + Sync + Send,
     ) {
         self.context
             .storages
@@ -63,7 +63,7 @@ impl<'a> World<'a> {
             .create_entity(
                 Some(parent_id.into()),
                 Box::new(move |c| {
-                    let entity_idx = entity.build(c, Some(parent_id.into()));
+                    let entity_idx = entity.build_entity(c, Some(parent_id.into()));
                     trace!(
                         "child entity created with ID `{}` for entity with ID {parent_id}",
                         entity_idx.0
