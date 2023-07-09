@@ -46,7 +46,7 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .child_entity(render_target())
-///         .child_entity(Camera2D::new(DEFAULT_CAMERA, TARGET))
+///         .child_component(Camera2D::new(DEFAULT_CAMERA, TARGET))
 ///         .child_entity(dynamic_camera())
 ///         .child_entity(object())
 /// }

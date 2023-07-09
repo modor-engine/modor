@@ -44,12 +44,12 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_entity(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
-///         .child_entity(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
-///         .child_entity(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
-///         .child_entity(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
-///         .child_entity(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
-///         .child_entity(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
+///         .child_component(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
+///         .child_component(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
+///         .child_component(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
+///         .child_component(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
+///         .child_component(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
+///         .child_component(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
 ///         .child_entity(sprite(Vec2::new(0.4, 0.2)))
 /// }
 ///

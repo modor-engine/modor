@@ -48,8 +48,8 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_entity(Texture::from_path(TEXTURE, "texture.png"))
-///         .child_entity(Material::new(MATERIAL).with_texture_key(TEXTURE))
+///         .child_component(Texture::from_path(TEXTURE, "texture.png"))
+///         .child_component(Material::new(MATERIAL).with_texture_key(TEXTURE))
 ///         .child_entity(sprite())
 /// }
 ///

@@ -161,7 +161,7 @@ fn build_entity_with_updated_component() {
                 .component(Integer(10))
                 .component_option::<Text>(None)
                 .child_component(Float(2.))
-                .child_component(Singleton1(1))
+                .child_entity(EntityBuilder::new().component(Singleton1(1)))
                 .child_entities(|_| ())
                 .dependency::<Singleton2, _, _>(|| EntityBuilder::new().component(Singleton2(2)))
                 .inherited(EntityBuilder::new().component(Singleton3(3)))
