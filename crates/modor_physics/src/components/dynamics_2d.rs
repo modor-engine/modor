@@ -14,8 +14,12 @@ use rapier2d::na::Vector2;
 #[derive(Debug, Clone, Component, NoSystem)]
 pub struct Dynamics2D {
     /// Linear velocity of the entity in world units per second.
+    ///
+    /// Default value is `Vec2::ZERO`.
     pub velocity: PhysicsProperty<Vec2>,
     /// Angular velocity of the entity in radians per second.
+    ///
+    /// Default value is `0.0`.
     pub angular_velocity: PhysicsProperty<f32>,
     pub(crate) handle: Option<RigidBodyHandle>,
 }
@@ -29,24 +33,6 @@ impl Dynamics2D {
             angular_velocity: PhysicsProperty::new(0.),
             handle: None,
         }
-    }
-
-    /// Returns the dynamics with a different `velocity` in world units per second.
-    ///
-    /// Default value is `Vec2::ZERO`.
-    #[inline]
-    pub const fn with_velocity(mut self, velocity: Vec2) -> Self {
-        self.velocity = PhysicsProperty::new(velocity);
-        self
-    }
-
-    /// Returns the dynamics with a different `angular_velocity` in radians per second.
-    ///
-    /// Default value is `0.0`.
-    #[inline]
-    pub const fn with_angular_velocity(mut self, angular_velocity: f32) -> Self {
-        self.angular_velocity = PhysicsProperty::new(angular_velocity);
-        self
     }
 
     pub(crate) fn update_from_body(&mut self, body: &RigidBody) {

@@ -48,7 +48,8 @@ pub(crate) type FontRegistry = ResourceRegistry<Font>;
 ///
 /// fn text() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Text::new("my text", 30.).with_font(FONT))
+///         .component(Text::new("my text", 30.))
+///         .with(|t| t.font_key = FONT)
 ///         .component(Texture::from_size(TEXTURE, Size::ZERO))
 /// }
 /// ```

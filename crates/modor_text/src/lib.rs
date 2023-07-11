@@ -36,8 +36,7 @@
 //!
 //! fn text() -> impl BuiltEntity {
 //!     let material_key = ResKey::unique("text");
-//!     TextMaterialBuilder::new(material_key, "my text", 100.)
-//!         .build()
+//!     text_material(material_key, "my text", 100.)
 //!         .component(Transform2D::new())
 //!         .component(Model::rectangle(material_key, CAMERA))
 //! }
@@ -48,11 +47,10 @@
 #[macro_use]
 extern crate modor;
 
-mod builders;
 mod components;
 mod entities;
 
-pub use builders::material::*;
 pub use components::font::*;
 pub use components::text::*;
+pub use entities::material::*;
 pub use entities::module::*;

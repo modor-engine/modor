@@ -60,16 +60,18 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// fn dynamic_camera() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Camera2D::new(DYNAMIC_CAMERA, TARGET))
-///         .component(Transform2D::new().with_size(Vec2::ONE * 0.5)) // zoom x2
-///         .component(Dynamics2D::new().with_velocity(Vec2::new(0.1, 0.2)))
+///         .component(Transform2D::new())
+///         .with(|t| *t.size = Vec2::ONE * 0.5) // zoom x2
+///         .component(Dynamics2D::new())
+///         .with(|d| *d.velocity = Vec2::new(0.1, 0.2))
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
-///     let model = Model::rectangle(MATERIAL, DEFAULT_CAMERA)
-///         .with_camera_key(DYNAMIC_CAMERA);
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_size(Vec2::new(0.3, 0.1)))
-///         .component(model)
+///         .component(Transform2D::new())
+///         .with(|t| *t.size = Vec2::new(0.3, 0.1))
+///         .component(Model::rectangle(MATERIAL, DEFAULT_CAMERA))
+///         .with(|m| m.camera_keys.push(DYNAMIC_CAMERA))
 /// }
 /// ```
 #[must_use]
@@ -112,12 +114,6 @@ impl Camera2D {
             target_uniforms: FxHashMap::default(),
             renderer_version: None,
         }
-    }
-
-    /// Returns the camera with a new `key` added to the [`target_keys`](#structfield.target_keys).
-    pub fn with_target_key(mut self, key: ResKey<RenderTarget>) -> Self {
-        self.target_keys.push(key);
-        self
     }
 
     #[run_after(

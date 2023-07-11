@@ -70,14 +70,14 @@ fn create_for_opaque_and_transparent() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target())
-        .child_component(Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE))
-        .child_component(Material::new(OPAQUE_GREEN_MATERIAL).with_color(Color::GREEN))
-        .child_component(
-            Material::new(TRANSPARENT_BLUE_MATERIAL).with_color(Color::BLUE.with_alpha(0.5)),
-        )
-        .child_component(
-            Material::new(TRANSPARENT_GREEN_MATERIAL).with_color(Color::GREEN.with_alpha(0.5)),
-        )
+        .child_component(Material::new(OPAQUE_BLUE_MATERIAL))
+        .with(|m| m.color = Color::BLUE)
+        .child_component(Material::new(OPAQUE_GREEN_MATERIAL))
+        .with(|m| m.color = Color::GREEN)
+        .child_component(Material::new(TRANSPARENT_BLUE_MATERIAL))
+        .with(|m| m.color = Color::BLUE.with_alpha(0.5))
+        .child_component(Material::new(TRANSPARENT_GREEN_MATERIAL))
+        .with(|m| m.color = Color::GREEN.with_alpha(0.5))
 }
 
 fn target() -> impl BuiltEntity {
@@ -92,11 +92,9 @@ fn target() -> impl BuiltEntity {
 
 fn rectangle(position: f32, z_index: u16, material_key: ResKey<Material>) -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(
-            Transform2D::new()
-                .with_position(Vec2::new(position, position))
-                .with_size(Vec2::ONE * 0.3),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(position, position))
+        .with(|t| *t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))
         .component(Model::rectangle(material_key, CAMERA))
 }

@@ -49,7 +49,9 @@ fn window() -> impl BuiltEntity {
 fn materials() -> impl BuiltEntity {
     EntityBuilder::new().child_entities(|g| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
-            g.add(Material::ellipse(MATERIAL.get(color_id)).with_color(color));
+            let mut material = Material::ellipse(MATERIAL.get(color_id));
+            material.color = color;
+            g.add(material);
         }
     })
 }
@@ -64,11 +66,11 @@ fn sprites() -> impl BuiltEntity {
 
 fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
-    let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-    let size = Vec2::ONE * 0.01;
     let material_id = entity_id % COLORS.len();
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2)))
+        .with(|t| *t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())
         .component(Model::rectangle(MATERIAL.get(material_id), CAMERA))
         .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))

@@ -34,33 +34,6 @@ impl Transform2D {
         }
     }
 
-    /// Returns the transform with a different `position` in world units.
-    ///
-    /// Default value is `Vec2::ZERO`.
-    #[inline]
-    pub const fn with_position(mut self, position: Vec2) -> Self {
-        self.position = PhysicsProperty::new(position);
-        self
-    }
-
-    /// Returns the transform with a different `size` in world units.
-    ///
-    /// Default value is `Vec2::ONE`.
-    #[inline]
-    pub const fn with_size(mut self, size: Vec2) -> Self {
-        self.size = PhysicsProperty::new(size);
-        self
-    }
-
-    /// Returns the transform with a different `rotation` in radians.
-    ///
-    /// Default value is `0.0`.
-    #[inline]
-    pub const fn with_rotation(mut self, rotation: f32) -> Self {
-        self.rotation = PhysicsProperty::new(rotation);
-        self
-    }
-
     pub(crate) fn update_from_relative(
         &mut self,
         relative: &mut RelativeTransform2D,

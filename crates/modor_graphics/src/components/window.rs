@@ -35,8 +35,10 @@ use winit::window::Window as WindowHandle;
 ///
 /// fn window() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Window::default().with_title("My app"))
-///         .component(RenderTarget::new(TARGET).with_background_color(Color::GREEN))
+///         .component(Window::default())
+///         .with(|w| w.title = "My app".into())
+///         .component(RenderTarget::new(TARGET))
+///         .with(|t| t.background_color = Color::GREEN)
 /// }
 ///
 /// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
@@ -88,24 +90,6 @@ impl Default for Window {
 impl Window {
     pub(crate) const DEFAULT_SIZE: Size = Size::new(800, 600);
     pub(crate) const DEFAULT_TITLE: &'static str = "";
-
-    /// Returns the window with a given [`title`](#structfield.title).
-    pub fn with_title(mut self, title: impl Into<String>) -> Self {
-        self.title = title.into();
-        self
-    }
-
-    /// Returns the window with a given [`is_cursor_shown`](#structfield.is_cursor_shown).
-    pub fn with_cursor_shown(mut self, is_cursor_shown: bool) -> Self {
-        self.is_cursor_shown = is_cursor_shown;
-        self
-    }
-
-    /// Returns the window with a given [`close_behavior`](#structfield.close_behavior).
-    pub fn with_close_behavior(mut self, close_behavior: WindowCloseBehavior) -> Self {
-        self.close_behavior = close_behavior;
-        self
-    }
 
     /// Returns the size of the window, which is also the size of the surface where the rendering
     /// is performed.

@@ -117,7 +117,8 @@ fn target_buffer(size: Size, color: Color) -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Texture::from_size(TEXTURE, size))
         .component(TextureBuffer::default())
-        .component(RenderTarget::new(target_key).with_background_color(color))
+        .component(RenderTarget::new(target_key))
+        .with(|t| t.background_color = color)
 }
 
 fn is_buffer_empty<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>

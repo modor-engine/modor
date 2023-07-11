@@ -43,9 +43,11 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///     let texture_key = ResKey::unique("text");
 ///     let material_key = ResKey::unique("text");
 ///     EntityBuilder::new()
-///         .component(Text::new("my text", 30.).with_font(FONT))
+///         .component(Text::new("my text", 30.))
+///         .with(|t| t.font_key = FONT)
 ///         .component(Texture::from_size(texture_key, Size::ZERO))
-///         .component(Material::new(material_key).with_front_texture_key(texture_key))
+///         .component(Material::new(material_key))
+///         .with(|m| m.front_texture_key = Some(texture_key))
 ///         .component(Model::rectangle(material_key, CAMERA))
 ///         .component(Transform2D::new())
 /// }
@@ -63,7 +65,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// struct MaterialKey;
 /// ```
 ///
-/// See also [`TextMaterialBuilder`](crate::TextMaterialBuilder) for a less verbose creation of
+/// See also [`text_material`](crate::text_material()) for a less verbose creation of
 /// text.
 #[derive(Component, Debug)]
 pub struct Text {
@@ -101,18 +103,6 @@ impl Text {
             old_font_key: DEFAULT_FONT,
             old_alignment: Alignment::default(),
         }
-    }
-
-    /// Returns the text with a given [`font_key`](#structfield.font_key).
-    pub fn with_font(mut self, font_key: ResKey<Font>) -> Self {
-        self.font_key = font_key;
-        self
-    }
-
-    /// Returns the text with a given [`alignment`](#structfield.alignment).
-    pub fn with_alignment(mut self, alignment: Alignment) -> Self {
-        self.alignment = alignment;
-        self
     }
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]

@@ -44,8 +44,10 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_component(Material::ellipse(BLUE_ELLIPSE_MATERIAL).with_color(Color::BLUE))
-///         .child_component(Material::new(FULL_TEXTURE_MATERIAL).with_texture_key(TEXTURE))
+///         .child_component(Material::ellipse(BLUE_ELLIPSE_MATERIAL))
+///         .with(|m| m.color = Color::BLUE)
+///         .child_component(Material::new(FULL_TEXTURE_MATERIAL))
+///         .with(|m| m.texture_key = Some(TEXTURE))
 ///         .child_component(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
 ///         .child_component(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
 ///         .child_component(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
@@ -55,15 +57,18 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_position(position).with_size(Vec2::new(0.1, 0.1)))
+///         .component(Transform2D::new())
+///         .with(|t| *t.position = position)
+///         .with(|t| *t.size = Vec2::new(0.1, 0.1))
 ///         .component(Model::rectangle(TL_TEXTURE_MATERIAL, CAMERA))
 /// }
 ///
 /// fn texture_quarter_material(key: ResKey<Material>, position: Vec2) -> Material {
-///     Material::new(key)
-///         .with_texture_key(TEXTURE)
-///         .with_texture_position(position)
-///         .with_texture_size(Vec2::new(0.5, 0.5))
+///     let mut material = Material::new(key);
+///     material.texture_key = Some(TEXTURE);
+///     material.texture_position = position;
+///     material.texture_size = Vec2::new(0.5, 0.5);
+///     material
 /// }
 /// ```
 #[must_use]
@@ -137,42 +142,6 @@ impl Material {
     /// Creates a material with a unique `key` that crops the rendered model to obtain an ellipse.
     pub fn ellipse(key: ResKey<Self>) -> Self {
         Self::new_internal(key, ELLIPSE_SHADER)
-    }
-
-    /// Returns the material with a given [`color`](#structfield.color).
-    pub fn with_color(mut self, color: Color) -> Self {
-        self.color = color;
-        self
-    }
-
-    /// Returns the material with a given [`texture_key`](#structfield.texture_key).
-    pub fn with_texture_key(mut self, texture_key: ResKey<Texture>) -> Self {
-        self.texture_key = Some(texture_key);
-        self
-    }
-
-    /// Returns the material with a given [`texture_position`](#structfield.texture_position).
-    pub fn with_texture_position(mut self, texture_position: Vec2) -> Self {
-        self.texture_position = texture_position;
-        self
-    }
-
-    /// Returns the material with a given [`texture_size`](#structfield.texture_size).
-    pub fn with_texture_size(mut self, texture_size: Vec2) -> Self {
-        self.texture_size = texture_size;
-        self
-    }
-
-    /// Returns the material with a given [`front_texture_key`](#structfield.front_texture_key).
-    pub fn with_front_texture_key(mut self, front_texture_key: ResKey<Texture>) -> Self {
-        self.front_texture_key = Some(front_texture_key);
-        self
-    }
-
-    /// Returns the material with a given [`front_color`](#structfield.front_color).
-    pub fn with_front_color(mut self, front_color: Color) -> Self {
-        self.front_color = front_color;
-        self
     }
 
     fn new_internal(key: ResKey<Self>, shader_key: ResKey<Shader>) -> Self {

@@ -32,21 +32,27 @@ use modor_resources::ResKey;
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_component(Material::new(RED_RECTANGLE_MATERIAL).with_color(Color::RED))
-///         .child_component(Material::ellipse(GREEN_ELLIPSE_MATERIAL).with_color(Color::GREEN))
+///         .child_component(Material::new(RED_RECTANGLE_MATERIAL))
+///         .with(|m| m.color = Color::RED)
+///         .child_component(Material::ellipse(GREEN_ELLIPSE_MATERIAL))
+///         .with(|m| m.color = Color::GREEN)
 ///         .child_entity(red_rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 ///         .child_entity(green_ellipse(Vec2::new(-0.25, 0.25), Vec2::new(0.1, 0.1)))
 /// }
 ///
 /// fn red_rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_position(position).with_size(size))
+///         .component(Transform2D::new())
+///         .with(|t| *t.position = position)
+///         .with(|t| *t.size = size)
 ///         .component(Model::rectangle(RED_RECTANGLE_MATERIAL, CAMERA))
 /// }
 ///
 /// fn green_ellipse(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_position(position).with_size(size))
+///         .component(Transform2D::new())
+///         .with(|t| *t.position = position)
+///         .with(|t| *t.size = size)
 ///         .component(Model::rectangle(GREEN_ELLIPSE_MATERIAL, CAMERA))
 /// }
 /// ```
@@ -84,11 +90,5 @@ impl Model {
             camera_keys: vec![],
             mesh_key: RECTANGLE_MESH,
         }
-    }
-
-    /// Returns the model with a new `key` added to the [`camera_keys`](#structfield.camera_keys).
-    pub fn with_camera_key(mut self, key: ResKey<Camera2D>) -> Self {
-        self.camera_keys.push(key);
-        self
     }
 }

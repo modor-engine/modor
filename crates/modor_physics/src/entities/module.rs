@@ -25,14 +25,14 @@ type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransfo
 ///
 /// fn build_object() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(
-///             Transform2D::new()
-///                 .with_position(Vec2::new(0.2, 0.3))
-///                 .with_size(Vec2::new(0.25, 0.5))
-///                 .with_rotation(20_f32.to_radians())
-///         )
-///         .component(RelativeTransform2D::new().with_rotation(PI / 2.))
-///         .component(Dynamics2D::new().with_velocity(Vec2::new(-0.01, 0.02)))
+///         .component(Transform2D::new())
+///         .with(|t| *t.position = Vec2::new(0.2, 0.3))
+///         .with(|t| *t.size = Vec2::new(0.25, 0.5))
+///         .with(|t| *t.rotation = 20_f32.to_radians())
+///         .component(RelativeTransform2D::new())
+///         .with(|t| *t.rotation = PI / 2.)
+///         .component(Dynamics2D::new())
+///         .with(|d| *d.velocity = Vec2::new(-0.01, 0.02))
 /// }
 /// ```
 ///

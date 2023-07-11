@@ -26,14 +26,7 @@ pub fn main() {
         .with_entity(InputModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(window())
-        .with_entity(Material::new(NOT_COLLIDING_CURSOR_MATERIAL).with_color(Color::GREEN))
-        .with_entity(Material::new(COLLIDING_CURSOR_MATERIAL).with_color(Color::RED))
-        .with_entity(Material::new(RECTANGLE_MATERIAL).with_color(Color::BLUE))
-        .with_entity(Material::ellipse(CIRCLE_MATERIAL).with_color(Color::BLUE))
-        .with_entity(Material::ellipse(CURSOR_COLLISION_POS_MATERIAL).with_color(Color::YELLOW))
-        .with_entity(Material::ellipse(SHAPE_COLLISION_POS_MATERIAL).with_color(Color::DARK_GRAY))
-        .with_entity(Material::new(CURSOR_COLLISION_DIR_MATERIAL).with_color(Color::YELLOW))
-        .with_entity(Material::new(SHAPE_COLLISION_DIR_MATERIAL).with_color(Color::DARK_GRAY))
+        .with_entity(materials())
         .with_entity(cursor())
         .with_entity(rectangle())
         .with_entity(circle())
@@ -44,13 +37,37 @@ fn window() -> impl BuiltEntity {
     let target_key = ResKey::unique("window");
     EntityBuilder::new()
         .component(RenderTarget::new(target_key))
-        .component(Window::default().with_cursor_shown(false))
+        .component(Window::default())
+        .with(|w| w.is_cursor_shown = false)
         .component(Camera2D::new(CAMERA, target_key))
+}
+
+fn materials() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Material::new(NOT_COLLIDING_CURSOR_MATERIAL))
+        .with(|m| m.color = Color::GREEN)
+        .child_component(Material::new(NOT_COLLIDING_CURSOR_MATERIAL))
+        .with(|m| m.color = Color::GREEN)
+        .child_component(Material::new(COLLIDING_CURSOR_MATERIAL))
+        .with(|m| m.color = Color::RED)
+        .child_component(Material::new(RECTANGLE_MATERIAL))
+        .with(|m| m.color = Color::BLUE)
+        .child_component(Material::ellipse(CIRCLE_MATERIAL))
+        .with(|m| m.color = Color::BLUE)
+        .child_component(Material::ellipse(CURSOR_COLLISION_POS_MATERIAL))
+        .with(|m| m.color = Color::YELLOW)
+        .child_component(Material::ellipse(SHAPE_COLLISION_POS_MATERIAL))
+        .with(|m| m.color = Color::DARK_GRAY)
+        .child_component(Material::new(CURSOR_COLLISION_DIR_MATERIAL))
+        .with(|m| m.color = Color::YELLOW)
+        .child_component(Material::new(SHAPE_COLLISION_DIR_MATERIAL))
+        .with(|m| m.color = Color::DARK_GRAY)
 }
 
 fn cursor() -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Transform2D::new().with_size(Vec2::new(0.05, 0.1)))
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(0.05, 0.1))
         .component(Collider2D::rectangle(CollisionGroup::Cursor))
         .component(Model::rectangle(NOT_COLLIDING_CURSOR_MATERIAL, CAMERA))
         .component(ZIndex2D::from(1))
@@ -61,7 +78,9 @@ fn rectangle() -> impl BuiltEntity {
     let position = Vec2::X * 0.25;
     let size = Vec2::new(0.2, 0.3);
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Transform2D::new())
+        .with(|t| *t.position = position)
+        .with(|t| *t.size = size)
         .component(Collider2D::rectangle(CollisionGroup::Shape))
         .component(Model::rectangle(RECTANGLE_MATERIAL, CAMERA))
         .component(Shape)
@@ -71,26 +90,25 @@ fn circle() -> impl BuiltEntity {
     let position = -Vec2::X * 0.25;
     let size = Vec2::ONE * 0.4;
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Transform2D::new())
+        .with(|t| *t.position = position)
+        .with(|t| *t.size = size)
         .component(Collider2D::circle(CollisionGroup::Shape))
         .component(Model::rectangle(CIRCLE_MATERIAL, CAMERA))
         .component(Shape)
 }
 
 fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEntity {
-    let size = Vec2::ONE * 0.02;
     let material_key = if is_cursor {
         CURSOR_COLLISION_POS_MATERIAL
     } else {
         SHAPE_COLLISION_POS_MATERIAL
     };
     EntityBuilder::new()
-        .component(
-            Transform2D::new()
-                .with_position(position)
-                .with_size(size)
-                .with_rotation(Vec2::X.rotation(normal)),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.position = position)
+        .with(|t| *t.size = Vec2::ONE * 0.02)
+        .with(|t| *t.rotation = Vec2::X.rotation(normal))
         .component(Model::rectangle(material_key, CAMERA))
         .component(ZIndex2D::from(2))
         .component(AutoRemoved)
@@ -99,12 +117,11 @@ fn collision_mark(position: Vec2, normal: Vec2, is_cursor: bool) -> impl BuiltEn
 
 fn collision_normal(is_cursor: bool) -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Transform2D::new().with_size(Vec2::new(0.05, 0.005)))
-        .component(
-            RelativeTransform2D::new()
-                .with_position(Vec2::ZERO)
-                .with_rotation(0.),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(0.05, 0.005))
+        .component(RelativeTransform2D::new())
+        .with(|t| t.position = Some(Vec2::ZERO))
+        .with(|t| t.rotation = Some(0.))
         .child_entity(collision_normal_rectangle(is_cursor))
 }
 
@@ -116,12 +133,10 @@ fn collision_normal_rectangle(is_cursor: bool) -> impl BuiltEntity {
     };
     EntityBuilder::new()
         .component(Transform2D::new())
-        .component(
-            RelativeTransform2D::new()
-                .with_position(Vec2::X * 0.5)
-                .with_size(Vec2::ONE)
-                .with_rotation(0.),
-        )
+        .component(RelativeTransform2D::new())
+        .with(|t| t.position = Some(Vec2::X * 0.5))
+        .with(|t| t.size = Some(Vec2::ONE))
+        .with(|t| t.rotation = Some(0.))
         .component(Model::rectangle(material_key, CAMERA))
         .component(ZIndex2D::from(2))
 }

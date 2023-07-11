@@ -17,21 +17,23 @@ struct AbsoluteChild;
 fn update_relative_position() {
     let relative_child = EntityBuilder::new()
         .component(RelativeChild)
-        .component(Transform2D::new().with_position(Vec2::new(0.1, 0.2)))
-        .component(RelativeTransform2D::new().with_position(Vec2::new(0.5, 0.2)));
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(0.1, 0.2))
+        .component(RelativeTransform2D::new())
+        .with(|t| t.position = Some(Vec2::new(0.5, 0.2)));
     let absolute_child = EntityBuilder::new()
         .component(AbsoluteChild)
-        .component(Transform2D::new().with_position(Vec2::new(0.3, 0.4)))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(0.3, 0.4))
         .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
         .component(RootEntity)
-        .component(
-            Transform2D::new()
-                .with_position(Vec2::new(1., 2.))
-                .with_size(Vec2::new(2., 4.))
-                .with_rotation(FRAC_PI_2),
-        )
-        .component(RelativeTransform2D::new().with_position(Vec2::new(3., 4.)))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(1., 2.))
+        .with(|t| *t.size = Vec2::new(2., 4.))
+        .with(|t| *t.rotation = FRAC_PI_2)
+        .component(RelativeTransform2D::new())
+        .with(|t| t.position = Some(Vec2::new(3., 4.)))
         .child_entity(relative_child)
         .child_entity(absolute_child);
     App::new()
@@ -80,16 +82,21 @@ fn update_relative_position() {
 fn update_relative_size() {
     let relative_child = EntityBuilder::new()
         .component(RelativeChild)
-        .component(Transform2D::new().with_size(Vec2::new(2., 4.)))
-        .component(RelativeTransform2D::new().with_size(Vec2::new(0.5, 0.2)));
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(2., 4.))
+        .component(RelativeTransform2D::new())
+        .with(|t| t.size = Some(Vec2::new(0.5, 0.2)));
     let absolute_child = EntityBuilder::new()
         .component(AbsoluteChild)
-        .component(Transform2D::new().with_size(Vec2::new(5., 10.)))
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(5., 10.))
         .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
         .component(RootEntity)
-        .component(Transform2D::new().with_size(Vec2::new(2., 4.)))
-        .component(RelativeTransform2D::new().with_size(Vec2::new(3., 5.)))
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(2., 4.))
+        .component(RelativeTransform2D::new())
+        .with(|t| t.size = Some(Vec2::new(3., 5.)))
         .child_entity(relative_child)
         .child_entity(absolute_child);
     App::new()
@@ -136,16 +143,21 @@ fn update_relative_size() {
 fn update_relative_rotation() {
     let relative_child = EntityBuilder::new()
         .component(RelativeChild)
-        .component(Transform2D::new().with_rotation(0.))
-        .component(RelativeTransform2D::new().with_rotation(FRAC_PI_2));
+        .component(Transform2D::new())
+        .with(|t| *t.rotation = 0.)
+        .component(RelativeTransform2D::new())
+        .with(|t| t.rotation = Some(FRAC_PI_2));
     let absolute_child = EntityBuilder::new()
         .component(AbsoluteChild)
-        .component(Transform2D::new().with_rotation(FRAC_PI_4))
+        .component(Transform2D::new())
+        .with(|t| *t.rotation = FRAC_PI_4)
         .component(RelativeTransform2D::new());
     let root = EntityBuilder::new()
         .component(RootEntity)
-        .component(Transform2D::new().with_rotation(0.))
-        .component(RelativeTransform2D::new().with_rotation(PI))
+        .component(Transform2D::new())
+        .with(|t| *t.rotation = 0.)
+        .component(RelativeTransform2D::new())
+        .with(|t| t.rotation = Some(PI))
         .child_entity(relative_child)
         .child_entity(absolute_child);
     App::new()

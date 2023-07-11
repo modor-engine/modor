@@ -38,24 +38,21 @@ fn create_default_window(context: &mut TestRunnerContext) {
 }
 
 fn create_customized_window(context: &mut TestRunnerContext) {
-    App::new()
-        .with_entity(
-            Window::default()
-                .with_title("title")
-                .with_close_behavior(WindowCloseBehavior::None)
-                .with_cursor_shown(false),
-        )
-        .run(|a| {
-            testing::test_runner(a, context, 2, |s| {
-                s.app.assert::<With<Window>>(1, |e| {
-                    e.has(|w: &Window| assert_eq!(w.title, "title"))
-                        .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::None))
-                        .has(|w: &Window| assert!(!w.is_cursor_shown))
-                        .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
-                        .has(|w: &Window| assert!(!w.is_closing_requested()))
-                })
-            });
+    let mut window = Window::default();
+    window.title = "title".into();
+    window.close_behavior = WindowCloseBehavior::None;
+    window.is_cursor_shown = false;
+    App::new().with_entity(window).run(|a| {
+        testing::test_runner(a, context, 2, |s| {
+            s.app.assert::<With<Window>>(1, |e| {
+                e.has(|w: &Window| assert_eq!(w.title, "title"))
+                    .has(|w: &Window| assert_eq!(w.close_behavior, WindowCloseBehavior::None))
+                    .has(|w: &Window| assert!(!w.is_cursor_shown))
+                    .has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                    .has(|w: &Window| assert!(!w.is_closing_requested()))
+            })
         });
+    });
 }
 
 fn create_target_window(context: &mut TestRunnerContext) {
@@ -160,41 +157,41 @@ fn resize_window(context: &mut TestRunnerContext) {
 
 fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
     let mut update_count = 0;
-    App::new()
-        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::Exit))
-        .run(|a| {
-            testing::test_runner(a, context, 3, |s| {
-                s.next_events.push(Event::WindowEvent {
-                    window_id: s.window.id(),
-                    event: WindowEvent::CloseRequested,
-                });
-                update_count += 1;
-                s.app
+    let mut window = Window::default();
+    window.close_behavior = WindowCloseBehavior::Exit;
+    App::new().with_entity(window).run(|a| {
+        testing::test_runner(a, context, 3, |s| {
+            s.next_events.push(Event::WindowEvent {
+                window_id: s.window.id(),
+                event: WindowEvent::CloseRequested,
             });
+            update_count += 1;
+            s.app
         });
+    });
     assert_eq!(update_count, 1);
 }
 
 fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
-    App::new()
-        .with_entity(Window::default().with_close_behavior(WindowCloseBehavior::None))
-        .run(|a| {
-            testing::test_runner(a, context, 3, |s| {
-                if s.update_id == 0 {
-                    s.next_events.push(Event::WindowEvent {
-                        window_id: s.window.id(),
-                        event: WindowEvent::CloseRequested,
-                    });
-                    s.app.assert::<With<Window>>(1, |e| {
-                        e.has(|w: &Window| assert!(!w.is_closing_requested()))
-                    })
-                } else {
-                    s.app.assert::<With<Window>>(1, |e| {
-                        e.has(|w: &Window| assert!(w.is_closing_requested()))
-                    })
-                }
-            });
+    let mut window = Window::default();
+    window.close_behavior = WindowCloseBehavior::None;
+    App::new().with_entity(window).run(|a| {
+        testing::test_runner(a, context, 3, |s| {
+            if s.update_id == 0 {
+                s.next_events.push(Event::WindowEvent {
+                    window_id: s.window.id(),
+                    event: WindowEvent::CloseRequested,
+                });
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert!(!w.is_closing_requested()))
+                })
+            } else {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert!(w.is_closing_requested()))
+                })
+            }
         });
+    });
 }
 
 fn opaque_rectangle() -> impl BuiltEntity {
@@ -208,7 +205,8 @@ fn opaque_rectangle() -> impl BuiltEntity {
 fn transparent_rectangle() -> impl BuiltEntity {
     let material_key = ResKey::unique("transparent-rectangle");
     EntityBuilder::new()
-        .component(Material::new(material_key).with_color(Color::WHITE.with_alpha(0.5)))
+        .component(Material::new(material_key))
+        .with(|m| m.color = Color::WHITE.with_alpha(0.5))
         .component(Model::rectangle(material_key, CAMERA))
         .component(Transform2D::new())
 }

@@ -88,7 +88,8 @@ fn text() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Texture::from_size(texture_key, Size::ZERO))
         .component(TextureBuffer::default())
-        .component(Text::new("text", 20.).with_font(FONT))
+        .component(Text::new("text", 20.))
+        .with(|t| t.font_key = FONT)
 }
 
 #[derive(Component, NoSystem)]

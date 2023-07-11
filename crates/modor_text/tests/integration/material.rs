@@ -1,39 +1,20 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::has_pixel_diff;
-use modor_graphics::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
-};
+use modor_graphics::{Camera2D, Material, Model, RenderTarget, Size, Texture, TextureBuffer};
 use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::ResKey;
-use modor_text::{Alignment, Font, TextMaterialBuilder};
+use modor_text::{text_material, Font};
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_default_text_material() {
+fn create_default() {
     App::new()
         .with_entity(modor_text::module())
         .with_entity(target())
         .with_entity(text())
-        .with_entity(TextMaterialBuilder::new(MATERIAL, "rendered\ntext", 30.).build())
+        .with_entity(text_material(MATERIAL, "rendered\ntext", 30.))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("builders#text_material_default", 50));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_custom_text_material() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(target())
-        .with_entity(text())
-        .with_entity(
-            TextMaterialBuilder::new(MATERIAL, "rendered\ntext", 30.)
-                .with_material(|m| m.with_front_color(Color::BLUE))
-                .with_text(|t| t.with_alignment(Alignment::Right))
-                .with_texture(|t| t.with_repeated(true))
-                .build(),
-        )
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("builders#text_material_custom", 50));
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#default", 50));
 }
 
 fn target() -> impl BuiltEntity {
