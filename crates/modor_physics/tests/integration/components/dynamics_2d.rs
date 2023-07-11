@@ -1,6 +1,5 @@
 use modor_math::Vec2;
 use modor_physics::Dynamics2D;
-use std::f32::consts::PI;
 
 #[modor_test]
 fn create_default_body() {
