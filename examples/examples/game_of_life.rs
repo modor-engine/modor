@@ -23,8 +23,7 @@ pub fn main() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(window())
-        .with_entity(Material::new(BACKGROUND_MATERIAL).with_color(Color::WHITE))
-        .with_entity(Material::new(ALIVE_CELL_MATERIAL).with_color(Color::BLACK))
+        .with_entity(materials())
         .with_entity(Grid::load())
         .with_entity(background())
         .run(modor_graphics::runner);
@@ -38,6 +37,14 @@ fn window() -> impl BuiltEntity {
         .component(Camera2D::new(CAMERA, target_key))
 }
 
+fn materials() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Material::new(BACKGROUND_MATERIAL))
+        .with(|m| m.color = Color::WHITE)
+        .child_component(Material::new(ALIVE_CELL_MATERIAL))
+        .with(|m| m.color = Color::BLACK)
+}
+
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
@@ -45,10 +52,10 @@ fn background() -> impl BuiltEntity {
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
-    let position = to_word_position(x, y);
-    let size = Vec2::ONE / GRID_SIZE as f32;
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position).with_size(size))
+        .component(Transform2D::new())
+        .with(|t| *t.position = to_word_position(x, y))
+        .with(|t| *t.size = Vec2::ONE / GRID_SIZE as f32)
         .component(Model::rectangle(ALIVE_CELL_MATERIAL, CAMERA))
         .component(ZIndex2D::from(1))
         .component(AliveCell)

@@ -18,7 +18,8 @@ impl CollisionGroupRef for CollisionGroup {
 #[modor_test]
 fn update_position() {
     let entity = EntityBuilder::new()
-        .component(Transform2D::new().with_position(Vec2::new(1., 2.)))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(1., 2.))
         .component(Dynamics2D::new())
         .component(Collider2D::rectangle(CollisionGroup));
     App::new()
@@ -39,7 +40,8 @@ fn update_position() {
 #[modor_test]
 fn update_size() {
     let entity = EntityBuilder::new()
-        .component(Transform2D::new().with_size(Vec2::new(1., 2.)))
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(1., 2.))
         .component(Dynamics2D::new())
         .component(Collider2D::rectangle(CollisionGroup));
     App::new()
@@ -60,7 +62,8 @@ fn update_size() {
 #[modor_test]
 fn update_rotation() {
     let entity = EntityBuilder::new()
-        .component(Transform2D::new().with_rotation(PI))
+        .component(Transform2D::new())
+        .with(|t| *t.rotation = PI)
         .component(Dynamics2D::new())
         .component(Collider2D::rectangle(CollisionGroup));
     App::new()

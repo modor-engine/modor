@@ -19,28 +19,34 @@ use modor_math::Vec2;
 #[non_exhaustive]
 #[derive(Clone, Debug, Default, Component, NoSystem)]
 pub struct RelativeTransform2D {
-    /// Relative position of the entity.
+    /// Relative position of the entity in parent distance unit.
     ///
     /// The parent distance unit is different than the world unit. A distance of `1.0` along the
     /// X-axis corresponds to the size along X-axis of the parent in world units
     /// (same along Y-axis).<br>
     /// The relative origin corresponds to the parent center.
     ///
-    /// If `None`, the absolute position of the [`Transform2D`](crate::Transform2D) component is
+    /// If [`None`], the absolute position of the [`Transform2D`](crate::Transform2D) component is
     /// taken into account.
+    ///
+    /// Default value is [`None`].
     pub position: Option<Vec2>,
     /// Relative size of the entity in parent distance unit.
     ///
     /// The parent distance unit is different than the world unit. A distance of `1.0` along the
     /// X-axis corresponds to the size along X-axis of the parent in world units (same along Y-axis).
     ///
-    /// If `None`, the absolute size of the [`Transform2D`](crate::Transform2D) component is taken
+    /// If [`None`], the absolute size of the [`Transform2D`](crate::Transform2D) component is taken
     /// into account.
+    ///
+    /// Default value is [`None`].
     pub size: Option<Vec2>,
     /// Relative rotation of the entity in radians.
     ///
-    /// If `None`, the absolute rotation of the [`Transform2D`](crate::Transform2D) component is
+    /// If [`None`], the absolute rotation of the [`Transform2D`](crate::Transform2D) component is
     /// taken into account.
+    ///
+    /// Default value is [`None`].
     pub rotation: Option<f32>,
 }
 
@@ -53,32 +59,5 @@ impl RelativeTransform2D {
             size: None,
             rotation: None,
         }
-    }
-
-    /// Returns the transform with a different `position` in parent distance units.
-    ///
-    /// By default, the position is not relative.
-    #[inline]
-    pub const fn with_position(mut self, position: Vec2) -> Self {
-        self.position = Some(position);
-        self
-    }
-
-    /// Returns the transform with a different `size` in parent distance units.
-    ///
-    /// By default, the size is not relative.
-    #[inline]
-    pub const fn with_size(mut self, size: Vec2) -> Self {
-        self.size = Some(size);
-        self
-    }
-
-    /// Returns the transform with a different `rotation` in radians.
-    ///
-    /// By default, the rotation is not relative.
-    #[inline]
-    pub const fn with_rotation(mut self, rotation: f32) -> Self {
-        self.rotation = Some(rotation);
-        self
     }
 }

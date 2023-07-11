@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate modor;
 
-pub mod builders;
 pub mod font;
+pub mod material;
 pub mod text;

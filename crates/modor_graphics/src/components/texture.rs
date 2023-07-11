@@ -49,7 +49,8 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .child_component(Texture::from_path(TEXTURE, "texture.png"))
-///         .child_component(Material::new(MATERIAL).with_texture_key(TEXTURE))
+///         .child_component(Material::new(MATERIAL))
+///         .with(|m| m.texture_key = Some(TEXTURE))
 ///         .child_entity(sprite())
 /// }
 ///
@@ -123,18 +124,6 @@ impl Texture {
     /// This method is equivalent to [`Texture::new`] with [`TextureSource::Path`] source.
     pub fn from_path(key: ResKey<Self>, path: impl Into<String>) -> Self {
         Self::new(key, TextureSource::Path(path.into()))
-    }
-
-    /// Returns the texture with a given [`is_smooth`](#structfield.is_smooth).
-    pub fn with_smooth(mut self, is_smooth: bool) -> Self {
-        self.is_smooth = is_smooth;
-        self
-    }
-
-    /// Returns the texture with a given [`is_repeated`](#structfield.is_repeated).
-    pub fn with_repeated(mut self, is_repeated: bool) -> Self {
-        self.is_repeated = is_repeated;
-        self
     }
 
     #[run_after(component(Renderer))]

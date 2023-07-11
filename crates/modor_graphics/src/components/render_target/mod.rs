@@ -70,7 +70,8 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// fn texture_target() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Texture::from_size(TARGET_TEXTURE, Size::new(800, 600)))
-///         .component(RenderTarget::new(TEXTURE_TARGET).with_background_color(Color::GREEN))
+///         .component(RenderTarget::new(TEXTURE_TARGET))
+///         .with(|t| t.background_color = Color::GREEN)
 /// }
 /// ```
 #[must_use]
@@ -105,12 +106,6 @@ impl RenderTarget {
             window_renderer_version: None,
             texture_renderer_version: None,
         }
-    }
-
-    /// Returns the target with a given [`background_color`](#structfield.background_color).
-    pub fn with_background_color(mut self, background_color: Color) -> Self {
-        self.background_color = background_color;
-        self
     }
 
     #[run_as(WindowTargetUpdate)]

@@ -19,10 +19,12 @@ fn create_default() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_color() {
+    let mut material = Material::new(MATERIAL);
+    material.color = Color::GREEN;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Material::new(MATERIAL).with_color(Color::GREEN))
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#color_green"))
         .with_update::<(), _>(|m: &mut Material| m.color = Color::RED)
@@ -33,10 +35,12 @@ fn configure_color() {
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_texture() {
     let missing_texture_key = ResKey::new("missing");
+    let mut material = Material::new(MATERIAL);
+    material.texture_key = Some(OPAQUE_TEXTURE);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Material::new(MATERIAL).with_texture_key(OPAQUE_TEXTURE))
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture"))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = Some(TRANSPARENT_TEXTURE))
@@ -52,14 +56,13 @@ fn configure_texture() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_color_and_texture() {
+    let mut material = Material::new(MATERIAL);
+    material.color = Color::RED;
+    material.texture_key = Some(OPAQUE_TEXTURE);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(
-            Material::new(MATERIAL)
-                .with_texture_key(OPAQUE_TEXTURE)
-                .with_color(Color::RED),
-        )
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture_red"))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = Some(TRANSPARENT_TEXTURE))
@@ -72,15 +75,14 @@ fn configure_color_and_texture() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_cropped_texture() {
+    let mut material = Material::new(MATERIAL);
+    material.texture_key = Some(OPAQUE_TEXTURE);
+    material.texture_position = Vec2::new(0.5, 0.);
+    material.texture_size = Vec2::new(0.5, 1.);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(
-            Material::new(MATERIAL)
-                .with_texture_key(OPAQUE_TEXTURE)
-                .with_texture_position(Vec2::new(0.5, 0.))
-                .with_texture_size(Vec2::new(0.5, 1.)),
-        )
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("material#cropped_texture", 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_position = Vec2::ZERO)
@@ -92,10 +94,12 @@ fn configure_cropped_texture() {
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_front_texture() {
     let missing_texture_key = ResKey::new("missing");
+    let mut material = Material::new(MATERIAL);
+    material.front_texture_key = Some(OPAQUE_TEXTURE);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Material::new(MATERIAL).with_front_texture_key(OPAQUE_TEXTURE))
+        .with_entity(material)
         .updated()
         .with_update::<(), _>(|m: &mut Material| m.front_texture_key = Some(TRANSPARENT_TEXTURE))
         .updated()
@@ -110,15 +114,14 @@ fn configure_front_texture() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn configure_front_color_and_texture() {
+    let mut material = Material::new(MATERIAL);
+    material.front_texture_key = Some(TRANSPARENT_TEXTURE);
+    material.front_color = Color::RED;
+    material.color = Color::GREEN;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(
-            Material::new(MATERIAL)
-                .with_front_texture_key(TRANSPARENT_TEXTURE)
-                .with_front_color(Color::RED)
-                .with_color(Color::GREEN),
-        )
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#front_texture_red", 10))
         .with_update::<(), _>(|m: &mut Material| m.front_color = Color::BLUE)
@@ -128,28 +131,29 @@ fn configure_front_color_and_texture() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_ellipse() {
+    let mut material = Material::ellipse(MATERIAL);
+    material.color = Color::GREEN;
+    material.texture_key = Some(OPAQUE_TEXTURE);
+    material.texture_position = Vec2::new(0.5, 0.);
+    material.texture_size = Vec2::new(0.5, 1.);
+    material.front_color = Color::RED;
+    material.front_texture_key = Some(TRANSPARENT_TEXTURE);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(
-            Material::ellipse(MATERIAL)
-                .with_color(Color::GREEN)
-                .with_texture_key(OPAQUE_TEXTURE)
-                .with_front_color(Color::RED)
-                .with_front_texture_key(TRANSPARENT_TEXTURE)
-                .with_texture_position(Vec2::new(0.5, 0.))
-                .with_texture_size(Vec2::new(0.5, 1.)),
-        )
+        .with_entity(material)
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("material#ellipse", 10));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
 fn delete_entity() {
+    let mut material = Material::new(MATERIAL);
+    material.color = Color::GREEN;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Material::new(MATERIAL).with_color(Color::GREEN))
+        .with_entity(material)
         .updated()
         .with_deleted_entities::<With<Material>>()
         .updated()
@@ -168,7 +172,8 @@ fn target() -> impl BuiltEntity {
     let target_key = ResKey::unique("main");
     let texture_key = ResKey::unique("target");
     EntityBuilder::new()
-        .component(RenderTarget::new(target_key).with_background_color(Color::DARK_GRAY))
+        .component(RenderTarget::new(target_key))
+        .with(|t| t.background_color = Color::DARK_GRAY)
         .component(Texture::from_size(texture_key, Size::new(30, 20)))
         .component(TextureBuffer::default())
         .child_component(Camera2D::new(CAMERA, target_key))
@@ -176,7 +181,8 @@ fn target() -> impl BuiltEntity {
 
 fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Transform2D::new().with_size(Vec2::new(0.8, 0.5)))
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(0.8, 0.5))
         .component(Model::rectangle(MATERIAL, CAMERA))
 }
 
@@ -192,7 +198,9 @@ fn opaque_texture() -> Texture {
     .into_iter()
     .flat_map(|l| l.into_iter().flatten())
     .collect();
-    Texture::from_buffer(OPAQUE_TEXTURE, Size::new(4, 4), texture).with_smooth(false)
+    let mut texture = Texture::from_buffer(OPAQUE_TEXTURE, Size::new(4, 4), texture);
+    texture.is_smooth = false;
+    texture
 }
 
 fn transparent_texture() -> Texture {
@@ -207,7 +215,9 @@ fn transparent_texture() -> Texture {
     .into_iter()
     .flat_map(|l| l.into_iter().flatten())
     .collect();
-    Texture::from_buffer(TRANSPARENT_TEXTURE, Size::new(4, 4), texture).with_smooth(false)
+    let mut texture = Texture::from_buffer(TRANSPARENT_TEXTURE, Size::new(4, 4), texture);
+    texture.is_smooth = false;
+    texture
 }
 
 const OPAQUE_TEXTURE: ResKey<Texture> = ResKey::new("opaque");

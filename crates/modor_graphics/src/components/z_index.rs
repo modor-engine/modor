@@ -29,14 +29,16 @@
 ///
 /// fn foreground() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_size(Vec2::ONE * 0.5))
+///         .component(Transform2D::new())
+///         .with(|t| *t.size = Vec2::ONE * 0.5)
 ///         .component(Model::rectangle(FOREGROUND_MATERIAL, CAMERA))
 ///         .component(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Transform2D::new().with_size(Vec2::ONE))
+///         .component(Transform2D::new())
+///         .with(|t| *t.size = Vec2::ONE)
 ///         .component(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
 ///         .component(ZIndex2D::from(0))
 /// }

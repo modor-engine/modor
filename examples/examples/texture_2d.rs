@@ -19,22 +19,8 @@ pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics::module())
-        .with_entity(Texture::from_file(
-            BACKGROUND_TEXTURE,
-            include_bytes!("../assets/background.png"),
-        ))
-        .with_entity(Texture::from_path(SMILEY_TEXTURE, "smiley.png"))
-        .with_entity(Material::new(BACKGROUND_MATERIAL).with_texture_key(BACKGROUND_TEXTURE))
-        .with_entity(
-            Material::new(YELLOW_SMILEY_MATERIAL)
-                .with_texture_key(SMILEY_TEXTURE)
-                .with_color(Color::WHITE.with_alpha(0.7)),
-        )
-        .with_entity(
-            Material::new(GREEN_SMILEY_MATERIAL)
-                .with_texture_key(SMILEY_TEXTURE)
-                .with_color(Color::CYAN),
-        )
+        .with_entity(textures())
+        .with_entity(materials())
         .with_entity(window())
         .with_entity(background())
         .with_entity(smiley(
@@ -62,6 +48,25 @@ fn window() -> impl BuiltEntity {
         .component(Camera2D::new(CAMERA, target_key))
 }
 
+fn textures() -> impl BuiltEntity {
+    let background_data = include_bytes!("../assets/background.png");
+    EntityBuilder::new()
+        .child_component(Texture::from_file(BACKGROUND_TEXTURE, background_data))
+        .child_component(Texture::from_path(SMILEY_TEXTURE, "smiley.png"))
+}
+
+fn materials() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Material::new(BACKGROUND_MATERIAL))
+        .with(|m| m.texture_key = Some(BACKGROUND_TEXTURE))
+        .child_component(Material::new(YELLOW_SMILEY_MATERIAL))
+        .with(|m| m.texture_key = Some(SMILEY_TEXTURE))
+        .with(|m| m.color = Color::WHITE.with_alpha(0.7))
+        .child_component(Material::new(GREEN_SMILEY_MATERIAL))
+        .with(|m| m.texture_key = Some(SMILEY_TEXTURE))
+        .with(|m| m.color = Color::CYAN)
+}
+
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
@@ -76,16 +81,12 @@ fn smiley(
     angular_velocity: f32,
 ) -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(
-            Transform2D::new()
-                .with_position(position)
-                .with_size(Vec2::new(0.2, 0.2)),
-        )
-        .component(
-            Dynamics2D::new()
-                .with_velocity(velocity)
-                .with_angular_velocity(angular_velocity),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.position = position)
+        .with(|t| *t.size = Vec2::new(0.2, 0.2))
+        .component(Dynamics2D::new())
+        .with(|d| *d.velocity = velocity)
+        .with(|d| *d.angular_velocity = angular_velocity)
         .component(Model::rectangle(material_key, CAMERA))
         .component(ZIndex2D::from(z_index))
         .component(Smiley)

@@ -2,11 +2,11 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
-use modor_graphics::{Camera2D, Color, Model, RenderTarget, Window};
+use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
-use modor_text::{Font, Text, TextMaterialBuilder};
+use modor_text::{text_material, Font, Text};
 use std::time::Duration;
 
 const CAMERA: ResKey<Camera2D> = ResKey::new("main");
@@ -32,14 +32,12 @@ fn window() -> impl BuiltEntity {
 
 fn text() -> impl BuiltEntity {
     let material_key = ResKey::unique("text");
-    TextMaterialBuilder::new(material_key, "Loading", 300.)
-        .with_text(|t| t.with_font(FONT))
-        .with_material(|t| {
-            t.with_color(Color::rgb(0.1, 0.1, 0.1))
-                .with_front_color(Color::WHITE)
-        })
-        .build()
-        .component(Transform2D::new().with_size(Vec2::new(1., 0.2)))
+    text_material(material_key, "Loading", 300.)
+        .updated(|t: &mut Text| t.font_key = FONT)
+        .updated(|m: &mut Material| m.color = Color::rgb(0.1, 0.1, 0.1))
+        .updated(|m: &mut Material| m.front_color = Color::WHITE)
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(1., 0.2))
         .component(Model::rectangle(material_key, CAMERA))
         .component(LoadingText::default())
 }

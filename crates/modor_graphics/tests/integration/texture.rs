@@ -152,7 +152,8 @@ fn create_with_smooth() {
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
-                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA).with_smooth(false))
+                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
+                .with(|t| t.is_smooth = false)
                 .component(TestedTexture),
         )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
@@ -170,7 +171,8 @@ fn create_with_repeated() {
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
-                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA).with_repeated(true))
+                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
+                .with(|t| t.is_repeated = true)
                 .component(TestedTexture),
         )
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
@@ -276,11 +278,9 @@ fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
         .component(Model::rectangle(material_key, CAMERA))
-        .component(
-            Material::new(material_key)
-                .with_texture_key(RECTANGLE_TEXTURE)
-                .with_texture_size(Vec2::ONE * 2.),
-        )
+        .component(Material::new(material_key))
+        .with(|m| m.texture_key = Some(RECTANGLE_TEXTURE))
+        .with(|m| m.texture_size = Vec2::ONE * 2.)
 }
 
 #[derive(Component, NoSystem)]

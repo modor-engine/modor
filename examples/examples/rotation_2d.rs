@@ -28,29 +28,29 @@ fn window() -> impl BuiltEntity {
 }
 
 fn object() -> impl BuiltEntity {
-    let position = Vec2::new(0.15, 0.15);
-    let size = Vec2::new(0.25, 0.5);
     let material_key = ResKey::unique("object");
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position).with_size(size))
-        .component(Dynamics2D::new().with_angular_velocity(FRAC_PI_2))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(0.15, 0.15))
+        .with(|t| *t.size = Vec2::new(0.25, 0.5))
+        .component(Dynamics2D::new())
+        .with(|d| *d.angular_velocity = FRAC_PI_2)
         .component(Model::rectangle(material_key, CAMERA))
-        .component(Material::new(material_key).with_color(Color::YELLOW))
+        .component(Material::new(material_key))
+        .with(|m| m.color = Color::YELLOW)
         .child_entity(child())
 }
 
 fn child() -> impl BuiltEntity {
-    let size = Vec2::new(0.1, 0.2);
-    let relative_position = Vec2::ONE * 0.5;
     let material_key = ResKey::unique("child");
     EntityBuilder::new()
-        .component(Transform2D::new().with_size(size))
-        .component(
-            RelativeTransform2D::new()
-                .with_position(relative_position)
-                .with_rotation(0.),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.size = Vec2::new(0.1, 0.2))
+        .component(RelativeTransform2D::new())
+        .with(|t| t.position = Some(Vec2::ONE * 0.5))
+        .with(|t| t.rotation = Some(0.))
         .component(Model::rectangle(material_key, CAMERA))
         .component(ZIndex2D::from(1))
-        .component(Material::new(material_key).with_color(Color::MAGENTA))
+        .component(Material::new(material_key))
+        .with(|m| m.color = Color::MAGENTA)
 }

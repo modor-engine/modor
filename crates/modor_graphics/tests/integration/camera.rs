@@ -84,10 +84,12 @@ fn create_with_one_target() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_with_many_targets() {
+    let mut camera = Camera2D::new(CAMERA, TARGET1);
+    camera.target_keys.push(TARGET2);
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(Camera2D::new(CAMERA, TARGET1).with_target_key(TARGET2))
+        .with_entity(camera)
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
         .assert::<With<Target2>>(1, is_same("camera#not_empty2"));
@@ -101,10 +103,11 @@ fn create_with_transform() {
         .with_entity(Camera2D::new(CAMERA, TARGET1))
         .updated()
         .with_component::<With<Camera2D>, _>(|| {
-            Transform2D::new()
-                .with_position(Vec2::ONE * 0.5)
-                .with_size(Vec2::ONE * 2.)
-                .with_rotation(FRAC_PI_2)
+            let mut transform = Transform2D::new();
+            *transform.position = Vec2::ONE * 0.5;
+            *transform.size = Vec2::ONE * 2.;
+            *transform.rotation = FRAC_PI_2;
+            transform
         })
         .updated()
         .assert::<With<Target1>>(1, is_same("camera#not_empty_offset1"))
@@ -158,7 +161,8 @@ fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target1())
         .child_entity(target2())
-        .child_component(Material::new(MATERIAL).with_color(Color::BLUE))
+        .child_component(Material::new(MATERIAL))
+        .with(|m| m.color = Color::BLUE)
         .child_entity(model())
 }
 
@@ -182,11 +186,9 @@ fn target2() -> impl BuiltEntity {
 
 fn model() -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(
-            Transform2D::new()
-                .with_position(Vec2::ONE * 0.25)
-                .with_size(Vec2::ONE * 0.5),
-        )
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::ONE * 0.25)
+        .with(|t| *t.size = Vec2::ONE * 0.5)
         .component(Model::rectangle(MATERIAL, CAMERA))
 }
 

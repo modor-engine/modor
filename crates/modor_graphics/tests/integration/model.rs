@@ -73,9 +73,11 @@ fn configure_many_cameras() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
-        .with_entity(transform().component(
-            Model::rectangle(OPAQUE_BLUE_MATERIAL, DEFAULT_CAMERA).with_camera_key(OFFSET_CAMERA),
-        ))
+        .with_entity(
+            transform()
+                .component(Model::rectangle(OPAQUE_BLUE_MATERIAL, DEFAULT_CAMERA))
+                .with(|c| c.camera_keys.push(OFFSET_CAMERA)),
+        )
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("model#many_cameras_opaque"));
 }
@@ -209,10 +211,7 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(target())
-        .child_component(opaque_blue_material())
-        .child_component(opaque_red_material())
-        .child_component(transparent_blue_material())
-        .child_component(transparent_red_material())
+        .child_entity(materials())
         .child_component(default_camera())
         .child_entity(offset_camera())
 }
@@ -225,20 +224,16 @@ fn target() -> impl BuiltEntity {
         .component(TextureBuffer::default())
 }
 
-fn opaque_blue_material() -> Material {
-    Material::new(OPAQUE_BLUE_MATERIAL).with_color(Color::BLUE)
-}
-
-fn opaque_red_material() -> Material {
-    Material::new(OPAQUE_RED_MATERIAL).with_color(Color::RED)
-}
-
-fn transparent_blue_material() -> Material {
-    Material::new(TRANSPARENT_BLUE_MATERIAL).with_color(Color::BLUE.with_alpha(0.5))
-}
-
-fn transparent_red_material() -> Material {
-    Material::new(TRANSPARENT_RED_MATERIAL).with_color(Color::RED.with_alpha(0.5))
+fn materials() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Material::new(OPAQUE_BLUE_MATERIAL))
+        .with(|m| m.color = Color::BLUE)
+        .child_component(Material::new(OPAQUE_RED_MATERIAL))
+        .with(|m| m.color = Color::RED)
+        .child_component(Material::new(TRANSPARENT_BLUE_MATERIAL))
+        .with(|m| m.color = Color::BLUE.with_alpha(0.5))
+        .child_component(Material::new(TRANSPARENT_RED_MATERIAL))
+        .with(|m| m.color = Color::RED.with_alpha(0.5))
 }
 
 fn default_camera() -> Camera2D {
@@ -248,12 +243,14 @@ fn default_camera() -> Camera2D {
 fn offset_camera() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Camera2D::new(OFFSET_CAMERA, TARGET))
-        .component(Transform2D::new().with_position(Vec2::new(0.5, 0.5)))
+        .component(Transform2D::new())
+        .with(|t| *t.position = Vec2::new(0.5, 0.5))
 }
 
 fn rectangle(material_key: ResKey<Material>, position: Vec2) -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Transform2D::new().with_position(position))
+        .component(Transform2D::new())
+        .with(|t| *t.position = position)
         .component(Model::rectangle(material_key, DEFAULT_CAMERA))
 }
 

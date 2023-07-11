@@ -9,7 +9,7 @@ use modor_text::{Alignment, Font, Text};
 fn create_default() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(texture().component(Text::new("text\nto\nrender", 30.)))
+        .with_entity(text(|_| ()))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#default"));
 }
@@ -18,9 +18,7 @@ fn create_default() {
 fn create_with_alignment() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(
-            texture().component(Text::new("text\nto\nrender", 30.).with_alignment(Alignment::Left)),
-        )
+        .with_entity(text(|t| t.alignment = Alignment::Left))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#left"))
         .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.alignment = Alignment::Right)
@@ -40,7 +38,7 @@ fn create_with_font() {
             OTF_FONT,
             "../tests/assets/Foglihtenno07.otf",
         ))
-        .with_entity(texture().component(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
+        .with_entity(text(|t| t.font_key = TTF_FONT))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"))
         .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.font_key = OTF_FONT)
@@ -52,7 +50,7 @@ fn create_with_font() {
 fn create_before_font() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(texture().component(Text::new("text\nto\nrender", 30.).with_font(TTF_FONT)))
+        .with_entity(text(|t| t.font_key = TTF_FONT))
         .updated()
         .with_entity(Font::from_path(
             TTF_FONT,
@@ -62,10 +60,11 @@ fn create_before_font() {
         .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"));
 }
 
-fn texture() -> impl BuiltEntity {
-    let texture_key = ResKey::unique("text");
+fn text(updater: impl FnOnce(&mut Text)) -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Texture::from_size(texture_key, Size::ZERO))
+        .component(Text::new("text\nto\nrender", 30.))
+        .with(updater)
+        .component(Texture::from_size(ResKey::unique("text"), Size::ZERO))
         .component(TextureBuffer::default())
 }
 
