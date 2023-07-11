@@ -8,3 +8,5 @@ updates:
     ignore:
       - dependency-name: ndk
       - dependency-name: ndk-glue
+    labels:
+      - "type: dependencies"
