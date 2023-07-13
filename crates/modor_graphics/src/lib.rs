@@ -23,7 +23,6 @@
 //! App::new()
 //!     .with_entity(modor_graphics::module())
 //!     .with_entity(window_target())
-//!     .with_entity(Camera2D::new(CAMERA, TARGET))
 //!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);
 //! # }
@@ -39,11 +38,9 @@
 //!         .component(Transform2D::new())
 //!         .with(|t| *t.position = position)
 //!         .with(|t| *t.size = size)
-//!         .component(Model::rectangle(MATERIAL, CAMERA))
+//!         .component(Model::rectangle(MATERIAL, WINDOW_CAMERA_2D))
 //! }
 //!
-//! const TARGET: ResKey<RenderTarget> = ResKey::new("main");
-//! const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 //! const MATERIAL: ResKey<Material> = ResKey::new("rectangle");
 //! ```
 

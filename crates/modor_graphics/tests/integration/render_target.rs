@@ -102,7 +102,7 @@ fn render_target_in_target() {
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
+#[modor_test]
 fn create_window_target_entity() {
     App::new()
         .with_entity(window_target())
