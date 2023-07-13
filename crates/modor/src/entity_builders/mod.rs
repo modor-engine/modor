@@ -15,28 +15,35 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
     /// Adds a component of type `C`.
     ///
     /// If a component of type `C` already exists, it is overwritten.
-    fn component<C>(self, component: C) -> EntityComponentBuilder<C, Self>
+    fn component<C>(self, component: C) -> EntityBuilder<Self, EntityComponentBuilder<C>>
     where
         C: ComponentSystems,
     {
-        EntityComponentBuilder {
-            component: Some(component),
-            type_idx: None,
+        EntityBuilder {
             previous: self,
+            last: EntityComponentBuilder {
+                component: Some(component),
+                type_idx: None,
+            },
         }
     }
 
     /// Adds a component of type `C` only if `component` is not `None`.
     ///
     /// If `component` is not `None` and a component of type `C` already exists, it is overwritten.
-    fn component_option<C>(self, component: Option<C>) -> EntityComponentBuilder<C, Self>
+    fn component_option<C>(
+        self,
+        component: Option<C>,
+    ) -> EntityBuilder<Self, EntityComponentBuilder<C>>
     where
         C: ComponentSystems,
     {
-        EntityComponentBuilder {
-            component,
-            type_idx: None,
+        EntityBuilder {
             previous: self,
+            last: EntityComponentBuilder {
+                component,
+                type_idx: None,
+            },
         }
     }
 
@@ -48,35 +55,35 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
     /// component overwrites the existing one.<br>
     /// If after calling this method, a component with a type contained in the parent entity is
     /// added to the built entity, the new component overwrites the parent's.
-    fn inherited<E>(self, entity: E) -> EntityInheritedBuilder<E, Self>
+    fn inherited<E>(self, entity: E) -> EntityBuilder<Self, EntityInheritedBuilder<E>>
     where
         E: BuiltEntity,
     {
-        EntityInheritedBuilder {
-            entity,
+        EntityBuilder {
             previous: self,
+            last: EntityInheritedBuilder { entity },
         }
     }
 
     /// Creates a child entity containing a single `component`.
-    fn child_component<C>(self, component: C) -> EntityChildComponentBuilder<C, Self>
+    fn child_component<C>(self, component: C) -> EntityBuilder<Self, EntityChildComponentBuilder<C>>
     where
         C: ComponentSystems,
     {
-        EntityChildComponentBuilder {
-            component,
+        EntityBuilder {
             previous: self,
+            last: EntityChildComponentBuilder { component },
         }
     }
 
     /// Creates a child entity.
-    fn child_entity<E>(self, child: E) -> EntityChildEntityBuilder<E, Self>
+    fn child_entity<E>(self, child: E) -> EntityBuilder<Self, EntityChildEntityBuilder<E>>
     where
         E: BuiltEntity,
     {
-        EntityChildEntityBuilder {
-            child,
+        EntityBuilder {
             previous: self,
+            last: EntityChildEntityBuilder { child },
         }
     }
 
@@ -85,29 +92,34 @@ pub trait BuiltEntity: Sized + BuiltEntityPart {
     /// This method can be used instead of
     /// [`BuiltEntity::child_entity`](BuiltEntity::child_entity) when children are
     /// created dynamically (e.g. with conditional creation or loops).
-    fn child_entities<F>(self, builder: F) -> EntityChildEntitiesBuilder<F, Self>
+    fn child_entities<F>(self, builder: F) -> EntityBuilder<Self, EntityChildEntitiesBuilder<F>>
     where
         F: FnOnce(&mut EntityGenerator<'_>),
     {
-        EntityChildEntitiesBuilder {
-            builder,
+        EntityBuilder {
             previous: self,
+            last: EntityChildEntitiesBuilder { builder },
         }
     }
 
     /// Creates an entity if the singleton of type `C` does not already exist.
     ///
     /// The created entity has no parent.
-    fn dependency<C, E, F>(self, builder: F) -> EntityDependencyBuilder<C, E, F, Self>
+    fn dependency<C, E, F>(
+        self,
+        builder: F,
+    ) -> EntityBuilder<Self, EntityDependencyBuilder<C, E, F>>
     where
         C: Component<IsSingleton = True>,
         E: BuiltEntity,
         F: FnOnce() -> E,
     {
-        EntityDependencyBuilder {
-            builder,
+        EntityBuilder {
             previous: self,
-            phantom: PhantomData,
+            last: EntityDependencyBuilder {
+                builder,
+                phantom: PhantomData,
+            },
         }
     }
 
@@ -145,7 +157,6 @@ where
         EntityComponentBuilder {
             component: Some(self),
             type_idx: None,
-            previous: EntityBuilder::new(),
         }
         .build(core, parent_idx)
     }
@@ -199,41 +210,62 @@ where
 ///
 /// App::new().with_entity(Score(0));
 /// ```
-#[non_exhaustive]
 #[derive(Default)]
-pub struct EntityBuilder;
+pub struct EntityBuilder<P = EntityBuilderRoot, L = EntityBuilderRoot> {
+    previous: P,
+    last: L,
+}
 
 impl EntityBuilder {
     /// Creates a new builder.
     pub const fn new() -> Self {
-        Self
+        Self {
+            previous: EntityBuilderRoot,
+            last: EntityBuilderRoot,
+        }
     }
 }
 
-impl BuiltEntityPart for EntityBuilder {
+impl<T, U> BuiltEntityPart for EntityBuilder<T, U>
+where
+    T: BuiltEntityPart,
+    U: BuiltEntityPart,
+{
     fn create_archetype(
         &mut self,
-        _core: &mut CoreStorage,
+        core: &mut CoreStorage,
         archetype_idx: ArchetypeIdx,
     ) -> ArchetypeIdx {
-        archetype_idx
+        let archetype_idx = self.previous.create_archetype(core, archetype_idx);
+        self.last.create_archetype(core, archetype_idx)
     }
 
-    fn add_components(&mut self, _core: &mut CoreStorage, _location: EntityLocation) {
-        // do nothing
+    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
+        self.previous.add_components(core, location);
+        self.last.add_components(core, location);
     }
 
-    fn create_other_entities(self, _core: &mut CoreStorage, _parent_idx: Option<EntityIdx>) {
-        // do nothing
+    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
+        self.previous.create_other_entities(core, parent_idx);
+        self.last.create_other_entities(core, parent_idx);
     }
 
-    fn update_component<C>(&mut self, _updater: impl FnMut(&mut C))
+    fn update_component<C>(&mut self, mut updater: impl FnMut(&mut C))
     where
         C: Component,
     {
-        // do nothing
+        self.last.update_component(&mut updater);
+        self.previous.update_component(updater);
     }
 }
+
+/// An entity builder that has no effect.
+///
+/// It is used as root type for the [`EntityBuilder`](EntityBuilder) type.
+#[non_exhaustive]
+pub struct EntityBuilderRoot;
+
+impl BuiltEntityPart for EntityBuilderRoot {}
 
 pub(crate) mod child_component;
 pub(crate) mod child_entities;

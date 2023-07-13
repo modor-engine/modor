@@ -1,44 +1,21 @@
 use crate::entity_builders::internal::BuiltEntityPart;
-use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
-use crate::{BuildableEntity, BuiltEntity, Component};
+use crate::BuildableEntity;
 
 /// A builder for defining children of an entity.
 ///
 /// [`EntityBuilder`](crate::EntityBuilder) needs to be used to instantiate this builder.
-pub struct EntityChildEntitiesBuilder<F, P> {
+pub struct EntityChildEntitiesBuilder<F> {
     pub(crate) builder: F,
-    pub(crate) previous: P,
 }
 
-impl<F, P> BuiltEntityPart for EntityChildEntitiesBuilder<F, P>
+impl<F> BuiltEntityPart for EntityChildEntitiesBuilder<F>
 where
     F: FnOnce(&mut EntityGenerator<'_>),
-    P: BuiltEntity,
 {
-    fn create_archetype(
-        &mut self,
-        core: &mut CoreStorage,
-        archetype_idx: ArchetypeIdx,
-    ) -> ArchetypeIdx {
-        self.previous.create_archetype(core, archetype_idx)
-    }
-
-    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-        self.previous.add_components(core, location);
-    }
-
     fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
-        self.previous.create_other_entities(core, parent_idx);
         (self.builder)(&mut EntityGenerator { core, parent_idx });
-    }
-
-    fn update_component<C>(&mut self, updater: impl FnMut(&mut C))
-    where
-        C: Component,
-    {
-        self.previous.update_component(updater);
     }
 }
 
