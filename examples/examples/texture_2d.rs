@@ -1,13 +1,12 @@
 #![allow(missing_docs)]
 
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
-use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Texture, Window, ZIndex2D};
+use modor_graphics::{window_target, Color, Material, Model, Texture, ZIndex2D, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
 use modor_resources::ResKey;
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const BACKGROUND_TEXTURE: ResKey<Texture> = ResKey::new("background");
 const SMILEY_TEXTURE: ResKey<Texture> = ResKey::new("smiley");
 const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
@@ -21,7 +20,7 @@ pub fn main() {
         .with_entity(modor_graphics::module())
         .with_entity(textures())
         .with_entity(materials())
-        .with_entity(window())
+        .with_entity(window_target())
         .with_entity(background())
         .with_entity(smiley(
             GREEN_SMILEY_MATERIAL,
@@ -38,14 +37,6 @@ pub fn main() {
             FRAC_PI_4,
         ))
         .run(modor_graphics::runner);
-}
-
-fn window() -> impl BuiltEntity {
-    let target_key = ResKey::unique("window");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Window::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn textures() -> impl BuiltEntity {
@@ -70,7 +61,7 @@ fn materials() -> impl BuiltEntity {
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
-        .component(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
+        .component(Model::rectangle(BACKGROUND_MATERIAL, WINDOW_CAMERA_2D))
 }
 
 fn smiley(
@@ -87,7 +78,7 @@ fn smiley(
         .component(Dynamics2D::new())
         .with(|d| *d.velocity = velocity)
         .with(|d| *d.angular_velocity = angular_velocity)
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
         .component(ZIndex2D::from(z_index))
         .component(Smiley)
 }

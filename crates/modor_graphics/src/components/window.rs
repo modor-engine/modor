@@ -19,6 +19,10 @@ use winit::window::Window as WindowHandle;
 ///
 /// - [`RenderTarget`](crate::RenderTarget)
 ///
+/// # Entity functions creating this component
+///
+/// - [`window_target`](crate::window_target())
+///
 /// # Example
 ///
 /// ```rust

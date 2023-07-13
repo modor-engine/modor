@@ -1,7 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
+    window_target, Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
+    Window, WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -99,6 +100,16 @@ fn render_target_in_target() {
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_window_target_entity() {
+    App::new()
+        .with_entity(window_target())
+        .assert::<With<RenderTarget>>(1, |e| {
+            e.has(|_: &Window| ())
+                .has(|c: &Camera2D| assert_eq!(c.key(), WINDOW_CAMERA_2D))
+        });
 }
 
 fn main_texture() -> impl BuiltEntity {

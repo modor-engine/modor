@@ -22,17 +22,11 @@
 //! # fn no_run() {
 //! App::new()
 //!     .with_entity(modor_graphics::module())
-//!     .with_entity(window())
+//!     .with_entity(window_target())
 //!     .with_entity(Camera2D::new(CAMERA, TARGET))
 //!     .with_entity(rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 //!     .run(modor_graphics::runner);
 //! # }
-//!
-//! fn window() -> impl BuiltEntity {
-//!     EntityBuilder::new()
-//!         .component(Window::default())
-//!         .component(RenderTarget::new(TARGET))
-//! }
 //!
 //! fn materials() -> impl BuiltEntity {
 //!     EntityBuilder::new()
@@ -81,4 +75,5 @@ pub use components::z_index::*;
 pub use data::color::*;
 pub use data::size::*;
 pub use entities::module::*;
+pub use entities::targets::*;
 pub use runner::*;

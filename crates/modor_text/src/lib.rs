@@ -21,27 +21,17 @@
 //! # fn no_run() {
 //! App::new()
 //!     .with_entity(modor_text::module())
-//!     .with_entity(window())
+//!     .with_entity(window_target())
 //!     .with_entity(text())
 //!     .run(modor_graphics::runner);
 //! # }
-//!
-//! fn window() -> impl BuiltEntity {
-//!     let target_key = ResKey::unique("window");
-//!     EntityBuilder::new()
-//!         .component(Window::default())
-//!         .component(RenderTarget::new(target_key))
-//!         .component(Camera2D::new(CAMERA, target_key))
-//! }
 //!
 //! fn text() -> impl BuiltEntity {
 //!     let material_key = ResKey::unique("text");
 //!     text_material(material_key, "my text", 100.)
 //!         .component(Transform2D::new())
-//!         .component(Model::rectangle(material_key, CAMERA))
+//!         .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
 //! }
-//!
-//! const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 //! ```
 
 #[macro_use]
