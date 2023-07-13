@@ -1,33 +1,24 @@
 #![allow(missing_docs)]
 
 use instant::Instant;
-use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
-use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window};
+use modor::{systems, App, BuiltEntity, Component};
+use modor_graphics::{window_target, Color, Material, Model, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
 use modor_text::{text_material, Font, Text};
 use std::time::Duration;
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const FONT: ResKey<Font> = ResKey::new("main");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(modor_text::module())
-        .with_entity(window())
+        .with_entity(window_target())
         .with_entity(Font::from_path(FONT, "IrishGrover-Regular.ttf"))
         .with_entity(text())
         .run(modor_graphics::runner);
-}
-
-fn window() -> impl BuiltEntity {
-    let target_key = ResKey::unique("window");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Window::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn text() -> impl BuiltEntity {
@@ -38,7 +29,7 @@ fn text() -> impl BuiltEntity {
         .updated(|m: &mut Material| m.front_color = Color::WHITE)
         .component(Transform2D::new())
         .with(|t| *t.size = Vec2::new(1., 0.2))
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
         .component(LoadingText::default())
 }
 

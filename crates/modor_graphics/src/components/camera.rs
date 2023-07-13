@@ -29,6 +29,10 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 ///
 /// - [`Transform2D`]
 ///
+/// # Entity functions creating this component
+///
+/// - [`window_target`](crate::window_target())
+///
 /// # Examples
 ///
 /// ```rust

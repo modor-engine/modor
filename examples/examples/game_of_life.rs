@@ -5,7 +5,7 @@ use modor::{
     systems, App, BuiltEntity, Component, Entity, EntityBuilder, Filter, NoSystem, Query,
     SingletonComponent, With, World,
 };
-use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -14,7 +14,6 @@ use std::time::Duration;
 const GRID_SIZE: usize = 150;
 const REFRESH_PERIOD: Duration = Duration::from_millis(100);
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
 const ALIVE_CELL_MATERIAL: ResKey<Material> = ResKey::new("alive-cell");
 
@@ -22,19 +21,11 @@ const ALIVE_CELL_MATERIAL: ResKey<Material> = ResKey::new("alive-cell");
 pub fn main() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(window())
+        .with_entity(window_target())
         .with_entity(materials())
         .with_entity(Grid::load())
         .with_entity(background())
         .run(modor_graphics::runner);
-}
-
-fn window() -> impl BuiltEntity {
-    let target_key = ResKey::unique("window");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Window::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn materials() -> impl BuiltEntity {
@@ -48,7 +39,7 @@ fn materials() -> impl BuiltEntity {
 fn background() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
-        .component(Model::rectangle(BACKGROUND_MATERIAL, CAMERA))
+        .component(Model::rectangle(BACKGROUND_MATERIAL, WINDOW_CAMERA_2D))
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
@@ -56,7 +47,7 @@ fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
         .component(Transform2D::new())
         .with(|t| *t.position = to_word_position(x, y))
         .with(|t| *t.size = Vec2::ONE / GRID_SIZE as f32)
-        .component(Model::rectangle(ALIVE_CELL_MATERIAL, CAMERA))
+        .component(Model::rectangle(ALIVE_CELL_MATERIAL, WINDOW_CAMERA_2D))
         .component(ZIndex2D::from(1))
         .component(AliveCell)
 }

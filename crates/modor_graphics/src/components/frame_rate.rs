@@ -14,23 +14,14 @@ use wgpu::PresentMode;
 /// ```rust
 /// # use modor::*;
 /// # use modor_graphics::*;
-/// # use modor_resources::*;
 /// #
 /// # fn no_run() {
 /// App::new()
 ///     .with_entity(modor_graphics::module())
 ///     .with_entity(FrameRate::Fps(120))
-///     .with_entity(window())
+///     .with_entity(window_target())
 ///     .run(modor_graphics::runner);
 /// # }
-///
-/// fn window() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Window::default())
-///         .component(RenderTarget::new(TARGET))
-/// }
-///
-/// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
 /// ```
 #[derive(SingletonComponent, NoSystem, Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum FrameRate {

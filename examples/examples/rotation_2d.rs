@@ -1,30 +1,20 @@
 #![allow(missing_docs)]
 
 use modor::{App, BuiltEntity, EntityBuilder};
-use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, PhysicsModule, RelativeTransform2D, Transform2D};
 use modor_resources::ResKey;
 use std::f32::consts::FRAC_PI_2;
-
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(modor_text::module())
-        .with_entity(window())
+        .with_entity(window_target())
         .with_entity(object())
         .run(modor_graphics::runner);
-}
-
-fn window() -> impl BuiltEntity {
-    let target_key = ResKey::unique("window");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Window::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn object() -> impl BuiltEntity {
@@ -35,7 +25,7 @@ fn object() -> impl BuiltEntity {
         .with(|t| *t.size = Vec2::new(0.25, 0.5))
         .component(Dynamics2D::new())
         .with(|d| *d.angular_velocity = FRAC_PI_2)
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
         .component(Material::new(material_key))
         .with(|m| m.color = Color::YELLOW)
         .child_entity(child())
@@ -49,7 +39,7 @@ fn child() -> impl BuiltEntity {
         .component(RelativeTransform2D::new())
         .with(|t| t.position = Some(Vec2::ONE * 0.5))
         .with(|t| t.rotation = Some(0.))
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
         .component(ZIndex2D::from(1))
         .component(Material::new(material_key))
         .with(|m| m.color = Color::MAGENTA)

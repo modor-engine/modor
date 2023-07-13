@@ -39,6 +39,10 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// - [`Texture`]
 /// - [`Camera2D`]
 ///
+/// # Entity functions creating this component
+///
+/// - [`window_target`](crate::window_target())
+///
 /// # Examples
 ///
 /// ```rust

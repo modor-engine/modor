@@ -2,10 +2,10 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
-use modor_graphics::{Camera2D, Color, Material, Model, RenderTarget, Window, ZIndex2D};
+use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
-use modor_resources::{IndexResKey, ResKey};
+use modor_resources::IndexResKey;
 use rand::Rng;
 use std::time::Duration;
 
@@ -23,7 +23,6 @@ const COLORS: [Color; 10] = [
     Color::OLIVE,
 ];
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const MATERIAL: IndexResKey<Material> = IndexResKey::new("sprite");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -32,18 +31,10 @@ pub fn main() {
         .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(FpsPrinter)
-        .with_entity(window())
+        .with_entity(window_target())
         .with_entity(materials())
         .with_entity(sprites())
         .run(modor_graphics::runner);
-}
-
-fn window() -> impl BuiltEntity {
-    let target_key = ResKey::unique("window");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Window::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn materials() -> impl BuiltEntity {
@@ -72,7 +63,10 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
         .with(|t| *t.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2)))
         .with(|t| *t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())
-        .component(Model::rectangle(MATERIAL.get(material_id), CAMERA))
+        .component(Model::rectangle(
+            MATERIAL.get(material_id),
+            WINDOW_CAMERA_2D,
+        ))
         .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .component(RandomMovement::new())
 }
