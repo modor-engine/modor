@@ -1,48 +1,28 @@
 use crate::entity_builders::internal::BuiltEntityPart;
-use crate::entity_builders::BuiltEntity;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
-use crate::storages::entities::EntityIdx;
-use crate::{Component, ComponentSystems, SystemRunner, True};
+use crate::{Component, ComponentSystems, EntityBuilder, SystemRunner, True};
 use std::any;
 use std::any::{Any, TypeId};
 
 /// A builder for defining component of an entity.
 ///
-/// [`EntityBuilder`](crate::EntityBuilder) needs to be used to instantiate this builder.
-pub struct EntityComponentBuilder<C, P> {
+/// [`EntityBuilder`](EntityBuilder) needs to be used to instantiate this builder.
+pub struct EntityComponentBuilder<C> {
     pub(crate) component: Option<C>,
     pub(crate) type_idx: Option<ComponentTypeIdx>,
-    pub(crate) previous: P,
 }
 
-impl<C, P> EntityComponentBuilder<C, P>
+impl<C> BuiltEntityPart for EntityComponentBuilder<C>
 where
     C: ComponentSystems,
-{
-    /// Updates the previously added component.
-    ///
-    /// If the component is optional, then the update is performed only if the component exists.
-    pub fn with(mut self, updater: impl FnOnce(&mut C)) -> Self {
-        if let Some(component) = &mut self.component {
-            updater(component);
-        }
-        self
-    }
-}
-
-impl<C, P> BuiltEntityPart for EntityComponentBuilder<C, P>
-where
-    C: ComponentSystems,
-    P: BuiltEntity,
 {
     fn create_archetype(
         &mut self,
         core: &mut CoreStorage,
         archetype_idx: ArchetypeIdx,
     ) -> ArchetypeIdx {
-        let archetype_idx = self.previous.create_archetype(core, archetype_idx);
         if !core.components().has_systems_loaded::<C>() {
             let component_type_idx = core.set_systems_as_loaded::<C>();
             C::on_update(SystemRunner {
@@ -62,7 +42,6 @@ where
     }
 
     fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
-        self.previous.add_components(core, location);
         if let (Some(component), Some(type_idx)) = (self.component.take(), self.type_idx) {
             core.add_component(
                 component,
@@ -84,10 +63,6 @@ where
         }
     }
 
-    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
-        self.previous.create_other_entities(core, parent_idx);
-    }
-
     fn update_component<C2>(&mut self, mut updater: impl FnMut(&mut C2))
     where
         C2: Component,
@@ -97,6 +72,17 @@ where
                 updater(component);
             }
         }
-        self.previous.update_component(updater);
+    }
+}
+
+impl<P, C> EntityBuilder<P, EntityComponentBuilder<C>> {
+    /// Updates the previously added component.
+    ///
+    /// If the component is optional, then the update is performed only if the component exists.
+    pub fn with(mut self, updater: impl FnOnce(&mut C)) -> Self {
+        if let Some(component) = &mut self.last.component {
+            updater(component);
+        }
+        self
     }
 }

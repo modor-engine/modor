@@ -3,20 +3,30 @@ use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::Component;
 
+#[allow(unused_variables)]
 pub trait BuiltEntityPart: Sized {
     fn create_archetype(
         &mut self,
         core: &mut CoreStorage,
         archetype_idx: ArchetypeIdx,
-    ) -> ArchetypeIdx;
+    ) -> ArchetypeIdx {
+        archetype_idx
+    }
 
-    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation);
+    fn add_components(&mut self, core: &mut CoreStorage, location: EntityLocation) {
+        // do nothing
+    }
 
-    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>);
+    fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
+        // do nothing
+    }
 
     fn update_component<C>(&mut self, updater: impl FnMut(&mut C))
     where
-        C: Component;
+        C: Component,
+    {
+        // do nothing
+    }
 
     fn build(mut self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) -> EntityIdx {
         let archetype_idx = self.create_archetype(core, ArchetypeStorage::DEFAULT_IDX);
