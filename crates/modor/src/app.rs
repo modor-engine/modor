@@ -1,7 +1,7 @@
 use crate::storages::core::CoreStorage;
 use crate::{
-    platform, system, utils, BuildableEntity, Component, EntityFilter, EntityMut, Filter,
-    UsizeRange,
+    platform, system, utils, BuildableEntity, Component, ComponentSystems, EntityFilter, EntityMut,
+    Filter, UsizeRange,
 };
 use crate::{Entity, Query};
 use std::any;
@@ -138,7 +138,7 @@ impl App {
     pub fn with_component<F, C>(mut self, mut component_builder: impl FnMut() -> C) -> Self
     where
         F: EntityFilter,
-        C: Component,
+        C: ComponentSystems,
     {
         self.core
             .run_system(system!(|mut e: EntityMut<'_>, _: Filter<F>| {
