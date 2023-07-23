@@ -2,6 +2,164 @@ use crate::system_params::Value;
 use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With, World};
 
 #[modor_test]
+fn create_root_entity() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.create_root_entity(IncrementedValue(10));
+            w.create_root_entity(Singleton1(20));
+            w.create_root_entity(Singleton2(30));
+            w.create_root_entity(Singleton1(40));
+        }))
+        .updated()
+        .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
+        .assert::<With<Singleton1>>(1, |e| e.has(|s: &Singleton1| assert_eq!(s.0, 40)))
+        .assert::<With<Singleton2>>(1, |e| e.has(|s: &Singleton2| assert_eq!(s.0, 30)))
+        .updated()
+        .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
+}
+
+#[modor_test]
+fn create_child_entity_with_existing_parent() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.create_child_entity(TESTER_ID, IncrementedValue(10));
+            w.create_child_entity(TESTER_ID, Singleton1(20));
+            w.create_child_entity(TESTER_ID, Singleton2(30));
+            w.create_child_entity(TESTER_ID, Singleton1(40));
+        }))
+        .updated()
+        .assert::<With<IncrementedValue>>(1, |e| {
+            e.has(|v: &IncrementedValue| assert_eq!(v.0, 10))
+                .has_parent::<With<Tester>>()
+        })
+        .assert::<With<Singleton1>>(1, |e| {
+            e.has(|s: &Singleton1| assert_eq!(s.0, 40))
+                .has_parent::<With<Tester>>()
+        })
+        .assert::<With<Singleton2>>(1, |e| {
+            e.has(|s: &Singleton2| assert_eq!(s.0, 30))
+                .has_parent::<With<Tester>>()
+        })
+        .updated()
+        .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
+}
+
+#[modor_test]
+fn create_child_entity_with_missing_parent() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.create_child_entity(MISSING_ID, IncrementedValue(10));
+        }))
+        .updated()
+        .assert::<With<IncrementedValue>>(0, |e| e);
+}
+
+#[modor_test]
+fn delete_existing_entity() {
+    App::new()
+        .with_entity(tester_with_child_incremented_value(|w| {
+            w.delete_entity(TESTER_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(0, |e| e)
+        .assert::<With<IncrementedValue>>(0, |e| e);
+}
+
+#[modor_test]
+fn delete_missing_entity() {
+    App::new()
+        .with_entity(tester(|w| w.delete_entity(MISSING_ID)))
+        .updated()
+        .assert::<()>(2, |e| e);
+}
+
+#[modor_test]
+fn add_component_to_existing_entity_without_component() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.add_component(TESTER_ID, IncrementedValue(10));
+            w.add_component(TESTER_ID, Singleton1(20));
+            w.add_component(TESTER_ID, Singleton2(30));
+            w.add_component(TESTER_ID, Singleton1(40));
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
+        .assert::<With<Tester>>(1, |e| e.has(|v: &Singleton1| assert_eq!(v.0, 40)))
+        .assert::<With<Tester>>(1, |e| e.has(|v: &Singleton2| assert_eq!(v.0, 30)))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
+}
+
+#[modor_test]
+fn add_component_to_existing_entity_with_component() {
+    App::new()
+        .with_entity(tester_with_incremented_value(|w| {
+            w.add_component(TESTER_ID, IncrementedValue(10));
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
+}
+
+#[modor_test]
+fn add_component_to_missing_entity() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.add_component(MISSING_ID, IncrementedValue(10));
+        }))
+        .updated()
+        .assert::<With<IncrementedValue>>(0, |e| e);
+}
+
+#[modor_test]
+fn delete_component_of_existing_entity_with_component() {
+    // run twice as internal logic is different the second time
+    App::new()
+        .with_entity(tester_with_incremented_value(|w| {
+            w.delete_component::<IncrementedValue>(TESTER_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>())
+        .with_deleted_entities::<()>()
+        .with_entity(tester_with_incremented_value(|w| {
+            w.delete_component::<IncrementedValue>(TESTER_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
+}
+
+#[modor_test]
+fn delete_component_of_existing_entity_without_component() {
+    App::new()
+        .with_entity(tester_with_external_incremented_value(|w| {
+            w.delete_component::<IncrementedValue>(TESTER_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
+}
+
+#[modor_test]
+fn delete_not_registered_component() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.delete_component::<IncrementedValue>(TESTER_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
+}
+
+#[modor_test]
+fn delete_component_of_missing_entity() {
+    App::new()
+        .with_entity(tester(|w| {
+            w.delete_component::<IncrementedValue>(MISSING_ID);
+        }))
+        .updated()
+        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
+}
+
+#[modor_test]
 fn retrieve_state() {
     App::new()
         .with_entity(IncrementedValue(10))
@@ -26,125 +184,64 @@ fn retrieve_state() {
         });
 }
 
-#[modor_test]
-fn create_root_entity() {
-    Tester::run(|w| {
-        w.create_root_entity(IncrementedValue(10));
-        w.create_root_entity(Singleton1(20));
-        w.create_root_entity(Singleton2(30));
-        w.create_root_entity(Singleton1(40));
-    })
-    .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
-    .assert::<With<Singleton1>>(1, |e| e.has(|s: &Singleton1| assert_eq!(s.0, 40)))
-    .assert::<With<Singleton2>>(1, |e| e.has(|s: &Singleton2| assert_eq!(s.0, 30)))
-    .updated()
-    .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
-}
-
-#[modor_test]
-fn create_child_entity_with_existing_parent() {
-    Tester::run(|w| {
-        w.create_child_entity(TESTER_ID, IncrementedValue(10));
-        w.create_child_entity(TESTER_ID, Singleton1(20));
-        w.create_child_entity(TESTER_ID, Singleton2(30));
-        w.create_child_entity(TESTER_ID, Singleton1(40));
-    })
-    .assert::<With<IncrementedValue>>(1, |e| {
-        e.has(|v: &IncrementedValue| assert_eq!(v.0, 10))
-            .has_parent::<With<Tester>>()
-    })
-    .assert::<With<Singleton1>>(1, |e| {
-        e.has(|s: &Singleton1| assert_eq!(s.0, 40))
-            .has_parent::<With<Tester>>()
-    })
-    .assert::<With<Singleton2>>(1, |e| {
-        e.has(|s: &Singleton2| assert_eq!(s.0, 30))
-            .has_parent::<With<Tester>>()
-    })
-    .updated()
-    .assert::<With<IncrementedValue>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
-}
-
-#[modor_test]
-fn create_child_entity_with_missing_parent() {
-    Tester::run(|w| w.create_child_entity(MISSING_ID, IncrementedValue(10)))
-        .assert::<With<IncrementedValue>>(0, |e| e);
-}
-
-#[modor_test]
-fn delete_existing_entity() {
-    Tester::run_with_child_incremented_value(|w| w.delete_entity(TESTER_ID))
-        .assert::<With<Tester>>(0, |e| e)
-        .assert::<With<IncrementedValue>>(0, |e| e);
-}
-
-#[modor_test]
-fn delete_missing_entity() {
-    Tester::run(|w| w.delete_entity(MISSING_ID)).assert::<()>(1, |e| e);
-}
-
-#[modor_test]
-fn add_component_to_existing_entity_without_component() {
-    Tester::run(|w| {
-        w.add_component(TESTER_ID, IncrementedValue(10));
-        w.add_component(TESTER_ID, Singleton1(20));
-        w.add_component(TESTER_ID, Singleton2(30));
-        w.add_component(TESTER_ID, Singleton1(40));
-    })
-    .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
-    .assert::<With<Tester>>(1, |e| e.has(|v: &Singleton1| assert_eq!(v.0, 40)))
-    .assert::<With<Tester>>(1, |e| e.has(|v: &Singleton2| assert_eq!(v.0, 30)))
-    .updated()
-    .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
-}
-
-#[modor_test]
-fn add_component_to_existing_entity_with_component() {
-    Tester::run_with_incremented_value(|w| w.add_component(TESTER_ID, IncrementedValue(10)))
-        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 10)))
-        .updated()
-        .assert::<With<Tester>>(1, |e| e.has(|v: &IncrementedValue| assert_eq!(v.0, 11)));
-}
-
-#[modor_test]
-fn add_component_to_missing_entity() {
-    Tester::run(|w| w.add_component(MISSING_ID, IncrementedValue(10)))
-        .assert::<With<IncrementedValue>>(0, |e| e);
-}
-
-#[modor_test]
-fn delete_component_of_existing_entity_with_component() {
-    Tester::run_with_incremented_value(|w| w.delete_component::<IncrementedValue>(TESTER_ID))
-        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
-}
-
-#[modor_test]
-fn delete_component_of_existing_entity_without_component() {
-    Tester::run_with_incremented_value_outside(|w| {
-        w.delete_component::<IncrementedValue>(TESTER_ID);
-    })
-    .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
-}
-
-#[modor_test]
-fn delete_not_registered_component() {
-    Tester::run(|w| w.delete_component::<IncrementedValue>(TESTER_ID))
-        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
-}
-
-#[modor_test]
-fn delete_component_of_missing_entity() {
-    Tester::run(|w| w.delete_component::<IncrementedValue>(MISSING_ID))
-        .assert::<With<Tester>>(1, |e| e.has_not::<IncrementedValue>());
-}
-
 #[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
     assert!(!are_systems_run_in_parallel!((), World<'_>));
 }
 
-const TESTER_ID: usize = 0;
+const TESTER_ID: usize = 1;
 const MISSING_ID: usize = 100;
+
+fn tester(test_fn: fn(&mut World<'_>)) -> impl BuiltEntity {
+    EntityBuilder::new().child_component(Tester::new(test_fn))
+}
+
+fn tester_with_external_incremented_value(test_fn: fn(&mut World<'_>)) -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Tester::new(test_fn))
+        .child_component(IncrementedValue(0))
+}
+
+fn tester_with_child_incremented_value(test_fn: fn(&mut World<'_>)) -> impl BuiltEntity {
+    EntityBuilder::new().child_entity(
+        EntityBuilder::new()
+            .component(Tester::new(test_fn))
+            .child_component(IncrementedValue(0)),
+    )
+}
+
+fn tester_with_incremented_value(test_fn: fn(&mut World<'_>)) -> impl BuiltEntity {
+    EntityBuilder::new().child_entity(
+        EntityBuilder::new()
+            .component(Tester::new(test_fn))
+            .component(IncrementedValue(0)),
+    )
+}
+
+#[derive(Component)]
+struct Tester {
+    test_fn: fn(&mut World<'_>),
+    is_done: bool,
+}
+
+#[systems]
+impl Tester {
+    fn new(test_fn: fn(&mut World<'_>)) -> Self {
+        Self {
+            test_fn,
+            is_done: false,
+        }
+    }
+
+    #[run]
+    #[allow(clippy::redundant_closure_call)]
+    fn update(&mut self, mut world: World<'_>) {
+        if !self.is_done {
+            (self.test_fn)(&mut world);
+            self.is_done = true;
+        }
+    }
+}
 
 #[derive(SingletonComponent, Default)]
 struct WorldState {
@@ -210,70 +307,3 @@ struct Singleton1(u32);
 
 #[derive(SingletonComponent, NoSystem)]
 struct Singleton2(u32);
-
-#[derive(SingletonComponent)]
-struct Tester {
-    test_fn: fn(&mut World<'_>),
-    is_done: bool,
-}
-
-#[systems]
-impl Tester {
-    fn run(test_fn: fn(&mut World<'_>)) -> App {
-        App::new()
-            .with_entity(Self {
-                test_fn,
-                is_done: false,
-            })
-            .updated()
-            .assert::<With<Self>>(.., |e| e.has(|t: &Self| assert!(t.is_done)))
-    }
-
-    fn run_with_incremented_value_outside(test_fn: fn(&mut World<'_>)) -> App {
-        App::new()
-            .with_entity(Self {
-                test_fn,
-                is_done: false,
-            })
-            .with_entity(IncrementedValue(0))
-            .updated()
-            .assert::<With<Self>>(.., |e| e.has(|t: &Self| assert!(t.is_done)))
-    }
-
-    fn run_with_child_incremented_value(test_fn: fn(&mut World<'_>)) -> App {
-        App::new()
-            .with_entity(
-                EntityBuilder::new()
-                    .component(Self {
-                        test_fn,
-                        is_done: false,
-                    })
-                    .child_component(IncrementedValue(0)),
-            )
-            .updated()
-            .assert::<With<Self>>(.., |e| e.has(|t: &Self| assert!(t.is_done)))
-    }
-
-    fn run_with_incremented_value(test_fn: fn(&mut World<'_>)) -> App {
-        App::new()
-            .with_entity(
-                EntityBuilder::new()
-                    .component(Self {
-                        test_fn,
-                        is_done: false,
-                    })
-                    .component(IncrementedValue(0)),
-            )
-            .updated()
-            .assert::<With<Self>>(.., |e| e.has(|t: &Self| assert!(t.is_done)))
-    }
-
-    #[run]
-    #[allow(clippy::redundant_closure_call)]
-    fn update(&mut self, mut world: World<'_>) {
-        if !self.is_done {
-            (self.test_fn)(&mut world);
-            self.is_done = true;
-        }
-    }
-}

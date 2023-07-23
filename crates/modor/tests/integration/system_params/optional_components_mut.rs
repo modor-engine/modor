@@ -1,7 +1,7 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID,
-    NO_VALUE_ID, VALUE1, VALUE2,
+    NoValueFilter, QueryTester, RareComponent, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID,
+    MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2,
 };
 use modor::{App, Filter, With};
 
@@ -69,6 +69,17 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MISSING_ID, DISABLED_ID);
         assert_eq!(left.map(|v| v.0.map(|v| v.0)), None);
         assert_eq!(right.map(|v| v.0.map(|v| v.0)), None);
+        let (left, right) = q.get_both_mut(MATCHING1_ID, MATCHING1_ID);
+        assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE1)));
+        assert_eq!(right.map(|v| v.0.map(|v| v.0)), None);
+    });
+    QueryTester::<Option<&mut RareComponent>>::run(|q| {
+        let (left, right) = q.get_both_mut(MATCHING1_ID, MATCHING2_ID);
+        assert!(left.is_some());
+        assert!(right.is_some());
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
+        assert!(left.is_some());
+        assert!(right.is_some());
     });
 }
 

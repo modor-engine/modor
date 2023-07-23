@@ -44,13 +44,13 @@ type NoValueFilter = (Not<With<Value>>, With<Enabled>);
 type DisabledFilter = (With<Value>, Not<With<Enabled>>);
 
 fn entities() -> impl BuiltEntity {
+    let matching1 = entity(Some(VALUE1), None, true).component(RareComponent);
+    let disabled = entity(Some(2), None, false);
+    let no_value = entity(None, None, true);
+    let matching_2 = entity(Some(VALUE2), Some(OTHER_VALUE2), true);
     EntityBuilder::new()
-        .child_entity(entity(Some(VALUE1), None, true).child_entity(entity(Some(2), None, false)))
-        .child_entity(entity(None, None, true).child_entity(entity(
-            Some(VALUE2),
-            Some(OTHER_VALUE2),
-            true,
-        )))
+        .child_entity(matching1.child_entity(disabled))
+        .child_entity(no_value.child_entity(matching_2))
 }
 
 fn entity(value: Option<u32>, other_value: Option<u32>, is_enabled: bool) -> impl BuiltEntity {
@@ -71,6 +71,10 @@ pub struct OtherValue(u32);
 
 #[derive(Component, NoSystem)]
 pub struct Enabled;
+
+// component not added for the entity with biggest ID, used to improve coverage
+#[derive(Component, NoSystem)]
+pub struct RareComponent;
 
 #[derive(Component)]
 struct QueryTester<P>

@@ -65,6 +65,9 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MISSING_ID, DISABLED_ID);
         assert_eq!(left.map(convert), None);
         assert_eq!(right.map(convert), None);
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING2_ID);
+        assert_eq!(left.map(convert), Some((VALUE2, OTHER_VALUE2)));
+        assert_eq!(right.map(convert), None);
     });
 }
 

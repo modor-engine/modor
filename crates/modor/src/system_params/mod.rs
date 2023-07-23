@@ -154,11 +154,9 @@ pub(crate) mod utils {
         location2: EntityLocation,
     ) -> (Option<&mut T>, Option<&mut T>) {
         if location1.idx == location2.idx {
-            if location1.idx >= data.next_key() {
-                (None, None)
-            } else {
-                get_both_mut_internal(&mut data[location1.idx], location1.pos, location2.pos)
-            }
+            data.get_mut(location1.idx).map_or((None, None), |c| {
+                get_both_mut_internal(c, location1.pos, location2.pos)
+            })
         } else {
             let (sub_data1, sub_data2) = get_both_mut_internal(data, location1.idx, location2.idx);
             (
