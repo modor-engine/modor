@@ -1,83 +1,96 @@
-use crate::system_params::{assert_iter, Number, OtherNumber, Value};
-use modor::{App, BuiltEntity, EntityBuilder, Filter, Query, SingleMut, With};
+use crate::system_params::{
+    assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
+    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID,
+    NO_VALUE_ID, VALUE1, VALUE2,
+};
+use modor::{App, Filter, With};
 
-#[derive(SingletonComponent, Default)]
-struct QueryTester {
-    done: bool,
-}
-
-#[systems]
-impl QueryTester {
-    #[run]
-    fn run(&mut self, mut query: Query<'_, (&Value, Filter<With<Number>>)>) {
-        assert_iter(query.iter().map(|v| v.0 .0), [1, 2, 3]);
-        assert_iter(query.iter_mut().map(|v| v.0 .0), [1, 2, 3]);
-        assert_iter(query.iter().rev().map(|v| v.0 .0), [3, 2, 1]);
-        assert_iter(query.iter_mut().rev().map(|v| v.0 .0), [3, 2, 1]);
-        assert_eq!(query.get(10).map(|v| v.0 .0), None);
-        assert_eq!(query.get_mut(10).map(|v| v.0 .0), None);
-        assert_eq!(query.get(6).map(|v| v.0 .0), None);
-        assert_eq!(query.get_mut(6).map(|v| v.0 .0), None);
-        assert_eq!(query.get(4).map(|v| v.0 .0), None);
-        assert_eq!(query.get_mut(4).map(|v| v.0 .0), None);
-        assert_eq!(query.get(5).map(|v| v.0 .0), Some(2));
-        assert_eq!(query.get_mut(5).map(|v| v.0 .0), Some(2));
-        let (left, right) = query.get_both_mut(5, 3);
-        assert_eq!(left.map(|v| v.0 .0), Some(2));
-        assert_eq!(right.map(|v| v.0 .0), Some(1));
-        let (left, right) = query.get_both_mut(3, 5);
-        assert_eq!(left.map(|v| v.0 .0), Some(1));
-        assert_eq!(right.map(|v| v.0 .0), Some(2));
-        self.done = true;
-        #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(std::time::Duration::from_millis(150));
-    }
-}
-
-#[derive(SingletonComponent, NoSystem, Default)]
-struct Numbers(Vec<u32>);
-
-#[derive(Component)]
-struct RegisteredNumber;
-
-#[systems]
-impl RegisteredNumber {
-    #[run]
-    fn collect(value: &Value, mut numbers: SingleMut<'_, Numbers>) {
-        numbers.0.push(value.0);
-        #[cfg(not(target_arch = "wasm32"))]
-        spin_sleep::sleep(std::time::Duration::from_millis(50));
-    }
-}
-
-fn entities() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .child_component(QueryTester::default())
-        .child_component(Numbers::default())
-        .child_entity(Number::build(1).component(RegisteredNumber))
-        .child_entity(OtherNumber::build(10))
-        .child_entity(Number::build(2).component(RegisteredNumber))
-        .child_entity(Number::build_without_value().component(RegisteredNumber))
-        .child_entity(Number::build_with_additional_component(3).component(RegisteredNumber))
+#[modor_test]
+fn run_query_iter() {
+    QueryTester::<(&Value, Filter<With<Enabled>>)>::run(|q| {
+        assert_iter(q.iter().map(|v| v.0 .0), [VALUE1, VALUE2]);
+        assert_iter(q.iter().rev().map(|v| v.0 .0), [VALUE2, VALUE1]);
+    });
 }
 
 #[modor_test]
-fn iterate_on_component_reference() {
+fn run_query_iter_mut() {
+    QueryTester::<(&Value, Filter<With<Enabled>>)>::run(|q| {
+        assert_iter(q.iter_mut().map(|v| v.0 .0), [VALUE1, VALUE2]);
+        assert_iter(q.iter_mut().rev().map(|v| v.0 .0), [VALUE2, VALUE1]);
+    });
+}
+
+#[modor_test]
+fn run_query_get() {
+    QueryTester::<(&Value, Filter<With<Enabled>>)>::run(|q| {
+        assert_eq!(q.get(MISSING_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get(DISABLED_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get(NO_VALUE_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get(MATCHING1_ID).map(|v| v.0 .0), Some(VALUE1));
+        assert_eq!(q.get(MATCHING2_ID).map(|v| v.0 .0), Some(VALUE2));
+    });
+}
+
+#[modor_test]
+fn run_query_get_mut() {
+    QueryTester::<(&Value, Filter<With<Enabled>>)>::run(|q| {
+        assert_eq!(q.get_mut(MISSING_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get_mut(DISABLED_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get_mut(NO_VALUE_ID).map(|v| v.0 .0), None);
+        assert_eq!(q.get_mut(MATCHING1_ID).map(|v| v.0 .0), Some(VALUE1));
+        assert_eq!(q.get_mut(MATCHING2_ID).map(|v| v.0 .0), Some(VALUE2));
+    });
+}
+
+#[modor_test]
+fn run_query_get_both_mut() {
+    QueryTester::<(&Value, Filter<With<Enabled>>)>::run(|q| {
+        let (left, right) = q.get_both_mut(MATCHING1_ID, MATCHING2_ID);
+        assert_eq!(left.map(|v| v.0 .0), Some(VALUE1));
+        assert_eq!(right.map(|v| v.0 .0), Some(VALUE2));
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
+        assert_eq!(left.map(|v| v.0 .0), Some(VALUE2));
+        assert_eq!(right.map(|v| v.0 .0), Some(VALUE1));
+        let (left, right) = q.get_both_mut(MATCHING1_ID, MISSING_ID);
+        assert_eq!(left.map(|v| v.0 .0), Some(VALUE1));
+        assert_eq!(right.map(|v| v.0 .0), None);
+        let (left, right) = q.get_both_mut(MISSING_ID, MATCHING1_ID);
+        assert_eq!(left.map(|v| v.0 .0), None);
+        assert_eq!(right.map(|v| v.0 .0), Some(VALUE1));
+        let (left, right) = q.get_both_mut(MISSING_ID, DISABLED_ID);
+        assert_eq!(left.map(|v| v.0 .0), None);
+        assert_eq!(right.map(|v| v.0 .0), None);
+        let (left, right) = q.get_both_mut(MATCHING1_ID, MATCHING1_ID);
+        assert_eq!(left.map(|v| v.0 .0), Some(VALUE1));
+        assert_eq!(right.map(|v| v.0 .0), None);
+    });
+}
+
+#[modor_test]
+fn run_system_with_param() {
     App::new()
         .with_entity(entities())
+        .with_component::<(), _>(Tracked::default)
         .updated()
-        .assert::<With<Numbers>>(1, |e| e.has(|c: &Numbers| assert_eq!(c.0, [1, 2, 3])))
-        .assert::<With<QueryTester>>(1, |e| e.has(|c: &QueryTester| assert!(c.done)));
+        .assert::<Matching1Filter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, Some(VALUE1))))
+        .assert::<Matching2Filter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, Some(VALUE2))))
+        .assert::<DisabledFilter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, None)))
+        .assert::<NoValueFilter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, None)));
 }
 
 #[modor_test(disabled(wasm))]
 fn run_systems_in_parallel() {
-    modor_internal::retry!(60, {
-        let start = instant::Instant::now();
-        App::new()
-            .with_thread_count(2)
-            .with_entity(entities())
-            .updated();
-        assert!(start.elapsed() < std::time::Duration::from_millis(300));
-    });
+    modor_internal::retry!(60, assert!(are_systems_run_in_parallel!(&Value, ())));
+}
+
+#[derive(Component, Default)]
+struct Tracked(Option<u32>);
+
+#[systems]
+impl Tracked {
+    #[run]
+    fn update(&mut self, param: &Value, _: Filter<With<Enabled>>) {
+        self.0 = Some(param.0);
+    }
 }

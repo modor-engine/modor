@@ -1,5 +1,18 @@
 use modor::{App, SingleMut, With};
 
+#[modor_test]
+fn run_systems_depending_on_entities() {
+    App::new()
+        .with_entity(Counter(1))
+        .with_entity(Value1(0))
+        .with_entity(Value2(0))
+        .with_entity(Value3(0))
+        .updated()
+        .assert::<With<Value1>>(1, |e| e.has(|v: &Value1| assert_eq!(v.0, 3)))
+        .assert::<With<Value2>>(1, |e| e.has(|v: &Value2| assert_eq!(v.0, 1)))
+        .assert::<With<Value3>>(1, |e| e.has(|v: &Value3| assert_eq!(v.0, 2)));
+}
+
 #[derive(SingletonComponent, NoSystem)]
 struct Counter(u32);
 
@@ -37,17 +50,4 @@ impl Value3 {
         self.0 = counter.0;
         counter.0 += 1;
     }
-}
-
-#[modor_test]
-fn run_systems_depending_on_entities() {
-    App::new()
-        .with_entity(Counter(1))
-        .with_entity(Value1(0))
-        .with_entity(Value2(0))
-        .with_entity(Value3(0))
-        .updated()
-        .assert::<With<Value1>>(1, |e| e.has(|v: &Value1| assert_eq!(v.0, 3)))
-        .assert::<With<Value2>>(1, |e| e.has(|v: &Value2| assert_eq!(v.0, 1)))
-        .assert::<With<Value3>>(1, |e| e.has(|v: &Value3| assert_eq!(v.0, 2)));
 }

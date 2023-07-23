@@ -1,5 +1,5 @@
-use crate::optional_singletons_mut::internal::SingletonOptionMutStream;
-use crate::singletons_mut::internal::{SingletonMutGuard, SingletonMutGuardBorrow};
+use crate::optional_singleton_mut::internal::SingletonOptionMutStream;
+use crate::singleton_mut::internal::{SingletonMutGuard, SingletonMutGuardBorrow};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
@@ -77,7 +77,7 @@ where
 }
 
 pub(crate) mod internal {
-    use crate::singletons_mut::internal::SingletonMutGuardBorrow;
+    use crate::singleton_mut::internal::SingletonMutGuardBorrow;
     use crate::storages::entities::EntityIdx;
     use crate::systems::context::SystemContext;
     use crate::{Component, Entity, SingleMut, True};

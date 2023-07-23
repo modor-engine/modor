@@ -1,10 +1,10 @@
-use crate::queries::internal::{QueryGuard, QueryGuardBorrow};
+use crate::query::internal::{QueryGuard, QueryGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
-use crate::system_params::queries::internal::QueryStream;
+use crate::system_params::query::internal::QueryStream;
 use crate::systems::context::SystemContext;
 use crate::{EntityFilter, QuerySystemParam, SystemParam};
 
@@ -109,54 +109,6 @@ where
         }
     }
 
-    /// Returns the constant query results for entity with ID `entity_id` and its first parent that
-    /// matches the query.
-    ///
-    /// For example, the entity has a direct parent that does not match the query,
-    /// but has a grand parent that matches. It means the second part of the returned value
-    /// is the query result corresponding to the grand parent.
-    ///
-    /// `None` is returned for the entity if it does not exist or does not match the query.<br>
-    /// `None` is returned for the first matching parent if it is not found.
-    #[inline]
-    pub fn get_with_first_parent(
-        &self,
-        entity_id: usize,
-    ) -> (
-        Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam>,
-        Option<<P as QuerySystemParamWithLifetime<'_>>::ConstParam>,
-    ) {
-        (
-            self.get(entity_id),
-            self.first_parent(entity_id.into())
-                .and_then(|p| self.get(p.into())),
-        )
-    }
-
-    /// Returns the query results for entity with ID `entity_id` and its first parent that
-    /// matches the query.
-    ///
-    /// For example, the entity has a direct parent that does not match the query,
-    /// but has a grand parent that matches. It means the second part of the returned value
-    /// is the query result corresponding to the grand parent.
-    ///
-    /// `None` is returned for the entity if it does not exist or does not match the query.<br>
-    /// `None` is returned for the first matching parent if it is not found.
-    #[inline]
-    pub fn get_with_first_parent_mut(
-        &mut self,
-        entity_id: usize,
-    ) -> (
-        Option<<P as SystemParamWithLifetime<'_>>::Param>,
-        Option<<P as SystemParamWithLifetime<'_>>::Param>,
-    ) {
-        if let Some(first_parent_idx) = self.first_parent(entity_id.into()) {
-            self.get_both_mut(entity_id, first_parent_idx.into())
-        } else {
-            (self.get_mut(entity_id), None)
-        }
-    }
-
     fn location(&self, entity_idx: EntityIdx) -> Option<EntityLocation> {
         self.context
             .storages
@@ -170,17 +122,6 @@ where
                 )
                 .then_some(l)
             })
-    }
-
-    fn first_parent(&self, entity_idx: EntityIdx) -> Option<EntityIdx> {
-        let parent_idx = self.context.storages.entities.parent_idx(entity_idx);
-        parent_idx.and_then(|p| {
-            if self.get(p.into()).is_some() {
-                Some(p)
-            } else {
-                self.first_parent(p)
-            }
-        })
     }
 }
 

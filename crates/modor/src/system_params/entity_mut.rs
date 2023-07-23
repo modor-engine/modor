@@ -4,7 +4,7 @@ use crate::system_params::entity::internal::{EntityGuard, EntityGuardBorrow, Ent
 use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
 use crate::system_params::world::internal::{WorldGuard, WorldGuardBorrow, WorldStream};
 use crate::systems::context::SystemContext;
-use crate::{BuildableEntity, Component, Entity, SystemParam, World};
+use crate::{BuildableEntity, Component, ComponentSystems, Entity, SystemParam, World};
 use std::any::Any;
 
 /// A system parameter for performing actions on an entity.
@@ -60,7 +60,7 @@ impl<'a> EntityMut<'a> {
     /// If the entity already has a component of type `C`, it is overwritten.
     pub fn add_component<C>(&mut self, component: C)
     where
-        C: Component,
+        C: ComponentSystems,
     {
         self.world.add_component(self.entity.id(), component);
     }

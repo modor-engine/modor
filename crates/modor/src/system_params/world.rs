@@ -4,7 +4,7 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{BuildableEntity, Component, SystemParam};
+use crate::{BuildableEntity, Component, ComponentSystems, SystemParam, SystemRunner};
 use std::any::{self, Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -91,7 +91,7 @@ impl<'a> World<'a> {
     /// If the entity already has a component of type `C`, it is overwritten.
     pub fn add_component<C>(&mut self, entity_id: usize, component: C)
     where
-        C: Component,
+        C: ComponentSystems,
     {
         self.context
             .storages
@@ -102,11 +102,21 @@ impl<'a> World<'a> {
                 entity_id.into(),
                 |c, a| c.add_component_type::<C>(a).1,
                 Box::new(move |c, l| {
-                    let type_idx = c
-                        .components()
-                        .type_idx(TypeId::of::<C>())
-                        .expect("internal error: add component with not registered type");
-                    c.add_component::<C>(component, type_idx, l, false);
+                    let type_idx = if c.components().has_systems_loaded::<C>() {
+                        c.components()
+                            .type_idx(TypeId::of::<C>())
+                            .expect("internal error: add component with not registered type")
+                    } else {
+                        let component_type_idx = c.set_systems_as_loaded::<C>();
+                        C::on_update(SystemRunner {
+                            core: c,
+                            component_action_type: TypeId::of::<C::Action>(),
+                            component_type_idx,
+                            action_idxs: vec![],
+                        });
+                        component_type_idx
+                    };
+                    c.add_component(component, type_idx, l, false);
                     trace!(
                         "component of type `{}` added for entity with ID {entity_id}",
                         any::type_name::<C>()

@@ -102,14 +102,18 @@ impl PhysicsModule {
         mut components: Query<'_, (&mut Transform2D, Option<&mut RelativeTransform2D>)>,
     ) {
         for entity in Self::entities_sorted_by_depth(entities.iter().map(|(e, _)| e)) {
-            match components.get_with_first_parent_mut(entity.id()) {
-                (Some((transform, Some(relative))), Some((parent, _))) => {
-                    transform.update_from_relative(relative, parent);
+            if let Some(parent_entity) = entity.parent() {
+                match components.get_both_mut(entity.id(), parent_entity.id()) {
+                    (Some((transform, Some(relative))), Some((parent, _))) => {
+                        transform.update_from_relative(relative, parent);
+                    }
+                    (Some((transform, Some(relative))), None) => {
+                        transform.update_from_relative(relative, &ROOT_TRANSFORM);
+                    }
+                    _ => unreachable!("internal error: unreachable absolute transform update case"),
                 }
-                (Some((transform, Some(relative))), None) => {
-                    transform.update_from_relative(relative, &ROOT_TRANSFORM);
-                }
-                _ => unreachable!("internal error: unreachable absolute transform update case"),
+            } else if let Some((transform, Some(relative))) = components.get_mut(entity.id()) {
+                transform.update_from_relative(relative, &ROOT_TRANSFORM);
             }
         }
     }

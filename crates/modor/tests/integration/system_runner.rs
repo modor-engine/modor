@@ -2,6 +2,91 @@ use modor::{App, With};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+#[modor_test]
+fn run_tester1_and_tester2_and_tester3_sequentially() {
+    App::new()
+        .with_entity(Tester1::default())
+        .with_entity(Tester2::default())
+        .with_entity(Tester3::default())
+        .updated()
+        .assert::<With<Tester1>>(1, |e| {
+            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+        })
+        .assert::<With<Tester2>>(1, |e| {
+            e.has(|t: &Tester2| {
+                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                assert!(t.first_system_run.load(Ordering::Acquire));
+            })
+        })
+        .assert::<With<Tester3>>(1, |e| {
+            e.has(|t: &Tester3| assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 3, 2]))
+        });
+}
+
+#[modor_test(disabled(wasm))]
+fn run_tester1_and_tester2_in_parallel() {
+    modor_internal::retry!(60, {
+        let start = instant::Instant::now();
+        App::new()
+            .with_thread_count(2)
+            .with_entity(Tester1::default())
+            .with_entity(Tester2::default())
+            .updated()
+            .assert::<With<Tester1>>(1, |e| {
+                e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+            })
+            .assert::<With<Tester2>>(1, |e| {
+                e.has(|t: &Tester2| {
+                    assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                    assert!(t.first_system_run.load(Ordering::Acquire));
+                })
+            });
+        assert!(start.elapsed() < std::time::Duration::from_millis(350));
+    });
+}
+
+#[modor_test(disabled(wasm))]
+fn run_tester1_in_parallel() {
+    let start = instant::Instant::now();
+    App::new()
+        .with_thread_count(2)
+        .with_entity(Tester1::default())
+        .updated()
+        .assert::<With<Tester1>>(1, |e| {
+            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
+        });
+    assert!(start.elapsed() > std::time::Duration::from_millis(200));
+}
+
+#[modor_test(disabled(wasm))]
+fn run_tester2_in_parallel() {
+    let start = instant::Instant::now();
+    App::new()
+        .with_thread_count(2)
+        .with_entity(Tester2::default())
+        .updated()
+        .assert::<With<Tester2>>(1, |e| {
+            e.has(|t: &Tester2| {
+                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
+                assert!(t.first_system_run.load(Ordering::Acquire));
+            })
+        });
+    assert!(start.elapsed() > std::time::Duration::from_millis(100));
+}
+
+#[modor_test(disabled(wasm))]
+fn run_tester3_in_parallel() {
+    let start = instant::Instant::now();
+    App::new()
+        .with_thread_count(2)
+        .with_entity(Tester3::default())
+        .updated()
+        .assert::<With<Tester3>>(1, |e| {
+            e.has(|t: &Tester3| assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 3, 2]))
+        });
+    assert!(start.elapsed() > std::time::Duration::from_millis(150));
+}
+
 #[derive(Action)]
 struct Action1;
 
@@ -104,89 +189,4 @@ impl Tester3 {
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
-}
-
-#[modor_test]
-fn run_tester1_and_tester2_and_tester3_sequentially() {
-    App::new()
-        .with_entity(Tester1::default())
-        .with_entity(Tester2::default())
-        .with_entity(Tester3::default())
-        .updated()
-        .assert::<With<Tester1>>(1, |e| {
-            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
-        })
-        .assert::<With<Tester2>>(1, |e| {
-            e.has(|t: &Tester2| {
-                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-                assert!(t.first_system_run.load(Ordering::Acquire));
-            })
-        })
-        .assert::<With<Tester3>>(1, |e| {
-            e.has(|t: &Tester3| assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 3, 2]))
-        });
-}
-
-#[modor_test(disabled(wasm))]
-fn run_tester1_and_tester2_in_parallel() {
-    modor_internal::retry!(60, {
-        let start = instant::Instant::now();
-        App::new()
-            .with_thread_count(2)
-            .with_entity(Tester1::default())
-            .with_entity(Tester2::default())
-            .updated()
-            .assert::<With<Tester1>>(1, |e| {
-                e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
-            })
-            .assert::<With<Tester2>>(1, |e| {
-                e.has(|t: &Tester2| {
-                    assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-                    assert!(t.first_system_run.load(Ordering::Acquire));
-                })
-            });
-        assert!(start.elapsed() < std::time::Duration::from_millis(350));
-    });
-}
-
-#[modor_test(disabled(wasm))]
-fn run_tester1_in_parallel() {
-    let start = instant::Instant::now();
-    App::new()
-        .with_thread_count(2)
-        .with_entity(Tester1::default())
-        .updated()
-        .assert::<With<Tester1>>(1, |e| {
-            e.has(|t: &Tester1| assert_eq!(*t.run_system_ids.lock().unwrap(), [4, 3, 2, 1]))
-        });
-    assert!(start.elapsed() > std::time::Duration::from_millis(200));
-}
-
-#[modor_test(disabled(wasm))]
-fn run_tester2_in_parallel() {
-    let start = instant::Instant::now();
-    App::new()
-        .with_thread_count(2)
-        .with_entity(Tester2::default())
-        .updated()
-        .assert::<With<Tester2>>(1, |e| {
-            e.has(|t: &Tester2| {
-                assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 2]);
-                assert!(t.first_system_run.load(Ordering::Acquire));
-            })
-        });
-    assert!(start.elapsed() > std::time::Duration::from_millis(100));
-}
-
-#[modor_test(disabled(wasm))]
-fn run_tester3_in_parallel() {
-    let start = instant::Instant::now();
-    App::new()
-        .with_thread_count(2)
-        .with_entity(Tester3::default())
-        .updated()
-        .assert::<With<Tester3>>(1, |e| {
-            e.has(|t: &Tester3| assert_eq!(*t.run_system_ids.lock().unwrap(), [1, 3, 2]))
-        });
-    assert!(start.elapsed() > std::time::Duration::from_millis(150));
 }

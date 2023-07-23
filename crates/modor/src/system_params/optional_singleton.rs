@@ -1,5 +1,5 @@
-use crate::optional_singletons::internal::SingletonOptionStream;
-use crate::singletons::internal::{SingletonGuard, SingletonGuardBorrow};
+use crate::optional_singleton::internal::SingletonOptionStream;
+use crate::singleton::internal::{SingletonGuard, SingletonGuardBorrow};
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{Const, LockableSystemParam, SystemParamWithLifetime};
@@ -77,7 +77,7 @@ where
 }
 
 pub(crate) mod internal {
-    use crate::singletons::internal::SingletonGuardBorrow;
+    use crate::singleton::internal::SingletonGuardBorrow;
     use crate::storages::entities::EntityIdx;
     use crate::systems::context::SystemContext;
     use crate::{Component, Entity, Single, True};

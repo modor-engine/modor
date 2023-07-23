@@ -2,11 +2,8 @@ use modor_math::Vec2;
 
 /// The relative positioning of an entity.
 ///
-/// This component has an effect only if the entity has also a component of type
+/// This component has an effect only if the entity and its parent have a component of type
 /// [`Transform2D`](crate::Transform2D).
-///
-/// The parent taken into account is the first parent in the entity hierarchy that has a
-/// [`Transform2D`](crate::Transform2D) component.
 ///
 /// Only the properties different than `None` are relative to the parent.
 /// The equivalent properties of the [`Transform2D`](crate::Transform2D) are automatically updated.

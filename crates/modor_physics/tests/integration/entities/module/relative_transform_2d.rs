@@ -189,3 +189,21 @@ fn update_relative_rotation() {
                 .has(|t: &RelativeTransform2D| assert_approx_eq!(t.rotation.unwrap(), PI))
         });
 }
+
+#[modor_test]
+fn update_relative_transform_with_parent_not_transform() {
+    let parent_and_child = EntityBuilder::new().child_entity(
+        EntityBuilder::new()
+            .component(Transform2D::new())
+            .component(RelativeTransform2D::new())
+            .with(|t| t.position = Some(Vec2::new(0.1, 0.2))),
+    );
+    App::new()
+        .with_entity(PhysicsModule::build())
+        .with_entity(DeltaTime::from(Duration::from_secs(2)))
+        .with_entity(parent_and_child)
+        .updated()
+        .assert::<With<Transform2D>>(1, |e| {
+            e.has(|t: &Transform2D| assert_approx_eq!(*t.position, Vec2::new(0.1, 0.2)))
+        });
+}

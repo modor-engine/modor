@@ -1,5 +1,15 @@
 use modor::{App, With};
 
+#[modor_test]
+fn run_systems_in_order_with_never_used_action_dependency_between_two_systems() {
+    App::new()
+        .with_entity(Runner::default())
+        .updated()
+        .assert::<With<Runner>>(1, |e| {
+            e.has(|r: &Runner| assert_eq!(r.run_system_ids, [1, 3]))
+        });
+}
+
 #[derive(Action)]
 struct Action1;
 
@@ -25,14 +35,4 @@ impl Runner {
     fn run_action_1(&mut self) {
         self.run_system_ids.push(1);
     }
-}
-
-#[modor_test]
-fn run_systems_in_order_with_never_used_action_dependency_between_two_systems() {
-    App::new()
-        .with_entity(Runner::default())
-        .updated()
-        .assert::<With<Runner>>(1, |e| {
-            e.has(|r: &Runner| assert_eq!(r.run_system_ids, [1, 3]))
-        });
 }
