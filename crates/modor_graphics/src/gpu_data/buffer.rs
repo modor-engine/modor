@@ -1,5 +1,6 @@
 use crate::GpuContext;
 use bytemuck::Pod;
+use modor::{VariableSend, VariableSync};
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -22,7 +23,7 @@ where
 
 impl<T> DynamicBuffer<T>
 where
-    T: Pod + Sync + Send + Debug,
+    T: Pod + VariableSync + VariableSend + Debug,
 {
     pub(crate) fn new(
         data: Vec<T>,

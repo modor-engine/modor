@@ -2,6 +2,7 @@ use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
+use crate::{VariableSend, VariableSync};
 use modor_internal::ti_vec::TiVecSafeOperations;
 use std::iter::Rev;
 use std::mem;
@@ -9,9 +10,26 @@ use std::ops::Range;
 use std::vec::Drain;
 use typed_index_collections::TiVec;
 
-pub(crate) type CreateEntityFn = Box<dyn FnOnce(&mut CoreStorage) + Sync + Send>;
+pub(crate) type CreateEntityFn = Box<dyn EntityCreator>;
 pub(crate) type AddComponentTypeFn = fn(&mut CoreStorage, ArchetypeIdx) -> ArchetypeIdx;
-pub(crate) type AddComponentFn = Box<dyn FnOnce(&mut CoreStorage, EntityLocation) + Sync + Send>;
+pub(crate) type AddComponentFn = Box<dyn ComponentAdder>;
+
+pub(crate) trait EntityCreator:
+    FnOnce(&mut CoreStorage) + VariableSync + VariableSend
+{
+}
+
+impl<T> EntityCreator for T where T: FnOnce(&mut CoreStorage) + VariableSync + VariableSend {}
+
+pub(crate) trait ComponentAdder:
+    FnOnce(&mut CoreStorage, EntityLocation) + VariableSync + VariableSend
+{
+}
+
+impl<T> ComponentAdder for T where
+    T: FnOnce(&mut CoreStorage, EntityLocation) + VariableSync + VariableSend
+{
+}
 
 #[derive(Default)]
 pub(crate) struct UpdateStorage {
