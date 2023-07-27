@@ -2,6 +2,7 @@ use crate::platform::JobFutureJoinHandle;
 use crate::{platform, JobFuture};
 use futures::channel::oneshot;
 use futures::channel::oneshot::{Receiver, Sender};
+use modor::VariableSend;
 use std::any;
 use std::any::Any;
 use std::error::Error;
@@ -63,7 +64,7 @@ pub struct Job<T> {
 
 impl<T> Job<T>
 where
-    T: Any + Send + Debug,
+    T: Any + VariableSend + Debug,
 {
     /// Creates a new job to run a `future`.
     ///

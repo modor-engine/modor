@@ -1,6 +1,7 @@
 use crate::utils::UserData;
 use crate::{CollisionGroupRef, CollisionType};
 use fxhash::FxHashMap;
+use modor::{VariableSend, VariableSync};
 use modor_internal::dyn_traits::{DynDebug, DynHash, DynPartialEq};
 use modor_internal::ti_vec::TiVecSafeOperations;
 use rapier2d::prelude::{Group, PairFilterContext, PhysicsHooks, SolverFlags};
@@ -88,8 +89,8 @@ impl CollisionGroupIdx {
 
 #[doc(hidden)]
 pub(crate) trait DynCollisionGroupKey:
-    Sync
-    + Send
+    VariableSync
+    + VariableSend
     + UnwindSafe
     + RefUnwindSafe
     + DynCollisionGroupKeyClone

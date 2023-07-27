@@ -1,9 +1,9 @@
+use crate::platform::Pool;
 use crate::storages::actions::ActionIdx;
 use crate::storages::components::ComponentTypeIdx;
 use crate::storages::system_states::{LockedSystem, SystemStateStorage};
 use crate::systems::context::{Storages, SystemContext};
-use crate::{platform, ArchetypeFilterFn, SystemWrapper};
-use scoped_threadpool::Pool;
+use crate::{ArchetypeFilterFn, SystemWrapper};
 use std::sync::Mutex;
 use typed_index_collections::TiVec;
 
@@ -24,7 +24,7 @@ impl SystemStorage {
         if count < 2 {
             self.pool = None;
         } else {
-            self.pool = platform::create_pool(count - 1);
+            self.pool = Pool::new(count - 1);
         }
     }
 

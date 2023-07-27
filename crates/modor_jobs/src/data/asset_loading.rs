@@ -1,4 +1,5 @@
 use crate::{platform, Job};
+use modor::VariableSend;
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -59,7 +60,7 @@ pub struct AssetLoadingJob<T> {
 
 impl<T> AssetLoadingJob<T>
 where
-    T: Any + Send + Debug,
+    T: Any + VariableSend + Debug,
 {
     /// Creates a new job to retrieve asset located at `path`, and apply `f` on the bytes of the
     /// file.
@@ -74,9 +75,9 @@ where
     /// application is run using a `cargo` command), then the file is retrieved from path
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
-    pub fn new<F>(path: impl AsRef<str>, f: impl FnOnce(Vec<u8>) -> F + Send + Any) -> Self
+    pub fn new<F>(path: impl AsRef<str>, f: impl FnOnce(Vec<u8>) -> F + VariableSend + Any) -> Self
     where
-        F: Future<Output = T> + Send,
+        F: Future<Output = T> + VariableSend,
     {
         let asset_path = path.as_ref().to_string();
         Self {

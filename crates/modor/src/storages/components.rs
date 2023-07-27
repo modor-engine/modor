@@ -1,5 +1,5 @@
 use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx, EntityLocation};
-use crate::Component;
+use crate::{Component, VariableSend, VariableSync};
 use fxhash::FxHashMap;
 use modor_internal::ti_vec::TiVecSafeOperations;
 use std::any::{Any, TypeId};
@@ -162,7 +162,7 @@ impl ComponentStorage {
     }
 }
 
-trait ComponentArchetypeLock: Any + Sync + Send {
+trait ComponentArchetypeLock: Any + VariableSync + VariableSend {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -178,7 +178,7 @@ pub(crate) type ComponentArchetypes<C> = TiVec<ArchetypeIdx, TiVec<ArchetypeEnti
 
 impl<C> ComponentArchetypeLock for RwLock<ComponentArchetypes<C>>
 where
-    C: Any + Sync + Send,
+    C: Any + VariableSync + VariableSend,
 {
     fn as_any(&self) -> &dyn Any {
         self

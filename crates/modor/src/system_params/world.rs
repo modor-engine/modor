@@ -4,7 +4,10 @@ use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLi
 use crate::system_params::world::internal::{WorldGuard, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::world::internal::WorldGuardBorrow;
-use crate::{BuildableEntity, Component, ComponentSystems, SystemParam, SystemRunner};
+use crate::{
+    BuildableEntity, Component, ComponentSystems, SystemParam, SystemRunner, VariableSend,
+    VariableSync,
+};
 use std::any::{self, Any, TypeId};
 
 /// A system parameter for applying actions on entities.
@@ -32,7 +35,10 @@ impl<'a> World<'a> {
     /// Creates a new root entity.
     ///
     /// The entity is actually created once all registered systems have been run.
-    pub fn create_root_entity<T>(&mut self, entity: impl BuildableEntity<T> + Any + Sync + Send) {
+    pub fn create_root_entity<T>(
+        &mut self,
+        entity: impl BuildableEntity<T> + Any + VariableSync + VariableSend,
+    ) {
         self.context
             .storages
             .updates
@@ -53,7 +59,7 @@ impl<'a> World<'a> {
     pub fn create_child_entity<T>(
         &mut self,
         parent_id: usize,
-        entity: impl BuildableEntity<T> + Any + Sync + Send,
+        entity: impl BuildableEntity<T> + Any + VariableSync + VariableSend,
     ) {
         self.context
             .storages

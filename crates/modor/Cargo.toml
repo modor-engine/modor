@@ -15,12 +15,12 @@ rust-version.workspace = true
 [dependencies]
 fxhash.workspace = true
 log.workspace = true
-scoped_threadpool.workspace = true
 typed-index-collections.workspace = true
 modor_derive.workspace = true
 modor_internal.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+scoped_threadpool.workspace = true
 pretty_env_logger.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

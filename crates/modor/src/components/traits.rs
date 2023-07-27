@@ -1,5 +1,5 @@
 use self::internal::SealedBool;
-use crate::{Action, FinishedSystemRunner, SystemRunner};
+use crate::{Action, FinishedSystemRunner, SystemRunner, VariableSend, VariableSync};
 use std::any::Any;
 
 /// A trait for defining a component.
@@ -8,7 +8,7 @@ use std::any::Any;
 /// Instead, you can use:
 /// - [`Component`](macro@crate::Component) for a non-singleton component.
 /// - [`SingletonComponent`](macro@crate::SingletonComponent) for a singleton component.
-pub trait Component: Sized + Any + Sync + Send {
+pub trait Component: Sized + Any + VariableSync + VariableSend {
     /// Whether the component is a singleton, i.e. there is a maximum of one instance at a time.
     type IsSingleton: Bool;
 }

@@ -15,7 +15,8 @@ extern crate log;
 
 mod data;
 mod platform;
+mod traits;
 
 pub use data::asset_loading::*;
 pub use data::job::*;
-pub use platform::*;
+pub use traits::*;

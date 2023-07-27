@@ -1,4 +1,5 @@
 use crate::{ResKey, Resource, ResourceLoadingError, ResourceState};
+use modor::VariableSend;
 use modor_jobs::{AssetLoadingJob, Job};
 use std::any::Any;
 use std::fmt::Debug;
@@ -83,8 +84,8 @@ pub struct ResourceHandler<T, D> {
 
 impl<T, D> ResourceHandler<T, D>
 where
-    T: Any + Send + Debug + Load<D>,
-    D: Any + Send + Clone,
+    T: Any + VariableSend + Debug + Load<D>,
+    D: Any + VariableSend + Clone,
 {
     /// Creates a new handler to load a resource of type `T` from a `source`.
     pub fn new(source: ResourceSource<D>) -> Self {
