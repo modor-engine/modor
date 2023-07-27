@@ -1,12 +1,5 @@
-use crate::{AssetLoadingError, ASSET_FOLDER_NAME};
-use std::any::Any;
-use std::future::Future;
+use crate::{AssetLoadingError, JobFuture, ASSET_FOLDER_NAME};
 use std::marker::PhantomData;
-
-/// A trait implemented for any future runnable by a job that produces a value of type `T`.
-pub trait JobFuture<T>: Future<Output = T> + Any {}
-
-impl<F, T> JobFuture<T> for F where F: Future<Output = T> + Any {}
 
 pub(crate) type JobFutureJoinHandle<T> = PhantomData<T>;
 

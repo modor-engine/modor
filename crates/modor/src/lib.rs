@@ -66,6 +66,7 @@ pub use filters::not::*;
 pub use filters::or::*;
 pub use filters::with::*;
 pub use filters::*;
+pub use platform::*;
 pub use ranges::*;
 pub use system_params::entity::*;
 pub use system_params::entity_mut::*;

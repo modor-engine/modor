@@ -1,6 +1,7 @@
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::GpuContext;
 use bytemuck::Pod;
+use modor::{VariableSend, VariableSync};
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use wgpu::{BindGroup, BindGroupLayout, BindingResource, Device};
@@ -16,7 +17,7 @@ where
 
 impl<T> Uniform<T>
 where
-    T: Pod + Sync + Send + Debug,
+    T: Pod + VariableSync + VariableSend + Debug,
 {
     pub(crate) fn new(
         value: T,

@@ -1,3 +1,4 @@
+use modor::{VariableSend, VariableSync};
 use std::any::Any;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -17,7 +18,7 @@ pub enum CollisionType {
     /// Collision should happen but it doesn't produce forces.
     Sensor,
     /// Collision should happen and it produces forces. This has currently the same effect as
-    /// [`CollisionType::Sensor`](crate::CollisionType::Sensor).
+    /// [`CollisionType::Sensor`](CollisionType::Sensor).
     Impulse,
 }
 
@@ -31,7 +32,16 @@ pub enum CollisionType {
 ///
 /// See [`PhysicsModule`](crate::PhysicsModule).
 pub trait CollisionGroupRef:
-    Any + Sync + Send + UnwindSafe + RefUnwindSafe + Clone + PartialEq + Eq + Hash + Debug
+    Any
+    + VariableSync
+    + VariableSend
+    + UnwindSafe
+    + RefUnwindSafe
+    + Clone
+    + PartialEq
+    + Eq
+    + Hash
+    + Debug
 {
     /// Returns the collision type produced when the group collides with another group.
     ///

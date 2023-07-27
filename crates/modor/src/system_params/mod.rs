@@ -86,7 +86,7 @@ pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'
 }
 
 pub(crate) mod internal {
-    use crate::SystemParam;
+    use crate::{SystemParam, VariableSend, VariableSync};
     use std::any::Any;
 
     pub trait SystemParamWithLifetime<'a> {
@@ -99,14 +99,14 @@ pub(crate) mod internal {
     pub trait QuerySystemParamWithLifetime<'a>: SystemParamWithLifetime<'a> {
         type ConstParam: 'a + SystemParamWithLifetime<'a>;
         type Iter: 'a
-            + Sync
-            + Send
+            + VariableSync
+            + VariableSend
             + Iterator<Item = <Self::ConstParam as SystemParamWithLifetime<'a>>::Param>
             + DoubleEndedIterator
             + ExactSizeIterator;
         type IterMut: 'a
-            + Sync
-            + Send
+            + VariableSync
+            + VariableSend
             + Iterator<Item = <Self as SystemParamWithLifetime<'a>>::Param>
             + DoubleEndedIterator
             + ExactSizeIterator;
