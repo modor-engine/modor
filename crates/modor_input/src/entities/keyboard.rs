@@ -13,7 +13,7 @@ use modor_math::Vec2;
 /// #
 /// fn access_keyboard(keyboard: SingleRef<'_, '_, Keyboard>) {
 ///     println!("Left arrow key pressed: {:?}", keyboard.get().key(Key::Left).is_pressed);
-///     println!("Entered text: {:?}", keyboard.text());
+///     println!("Entered text: {:?}", keyboard.get().text());
 /// }
 /// ```
 #[derive(SingletonComponent, NoSystem)]
