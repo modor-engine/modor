@@ -27,7 +27,7 @@ where
     P: 'static + QuerySystemParam,
 {
     guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
-    context: SystemContext<'a>,
+    pub(super) context: SystemContext<'a>,
 }
 
 impl<'a, P> Query<'a, P>
@@ -59,7 +59,6 @@ where
     /// Returns the constant query result for the entity with ID `entity_id`.
     ///
     /// `None` is returned if `entity_id` does not exist or does not match the query.
-    #[inline]
     pub fn get(
         &self,
         entity_id: usize,
@@ -71,7 +70,6 @@ where
     /// Returns the query result for the entity with ID `entity_id`.
     ///
     /// `None` is returned if `entity_id` does not exist or does not match the query.
-    #[inline]
     pub fn get_mut(
         &mut self,
         entity_id: usize,
@@ -86,7 +84,6 @@ where
     ///
     /// If `entity1_id` and `entity2_id` are equal, the result is returned only in the first part
     /// of the returned tuple, and the second part contains `None`.
-    #[inline]
     pub fn get_both_mut(
         &mut self,
         entity1_id: usize,
@@ -140,7 +137,7 @@ where
     P: 'static + QuerySystemParam,
 {
     type Filter = ();
-    type InnerTuple = P::InnerTuple;
+    type InnerTuple = (P,);
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {
         let param_properties = P::properties(core);
@@ -187,7 +184,7 @@ where
     }
 }
 
-mod internal {
+pub(super) mod internal {
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
     use crate::systems::context::SystemContext;
     use crate::{EntityFilter, QuerySystemParam};

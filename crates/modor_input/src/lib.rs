@@ -12,7 +12,7 @@
 //! You can then start to use this module:
 //!
 //! ```rust
-//! use modor::{systems, App, Single, EntityBuilder, SingletonComponent};
+//! use modor::{systems, App, EntityBuilder, SingletonComponent, SingleRef};
 //! use modor_input::{InputEvent, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent};
 //!
 //! let mut app = App::new()
@@ -35,8 +35,8 @@
 //! #[systems]
 //! impl MouseAction {
 //!     #[run]
-//!     fn run(mouse: Single<'_, Mouse>) {
-//!         assert!(mouse.button(MouseButton::Left).is_pressed);
+//!     fn run(mouse: SingleRef<'_, '_, Mouse>) {
+//!         assert!(mouse.get().button(MouseButton::Left).is_pressed);
 //!     }
 //! }
 //! ```

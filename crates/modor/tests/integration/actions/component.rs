@@ -22,7 +22,8 @@ struct Value1(u32);
 #[systems]
 impl Value1 {
     #[run_after(component(Value3))]
-    fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
+    fn run(&mut self, mut counter: SingleMut<'_, '_, Counter>) {
+        let counter = counter.get_mut();
         self.0 = counter.0;
         counter.0 += 1;
     }
@@ -34,7 +35,8 @@ struct Value2(u32);
 #[systems]
 impl Value2 {
     #[run_after()]
-    fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
+    fn run(&mut self, mut counter: SingleMut<'_, '_, Counter>) {
+        let counter = counter.get_mut();
         self.0 = counter.0;
         counter.0 += 1;
     }
@@ -46,7 +48,8 @@ struct Value3(u32);
 #[systems]
 impl Value3 {
     #[run_after(component(Value2))]
-    fn run(&mut self, mut counter: SingleMut<'_, Counter>) {
+    fn run(&mut self, mut counter: SingleMut<'_, '_, Counter>) {
+        let counter = counter.get_mut();
         self.0 = counter.0;
         counter.0 += 1;
     }

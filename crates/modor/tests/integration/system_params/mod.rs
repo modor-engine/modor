@@ -113,6 +113,7 @@ macro_rules! are_systems_run_in_parallel {
         #[derive(Component)]
         struct ParallelTester;
 
+        #[allow(unused_qualifications)]
         #[systems]
         impl ParallelTester {
             #[run]
@@ -141,12 +142,12 @@ pub mod components;
 pub mod components_mut;
 pub mod entity;
 pub mod entity_mut;
+pub mod filter;
 pub mod optional_components;
 pub mod optional_components_mut;
 pub mod optional_singleton;
-pub mod optional_singleton_mut;
+pub mod query;
 pub mod singleton;
-pub mod singleton_mut;
 pub mod tuples_empty;
 pub mod tuples_many_items;
 pub mod tuples_one_item;

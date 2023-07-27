@@ -5,7 +5,7 @@ use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
 use crate::{GpuContext, RenderTarget, Renderer, Size};
 use fxhash::FxHashMap;
-use modor::{Query, Single, SingleMut};
+use modor::{Query, SingleMut, SingleRef};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
@@ -131,10 +131,10 @@ impl Camera2D {
         &mut self,
         transform: Option<&Transform2D>,
         (target_registry, targets): (
-            Option<SingleMut<'_, RenderTargetRegistry>>,
+            Option<SingleMut<'_, '_, RenderTargetRegistry>>,
             Query<'_, &RenderTarget>,
         ),
-        renderer: Option<Single<'_, Renderer>>,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
     ) {
         self.transform = transform.cloned().unwrap_or_default();
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
@@ -142,6 +142,7 @@ impl Camera2D {
             self.target_uniforms.clear();
         }
         if let (Some(context), Some(mut target_registry)) = (state.context(), target_registry) {
+            let target_registry = target_registry.get_mut();
             for &target_key in &self.target_keys {
                 let target = target_registry.get(target_key, &targets);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {

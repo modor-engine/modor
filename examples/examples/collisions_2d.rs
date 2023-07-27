@@ -1,6 +1,8 @@
 #![allow(missing_docs)]
 
-use modor::{systems, App, BuiltEntity, Component, EntityBuilder, EntityMut, Query, Single, World};
+use modor::{
+    systems, App, BuiltEntity, Component, EntityBuilder, EntityMut, Query, SingleRef, World,
+};
 use modor_graphics::{
     window_target, Camera2D, Color, Material, Model, Window, ZIndex2D, WINDOW_CAMERA_2D,
 };
@@ -144,12 +146,12 @@ impl Cursor {
     #[run]
     fn update_position(
         transform: &mut Transform2D,
-        mouse: Single<'_, Mouse>,
-        window: Single<'_, Window>,
+        mouse: SingleRef<'_, '_, Mouse>,
+        window: SingleRef<'_, '_, Window>,
         cameras: Query<'_, &Camera2D>,
     ) {
         let Some(camera) = cameras.iter().next() else { return; };
-        *transform.position = camera.world_position(window.size(), mouse.position());
+        *transform.position = camera.world_position(window.get().size(), mouse.get().position());
     }
 
     #[run]

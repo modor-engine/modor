@@ -110,9 +110,9 @@ impl Text {
     fn update(
         &mut self,
         texture: &mut Texture,
-        (mut font_registry, fonts): (SingleMut<'_, FontRegistry>, Query<'_, &Font>),
+        (mut font_registry, fonts): (SingleMut<'_, '_, FontRegistry>, Query<'_, &Font>),
     ) {
-        if let Some(font) = font_registry.get(self.font_key, &fonts) {
+        if let Some(font) = font_registry.get_mut().get(self.font_key, &fonts) {
             if self.has_changed() || font.is_just_loaded {
                 let font = font.get().as_scaled(self.font_height);
                 let line_widths = self.line_widths(font);

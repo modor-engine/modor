@@ -1,6 +1,6 @@
 use crate::platform;
 use futures::executor;
-use modor::Single;
+use modor::SingleRef;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use wgpu::{
@@ -66,12 +66,12 @@ impl Renderer {
     }
 
     pub(crate) fn option_state<'a>(
-        renderer: &'a Option<Single<'_, Self>>,
+        renderer: &'a Option<SingleRef<'_, '_, Self>>,
         renderer_version: &mut Option<u8>,
     ) -> RendererState<'a> {
         renderer
             .as_ref()
-            .map_or(RendererState::None, |r| r.state(renderer_version))
+            .map_or(RendererState::None, |r| r.get().state(renderer_version))
     }
 }
 

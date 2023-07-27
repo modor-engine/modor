@@ -12,7 +12,8 @@ use modor_math::Vec2;
 /// # use modor_math::*;
 /// # use modor_input::*;
 /// #
-/// fn push_events(mut collector: SingleMut<'_, InputEventCollector>) {
+/// fn push_events(mut collector: SingleMut<'_, '_, InputEventCollector>) {
+///     let collector = collector.get_mut();
 ///     collector.push(MouseEvent::Scroll(Vec2::new(0., 0.5), MouseScrollUnit::Line).into());
 ///     collector.push(KeyboardEvent::ReleasedKey(Key::Left).into());
 ///     collector.push(TouchEvent::Started(10, Vec2::new(10., 15.)).into());
@@ -35,13 +36,15 @@ impl InputEventCollector {
     #[run]
     fn apply(
         &mut self,
-        module: Single<'_, InputModule>,
-        mut mouse: SingleMut<'_, Mouse>,
-        mut keyboard: SingleMut<'_, Keyboard>,
+        module: Single<'_, InputModule, ()>,
+        mut mouse: SingleMut<'_, '_, Mouse>,
+        mut keyboard: SingleMut<'_, '_, Keyboard>,
         mut fingers: Query<'_, (Entity<'_>, &mut Finger)>,
         mut gamepads: Query<'_, (Entity<'_>, &mut Gamepad)>,
         mut world: World<'_>,
     ) {
+        let mouse = mouse.get_mut();
+        let keyboard = keyboard.get_mut();
         Self::delete_released_fingers(&fingers, &mut world);
         mouse.reset();
         keyboard.reset();
