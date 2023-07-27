@@ -11,7 +11,7 @@ use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTU
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
 use crate::{Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
-use modor::{Component, ComponentSystems, Query, Single, SingleMut};
+use modor::{Component, ComponentSystems, Query, Single, SingleMut, SingleRef};
 use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceRegistry, ResourceState};
 use std::fmt::Debug;
 use std::ops::Range;
@@ -116,15 +116,19 @@ impl RenderTarget {
     fn update_window_target(
         &mut self,
         window: Option<&mut Window>,
-        renderer: Option<Single<'_, Renderer>>,
-        frame_rate: Option<Single<'_, FrameRate>>,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
+        frame_rate: Option<SingleRef<'_, '_, FrameRate>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.window_renderer_version);
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
         if let (Some(context), Some(window)) = (state.context(), window) {
-            let frame_rate = frame_rate.as_deref().copied().unwrap_or_default();
+            let frame_rate = frame_rate
+                .as_ref()
+                .map(Single::get)
+                .copied()
+                .unwrap_or_default();
             self.window = self
                 .window
                 .take()
@@ -142,7 +146,7 @@ impl RenderTarget {
     fn update_texture_target(
         &mut self,
         texture: Option<&Texture>,
-        renderer: Option<Single<'_, Renderer>>,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.texture_renderer_version);
         if state.is_removed() || texture.is_none() {
@@ -195,22 +199,25 @@ impl RenderTarget {
     fn render(
         &mut self,
         texture: Option<&Texture>,
-        renderer: Single<'_, Renderer>,
-        opaque_instances: Single<'_, OpaqueInstanceRegistry>,
-        transparent_instances: Single<'_, TransparentInstanceRegistry>,
-        (mut camera_registry, cameras): (SingleMut<'_, Camera2DRegistry>, Query<'_, &Camera2D>),
-        (mut material_registry, materials): (SingleMut<'_, MaterialRegistry>, Query<'_, &Material>),
-        (mut shader_registry, shaders): (SingleMut<'_, ShaderRegistry>, Query<'_, &Shader>),
-        (mut mesh_registry, meshes): (SingleMut<'_, MeshRegistry>, Query<'_, &Mesh>),
-        (mut texture_registry, textures): (SingleMut<'_, TextureRegistry>, Query<'_, &Texture>),
+        renderer: SingleRef<'_, '_, Renderer>,
+        opaque_instances: SingleRef<'_, '_, OpaqueInstanceRegistry>,
+        transparent_instances: SingleRef<'_, '_, TransparentInstanceRegistry>,
+        (mut camera_registry, cameras): (SingleMut<'_, '_, Camera2DRegistry>, Query<'_, &Camera2D>),
+        (mut material_registry, materials): (
+            SingleMut<'_, '_, MaterialRegistry>,
+            Query<'_, &Material>,
+        ),
+        (mut shader_registry, shaders): (SingleMut<'_, '_, ShaderRegistry>, Query<'_, &Shader>),
+        (mut mesh_registry, meshes): (SingleMut<'_, '_, MeshRegistry>, Query<'_, &Mesh>),
+        (mut texture_registry, textures): (SingleMut<'_, '_, TextureRegistry>, Query<'_, &Texture>),
     ) {
-        let Some(context) = renderer.state(&mut None).context() else { return; };
+        let Some(context) = renderer.get().state(&mut None).context() else { return; };
         if let Some(target) = &mut self.window {
             let target_texture_format = context
                 .surface_texture_format
                 .expect("internal error: cannot determine window format");
             let mut pass = target.begin_render_pass(self.background_color, context);
-            for (group_key, instance_buffer) in opaque_instances.iter() {
+            for (group_key, instance_buffer) in opaque_instances.get().iter() {
                 Self::draw(
                     &mut pass,
                     self.key,
@@ -220,15 +227,15 @@ impl RenderTarget {
                     None,
                     instance_buffer,
                     None,
-                    (&mut camera_registry, &cameras),
-                    (&mut material_registry, &materials),
-                    (&mut shader_registry, &shaders),
-                    (&mut mesh_registry, &meshes),
-                    (&mut texture_registry, &textures),
+                    (camera_registry.get_mut(), &cameras),
+                    (material_registry.get_mut(), &materials),
+                    (shader_registry.get_mut(), &shaders),
+                    (mesh_registry.get_mut(), &meshes),
+                    (texture_registry.get_mut(), &textures),
                     &mut self.is_texture_conflict_logged,
                 );
             }
-            for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
+            for (group_key, instance_buffer, instance_range) in transparent_instances.get().iter() {
                 Self::draw(
                     &mut pass,
                     self.key,
@@ -238,11 +245,11 @@ impl RenderTarget {
                     None,
                     instance_buffer,
                     Some(instance_range),
-                    (&mut camera_registry, &cameras),
-                    (&mut material_registry, &materials),
-                    (&mut shader_registry, &shaders),
-                    (&mut mesh_registry, &meshes),
-                    (&mut texture_registry, &textures),
+                    (camera_registry.get_mut(), &cameras),
+                    (material_registry.get_mut(), &materials),
+                    (shader_registry.get_mut(), &shaders),
+                    (mesh_registry.get_mut(), &meshes),
+                    (texture_registry.get_mut(), &textures),
                     &mut self.is_texture_conflict_logged,
                 );
             }
@@ -252,7 +259,7 @@ impl RenderTarget {
         }
         if let (Some(target), Some(texture)) = (&mut self.texture, texture) {
             let mut pass = target.begin_render_pass(texture, self.background_color, context);
-            for (group_key, instance_buffer) in opaque_instances.iter() {
+            for (group_key, instance_buffer) in opaque_instances.get().iter() {
                 Self::draw(
                     &mut pass,
                     self.key,
@@ -262,15 +269,15 @@ impl RenderTarget {
                     Some(texture.key()),
                     instance_buffer,
                     None,
-                    (&mut camera_registry, &cameras),
-                    (&mut material_registry, &materials),
-                    (&mut shader_registry, &shaders),
-                    (&mut mesh_registry, &meshes),
-                    (&mut texture_registry, &textures),
+                    (camera_registry.get_mut(), &cameras),
+                    (material_registry.get_mut(), &materials),
+                    (shader_registry.get_mut(), &shaders),
+                    (mesh_registry.get_mut(), &meshes),
+                    (texture_registry.get_mut(), &textures),
                     &mut self.is_texture_conflict_logged,
                 );
             }
-            for (group_key, instance_buffer, instance_range) in transparent_instances.iter() {
+            for (group_key, instance_buffer, instance_range) in transparent_instances.get().iter() {
                 Self::draw(
                     &mut pass,
                     self.key,
@@ -280,11 +287,11 @@ impl RenderTarget {
                     Some(texture.key()),
                     instance_buffer,
                     Some(instance_range),
-                    (&mut camera_registry, &cameras),
-                    (&mut material_registry, &materials),
-                    (&mut shader_registry, &shaders),
-                    (&mut mesh_registry, &meshes),
-                    (&mut texture_registry, &textures),
+                    (camera_registry.get_mut(), &cameras),
+                    (material_registry.get_mut(), &materials),
+                    (shader_registry.get_mut(), &shaders),
+                    (mesh_registry.get_mut(), &meshes),
+                    (texture_registry.get_mut(), &textures),
                     &mut self.is_texture_conflict_logged,
                 );
             }

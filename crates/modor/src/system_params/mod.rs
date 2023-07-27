@@ -5,21 +5,6 @@ use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWi
 use crate::systems::context::SystemContext;
 use crate::EntityFilter;
 
-pub(crate) mod components;
-pub(crate) mod components_mut;
-pub(crate) mod entity;
-pub(crate) mod entity_mut;
-pub(crate) mod filter;
-pub(crate) mod optional_components;
-pub(crate) mod optional_components_mut;
-pub(crate) mod optional_singleton;
-pub(crate) mod optional_singleton_mut;
-pub(crate) mod query;
-pub(crate) mod singleton;
-pub(crate) mod singleton_mut;
-pub(crate) mod tuples;
-pub(crate) mod world;
-
 /// A trait implemented for valid system parameters.
 pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
     #[doc(hidden)]
@@ -188,3 +173,16 @@ pub(crate) mod utils {
         }
     }
 }
+
+pub(crate) mod components;
+pub(crate) mod components_mut;
+pub(crate) mod entity;
+pub(crate) mod entity_mut;
+pub(crate) mod filter;
+pub(crate) mod optional_components;
+pub(crate) mod optional_components_mut;
+pub(crate) mod optional_singleton;
+pub(crate) mod query;
+pub(crate) mod singleton;
+pub(crate) mod tuples;
+pub(crate) mod world;

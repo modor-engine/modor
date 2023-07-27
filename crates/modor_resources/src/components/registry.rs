@@ -72,10 +72,11 @@ use std::{any, fmt};
 ///     #[run_after(component(CounterRegistry), component(Counter))]
 ///     fn update(
 ///         &mut self,
-///         mut counter_registry: SingleMut<'_, CounterRegistry>,
+///         mut counter_registry: SingleMut<'_, '_, CounterRegistry>,
 ///         counters: Query<'_, &Counter>
 ///      ) {
 ///         self.count = 0;
+///         let counter_registry = counter_registry.get_mut();
 ///         if let Some(counter) = counter_registry.get(COUNTER1, &counters) {
 ///             self.count += counter.count;
 ///         }

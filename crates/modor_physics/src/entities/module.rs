@@ -1,6 +1,6 @@
 use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2DTuple};
 use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
-use modor::{BuiltEntity, Entity, EntityBuilder, Filter, Query, Single, With};
+use modor::{BuiltEntity, Entity, EntityBuilder, Filter, Query, SingleRef, With};
 use std::time::Duration;
 
 type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransform2D>)>;
@@ -121,10 +121,10 @@ impl PhysicsModule {
     #[run_after_previous]
     fn update_2d_bodies(
         &mut self,
-        delta: Single<'_, DeltaTime>,
+        delta: SingleRef<'_, '_, DeltaTime>,
         mut entities: Query<'_, PhysicsEntity2DTuple<'_>>,
     ) {
-        self.core_2d.update(delta.get(), &mut entities);
+        self.core_2d.update(delta.get().get(), &mut entities);
     }
 
     fn entities_sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>

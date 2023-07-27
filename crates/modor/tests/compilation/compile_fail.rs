@@ -2,7 +2,7 @@
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
-use modor::{Filter, Query, Single, SingleMut, With, World};
+use modor::{Filter, Query, With, World};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -54,27 +54,6 @@ impl EntityWithValidSystems {
 
     #[run]
     fn different_mut_components(_: &mut C2, _: &mut C1) {}
-
-    #[run]
-    fn same_const_singleton(_: Single<'_, Singleton1>, _: Single<'_, Singleton1>, _: &Singleton1) {}
-
-    #[run]
-    fn different_mut_singletons(_: SingleMut<'_, Singleton1>, _: SingleMut<'_, Singleton2>) {}
-
-    #[run]
-    fn same_const_singleton_option(
-        _: Option<Single<'_, Singleton1>>,
-        _: Option<Single<'_, Singleton1>>,
-        _: &Singleton1,
-    ) {
-    }
-
-    #[run]
-    fn different_mut_singleton_options(
-        _: Option<SingleMut<'_, Singleton1>>,
-        _: Option<SingleMut<'_, Singleton2>>,
-    ) {
-    }
 
     #[run]
     #[allow(clippy::trivially_copy_pass_by_ref)]

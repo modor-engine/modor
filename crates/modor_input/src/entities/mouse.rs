@@ -10,9 +10,9 @@ use modor_math::Vec2;
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn access_mouse(mouse: Single<'_, Mouse>) {
-///     println!("Position: {:?}", mouse.position());
-///     println!("Left button pressed: {:?}", mouse.button(MouseButton::Left).is_pressed);
+/// fn access_mouse(mouse: SingleRef<'_, '_, Mouse>) {
+///     println!("Position: {:?}", mouse.get().position());
+///     println!("Left button pressed: {:?}", mouse.get().button(MouseButton::Left).is_pressed);
 /// }
 /// ```
 #[derive(SingletonComponent, NoSystem)]
@@ -86,7 +86,7 @@ impl Mouse {
     /// Returns the mouse delta in pixels.
     ///
     /// The delta does not take into account a possible acceleration created by the system,
-    /// in contrary to [`Mouse::position()`](crate::Mouse::position).
+    /// in contrary to [`Mouse::position()`](Mouse::position).
     pub fn delta(&self) -> Vec2 {
         self.delta
     }
@@ -139,7 +139,7 @@ pub enum MouseEvent {
 ///
 /// # Examples
 ///
-/// See [`Mouse`](crate::Mouse).
+/// See [`Mouse`](Mouse).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[non_exhaustive]
 pub enum MouseButton {

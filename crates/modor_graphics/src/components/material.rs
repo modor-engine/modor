@@ -2,7 +2,7 @@ use crate::components::shader::{Shader, DEFAULT_SHADER, ELLIPSE_SHADER};
 use crate::components::texture::TextureRegistry;
 use crate::gpu_data::uniform::Uniform;
 use crate::{Color, Renderer, Texture};
-use modor::{Query, Single, SingleMut};
+use modor::{Query, SingleMut, SingleRef};
 use modor_math::Vec2;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 
@@ -162,7 +162,7 @@ impl Material {
     }
 
     #[run_after(component(Renderer))]
-    fn update_uniform(&mut self, renderer: Option<Single<'_, Renderer>>) {
+    fn update_uniform(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.uniform = None;
@@ -194,7 +194,7 @@ impl Material {
     #[run_after(component(TextureRegistry), component(Texture))]
     fn update_transparency(
         &mut self,
-        (mut texture_registry, textures): (SingleMut<'_, TextureRegistry>, Query<'_, &Texture>),
+        (mut texture_registry, textures): (SingleMut<'_, '_, TextureRegistry>, Query<'_, &Texture>),
     ) {
         self.old_is_transparent = self.is_transparent;
         if !self.is_transparent {
@@ -202,7 +202,7 @@ impl Material {
                 || self
                     .texture_key
                     .as_ref()
-                    .and_then(|&k| texture_registry.get(k, &textures))
+                    .and_then(|&k| texture_registry.get_mut().get(k, &textures))
                     .map_or(false, |t| t.inner().is_transparent);
         }
     }

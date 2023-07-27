@@ -1,7 +1,7 @@
 #![allow(missing_docs, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 
 use instant::Instant;
-use modor::{systems, App, BuiltEntity, Component, EntityBuilder, Single, SingletonComponent};
+use modor::{systems, App, BuiltEntity, Component, EntityBuilder, SingleRef, SingletonComponent};
 use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
@@ -102,7 +102,10 @@ struct FpsPrinter;
 #[systems]
 impl FpsPrinter {
     #[run]
-    fn run(delta: Single<'_, DeltaTime>) {
-        log::warn!("FPS: {}", (1. / delta.get().as_secs_f32()).round() as u32);
+    fn run(delta: SingleRef<'_, '_, DeltaTime>) {
+        log::warn!(
+            "FPS: {}",
+            (1. / delta.get().get().as_secs_f32()).round() as u32
+        );
     }
 }

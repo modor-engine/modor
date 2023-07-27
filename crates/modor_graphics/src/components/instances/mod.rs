@@ -3,7 +3,7 @@ use crate::components::mesh::Mesh;
 use crate::components::renderer::Renderer;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{Camera2D, Material, Model, ZIndex2D};
-use modor::{Changed, Entity, Filter, Or, Query, Single, SingleMut};
+use modor::{Changed, Entity, Filter, Or, Query, SingleMut, SingleRef};
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -50,8 +50,8 @@ impl<const L: u32> VertexBuffer<L> for Instance {
 type Model2D<'a> = (&'a Transform2D, &'a Model, Option<&'a ZIndex2D>, Entity<'a>);
 type ChangedModel2D = Or<(Changed<Transform2D>, Changed<Model>, Changed<ZIndex2D>)>;
 type Model2DResources<'a, 'b, F> = (
-    Single<'a, Renderer>,
-    (SingleMut<'a, MaterialRegistry>, Query<'a, &'b Material>),
+    SingleRef<'a, 'b, Renderer>,
+    (SingleMut<'a, 'b, MaterialRegistry>, Query<'a, &'b Material>),
     Query<'a, (Model2D<'b>, Filter<F>)>,
 );
 

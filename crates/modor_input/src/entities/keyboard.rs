@@ -11,9 +11,9 @@ use modor_math::Vec2;
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn access_keyboard(keyboard: Single<'_, Keyboard>) {
-///     println!("Left arrow key pressed: {:?}", keyboard.key(Key::Left).is_pressed);
-///     println!("Entered text: {:?}", keyboard.text());
+/// fn access_keyboard(keyboard: SingleRef<'_, '_, Keyboard>) {
+///     println!("Left arrow key pressed: {:?}", keyboard.get().key(Key::Left).is_pressed);
+///     println!("Entered text: {:?}", keyboard.get().text());
 /// }
 /// ```
 #[derive(SingletonComponent, NoSystem)]
@@ -105,7 +105,7 @@ pub enum KeyboardEvent {
 ///
 /// # Examples
 ///
-/// See [`Keyboard`](crate::Keyboard).
+/// See [`Keyboard`](Keyboard).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[non_exhaustive]
 pub enum Key {

@@ -4,7 +4,7 @@ use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{EntityFilter, Single, World};
+use modor::{EntityFilter, SingleRef, World};
 use modor_physics::Transform2D;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -19,8 +19,9 @@ pub(crate) struct TransparentInstanceRegistry {
 #[systems]
 impl TransparentInstanceRegistry {
     #[run_after(component(Renderer))]
-    fn init_buffer(&mut self, renderer: Single<'_, Renderer>) {
+    fn init_buffer(&mut self, renderer: SingleRef<'_, '_, Renderer>) {
         let context = renderer
+            .get()
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
@@ -91,9 +92,11 @@ impl TransparentInstanceRegistry {
         F: EntityFilter,
     {
         let context = renderer
+            .get()
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
+        let material_registry = material_registry.get_mut();
         let buffer = Self::buffer_mut(&mut self.buffer);
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let entity_id = entity.id();

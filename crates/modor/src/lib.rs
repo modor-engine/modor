@@ -72,7 +72,6 @@ pub use system_params::entity_mut::*;
 pub use system_params::filter::*;
 pub use system_params::query::*;
 pub use system_params::singleton::*;
-pub use system_params::singleton_mut::*;
 pub use system_params::world::*;
 pub use system_params::*;
 pub use systems::building::*;
@@ -173,8 +172,8 @@ pub use modor_derive::Action;
 /// #[systems]
 /// impl Score {
 ///     #[run]
-///     fn update_left(&mut self, count: Single<'_, LeftPlayerHitCount>) {
-///         self.left_player += count.0;
+///     fn update_left(&mut self, count: SingleRef<'_, '_, LeftPlayerHitCount>) {
+///         self.left_player += count.get().0;
 ///     }
 /// }
 /// ```
@@ -186,8 +185,7 @@ pub use modor_derive::Component;
 /// singleton component is created, an entity with an existing instance of this component
 /// type is deleted first, so that there is always a maximum of one instance of the component.
 ///
-/// The instance can be directly accessed in systems using [`Single`] and [`SingleMut`] parameter
-/// types.
+/// The instance can be directly accessed in systems using [`Single`] parameter type.
 ///
 /// # Examples
 ///
