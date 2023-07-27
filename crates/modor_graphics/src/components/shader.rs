@@ -3,7 +3,7 @@ use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{GpuContext, Renderer};
 use fxhash::FxHashMap;
-use modor::Single;
+use modor::SingleRef;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
@@ -68,7 +68,7 @@ impl Shader {
     }
 
     #[run_after(component(Renderer))]
-    fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
+    fn update(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.pipelines.clear();

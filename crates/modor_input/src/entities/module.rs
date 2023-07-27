@@ -12,8 +12,8 @@ use modor::{BuiltEntity, EntityBuilder};
 /// let app = App::new()
 ///      .with_entity(InputModule::build());
 ///
-/// fn print_mouse_position(mouse: Single<'_, Mouse>) {
-///     println!("Mouse position: {:?}", mouse.position());
+/// fn print_mouse_position(mouse: SingleRef<'_, '_, Mouse>) {
+///     println!("Mouse position: {:?}", mouse.get().position());
 /// }
 /// ```
 #[non_exhaustive]

@@ -149,6 +149,47 @@ impl ComponentWithInvalidSystems {
     //~^ error: multiple applicable items in scope
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn single_and_component(_: Single<'_, Singleton, &mut C1>, _: &mut C1) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn single_and_query(_: Single<'_, Singleton, &mut C1>, _: Query<'_, &mut C1>) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn two_singles(_: Single<'_, Singleton, &mut C1>, _: Single<'_, Singleton, &mut C1>) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn option_single_and_component(_: Option<Single<'_, Singleton, &mut C1>>, _: &mut C1) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn option_single_and_query(_: Option<Single<'_, Singleton, &mut C1>>, _: Query<'_, &mut C1>) {
+    }
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn two_option_singles(
+        _: Option<Single<'_, Singleton, &mut C1>>,
+        _: Option<Single<'_, Singleton, &mut C1>>,
+    ) {
+    }
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn incompatible_tuples(_: (&C1,), _: &C3, _: (&mut C1,)) {}
 
     #[run]
@@ -174,4 +215,10 @@ impl ComponentWithInvalidSystems {
     //~| is defined in an impl of the trait `modor::SystemWithParams`
     //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
     fn nested_incompatible_params(_: (&C2, (&C4, (&mut C1,))), _: &C3, _: (&C2, (&C1,))) {}
+
+    #[run]
+    //~^ error: multiple applicable items in scope
+    //~| is defined in an impl of the trait `modor::SystemWithParams`
+    //~| is defined in an impl of the trait `modor::SystemWithParamMutabilityIssue`
+    fn two_simple_queries(_: Query<'_, &mut C1>, _: Query<'_, &mut C1>) {}
 }

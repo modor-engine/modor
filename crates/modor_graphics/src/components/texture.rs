@@ -3,7 +3,7 @@ use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{GpuContext, Size};
 use image::{DynamicImage, ImageError, RgbaImage};
-use modor::Single;
+use modor::SingleRef;
 use modor_resources::{
     Load, ResKey, Resource, ResourceHandler, ResourceLoadingError, ResourceRegistry,
     ResourceSource, ResourceState,
@@ -127,7 +127,7 @@ impl Texture {
     }
 
     #[run_after(component(Renderer))]
-    fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
+    fn update(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.texture = None;

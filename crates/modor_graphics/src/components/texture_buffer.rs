@@ -1,7 +1,7 @@
 use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
 use crate::{GpuContext, RenderTarget, Size, Texture};
-use modor::Single;
+use modor::SingleRef;
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode, SubmissionIndex};
@@ -60,7 +60,7 @@ pub struct TextureBuffer {
 #[systems]
 impl TextureBuffer {
     #[run_after(component(Texture), component(Renderer), component(RenderTarget))]
-    fn update(&mut self, texture: Option<&Texture>, renderer: Option<Single<'_, Renderer>>) {
+    fn update(&mut self, texture: Option<&Texture>, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         let texture_size = texture.and_then(Texture::size).map(NonZeroSize::from);
         if state.is_removed() || texture_size.is_none() {

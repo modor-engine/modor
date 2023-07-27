@@ -1,7 +1,7 @@
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::Renderer;
-use modor::Single;
+use modor::SingleRef;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
@@ -58,7 +58,7 @@ impl Mesh {
     }
 
     #[run_after(component(Renderer))]
-    fn update(&mut self, renderer: Option<Single<'_, Renderer>>) {
+    fn update(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.vertex_buffer = None;

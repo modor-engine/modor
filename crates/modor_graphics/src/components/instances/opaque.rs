@@ -26,8 +26,9 @@ impl OpaqueInstanceRegistry {
     fn move_transparent(
         &mut self,
         materials: Query<'_, &Material>,
-        mut transparent_instances: SingleMut<'_, TransparentInstanceRegistry>,
+        mut transparent_instances: SingleMut<'_, '_, TransparentInstanceRegistry>,
     ) {
+        let transparent_instances = transparent_instances.get_mut();
         for material in materials.iter().filter(|m| m.is_newly_transparent()) {
             let moved_group_keys = self
                 .groups
@@ -93,9 +94,11 @@ impl OpaqueInstanceRegistry {
         F: EntityFilter,
     {
         let context = renderer
+            .get()
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
+        let material_registry = material_registry.get_mut();
         for ((transform, model, z_index, entity), _) in models_2d.iter() {
             let entity_id = entity.id();
             let is_transparent = material_registry

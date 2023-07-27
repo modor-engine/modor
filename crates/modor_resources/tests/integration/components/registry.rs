@@ -149,7 +149,11 @@ impl RetrievedValue {
     }
 
     #[run_after(component(ValueRegistry), component(Value))]
-    fn update(&mut self, mut registry: SingleMut<'_, ValueRegistry>, values: Query<'_, &Value>) {
-        self.value = registry.get(self.key, &values).map(|v| v.value);
+    fn update(
+        &mut self,
+        mut registry: SingleMut<'_, '_, ValueRegistry>,
+        values: Query<'_, &Value>,
+    ) {
+        self.value = registry.get_mut().get(self.key, &values).map(|v| v.value);
     }
 }
