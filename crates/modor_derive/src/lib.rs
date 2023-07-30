@@ -133,10 +133,11 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     let action_type_ident = Ident::new(&(type_ident.to_string() + "Action"), item.span());
     let actions = systems::action_dependencies(&item);
+    let generic_type_names: Vec<&Ident> = generics.type_params().map(|g| &g.ident).collect();
     let action_phantom = generics
         .lt_token
         .is_some()
-        .then(|| quote!(std::marker::PhantomData #type_generics));
+        .then(|| quote!(std::marker::PhantomData <(#(#generic_type_names,)*)>));
     let update_statement = systems::generate_update_statement(&item);
     let finish_system_call = finish_system_call(&type_ident);
     let output = quote! {

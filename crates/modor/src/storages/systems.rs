@@ -142,10 +142,32 @@ pub(crate) struct FullSystemProperties {
     pub(crate) label: &'static str,
 }
 
+impl FullSystemProperties {
+    pub(super) fn has_mutability_issue(&self) -> bool {
+        // `World` is not checked as static mutability check should detect all issues with this type.
+        for (type1_idx, type1) in self.component_types.iter().enumerate() {
+            for type2 in &self.component_types[type1_idx + 1..] {
+                if type1.type_idx == type2.type_idx
+                    && (type1.access == Access::Write || type2.access == Access::Write)
+                {
+                    error!(
+                        "system `{}` not registered because of mutability issue \
+                        (caused by `{}` argument type)",
+                        self.label, type1.type_name
+                    );
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) struct ComponentTypeAccess {
     pub(crate) access: Access,
     pub(crate) type_idx: ComponentTypeIdx,
+    pub(crate) type_name: &'static str,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

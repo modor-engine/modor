@@ -15,8 +15,7 @@
 //! - *Compile-time checking*: compile-time checks are used extensively to avoid as many errors as
 //! possible during runtime:
 //!   - System parameters are checked to avoid mutability issues at runtime, e.g. if the same
-//! component type is mutably
-//! queried twice by the same system.
+//! component type is mutably queried twice by the same system.
 //!   - System execution order is checked to avoid dependency cycles.
 //!   - The API is designed to avoid runtime panics as much as possible.
 //!
@@ -287,6 +286,11 @@ pub use modor_derive::NoSystem;
 /// The [`SystemWithParamMutabilityIssue`] trait is implemented in case the system is invalid.
 /// If this trait is implemented for the system, it creates a compile time error due to a conflict
 /// with the implemented [`SystemWithParams`] trait.
+///
+/// Note that in some cases, the static checks cannot detect a mutability issue, for example when
+/// generic types are used in system parameters. For these cases, the check is performed at runtime.
+/// If a mutability issue is detected at runtime, then an error is logged and the system is not
+/// registered.
 ///
 /// # Limitations
 ///

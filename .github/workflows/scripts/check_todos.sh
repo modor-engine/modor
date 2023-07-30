@@ -11,5 +11,5 @@ while IFS= read -r -d '' file; do
         echo "Error while detecting TODOs in code"
         exit 1
     fi
-done< <(find . -type f -name '*.rs' -o -name '*.toml' -print0)
+done < <(find . -type f \( -name '*.rs' -o -name '*.toml' \) -print0)
 echo "No TODO found in code"
