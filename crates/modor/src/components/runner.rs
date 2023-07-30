@@ -111,7 +111,7 @@ impl<'a> SystemRunner<'a> {
     ) -> SystemRunner<'a> {
         let properties = (system.properties_fn)(self.core);
         let mut action_idxs = self.action_idxs.clone();
-        action_idxs.push(self.core.add_system(
+        if let Some(action_idx) = self.core.add_system(
             FullSystemProperties {
                 wrapper: system.wrapper,
                 component_types: properties.component_types,
@@ -123,7 +123,9 @@ impl<'a> SystemRunner<'a> {
             },
             action_type,
             action_dependencies,
-        ));
+        ) {
+            action_idxs.push(action_idx);
+        }
         SystemRunner {
             action_idxs,
             component_action_type: self.component_action_type,

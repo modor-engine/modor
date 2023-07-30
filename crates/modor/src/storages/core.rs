@@ -154,18 +154,20 @@ impl CoreStorage {
         properties: FullSystemProperties,
         action_type: Option<TypeId>,
         action_dependencies: Vec<ActionDependency>,
-    ) -> ActionIdx {
-        let label = properties.label;
-        let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
-        self.actions.add_system(action_idx);
-        let mutation_component_type_idxs = properties.mutation_component_type_idxs.clone();
-        let system_idx = self.systems.add(properties, action_idx);
-        self.archetype_states
-            .get_mut()
-            .expect("internal error: cannot add system in archetype state")
-            .add_system(system_idx, &mutation_component_type_idxs);
-        debug!("system `{label}` initialized with `{action_idx:?}`");
-        action_idx
+    ) -> Option<ActionIdx> {
+        (!properties.has_mutability_issue()).then(|| {
+            let label = properties.label;
+            let action_idx = self.actions.idx_or_create(action_type, action_dependencies);
+            self.actions.add_system(action_idx);
+            let mutation_component_type_idxs = properties.mutation_component_type_idxs.clone();
+            let system_idx = self.systems.add(properties, action_idx);
+            self.archetype_states
+                .get_mut()
+                .expect("internal error: cannot add system in archetype state")
+                .add_system(system_idx, &mutation_component_type_idxs);
+            debug!("system `{label}` initialized with `{action_idx:?}`");
+            action_idx
+        })
     }
 
     pub(crate) fn run_system<S>(&mut self, mut system: SystemBuilder<S>)

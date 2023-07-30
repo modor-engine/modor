@@ -8,6 +8,7 @@ use crate::system_params::internal::{
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::systems::context::SystemContext;
 use crate::{Component, QuerySystemParam, SystemParam};
+use std::any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&C>
 where
@@ -32,6 +33,7 @@ where
             component_types: vec![ComponentTypeAccess {
                 access: Access::Read,
                 type_idx,
+                type_name: any::type_name::<C>(),
             }],
             can_update: false,
             mutation_component_type_idxs: vec![],
