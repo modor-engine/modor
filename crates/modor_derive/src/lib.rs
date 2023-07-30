@@ -155,7 +155,7 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[doc(hidden)]
         #[non_exhaustive]
         #[derive(#crate_ident::Action)]
-        pub struct #action_type_ident #type_generics(#(#actions,)* #action_phantom) #where_clause;
+        pub struct #action_type_ident #impl_generics(#(#actions,)* #action_phantom) #where_clause;
     };
     output.into()
 }
