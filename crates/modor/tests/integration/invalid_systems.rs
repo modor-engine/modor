@@ -1,8 +1,6 @@
 use modor::{App, Component, NoSystem, Query, QuerySystemParam, SingleMut, With};
 use std::marker::PhantomData;
 
-// TODO: update doc
-
 #[derive(Component, NoSystem)]
 struct Value1;
 
