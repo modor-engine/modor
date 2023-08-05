@@ -2,8 +2,7 @@ use self::internal::SealedSystem;
 use super::context::SystemContext;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::SystemParamWithLifetime;
-use crate::{ArchetypeFilterFn, EntityFilter, SystemParam};
+use crate::{ArchetypeFilterFn, EntityFilter, SystemParam, SystemParamWithLifetime};
 
 /// A trait implemented for any system.
 pub trait System<P>: SealedSystem<P>

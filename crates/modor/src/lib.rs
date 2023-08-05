@@ -67,6 +67,7 @@ pub use filters::with::*;
 pub use filters::*;
 pub use platform::*;
 pub use ranges::*;
+pub use system_params::custom::*;
 pub use system_params::entity::*;
 pub use system_params::entity_mut::*;
 pub use system_params::filter::*;
@@ -438,3 +439,5 @@ pub use modor_derive::systems;
 /// fn run_on_all_platforms_expect_linux_and_wasm() { }
 /// ```
 pub use modor_derive::modor_test;
+
+pub use modor_derive::SystemParam;

@@ -1,11 +1,13 @@
 use self::internal::FilterIter;
-use super::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::entity::internal::{EntityGuard, EntityGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::systems::context::SystemContext;
-use crate::{EntityFilter, QuerySystemParam, SystemParam};
+use crate::{
+    EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime,
+};
 use std::marker::PhantomData;
 
 /// A system parameter for fitlering entities on which the system iterates.

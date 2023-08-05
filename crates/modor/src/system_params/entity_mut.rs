@@ -1,12 +1,12 @@
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::entity::internal::{EntityGuard, EntityGuardBorrow, EntityIter};
-use crate::system_params::internal::{LockableSystemParam, Mut, SystemParamWithLifetime};
+use crate::system_params::internal::{LockableSystemParam, Mut};
 use crate::system_params::world::internal::{WorldGuard, WorldGuardBorrow, WorldStream};
 use crate::systems::context::SystemContext;
 use crate::{
-    BuildableEntity, Component, ComponentSystems, Entity, SystemParam, VariableSend, VariableSync,
-    World,
+    BuildableEntity, Component, ComponentSystems, Entity, SystemParam, SystemParamWithLifetime,
+    VariableSend, VariableSync, World,
 };
 use std::any::Any;
 

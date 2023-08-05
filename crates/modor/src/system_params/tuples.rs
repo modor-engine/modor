@@ -1,12 +1,11 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::systems::context::SystemContext;
 use crate::tuples::internal::EmptyTupleGuardBorrow;
 use crate::utils;
-use crate::{QuerySystemParam, SystemParam};
+use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
 use std::iter::{Map, Zip};
 
 impl<'a> SystemParamWithLifetime<'a> for () {

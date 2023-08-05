@@ -4,11 +4,12 @@ use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::{
     ComponentGuard, ComponentGuardBorrow, ComponentIter,
 };
-use crate::system_params::internal::{
-    Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
-};
+use crate::system_params::internal::{Const, LockableSystemParam};
 use crate::systems::context::SystemContext;
-use crate::{Component, QuerySystemParam, SystemParam, With};
+use crate::{
+    Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime, With,
+};
 use std::any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &C

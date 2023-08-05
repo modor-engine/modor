@@ -1,8 +1,9 @@
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::SystemParamWithLifetime;
 use crate::systems::context::SystemContext;
-use crate::{Component, Query, QuerySystemParam, Single, SystemParam, True};
+use crate::{
+    Component, Query, QuerySystemParam, Single, SystemParam, SystemParamWithLifetime, True,
+};
 
 #[allow(clippy::use_self)]
 impl<'a, S, P> SystemParamWithLifetime<'a> for Option<Single<'_, S, P>>

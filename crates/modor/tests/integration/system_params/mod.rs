@@ -140,6 +140,8 @@ macro_rules! are_systems_run_in_parallel {
 
 pub mod components;
 pub mod components_mut;
+pub mod custom_query_param;
+pub mod custom_param;
 pub mod entity;
 pub mod entity_mut;
 pub mod filter;

@@ -1,9 +1,8 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::systems::context::SystemContext;
-use crate::EntityFilter;
+use crate::{EntityFilter, VariableSend, VariableSync};
 
 /// A trait implemented for valid system parameters.
 pub trait SystemParam: for<'a> SystemParamWithLifetime<'a> {
@@ -85,32 +84,34 @@ pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'
         'b: 'a;
 }
 
+#[doc(hidden)]
+pub trait SystemParamWithLifetime<'a> {
+    type Param: 'a;
+    type Guard: 'a;
+    type GuardBorrow: 'a;
+    type Stream: 'a;
+}
+
+#[doc(hidden)]
+pub trait QuerySystemParamWithLifetime<'a>: SystemParamWithLifetime<'a> {
+    type ConstParam: 'a + SystemParamWithLifetime<'a>;
+    type Iter: 'a
+        + VariableSync
+        + VariableSend
+        + Iterator<Item = <Self::ConstParam as SystemParamWithLifetime<'a>>::Param>
+        + DoubleEndedIterator
+        + ExactSizeIterator;
+    type IterMut: 'a
+        + VariableSync
+        + VariableSend
+        + Iterator<Item = <Self as SystemParamWithLifetime<'a>>::Param>
+        + DoubleEndedIterator
+        + ExactSizeIterator;
+}
+
 pub(crate) mod internal {
-    use crate::{SystemParam, VariableSend, VariableSync};
+    use crate::SystemParam;
     use std::any::Any;
-
-    pub trait SystemParamWithLifetime<'a> {
-        type Param: 'a;
-        type Guard: 'a;
-        type GuardBorrow: 'a;
-        type Stream: 'a;
-    }
-
-    pub trait QuerySystemParamWithLifetime<'a>: SystemParamWithLifetime<'a> {
-        type ConstParam: 'a + SystemParamWithLifetime<'a>;
-        type Iter: 'a
-            + VariableSync
-            + VariableSend
-            + Iterator<Item = <Self::ConstParam as SystemParamWithLifetime<'a>>::Param>
-            + DoubleEndedIterator
-            + ExactSizeIterator;
-        type IterMut: 'a
-            + VariableSync
-            + VariableSend
-            + Iterator<Item = <Self as SystemParamWithLifetime<'a>>::Param>
-            + DoubleEndedIterator
-            + ExactSizeIterator;
-    }
 
     pub trait LockableSystemParam: SystemParam {
         type LockedType: Any;
@@ -176,6 +177,7 @@ pub(crate) mod utils {
 
 pub(crate) mod components;
 pub(crate) mod components_mut;
+pub(crate) mod custom;
 pub(crate) mod entity;
 pub(crate) mod entity_mut;
 pub(crate) mod filter;
