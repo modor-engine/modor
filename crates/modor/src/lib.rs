@@ -440,4 +440,34 @@ pub use modor_derive::systems;
 /// ```
 pub use modor_derive::modor_test;
 
+/// Defines a custom system parameter.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(SingletonComponent, NoSystem)]
+/// struct LeftScore(u32);
+///
+/// #[derive(SingletonComponent, NoSystem)]
+/// struct RightScore(u32);
+///
+/// #[derive(SystemParam)]
+/// struct Scores<'a> {
+///     left: SingleRef<'a, 'static, LeftScore>,
+///     right: SingleRef<'a, 'static, RightScore>,
+/// }
+///
+/// #[derive(SingletonComponent)]
+/// struct ScoreDisplay;
+///
+/// #[systems]
+/// impl ScoreDisplay {
+///     #[run]
+///     fn display(scores: Custom<Scores<'_>>) {
+///         println!("Scores: {}-{}", scores.left.get().0, scores.right.get().0);
+///     }
+/// }
+/// ```
 pub use modor_derive::SystemParam;

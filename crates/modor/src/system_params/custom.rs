@@ -6,28 +6,46 @@ use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemP
 use std::iter::Map;
 use std::ops::{Deref, DerefMut};
 
+/// A trait for defining a custom system parameter type.
+///
+/// **Do not implement manually this trait.**<br>
+/// The [`SystemParam`](macro@crate::SystemParam) and
+/// [`QuerySystemParam`](macro@crate::QuerySystemParam) derive macros can be used instead to
+/// define a custom system parameter.
 pub trait CustomSystemParam {
+    #[doc(hidden)]
     type ConstParam<'b>: CustomSystemParam + 'b;
+    #[doc(hidden)]
     type Param<'b>: CustomSystemParam + 'b;
+    #[doc(hidden)]
     type Tuple: SystemParam;
 
+    #[doc(hidden)]
     fn from_tuple_const_param_mut_param<'b>(
         tuple: <<Self::Tuple as QuerySystemParamWithLifetime<'b>>::ConstParam as SystemParamWithLifetime<'b>>::Param,
     ) -> <Custom<Self::ConstParam<'b>> as SystemParamWithLifetime<'b>>::Param
     where
         Self::Tuple: QuerySystemParam;
 
+    #[doc(hidden)]
     fn from_tuple_const_param(
         tuple: <Self::Tuple as QuerySystemParamWithLifetime<'_>>::ConstParam,
     ) -> Custom<Self::ConstParam<'_>>
     where
         Self::Tuple: QuerySystemParam;
 
+    #[doc(hidden)]
     fn from_tuple_mut_param(
         tuple: <Self::Tuple as SystemParamWithLifetime<'_>>::Param,
     ) -> Custom<Self::Param<'_>>;
 }
 
+/// A type for using a custom system parameter in a system.
+///
+/// # Examples
+///
+/// See [`SystemParam`](macro@crate::SystemParam) and
+/// [`QuerySystemParam`](macro@crate::QuerySystemParam)
 pub struct Custom<T>(T)
 where
     T: CustomSystemParam;
@@ -36,6 +54,7 @@ impl<T> Custom<T>
 where
     T: CustomSystemParam,
 {
+    #[doc(hidden)]
     pub fn new(param: T) -> Self {
         Self(param)
     }
