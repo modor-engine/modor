@@ -94,7 +94,7 @@ impl<T> SystemParam for Custom<T>
 where
     T: CustomSystemParam,
 {
-    type Filter = ();
+    type Filter = <T::Tuple as SystemParam>::Filter;
     type InnerTuple = T::Tuple;
 
     fn properties(core: &mut CoreStorage) -> SystemProperties {

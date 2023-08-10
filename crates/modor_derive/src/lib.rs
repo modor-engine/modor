@@ -1,6 +1,5 @@
 //! Procedural macros of Modor.
 
-use crate::system_param::implement_system_param;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
 use proc_macro_error::{abort, OptionExt};
@@ -166,7 +165,14 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(SystemParam)]
 #[proc_macro_error::proc_macro_error]
 pub fn system_param_derive(item: TokenStream) -> TokenStream {
-    implement_system_param(parse_macro_input!(item as DeriveInput)).into()
+    system_param::implement_simple(parse_macro_input!(item as DeriveInput)).into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(QuerySystemParam)]
+#[proc_macro_error::proc_macro_error]
+pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
+    system_param::implement_query(parse_macro_input!(item as DeriveInput)).into()
 }
 
 fn platform_conditions() -> HashMap<&'static str, TokenStream2> {

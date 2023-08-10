@@ -1,6 +1,6 @@
 use proc_macro2::Ident;
 use proc_macro_error::abort;
-use syn::{Data, DeriveInput, Field, Fields, FieldsNamed, FieldsUnnamed, Type};
+use syn::{Data, DeriveInput, Field, Fields, FieldsNamed, FieldsUnnamed, Type, Visibility};
 
 #[derive(Debug)]
 pub(super) struct SystemParamStruct {
@@ -64,6 +64,7 @@ impl SystemParamStructFields {
 
 #[derive(Debug)]
 pub(super) struct SystemParamStructNamedField {
+    pub(super) visibility: Visibility,
     pub(super) ident: Ident,
     pub(super) type_: Type,
 }
@@ -71,6 +72,7 @@ pub(super) struct SystemParamStructNamedField {
 impl SystemParamStructNamedField {
     fn from_field(field: &Field) -> Self {
         Self {
+            visibility: field.vis.clone(),
             ident: field
                 .ident
                 .clone()
@@ -82,12 +84,14 @@ impl SystemParamStructNamedField {
 
 #[derive(Debug)]
 pub(super) struct SystemParamStructUnnamedField {
+    pub(super) visibility: Visibility,
     pub(super) type_: Type,
 }
 
 impl SystemParamStructUnnamedField {
     fn from_field(field: &Field) -> Self {
         Self {
+            visibility: field.vis.clone(),
             type_: field.ty.clone(),
         }
     }

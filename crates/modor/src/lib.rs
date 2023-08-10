@@ -442,6 +442,13 @@ pub use modor_derive::modor_test;
 
 /// Defines a custom system parameter.
 ///
+/// This macro implements the [`SystemParam`](crate::SystemParam) trait.
+/// All inner types must implement [`SystemParam`](crate::SystemParam).
+///
+/// This type of system parameter cannot be used as [`Query`](crate::Query) parameter.
+/// [`SystemParam`](crate::SystemParam) defines a system parameter that can be used as
+/// [`Query`](crate::Query) parameter.
+///
 /// # Examples
 ///
 /// ```rust
@@ -471,3 +478,48 @@ pub use modor_derive::modor_test;
 /// }
 /// ```
 pub use modor_derive::SystemParam;
+
+/// Defines a custom query system parameter.
+///
+/// This macro implements the [`SystemParam`](crate::SystemParam) and
+/// [`QuerySystemParam`](crate::QuerySystemParam) traits.
+/// All inner types must implement [`SystemParam`](crate::SystemParam) and
+/// [`QuerySystemParam`](crate::QuerySystemParam).
+///
+/// This type of system parameter can be used as [`Query`](crate::Query) parameter.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(SingletonComponent, NoSystem, Debug)]
+/// struct Position(f32, f32);
+///
+/// #[derive(SingletonComponent, NoSystem, Debug)]
+/// struct Velocity(f32, f32);
+///
+/// #[derive(SystemParam)]
+/// struct MovableBody<'a> {
+///     position: &'a Position,
+///     velocity: &'a Velocity,
+/// }
+///
+/// #[derive(SingletonComponent)]
+/// struct BodyDisplay;
+///
+/// #[systems]
+/// impl BodyDisplay {
+///     #[run]
+///     fn display(bodies: Query<'_, Custom<MovableBody<'_>>>) {
+///         for body in bodies.iter() {
+///             println!(
+///                 "Body detected with position {:?} and velocity {:?}",
+///                 body.position,
+///                 body.velocity
+///             );
+///         }
+///     }
+/// }
+/// ```
+pub use modor_derive::QuerySystemParam;
