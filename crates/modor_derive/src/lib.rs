@@ -1,22 +1,21 @@
 //! Procedural macros of Modor.
 
-use darling::{ast, FromDeriveInput, FromField, FromGenerics};
+use crate::system_param::implement_system_param;
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Literal, Span, TokenTree};
-use proc_macro_error::{abort, OptionExt, ResultExt};
+use proc_macro2::{Ident, Literal, TokenTree};
+use proc_macro_error::{abort, OptionExt};
 use quote::quote;
 use std::collections::HashMap;
 use syn::__private::TokenStream2;
 use syn::spanned::Spanned;
-use syn::token::Ge;
 use syn::{
-    parse_macro_input, AttributeArgs, Data, DeriveInput, Fields, GenericParam, Generics,
-    ImplGenerics, ItemFn, ItemImpl, Meta, NestedMeta, Type,
+    parse_macro_input, AttributeArgs, Data, DeriveInput, Fields, ItemFn, ItemImpl, Meta, NestedMeta,
 };
 
 mod attributes;
 mod idents;
 mod impl_block;
+mod system_param;
 mod systems;
 
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -163,6 +162,13 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
     output.into()
 }
 
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(SystemParam)]
+#[proc_macro_error::proc_macro_error]
+pub fn system_param_derive(item: TokenStream) -> TokenStream {
+    implement_system_param(parse_macro_input!(item as DeriveInput)).into()
+}
+
 fn platform_conditions() -> HashMap<&'static str, TokenStream2> {
     [
         ("windows", quote!(target_os = "windows")),
@@ -231,105 +237,4 @@ fn finish_system_call(entity_type: &Ident) -> proc_macro2::TokenStream {
     quote! {
         .finish(#label_tokens)
     }
-}
-
-//////////////////////////////////////////////////
-
-// TODO: what is the usefulness of darling here ?
-#[derive(FromDeriveInput, Debug)]
-struct ParsedSystemParam {
-    ident: Ident,
-    generics: Generics,
-    data: ast::Data<(), ParsedSystemParamField>,
-}
-
-impl ParsedSystemParam {
-    fn field_type_tuple(data: ast::Data<(), ParsedSystemParamField>) -> ParsedSystemParamField {
-        todo!()
-    }
-}
-
-#[derive(FromField, Debug)]
-struct ParsedSystemParamField {
-    ident: Option<Ident>,
-    ty: Type,
-}
-
-fn rename_first_lifetime(generics: &Generics, new_name: &str) -> Generics {
-    let mut generics = generics.clone();
-    for param in &mut generics.params {
-        if let GenericParam::Lifetime(lifetime) = param {
-            lifetime.lifetime.ident = Ident::new(new_name, lifetime.lifetime.ident.span());
-            break;
-        }
-    }
-    generics
-}
-
-#[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(SystemParam)]
-#[proc_macro_error::proc_macro_error]
-pub fn system_param_derive(item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::find_crate_ident(item.span());
-    let ParsedSystemParam {
-        ident,
-        generics,
-        data,
-        ..
-    } = match ParsedSystemParam::from_derive_input(&item) {
-        Ok(parsed) => parsed,
-        Err(error) => return error.write_errors().into(),
-    };
-    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
-    let renamed_generics = rename_first_lifetime(&generics, "b");
-    let (_, renamed_type_generics, _) = renamed_generics.split_for_impl();
-    let fields = data
-        .take_struct()
-        .expect_or_abort("custom system param must be a struct");
-    let field_types: Vec<_> = fields.iter().map(|f| &f.ty).collect();
-    let field_names: Vec<_> = fields
-        .iter()
-        .enumerate()
-        .map(|(i, f)| {
-            f.ident
-                .clone()
-                .unwrap_or_else(|| Ident::new(&i.to_string(), Span::call_site()))
-        })
-        .collect();
-    let tuple_ids = 0..field_names.len();
-    let output = quote! {
-        impl #impl_generics #crate_ident::CustomSystemParam for #ident #type_generics #where_clause {
-            type ConstParam<'b> = #ident #renamed_type_generics;
-            type Param<'b> = #ident #renamed_type_generics;
-            type Tuple = (#(#field_types,)*);
-
-            fn from_tuple_const_param_mut_param<'b>(
-                _tuple: <<Self::Tuple as #crate_ident::QuerySystemParamWithLifetime<'b>>::ConstParam as #crate_ident::SystemParamWithLifetime<'b>>::Param,
-            ) -> <#crate_ident::Custom<Self::ConstParam<'b>> as #crate_ident::SystemParamWithLifetime<'b>>::Param
-            where
-                Self::Tuple: #crate_ident::QuerySystemParam,
-            {
-                unreachable!()
-            }
-
-            fn from_tuple_const_param(
-                _tuple: <Self::Tuple as #crate_ident::QuerySystemParamWithLifetime<'_>>::ConstParam,
-            ) -> #crate_ident::Custom<Self::ConstParam<'_>>
-            where
-                Self::Tuple: #crate_ident::QuerySystemParam,
-            {
-                unreachable!()
-            }
-
-            fn from_tuple_mut_param(
-                tuple: <Self::Tuple as #crate_ident::SystemParamWithLifetime<'_>>::Param,
-            ) -> #crate_ident::Custom<Self::Param<'_>> {
-                #crate_ident::Custom::new(#ident {
-                    #(#field_names: tuple.#tuple_ids)*
-                })
-            }
-        }
-    };
-    output.into()
 }

@@ -15,4 +15,3 @@ pub mod invalid_systems;
 pub mod ranges;
 pub mod system_params;
 pub mod system_runner;
-mod test; // TODO: remove
