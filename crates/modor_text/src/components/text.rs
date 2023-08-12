@@ -1,9 +1,9 @@
 use crate::components::font::{FontRegistry, DEFAULT_FONT};
 use crate::Font;
 use ab_glyph::{Font as AbFont, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{Query, SingleMut};
+use modor::Custom;
 use modor_graphics::{Size, Texture, TextureSource};
-use modor_resources::ResKey;
+use modor_resources::{ResKey, ResourceAccessor};
 
 const TEXTURE_PADDING_PX: u32 = 1;
 
@@ -107,12 +107,8 @@ impl Text {
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     #[run_after(component(FontRegistry), component(Font))]
-    fn update(
-        &mut self,
-        texture: &mut Texture,
-        (mut font_registry, fonts): (SingleMut<'_, '_, FontRegistry>, Query<'_, &Font>),
-    ) {
-        if let Some(font) = font_registry.get_mut().get(self.font_key, &fonts) {
+    fn update(&mut self, texture: &mut Texture, mut fonts: Custom<ResourceAccessor<'_, Font>>) {
+        if let Some(font) = fonts.get(self.font_key) {
             if self.has_changed() || font.is_just_loaded {
                 let font = font.get().as_scaled(self.font_height);
                 let line_widths = self.line_widths(font);

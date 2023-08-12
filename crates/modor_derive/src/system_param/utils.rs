@@ -7,6 +7,7 @@ pub(super) fn replace_first_lifetime(generics: &Generics, new_lifetime: &Lifetim
             lifetime.lifetime = new_lifetime.clone();
             break;
         }
+        // TODO: cover implicit else case
     }
     generics
 }

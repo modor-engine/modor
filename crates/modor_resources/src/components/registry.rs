@@ -1,7 +1,7 @@
 use crate::ResKey;
 use derivative::Derivative;
 use fxhash::{FxHashMap, FxHashSet};
-use modor::{Component, Entity, Query};
+use modor::{Component, Entity, Query, SingleMut};
 use modor_jobs::AssetLoadingError;
 use std::any::Any;
 use std::error::Error;
@@ -72,15 +72,13 @@ use std::{any, fmt};
 ///     #[run_after(component(CounterRegistry), component(Counter))]
 ///     fn update(
 ///         &mut self,
-///         mut counter_registry: SingleMut<'_, '_, CounterRegistry>,
-///         counters: Query<'_, &Counter>
+///         mut counters: Custom<ResourceAccessor<Counter>>,
 ///      ) {
 ///         self.count = 0;
-///         let counter_registry = counter_registry.get_mut();
-///         if let Some(counter) = counter_registry.get(COUNTER1, &counters) {
+///         if let Some(counter) = counters.get(COUNTER1, &counters) {
 ///             self.count += counter.count;
 ///         }
-///         if let Some(counter) = counter_registry.get(COUNTER2, &counters) {
+///         if let Some(counter) = counters.get(COUNTER2, &counters) {
 ///             self.count += counter.count;
 ///         }
 ///     }
@@ -236,6 +234,31 @@ impl Display for ResourceLoadingError {
 }
 
 impl Error for ResourceLoadingError {}
+
+/// A system parameter to facilitate retrieval of resources.
+///
+/// # Examples
+///
+/// See [`ResourceRegistry`](ResourceRegistry).
+#[derive(SystemParam)]
+pub struct ResourceAccessor<'a, R>
+where
+    R: Component,
+{
+    registry: SingleMut<'a, 'static, ResourceRegistry<R>>,
+    resources: Query<'a, &'static R>,
+}
+
+impl<R> ResourceAccessor<'_, R>
+where
+    R: Resource + Component,
+{
+    /// Returns the resource corresponding to the `key` if it exists and is in
+    /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
+    pub fn get(&mut self, key: ResKey<R>) -> Option<&R> {
+        self.registry.get_mut().get(key, &self.resources)
+    }
+}
 
 // used to avoid log spam
 #[derive(Derivative)]
