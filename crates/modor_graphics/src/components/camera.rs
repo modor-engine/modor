@@ -5,10 +5,10 @@ use crate::data::size::NonZeroSize;
 use crate::gpu_data::uniform::Uniform;
 use crate::{GpuContext, RenderTarget, Renderer, Size};
 use fxhash::FxHashMap;
-use modor::{Query, SingleMut, SingleRef};
+use modor::{Custom, SingleRef};
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use modor_physics::Transform2D;
-use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
+use modor_resources::{ResKey, Resource, ResourceAccessor, ResourceRegistry, ResourceState};
 
 pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 
@@ -130,10 +130,7 @@ impl Camera2D {
     fn update(
         &mut self,
         transform: Option<&Transform2D>,
-        (target_registry, targets): (
-            Option<SingleMut<'_, '_, RenderTargetRegistry>>,
-            Query<'_, &RenderTarget>,
-        ),
+        targets: Custom<ResourceAccessor<'_, RenderTarget>>,
         renderer: Option<SingleRef<'_, '_, Renderer>>,
     ) {
         self.transform = transform.cloned().unwrap_or_default();
@@ -141,10 +138,9 @@ impl Camera2D {
         if state.is_removed() {
             self.target_uniforms.clear();
         }
-        if let (Some(context), Some(mut target_registry)) = (state.context(), target_registry) {
-            let target_registry = target_registry.get_mut();
+        if let Some(context) = state.context() {
             for &target_key in &self.target_keys {
-                let target = target_registry.get(target_key, &targets);
+                let target = targets.get(target_key);
                 for (surface_size, target_type) in target.iter().flat_map(|t| t.surface_sizes()) {
                     let target_part_key = TargetPartKey {
                         target_key,

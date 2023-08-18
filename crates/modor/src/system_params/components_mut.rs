@@ -4,12 +4,13 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::components::internal::ComponentIter;
 use crate::system_params::components_mut::internal::ComponentMutIter;
-use crate::system_params::internal::{
-    LockableSystemParam, Mut, QuerySystemParamWithLifetime, SystemParamWithLifetime,
-};
+use crate::system_params::internal::{LockableSystemParam, Mut};
 use crate::system_params::utils;
 use crate::systems::context::SystemContext;
-use crate::{Component, QuerySystemParam, SystemParam, With};
+use crate::{
+    Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime, With,
+};
 use std::any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for &mut C

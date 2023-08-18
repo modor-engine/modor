@@ -1,12 +1,13 @@
-use crate::components::material::MaterialRegistry;
 use crate::components::mesh::Mesh;
 use crate::components::renderer::Renderer;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{Camera2D, Material, Model, ZIndex2D};
-use modor::{Changed, Entity, Filter, Or, Query, SingleMut, SingleRef};
+use modor::{
+    Changed, Custom, CustomSystemParam, Entity, EntityFilter, Filter, Or, Query, SingleRef,
+};
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
-use modor_resources::ResKey;
+use modor_resources::{ResKey, ResourceAccessor};
 use std::cmp::Ordering;
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
@@ -47,20 +48,39 @@ impl<const L: u32> VertexBuffer<L> for Instance {
     const STEP_MODE: VertexStepMode = VertexStepMode::Instance;
 }
 
-type Model2D<'a> = (&'a Transform2D, &'a Model, Option<&'a ZIndex2D>, Entity<'a>);
-type ChangedModel2D = Or<(Changed<Transform2D>, Changed<Model>, Changed<ZIndex2D>)>;
-type Model2DResources<'a, 'b, F> = (
-    SingleRef<'a, 'b, Renderer>,
-    (SingleMut<'a, 'b, MaterialRegistry>, Query<'a, &'b Material>),
-    Query<'a, (Model2D<'b>, Filter<F>)>,
-);
+#[allow(unused)]
+#[derive(QuerySystemParam)]
+struct GraphicsEntity2D<'a> {
+    transform: &'a Transform2D,
+    model: &'a Model,
+    z_index: Option<&'a ZIndex2D>,
+    entity: Entity<'a>,
+}
 
-fn create_instance(transform: &Transform2D, z_index: Option<&ZIndex2D>) -> Instance {
-    let z = z_index.copied().unwrap_or_default().to_normalized_f32();
+#[derive(SystemParam)]
+struct Graphics2DResources<'a, F>
+where
+    F: EntityFilter,
+{
+    renderer: SingleRef<'a, 'static, Renderer>,
+    materials: Custom<ResourceAccessor<'a, Material>>,
+    models: Query<'a, (Custom<GraphicsEntity2D<'static>>, Filter<F>)>,
+}
+
+type ChangedModel2DFilter = Or<(Changed<Transform2D>, Changed<Model>, Changed<ZIndex2D>)>;
+
+fn create_instance(
+    entity: &<GraphicsEntity2D<'_> as CustomSystemParam>::ConstParam<'_>,
+) -> Instance {
+    let z = entity
+        .z_index
+        .copied()
+        .unwrap_or_default()
+        .to_normalized_f32();
     Instance {
-        transform: (Mat4::from_scale(transform.size.with_z(0.))
-            * Quat::from_z(*transform.rotation).matrix()
-            * Mat4::from_position(transform.position.with_z(z)))
+        transform: (Mat4::from_scale(entity.transform.size.with_z(0.))
+            * Quat::from_z(*entity.transform.rotation).matrix()
+            * Mat4::from_position(entity.transform.position.with_z(z)))
         .to_array(),
     }
 }

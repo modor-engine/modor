@@ -14,6 +14,7 @@ use syn::{
 mod attributes;
 mod idents;
 mod impl_block;
+mod system_param;
 mod systems;
 
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -158,6 +159,20 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
         pub struct #action_type_ident #impl_generics(#(#actions,)* #action_phantom) #where_clause;
     };
     output.into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(SystemParam)]
+#[proc_macro_error::proc_macro_error]
+pub fn system_param_derive(item: TokenStream) -> TokenStream {
+    system_param::implement_simple(parse_macro_input!(item as DeriveInput)).into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(QuerySystemParam)]
+#[proc_macro_error::proc_macro_error]
+pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
+    system_param::implement_query(parse_macro_input!(item as DeriveInput)).into()
 }
 
 fn platform_conditions() -> HashMap<&'static str, TokenStream2> {

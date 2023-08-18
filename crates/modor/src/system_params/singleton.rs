@@ -1,11 +1,13 @@
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::query::internal::{QueryGuard, QueryGuardBorrow};
 use crate::system_params::singleton::internal::SingleStream;
 use crate::systems::context::SystemContext;
-use crate::{Component, Entity, Filter, Query, QuerySystemParam, SystemParam, True, With};
+use crate::{
+    Component, Entity, Filter, Query, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime, True, With,
+};
 
 /// A [`Single`] to retrieve the singleton component of type `S` as immutable reference.
 pub type SingleRef<'a, 'b, S> = Single<'a, S, &'b S>;

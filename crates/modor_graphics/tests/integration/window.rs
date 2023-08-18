@@ -91,11 +91,11 @@ fn create_window_after_start(context: &mut TestRunnerContext) {
         testing::test_runner(a, context, 2, |s| {
             assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
             if s.update_id == 0 {
-                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
+                #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
                 assert!(!s.window.is_visible().unwrap());
                 s.app.with_entity(Window::default())
             } else {
-                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
+                #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
                 assert!(s.window.is_visible().unwrap());
                 s.app
             }
@@ -114,7 +114,7 @@ fn delete_window(context: &mut TestRunnerContext) {
         .run(|a| {
             testing::test_runner(a, context, 2, |s| {
                 assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
-                #[cfg(any(target_os = "windows"))] // Window::is_visible not well supported on other platforms
+                #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
                 assert_eq!(s.window.is_visible().unwrap(), s.update_id == 0);
                 s.app
             });

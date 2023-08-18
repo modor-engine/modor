@@ -3,10 +3,12 @@ use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::internal::{QuerySystemParamWithLifetime, SystemParamWithLifetime};
 use crate::system_params::query::internal::QueryStream;
 use crate::systems::context::SystemContext;
-use crate::{EntityFilter, QuerySystemParam, SystemParam};
+use crate::{
+    EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime,
+};
 
 /// A system parameter for iterating on entities.
 ///

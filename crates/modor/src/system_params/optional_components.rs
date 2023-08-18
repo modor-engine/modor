@@ -2,12 +2,12 @@ use crate::optional_components::internal::{ComponentOptionGuard, ComponentOption
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
-use crate::system_params::internal::{
-    Const, LockableSystemParam, QuerySystemParamWithLifetime, SystemParamWithLifetime,
-};
+use crate::system_params::internal::{Const, LockableSystemParam};
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::systems::context::SystemContext;
-use crate::{Component, QuerySystemParam, SystemParam};
+use crate::{
+    Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime,
+};
 use std::any;
 
 impl<'a, C> SystemParamWithLifetime<'a> for Option<&C>

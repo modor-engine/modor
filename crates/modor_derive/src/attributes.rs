@@ -138,7 +138,7 @@ fn parse_component_meta(meta: &MetaList) -> Option<TokenStream> {
     if meta.nested.len() != 1 {
         return None;
     }
-    let Some(nested_meta) = meta.nested.first() else { return None };
+    let nested_meta = meta.nested.first()?;
     let crate_ident = idents::find_crate_ident(nested_meta.span());
     match nested_meta {
         NestedMeta::Meta(Meta::Path(path)) => {

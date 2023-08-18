@@ -1,7 +1,9 @@
 use log::LevelFilter;
-use modor::{App, Query, SingleMut, With};
+use modor::{App, Custom, With};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceRegistry, ResourceState};
+use modor_resources::{
+    ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
+};
 
 const VALUE1: ResKey<Value> = ResKey::new("val1");
 const VALUE2: ResKey<Value> = ResKey::new("val2");
@@ -149,11 +151,7 @@ impl RetrievedValue {
     }
 
     #[run_after(component(ValueRegistry), component(Value))]
-    fn update(
-        &mut self,
-        mut registry: SingleMut<'_, '_, ValueRegistry>,
-        values: Query<'_, &Value>,
-    ) {
-        self.value = registry.get_mut().get(self.key, &values).map(|v| v.value);
+    fn update(&mut self, values: Custom<ResourceAccessor<'_, Value>>) {
+        self.value = values.get(self.key).map(|v| v.value);
     }
 }
