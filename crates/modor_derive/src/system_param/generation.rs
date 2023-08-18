@@ -4,7 +4,7 @@ use crate::system_param::utils;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{Index, Lifetime, Type};
+use syn::{Lifetime, Type};
 
 const GENERIC_LIFETIME: &str = "'__modor";
 
@@ -15,13 +15,13 @@ pub(super) fn system_param_impl(parsed: &SystemParamStruct) -> TokenStream {
     let generic_lifetime = Lifetime::new(GENERIC_LIFETIME, Span::call_site());
     let renamed_generics = utils::replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
     let (_, renamed_type_generics, _) = renamed_generics.split_for_impl();
-    let field_types = field_types(parsed);
+    let tuple = tuple(parsed);
     let constructor_from_tuple = constructor_from_tuple(parsed, quote!(tuple));
     quote! {
         impl #impl_generics #crate_ident::CustomSystemParam for #ident #type_generics #where_clause {
             type ConstParam<#generic_lifetime> = #ident #renamed_type_generics;
             type Param<#generic_lifetime> = #ident #renamed_type_generics;
-            type Tuple = (#(#field_types,)*);
+            type Tuple = #tuple;
 
             fn from_tuple_const_param_mut_param<#generic_lifetime>(
                 _tuple: <
@@ -62,7 +62,8 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
     let generic_lifetime = Lifetime::new(GENERIC_LIFETIME, Span::call_site());
     let renamed_generics = utils::replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
     let (_, renamed_type_generics, _) = renamed_generics.split_for_impl();
-    let field_types = field_types(parsed);
+    let tuple = tuple(parsed);
+    let const_tuple = const_tuple(parsed);
     let constructor_from_tuple = constructor_from_tuple(parsed, quote!(tuple));
     let const_struct = const_struct(parsed, &const_ident);
     quote! {
@@ -71,7 +72,7 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
         {
             type ConstParam<#generic_lifetime> = #const_ident #renamed_type_generics;
             type Param<#generic_lifetime> = #ident #renamed_type_generics;
-            type Tuple = (#(#field_types,)*);
+            type Tuple = #tuple;
 
             fn from_tuple_const_param_mut_param<#generic_lifetime>(
                 tuple: <
@@ -105,9 +106,7 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
         {
             type ConstParam<#generic_lifetime> = #const_ident #renamed_type_generics;
             type Param<#generic_lifetime> = #const_ident #renamed_type_generics;
-            type Tuple = (
-                #(<#field_types as #crate_ident::QuerySystemParamWithLifetime<'a>>::ConstParam,)*
-            );
+            type Tuple = #const_tuple;
 
             fn from_tuple_const_param_mut_param<#generic_lifetime>(
                 tuple: <
@@ -136,6 +135,20 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
     }
 }
 
+fn tuple(parsed: &SystemParamStruct) -> TokenStream {
+    field_types(parsed)
+        .into_iter()
+        .fold(quote! { () }, |o, t| quote! { (#o, #t) })
+}
+
+fn const_tuple(parsed: &SystemParamStruct) -> TokenStream {
+    let crate_ident = idents::find_crate_ident(parsed.input.span());
+    field_types(parsed).into_iter().fold(
+        quote!(()),
+        |o, t| quote!((<#o as #crate_ident::QuerySystemParamWithLifetime<'a>>::ConstParam, #t)),
+    )
+}
+
 fn field_types(parsed: &SystemParamStruct) -> Vec<&Type> {
     match &parsed.fields {
         SystemParamStructFields::Named(fields) => fields.iter().map(|f| &f.type_).collect(),
@@ -148,15 +161,19 @@ fn constructor_from_tuple(parsed: &SystemParamStruct, tuple: TokenStream) -> Tok
     match &parsed.fields {
         SystemParamStructFields::Named(fields) => {
             let field_names = fields.iter().map(|f| &f.ident);
-            let field_indexes = (0..fields.len()).map(Index::from);
-            quote! { { #(#field_names: #tuple.#field_indexes,)* } }
+            let field_accessors = (0..fields.len()).map(|i| tuple_accessor(fields.len() - i - 1));
+            quote! { { #(#field_names: #tuple #field_accessors,)* } }
         }
         SystemParamStructFields::Unnamed(fields) => {
-            let field_indexes = (0..fields.len()).map(Index::from);
-            quote! { (#(#tuple.#field_indexes,)*) }
+            let field_accessors = (0..fields.len()).map(|i| tuple_accessor(fields.len() - i - 1));
+            quote! { (#(#tuple #field_accessors,)*) }
         }
         SystemParamStructFields::Unit => quote! {},
     }
+}
+
+fn tuple_accessor(zero_count: usize) -> TokenStream {
+    (0..zero_count).fold(quote! { .1 }, |o, _| quote! { .0 #o })
 }
 
 fn const_struct(parsed: &SystemParamStruct, const_ident: &Ident) -> TokenStream {

@@ -48,7 +48,6 @@ impl<P> Query<'_, P>
 where
     P: 'static + QuerySystemParam,
 {
-    // TODO: output type is <unknown> for IntelliJ
     /// Returns an iterator on constant query results.
     pub fn iter(&self) -> <P as QuerySystemParamWithLifetime<'_>>::Iter {
         P::query_iter(&self.guard)
