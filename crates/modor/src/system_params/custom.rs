@@ -13,7 +13,7 @@ use std::ops::{Deref, DerefMut};
 /// [`QuerySystemParam`](macro@crate::QuerySystemParam) derive macros can be used instead to
 /// define a custom system parameter.
 pub trait CustomSystemParam {
-    #[doc(hidden)]
+    /// Constant version of the system parameter.
     type ConstParam<'b>: CustomSystemParam + 'b;
     #[doc(hidden)]
     type Param<'b>: CustomSystemParam + 'b;
@@ -46,9 +46,12 @@ pub trait CustomSystemParam {
 ///
 /// See [`SystemParam`](macro@crate::SystemParam) and
 /// [`QuerySystemParam`](macro@crate::QuerySystemParam)
-pub struct Custom<T>(T)
+pub struct Custom<T>
 where
-    T: CustomSystemParam;
+    T: CustomSystemParam,
+{
+    inner: T,
+}
 
 impl<T> Custom<T>
 where
@@ -56,7 +59,7 @@ where
 {
     #[doc(hidden)]
     pub fn new(param: T) -> Self {
-        Self(param)
+        Self { inner: param }
     }
 }
 
@@ -67,7 +70,7 @@ where
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 
@@ -76,7 +79,7 @@ where
     T: CustomSystemParam,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 

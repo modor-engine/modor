@@ -7,6 +7,8 @@ pub(crate) mod parsing;
 pub(crate) mod utils;
 pub(crate) mod validation;
 
+// TODO: support any number of fields for custom system params ?
+
 pub(super) fn implement_simple(input: DeriveInput) -> TokenStream {
     let parsed = SystemParamStruct::from_input(&input);
     validation::check_lifetime_uniqueness(&parsed);

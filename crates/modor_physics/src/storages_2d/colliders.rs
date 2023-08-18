@@ -1,8 +1,8 @@
 use crate::storages_2d::bodies::{BodyState, BodyStorage};
-use crate::storages_2d::core::{PhysicsEntity2D, PhysicsEntity2DTuple};
+use crate::storages_2d::core::PhysicsEntity2D;
 use crate::storages_2d::pipeline::PipelineStorage;
 use crate::utils::UserData;
-use modor::Query;
+use modor::{Custom, Query};
 use rapier2d::geometry::{ActiveCollisionTypes, Collider, ColliderHandle, ColliderSet};
 use rapier2d::prelude::ActiveHooks;
 
@@ -36,7 +36,7 @@ impl ColliderStorage {
 
     pub(super) fn delete_outdated(
         &mut self,
-        entities: &mut Query<'_, PhysicsEntity2DTuple<'_>>,
+        entities: &mut Query<'_, Custom<PhysicsEntity2D<'_>>>,
         bodies: &mut BodyStorage,
         pipeline: &mut PipelineStorage,
     ) {
@@ -96,11 +96,10 @@ impl ColliderStorage {
 
     fn disable_deletion_flag_for_existing_colliders(
         &mut self,
-        entities: &mut Query<'_, PhysicsEntity2DTuple<'_>>,
+        entities: &mut Query<'_, Custom<PhysicsEntity2D<'_>>>,
     ) {
         for entity in entities.iter_mut() {
-            let entity = PhysicsEntity2D::from(entity);
-            if let Some(Some(handle)) = entity.collider.map(|d| d.handle) {
+            if let Some(Some(handle)) = entity.collider.as_ref().map(|d| d.handle) {
                 let collider = &mut self.container[handle];
                 collider.user_data = UserData::from(collider.user_data)
                     .with_deletion_flag(false)

@@ -11,8 +11,10 @@ use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTU
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
 use crate::{Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
-use modor::{Component, ComponentSystems, Query, Single, SingleMut, SingleRef};
-use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceRegistry, ResourceState};
+use modor::{Component, ComponentSystems, Custom, Single, SingleRef};
+use modor_resources::{
+    ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
+};
 use std::fmt::Debug;
 use std::ops::Range;
 use wgpu::{IndexFormat, RenderPass, TextureFormat};
@@ -202,14 +204,11 @@ impl RenderTarget {
         renderer: SingleRef<'_, '_, Renderer>,
         opaque_instances: SingleRef<'_, '_, OpaqueInstanceRegistry>,
         transparent_instances: SingleRef<'_, '_, TransparentInstanceRegistry>,
-        (mut camera_registry, cameras): (SingleMut<'_, '_, Camera2DRegistry>, Query<'_, &Camera2D>),
-        (mut material_registry, materials): (
-            SingleMut<'_, '_, MaterialRegistry>,
-            Query<'_, &Material>,
-        ),
-        (mut shader_registry, shaders): (SingleMut<'_, '_, ShaderRegistry>, Query<'_, &Shader>),
-        (mut mesh_registry, meshes): (SingleMut<'_, '_, MeshRegistry>, Query<'_, &Mesh>),
-        (mut texture_registry, textures): (SingleMut<'_, '_, TextureRegistry>, Query<'_, &Texture>),
+        cameras: Custom<ResourceAccessor<'_, Camera2D>>,
+        materials: Custom<ResourceAccessor<'_, Material>>,
+        shaders: Custom<ResourceAccessor<'_, Shader>>,
+        meshes: Custom<ResourceAccessor<'_, Mesh>>,
+        textures: Custom<ResourceAccessor<'_, Texture>>,
     ) {
         let Some(context) = renderer.get().state(&mut None).context() else { return; };
         if let Some(target) = &mut self.window {
@@ -227,11 +226,11 @@ impl RenderTarget {
                     None,
                     instance_buffer,
                     None,
-                    (camera_registry.get_mut(), &cameras),
-                    (material_registry.get_mut(), &materials),
-                    (shader_registry.get_mut(), &shaders),
-                    (mesh_registry.get_mut(), &meshes),
-                    (texture_registry.get_mut(), &textures),
+                    &cameras,
+                    &materials,
+                    &shaders,
+                    &meshes,
+                    &textures,
                     &mut self.is_texture_conflict_logged,
                 );
             }
@@ -245,11 +244,11 @@ impl RenderTarget {
                     None,
                     instance_buffer,
                     Some(instance_range),
-                    (camera_registry.get_mut(), &cameras),
-                    (material_registry.get_mut(), &materials),
-                    (shader_registry.get_mut(), &shaders),
-                    (mesh_registry.get_mut(), &meshes),
-                    (texture_registry.get_mut(), &textures),
+                    &cameras,
+                    &materials,
+                    &shaders,
+                    &meshes,
+                    &textures,
                     &mut self.is_texture_conflict_logged,
                 );
             }
@@ -269,11 +268,11 @@ impl RenderTarget {
                     Some(texture.key()),
                     instance_buffer,
                     None,
-                    (camera_registry.get_mut(), &cameras),
-                    (material_registry.get_mut(), &materials),
-                    (shader_registry.get_mut(), &shaders),
-                    (mesh_registry.get_mut(), &meshes),
-                    (texture_registry.get_mut(), &textures),
+                    &cameras,
+                    &materials,
+                    &shaders,
+                    &meshes,
+                    &textures,
                     &mut self.is_texture_conflict_logged,
                 );
             }
@@ -287,11 +286,11 @@ impl RenderTarget {
                     Some(texture.key()),
                     instance_buffer,
                     Some(instance_range),
-                    (camera_registry.get_mut(), &cameras),
-                    (material_registry.get_mut(), &materials),
-                    (shader_registry.get_mut(), &shaders),
-                    (mesh_registry.get_mut(), &meshes),
-                    (texture_registry.get_mut(), &textures),
+                    &cameras,
+                    &materials,
+                    &shaders,
+                    &meshes,
+                    &textures,
                     &mut self.is_texture_conflict_logged,
                 );
             }
@@ -324,25 +323,25 @@ impl RenderTarget {
         target_texture_key: Option<ResKey<Texture>>,
         instance_buffer: &'a DynamicBuffer<Instance>,
         instance_range: Option<Range<usize>>,
-        (camera_registry, cameras): (&mut Camera2DRegistry, &'a Query<'_, &Camera2D>),
-        (material_registry, materials): (&mut MaterialRegistry, &'a Query<'_, &Material>),
-        (shader_registry, shaders): (&mut ShaderRegistry, &'a Query<'_, &Shader>),
-        (mesh_registry, meshes): (&mut MeshRegistry, &'a Query<'_, &Mesh>),
-        (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
+        cameras: &'a ResourceAccessor<'_, Camera2D>,
+        materials: &'a ResourceAccessor<'_, Material>,
+        shaders: &'a ResourceAccessor<'_, Shader>,
+        meshes: &'a ResourceAccessor<'_, Mesh>,
+        textures: &'a ResourceAccessor<'_, Texture>,
         is_texture_conflict_logged: &mut bool,
     ) -> Option<()> {
-        let camera = camera_registry.get(group_key.camera_key, cameras)?;
+        let camera = cameras.get(group_key.camera_key)?;
         if !camera.target_keys.contains(&target_key) {
             return None;
         }
-        let material = material_registry.get(group_key.material_key, materials)?;
+        let material = materials.get(group_key.material_key)?;
         let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
         let texture = Self::texture(
             target_key,
             group_key,
             texture_key,
             target_texture_key,
-            (texture_registry, textures),
+            textures,
             is_texture_conflict_logged,
         )?;
         let texture_bind_ground = &texture.inner().bind_group;
@@ -352,12 +351,12 @@ impl RenderTarget {
             group_key,
             front_texture_key,
             target_texture_key,
-            (texture_registry, textures),
+            textures,
             is_texture_conflict_logged,
         )?;
         let front_texture_bind_ground = &front_texture.inner().bind_group;
-        let shader = shader_registry.get(material.shader_key, shaders)?;
-        let mesh = mesh_registry.get(group_key.mesh_key, meshes)?;
+        let shader = shaders.get(material.shader_key)?;
+        let mesh = meshes.get(group_key.mesh_key)?;
         let camera_uniform = camera.uniform(target_key, target_type);
         let material_uniform = material.uniform();
         let vertex_buffer = mesh.vertex_buffer();
@@ -384,7 +383,7 @@ impl RenderTarget {
         group_key: GroupKey,
         texture_key: ResKey<Texture>,
         target_texture_key: Option<ResKey<Texture>>,
-        (texture_registry, textures): (&mut TextureRegistry, &'a Query<'_, &Texture>),
+        textures: &'a ResourceAccessor<'_, Texture>,
         is_texture_conflict_logged: &mut bool,
     ) -> Option<&'a Texture> {
         if target_texture_key == Some(texture_key) {
@@ -397,7 +396,7 @@ impl RenderTarget {
             }
             return None;
         }
-        texture_registry.get(texture_key, textures)
+        textures.get(texture_key)
     }
 }
 

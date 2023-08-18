@@ -4,8 +4,6 @@ use crate::system_params::{
 };
 use modor::{Custom, Filter, With};
 
-// TODO: use Custom type when useful
-
 #[modor_test]
 fn run_query_iter() {
     QueryTester::<Custom<NamedSystemParam<'_>>>::run(|q| {

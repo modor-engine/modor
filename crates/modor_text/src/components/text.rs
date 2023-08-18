@@ -107,7 +107,7 @@ impl Text {
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     #[run_after(component(FontRegistry), component(Font))]
-    fn update(&mut self, texture: &mut Texture, mut fonts: Custom<ResourceAccessor<'_, Font>>) {
+    fn update(&mut self, texture: &mut Texture, fonts: Custom<ResourceAccessor<'_, Font>>) {
         if let Some(font) = fonts.get(self.font_key) {
             if self.has_changed() || font.is_just_loaded {
                 let font = font.get().as_scaled(self.font_height);

@@ -1,8 +1,8 @@
 use crate::storages_2d::colliders::ColliderStorage;
-use crate::storages_2d::core::{PhysicsEntity2D, PhysicsEntity2DTuple};
+use crate::storages_2d::core::PhysicsEntity2D;
 use crate::storages_2d::pipeline::PipelineStorage;
 use crate::utils::UserData;
-use modor::Query;
+use modor::{Custom, Query};
 use rapier2d::dynamics::{
     RigidBody, RigidBodyBuilder, RigidBodyHandle, RigidBodySet, RigidBodyType,
 };
@@ -37,7 +37,7 @@ impl BodyStorage {
 
     pub(super) fn delete_outdated(
         &mut self,
-        entities: &mut Query<'_, PhysicsEntity2DTuple<'_>>,
+        entities: &mut Query<'_, Custom<PhysicsEntity2D<'_>>>,
         colliders: &mut ColliderStorage,
         pipeline: &mut PipelineStorage,
     ) {
@@ -47,7 +47,7 @@ impl BodyStorage {
     }
 
     pub(super) fn create(&mut self, entity: &mut PhysicsEntity2D<'_>) -> BodyState {
-        if entity.is_relative {
+        if entity.relative_transform.is_some() {
             return BodyState::Missing;
         }
         if let Some(dynamics) = &mut entity.dynamics {
@@ -78,14 +78,13 @@ impl BodyStorage {
 
     fn disable_deletion_flag_for_existing_bodies(
         &mut self,
-        entities: &mut Query<'_, PhysicsEntity2DTuple<'_>>,
+        entities: &mut Query<'_, Custom<PhysicsEntity2D<'_>>>,
     ) {
         for entity in entities.iter_mut() {
-            let entity = PhysicsEntity2D::from(entity);
-            if entity.is_relative {
+            if entity.relative_transform.is_some() {
                 continue;
             }
-            if let Some(Some(handle)) = entity.dynamics.map(|d| d.handle) {
+            if let Some(Some(handle)) = entity.dynamics.as_ref().map(|d| d.handle) {
                 let body = &mut self.container[handle];
                 body.user_data = UserData::from(body.user_data)
                     .with_deletion_flag(false)

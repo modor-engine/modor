@@ -1,12 +1,12 @@
 use crate::components::instances::transparent::TransparentInstanceRegistry;
 use crate::components::instances::{
-    ChangedModel2D, GroupKey, GroupKeyState, Instance, Model2D, Model2DResources,
+    ChangedModel2DFilter, Graphics2DResources, GraphicsEntity2D, GroupKey, GroupKeyState, Instance,
 };
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{EntityFilter, Query, SingleMut, World};
+use modor::{Custom, CustomSystemParam, EntityFilter, Query, SingleMut, World};
 use modor_physics::Transform2D;
 use modor_resources::Resource;
 use std::iter::Zip;
@@ -69,14 +69,17 @@ impl OpaqueInstanceRegistry {
         component(Model),
         component(ZIndex2D)
     )]
-    fn update_models_2d(&mut self, resources: Model2DResources<'_, '_, ChangedModel2D>) {
+    fn update_models_2d(
+        &mut self,
+        resources: Custom<Graphics2DResources<'_, ChangedModel2DFilter>>,
+    ) {
         if self.is_initialized {
             self.register_models_2d(resources);
         }
     }
 
     #[run_after_previous]
-    fn init_models_2d(&mut self, resources: Model2DResources<'_, '_, ()>) {
+    fn init_models_2d(&mut self, resources: Custom<Graphics2DResources<'_, ()>>) {
         if !self.is_initialized {
             self.register_models_2d(resources);
             self.is_initialized = true;
@@ -87,34 +90,31 @@ impl OpaqueInstanceRegistry {
         self.groups.iter().map(|(&k, g)| (k, &g.buffer))
     }
 
-    fn register_models_2d<F>(
-        &mut self,
-        (renderer, (mut material_registry, materials), models_2d): Model2DResources<'_, '_, F>,
-    ) where
+    fn register_models_2d<F>(&mut self, resources: Custom<Graphics2DResources<'_, F>>)
+    where
         F: EntityFilter,
     {
-        let context = renderer
+        let context = resources
+            .renderer
             .get()
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
-        let material_registry = material_registry.get_mut();
-        for ((transform, model, z_index, entity), _) in models_2d.iter() {
-            let entity_id = entity.id();
-            let is_transparent = material_registry
-                .get(model.material_key, &materials)
+        for (entity, _) in resources.models.iter() {
+            let entity_id = entity.entity.id();
+            let is_transparent = resources
+                .materials
+                .get(entity.model.material_key)
                 .map_or(false, Material::is_transparent);
             self.reset_entity_state(entity_id);
             if !is_transparent {
-                for &camera_key in &model.camera_keys {
+                for &camera_key in &entity.model.camera_keys {
                     let group_key = GroupKey {
                         camera_key,
-                        material_key: model.material_key,
-                        mesh_key: model.mesh_key,
+                        material_key: entity.model.material_key,
+                        mesh_key: entity.model.mesh_key,
                     };
-                    let is_new = self
-                        .instances_or_create(context, group_key)
-                        .add((transform, model, z_index, entity));
+                    let is_new = self.instances_or_create(context, group_key).add(&entity);
                     if is_new {
                         self.register_entity_in_group(entity_id, group_key);
                     } else {
@@ -226,15 +226,18 @@ impl InstanceGroup {
     }
 
     // returns if the model is new
-    fn add(&mut self, (transform, _model, z_index, entity): Model2D<'_>) -> bool {
-        if let Some(&position) = self.entity_positions.get(&entity.id()) {
-            self.buffer[position] = super::create_instance(transform, z_index);
+    fn add(
+        &mut self,
+        entity: &<GraphicsEntity2D<'_> as CustomSystemParam>::ConstParam<'_>,
+    ) -> bool {
+        if let Some(&position) = self.entity_positions.get(&entity.entity.id()) {
+            self.buffer[position] = super::create_instance(entity);
             false
         } else {
             let position = self.entity_ids.len();
-            self.entity_positions.insert(entity.id(), position);
-            self.entity_ids.push(entity.id());
-            self.buffer.push(super::create_instance(transform, z_index));
+            self.entity_positions.insert(entity.entity.id(), position);
+            self.entity_ids.push(entity.entity.id());
+            self.buffer.push(super::create_instance(entity));
             true
         }
     }

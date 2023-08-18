@@ -1,11 +1,12 @@
 use crate::ResKey;
 use derivative::Derivative;
 use fxhash::{FxHashMap, FxHashSet};
-use modor::{Component, Entity, Query, SingleMut};
+use modor::{Component, Entity, Query, SingleRef};
 use modor_jobs::AssetLoadingError;
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
 use std::{any, fmt};
 
 /// A registry that keeps track of resources of type `R` identified by a unique
@@ -70,15 +71,12 @@ use std::{any, fmt};
 /// #[systems]
 /// impl TotalCount {
 ///     #[run_after(component(CounterRegistry), component(Counter))]
-///     fn update(
-///         &mut self,
-///         mut counters: Custom<ResourceAccessor<Counter>>,
-///      ) {
+///     fn update(&mut self, mut counters: Custom<ResourceAccessor<Counter>>) {
 ///         self.count = 0;
-///         if let Some(counter) = counters.get(COUNTER1, &counters) {
+///         if let Some(counter) = counters.get(COUNTER1) {
 ///             self.count += counter.count;
 ///         }
-///         if let Some(counter) = counters.get(COUNTER2, &counters) {
+///         if let Some(counter) = counters.get(COUNTER2) {
 ///             self.count += counter.count;
 ///         }
 ///     }
@@ -147,7 +145,7 @@ where
 
     /// Returns the resource corresponding to the `key` if it exists and is in
     /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
-    pub fn get<'a>(&mut self, key: ResKey<R>, query: &'a Query<'_, &R>) -> Option<&'a R> {
+    pub fn get<'a>(&self, key: ResKey<R>, query: &'a Query<'_, &R>) -> Option<&'a R> {
         if let Some(resource) = self.entity_ids.get(&key).and_then(|&i| query.get(i)) {
             match resource.state() {
                 ResourceState::NotLoaded => self.not_loaded_keys.run(key, |t| {
@@ -245,8 +243,10 @@ pub struct ResourceAccessor<'a, R>
 where
     R: Component,
 {
-    registry: SingleMut<'a, 'static, ResourceRegistry<R>>,
-    resources: Query<'a, &'static R>,
+    /// Resource registry.
+    pub registry: Option<SingleRef<'a, 'static, ResourceRegistry<R>>>,
+    /// Resource query.
+    pub resources: Query<'a, &'static R>,
 }
 
 impl<R> ResourceAccessor<'_, R>
@@ -255,8 +255,10 @@ where
 {
     /// Returns the resource corresponding to the `key` if it exists and is in
     /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
-    pub fn get(&mut self, key: ResKey<R>) -> Option<&R> {
-        self.registry.get_mut().get(key, &self.resources)
+    pub fn get(&self, key: ResKey<R>) -> Option<&R> {
+        self.registry
+            .as_ref()
+            .and_then(|r| r.get().get(key, &self.resources))
     }
 }
 
@@ -264,13 +266,17 @@ where
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""), Default(bound = ""))]
 struct ResourceOnce<R> {
-    keys: FxHashSet<ResKey<R>>,
+    keys: Arc<Mutex<FxHashSet<ResKey<R>>>>,
 }
 
 impl<R> ResourceOnce<R> {
-    fn run(&mut self, key: ResKey<R>, f: impl FnOnce(&str)) {
-        if !self.keys.contains(&key) {
-            self.keys.insert(key);
+    fn run(&self, key: ResKey<R>, f: impl FnOnce(&str)) {
+        let mut keys = self
+            .keys
+            .try_lock()
+            .expect("internal error: cannot retrieve resource keys");
+        if !keys.contains(&key) {
+            keys.insert(key);
             f(any::type_name::<R>());
         }
     }

@@ -1,10 +1,10 @@
 use crate::components::instances::opaque::OpaqueInstanceRegistry;
-use crate::components::instances::{ChangedModel2D, GroupKey, Instance, Model2DResources};
+use crate::components::instances::{ChangedModel2DFilter, Graphics2DResources, GroupKey, Instance};
 use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{EntityFilter, SingleRef, World};
+use modor::{Custom, EntityFilter, SingleRef, World};
 use modor_physics::Transform2D;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -57,14 +57,17 @@ impl TransparentInstanceRegistry {
         component(Model),
         component(ZIndex2D)
     )]
-    fn update_models_2d(&mut self, resources: Model2DResources<'_, '_, ChangedModel2D>) {
+    fn update_models_2d(
+        &mut self,
+        resources: Custom<Graphics2DResources<'_, ChangedModel2DFilter>>,
+    ) {
         if self.is_initialized {
             self.register_models_2d(resources);
         }
     }
 
     #[run_after_previous]
-    fn init_models_2d(&mut self, resources: Model2DResources<'_, '_, ()>) {
+    fn init_models_2d(&mut self, resources: Custom<Graphics2DResources<'_, ()>>) {
         if !self.is_initialized {
             self.register_models_2d(resources);
             self.is_initialized = true;
@@ -85,36 +88,35 @@ impl TransparentInstanceRegistry {
         self.instances.add(entity_id, group_key);
     }
 
-    fn register_models_2d<F>(
-        &mut self,
-        (renderer, (mut material_registry, materials), models_2d): Model2DResources<'_, '_, F>,
-    ) where
+    fn register_models_2d<F>(&mut self, resources: Custom<Graphics2DResources<'_, F>>)
+    where
         F: EntityFilter,
     {
-        let context = renderer
+        let context = resources
+            .renderer
             .get()
             .state(&mut None)
             .context()
             .expect("internal error: not initialized GPU context");
-        let material_registry = material_registry.get_mut();
         let buffer = Self::buffer_mut(&mut self.buffer);
-        for ((transform, model, z_index, entity), _) in models_2d.iter() {
-            let entity_id = entity.id();
-            let is_transparent = material_registry
-                .get(model.material_key, &materials)
+        for (entity, _) in resources.models.iter() {
+            let entity_id = entity.entity.id();
+            let is_transparent = resources
+                .materials
+                .get(entity.model.material_key)
                 .map_or(false, Material::is_transparent);
             self.instances.reset_entity_update_state(entity_id);
             if is_transparent {
-                for &camera_key in &model.camera_keys {
+                for &camera_key in &entity.model.camera_keys {
                     let group_key = GroupKey {
                         camera_key,
-                        material_key: model.material_key,
-                        mesh_key: model.mesh_key,
+                        material_key: entity.model.material_key,
+                        mesh_key: entity.model.mesh_key,
                     };
                     if let Some(position) = self.instances.add(entity_id, group_key) {
-                        buffer[position] = super::create_instance(transform, z_index);
+                        buffer[position] = super::create_instance(&entity);
                     } else {
-                        buffer.push(super::create_instance(transform, z_index));
+                        buffer.push(super::create_instance(&entity));
                     }
                 }
                 debug!("transparent instance with ID {entity_id} registered (new/changed)");
