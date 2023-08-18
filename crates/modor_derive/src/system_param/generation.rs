@@ -1,10 +1,9 @@
 use crate::idents;
 use crate::system_param::parsing::{SystemParamStruct, SystemParamStructFields};
-use crate::system_param::utils;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{Lifetime, Type};
+use syn::{GenericParam, Generics, Lifetime, Type};
 
 const GENERIC_LIFETIME: &str = "'__modor";
 
@@ -13,7 +12,7 @@ pub(super) fn system_param_impl(parsed: &SystemParamStruct) -> TokenStream {
     let ident = &parsed.input.ident;
     let (impl_generics, type_generics, where_clause) = parsed.input.generics.split_for_impl();
     let generic_lifetime = Lifetime::new(GENERIC_LIFETIME, Span::call_site());
-    let renamed_generics = utils::replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
+    let renamed_generics = replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
     let (_, renamed_type_generics, _) = renamed_generics.split_for_impl();
     let tuple = tuple(parsed);
     let constructor_from_tuple = constructor_from_tuple(parsed, quote!(tuple));
@@ -60,7 +59,7 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
     let const_ident = Ident::new(&format!("Const{}", parsed.input.ident), ident.span());
     let (impl_generics, type_generics, where_clause) = parsed.input.generics.split_for_impl();
     let generic_lifetime = Lifetime::new(GENERIC_LIFETIME, Span::call_site());
-    let renamed_generics = utils::replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
+    let renamed_generics = replace_first_lifetime(&parsed.input.generics, &generic_lifetime);
     let (_, renamed_type_generics, _) = renamed_generics.split_for_impl();
     let tuple = tuple(parsed);
     let const_tuple = const_tuple(parsed);
@@ -133,6 +132,14 @@ pub(super) fn query_system_param_impl(parsed: &SystemParamStruct) -> TokenStream
             }
         }
     }
+}
+
+fn replace_first_lifetime(generics: &Generics, new_lifetime: &Lifetime) -> Generics {
+    let mut generics = generics.clone();
+    if let Some(GenericParam::Lifetime(lifetime)) = generics.params.iter_mut().next() {
+        lifetime.lifetime = new_lifetime.clone();
+    }
+    generics
 }
 
 fn tuple(parsed: &SystemParamStruct) -> TokenStream {
