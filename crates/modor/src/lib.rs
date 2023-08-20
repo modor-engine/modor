@@ -498,7 +498,7 @@ pub use modor_derive::SystemParam;
 /// #[derive(SingletonComponent, NoSystem, Debug)]
 /// struct Velocity(f32, f32);
 ///
-/// #[derive(SystemParam)]
+/// #[derive(QuerySystemParam)]
 /// struct MovableBody<'a> {
 ///     position: &'a Position,
 ///     velocity: &'a Velocity,
