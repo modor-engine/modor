@@ -25,7 +25,11 @@ union UnionSystemParam<'a> {
 
 #[derive(QuerySystemParam)]
 struct SystemParamWithMoreThanOneLifetime<'a, 'b> {
-    //~^ error: custom system param with more than one generic lifetime
+    //~^ error: custom system param should have exactly one generic lifetime
     c1: &'a Component1,
     c2: &'b Component2,
 }
+
+#[derive(QuerySystemParam)]
+//~^ error: custom system param should have exactly one generic lifetime
+struct SystemParamWithNoLifetime;

@@ -139,7 +139,7 @@ fn parse_component_meta(meta: &MetaList) -> Option<TokenStream> {
         return None;
     }
     let nested_meta = meta.nested.first()?;
-    let crate_ident = idents::find_crate_ident(nested_meta.span());
+    let crate_ident = idents::crate_ident(nested_meta.span());
     match nested_meta {
         NestedMeta::Meta(Meta::Path(path)) => {
             Some(quote! {<#path as #crate_ident::ComponentSystems>::Action})

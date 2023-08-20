@@ -442,12 +442,12 @@ pub use modor_derive::modor_test;
 
 /// Defines a custom system parameter.
 ///
-/// This macro implements the [`SystemParam`](crate::SystemParam) trait.
+/// This macro implements the [`CustomSystemParam`](crate::CustomSystemParam) trait.
 /// All inner types must implement [`SystemParam`](crate::SystemParam).
 ///
 /// This type of system parameter cannot be used as [`Query`](crate::Query) parameter.
-/// [`SystemParam`](crate::SystemParam) defines a system parameter that can be used as
-/// [`Query`](crate::Query) parameter.
+/// To define such system parameter, [`SystemParam`](macro@crate::SystemParam) derive macro can be
+/// used.
 ///
 /// # Examples
 ///
@@ -481,10 +481,9 @@ pub use modor_derive::SystemParam;
 
 /// Defines a custom query system parameter.
 ///
-/// This macro implements the [`SystemParam`](crate::SystemParam) and
-/// [`QuerySystemParam`](crate::QuerySystemParam) traits.
-/// All inner types must implement [`SystemParam`](crate::SystemParam) and
-/// [`QuerySystemParam`](crate::QuerySystemParam).
+/// This macro implements the [`CustomSystemParam`](crate::CustomSystemParam) and
+/// [`CustomQuerySystemParam`](crate::CustomQuerySystemParam) traits.
+/// All inner types must implement [`QuerySystemParam`](crate::QuerySystemParam).
 ///
 /// This type of system parameter can be used as [`Query`](crate::Query) parameter.
 ///

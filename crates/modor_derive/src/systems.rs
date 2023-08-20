@@ -72,7 +72,7 @@ fn generate_system_call(
     method: &ImplItemMethod,
     attribute: &AttributeType,
 ) -> Option<TokenStream> {
-    let crate_ident = idents::find_crate_ident(attribute.span());
+    let crate_ident = idents::crate_ident(attribute.span());
     let system_name = &method.sig.ident;
     let label = format!("{type_}::{}", method.sig.ident);
     let label_tokens = TokenTree::Literal(Literal::string(&label));

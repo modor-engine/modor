@@ -6,7 +6,7 @@ use crate::components::material::MaterialRegistry;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{Custom, CustomSystemParam, EntityFilter, Query, SingleMut, World};
+use modor::{Custom, CustomQuerySystemParam, EntityFilter, Query, SingleMut, World};
 use modor_physics::Transform2D;
 use modor_resources::Resource;
 use std::iter::Zip;
@@ -228,7 +228,7 @@ impl InstanceGroup {
     // returns if the model is new
     fn add(
         &mut self,
-        entity: &<GraphicsEntity2D<'_> as CustomSystemParam>::ConstParam<'_>,
+        entity: &<GraphicsEntity2D<'_> as CustomQuerySystemParam>::ConstParam<'_>,
     ) -> bool {
         if let Some(&position) = self.entity_positions.get(&entity.entity.id()) {
             self.buffer[position] = super::create_instance(entity);

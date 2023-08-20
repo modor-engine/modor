@@ -1,5 +1,6 @@
 //! Procedural macros of Modor.
 
+use crate::system_param::SystemParamStruct;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
 use proc_macro_error::abort;
@@ -7,6 +8,10 @@ use quote::quote;
 use syn::spanned::Spanned;
 use syn::{parse_macro_input, AttributeArgs, Data, DeriveInput, Fields, ItemFn, ItemImpl};
 
+#[macro_use]
+mod common;
+
+mod actions;
 mod attributes;
 mod idents;
 mod impl_block;
@@ -28,7 +33,7 @@ pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_error::proc_macro_error]
 pub fn action_derive(item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::find_crate_ident(item.span());
+    let crate_ident = idents::crate_ident(item.span());
     let ident = &item.ident;
     let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
     let dependencies: Vec<_> = match &item.data {
@@ -70,7 +75,7 @@ pub fn singleton_component_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_error::proc_macro_error]
 pub fn no_system_derive(item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::find_crate_ident(item.span());
+    let crate_ident = idents::crate_ident(item.span());
     let ident = &item.ident;
     let generics = item.generics;
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
@@ -93,7 +98,7 @@ pub fn no_system_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_error::proc_macro_error]
 pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
-    let crate_ident = idents::find_crate_ident(item.span());
+    let crate_ident = idents::crate_ident(item.span());
     let cleaned_block = impl_block::clean(&item);
     let type_ = &item.self_ty;
     let type_ident = idents::extract_type_ident(type_);
@@ -132,19 +137,23 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(SystemParam)]
 #[proc_macro_error::proc_macro_error]
 pub fn system_param_derive(item: TokenStream) -> TokenStream {
-    system_param::implement_simple(parse_macro_input!(item as DeriveInput)).into()
+    SystemParamStruct::new(&parse_macro_input!(item as DeriveInput))
+        .custom_system_param_impl()
+        .into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(QuerySystemParam)]
 #[proc_macro_error::proc_macro_error]
 pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
-    system_param::implement_query(parse_macro_input!(item as DeriveInput)).into()
+    SystemParamStruct::new(&parse_macro_input!(item as DeriveInput))
+        .custom_query_system_param_impl()
+        .into()
 }
 
 fn derive_component(item: TokenStream, is_singleton: bool) -> TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::find_crate_ident(item.span());
+    let crate_ident = idents::crate_ident(item.span());
     let ident = &item.ident;
     let generics = item.generics;
     let is_singleton_type = if is_singleton {
