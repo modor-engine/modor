@@ -1,6 +1,7 @@
 //! Procedural macros of Modor.
 
 use crate::system_param::SystemParamStruct;
+use crate::tests::TestFunction;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
 use proc_macro_error::abort;
@@ -25,7 +26,8 @@ mod tests;
 pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
     let function = parse_macro_input!(item as ItemFn);
     let args = parse_macro_input!(attr as AttributeArgs);
-    tests::define_test_method(function, args).into()
+    let (Ok(output) | Err(output)) = TestFunction::new(&function, &args).map(|f| f.annotated());
+    output.into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -137,7 +139,8 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(SystemParam)]
 #[proc_macro_error::proc_macro_error]
 pub fn system_param_derive(item: TokenStream) -> TokenStream {
-    SystemParamStruct::new(&parse_macro_input!(item as DeriveInput))
+    let input = parse_macro_input!(item as DeriveInput);
+    SystemParamStruct::new(&input)
         .custom_system_param_impl()
         .into()
 }
@@ -146,7 +149,8 @@ pub fn system_param_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_derive(QuerySystemParam)]
 #[proc_macro_error::proc_macro_error]
 pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
-    SystemParamStruct::new(&parse_macro_input!(item as DeriveInput))
+    let input = parse_macro_input!(item as DeriveInput);
+    SystemParamStruct::new(&input)
         .custom_query_system_param_impl()
         .into()
 }
