@@ -23,7 +23,7 @@ criterion = { version = "0.4", default-features = false, features = [
     "plotters",
     "cargo_bench_support",
 ] }
-darling = "0.14.4"
+darling = "0.20.3"
 derivative = "2.2"
 doc-comment = "0.3"
 fs_extra = "1.2"
