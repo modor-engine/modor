@@ -4,8 +4,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    parse_quote, parse_quote_spanned, Data, DataStruct, DeriveInput, Expr, Field, Fields,
-    FieldsNamed, FieldsUnnamed, Lifetime, Type,
+    parse_quote, parse_quote_spanned, Data, DataStruct, DeriveInput, Expr, Fields, FieldsNamed,
+    FieldsUnnamed, Lifetime, Type,
 };
 
 pub(crate) struct SystemParamStruct<'a> {
@@ -171,25 +171,18 @@ impl<'a> SystemParamStruct<'a> {
     }
 
     fn tuple(&self) -> Type {
-        let types: Vec<_> = self.field_types().cloned().collect();
+        let types: Vec<_> = self.data.fields.iter().map(|f| f.ty.clone()).collect();
         common::recursive_tuple(&types)
     }
 
     fn const_tuple(&self) -> Type {
         let types: Vec<_> = self
-            .field_types()
-            .map(|t| self.const_field_type(t))
+            .data
+            .fields
+            .iter()
+            .map(|f| self.const_field_type(&f.ty))
             .collect();
         common::recursive_tuple(&types)
-    }
-
-    fn field_types(&self) -> impl Iterator<Item = &Type> {
-        let field_type_fn: fn(&Field) -> &Type = |t| &t.ty;
-        match &self.data.fields {
-            Fields::Named(fields) => fields.named.iter().map(field_type_fn),
-            Fields::Unnamed(fields) => fields.unnamed.iter().map(field_type_fn),
-            Fields::Unit => unreachable!("internal error: unit unsupported (1 lifetime required)"),
-        }
     }
 
     fn const_field_type(&self, type_: &Type) -> Type {

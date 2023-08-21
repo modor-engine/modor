@@ -1,14 +1,14 @@
 //! Procedural macros of Modor.
 
+use crate::actions::ActionStruct;
 use crate::components::ComponentType;
 use crate::system_params::SystemParamStruct;
 use crate::tests::TestFunction;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
-use proc_macro_error::abort;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, AttributeArgs, Data, DeriveInput, Fields, ItemFn, ItemImpl};
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemImpl};
 
 #[macro_use]
 mod common;
@@ -36,28 +36,8 @@ pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(Action)]
 #[proc_macro_error::proc_macro_error]
 pub fn action_derive(item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::crate_ident(item.span());
-    let ident = &item.ident;
-    let (impl_generics, type_generics, where_clause) = item.generics.split_for_impl();
-    let dependencies: Vec<_> = match &item.data {
-        Data::Struct(struct_) => match &struct_.fields {
-            Fields::Unnamed(fields) => fields.unnamed.iter().map(|f| &f.ty).collect(),
-            Fields::Unit => vec![],
-            Fields::Named(_) => abort!(item, "structs with named fields cannot be actions"),
-        },
-        Data::Enum(_) | Data::Union(_) => abort!(item, "only structs can be actions"),
-    };
-    let output = quote! {
-        impl #impl_generics #crate_ident::Action for #ident #type_generics #where_clause {
-            fn dependency_types() -> ::std::vec::Vec<::std::any::TypeId> {
-                let mut types = vec![#(::std::any::TypeId::of::<#dependencies>()),*];
-                #(types.extend(<#dependencies as #crate_ident::Action>::dependency_types());)*
-                types
-            }
-        }
-    };
-    output.into()
+    let input = parse_macro_input!(item as DeriveInput);
+    ActionStruct::new(&input).action_impl().into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
