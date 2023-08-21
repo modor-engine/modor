@@ -80,23 +80,8 @@ pub fn singleton_component_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_derive(NoSystem)]
 #[proc_macro_error::proc_macro_error]
 pub fn no_system_derive(item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::crate_ident(item.span());
-    let ident = &item.ident;
-    let generics = item.generics;
-    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
-    let finish_system_call = finish_system_call(ident);
-    let output = quote! {
-        impl #impl_generics #crate_ident::ComponentSystems for #ident #type_generics #where_clause {
-            type Action = std::marker::PhantomData<()>;
-
-            fn on_update(runner: #crate_ident::SystemRunner<'_>) -> #crate_ident::FinishedSystemRunner {
-                runner
-                #finish_system_call
-            }
-        }
-    };
-    output.into()
+    let input = parse_macro_input!(item as DeriveInput);
+    ComponentType::new(&input).no_system_impl().into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
