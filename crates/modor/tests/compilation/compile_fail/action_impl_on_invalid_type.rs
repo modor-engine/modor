@@ -5,10 +5,15 @@ use modor::*;
 
 fn main() {}
 
-#[derive(Action)]
-struct ActionWithNamedFields {}
-//~^ error: structs with named fields cannot be actions
+#[derive(Action, Clone, Copy)]
+struct ValidAction;
 
 #[derive(Action)]
 enum EnumAction {}
-//~^ error: only structs can be actions
+//~^ error: action cannot be an enum
+
+#[derive(Action)]
+union UnionAction {
+    //~^ error: action cannot be a union
+    action: ValidAction,
+}

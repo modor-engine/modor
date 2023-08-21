@@ -18,9 +18,12 @@ mod attributes;
 mod components;
 mod idents;
 mod impl_block;
+mod system_impl;
 mod system_params;
 mod systems;
 mod tests;
+
+// TODO: check if generics works in run* attributes
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
@@ -104,6 +107,14 @@ pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
     output.into()
 }
 
+fn finish_system_call(entity_type: &Ident) -> proc_macro2::TokenStream {
+    let label = format!("{entity_type}::modor_finish");
+    let label_tokens = TokenTree::Literal(Literal::string(&label));
+    quote! {
+        .finish(#label_tokens)
+    }
+}
+
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(SystemParam)]
 #[proc_macro_error::proc_macro_error]
@@ -122,12 +133,4 @@ pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
     SystemParamStruct::new(&input)
         .custom_query_system_param_impl()
         .into()
-}
-
-fn finish_system_call(entity_type: &Ident) -> proc_macro2::TokenStream {
-    let label = format!("{entity_type}::modor_finish");
-    let label_tokens = TokenTree::Literal(Literal::string(&label));
-    quote! {
-        .finish(#label_tokens)
-    }
 }
