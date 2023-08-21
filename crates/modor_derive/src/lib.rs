@@ -1,6 +1,7 @@
 //! Procedural macros of Modor.
 
-use crate::system_param::SystemParamStruct;
+use crate::components::ComponentType;
+use crate::system_params::SystemParamStruct;
 use crate::tests::TestFunction;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal, TokenTree};
@@ -14,9 +15,10 @@ mod common;
 
 mod actions;
 mod attributes;
+mod components;
 mod idents;
 mod impl_block;
-mod system_param;
+mod system_params;
 mod systems;
 mod tests;
 
@@ -62,14 +64,16 @@ pub fn action_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_derive(Component)]
 #[proc_macro_error::proc_macro_error]
 pub fn component_derive(item: TokenStream) -> TokenStream {
-    derive_component(item, false)
+    let input = parse_macro_input!(item as DeriveInput);
+    ComponentType::new(&input).component_impl().into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(SingletonComponent)]
 #[proc_macro_error::proc_macro_error]
 pub fn singleton_component_derive(item: TokenStream) -> TokenStream {
-    derive_component(item, true)
+    let input = parse_macro_input!(item as DeriveInput);
+    ComponentType::new(&input).singleton_component_impl().into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -153,25 +157,6 @@ pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
     SystemParamStruct::new(&input)
         .custom_query_system_param_impl()
         .into()
-}
-
-fn derive_component(item: TokenStream, is_singleton: bool) -> TokenStream {
-    let item = parse_macro_input!(item as DeriveInput);
-    let crate_ident = idents::crate_ident(item.span());
-    let ident = &item.ident;
-    let generics = item.generics;
-    let is_singleton_type = if is_singleton {
-        quote! { #crate_ident::True }
-    } else {
-        quote! { #crate_ident::False }
-    };
-    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
-    let output = quote! {
-        impl #impl_generics #crate_ident::Component for #ident #type_generics #where_clause {
-            type IsSingleton = #is_singleton_type;
-        }
-    };
-    output.into()
 }
 
 fn finish_system_call(entity_type: &Ident) -> proc_macro2::TokenStream {
