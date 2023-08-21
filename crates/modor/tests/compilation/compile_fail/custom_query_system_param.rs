@@ -33,3 +33,7 @@ struct SystemParamWithMoreThanOneLifetime<'a, 'b> {
 #[derive(QuerySystemParam)]
 //~^ error: custom system param should have exactly one generic lifetime
 struct SystemParamWithNoLifetime;
+
+#[derive(QuerySystemParam)]
+struct SystemParamWithNoLifetimeAndGeneric<T: modor::ComponentSystems>(&'static T);
+//~^ error: custom system param should have exactly one generic lifetime
