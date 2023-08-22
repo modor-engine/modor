@@ -39,6 +39,7 @@ impl<'a> ActionStruct<'a> {
         let dependency_types = self.dependencies_inner_types();
         quote! {
             #impl_header {
+                #[allow(unused_qualifications)]
                 fn dependency_types() -> ::std::vec::Vec<::std::any::TypeId> {
                     let mut types = vec![#(#type_ids),*];
                     #(types.extend(#dependency_types);)*

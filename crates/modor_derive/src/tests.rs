@@ -1,7 +1,7 @@
 #![allow(clippy::option_if_let_else)]
 
 use darling::util::PathList;
-use darling::{Error, FromMeta};
+use darling::FromMeta;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::quote;
@@ -21,13 +21,13 @@ impl<'a> TestFunction<'a> {
         let mut supported_platforms: Vec<_> = Self::platform_conditions().keys().copied().collect();
         supported_platforms.sort_unstable();
         TestArgs::from_list(args)
+            .map_err(darling::Error::write_errors)
             .map(|args| Self {
                 function,
                 args,
                 platform_conditions,
                 supported_platforms,
             })
-            .map_err(Error::write_errors)
     }
 
     pub(crate) fn annotated(&self) -> TokenStream {

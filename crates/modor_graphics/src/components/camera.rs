@@ -121,8 +121,8 @@ impl Camera2D {
     }
 
     #[run_after(
-        WindowTargetUpdate,
-        TextureTargetUpdate,
+        action(WindowTargetUpdate),
+        action(TextureTargetUpdate),
         component(Transform2D),
         component(RenderTargetRegistry),
         component(Renderer)

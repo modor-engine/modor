@@ -103,28 +103,28 @@ struct Tester1 {
 
 #[systems]
 impl Tester1 {
-    #[run_after(Action3)]
+    #[run_after(action(Action3))]
     fn run_after_action2(&self) {
         self.run_system_ids.lock().unwrap().push(1);
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
-    #[run_as(Action3)]
+    #[run_as(action(Action3))]
     fn run_as_action3(&self) {
         self.run_system_ids.lock().unwrap().push(2);
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
-    #[run_as(Action2)]
+    #[run_as(action(Action2))]
     fn run_as_action2(&self) {
         self.run_system_ids.lock().unwrap().push(3);
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
-    #[run_as(Action1)]
+    #[run_as(action(Action1))]
     fn run_as_action1(&self) {
         self.run_system_ids.lock().unwrap().push(4);
         #[cfg(not(target_arch = "wasm32"))]
@@ -169,21 +169,21 @@ struct Tester3 {
 
 #[systems]
 impl Tester3 {
-    #[run_as(Action1)]
+    #[run_as(action(Action1))]
     fn run(&self) {
         self.run_system_ids.lock().unwrap().push(1);
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
-    #[run_after_previous_and(Action2)]
+    #[run_after_previous_and(action(Action2))]
     fn run_after_previous_and(&self) {
         self.run_system_ids.lock().unwrap().push(2);
         #[cfg(not(target_arch = "wasm32"))]
         spin_sleep::sleep(std::time::Duration::from_millis(50));
     }
 
-    #[run_as(Action2)]
+    #[run_as(action(Action2))]
     fn run_as(&self) {
         self.run_system_ids.lock().unwrap().push(3);
         #[cfg(not(target_arch = "wasm32"))]

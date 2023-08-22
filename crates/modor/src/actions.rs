@@ -44,15 +44,15 @@ where
     }
 }
 
-impl<A, C> Constraint for (A, C)
+impl<C, A> Constraint for (C, A)
 where
-    A: Action,
     C: Constraint,
+    A: Action,
 {
     fn action_types() -> Vec<TypeId> {
         let mut types = A::dependency_types();
-        types.push(TypeId::of::<A>());
         types.extend(C::action_types());
+        types.push(TypeId::of::<A>());
         types
     }
 }

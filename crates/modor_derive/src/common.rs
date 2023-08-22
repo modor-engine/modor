@@ -2,7 +2,10 @@ use darling::ast::GenericParamExt;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::iter;
-use syn::{parse_quote, DeriveInput, ExprField, GenericParam, Generics, Index, Lifetime, Type};
+use syn::{
+    parse_quote, DeriveInput, ExprField, GenericParam, Generics, Index, ItemStruct, Lifetime, Type,
+    Visibility,
+};
 
 pub(crate) fn count_lifetimes(input: &DeriveInput) -> usize {
     input
@@ -35,10 +38,8 @@ pub(crate) fn nth_lifetime(generics: &Generics, position: usize) -> Option<&Life
     })
 }
 
-pub(crate) fn recursive_tuple(types: &[Type]) -> Type {
-    types
-        .iter()
-        .fold(parse_quote! { () }, |o, t| parse_quote! { (#o, #t) })
+pub(crate) fn recursive_tuple(types: impl Iterator<Item = Type>) -> Type {
+    types.fold(parse_quote! { () }, |o, t| parse_quote! { (#o, #t) })
 }
 
 pub(crate) fn recursive_tuple_access(
@@ -64,4 +65,20 @@ pub(crate) fn impl_header(generics: &Generics, struct_: &Ident, trait_: &Type) -
 
 pub(crate) fn ident_with_prefix(prefix: &str, ident: &Ident) -> Ident {
     Ident::new(&format!("{prefix}{ident}"), ident.span())
+}
+
+pub(crate) fn ident_with_suffix(ident: &Ident, suffix: &str) -> Ident {
+    Ident::new(&format!("{ident}{suffix}"), ident.span())
+}
+
+pub(crate) fn tuple_struct(
+    visibility: &Visibility,
+    type_: &Ident,
+    generics: &Generics,
+    field_types: &[Type],
+) -> ItemStruct {
+    let (impl_generics, _type_generics, where_clause) = generics.split_for_impl();
+    parse_quote! {
+        #visibility struct #type_ #impl_generics(#(#field_types),*) #where_clause;
+    }
 }

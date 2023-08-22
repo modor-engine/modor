@@ -171,18 +171,17 @@ impl<'a> SystemParamStruct<'a> {
     }
 
     fn tuple(&self) -> Type {
-        let types: Vec<_> = self.data.fields.iter().map(|f| f.ty.clone()).collect();
-        common::recursive_tuple(&types)
+        let types = self.data.fields.iter().map(|f| f.ty.clone());
+        common::recursive_tuple(types)
     }
 
     fn const_tuple(&self) -> Type {
-        let types: Vec<_> = self
+        let types = self
             .data
             .fields
             .iter()
-            .map(|f| self.const_field_type(&f.ty))
-            .collect();
-        common::recursive_tuple(&types)
+            .map(|f| self.const_field_type(&f.ty));
+        common::recursive_tuple(types)
     }
 
     fn const_field_type(&self, type_: &Type) -> Type {
