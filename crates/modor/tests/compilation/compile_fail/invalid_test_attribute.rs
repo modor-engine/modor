@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate modor;
+extern crate core;
 
 fn main() {}
 
