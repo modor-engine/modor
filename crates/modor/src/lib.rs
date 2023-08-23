@@ -230,12 +230,14 @@ pub use modor_derive::NoSystem;
 /// update.
 /// Several attributes are available to configure when the system will be run:
 /// - `#[run]` to run the system without constraint
-/// - `#[run_as(action(MyAction))]` to run the system labeled with the action `MyAction` implementing
-/// the [`Action`] trait.
-/// - `#[run_after(action(Action1), action(Action2), ...)` to run the system once systems labeled with
-/// `Action1`, `Action2`, ... have been executed
+/// - `#[run_as(action(MyAction))]` to run the system labeled with the action `MyAction`
+/// implementing the [`Action`] trait.
+/// - `#[run_after(action(Action1), action(Action2), ...)` to run the system once systems labeled
+/// with `Action1`, `Action2`, ... have been executed
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
+/// - `#[run_after_previous_and(action(Action1), action(Action2), ...)]` which is a combination of
+/// `run_after` and `run_after_previous` attributes
 ///
 /// Note that an action type is created for each component type:
 /// - In previously defined attributes, it is possible to refer this action using the `component`
