@@ -230,9 +230,9 @@ pub use modor_derive::NoSystem;
 /// update.
 /// Several attributes are available to configure when the system will be run:
 /// - `#[run]` to run the system without constraint
-/// - `#[run_as(MyAction)]` to run the system labeled with the action `MyAction` implementing
+/// - `#[run_as(action(MyAction))]` to run the system labeled with the action `MyAction` implementing
 /// the [`Action`] trait.
-/// - `#[run_after(Action1, Action2, ...)` to run the system once systems labeled with
+/// - `#[run_after(action(Action1), action(Action2), ...)` to run the system once systems labeled with
 /// `Action1`, `Action2`, ... have been executed
 /// - `#[run_after_previous]` to run the system after the previous one defined in the `impl` block
 /// (has no effect if there is no previous system)
@@ -315,17 +315,17 @@ pub use modor_derive::NoSystem;
 ///         // has no constraint
 ///     }
 ///
-///     #[run_as(Action2)]
+///     #[run_as(action(Action2))]
 ///     fn system2() {
 ///         // will be run after `system3` because of `Action2` constraints
 ///     }
 ///
-///     #[run_as(Action1)]
+///     #[run_as(action(Action1))]
 ///     fn system3() {
 ///         // has no constraint because of `Action1` constraints
 ///     }
 ///
-///     #[run_after(Action1, Action2)]
+///     #[run_after(action(Action1), action(Action2))]
 ///     fn system4() {
 ///         //  will be run after `system2` and `system3`
 ///     }
@@ -335,7 +335,7 @@ pub use modor_derive::NoSystem;
 ///         //  will be run after `system4`
 ///     }
 ///
-///     #[run_after_previous_and(Action2)]
+///     #[run_after_previous_and(action(Action2))]
 ///     fn system6() {
 ///         //  will be run after `system5` and `system2`
 ///     }

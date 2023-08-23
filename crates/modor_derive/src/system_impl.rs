@@ -10,8 +10,6 @@ use syn::{
     ItemStruct, NestedMeta, Path, Type,
 };
 
-// TODO: update doc for action()
-
 pub(crate) struct SystemImpl<'a> {
     crate_name: String,
     item: &'a ItemImpl,
