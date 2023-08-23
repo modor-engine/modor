@@ -3,7 +3,6 @@ use darling::util::{Flag, PathList, SpannedValue};
 use darling::FromMeta;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
-use std::collections::HashMap;
 use syn::spanned::Spanned;
 use syn::{
     parse_quote, parse_quote_spanned, Attribute, Expr, ImplItem, ImplItemMethod, ItemImpl,
@@ -15,7 +14,7 @@ pub(crate) struct SystemImpl<'a> {
     item: &'a ItemImpl,
     ident: Ident,
     action_ident: Ident,
-    method_attributes: HashMap<&'a Ident, RunAttribute>,
+    method_attributes: Vec<(&'a Ident, RunAttribute)>,
     runner_arg: Ident,
 }
 
@@ -65,9 +64,9 @@ impl<'a> SystemImpl<'a> {
         }
     }
 
-    fn method_attributes(item: &'a ItemImpl) -> darling::Result<HashMap<&'a Ident, RunAttribute>> {
+    fn method_attributes(item: &'a ItemImpl) -> darling::Result<Vec<(&'a Ident, RunAttribute)>> {
         let mut errors = darling::Error::accumulator();
-        let attributes: HashMap<_, _> = item
+        let attributes: Vec<_> = item
             .items
             .iter()
             .filter_map(|i| {
@@ -81,7 +80,7 @@ impl<'a> SystemImpl<'a> {
                 }
             })
             .collect();
-        for attribute in attributes.values() {
+        for (_, attribute) in &attributes {
             for result in attribute.validate() {
                 errors.handle(result);
             }
@@ -160,8 +159,8 @@ impl<'a> SystemImpl<'a> {
 
     fn action_dependencies(&self) -> Vec<Type> {
         self.method_attributes
-            .values()
-            .flat_map(RunAttribute::dependencies)
+            .iter()
+            .flat_map(|(_, a)| a.dependencies())
             .filter_map(|d| d.action_type(&self.crate_name))
             .collect()
     }
