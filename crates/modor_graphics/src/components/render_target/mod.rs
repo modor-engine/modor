@@ -114,7 +114,7 @@ impl RenderTarget {
         }
     }
 
-    #[run_as(WindowTargetUpdate)]
+    #[run_as(action(WindowTargetUpdate))]
     fn update_window_target(
         &mut self,
         window: Option<&mut Window>,
@@ -144,7 +144,7 @@ impl RenderTarget {
         };
     }
 
-    #[run_as(TextureTargetUpdate)]
+    #[run_as(action(TextureTargetUpdate))]
     fn update_texture_target(
         &mut self,
         texture: Option<&Texture>,
@@ -182,8 +182,8 @@ impl RenderTarget {
     }
 
     #[run_after(
-        WindowTargetUpdate,
-        TextureTargetUpdate,
+        action(WindowTargetUpdate),
+        action(TextureTargetUpdate),
         component(OpaqueInstanceRegistry),
         component(TransparentInstanceRegistry),
         component(Camera2DRegistry),

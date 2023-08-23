@@ -35,14 +35,6 @@ fn use_unnamed_custom_param() {
         });
 }
 
-#[test]
-fn use_unit_custom_param() {
-    App::new()
-        .with_entity(UnitTester::default())
-        .updated()
-        .assert::<With<UnitTester>>(1, |e| e.has(|t: &UnitTester| assert!(t.is_run)));
-}
-
 #[derive(SystemParam)]
 struct NamedSystemParam<'a> {
     value: &'a mut Value,
@@ -77,21 +69,5 @@ impl UnnamedTester {
     fn update(&mut self, mut param: Custom<UnnamedSystemParam<'_>>) {
         param.0 .0 += 1;
         self.other_value_sum = param.1.iter().map(|o| o.0).sum();
-    }
-}
-
-#[derive(SystemParam)]
-struct UnitSystemParam;
-
-#[derive(Component, Default)]
-struct UnitTester {
-    is_run: bool,
-}
-
-#[systems]
-impl UnitTester {
-    #[run]
-    fn update(&mut self, _param: Custom<UnitSystemParam>) {
-        self.is_run = true;
     }
 }

@@ -3,7 +3,7 @@ use crate::components::renderer::Renderer;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{Camera2D, Material, Model, ZIndex2D};
 use modor::{
-    Changed, Custom, CustomSystemParam, Entity, EntityFilter, Filter, Or, Query, SingleRef,
+    Changed, Custom, CustomQuerySystemParam, Entity, EntityFilter, Filter, Or, Query, SingleRef,
 };
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
@@ -70,7 +70,7 @@ where
 type ChangedModel2DFilter = Or<(Changed<Transform2D>, Changed<Model>, Changed<ZIndex2D>)>;
 
 fn create_instance(
-    entity: &<GraphicsEntity2D<'_> as CustomSystemParam>::ConstParam<'_>,
+    entity: &<GraphicsEntity2D<'_> as CustomQuerySystemParam>::ConstParam<'_>,
 ) -> Instance {
     let z = entity
         .z_index

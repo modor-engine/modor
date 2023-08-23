@@ -6,9 +6,9 @@ use modor::*;
 struct Component1;
 
 #[systems]
-//~^ error: the trait bound `Component1Action: ComponentSystems` is not satisfied
 impl Component1 {
     #[run_as(component(Self))]
+    //~^ error: the trait bound `Component1Action: ComponentSystems` is not satisfied
     fn f() {}
 }
 

@@ -159,7 +159,7 @@ pub(crate) struct PhysicsEntity2D<'a> {
     pub(super) dynamics: Option<&'a mut Dynamics2D>,
     pub(super) collider: Option<&'a mut Collider2D>,
     pub(super) relative_transform: Option<&'a mut RelativeTransform2D>,
-    pub(super) _filter: Filter<Or<(With<Dynamics2D>, With<Collider2D>)>>,
+    _filter: Filter<PhysicsEntityFilter>,
 }
 
 impl PhysicsEntity2D<'_> {
@@ -180,3 +180,5 @@ impl PhysicsEntity2D<'_> {
             .and_then(|h| colliders.get_mut(h))
     }
 }
+
+type PhysicsEntityFilter = Or<(With<Dynamics2D>, With<Collider2D>)>;

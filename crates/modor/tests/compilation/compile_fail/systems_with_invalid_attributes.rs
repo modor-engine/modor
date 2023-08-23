@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate modor;
+extern crate core;
 
 use modor::*;
 
@@ -21,54 +22,62 @@ impl InvalidComponent {
     fn multiple_run_attributes() {}
 
     #[run(TestAction)]
-    //~^ error: expected syntax: `#[run]`
+    //~^ error: Unexpected meta-item format `list`
     fn wrong_run_attribute_syntax() {}
 
     #[run_as]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Unexpected meta-item format `word`
     fn wrong_run_as_attribute_syntax() {}
 
+    #[run_as()]
+    //~^ error: Too few items: Expected at least 1
+    fn too_few_actions_passed_to_run_as_attribute() {}
+
     #[run_as(TestAction, TestAction)]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Too many items: Expected no more than 1
     fn too_many_actions_passed_to_run_as_attribute() {}
 
     #[run_as("action")]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Unexpected meta-item format `literal`
     fn literal_passed_to_run_as_attribute() {}
 
     #[run_as(entity::attribute(MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Unknown field: `entity::attribute`
     fn sub_attribute_with_multiple_parts_passed_to_run_as_attribute() {}
 
     #[run_as(singleton(MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Unknown field: `singleton`
     fn unknown_sub_attribute_passed_to_run_as_attribute() {}
 
     #[run_as(component(MySingleton, MySingleton))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
-    fn multiple_entities_in_same_sub_attribute_passed_to_run_as_attribute() {}
+    //~^ error: expected exactly one type
+    fn multiple_entities_in_same_component_sub_attribute_passed_to_run_as_attribute() {}
+
+    #[run_as(action(TestAction, TestAction))]
+    //~^ error: expected exactly one type
+    fn multiple_entities_in_same_action_sub_attribute_passed_to_run_as_attribute() {}
 
     #[run_as(component("singleton"))]
-    //~^ error: expected syntax: `#[run_as(ActionType)]` or `#[run_as(component(ComponentType))]`
+    //~^ error: Unexpected literal type `non-word`
     fn literal_entity_in_sub_attribute_passed_to_run_as_attribute() {}
 
     #[run_after]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, component(ComponentType), ...)]`
+    //~^ error: Unexpected meta-item format `word`
     fn wrong_run_after_attribute_syntax() {}
 
     #[run_after("action")]
-    //~^ error: expected syntax: `#[run_after(ActionType1, ActionType2, component(ComponentType), ...)]`
+    //~^ error: Unexpected meta-item format `literal`
     fn literal_passed_to_run_after_attribute() {}
 
     #[run_after_previous(TestAction)]
-    //~^ error: expected syntax: `#[run_after_previous]`
+    //~^ error: Unexpected meta-item format `list`
     fn wrong_run_after_previous_attribute_syntax() {}
 
     #[run_after_previous_and]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, component(ComponentType), ...)]`
+    //~^ error: Unexpected meta-item format `word`
     fn wrong_run_after_previous_and_attribute_syntax() {}
 
     #[run_after_previous_and("action")]
-    //~^ error: expected syntax: `#[run_after_previous_and(ActionType1, ActionType2, component(ComponentType), ...)]`
+    //~^ error: Unexpected meta-item format `literal`
     fn literal_passed_to_run_after_previous_and_attribute() {}
 }

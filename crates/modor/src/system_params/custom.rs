@@ -13,31 +13,38 @@ use std::ops::{Deref, DerefMut};
 /// [`QuerySystemParam`](macro@crate::QuerySystemParam) derive macros can be used instead to
 /// define a custom system parameter.
 pub trait CustomSystemParam {
-    /// Constant version of the system parameter.
-    type ConstParam<'b>: CustomSystemParam + 'b;
     #[doc(hidden)]
     type Param<'b>: CustomSystemParam + 'b;
     #[doc(hidden)]
     type Tuple: SystemParam;
 
     #[doc(hidden)]
+    fn from_tuple_mut_param(
+        tuple: <Self::Tuple as SystemParamWithLifetime<'_>>::Param,
+    ) -> Custom<Self::Param<'_>>;
+}
+
+/// A trait for defining a custom query system parameter type.
+///
+/// **Do not implement manually this trait.**<br>
+/// The [`QuerySystemParam`](macro@crate::QuerySystemParam) derive macros can be used instead to
+/// define a custom query system parameter.
+pub trait CustomQuerySystemParam: CustomSystemParam
+where
+    Self::Tuple: QuerySystemParam,
+{
+    /// Constant version of the system parameter.
+    type ConstParam<'b>: CustomSystemParam + 'b;
+
+    #[doc(hidden)]
     fn from_tuple_const_param_mut_param<'b>(
         tuple: <<Self::Tuple as QuerySystemParamWithLifetime<'b>>::ConstParam as SystemParamWithLifetime<'b>>::Param,
-    ) -> <Custom<Self::ConstParam<'b>> as SystemParamWithLifetime<'b>>::Param
-    where
-        Self::Tuple: QuerySystemParam;
+    ) -> <Custom<Self::ConstParam<'b>> as SystemParamWithLifetime<'b>>::Param;
 
     #[doc(hidden)]
     fn from_tuple_const_param(
         tuple: <Self::Tuple as QuerySystemParamWithLifetime<'_>>::ConstParam,
-    ) -> Custom<Self::ConstParam<'_>>
-    where
-        Self::Tuple: QuerySystemParam;
-
-    #[doc(hidden)]
-    fn from_tuple_mut_param(
-        tuple: <Self::Tuple as SystemParamWithLifetime<'_>>::Param,
-    ) -> Custom<Self::Param<'_>>;
+    ) -> Custom<Self::ConstParam<'_>>;
 }
 
 /// A type for using a custom system parameter in a system.
@@ -139,7 +146,7 @@ where
 
 impl<'a, T> QuerySystemParamWithLifetime<'a> for Custom<T>
 where
-    T: CustomSystemParam,
+    T: CustomQuerySystemParam,
     T::Tuple: QuerySystemParam,
 {
     type ConstParam = Custom<T::ConstParam<'a>>;
@@ -157,7 +164,7 @@ where
 
 impl<T> QuerySystemParam for Custom<T>
 where
-    T: CustomSystemParam,
+    T: CustomQuerySystemParam,
     T::Tuple: QuerySystemParam,
 {
     fn query_iter<'a, 'b>(

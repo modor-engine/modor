@@ -14,10 +14,6 @@ fn run_query_iter() {
         assert_iter(q.iter().map(|v| v.0 .0), [VALUE1, VALUE2]);
         assert_iter(q.iter().rev().map(|v| v.0 .0), [VALUE2, VALUE1]);
     });
-    QueryTester::<Custom<UnitSystemParam>>::run(|q| {
-        assert_eq!(q.iter().count(), 6);
-        assert_eq!(q.iter().rev().count(), 6);
-    });
 }
 
 #[modor_test]
@@ -29,10 +25,6 @@ fn run_query_iter_mut() {
     QueryTester::<Custom<UnnamedSystemParam<'_>>>::run(|q| {
         assert_iter(q.iter_mut().map(|v| v.0 .0), [VALUE1, VALUE2]);
         assert_iter(q.iter_mut().rev().map(|v| v.0 .0), [VALUE2, VALUE1]);
-    });
-    QueryTester::<Custom<UnitSystemParam>>::run(|q| {
-        assert_eq!(q.iter_mut().count(), 6);
-        assert_eq!(q.iter_mut().rev().count(), 6);
     });
 }
 
@@ -124,6 +116,3 @@ struct NamedSystemParam<'a> {
 
 #[derive(QuerySystemParam)]
 struct UnnamedSystemParam<'a>(&'a mut Value, Filter<With<Enabled>>);
-
-#[derive(QuerySystemParam)]
-struct UnitSystemParam;

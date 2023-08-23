@@ -26,12 +26,12 @@ struct Runner {
 
 #[systems]
 impl Runner {
-    #[run_as(Action3)]
+    #[run_as(action(Action3))]
     fn run_action_3(&mut self) {
         self.run_system_ids.push(3);
     }
 
-    #[run_as(Action1)]
+    #[run_as(action(Action1))]
     fn run_action_1(&mut self) {
         self.run_system_ids.push(1);
     }
