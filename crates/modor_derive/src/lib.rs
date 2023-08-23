@@ -8,12 +8,9 @@ use crate::tests::TestFunction;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemImpl};
 
-#[macro_use]
-mod common;
-
 mod actions;
+mod common;
 mod components;
-mod idents;
 mod system_impl;
 mod system_params;
 mod tests;

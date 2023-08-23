@@ -1,4 +1,4 @@
-use crate::{common, idents};
+use crate::common::{generation, idents, tuples};
 use darling::util::{Flag, PathList, SpannedValue};
 use darling::FromMeta;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
@@ -23,11 +23,11 @@ impl<'a> SystemImpl<'a> {
         Self::method_attributes(item)
             .map_err(darling::Error::write_errors)
             .map(|method_attributes| {
-                let ident = idents::extract_type_ident(&item.self_ty);
+                let ident = idents::from_type(&item.self_ty);
                 Self {
                     crate_name: idents::crate_name(),
                     item,
-                    action_ident: common::ident_with_suffix(&ident, "Action"),
+                    action_ident: idents::add_suffix(&ident, "Action"),
                     ident,
                     method_attributes,
                     runner_arg: parse_quote! { runner },
@@ -131,7 +131,7 @@ impl<'a> SystemImpl<'a> {
 
     fn impl_header(&self) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        common::impl_header(
+        generation::impl_header(
             &self.item.generics,
             &self.ident,
             &parse_quote! { #crate_::ComponentSystems },
@@ -149,7 +149,7 @@ impl<'a> SystemImpl<'a> {
         if let Some(phantom) = self.phantom_action_dependency() {
             dependencies.push(phantom);
         }
-        common::tuple_struct(
+        generation::tuple_struct(
             &parse_quote! { pub },
             &self.action_ident,
             &self.item.generics,
@@ -200,7 +200,7 @@ impl<'a> SystemImpl<'a> {
             }
             RunAttribute::RunAfter(dependencies) => {
                 let actions = dependencies.action_types(&self.crate_name);
-                let constraint = common::recursive_tuple(actions);
+                let constraint = tuples::recursive(actions);
                 parse_quote_spanned! {
                     span =>
                     run_constrained::<#constraint>(#crate_::system!(Self::#method), #label)
@@ -214,7 +214,7 @@ impl<'a> SystemImpl<'a> {
             }
             RunAttribute::RunAfterPreviousAnd(dependencies) => {
                 let actions = dependencies.action_types(&self.crate_name);
-                let constraint = common::recursive_tuple(actions);
+                let constraint = tuples::recursive(actions);
                 parse_quote_spanned! {
                     span =>
                     and_then::<#constraint>(#crate_::system!(Self::#method), #label)

@@ -33,17 +33,6 @@ impl Constraint for () {
     }
 }
 
-impl<A> Constraint for (A,)
-where
-    A: Action,
-{
-    fn action_types() -> Vec<TypeId> {
-        let mut types = A::dependency_types();
-        types.push(TypeId::of::<A>());
-        types
-    }
-}
-
 impl<C, A> Constraint for (C, A)
 where
     C: Constraint,

@@ -1,4 +1,4 @@
-use crate::{common, idents};
+use crate::common::{generation, idents, lifetimes, tuples};
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::abort;
 use quote::quote;
@@ -32,10 +32,10 @@ impl<'a> SystemParamStruct<'a> {
                     abort!(data.union_token, "custom system param cannot be a union")
                 }
             },
-            lt: common::nth_lifetime(&input.generics, 0),
+            lt: lifetimes::nth(&input.generics, 0),
             internal_lt: parse_quote! { '__modor },
             tuple_arg: parse_quote! { tuple },
-            const_ident: common::ident_with_prefix("Const", &input.ident),
+            const_ident: idents::add_prefix(&input.ident, "Const"),
         }
     }
 
@@ -74,7 +74,7 @@ impl<'a> SystemParamStruct<'a> {
     }
 
     fn check_lifetime_count(&self) {
-        if common::count_lifetimes(self.input) != 1 {
+        if lifetimes::count(self.input) != 1 {
             abort!(
                 self.input.generics,
                 "custom system param should have exactly one generic lifetime",
@@ -145,7 +145,7 @@ impl<'a> SystemParamStruct<'a> {
 
     fn impl_header(&self, type_ident: &Ident, trait_ident: &Ident) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        common::impl_header(
+        generation::impl_header(
             &self.input.generics,
             type_ident,
             &parse_quote! { #crate_::#trait_ident },
@@ -165,14 +165,14 @@ impl<'a> SystemParamStruct<'a> {
 
     fn param(&self, ident: &Ident) -> Type {
         let input = self.input;
-        let generics = common::with_renamed_lifetime(&input.generics, 0, &self.internal_lt);
+        let generics = lifetimes::rename_nth(&input.generics, 0, &self.internal_lt);
         let (_, type_generics, _) = generics.split_for_impl();
         parse_quote! { #ident #type_generics }
     }
 
     fn tuple(&self) -> Type {
         let types = self.data.fields.iter().map(|f| f.ty.clone());
-        common::recursive_tuple(types)
+        tuples::recursive(types)
     }
 
     fn const_tuple(&self) -> Type {
@@ -181,7 +181,7 @@ impl<'a> SystemParamStruct<'a> {
             .fields
             .iter()
             .map(|f| self.const_field_type(&f.ty));
-        common::recursive_tuple(types)
+        tuples::recursive(types)
     }
 
     fn const_field_type(&self, type_: &Type) -> Type {
@@ -205,13 +205,13 @@ impl<'a> SystemParamStruct<'a> {
     fn named_constructor(&self, fields: &FieldsNamed, ident: &Ident) -> Expr {
         let field_names = fields.named.iter().map(|f| &f.ident);
         let values = (0..fields.named.len())
-            .map(|i| common::recursive_tuple_access(&self.tuple_arg, i, fields.named.len()));
+            .map(|i| tuples::recursive_access(&self.tuple_arg, i, fields.named.len()));
         parse_quote! { #ident { #(#field_names: #values),* } }
     }
 
     fn unnamed_constructor(&self, fields: &FieldsUnnamed, ident: &Ident) -> Expr {
         let values = (0..fields.unnamed.len())
-            .map(|i| common::recursive_tuple_access(&self.tuple_arg, i, fields.unnamed.len()));
+            .map(|i| tuples::recursive_access(&self.tuple_arg, i, fields.unnamed.len()));
         parse_quote! { #ident ( #(#values),* ) }
     }
 }
