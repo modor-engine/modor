@@ -6,7 +6,7 @@ pub(crate) fn count(input: &DeriveInput) -> usize {
         .generics
         .params
         .iter()
-        .filter(|p| p.as_lifetime_def().is_some())
+        .filter(|p| p.as_lifetime_param().is_some())
         .count()
 }
 

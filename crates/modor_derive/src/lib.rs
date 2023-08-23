@@ -6,7 +6,7 @@ use crate::system_impl::SystemImpl;
 use crate::system_params::SystemParamStruct;
 use crate::tests::TestFunction;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemImpl};
+use syn::{parse_macro_input, DeriveInput, ItemFn, ItemImpl};
 
 mod actions;
 mod common;
@@ -18,10 +18,10 @@ mod tests;
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
-pub fn modor_test(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn modor_test(args: TokenStream, item: TokenStream) -> TokenStream {
     let function = parse_macro_input!(item as ItemFn);
-    let args = parse_macro_input!(attr as AttributeArgs);
-    let (Ok(output) | Err(output)) = TestFunction::new(&function, &args).map(|f| f.annotated());
+    let args = args.into();
+    let (Ok(output) | Err(output)) = TestFunction::new(&function, args).map(|f| f.annotated());
     output.into()
 }
 
@@ -60,7 +60,7 @@ pub fn no_system_derive(item: TokenStream) -> TokenStream {
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
-pub fn systems(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn systems(_args: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemImpl);
     let (Ok(output) | Err(output)) = SystemImpl::new(&item).map(|f| f.component_systems_impl());
     output.into()

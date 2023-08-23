@@ -1,12 +1,13 @@
 use crate::common::{generation, idents, tuples};
+use darling::ast::NestedMeta;
 use darling::util::{Flag, PathList, SpannedValue};
 use darling::FromMeta;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    parse_quote, parse_quote_spanned, Attribute, Expr, ImplItem, ImplItemMethod, ItemImpl,
-    ItemStruct, NestedMeta, Path, Type,
+    parse_quote, parse_quote_spanned, Attribute, Expr, ImplItem, ImplItemFn, ItemImpl, ItemStruct,
+    Path, Type,
 };
 
 pub(crate) struct SystemImpl<'a> {
@@ -70,7 +71,7 @@ impl<'a> SystemImpl<'a> {
             .items
             .iter()
             .filter_map(|i| {
-                if let ImplItem::Method(method) = i {
+                if let ImplItem::Fn(method) = i {
                     Some((
                         &method.sig.ident,
                         errors.handle_in(|| Self::method_attribute(method))??,
@@ -89,7 +90,7 @@ impl<'a> SystemImpl<'a> {
         Ok(attributes)
     }
 
-    fn method_attribute(method: &ImplItemMethod) -> darling::Result<Option<RunAttribute>> {
+    fn method_attribute(method: &ImplItemFn) -> darling::Result<Option<RunAttribute>> {
         let supported_attributes: Vec<_> = method
             .attrs
             .iter()
@@ -105,10 +106,8 @@ impl<'a> SystemImpl<'a> {
         supported_attributes
             .into_iter()
             .map(|a| {
-                let path = &a.path;
-                let tokens = &a.tokens;
-                let meta: NestedMeta = parse_quote!(#path #tokens);
-                RunAttribute::from_list(&[meta])
+                let meta = &a.meta;
+                RunAttribute::from_list(&[parse_quote!(#meta)])
             })
             .next()
             .map_or(Ok(None), |a| a.map(Some))
@@ -117,7 +116,7 @@ impl<'a> SystemImpl<'a> {
     fn clean_item(&self) -> ItemImpl {
         let mut item = self.item.clone();
         for inner_item in &mut item.items {
-            if let ImplItem::Method(method) = inner_item {
+            if let ImplItem::Fn(method) = inner_item {
                 method.attrs.retain(|a| !Self::is_supported_attribute(a));
             }
         }
@@ -125,8 +124,8 @@ impl<'a> SystemImpl<'a> {
     }
 
     fn is_supported_attribute(attribute: &Attribute) -> bool {
-        attribute.path.segments.len() == 1
-            && ATTRIBUTE_NAMES.contains(&attribute.path.segments[0].ident.to_string().as_str())
+        attribute.path().segments.len() == 1
+            && ATTRIBUTE_NAMES.contains(&attribute.path().segments[0].ident.to_string().as_str())
     }
 
     fn impl_header(&self) -> TokenStream {

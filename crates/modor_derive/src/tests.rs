@@ -1,26 +1,29 @@
 #![allow(clippy::option_if_let_else)]
 
+use darling::ast::NestedMeta;
 use darling::util::PathList;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::HashMap;
-use syn::{parse_quote, AttributeArgs, ItemFn, NestedMeta, Path};
+use syn::{parse_quote, ItemFn, Meta, Path};
 
 pub(crate) struct TestFunction<'a> {
     function: &'a ItemFn,
     args: TestArgs,
-    platform_conditions: HashMap<&'static str, NestedMeta>,
+    platform_conditions: HashMap<&'static str, Meta>,
     supported_platforms: Vec<&'static str>,
 }
 
 impl<'a> TestFunction<'a> {
-    pub(crate) fn new(function: &'a ItemFn, args: &AttributeArgs) -> Result<Self, TokenStream> {
+    pub(crate) fn new(function: &'a ItemFn, args: TokenStream) -> Result<Self, TokenStream> {
+        let args = NestedMeta::parse_meta_list(args)
+            .map_err(|e| darling::Error::from(e).write_errors())?;
         let platform_conditions = Self::platform_conditions();
         let mut supported_platforms: Vec<_> = Self::platform_conditions().keys().copied().collect();
         supported_platforms.sort_unstable();
-        TestArgs::from_list(args)
+        TestArgs::from_list(&args)
             .map_err(darling::Error::write_errors)
             .map(|args| Self {
                 function,
@@ -45,7 +48,7 @@ impl<'a> TestFunction<'a> {
         }
     }
 
-    fn disabled_platform_conditions(&self) -> Vec<NestedMeta> {
+    fn disabled_platform_conditions(&self) -> Vec<Meta> {
         return self
             .args
             .disabled
@@ -55,7 +58,7 @@ impl<'a> TestFunction<'a> {
             .collect();
     }
 
-    fn platform_condition(&self, platform: &Path) -> &NestedMeta {
+    fn platform_condition(&self, platform: &Path) -> &Meta {
         self.platform_conditions
             .get(platform.segments[0].ident.to_string().as_str())
             .unwrap_or_else(|| {
@@ -79,7 +82,7 @@ impl<'a> TestFunction<'a> {
         }
     }
 
-    fn platform_conditions() -> HashMap<&'static str, NestedMeta> {
+    fn platform_conditions() -> HashMap<&'static str, Meta> {
         [
             ("windows", parse_quote! { target_os = "windows" }),
             ("macos", parse_quote! { target_os = "macos" }),
