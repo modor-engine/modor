@@ -1,6 +1,6 @@
 use std::time::Duration;
 use web_sys::Element;
-use wgpu::Limits;
+use wgpu::{Features, Limits};
 use winit::platform::web::WindowExtWebSys;
 use winit::window::Window as WindowHandle;
 
@@ -27,6 +27,10 @@ pub(crate) fn update_canvas_cursor(handle: &WindowHandle, is_cursor_show: bool) 
 
 pub(crate) fn gpu_limits() -> Limits {
     Limits::downlevel_webgl2_defaults()
+}
+
+pub(crate) fn gpu_features() -> Features {
+    Features::empty()
 }
 
 pub(crate) fn sleep(_duration: Duration) {

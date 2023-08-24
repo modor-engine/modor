@@ -117,7 +117,7 @@ impl GpuContext {
 
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
         let device_descriptor = DeviceDescriptor {
-            features: wgpu::Features::empty(),
+            features: platform::gpu_features(),
             limits: platform::gpu_limits(),
             label: None,
         };

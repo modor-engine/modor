@@ -1,7 +1,7 @@
 use crate::components::instances::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{GpuContext, Renderer};
+use crate::{AntiAliasing, GpuContext, Renderer};
 use fxhash::FxHashMap;
 use modor::SingleRef;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
@@ -23,6 +23,7 @@ pub(crate) struct Shader {
     code: String,
     key: ResKey<Self>,
     pipelines: FxHashMap<TextureFormat, RenderPipeline>,
+    sample_count: u32,
     renderer_version: Option<u8>,
 }
 
@@ -63,28 +64,62 @@ impl Shader {
             code: code.into(),
             key,
             pipelines: FxHashMap::default(),
+            sample_count: 1,
             renderer_version: None,
         }
     }
 
     #[run_after(component(Renderer))]
-    fn update(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
+    fn update(
+        &mut self,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
+        anti_aliasing: Option<SingleRef<'_, '_, AntiAliasing>>,
+    ) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.pipelines.clear();
         }
-        if let Some(context) = state.context() {
-            let texture_formats = context.surface_texture_format.map_or_else(
-                || vec![Self::TEXTURE_FORMAT],
-                |format| vec![Self::TEXTURE_FORMAT, format],
-            );
-            for texture_format in texture_formats {
-                self.pipelines.entry(texture_format).or_insert_with(|| {
-                    Self::create_pipeline(&self.code, self.key, texture_format, context)
-                });
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get).copied();
+        state.context().map_or_else(
+            || unreachable!("internal error: unreachable shader state"),
+            |context| {
+                self.update_anti_aliasing(anti_aliasing, context);
+                self.update_texture_formats(context);
+            },
+        );
+    }
+
+    fn update_anti_aliasing(&mut self, anti_aliasing: Option<AntiAliasing>, context: &GpuContext) {
+        let sample_count = anti_aliasing.map_or(1, AntiAliasing::smaa_sample_count);
+        if self.sample_count != sample_count {
+            self.sample_count = sample_count;
+            for (texture_format, pipeline) in &mut self.pipelines {
+                *pipeline = Self::create_pipeline(
+                    &self.code,
+                    self.key,
+                    *texture_format,
+                    self.sample_count,
+                    context,
+                );
             }
-        } else {
-            unreachable!("internal error: unreachable shader state")
+        }
+    }
+
+    fn update_texture_formats(&mut self, context: &GpuContext) {
+        let texture_formats = context.surface_texture_format.map_or_else(
+            || vec![Self::TEXTURE_FORMAT],
+            |format| vec![Self::TEXTURE_FORMAT, format],
+        );
+        for texture_format in texture_formats {
+            self.pipelines.entry(texture_format).or_insert_with(|| {
+                Self::create_pipeline(
+                    &self.code,
+                    self.key,
+                    texture_format,
+                    self.sample_count,
+                    context,
+                )
+            });
         }
     }
 
@@ -98,6 +133,7 @@ impl Shader {
         code: &str,
         key: ResKey<Self>,
         texture_format: TextureFormat,
+        sample_count: u32,
         context: &GpuContext,
     ) -> RenderPipeline {
         let module = context.device.create_shader_module(ShaderModuleDescriptor {
@@ -151,7 +187,11 @@ impl Shader {
                     stencil: StencilState::default(),
                     bias: DepthBiasState::default(),
                 }),
-                multisample: MultisampleState::default(),
+                multisample: MultisampleState {
+                    count: sample_count,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
                 multiview: None,
             })
     }

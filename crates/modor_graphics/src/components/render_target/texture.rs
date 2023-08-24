@@ -1,5 +1,5 @@
 use crate::components::render_target::core::TargetCore;
-use crate::{Color, GpuContext, Texture};
+use crate::{AntiAliasing, Color, GpuContext, Texture};
 use wgpu::{RenderPass, TextureViewDescriptor};
 
 #[derive(Debug)]
@@ -8,10 +8,14 @@ pub(crate) struct TextureTarget {
 }
 
 impl TextureTarget {
-    pub(crate) fn new(texture: &Texture, context: &GpuContext) -> Self {
+    pub(crate) fn new(
+        texture: &Texture,
+        anti_aliasing: Option<AntiAliasing>,
+        context: &GpuContext,
+    ) -> Self {
         let size = texture.inner().size;
         Self {
-            core: TargetCore::new(size, context),
+            core: TargetCore::new(size, anti_aliasing, context),
         }
     }
 
@@ -19,8 +23,14 @@ impl TextureTarget {
         &self.core
     }
 
-    pub(crate) fn updated(mut self, texture: &Texture, context: &GpuContext) -> Self {
-        self.core.update(texture.inner().size, context);
+    pub(crate) fn updated(
+        mut self,
+        texture: &Texture,
+        anti_aliasing: Option<AntiAliasing>,
+        context: &GpuContext,
+    ) -> Self {
+        self.core
+            .update(texture.inner().size, anti_aliasing, context);
         self
     }
 
