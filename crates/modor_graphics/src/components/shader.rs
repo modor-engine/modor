@@ -90,7 +90,7 @@ impl Shader {
     }
 
     fn update_anti_aliasing(&mut self, anti_aliasing: Option<AntiAliasing>, context: &GpuContext) {
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::smaa_sample_count);
+        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
         if self.sample_count != sample_count {
             self.sample_count = sample_count;
             for (texture_format, pipeline) in &mut self.pipelines {

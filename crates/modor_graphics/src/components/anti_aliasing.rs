@@ -11,7 +11,7 @@
 /// # fn no_run() {
 /// App::new()
 ///     .with_entity(modor_graphics::module())
-///     .with_entity(AntiAliasing::Smaa)
+///     .with_entity(AntiAliasing::Msaa)
 ///     .with_entity(window_target())
 ///     .run(modor_graphics::runner);
 /// # }
@@ -21,15 +21,22 @@ pub enum AntiAliasing {
     /// Anti-aliasing is disabled.
     #[default]
     None,
-    /// Anti-aliasing is enabled, and [SMAA](https://github.com/iryoku/smaa) technique is used.
-    Smaa(u32),
+    /// Multi-Sample Anti-Aliasing is enabled with 2 samples.
+    MsaaX2,
+    /// Multi-Sample Anti-Aliasing is enabled with 4 samples.
+    MsaaX4,
+    /// Multi-Sample Anti-Aliasing is enabled with 8 samples.
+    MsaaX8,
 }
 
 impl AntiAliasing {
-    pub(crate) fn smaa_sample_count(self) -> u32 {
+    /// Returns the number of samples applied for anti-aliasing.
+    pub fn sample_count(self) -> u32 {
         match self {
             Self::None => 1,
-            Self::Smaa(sample_count) => sample_count,
+            Self::MsaaX2 => 2,
+            Self::MsaaX4 => 4,
+            Self::MsaaX8 => 8,
         }
     }
 }

@@ -8,8 +8,6 @@ use wgpu::{
     TextureViewDescriptor,
 };
 
-// TODO: handle anti aliasing for texture targets (or support only window)
-
 #[derive(Debug)]
 pub(crate) struct TargetCore {
     size: NonZeroSize,
@@ -30,7 +28,7 @@ impl TargetCore {
         let texture_format = context
             .surface_texture_format
             .unwrap_or(Shader::TEXTURE_FORMAT);
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::smaa_sample_count);
+        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
         Self {
             size,
             color_buffer_view: Self::create_color_buffer_view(
@@ -57,7 +55,7 @@ impl TargetCore {
         anti_aliasing: Option<AntiAliasing>,
         context: &GpuContext,
     ) {
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::smaa_sample_count);
+        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
         let texture_format = context
             .surface_texture_format
             .unwrap_or(Shader::TEXTURE_FORMAT);
@@ -140,8 +138,7 @@ impl TargetCore {
             sample_count,
             dimension: TextureDimension::D2,
             format: texture_format,
-            // TODO: remove texture TEXTURE_BINDING ?
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            usage: TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[texture_format],
         });
         texture.create_view(&TextureViewDescriptor::default())
@@ -163,8 +160,7 @@ impl TargetCore {
             sample_count,
             dimension: TextureDimension::D2,
             format: TextureFormat::Depth32Float,
-            // TODO: remove texture TEXTURE_BINDING ?
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            usage: TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[TextureFormat::Depth32Float],
         });
         texture.create_view(&TextureViewDescriptor::default())
