@@ -88,20 +88,9 @@ fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
         * material.color;
     let front_color = textureSample(front_texture, front_texture_sampler, fragment.front_texture_position)
         * material.front_color;
-//    let color = front_color.a * vec4(front_color.rgb, 1.) + (1. - front_color.a) * back_color;
-//    let color = mix(vec4(front_color.rgb, 1.), back_color, front_color.a);
-    let color = vec4(back_color.rgb * (1 - front_color.a) + front_color.rgb, 1 - (1 - texture1.a)*(1 - texture2.a)*(1 - texture3.a));
-
+    let color = front_color + (1. - front_color.a) * back_color;
     if (color.w == 0.) {
         discard;
     }
     return color;
 }
-
-// front_color = (1, 1., 1., 0.5)
-// back_color = (0., 0., 0., 0.)
-// 0.5 * (1., 1., 1., 1.) + 0.5 * (0., 0., 0., 0.) = (0.5, 0.5, 0.5, 0.5) != (1., 1., 1., 0.5)
-
-// front_color = (0.75, 0.75, 0.75, 0.5)
-// back_color = (0.25, 0.25, 0.25, 0.5)
-// 0.5 * (0.25, 0.25, 0.25, 1.) + 0.5 * (0.75, 0.75, 0.75, 0.5) = (0.5, 0.5, 0.5, 0.75) != ()

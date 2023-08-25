@@ -4,6 +4,7 @@ use ab_glyph::{Font as AbFont, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::Custom;
 use modor_graphics::{Size, Texture, TextureSource};
 use modor_resources::{ResKey, ResourceAccessor};
+use std::iter;
 
 const TEXTURE_PADDING_PX: u32 = 1;
 
@@ -118,7 +119,10 @@ impl Text {
                     width.ceil() as u32 + TEXTURE_PADDING_PX * 2 + 2,
                     height + TEXTURE_PADDING_PX * 2 + 2,
                 );
-                let mut buffer = vec![0; (size.width * size.height) as usize * 4];
+                let mut buffer: Vec<_> = iter::repeat([255, 255, 255, 0])
+                    .take((size.width * size.height) as usize)
+                    .flatten()
+                    .collect();
                 self.render_glyphs(font, width, &line_widths, &mut buffer, size);
                 texture.set_source(TextureSource::Buffer(size, buffer));
                 self.set_as_unchanged();
