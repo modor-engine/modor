@@ -11,7 +11,6 @@ use std::f32::consts::FRAC_PI_8;
 
 #[modor_test]
 fn retrieve_sample_count() {
-    assert_eq!(AntiAliasingMode::default().sample_count(), 1);
     assert_eq!(AntiAliasingMode::None.sample_count(), 1);
     assert_eq!(AntiAliasingMode::MsaaX2.sample_count(), 2);
     assert_eq!(AntiAliasingMode::MsaaX4.sample_count(), 4);
@@ -24,7 +23,7 @@ fn run_msaa_in_texture() {
     let mut supported_modes = vec![];
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(AntiAliasing::from(AntiAliasingMode::None))
+        .with_entity(AntiAliasing::from(AntiAliasingMode::default()))
         .with_entity(resources())
         .assert::<With<AntiAliasing>>(1, has_not_supported_modes())
         .updated()
