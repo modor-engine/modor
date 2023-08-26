@@ -69,7 +69,7 @@ fn run_msaa_in_texture() {
                 12,
             )(e)
         })
-        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX16))
+        .with_entity(AntiAliasing::from(AntiAliasingMode::None))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12));
 }
