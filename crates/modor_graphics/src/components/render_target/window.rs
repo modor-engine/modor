@@ -1,6 +1,6 @@
 use crate::components::render_target::core::TargetCore;
 use crate::data::size::NonZeroSize;
-use crate::{Color, FrameRate, GpuContext, Window};
+use crate::{AntiAliasing, Color, FrameRate, GpuContext, Window};
 use std::sync::Arc;
 use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
@@ -17,14 +17,18 @@ pub(crate) struct WindowTarget {
 }
 
 impl WindowTarget {
-    pub(crate) fn new(window: &Window, context: &GpuContext) -> Option<Self> {
+    pub(crate) fn new(
+        window: &Window,
+        anti_aliasing: Option<&AntiAliasing>,
+        context: &GpuContext,
+    ) -> Option<Self> {
         let surface = window.surface()?;
         let format = context.surface_texture_format?;
         let size = window.size().into();
         let surface_config = Self::create_surface_config(&surface, format, size, context);
         surface.configure(&context.device, &surface_config);
         Some(Self {
-            core: TargetCore::new(size, context),
+            core: TargetCore::new(size, anti_aliasing, context),
             has_immediate_mode: Self::has_immediate_mode(&surface, context),
             surface,
             surface_config,
@@ -41,6 +45,7 @@ impl WindowTarget {
         window: &mut Window,
         context: &GpuContext,
         frame_rate: FrameRate,
+        anti_aliasing: Option<&AntiAliasing>,
     ) -> Self {
         let size = window.size().into();
         let has_surface_config_changed = self.update_surface_config(frame_rate, size);
@@ -51,7 +56,7 @@ impl WindowTarget {
                 .configure(&context.device, &self.surface_config);
             self.has_immediate_mode = Self::has_immediate_mode(&self.surface, context);
         }
-        self.core.update(size, context);
+        self.core.update(size, anti_aliasing, context);
         self
     }
 
@@ -114,7 +119,7 @@ impl WindowTarget {
             height: size.height.into(),
             present_mode: PresentMode::Fifo,
             alpha_mode: surface.get_capabilities(&context.adapter).alpha_modes[0],
-            view_formats: vec![surface.get_capabilities(&context.adapter).formats[0]],
+            view_formats: vec![],
         }
     }
 

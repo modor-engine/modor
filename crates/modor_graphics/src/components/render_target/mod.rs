@@ -10,7 +10,7 @@ use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
 use crate::gpu_data::buffer::DynamicBuffer;
-use crate::{Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
+use crate::{AntiAliasing, Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
 use modor::{Component, ComponentSystems, Custom, Single, SingleRef};
 use modor_resources::{
     ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
@@ -120,11 +120,13 @@ impl RenderTarget {
         window: Option<&mut Window>,
         renderer: Option<SingleRef<'_, '_, Renderer>>,
         frame_rate: Option<SingleRef<'_, '_, FrameRate>>,
+        anti_aliasing: Option<SingleRef<'_, '_, AntiAliasing>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.window_renderer_version);
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
         if let (Some(context), Some(window)) = (state.context(), window) {
             let frame_rate = frame_rate
                 .as_ref()
@@ -134,8 +136,8 @@ impl RenderTarget {
             self.window = self
                 .window
                 .take()
-                .or_else(|| WindowTarget::new(window, context))
-                .map(|t| t.updated(window, context, frame_rate));
+                .or_else(|| WindowTarget::new(window, anti_aliasing, context))
+                .map(|t| t.updated(window, context, frame_rate, anti_aliasing));
         }
         self.window_state = if self.window.is_some() {
             TargetState::Loaded
@@ -149,17 +151,19 @@ impl RenderTarget {
         &mut self,
         texture: Option<&Texture>,
         renderer: Option<SingleRef<'_, '_, Renderer>>,
+        anti_aliasing: Option<SingleRef<'_, '_, AntiAliasing>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.texture_renderer_version);
         if state.is_removed() || texture.is_none() {
             self.texture = None;
         }
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
         if let (Some(context), Some(texture)) = (state.context(), texture) {
             self.texture = (texture.state() == ResourceState::Loaded).then(|| {
                 self.texture
                     .take()
-                    .unwrap_or_else(|| TextureTarget::new(texture, context))
-                    .updated(texture, context)
+                    .unwrap_or_else(|| TextureTarget::new(texture, anti_aliasing, context))
+                    .updated(texture, anti_aliasing, context)
             });
         }
         self.texture_state = if self.texture.is_some() {
@@ -420,12 +424,14 @@ pub(crate) struct WindowTargetUpdate(
     <Window as ComponentSystems>::Action,
     <Renderer as ComponentSystems>::Action,
     <FrameRate as ComponentSystems>::Action,
+    <AntiAliasing as ComponentSystems>::Action,
 );
 
 #[derive(Action)]
 pub(crate) struct TextureTargetUpdate(
     <Texture as ComponentSystems>::Action,
     <Renderer as ComponentSystems>::Action,
+    <AntiAliasing as ComponentSystems>::Action,
 );
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

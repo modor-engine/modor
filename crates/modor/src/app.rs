@@ -355,7 +355,7 @@ where
     /// # Panics
     ///
     /// This will panic if the entity does not have a component of type `C` or if `f` panics.
-    pub fn has<C>(self, f: impl Fn(&C)) -> Self
+    pub fn has<C>(self, mut f: impl FnMut(&C)) -> Self
     where
         C: Component,
     {

@@ -59,6 +59,7 @@ mod runner;
 
 pub mod testing;
 
+pub use components::anti_aliasing::*;
 pub use components::camera::*;
 pub use components::frame_rate::*;
 pub use components::material::*;

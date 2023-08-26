@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingType, BufferBindingType, Device, DeviceDescriptor, Instance, PowerPreference, Queue,
-    RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
+    BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Instance, PowerPreference,
+    Queue, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
     TextureSampleType, TextureViewDimension,
 };
 
@@ -115,9 +115,13 @@ impl GpuContext {
         })
     }
 
+    pub(crate) fn features() -> Features {
+        Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+    }
+
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
         let device_descriptor = DeviceDescriptor {
-            features: wgpu::Features::empty(),
+            features: Self::features(),
             limits: platform::gpu_limits(),
             label: None,
         };

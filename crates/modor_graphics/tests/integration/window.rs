@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With};
 use modor_graphics::testing::TestRunnerContext;
 use modor_graphics::{
-    testing, Camera2D, Color, FrameRate, Material, Model, RenderTarget, Size, Window,
-    WindowCloseBehavior,
+    testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material, Model,
+    RenderTarget, Size, Window, WindowCloseBehavior,
 };
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -64,6 +64,7 @@ fn create_target_window(context: &mut TestRunnerContext) {
                 .component(Window::default())
                 .component(RenderTarget::new(target_key)),
         )
+        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
         .with_entity(FrameRate::Unlimited)
         .with_entity(Camera2D::new(CAMERA, target_key))
         .with_entity(opaque_rectangle())

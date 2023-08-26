@@ -10,6 +10,7 @@ pub fn run_window_tests() {
     input::run_window_tests(&mut context);
 }
 
+pub mod anti_aliasing;
 pub mod camera;
 pub mod color;
 pub mod input;
