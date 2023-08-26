@@ -19,7 +19,7 @@ pub(crate) struct WindowTarget {
 impl WindowTarget {
     pub(crate) fn new(
         window: &Window,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
         context: &GpuContext,
     ) -> Option<Self> {
         let surface = window.surface()?;
@@ -45,7 +45,7 @@ impl WindowTarget {
         window: &mut Window,
         context: &GpuContext,
         frame_rate: FrameRate,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
     ) -> Self {
         let size = window.size().into();
         let has_surface_config_changed = self.update_surface_config(frame_rate, size);

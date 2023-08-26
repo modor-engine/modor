@@ -14,16 +14,13 @@ use modor_resources::ResKey;
 use modor_text::{Alignment, Text};
 use std::f32::consts::FRAC_PI_8;
 
-// TODO: ensure only supported samplings can be configured (example: x8 crashes on Android)
-// TODO: give access to list of samplings to user
-
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
         .with_entity(InputModule::build())
         .with_entity(modor_text::module())
-        .with_entity(AntiAliasing::None)
+        .with_entity(AntiAliasing::default())
         .with_entity(AntiAliasingController)
         .with_entity(window_target())
         .with_entity(information())
@@ -72,30 +69,34 @@ impl AntiAliasingController {
         let keyboard = keyboard.get();
         let anti_aliasing = anti_aliasing.get_mut();
         if keyboard.key(Key::Up).is_just_released {
-            *anti_aliasing = Self::increase(*anti_aliasing);
+            Self::switch_to_next_mode(anti_aliasing);
         }
         if keyboard.key(Key::Down).is_just_released {
-            *anti_aliasing = Self::decrease(*anti_aliasing);
+            Self::switch_to_previous_mode(anti_aliasing);
         }
         information.get_mut().content = format!(
             "Sample count: {}\n* Up arrow key: increase\n* Down arrow key: decrease",
-            anti_aliasing.sample_count()
+            anti_aliasing.mode.sample_count()
         );
     }
 
-    fn increase(anti_aliasing: AntiAliasing) -> AntiAliasing {
-        match anti_aliasing {
-            AntiAliasing::None => AntiAliasing::MsaaX2,
-            AntiAliasing::MsaaX2 => AntiAliasing::MsaaX4,
-            AntiAliasing::MsaaX4 | AntiAliasing::MsaaX8 => AntiAliasing::MsaaX8,
-        }
+    fn switch_to_next_mode(anti_aliasing: &mut AntiAliasing) {
+        let mode_index = anti_aliasing
+            .supported_modes()
+            .iter()
+            .position(|a| a == &anti_aliasing.mode);
+        let new_mode_index = mode_index.map_or(0, |i| {
+            (i + 1).min(anti_aliasing.supported_modes().len() - 1)
+        });
+        anti_aliasing.mode = anti_aliasing.supported_modes()[new_mode_index];
     }
 
-    fn decrease(sample_count: AntiAliasing) -> AntiAliasing {
-        match sample_count {
-            AntiAliasing::None | AntiAliasing::MsaaX2 => AntiAliasing::None,
-            AntiAliasing::MsaaX4 => AntiAliasing::MsaaX2,
-            AntiAliasing::MsaaX8 => AntiAliasing::MsaaX4,
-        }
+    fn switch_to_previous_mode(anti_aliasing: &mut AntiAliasing) {
+        let mode_index = anti_aliasing
+            .supported_modes()
+            .iter()
+            .position(|a| a == &anti_aliasing.mode);
+        let new_mode_index = mode_index.map_or(0, |i| i.saturating_sub(1));
+        anti_aliasing.mode = anti_aliasing.supported_modes()[new_mode_index];
     }
 }

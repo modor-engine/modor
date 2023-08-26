@@ -115,9 +115,13 @@ impl GpuContext {
         })
     }
 
+    pub(crate) fn features() -> Features {
+        Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+    }
+
     fn retrieve_device(adapter: &Adapter) -> (Device, Queue) {
         let device_descriptor = DeviceDescriptor {
-            features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+            features: Self::features(),
             limits: platform::gpu_limits(),
             label: None,
         };

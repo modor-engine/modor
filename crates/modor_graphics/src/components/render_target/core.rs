@@ -22,13 +22,13 @@ pub(crate) struct TargetCore {
 impl TargetCore {
     pub(crate) fn new(
         size: NonZeroSize,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
         context: &GpuContext,
     ) -> Self {
         let texture_format = context
             .surface_texture_format
             .unwrap_or(Shader::TEXTURE_FORMAT);
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
+        let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         Self {
             size,
             color_buffer_view: Self::create_color_buffer_view(
@@ -52,10 +52,10 @@ impl TargetCore {
     pub(crate) fn update(
         &mut self,
         size: NonZeroSize,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
         context: &GpuContext,
     ) {
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
+        let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         let texture_format = context
             .surface_texture_format
             .unwrap_or(Shader::TEXTURE_FORMAT);

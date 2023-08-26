@@ -10,7 +10,7 @@ pub(crate) struct TextureTarget {
 impl TextureTarget {
     pub(crate) fn new(
         texture: &Texture,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
         context: &GpuContext,
     ) -> Self {
         let size = texture.inner().size;
@@ -26,7 +26,7 @@ impl TextureTarget {
     pub(crate) fn updated(
         mut self,
         texture: &Texture,
-        anti_aliasing: Option<AntiAliasing>,
+        anti_aliasing: Option<&AntiAliasing>,
         context: &GpuContext,
     ) -> Self {
         self.core

@@ -126,7 +126,7 @@ impl RenderTarget {
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
-        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get).copied();
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
         if let (Some(context), Some(window)) = (state.context(), window) {
             let frame_rate = frame_rate
                 .as_ref()
@@ -157,7 +157,7 @@ impl RenderTarget {
         if state.is_removed() || texture.is_none() {
             self.texture = None;
         }
-        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get).copied();
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
         if let (Some(context), Some(texture)) = (state.context(), texture) {
             self.texture = (texture.state() == ResourceState::Loaded).then(|| {
                 self.texture
@@ -424,12 +424,14 @@ pub(crate) struct WindowTargetUpdate(
     <Window as ComponentSystems>::Action,
     <Renderer as ComponentSystems>::Action,
     <FrameRate as ComponentSystems>::Action,
+    <AntiAliasing as ComponentSystems>::Action,
 );
 
 #[derive(Action)]
 pub(crate) struct TextureTargetUpdate(
     <Texture as ComponentSystems>::Action,
     <Renderer as ComponentSystems>::Action,
+    <AntiAliasing as ComponentSystems>::Action,
 );
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

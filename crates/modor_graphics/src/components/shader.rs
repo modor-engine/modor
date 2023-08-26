@@ -69,7 +69,7 @@ impl Shader {
         }
     }
 
-    #[run_after(component(Renderer))]
+    #[run_after(component(Renderer), component(AntiAliasing))]
     fn update(
         &mut self,
         renderer: Option<SingleRef<'_, '_, Renderer>>,
@@ -79,7 +79,7 @@ impl Shader {
         if state.is_removed() {
             self.pipelines.clear();
         }
-        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get).copied();
+        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
         state.context().map_or_else(
             || unreachable!("internal error: unreachable shader state"),
             |context| {
@@ -89,8 +89,8 @@ impl Shader {
         );
     }
 
-    fn update_anti_aliasing(&mut self, anti_aliasing: Option<AntiAliasing>, context: &GpuContext) {
-        let sample_count = anti_aliasing.map_or(1, AntiAliasing::sample_count);
+    fn update_anti_aliasing(&mut self, anti_aliasing: Option<&AntiAliasing>, context: &GpuContext) {
+        let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         if self.sample_count != sample_count {
             self.sample_count = sample_count;
             for (texture_format, pipeline) in &mut self.pipelines {
