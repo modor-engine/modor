@@ -23,7 +23,7 @@ fn run_msaa_in_texture() {
     let mut supported_modes = vec![];
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(AntiAliasing::from(AntiAliasingMode::default()))
+        .with_entity(AntiAliasing::default())
         .with_entity(resources())
         .assert::<With<AntiAliasing>>(1, has_not_supported_modes())
         .updated()
