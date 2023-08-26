@@ -1,8 +1,8 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
+use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
-    AntiAliasing, AntiAliasingMode, Camera2D, Color, Material, Model, RenderTarget, Size, Texture,
-    TextureBuffer,
+    AntiAliasing, AntiAliasingMode, Camera2D, Color, GraphicsModule, Material, Model, RenderTarget,
+    Size, Texture, TextureBuffer,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -19,44 +19,24 @@ fn retrieve_sample_count() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn get_supported_modes() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(AntiAliasing::from(AntiAliasingMode::None))
-        .updated()
-        .assert::<With<AntiAliasing>>(1, |e| {
-            e.has(|a: &AntiAliasing| {
-                assert!(a.supported_modes().len() >= 2);
-                assert_eq!(a.supported_modes()[0], AntiAliasingMode::None);
-                assert_ne!(a.supported_modes()[1], AntiAliasingMode::None);
-            })
-        });
-}
-
-#[modor_test(disabled(macos, android, wasm))]
 fn run_msaa_in_texture() {
     let mut supported_modes = vec![];
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(AntiAliasing::from(AntiAliasingMode::None))
         .with_entity(resources())
+        .assert::<With<AntiAliasing>>(1, has_not_supported_modes())
         .updated()
+        .assert::<With<AntiAliasing>>(1, has_supported_modes())
         .assert::<With<AntiAliasing>>(1, |e| {
             e.has(|a: &AntiAliasing| supported_modes = a.supported_modes().into())
         })
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12))
         .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
         .updated()
-        .assert::<With<TextureBuffer>>(1, |e| {
-            has_pixel_diff(
-                if supported_modes.contains(&AntiAliasingMode::MsaaX4) {
-                    "anti_aliasing#msaa_x4"
-                } else {
-                    "anti_aliasing#none"
-                },
-                12,
-            )(e)
-        })
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12))
         .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX16))
         .updated()
         .assert::<With<TextureBuffer>>(1, |e| {
@@ -72,6 +52,67 @@ fn run_msaa_in_texture() {
         .with_entity(AntiAliasing::from(AntiAliasingMode::None))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn delete_entity() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
+        .with_entity(resources())
+        .updated()
+        .with_deleted_entities::<With<AntiAliasing>>()
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn replace_graphics_module() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
+        .with_entity(resources())
+        .updated()
+        .with_entity(modor_graphics::module())
+        .updated()
+        .assert::<With<AntiAliasing>>(1, has_supported_modes())
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn delete_and_recreate_graphics_module() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
+        .with_entity(resources())
+        .updated()
+        .with_deleted_entities::<With<GraphicsModule>>()
+        .updated()
+        .assert::<With<AntiAliasing>>(1, has_not_supported_modes())
+        .with_entity(modor_graphics::module())
+        .updated()
+        .assert::<With<AntiAliasing>>(1, has_supported_modes())
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12));
+}
+
+fn has_supported_modes<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
+where
+    F: EntityFilter,
+{
+    |e| {
+        e.has(|a: &AntiAliasing| {
+            assert!(a.supported_modes().len() >= 2);
+            assert_eq!(a.supported_modes()[0], AntiAliasingMode::None);
+            assert_ne!(a.supported_modes()[1], AntiAliasingMode::None);
+        })
+    }
+}
+
+fn has_not_supported_modes<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
+where
+    F: EntityFilter,
+{
+    |e| e.has(|a: &AntiAliasing| assert_eq!(a.supported_modes(), [AntiAliasingMode::None]))
 }
 
 fn resources() -> impl BuiltEntity {

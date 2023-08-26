@@ -39,6 +39,13 @@ pub struct AntiAliasing {
 
 #[systems]
 impl AntiAliasing {
+    const MSAA_MODES_SAMPLE_COUNTS: [(AntiAliasingMode, u32); 4] = [
+        (AntiAliasingMode::MsaaX2, 2),
+        (AntiAliasingMode::MsaaX4, 4),
+        (AntiAliasingMode::MsaaX8, 8),
+        (AntiAliasingMode::MsaaX16, 16),
+    ];
+
     /// Returns all supported modes.
     ///
     /// [`AntiAliasingMode::None`](AntiAliasingMode::None) is always included.
@@ -54,33 +61,21 @@ impl AntiAliasing {
         }
         if let Some(context) = state.context() {
             if self.supported_modes.len() == 1 {
-                let texture_formats = Self::texture_formats(context);
-                if Self::is_msaa_sample_count_supported(context, &texture_formats, 2) {
-                    self.supported_modes.push(AntiAliasingMode::MsaaX2);
-                }
-                if Self::is_msaa_sample_count_supported(context, &texture_formats, 4) {
-                    self.supported_modes.push(AntiAliasingMode::MsaaX4);
-                }
-                if Self::is_msaa_sample_count_supported(context, &texture_formats, 8) {
-                    self.supported_modes.push(AntiAliasingMode::MsaaX8);
-                }
-                if Self::is_msaa_sample_count_supported(context, &texture_formats, 16) {
-                    self.supported_modes.push(AntiAliasingMode::MsaaX16);
+                let texture_formats = context.surface_texture_format.map_or_else(
+                    || vec![Shader::TEXTURE_FORMAT],
+                    |format| vec![Shader::TEXTURE_FORMAT, format],
+                );
+                for (mode, count) in Self::MSAA_MODES_SAMPLE_COUNTS {
+                    if Self::is_msaa_sample_count_supported(context, &texture_formats, count) {
+                        self.supported_modes.push(mode);
+                    }
                 }
             }
+            if !self.supported_modes.contains(&self.mode) {
+                error!("anti-aliasing mode `{:?}` is not supported", self.mode);
+                self.mode = AntiAliasingMode::None;
+            }
         }
-        if !self.supported_modes.contains(&self.mode) {
-            error!("anti-aliasing mode `{:?}` is not supported", self.mode);
-            self.mode = AntiAliasingMode::None;
-        }
-    }
-
-    fn texture_formats(context: &GpuContext) -> Vec<TextureFormat> {
-        let mut texture_flags = vec![Shader::TEXTURE_FORMAT];
-        if let Some(format) = context.surface_texture_format {
-            texture_flags.push(format);
-        }
-        texture_flags
     }
 
     fn is_msaa_sample_count_supported(
