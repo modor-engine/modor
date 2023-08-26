@@ -11,7 +11,7 @@
 /// # fn no_run() {
 /// App::new()
 ///     .with_entity(modor_graphics::module())
-///     .with_entity(AntiAliasing::Msaa)
+///     .with_entity(AntiAliasing::MsaaX2)
 ///     .with_entity(window_target())
 ///     .run(modor_graphics::runner);
 /// # }

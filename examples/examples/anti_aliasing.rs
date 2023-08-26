@@ -14,6 +14,9 @@ use modor_resources::ResKey;
 use modor_text::{Alignment, Text};
 use std::f32::consts::FRAC_PI_8;
 
+// TODO: ensure only supported samplings can be configured (example: x8 crashes on Android)
+// TODO: give access to list of samplings to user
+
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()

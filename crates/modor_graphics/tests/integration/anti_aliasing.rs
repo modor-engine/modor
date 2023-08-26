@@ -24,9 +24,9 @@ fn run_msaa_in_texture() {
         .with_entity(resources())
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12))
-        .with_entity(AntiAliasing::MsaaX2)
+        .with_entity(AntiAliasing::MsaaX4)
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x2", 12));
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12));
 }
 
 fn resources() -> impl BuiltEntity {

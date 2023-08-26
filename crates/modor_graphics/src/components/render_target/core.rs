@@ -139,7 +139,7 @@ impl TargetCore {
             dimension: TextureDimension::D2,
             format: texture_format,
             usage: TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[texture_format],
+            view_formats: &[],
         });
         texture.create_view(&TextureViewDescriptor::default())
     }
@@ -161,7 +161,7 @@ impl TargetCore {
             dimension: TextureDimension::D2,
             format: TextureFormat::Depth32Float,
             usage: TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[TextureFormat::Depth32Float],
+            view_formats: &[],
         });
         texture.create_view(&TextureViewDescriptor::default())
     }

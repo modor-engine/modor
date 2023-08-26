@@ -119,7 +119,7 @@ impl WindowTarget {
             height: size.height.into(),
             present_mode: PresentMode::Fifo,
             alpha_mode: surface.get_capabilities(&context.adapter).alpha_modes[0],
-            view_formats: vec![surface.get_capabilities(&context.adapter).formats[0]],
+            view_formats: vec![],
         }
     }
 
