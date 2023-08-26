@@ -11,6 +11,7 @@ use std::f32::consts::FRAC_PI_8;
 
 #[modor_test]
 fn retrieve_sample_count() {
+    assert_eq!(AntiAliasingMode::default().sample_count(), 1);
     assert_eq!(AntiAliasingMode::None.sample_count(), 1);
     assert_eq!(AntiAliasingMode::MsaaX2.sample_count(), 2);
     assert_eq!(AntiAliasingMode::MsaaX4.sample_count(), 4);
