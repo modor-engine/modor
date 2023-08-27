@@ -48,7 +48,9 @@ pub fn window_target() -> impl BuiltEntity {
 /// - [`Camera2D`] with [`TEXTURE_CAMERAS_2D`]`.get(index)` key
 /// - Optional [`TextureBuffer`] if `is_buffer_enabled` is `true`
 ///
-/// Texture targets are uniquely identified by its `index`.
+/// Texture targets are uniquely identified by their `index`.
+/// In case the same `index` is used for two texture targets, there will be a resource key conflict
+/// and targets may not be rendered correctly.
 ///
 /// # Examples
 ///
