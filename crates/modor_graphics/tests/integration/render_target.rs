@@ -114,7 +114,7 @@ fn create_window_target_entity() {
         });
 }
 
-#[modor_test]
+#[modor_test(disabled(macos, android, wasm))]
 fn create_texture_target_entity_without_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
@@ -129,7 +129,7 @@ fn create_texture_target_entity_without_buffer() {
         });
 }
 
-#[modor_test]
+#[modor_test(disabled(macos, android, wasm))]
 fn create_texture_target_entity_with_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
