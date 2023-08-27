@@ -33,6 +33,10 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// - [`RenderTarget`](crate::RenderTarget)
 /// - [`TextureBuffer`](crate::TextureBuffer)
 ///
+/// # Entity functions creating this component
+///
+/// - [`texture_target`](crate::texture_target())
+///
 /// # Examples
 ///
 /// ```rust

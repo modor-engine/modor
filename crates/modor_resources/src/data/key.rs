@@ -107,10 +107,10 @@ impl<R> ResKey<R> {
 /// #     }
 /// # }
 /// #
-/// const PLAYER_MATERIAL: IndexResKey<Material> = IndexResKey::new("player");
+/// const PLAYER_MATERIALS: IndexResKey<Material> = IndexResKey::new("player");
 ///
 /// fn player_entity(player_id: usize) -> impl BuiltEntity {
-///     let material_key = PLAYER_MATERIAL.get(player_id);
+///     let material_key = PLAYER_MATERIALS.get(player_id);
 ///     EntityBuilder::new()
 ///     // ...
 /// }
