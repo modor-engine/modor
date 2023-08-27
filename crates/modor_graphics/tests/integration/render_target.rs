@@ -1,8 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    window_target, Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
-    Window, WINDOW_CAMERA_2D,
+    texture_target, window_target, Camera2D, Color, Material, Model, RenderTarget, Size, Texture,
+    TextureBuffer, Window, TARGET_TEXTURES, TEXTURE_CAMERAS_2D, TEXTURE_TARGETS, WINDOW_CAMERA_2D,
+    WINDOW_TARGET,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -107,8 +108,39 @@ fn create_window_target_entity() {
     App::new()
         .with_entity(window_target())
         .assert::<With<RenderTarget>>(1, |e| {
-            e.has(|_: &Window| ())
+            e.has(|t: &RenderTarget| assert_eq!(t.key(), WINDOW_TARGET))
+                .has(|_: &Window| ())
                 .has(|c: &Camera2D| assert_eq!(c.key(), WINDOW_CAMERA_2D))
+        });
+}
+
+#[modor_test]
+fn create_texture_target_entity_without_buffer() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(5, Size::new(30, 20), false))
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<RenderTarget>>(1, |e| {
+            e.has(|t: &RenderTarget| assert_eq!(t.key(), TEXTURE_TARGETS.get(5)))
+                .has(|t: &Texture| assert_eq!(t.size(), Some(Size::new(30, 20))))
+                .has(|t: &Texture| assert_eq!(t.key(), TARGET_TEXTURES.get(5)))
+                .has(|c: &Camera2D| assert_eq!(c.key(), TEXTURE_CAMERAS_2D.get(5)))
+                .has_not::<TextureBuffer>()
+        });
+}
+
+#[modor_test]
+fn create_texture_target_entity_with_buffer() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(5, Size::new(30, 20), true))
+        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .assert::<With<RenderTarget>>(1, |e| {
+            e.has(|t: &RenderTarget| assert_eq!(t.key(), TEXTURE_TARGETS.get(5)))
+                .has(|t: &Texture| assert_eq!(t.size(), Some(Size::new(30, 20))))
+                .has(|t: &Texture| assert_eq!(t.key(), TARGET_TEXTURES.get(5)))
+                .has(|c: &Camera2D| assert_eq!(c.key(), TEXTURE_CAMERAS_2D.get(5)))
+                .has(|_: &TextureBuffer| ())
         });
 }
 

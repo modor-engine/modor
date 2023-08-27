@@ -1,7 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
+    texture_target, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -162,28 +163,20 @@ fn delete_entity() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(target())
+        .child_entity(
+            texture_target(0, Size::new(30, 20), true)
+                .updated(|t: &mut RenderTarget| t.background_color = Color::DARK_GRAY),
+        )
         .child_component(opaque_texture())
         .child_component(transparent_texture())
         .child_entity(rectangle())
-}
-
-fn target() -> impl BuiltEntity {
-    let target_key = ResKey::unique("main");
-    let texture_key = ResKey::unique("target");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .with(|t| t.background_color = Color::DARK_GRAY)
-        .component(Texture::from_size(texture_key, Size::new(30, 20)))
-        .component(TextureBuffer::default())
-        .child_component(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
         .with(|t| *t.size = Vec2::new(0.8, 0.5))
-        .component(Model::rectangle(MATERIAL, CAMERA))
+        .component(Model::rectangle(MATERIAL, TEXTURE_CAMERAS_2D.get(0)))
 }
 
 fn opaque_texture() -> Texture {
@@ -223,4 +216,3 @@ fn transparent_texture() -> Texture {
 const OPAQUE_TEXTURE: ResKey<Texture> = ResKey::new("opaque");
 const TRANSPARENT_TEXTURE: ResKey<Texture> = ResKey::new("transparent");
 const MATERIAL: ResKey<Material> = ResKey::new("main");
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");

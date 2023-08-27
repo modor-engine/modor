@@ -21,6 +21,10 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 ///
 /// - [`Texture`](Texture)
 ///
+/// # Entity functions creating this component
+///
+/// - [`texture_target`](crate::texture_target())
+///
 /// # Examples
 ///
 /// ```rust

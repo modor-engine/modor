@@ -2,7 +2,8 @@ use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    Camera2D, Color, GraphicsModule, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
+    texture_target, Camera2D, Color, GraphicsModule, Material, Model, Size, TextureBuffer,
+    TEXTURE_CAMERAS_2D, TEXTURE_TARGETS,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -210,18 +211,9 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(target())
+        .child_entity(texture_target(0, Size::new(30, 20), true))
         .child_entity(materials())
-        .child_component(default_camera())
         .child_entity(offset_camera())
-}
-
-fn target() -> impl BuiltEntity {
-    let texture_key = ResKey::unique("target");
-    EntityBuilder::new()
-        .component(RenderTarget::new(TARGET))
-        .component(Texture::from_size(texture_key, Size::new(30, 20)))
-        .component(TextureBuffer::default())
 }
 
 fn materials() -> impl BuiltEntity {
@@ -236,13 +228,9 @@ fn materials() -> impl BuiltEntity {
         .with(|m| m.color = Color::RED.with_alpha(0.5))
 }
 
-fn default_camera() -> Camera2D {
-    Camera2D::new(DEFAULT_CAMERA, TARGET)
-}
-
 fn offset_camera() -> impl BuiltEntity {
     EntityBuilder::new()
-        .component(Camera2D::new(OFFSET_CAMERA, TARGET))
+        .component(Camera2D::new(OFFSET_CAMERA, TEXTURE_TARGETS.get(0)))
         .component(Transform2D::new())
         .with(|t| *t.position = Vec2::new(0.5, 0.5))
 }
@@ -264,10 +252,9 @@ struct ToDelete;
 #[derive(Component, NoSystem)]
 struct BlankComponent; // used to control insertion order of instances
 
-const TARGET: ResKey<RenderTarget> = ResKey::new("main");
 const OPAQUE_BLUE_MATERIAL: ResKey<Material> = ResKey::new("opaque-blue");
 const OPAQUE_RED_MATERIAL: ResKey<Material> = ResKey::new("opaque-red");
 const TRANSPARENT_BLUE_MATERIAL: ResKey<Material> = ResKey::new("transparent-blue");
 const TRANSPARENT_RED_MATERIAL: ResKey<Material> = ResKey::new("transparent-red");
-const DEFAULT_CAMERA: ResKey<Camera2D> = ResKey::new("default");
+const DEFAULT_CAMERA: ResKey<Camera2D> = TEXTURE_CAMERAS_2D.get(0);
 const OFFSET_CAMERA: ResKey<Camera2D> = ResKey::new("offset");

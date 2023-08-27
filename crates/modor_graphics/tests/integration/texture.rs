@@ -1,7 +1,8 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    Camera2D, Material, Model, RenderTarget, Size, Texture, TextureBuffer, TextureSource,
+    texture_target, Material, Model, Size, Texture, TextureBuffer, TextureSource,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -137,7 +138,7 @@ fn create_from_buffer_with_too_big_size() {
 fn create_with_default_params() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(target())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(rectangle())
         .with_entity(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
         .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
@@ -148,7 +149,7 @@ fn create_with_default_params() {
 fn create_with_smooth() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(target())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
@@ -167,7 +168,7 @@ fn create_with_smooth() {
 fn create_with_repeated() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(target())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(rectangle())
         .with_entity(
             EntityBuilder::new()
@@ -263,21 +264,11 @@ fn buffer() -> impl BuiltEntity {
     EntityBuilder::new().component(TextureBuffer::default())
 }
 
-fn target() -> impl BuiltEntity {
-    let target_key = ResKey::unique("main");
-    let texture_key = ResKey::unique("target");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Texture::from_size(texture_key, Size::new(30, 20)))
-        .component(TextureBuffer::default())
-        .component(Camera2D::new(CAMERA, target_key))
-}
-
 fn rectangle() -> impl BuiltEntity {
     let material_key = ResKey::unique("rectangle");
     EntityBuilder::new()
         .component(Transform2D::new())
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
         .component(Material::new(material_key))
         .with(|m| m.texture_key = Some(RECTANGLE_TEXTURE))
         .with(|m| m.texture_size = Vec2::ONE * 2.)
@@ -286,5 +277,4 @@ fn rectangle() -> impl BuiltEntity {
 #[derive(Component, NoSystem)]
 struct TestedTexture;
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const RECTANGLE_TEXTURE: ResKey<Texture> = ResKey::new("rectangle");

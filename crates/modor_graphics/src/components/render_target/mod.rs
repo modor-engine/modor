@@ -44,6 +44,7 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 /// # Entity functions creating this component
 ///
 /// - [`window_target`](crate::window_target())
+/// - [`texture_target`](crate::texture_target())
 ///
 /// # Examples
 ///

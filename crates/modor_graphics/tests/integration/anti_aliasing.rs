@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
-    AntiAliasing, AntiAliasingMode, Camera2D, Color, GraphicsModule, Material, Model, RenderTarget,
-    Size, Texture, TextureBuffer,
+    texture_target, AntiAliasing, AntiAliasingMode, Color, GraphicsModule, Material, Model, Size,
+    TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -117,18 +117,8 @@ where
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(target())
+        .child_entity(texture_target(0, Size::new(30, 20), true))
         .child_entity(rectangle())
-}
-
-fn target() -> impl BuiltEntity {
-    let target_key = ResKey::unique("main");
-    let texture_key = ResKey::unique("target");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Texture::from_size(texture_key, Size::new(30, 20)))
-        .component(TextureBuffer::default())
-        .component(Camera2D::new(CAMERA, target_key))
 }
 
 fn rectangle() -> impl BuiltEntity {
@@ -137,9 +127,7 @@ fn rectangle() -> impl BuiltEntity {
         .component(Transform2D::new())
         .with(|t| *t.size = Vec2::ONE * 0.5)
         .with(|t| *t.rotation = FRAC_PI_8)
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
         .component(Material::new(material_key))
         .with(|m| m.color = Color::GREEN)
 }
-
-const CAMERA: ResKey<Camera2D> = ResKey::new("default");

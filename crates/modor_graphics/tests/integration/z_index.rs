@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    Camera2D, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer, ZIndex2D,
+    texture_target, Color, Material, Model, Size, TextureBuffer, ZIndex2D, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -69,7 +69,7 @@ fn create_for_opaque_and_transparent() {
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(target())
+        .child_entity(texture_target(0, Size::new(30, 20), true))
         .child_component(Material::new(OPAQUE_BLUE_MATERIAL))
         .with(|m| m.color = Color::BLUE)
         .child_component(Material::new(OPAQUE_GREEN_MATERIAL))
@@ -80,29 +80,18 @@ fn resources() -> impl BuiltEntity {
         .with(|m| m.color = Color::GREEN.with_alpha(0.5))
 }
 
-fn target() -> impl BuiltEntity {
-    let target_key = ResKey::new("main");
-    let texture_key = ResKey::new("target");
-    EntityBuilder::new()
-        .component(RenderTarget::new(target_key))
-        .component(Texture::from_size(texture_key, Size::new(30, 20)))
-        .component(TextureBuffer::default())
-        .component(Camera2D::new(CAMERA, target_key))
-}
-
 fn rectangle(position: f32, z_index: u16, material_key: ResKey<Material>) -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
         .with(|t| *t.position = Vec2::new(position, position))
         .with(|t| *t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))
-        .component(Model::rectangle(material_key, CAMERA))
+        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
 }
 
 #[derive(Component, NoSystem)]
 struct Marker;
 
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const OPAQUE_BLUE_MATERIAL: ResKey<Material> = ResKey::new("opaque-blue");
 const OPAQUE_GREEN_MATERIAL: ResKey<Material> = ResKey::new("opaque-green");
 const TRANSPARENT_BLUE_MATERIAL: ResKey<Material> = ResKey::new("transparent-blue");
