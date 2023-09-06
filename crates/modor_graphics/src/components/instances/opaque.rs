@@ -99,9 +99,9 @@ impl OpaqueInstanceRegistry {
         let meshes = meshes.get();
         self.groups.retain(|k, g| {
             g.buffer.len() > 0
-                || cameras.exists(k.camera_key)
                 || materials.exists(k.material_key)
                 || meshes.exists(k.mesh_key)
+                || cameras.exists(k.camera_key)
         });
     }
 
