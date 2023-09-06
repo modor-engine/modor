@@ -2,7 +2,7 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component};
-use modor_graphics::{window_target, Color, Material, Model, WINDOW_CAMERA_2D};
+use modor_graphics::{model_2d, window_target, Color, Material, Model2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -27,9 +27,11 @@ fn text() -> impl BuiltEntity {
         .updated(|t: &mut Text| t.font_key = FONT)
         .updated(|m: &mut Material| m.color = Color::rgb(0.1, 0.1, 0.1))
         .updated(|m: &mut Material| m.front_color = Color::WHITE)
-        .component(Transform2D::new())
-        .with(|t| *t.size = Vec2::new(1., 0.2))
-        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
+        .inherited(model_2d(
+            WINDOW_CAMERA_2D,
+            Model2DMaterial::Key(material_key),
+        ))
+        .updated(|t: &mut Transform2D| *t.size = Vec2::new(1., 0.2))
         .component(LoadingText::default())
 }
 

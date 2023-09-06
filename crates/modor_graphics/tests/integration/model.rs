@@ -1,9 +1,9 @@
 use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::testing::{has_component_diff, is_same};
+use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
-    texture_target, Camera2D, Color, GraphicsModule, Material, Model, Size, TextureBuffer,
-    TEXTURE_CAMERAS_2D, TEXTURE_TARGETS,
+    model_2d, texture_target, Camera2D, Color, GraphicsModule, Material, Model, Model2DMaterial,
+    Size, TextureBuffer, TEXTURE_CAMERAS_2D, TEXTURE_TARGETS,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -207,6 +207,49 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
             1,
             has_component_diff("model#one_camera_transparent_blue", 1),
         );
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_rectangle_model_2d() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(model_2d(
+            TEXTURE_CAMERAS_2D.get(0),
+            Model2DMaterial::Rectangle,
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("model#2d_rectangle"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_ellipse_model_2d() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(model_2d(
+            TEXTURE_CAMERAS_2D.get(0),
+            Model2DMaterial::Ellipse,
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("model#2d_ellipse", 10));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_custom_model_2d() {
+    let material_key = ResKey::new("model");
+    let mut material = Material::new(material_key);
+    material.color = Color::BLUE;
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(material)
+        .with_entity(model_2d(
+            TEXTURE_CAMERAS_2D.get(0),
+            Model2DMaterial::Key(material_key),
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("model#2d_key", 10));
 }
 
 fn resources() -> impl BuiltEntity {

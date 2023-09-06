@@ -17,6 +17,10 @@ use modor_resources::ResKey;
 /// - [`Material`](Material)
 /// - [`Camera2D`](Camera2D)
 ///
+/// # Entity functions creating this component
+///
+/// - [`model_2d`](crate::model_2d())
+///
 /// # Examples
 ///
 /// ```rust

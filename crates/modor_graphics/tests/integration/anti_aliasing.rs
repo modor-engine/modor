@@ -1,12 +1,11 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
-    texture_target, AntiAliasing, AntiAliasingMode, Color, GraphicsModule, Material, Model, Size,
-    TextureBuffer, TEXTURE_CAMERAS_2D,
+    model_2d, texture_target, AntiAliasing, AntiAliasingMode, Color, GraphicsModule, Material,
+    Model2DMaterial, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_resources::ResKey;
 use std::f32::consts::FRAC_PI_8;
 
 #[modor_test]
@@ -122,12 +121,8 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    let material_key = ResKey::unique("rectangle");
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.size = Vec2::ONE * 0.5)
-        .with(|t| *t.rotation = FRAC_PI_8)
-        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
-        .component(Material::new(material_key))
-        .with(|m| m.color = Color::GREEN)
+    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| *t.rotation = FRAC_PI_8)
+        .updated(|m: &mut Material| m.color = Color::GREEN)
 }

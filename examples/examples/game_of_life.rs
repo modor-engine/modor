@@ -2,10 +2,12 @@
 
 use instant::Instant;
 use modor::{
-    systems, App, BuiltEntity, Component, Entity, EntityBuilder, Filter, NoSystem, Query,
-    SingletonComponent, With, World,
+    systems, App, BuiltEntity, Component, Entity, Filter, NoSystem, Query, SingletonComponent,
+    With, World,
 };
-use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
+use modor_graphics::{
+    model_2d, window_target, Color, Material, Model2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
+};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -14,7 +16,6 @@ use std::time::Duration;
 const GRID_SIZE: usize = 150;
 const REFRESH_PERIOD: Duration = Duration::from_millis(100);
 
-const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
 const ALIVE_CELL_MATERIAL: ResKey<Material> = ResKey::new("alive-cell");
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -22,32 +23,26 @@ pub fn main() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(window_target())
-        .with_entity(materials())
+        .with_entity(alive_cell_material())
         .with_entity(Grid::load())
         .with_entity(background())
         .run(modor_graphics::runner);
 }
 
-fn materials() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .child_component(Material::new(BACKGROUND_MATERIAL))
-        .with(|m| m.color = Color::WHITE)
-        .child_component(Material::new(ALIVE_CELL_MATERIAL))
-        .with(|m| m.color = Color::BLACK)
+fn alive_cell_material() -> Material {
+    let mut material = Material::new(ALIVE_CELL_MATERIAL);
+    material.color = Color::BLACK;
+    material
 }
 
 fn background() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .component(Model::rectangle(BACKGROUND_MATERIAL, WINDOW_CAMERA_2D))
+    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.position = to_word_position(x, y))
-        .with(|t| *t.size = Vec2::ONE / GRID_SIZE as f32)
-        .component(Model::rectangle(ALIVE_CELL_MATERIAL, WINDOW_CAMERA_2D))
+    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(ALIVE_CELL_MATERIAL))
+        .updated(|t: &mut Transform2D| *t.position = to_word_position(x, y))
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE / GRID_SIZE as f32)
         .component(ZIndex2D::from(1))
         .component(AliveCell)
 }

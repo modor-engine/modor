@@ -46,7 +46,6 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// const DEFAULT_CAMERA: ResKey<Camera2D> = ResKey::new("default");
 /// const DYNAMIC_CAMERA: ResKey<Camera2D> = ResKey::new("dynamic");
 /// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
-/// const MATERIAL: ResKey<Material> = ResKey::new("main");
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
@@ -72,11 +71,9 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Transform2D::new())
-///         .with(|t| *t.size = Vec2::new(0.3, 0.1))
-///         .component(Model::rectangle(MATERIAL, DEFAULT_CAMERA))
-///         .with(|m| m.camera_keys.push(DYNAMIC_CAMERA))
+///     model_2d(DYNAMIC_CAMERA, Model2DMaterial::Rectangle)
+///         .updated(|m: &mut Model| m.camera_keys.push(DEFAULT_CAMERA)) // add other camera
+///         .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.3, 0.1))
 /// }
 /// ```
 #[must_use]

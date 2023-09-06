@@ -74,8 +74,10 @@ impl TransparentInstanceRegistry {
         }
     }
 
-    pub(crate) fn iter(&self) -> GroupIterator<'_> {
-        GroupIterator::new(self)
+    pub(crate) fn iter(
+        &self,
+    ) -> impl Iterator<Item = (GroupKey, &DynamicBuffer<Instance>, Range<usize>)> {
+        GroupIterator::new(self).filter(|(_, g, _)| g.len() > 0)
     }
 
     pub(crate) fn add_opaque_instance(

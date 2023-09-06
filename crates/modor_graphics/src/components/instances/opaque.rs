@@ -3,12 +3,13 @@ use crate::components::instances::{
     ChangedModel2DFilter, Graphics2DResources, GraphicsEntity2D, GroupKey, GroupKeyState, Instance,
 };
 use crate::components::material::MaterialRegistry;
+use crate::components::mesh::Mesh;
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
-use crate::{GpuContext, Material, Model, Renderer, ZIndex2D};
+use crate::{Camera2D, GpuContext, Material, Model, Renderer, ZIndex2D};
 use fxhash::FxHashMap;
-use modor::{Custom, CustomQuerySystemParam, EntityFilter, Query, SingleMut, World};
+use modor::{Custom, CustomQuerySystemParam, EntityFilter, Query, SingleMut, SingleRef, World};
 use modor_physics::Transform2D;
-use modor_resources::Resource;
+use modor_resources::{Resource, ResourceRegistry};
 use std::iter::Zip;
 use std::mem;
 use std::vec::IntoIter;
@@ -86,8 +87,29 @@ impl OpaqueInstanceRegistry {
         }
     }
 
+    #[run_after_previous]
+    fn delete_groups(
+        &mut self,
+        cameras: SingleRef<'_, '_, ResourceRegistry<Camera2D>>,
+        materials: SingleRef<'_, '_, ResourceRegistry<Material>>,
+        meshes: SingleRef<'_, '_, ResourceRegistry<Mesh>>,
+    ) {
+        let cameras = cameras.get();
+        let materials = materials.get();
+        let meshes = meshes.get();
+        self.groups.retain(|k, g| {
+            g.buffer.len() > 0
+                || cameras.exists(k.camera_key)
+                || materials.exists(k.material_key)
+                || meshes.exists(k.mesh_key)
+        });
+    }
+
     pub(crate) fn iter(&self) -> impl Iterator<Item = (GroupKey, &DynamicBuffer<Instance>)> {
-        self.groups.iter().map(|(&k, g)| (k, &g.buffer))
+        self.groups
+            .iter()
+            .map(|(&k, g)| (k, &g.buffer))
+            .filter(|(_, g)| g.len() > 0)
     }
 
     fn register_models_2d<F>(&mut self, resources: Custom<Graphics2DResources<'_, F>>)

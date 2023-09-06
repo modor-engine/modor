@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
-    texture_target, Color, Material, Model, RenderTarget, Size, Texture, TextureBuffer,
-    TEXTURE_CAMERAS_2D,
+    model_2d, texture_target, Color, Material, Model2DMaterial, RenderTarget, Size, Texture,
+    TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -173,10 +173,8 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.size = Vec2::new(0.8, 0.5))
-        .component(Model::rectangle(MATERIAL, TEXTURE_CAMERAS_2D.get(0)))
+    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Key(MATERIAL))
+        .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.8, 0.5))
 }
 
 fn opaque_texture() -> Texture {

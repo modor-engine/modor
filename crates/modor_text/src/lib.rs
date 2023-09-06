@@ -29,8 +29,7 @@
 //! fn text() -> impl BuiltEntity {
 //!     let material_key = ResKey::unique("text");
 //!     text_material(material_key, "my text", 100.)
-//!         .component(Transform2D::new())
-//!         .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
+//!         .inherited(model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(material_key)))
 //! }
 //! ```
 
