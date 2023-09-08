@@ -1,14 +1,14 @@
 use crate::Text;
-use modor::{BuiltEntity, EntityBuilder};
-use modor_graphics::{Material, Size, Texture};
+use modor::BuiltEntity;
+use modor_graphics::{model_2d, Camera2D, Material, Model2DMaterial, Size, Texture};
 use modor_resources::ResKey;
 
-/// Creates a text material entity.
+/// Creates a 2D text entity.
 ///
 /// The created entity contains the following components:
+/// - All components created by [`model_2d`](model_2d()), including [`Material`]
 /// - [`Text`]
 /// - [`Texture`]
-/// - [`Material`]
 ///
 /// # Requirements
 ///
@@ -34,22 +34,20 @@ use modor_resources::ResKey;
 /// }
 ///
 /// fn text() -> impl BuiltEntity {
-///     text_material(MATERIAL, "my text", 30.)
+///     text_2d(CAMERA, "my text", 30.)
 ///         .updated(|t: &mut Text| t.font_key = FONT)
 ///         .updated(|m: &mut Material| m.color = Color::GREEN)         // background color
 ///         .updated(|m: &mut Material| m.front_color = Color::BLACK)   // text color
-///         .inherited(model_2d(CAMERA, Model2DMaterial::Key(MATERIAL)))
 /// }
 /// ```
-pub fn text_material(
-    material_key: ResKey<Material>,
+pub fn text_2d(
+    camera_key: ResKey<Camera2D>,
     text: impl Into<String>,
     font_height: f32,
 ) -> impl BuiltEntity {
-    let texture_key = ResKey::unique("text-material(modor_text)");
-    EntityBuilder::new()
-        .component(Material::new(material_key))
-        .with(|m| m.front_texture_key = Some(texture_key))
+    let texture_key = ResKey::unique("text-2d(modor_text)");
+    model_2d(camera_key, Model2DMaterial::Rectangle)
+        .updated(|m: &mut Material| m.front_texture_key = Some(texture_key))
         .component(Texture::from_size(texture_key, Size::ZERO))
         .component(Text::new(text, font_height))
 }

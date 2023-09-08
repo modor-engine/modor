@@ -1,2 +1,2 @@
-pub(crate) mod material;
 pub(crate) mod module;
+pub(crate) mod text;

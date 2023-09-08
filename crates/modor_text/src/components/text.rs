@@ -24,7 +24,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///
 /// # Entity functions creating this component
 ///
-/// - [`text_material`](crate::text_material())
+/// - [`text_2d`](crate::text_2d())
 ///
 /// # Examples
 ///

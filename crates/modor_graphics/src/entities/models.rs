@@ -3,7 +3,7 @@ use modor::{BuiltEntity, EntityBuilder};
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
 
-/// Creates a 2D model.
+/// Creates a 2D model entity.
 ///
 /// The created entity contains the following components:
 /// - [`Transform2D`]
