@@ -22,15 +22,9 @@
 //! App::new()
 //!     .with_entity(modor_text::module())
 //!     .with_entity(window_target())
-//!     .with_entity(text())
+//!     .with_entity(text_2d(WINDOW_CAMERA_2D, "my text", 100.))
 //!     .run(modor_graphics::runner);
 //! # }
-//!
-//! fn text() -> impl BuiltEntity {
-//!     let material_key = ResKey::unique("text");
-//!     text_material(material_key, "my text", 100.)
-//!         .inherited(model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(material_key)))
-//! }
 //! ```
 
 #[macro_use]
@@ -41,5 +35,5 @@ mod entities;
 
 pub use components::font::*;
 pub use components::text::*;
-pub use entities::material::*;
 pub use entities::module::*;
+pub use entities::text::*;

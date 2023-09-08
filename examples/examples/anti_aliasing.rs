@@ -10,8 +10,7 @@ use modor_graphics::{
 use modor_input::{InputModule, Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{PhysicsModule, Transform2D};
-use modor_resources::ResKey;
-use modor_text::{text_material, Alignment, Text};
+use modor_text::{text_2d, Alignment, Text};
 use std::f32::consts::FRAC_PI_8;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -36,15 +35,10 @@ fn object() -> impl BuiltEntity {
 }
 
 fn information() -> impl BuiltEntity {
-    let material_key = ResKey::unique("information");
-    text_material(material_key, "", 50.)
+    text_2d(WINDOW_CAMERA_2D, "", 50.)
         .updated(|m: &mut Material| m.front_color = Color::BLACK)
         .updated(|m: &mut Material| m.color = Color::INVISIBLE)
         .updated(|t: &mut Text| t.alignment = Alignment::Left)
-        .inherited(model_2d(
-            WINDOW_CAMERA_2D,
-            Model2DMaterial::Key(material_key),
-        ))
         .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
         .component(ZIndex2D::from(1))
         .component(Information)

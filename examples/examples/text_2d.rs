@@ -2,11 +2,11 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component};
-use modor_graphics::{model_2d, window_target, Color, Material, Model2DMaterial, WINDOW_CAMERA_2D};
+use modor_graphics::{window_target, Color, Material, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
-use modor_text::{text_material, Font, Text};
+use modor_text::{text_2d, Font, Text};
 use std::time::Duration;
 
 const FONT: ResKey<Font> = ResKey::new("main");
@@ -22,15 +22,10 @@ pub fn main() {
 }
 
 fn text() -> impl BuiltEntity {
-    let material_key = ResKey::unique("text");
-    text_material(material_key, "Loading", 300.)
+    text_2d(WINDOW_CAMERA_2D, "Loading", 300.)
         .updated(|t: &mut Text| t.font_key = FONT)
         .updated(|m: &mut Material| m.color = Color::rgb(0.1, 0.1, 0.1))
         .updated(|m: &mut Material| m.front_color = Color::WHITE)
-        .inherited(model_2d(
-            WINDOW_CAMERA_2D,
-            Model2DMaterial::Key(material_key),
-        ))
         .updated(|t: &mut Transform2D| *t.size = Vec2::new(1., 0.2))
         .component(LoadingText::default())
 }
