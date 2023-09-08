@@ -88,9 +88,11 @@ fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
         * material.color;
     let front_color = textureSample(front_texture, front_texture_sampler, fragment.front_texture_position)
         * material.front_color;
-    let color = front_color + (1. - front_color.a) * back_color;
-    if (color.w == 0.) {
+    let back_alpha = (1. - front_color.a) * back_color.a;
+    let alpha = front_color.a + back_alpha;
+    let rgb = (front_color.a * front_color.rgb + back_alpha * back_color.rgb) / alpha;
+    if (alpha == 0.) {
         discard;
     }
-    return color;
+    return vec4(rgb, alpha);
 }

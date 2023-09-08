@@ -3,6 +3,7 @@ use crate::entity_builders::BuiltEntity;
 use crate::storages::archetypes::{ArchetypeIdx, EntityLocation};
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
+use crate::Component;
 
 /// A builder for defining inheritance of an entity.
 ///
@@ -29,5 +30,12 @@ where
 
     fn create_other_entities(self, core: &mut CoreStorage, parent_idx: Option<EntityIdx>) {
         self.entity.create_other_entities(core, parent_idx);
+    }
+
+    fn update_component<C>(&mut self, updater: impl FnMut(&mut C))
+    where
+        C: Component,
+    {
+        self.entity.update_component(updater);
     }
 }

@@ -1,6 +1,8 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::is_same;
-use modor_graphics::{texture_target, Camera2D, Color, Material, Model, Size, TEXTURE_TARGETS};
+use modor_graphics::{
+    model_2d, texture_target, Camera2D, Color, Material, Model2DMaterial, Size, TEXTURE_TARGETS,
+};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -163,24 +165,20 @@ fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(texture_target(0, Size::new(30, 20), true).component(Target1))
         .child_entity(texture_target(1, Size::new(20, 30), true).component(Target2))
-        .child_component(Material::new(MATERIAL))
-        .with(|m| m.color = Color::BLUE)
         .child_entity(model())
 }
 
 fn model() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.position = Vec2::ONE * 0.25)
-        .with(|t| *t.size = Vec2::ONE * 0.5)
-        .component(Model::rectangle(MATERIAL, CAMERA))
+    model_2d(CAMERA, Model2DMaterial::Rectangle)
+        .updated(|t: &mut Transform2D| *t.position = Vec2::ONE * 0.25)
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|m: &mut Material| m.color = Color::BLUE)
 }
 
 fn test_camera(camera: Camera2D) -> impl BuiltEntity {
     EntityBuilder::new().component(camera).component(TestCamera)
 }
 
-const MATERIAL: ResKey<Material> = ResKey::new("main");
 const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 
 #[derive(SingletonComponent, NoSystem)]

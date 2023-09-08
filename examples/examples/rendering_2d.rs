@@ -2,7 +2,9 @@
 
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, SingleRef, SingletonComponent};
-use modor_graphics::{window_target, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D};
+use modor_graphics::{
+    model_2d, window_target, Color, Material, Model2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
+};
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
 use modor_resources::IndexResKey;
@@ -57,16 +59,12 @@ fn sprites() -> impl BuiltEntity {
 
 fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
-    let material_id = entity_id % COLORS.len();
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2)))
-        .with(|t| *t.size = Vec2::ONE * 0.01)
+    let material_key = MATERIAL.get(entity_id % COLORS.len());
+    let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
+    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(material_key))
+        .updated(|t: &mut Transform2D| *t.position = position)
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())
-        .component(Model::rectangle(
-            MATERIAL.get(material_id),
-            WINDOW_CAMERA_2D,
-        ))
         .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .component(RandomMovement::new())
 }

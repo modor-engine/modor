@@ -19,6 +19,10 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// - [`Model`](crate::Model)
 ///
+/// # Entity functions creating this component
+///
+/// - [`model_2d`](crate::model_2d())
+///
 /// # Performance
 ///
 /// As models are rendered by batch based on the material, recreating the same material for each
@@ -27,7 +31,8 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::*;
+/// # use std::char::MAX;
+/// use modor::*;
 /// # use modor_physics::*;
 /// # use modor_math::*;
 /// # use modor_graphics::*;
@@ -56,11 +61,9 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// }
 ///
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Transform2D::new())
-///         .with(|t| *t.position = position)
-///         .with(|t| *t.size = Vec2::new(0.1, 0.1))
-///         .component(Model::rectangle(TL_TEXTURE_MATERIAL, CAMERA))
+///     model_2d(CAMERA, Model2DMaterial::Key(TL_TEXTURE_MATERIAL))
+///         .updated(|t: &mut Transform2D| *t.position = position)
+///         .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.1, 0.1))
 /// }
 ///
 /// fn texture_quarter_material(key: ResKey<Material>, position: Vec2) -> Material {

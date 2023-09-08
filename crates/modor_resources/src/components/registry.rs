@@ -143,6 +143,13 @@ where
         }
     }
 
+    /// Returns whether a resource with a given `key` exists.
+    ///
+    /// Note that the status of the resource is not checked.
+    pub fn exists(&self, key: ResKey<R>) -> bool {
+        self.entity_ids.contains_key(&key)
+    }
+
     /// Returns the resource corresponding to the `key` if it exists and is in
     /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
     pub fn get<'a>(&self, key: ResKey<R>, query: &'a Query<'_, &R>) -> Option<&'a R> {

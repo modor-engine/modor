@@ -38,8 +38,7 @@ use modor_resources::ResKey;
 ///         .updated(|t: &mut Text| t.font_key = FONT)
 ///         .updated(|m: &mut Material| m.color = Color::GREEN)         // background color
 ///         .updated(|m: &mut Material| m.front_color = Color::BLACK)   // text color
-///         .component(Model::rectangle(MATERIAL, CAMERA))
-///         .component(Transform2D::new())
+///         .inherited(model_2d(CAMERA, Model2DMaterial::Key(MATERIAL)))
 /// }
 /// ```
 pub fn text_material(

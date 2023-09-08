@@ -20,6 +20,8 @@ pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 pub(crate) const WHITE_TEXTURE: ResKey<Texture> = ResKey::new("white(modor_graphics)");
 pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(modor_graphics)");
 
+#[must_use]
+#[derive(Component, Debug)]
 /// A texture that can be attached to a [`Material`](crate::Material).
 ///
 /// # Requirements
@@ -48,24 +50,18 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// #
 /// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 /// const TEXTURE: ResKey<Texture> = ResKey::new("sprite");
-/// const MATERIAL: ResKey<Material> = ResKey::new("sprite");
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .child_component(Texture::from_path(TEXTURE, "texture.png"))
-///         .child_component(Material::new(MATERIAL))
-///         .with(|m| m.texture_key = Some(TEXTURE))
 ///         .child_entity(sprite())
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Transform2D::new())
-///         .component(Model::rectangle(MATERIAL, CAMERA))
+///     model_2d(CAMERA, Model2DMaterial::Rectangle)
+///         .updated(|m: &mut Material| m.texture_key = Some(TEXTURE))
 /// }
 /// ```
-#[must_use]
-#[derive(Component, Debug)]
 pub struct Texture {
     /// Whether the texture is smooth.
     ///

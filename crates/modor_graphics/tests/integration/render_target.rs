@@ -1,9 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    texture_target, window_target, Camera2D, Color, Material, Model, RenderTarget, Size, Texture,
-    TextureBuffer, Window, TARGET_TEXTURES, TEXTURE_CAMERAS_2D, TEXTURE_TARGETS, WINDOW_CAMERA_2D,
-    WINDOW_TARGET,
+    model_2d, texture_target, window_target, Camera2D, Color, Material, Model, Model2DMaterial,
+    RenderTarget, Size, Texture, TextureBuffer, Window, TARGET_TEXTURES, TEXTURE_CAMERAS_2D,
+    TEXTURE_TARGETS, WINDOW_CAMERA_2D, WINDOW_TARGET,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -155,13 +155,11 @@ fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_component(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
         .child_component(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
-        .child_component(Material::new(RECTANGLE_MATERIAL))
-        .with(|m| m.color = Color::BLUE)
         .child_component(Material::new(TARGET_MATERIAL))
         .with(|m| m.texture_key = Some(SECONDARY_TARGET_TEXTURE))
         .child_entity(secondary_target())
         .child_entity(blue_rectangle())
-        .child_entity(target_rectangle())
+        .child_entity(model_2d(MAIN_CAMERA, Model2DMaterial::Key(TARGET_MATERIAL)))
 }
 
 fn secondary_target() -> impl BuiltEntity {
@@ -177,18 +175,11 @@ fn secondary_target() -> impl BuiltEntity {
 }
 
 fn blue_rectangle() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.position = Vec2::ONE * 0.25)
-        .with(|t| *t.size = Vec2::ONE * 0.5)
-        .component(Model::rectangle(RECTANGLE_MATERIAL, SECONDARY_CAMERA))
+    model_2d(SECONDARY_CAMERA, Model2DMaterial::Rectangle)
+        .updated(|t: &mut Transform2D| *t.position = Vec2::ONE * 0.25)
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|m: &mut Material| m.color = Color::BLUE)
         .component(BlueRectangle)
-}
-
-fn target_rectangle() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .component(Model::rectangle(TARGET_MATERIAL, MAIN_CAMERA))
 }
 
 #[derive(SingletonComponent, NoSystem)]
@@ -207,4 +198,3 @@ const SECONDARY_TARGET_TEXTURE: ResKey<Texture> = ResKey::new("secondary");
 const MAIN_CAMERA: ResKey<Camera2D> = ResKey::new("main");
 const SECONDARY_CAMERA: ResKey<Camera2D> = ResKey::new("secondary");
 const TARGET_MATERIAL: ResKey<Material> = ResKey::new("target");
-const RECTANGLE_MATERIAL: ResKey<Material> = ResKey::new("rectangle");

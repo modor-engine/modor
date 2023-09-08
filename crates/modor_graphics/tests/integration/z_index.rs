@@ -1,21 +1,21 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
+use modor::{App, BuiltEntity, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    texture_target, Color, Material, Model, Size, TextureBuffer, ZIndex2D, TEXTURE_CAMERAS_2D,
+    model_2d, texture_target, Color, Material, Model2DMaterial, Size, TextureBuffer, ZIndex2D,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_resources::ResKey;
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_for_opaque() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
-        .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
-        .with_entity(rectangle(-0.03, 1, OPAQUE_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, OPAQUE_GREEN_MATERIAL).component(Marker))
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(opaque_blue_rectangle(-0.09, 0))
+        .with_entity(opaque_blue_rectangle(0.03, u16::MAX - 1))
+        .with_entity(opaque_green_rectangle(-0.03, 1))
+        .with_entity(opaque_green_rectangle(0.09, u16::MAX).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("z_index#opaque"))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -30,11 +30,11 @@ fn create_for_opaque() {
 fn create_for_transparent() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, TRANSPARENT_BLUE_MATERIAL))
-        .with_entity(rectangle(0.03, u16::MAX - 1, TRANSPARENT_BLUE_MATERIAL))
-        .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).component(Marker))
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(transparent_blue_rectangle(-0.09, 0))
+        .with_entity(transparent_blue_rectangle(0.03, u16::MAX - 1))
+        .with_entity(transparent_green_rectangle(-0.03, 1))
+        .with_entity(transparent_green_rectangle(0.09, u16::MAX).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -49,11 +49,11 @@ fn create_for_transparent() {
 fn create_for_opaque_and_transparent() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(rectangle(-0.09, 0, OPAQUE_BLUE_MATERIAL))
-        .with_entity(rectangle(0.03, u16::MAX - 1, OPAQUE_BLUE_MATERIAL))
-        .with_entity(rectangle(-0.03, 1, TRANSPARENT_GREEN_MATERIAL))
-        .with_entity(rectangle(0.09, u16::MAX, TRANSPARENT_GREEN_MATERIAL).component(Marker))
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(opaque_blue_rectangle(-0.09, 0))
+        .with_entity(opaque_blue_rectangle(0.03, u16::MAX - 1))
+        .with_entity(transparent_green_rectangle(-0.03, 1))
+        .with_entity(transparent_green_rectangle(0.09, u16::MAX).component(Marker))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
@@ -67,32 +67,28 @@ fn create_for_opaque_and_transparent() {
         );
 }
 
-fn resources() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .child_entity(texture_target(0, Size::new(30, 20), true))
-        .child_component(Material::new(OPAQUE_BLUE_MATERIAL))
-        .with(|m| m.color = Color::BLUE)
-        .child_component(Material::new(OPAQUE_GREEN_MATERIAL))
-        .with(|m| m.color = Color::GREEN)
-        .child_component(Material::new(TRANSPARENT_BLUE_MATERIAL))
-        .with(|m| m.color = Color::BLUE.with_alpha(0.5))
-        .child_component(Material::new(TRANSPARENT_GREEN_MATERIAL))
-        .with(|m| m.color = Color::GREEN.with_alpha(0.5))
+fn opaque_blue_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
+    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::BLUE)
 }
 
-fn rectangle(position: f32, z_index: u16, material_key: ResKey<Material>) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.position = Vec2::new(position, position))
-        .with(|t| *t.size = Vec2::ONE * 0.3)
+fn transparent_blue_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
+    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::BLUE.with_alpha(0.5))
+}
+
+fn opaque_green_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
+    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::GREEN)
+}
+
+fn transparent_green_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
+    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::GREEN.with_alpha(0.5))
+}
+
+fn rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
+    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
+        .updated(|t: &mut Transform2D| *t.position = Vec2::new(position, position))
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))
-        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
 }
 
 #[derive(Component, NoSystem)]
 struct Marker;
-
-const OPAQUE_BLUE_MATERIAL: ResKey<Material> = ResKey::new("opaque-blue");
-const OPAQUE_GREEN_MATERIAL: ResKey<Material> = ResKey::new("opaque-green");
-const TRANSPARENT_BLUE_MATERIAL: ResKey<Material> = ResKey::new("transparent-blue");
-const TRANSPARENT_GREEN_MATERIAL: ResKey<Material> = ResKey::new("transparent-green");

@@ -22,6 +22,10 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// - [`Texture`]
 /// - [`Font`]
 ///
+/// # Entity functions creating this component
+///
+/// - [`text_material`](crate::text_material())
+///
 /// # Examples
 ///
 /// ```rust
@@ -43,31 +47,14 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// fn text() -> impl BuiltEntity {
 ///     let texture_key = ResKey::unique("text");
 ///     let material_key = ResKey::unique("text");
-///     EntityBuilder::new()
+///     model_2d(CAMERA, Model2DMaterial::Key(material_key))
 ///         .component(Text::new("my text", 30.))
 ///         .with(|t| t.font_key = FONT)
 ///         .component(Texture::from_size(texture_key, Size::ZERO))
 ///         .component(Material::new(material_key))
 ///         .with(|m| m.front_texture_key = Some(texture_key))
-///         .component(Model::rectangle(material_key, CAMERA))
-///         .component(Transform2D::new())
 /// }
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct CameraKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct FontKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct TextureKey;
-///
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// struct MaterialKey;
 /// ```
-///
-/// See also [`text_material`](crate::text_material()) for a less verbose creation of
-/// text.
 #[derive(Component, Debug)]
 pub struct Text {
     /// Text to render.

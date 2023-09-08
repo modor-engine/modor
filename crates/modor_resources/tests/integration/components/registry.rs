@@ -19,6 +19,7 @@ fn retrieve_not_loaded_resource() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -33,6 +34,7 @@ fn retrieve_loading_resource() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -46,6 +48,7 @@ fn retrieve_loaded_resource() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(10)))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -62,6 +65,7 @@ fn retrieve_error_resource() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -75,6 +79,7 @@ fn retrieve_resource_with_duplicated_key() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(20)))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -87,16 +92,19 @@ fn retrieve_resource_with_replaced_key() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(10)))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         })
         .with_update::<(), _>(|v: &mut Value| *v = Value::new(VALUE2, ResourceState::Loaded, 20))
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
+                .has(|v: &RetrievedValue| assert!(!v.exists))
         })
         .with_update::<(), _>(|v: &mut Value| *v = Value::new(VALUE1, ResourceState::Loaded, 30))
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(30)))
+                .has(|v: &RetrievedValue| assert!(v.exists))
         });
 }
 
@@ -110,6 +118,7 @@ fn retrieve_resource_with_missing_key() {
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
+                .has(|v: &RetrievedValue| assert!(!v.exists))
         });
 }
 
@@ -142,16 +151,22 @@ impl Resource for Value {
 struct RetrievedValue {
     key: ResKey<Value>,
     value: Option<u32>,
+    exists: bool,
 }
 
 #[systems]
 impl RetrievedValue {
     fn new(key: ResKey<Value>) -> Self {
-        Self { key, value: None }
+        Self {
+            key,
+            value: None,
+            exists: false,
+        }
     }
 
     #[run_after(component(ValueRegistry), component(Value))]
     fn update(&mut self, values: Custom<ResourceAccessor<'_, Value>>) {
         self.value = values.get(self.key).map(|v| v.value);
+        self.exists = values.registry.as_ref().unwrap().get().exists(self.key);
     }
 }

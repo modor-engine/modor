@@ -1,10 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With};
 use modor_graphics::testing::TestRunnerContext;
 use modor_graphics::{
-    testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material, Model,
-    RenderTarget, Size, Window, WindowCloseBehavior,
+    model_2d, testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material,
+    Model2DMaterial, RenderTarget, Size, Window, WindowCloseBehavior,
 };
-use modor_physics::Transform2D;
 use modor_resources::ResKey;
 use std::thread;
 use std::time::Duration;
@@ -196,20 +195,12 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 }
 
 fn opaque_rectangle() -> impl BuiltEntity {
-    let material_key = ResKey::unique("opaque-rectangle");
-    EntityBuilder::new()
-        .component(Material::new(material_key))
-        .component(Model::rectangle(material_key, CAMERA))
-        .component(Transform2D::new())
+    model_2d(CAMERA, Model2DMaterial::Rectangle)
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
-    let material_key = ResKey::unique("transparent-rectangle");
-    EntityBuilder::new()
-        .component(Material::new(material_key))
-        .with(|m| m.color = Color::WHITE.with_alpha(0.5))
-        .component(Model::rectangle(material_key, CAMERA))
-        .component(Transform2D::new())
+    model_2d(CAMERA, Model2DMaterial::Rectangle)
+        .updated(|m: &mut Material| m.color = Color::WHITE.with_alpha(0.5))
 }
 
 #[derive(Component)]

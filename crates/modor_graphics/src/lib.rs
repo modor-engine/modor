@@ -34,11 +34,10 @@
 //! }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
-//!     EntityBuilder::new()
-//!         .component(Transform2D::new())
-//!         .with(|t| *t.position = position)
-//!         .with(|t| *t.size = size)
-//!         .component(Model::rectangle(MATERIAL, WINDOW_CAMERA_2D))
+//!     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+//!         .updated(|t: &mut Transform2D| *t.position = position)
+//!         .updated(|t: &mut Transform2D| *t.size = size)
+//!         .updated(|m: &mut Material| m.color = Color::RED)
 //! }
 //!
 //! const MATERIAL: ResKey<Material> = ResKey::new("rectangle");
@@ -72,6 +71,7 @@ pub use components::window::*;
 pub use components::z_index::*;
 pub use data::color::*;
 pub use data::size::*;
+pub use entities::models::*;
 pub use entities::module::*;
 pub use entities::targets::*;
 pub use runner::*;

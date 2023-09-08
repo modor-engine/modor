@@ -165,9 +165,11 @@ fn build_entity_with_updated_component() {
                 .child_entities(|_| ())
                 .dependency::<Singleton2, _, _>(|| EntityBuilder::new().component(Singleton2(2)))
                 .inherited(EntityBuilder::new().component(Singleton3(3)))
+                .updated(|i: &mut Singleton3| i.0 += 2)
                 .updated(|i: &mut Integer| i.0 += 1),
         )
-        .assert::<With<Integer>>(1, |e| e.has(|i: &Integer| assert_eq!(i.0, 11)));
+        .assert::<With<Integer>>(1, |e| e.has(|i: &Integer| assert_eq!(i.0, 11)))
+        .assert::<With<Singleton3>>(1, |e| e.has(|i: &Singleton3| assert_eq!(i.0, 5)));
 }
 
 #[derive(Component, NoSystem)]

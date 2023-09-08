@@ -1,11 +1,10 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    texture_target, Material, Model, Size, Texture, TextureBuffer, TextureSource,
-    TEXTURE_CAMERAS_2D,
+    model_2d, texture_target, Material, Model2DMaterial, Size, Texture, TextureBuffer,
+    TextureSource, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
-use modor_physics::Transform2D;
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceState};
 
@@ -265,13 +264,9 @@ fn buffer() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    let material_key = ResKey::unique("rectangle");
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .component(Model::rectangle(material_key, TEXTURE_CAMERAS_2D.get(0)))
-        .component(Material::new(material_key))
-        .with(|m| m.texture_key = Some(RECTANGLE_TEXTURE))
-        .with(|m| m.texture_size = Vec2::ONE * 2.)
+    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
+        .updated(|m: &mut Material| m.texture_key = Some(RECTANGLE_TEXTURE))
+        .updated(|m: &mut Material| m.texture_size = Vec2::ONE * 2.)
 }
 
 #[derive(Component, NoSystem)]

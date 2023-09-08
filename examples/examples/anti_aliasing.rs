@@ -1,17 +1,17 @@
 #![allow(missing_docs)]
 
 use modor::{
-    systems, App, BuiltEntity, EntityBuilder, NoSystem, Single, SingleMut, SingleRef,
-    SingletonComponent,
+    systems, App, BuiltEntity, NoSystem, Single, SingleMut, SingleRef, SingletonComponent,
 };
 use modor_graphics::{
-    window_target, AntiAliasing, Color, Material, Model, ZIndex2D, WINDOW_CAMERA_2D,
+    model_2d, window_target, AntiAliasing, Color, Material, Model2DMaterial, ZIndex2D,
+    WINDOW_CAMERA_2D,
 };
 use modor_input::{InputModule, Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{PhysicsModule, Transform2D};
 use modor_resources::ResKey;
-use modor_text::{Alignment, Text};
+use modor_text::{text_material, Alignment, Text};
 use std::f32::consts::FRAC_PI_8;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
@@ -29,25 +29,23 @@ pub fn main() {
 }
 
 fn object() -> impl BuiltEntity {
-    let material_key = ResKey::unique("object");
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| *t.size = Vec2::ONE * 0.5)
-        .with(|t| *t.rotation = FRAC_PI_8)
-        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
-        .component(Material::new(material_key))
-        .with(|m| m.color = Color::YELLOW)
+    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| *t.rotation = FRAC_PI_8)
+        .updated(|m: &mut Material| m.color = Color::YELLOW)
 }
 
 fn information() -> impl BuiltEntity {
     let material_key = ResKey::unique("information");
-    modor_text::text_material(material_key, "", 50.)
+    text_material(material_key, "", 50.)
         .updated(|m: &mut Material| m.front_color = Color::BLACK)
         .updated(|m: &mut Material| m.color = Color::INVISIBLE)
         .updated(|t: &mut Text| t.alignment = Alignment::Left)
-        .component(Model::rectangle(material_key, WINDOW_CAMERA_2D))
-        .component(Transform2D::new())
-        .with(|t| *t.size = Vec2::ONE * 0.5)
+        .inherited(model_2d(
+            WINDOW_CAMERA_2D,
+            Model2DMaterial::Key(material_key),
+        ))
+        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
         .component(ZIndex2D::from(1))
         .component(Information)
 }
