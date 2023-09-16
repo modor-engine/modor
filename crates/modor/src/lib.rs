@@ -130,7 +130,7 @@ pub use modor_derive::Action;
 /// # use modor::*;
 /// #
 /// App::new()
-///     .with_entity(build_complex_entity().component(AutoRemoved));
+///     .with_entity(build_complex_entity().component(RemoveIf(false)));
 ///
 /// fn build_complex_entity() -> impl BuiltEntity {
 ///     EntityBuilder::new()
@@ -138,13 +138,15 @@ pub use modor_derive::Action;
 /// }
 ///
 /// #[derive(Component)]
-/// struct AutoRemoved;
+/// struct RemoveIf(bool);
 ///
 /// #[systems]
-/// impl AutoRemoved {
+/// impl RemoveIf {
 ///     #[run]
-///     fn update(&mut self, mut entity: EntityMut<'_>) {
-///         entity.delete();
+///     fn update(&self, mut entity: EntityMut<'_>) {
+///         if self.0 {
+///             entity.delete();
+///         }
 ///     }
 /// }
 /// ```
@@ -524,3 +526,20 @@ pub use modor_derive::SystemParam;
 /// }
 /// ```
 pub use modor_derive::QuerySystemParam;
+
+/// Defines a temporary component.
+///
+/// A temporary component is only available during one [`App`](crate::App) update. After the update,
+/// the component is automatically deleted.
+///
+/// Note that as this macro defines systems, no additional system can be defined for the component.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(SingletonComponent, TemporaryComponent)]
+/// struct MyEvent; // once created, only available during one app update
+/// ```
+pub use modor_derive::TemporaryComponent;

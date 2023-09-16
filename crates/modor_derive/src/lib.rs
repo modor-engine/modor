@@ -4,6 +4,7 @@ use crate::actions::ActionStruct;
 use crate::components::ComponentType;
 use crate::system_impl::SystemImpl;
 use crate::system_params::SystemParamStruct;
+use crate::temporary_components::TemporaryComponentStruct;
 use crate::tests::TestFunction;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemFn, ItemImpl};
@@ -13,6 +14,7 @@ mod common;
 mod components;
 mod system_impl;
 mod system_params;
+mod temporary_components;
 mod tests;
 
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -83,5 +85,15 @@ pub fn query_system_param_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     SystemParamStruct::new(&input)
         .custom_query_system_param_impl()
+        .into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(TemporaryComponent)]
+#[proc_macro_error::proc_macro_error]
+pub fn temporary_derive(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    TemporaryComponentStruct::new(&input)
+        .temporary_component_impl()
         .into()
 }

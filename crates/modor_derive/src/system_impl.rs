@@ -130,7 +130,7 @@ impl<'a> SystemImpl<'a> {
 
     fn impl_header(&self) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        generation::impl_header(
+        generation::trait_impl_header(
             &self.item.generics,
             &self.ident,
             &parse_quote! { #crate_::ComponentSystems },

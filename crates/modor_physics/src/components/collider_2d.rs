@@ -1,21 +1,23 @@
 use crate::storages_2d::collision_groups::{CollisionGroupIdx, CollisionGroupKey};
 use crate::{CollisionGroupRef, Transform2D};
+use modor::{Query, QuerySystemParam, QuerySystemParamWithLifetime};
 use modor_math::Vec2;
 use rapier2d::geometry::{Collider, ColliderBuilder, ColliderHandle, ContactManifold};
 use rapier2d::math::{Point, Vector};
 use rapier2d::prelude::InteractionGroups;
+use std::slice::Iter;
 
 /// The collision properties of a 2D entity.
 ///
 /// This component has an effect only if the entity has also a component of type
-/// [`Transform2D`](crate::Transform2D).
+/// [`Transform2D`](Transform2D).
 ///
 /// # Limits
 ///
-/// The collisions may not be updated when only the size of the [`Transform2D`](crate::Transform2D)
+/// The collisions may not be updated when only the size of the [`Transform2D`](Transform2D)
 /// component is changed.<br>
 /// However it is ensured the collision is detected when updating only the position or the rotation
-/// of the [`Transform2D`](crate::Transform2D) component.
+/// of the [`Transform2D`](Transform2D) component.
 ///
 /// # Example
 ///
@@ -45,6 +47,37 @@ impl Collider2D {
     /// Returns the detected collisions.
     pub fn collisions(&self) -> &[Collision2D] {
         &self.collisions
+    }
+
+    /// Returns an iterator on colliding objects.
+    ///
+    /// `query` is used to retrieved the information to return for each colliding object.
+    pub fn collided<'a, 'b, P>(&'a self, query: &'a Query<'b, P>) -> Collided2DIter<'a, 'b, P>
+    where
+        P: 'static + QuerySystemParam,
+    {
+        Collided2DIter {
+            collisions: self.collisions.iter(),
+            query,
+        }
+    }
+
+    /// Returns an iterator on colliding objects with group reference `group_ref`.
+    ///
+    /// `query` is used to retrieved the information to return for each colliding object.
+    pub fn collided_as<'a, 'b, P>(
+        &'a self,
+        query: &'a Query<'b, P>,
+        group_ref: impl CollisionGroupRef,
+    ) -> CollidedAs2DIter<'a, 'b, P>
+    where
+        P: 'static + QuerySystemParam,
+    {
+        CollidedAs2DIter {
+            collisions: self.collisions.iter(),
+            query,
+            group_key: CollisionGroupKey::new(group_ref),
+        }
     }
 
     pub(crate) fn collider_builder(&self, size: Vec2) -> ColliderBuilder {
@@ -149,6 +182,64 @@ impl Collision2D {
     fn local_to_global_position(local_positions: Point<f32>, transform: &Transform2D) -> Vec2 {
         Vec2::new(local_positions.x, local_positions.y).with_rotation(*transform.rotation)
             + *transform.position
+    }
+}
+
+/// An iterator on colliding objects.
+///
+/// This struct is created by [`Collider2D::collided`].
+pub struct Collided2DIter<'a, 'b, P>
+where
+    P: 'static + QuerySystemParam,
+{
+    collisions: Iter<'a, Collision2D>,
+    query: &'a Query<'b, P>,
+}
+
+impl<'a, 'b, P> Iterator for Collided2DIter<'a, 'b, P>
+where
+    P: 'static + QuerySystemParam,
+{
+    type Item = (
+        &'a Collision2D,
+        <P as QuerySystemParamWithLifetime<'a>>::ConstParam,
+    );
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.collisions
+            .find_map(|c| self.query.get(c.other_entity_id).map(|e| (c, e)))
+    }
+}
+
+/// An iterator on colliding objects of a specific collision group.
+///
+/// This struct is created by [`Collider2D::collided_as`].
+pub struct CollidedAs2DIter<'a, 'b, P>
+where
+    P: 'static + QuerySystemParam,
+{
+    collisions: Iter<'a, Collision2D>,
+    query: &'a Query<'b, P>,
+    group_key: CollisionGroupKey,
+}
+
+impl<'a, 'b, P> Iterator for CollidedAs2DIter<'a, 'b, P>
+where
+    P: 'static + QuerySystemParam,
+{
+    type Item = (
+        &'a Collision2D,
+        <P as QuerySystemParamWithLifetime<'a>>::ConstParam,
+    );
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.collisions.find_map(|c| {
+            if self.group_key == c.other_entity_group_key {
+                self.query.get(c.other_entity_id).map(|e| (c, e))
+            } else {
+                None
+            }
+        })
     }
 }
 

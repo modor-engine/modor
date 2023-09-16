@@ -30,7 +30,7 @@ impl<'a> ActionStruct<'a> {
 
     pub(crate) fn action_impl(&self) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        let impl_header = generation::impl_header(
+        let impl_header = generation::trait_impl_header(
             &self.input.generics,
             &self.input.ident,
             &parse_quote! { #crate_::Action },
