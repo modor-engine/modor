@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 
 use modor::{
-    systems, App, BuiltEntity, Component, EntityBuilder, EntityMut, Query, SingleRef,
-    TemporaryComponent, World,
+    systems, App, BuiltEntity, Component, EntityBuilder, Query, SingleRef, TemporaryComponent,
+    World,
 };
 use modor_graphics::{
     model_2d, window_target, Camera2D, Color, Material, Model2DMaterial, Window, ZIndex2D,
