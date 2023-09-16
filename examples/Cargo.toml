@@ -90,3 +90,13 @@ crate-type = ["cdylib"]
 name = "game_of_life"
 path = "examples/game_of_life.rs"
 crate-type = ["bin"]
+
+[[example]]
+name = "pong_android"
+path = "examples/pong/main.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "pong"
+path = "examples/pong/main.rs"
+crate-type = ["bin"]

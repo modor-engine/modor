@@ -199,11 +199,8 @@ impl Material {
         self.old_is_transparent = self.is_transparent;
         if !self.is_transparent {
             self.is_transparent = (self.color.a > 0. && self.color.a < 1.)
-                || self
-                    .texture_key
-                    .as_ref()
-                    .and_then(|&k| textures.get(k))
-                    .map_or(false, |t| t.inner().is_transparent);
+                || Self::is_texture_transparent(self.texture_key, &textures)
+                || Self::is_texture_transparent(self.front_texture_key, &textures);
         }
     }
 
@@ -219,6 +216,16 @@ impl Material {
         self.uniform
             .as_ref()
             .expect("internal error: material uniform not initialized")
+    }
+
+    fn is_texture_transparent(
+        texture_key: Option<ResKey<Texture>>,
+        textures: &Custom<ResourceAccessor<'_, Texture>>,
+    ) -> bool {
+        texture_key
+            .as_ref()
+            .and_then(|&k| textures.get(k))
+            .map_or(false, |t| t.inner().is_transparent)
     }
 }
 
