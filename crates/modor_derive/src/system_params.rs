@@ -145,7 +145,7 @@ impl<'a> SystemParamStruct<'a> {
 
     fn impl_header(&self, type_ident: &Ident, trait_ident: &Ident) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        generation::impl_header(
+        generation::trait_impl_header(
             &self.input.generics,
             type_ident,
             &parse_quote! { #crate_::#trait_ident },

@@ -83,13 +83,13 @@ fn create_for_transparent_texture() {
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
         .assert::<With<TextureBuffer>>(
-            1,
+            10,
             has_component_diff("z_index#transparent_texture_reversed", 1),
         )
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
         .assert::<With<TextureBuffer>>(
-            1,
+            10,
             has_component_diff("z_index#transparent_texture_reversed", 1),
         );
 }
@@ -108,13 +108,13 @@ fn create_for_transparent_front_texture() {
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
         .assert::<With<TextureBuffer>>(
-            1,
+            10,
             has_component_diff("z_index#transparent_texture_reversed", 1),
         )
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
         .assert::<With<TextureBuffer>>(
-            1,
+            10,
             has_component_diff("z_index#transparent_texture_reversed", 1),
         );
 }

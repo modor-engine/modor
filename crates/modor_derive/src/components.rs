@@ -28,7 +28,7 @@ impl<'a> ComponentType<'a> {
 
     pub(crate) fn no_system_impl(&self) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        let impl_header = generation::impl_header(
+        let impl_header = generation::trait_impl_header(
             &self.input.generics,
             &self.input.ident,
             &parse_quote! { #crate_::ComponentSystems },
@@ -47,7 +47,7 @@ impl<'a> ComponentType<'a> {
 
     fn component_impl_block(&self, is_singleton: Type) -> TokenStream {
         let crate_ = Ident::new(&self.crate_name, Span::call_site());
-        let impl_header = generation::impl_header(
+        let impl_header = generation::trait_impl_header(
             &self.input.generics,
             &self.input.ident,
             &parse_quote! { #crate_::Component },

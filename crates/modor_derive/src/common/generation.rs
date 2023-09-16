@@ -2,10 +2,21 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{parse_quote, Generics, ItemStruct, Type, Visibility};
 
-pub(crate) fn impl_header(generics: &Generics, struct_: &Ident, trait_: &Type) -> TokenStream {
+pub(crate) fn trait_impl_header(
+    generics: &Generics,
+    struct_: &Ident,
+    trait_: &Type,
+) -> TokenStream {
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     quote!(
         impl #impl_generics #trait_ for #struct_ #type_generics #where_clause
+    )
+}
+
+pub(crate) fn impl_header(generics: &Generics, struct_: &Ident) -> TokenStream {
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+    quote!(
+        impl #impl_generics #struct_ #type_generics #where_clause
     )
 }
 

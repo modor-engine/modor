@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::TestRunnerContext;
 use modor_graphics::{
     model_2d, testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material,
@@ -203,15 +203,7 @@ fn transparent_rectangle() -> impl BuiltEntity {
         .updated(|m: &mut Material| m.color = Color::WHITE.with_alpha(0.5))
 }
 
-#[derive(Component)]
+#[derive(Component, TemporaryComponent)]
 struct AutoRemove;
-
-#[systems]
-impl AutoRemove {
-    #[run]
-    fn update(mut entity: EntityMut<'_>) {
-        entity.delete();
-    }
-}
 
 const CAMERA: ResKey<Camera2D> = ResKey::new("main");
