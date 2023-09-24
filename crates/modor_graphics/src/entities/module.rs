@@ -9,12 +9,17 @@ use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
+use modor_input::InputModule;
 
 /// Creates the graphics module.
 ///
 /// If this entity is not created, no rendering will be performed.
 ///
 /// The created entity can be identified using the [`GraphicsModule`] component.
+///
+/// # Dependencies
+///
+/// This module initializes automatically the input [module](modor_input::module()).
 ///
 /// # Platform-specific
 ///
@@ -50,6 +55,7 @@ pub fn module() -> impl BuiltEntity {
             Size::ONE,
             vec![0; 4],
         ))
+        .dependency::<InputModule, _, _>(modor_input::module)
 }
 
 /// The component that identifies the graphics module entity created with [`module()`].

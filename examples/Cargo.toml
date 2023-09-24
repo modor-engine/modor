@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+getrandom.workspace = true
 instant.workspace = true
 log.workspace = true
 rand.workspace = true
@@ -79,6 +80,46 @@ crate-type = ["cdylib"]
 [[example]]
 name = "texture_2d"
 path = "examples/texture_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "keyboard_android"
+path = "examples/keyboard.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "keyboard"
+path = "examples/keyboard.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "mouse_android"
+path = "examples/mouse.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "mouse"
+path = "examples/mouse.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "touch_android"
+path = "examples/touch.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "touch"
+path = "examples/touch.rs"
+crate-type = ["bin"]
+
+[[example]]
+name = "gamepad_android"
+path = "examples/gamepad.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "gamepad"
+path = "examples/gamepad.rs"
 crate-type = ["bin"]
 
 [[example]]

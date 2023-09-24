@@ -1,7 +1,7 @@
 use crate::runner::display::Display;
 use crate::{FrameRate, Renderer, Window};
 use modor::App;
-use modor_input::{InputEvent, InputEventCollector};
+use modor_input::{Fingers, Gamepads, Keyboard, Mouse};
 use modor_physics::DeltaTime;
 use std::time::Duration;
 use winit::dpi::PhysicalSize;
@@ -82,9 +82,19 @@ impl RunnerApp {
         });
     }
 
-    pub(crate) fn send_event(&mut self, event: InputEvent) {
-        self.app.update_components(|e: &mut InputEventCollector| {
-            e.push(event.clone());
-        });
+    pub(crate) fn update_keyboard(&mut self, update_fn: impl FnMut(&mut Keyboard)) {
+        self.app.update_components(update_fn);
+    }
+
+    pub(crate) fn update_mouse(&mut self, update_fn: impl FnMut(&mut Mouse)) {
+        self.app.update_components(update_fn);
+    }
+
+    pub(crate) fn update_fingers(&mut self, update_fn: impl FnMut(&mut Fingers)) {
+        self.app.update_components(update_fn);
+    }
+
+    pub(crate) fn update_gamepads(&mut self, update_fn: impl FnMut(&mut Gamepads)) {
+        self.app.update_components(update_fn);
     }
 }

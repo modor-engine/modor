@@ -1,7 +1,7 @@
-use crate::input::events;
+use crate::input::mappings;
 use crate::runner::app::RunnerApp;
-use gilrs::{Event, EventType, Gilrs};
-use modor_input::{GamepadEvent, InputEvent};
+use gilrs::{Axis, Event, EventType, Gilrs};
+use modor_input::{Gamepad, GamepadStick};
 
 // coverage: off (gamepads are not easily testable)
 
@@ -15,7 +15,7 @@ impl Gamepads {
             .map_err(|e| error!("cannot load gamepads: {}", e))
             .ok();
         for gamepad_id in Self::plugged_gamepads_ids(&gilrs) {
-            app.send_event(InputEvent::Gamepad(GamepadEvent::Plugged(gamepad_id)));
+            app.update_gamepads(|g| g[gamepad_id].is_connected = true);
         }
         Self { gilrs }
     }
@@ -24,9 +24,7 @@ impl Gamepads {
         while let Some(event) = self.gilrs.as_mut().and_then(Gilrs::next_event) {
             let Event { id, event, .. } = event;
             let id = <_ as Into<usize>>::into(id) as u64;
-            if let Some(event) = Self::convert_event(event, id) {
-                app.send_event(event);
-            }
+            app.update_gamepads(|g| Self::apply_event(&mut g[id], event));
         }
     }
 
@@ -37,17 +35,35 @@ impl Gamepads {
             .map(|(i, _)| <_ as Into<usize>>::into(i) as u64)
     }
 
-    fn convert_event(event: EventType, id: u64) -> Option<InputEvent> {
+    fn apply_event(gamepad: &mut Gamepad, event: EventType) {
         match event {
-            EventType::Connected => Some(InputEvent::Gamepad(GamepadEvent::Plugged(id))),
-            EventType::Disconnected => Some(InputEvent::Gamepad(GamepadEvent::Unplugged(id))),
-            EventType::ButtonPressed(button, _) => events::pressed_gamepad_button(id, button),
-            EventType::ButtonReleased(button, _) => events::released_gamepad_button(id, button),
-            EventType::ButtonChanged(button, value, _) => {
-                events::changed_gamepad_button(id, button, value)
+            EventType::Connected => gamepad.is_connected = true,
+            EventType::Disconnected => *gamepad = Gamepad::default(),
+            EventType::ButtonPressed(button, _) => {
+                if let Some(button) = mappings::to_gamepad_button(button) {
+                    gamepad[button].state.press();
+                }
             }
-            EventType::AxisChanged(axis, value, _) => events::changed_gamepad_axis(id, axis, value),
-            EventType::Dropped | EventType::ButtonRepeated(_, _) => None,
+            EventType::ButtonReleased(button, _) => {
+                if let Some(button) = mappings::to_gamepad_button(button) {
+                    gamepad[button].state.release();
+                }
+            }
+            EventType::ButtonChanged(button, value, _) => {
+                if let Some(button) = mappings::to_gamepad_button(button) {
+                    gamepad[button].value = value;
+                }
+            }
+            EventType::AxisChanged(axis, value, _) => match axis {
+                Axis::LeftStickX => gamepad[GamepadStick::LeftStick].x = value,
+                Axis::LeftStickY => gamepad[GamepadStick::LeftStick].y = value,
+                Axis::RightStickX => gamepad[GamepadStick::RightStick].x = value,
+                Axis::RightStickY => gamepad[GamepadStick::RightStick].y = value,
+                Axis::DPadX => gamepad[GamepadStick::DPad].x = value,
+                Axis::DPadY => gamepad[GamepadStick::DPad].y = value,
+                Axis::LeftZ | Axis::RightZ | Axis::Unknown => {}
+            },
+            EventType::Dropped | EventType::ButtonRepeated(_, _) => {}
         }
     }
 }

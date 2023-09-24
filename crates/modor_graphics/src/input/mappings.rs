@@ -1,4 +1,4 @@
-use modor_input::{GamepadAxis, GamepadButton, Key, MouseButton};
+use modor_input::{GamepadButton, Key, MouseButton};
 use winit::event;
 use winit::event::VirtualKeyCode;
 
@@ -204,19 +204,5 @@ pub(crate) fn to_gamepad_button(button: gilrs::Button) -> Option<GamepadButton> 
         gilrs::Button::DPadLeft => Some(GamepadButton::DPadLeft),
         gilrs::Button::DPadRight => Some(GamepadButton::DPadRight),
         gilrs::Button::Unknown => None,
-    }
-}
-
-pub(crate) fn to_gamepad_axis(button: gilrs::Axis) -> Option<GamepadAxis> {
-    match button {
-        gilrs::Axis::LeftStickX => Some(GamepadAxis::LeftStickX),
-        gilrs::Axis::LeftStickY => Some(GamepadAxis::LeftStickY),
-        gilrs::Axis::RightStickX => Some(GamepadAxis::RightStickX),
-        gilrs::Axis::RightStickY => Some(GamepadAxis::RightStickY),
-        gilrs::Axis::DPadX => Some(GamepadAxis::DPadX),
-        gilrs::Axis::DPadY => Some(GamepadAxis::DPadY),
-        gilrs::Axis::LeftZ => Some(GamepadAxis::LeftZ),
-        gilrs::Axis::RightZ => Some(GamepadAxis::RightZ),
-        gilrs::Axis::Unknown => None,
     }
 }

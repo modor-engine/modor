@@ -7,7 +7,7 @@ use modor_graphics::{
     model_2d, window_target, AntiAliasing, Color, Material, Model2DMaterial, ZIndex2D,
     WINDOW_CAMERA_2D,
 };
-use modor_input::{InputModule, Key, Keyboard};
+use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{PhysicsModule, Transform2D};
 use modor_text::{text_2d, Alignment, Text};
@@ -17,7 +17,6 @@ use std::f32::consts::FRAC_PI_8;
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(InputModule::build())
         .with_entity(modor_text::module())
         .with_entity(AntiAliasing::default())
         .with_entity(AntiAliasingController)
@@ -60,10 +59,10 @@ impl AntiAliasingController {
     ) {
         let keyboard = keyboard.get();
         let anti_aliasing = anti_aliasing.get_mut();
-        if keyboard.key(Key::Up).is_just_released {
+        if keyboard[Key::Up].is_just_released() {
             Self::switch_to_next_mode(anti_aliasing);
         }
-        if keyboard.key(Key::Down).is_just_released {
+        if keyboard[Key::Down].is_just_released() {
             Self::switch_to_previous_mode(anti_aliasing);
         }
         information.get_mut().content = format!(

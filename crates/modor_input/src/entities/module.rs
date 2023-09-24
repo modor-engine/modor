@@ -1,37 +1,29 @@
-use crate::{InputEventCollector, Keyboard, Mouse};
+use crate::{Fingers, Gamepads, Keyboard, Mouse};
 use modor::{BuiltEntity, EntityBuilder};
 
-/// The main entity of the input module.
+/// Creates the input module.
+///
+/// If this entity is not created, input singleton components will not be created.
+///
+/// The created entity can be identified using the [`InputModule`] component.
 ///
 /// # Examples
 ///
 /// ```rust
 /// # use modor::*;
-/// # use modor_input::*;
 /// #
-/// let app = App::new()
-///      .with_entity(InputModule::build());
-///
-/// fn print_mouse_position(mouse: SingleRef<'_, '_, Mouse>) {
-///     println!("Mouse position: {:?}", mouse.get().position());
-/// }
+/// App::new()
+///     .with_entity(modor_input::module());
 /// ```
-#[non_exhaustive]
-#[derive(SingletonComponent)]
-pub struct InputModule;
-
-#[systems]
-impl InputModule {
-    /// Builds the module.
-    pub fn build() -> impl BuiltEntity {
-        info!("input module created");
-        EntityBuilder::new()
-            .component(Self)
-            .child_component(InputEventCollector::new())
-            .child_component(Mouse::new())
-            .child_component(Keyboard::new())
-    }
-
-    #[run_after(component(InputEventCollector))]
-    fn finish() {}
+pub fn module() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .child_component(Keyboard::default())
+        .child_component(Mouse::default())
+        .child_component(Fingers::default())
+        .child_component(Gamepads::default())
 }
+
+/// The component that identifies the input module entity created with [`module()`].
+#[non_exhaustive]
+#[derive(SingletonComponent, NoSystem)]
+pub struct InputModule;

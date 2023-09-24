@@ -6,7 +6,6 @@ use crate::paddles::{bot_paddle, player_paddle};
 use crate::scores::score;
 use modor::{App, BuiltEntity, EntityBuilder};
 use modor_graphics::window_target;
-use modor_input::InputModule;
 use modor_physics::{CollisionGroupRef, CollisionType, PhysicsModule};
 
 mod ball;
@@ -19,7 +18,6 @@ mod scores;
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(InputModule::build())
         .with_entity(modor_text::module())
         .with_entity(window_target())
         .with_entity(game())

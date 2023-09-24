@@ -1,57 +1,81 @@
-use crate::data::InputState;
-use crate::utils;
+use crate::{utils, InputState};
 use fxhash::FxHashMap;
 use modor_math::Vec2;
+use std::ops::{Index, IndexMut};
 
 /// The state of the keyboard.
 ///
 /// # Examples
+///
+/// State access:
 ///
 /// ```rust
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
 /// fn access_keyboard(keyboard: SingleRef<'_, '_, Keyboard>) {
-///     println!("Left arrow key pressed: {:?}", keyboard.get().key(Key::Left).is_pressed);
-///     println!("Entered text: {:?}", keyboard.get().text());
+///     let keyboard = keyboard.get();
+///     println!("Enter key pressed: {}", keyboard[Key::Return].is_pressed());
+///     println!("Entered text: {}", keyboard.text);
 /// }
 /// ```
-#[derive(SingletonComponent, NoSystem)]
+///
+/// State update:
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_input::*;
+/// #
+/// #[derive(Component)]
+/// struct EscapeKeyPresser;
+///
+/// #[systems]
+/// impl EscapeKeyPresser {
+///     #[run_as(component(Keyboard))]
+///     fn run(mut keyboard: SingleMut<'_, '_, Keyboard>) {
+///         let keyboard = keyboard.get_mut();
+///         keyboard.refresh();
+///         keyboard[Key::Escape].press();
+///     }
+/// }
+/// ```
+#[non_exhaustive]
+#[derive(SingletonComponent, NoSystem, Debug, Default)]
 pub struct Keyboard {
+    /// Entered text.
+    pub text: String,
     keys: FxHashMap<Key, InputState>,
-    text: String,
 }
 
 impl Keyboard {
-    pub(crate) fn new() -> Self {
-        Self {
-            keys: FxHashMap::default(),
-            text: String::new(),
+    /// Refreshes keyboard state.
+    ///
+    /// This should be called at the beginning of [`App`](modor::App) update, before updating the
+    /// keyboard state.
+    pub fn refresh(&mut self) {
+        self.text = String::new();
+        for state in self.keys.values_mut() {
+            state.refresh();
         }
     }
 
-    /// Returns all pressed keys.
-    pub fn pressed_keys(&self) -> impl Iterator<Item = Key> + '_ {
+    /// Return an iterator on all pressed keys.
+    pub fn pressed_iter(&self) -> impl Iterator<Item = Key> + '_ {
         self.keys
             .iter()
-            .filter(|(_, s)| s.is_pressed)
-            .map(|(k, _)| *k)
-    }
-
-    /// Returns the state of a key.
-    pub fn key(&self, key: Key) -> InputState {
-        self.keys.get(&key).copied().unwrap_or_default()
+            .filter(|(_, s)| s.is_pressed())
+            .map(|(b, _)| *b)
     }
 
     /// Returns a normalized delta indicating a direction from left, right, up and down keys.
     ///
-    /// If none of the keys are pressed, the returned delta has all components equal to `0.0`.
+    /// If none of the keys are pressed, the returned delta is [`Vec2::ZERO`](Vec2::ZERO).
     pub fn direction(&self, left: Key, right: Key, up: Key, down: Key) -> Vec2 {
         utils::normalized_direction(
-            self.key(left).is_pressed,
-            self.key(right).is_pressed,
-            self.key(up).is_pressed,
-            self.key(down).is_pressed,
+            self[left].is_pressed(),
+            self[right].is_pressed(),
+            self[up].is_pressed(),
+            self[down].is_pressed(),
         )
     }
 
@@ -59,44 +83,22 @@ impl Keyboard {
     ///
     /// If none of the keys are pressed, the returned delta is `0.0`.
     pub fn axis(&self, left: Key, right: Key) -> f32 {
-        utils::normalized_axis(self.key(left).is_pressed, self.key(right).is_pressed)
-    }
-
-    /// Returns the entered text.
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub(crate) fn reset(&mut self) {
-        for button in self.keys.values_mut() {
-            button.refresh();
-        }
-        self.text = String::new();
-    }
-
-    pub(crate) fn apply_event(&mut self, event: KeyboardEvent) {
-        match event {
-            KeyboardEvent::PressedKey(button) => self.keys.entry(button).or_default().press(),
-            KeyboardEvent::ReleasedKey(button) => self.keys.entry(button).or_default().release(),
-            KeyboardEvent::EnteredText(text) => self.text += &text,
-        }
+        utils::normalized_axis(self[left].is_pressed(), self[right].is_pressed())
     }
 }
 
-/// A keyboard event.
-///
-/// # Examples
-///
-/// See [`InputEventCollector`](crate::InputEventCollector).
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum KeyboardEvent {
-    /// Key pressed.
-    PressedKey(Key),
-    /// Key released.
-    ReleasedKey(Key),
-    /// Text entered.
-    EnteredText(String),
+impl Index<Key> for Keyboard {
+    type Output = InputState;
+
+    fn index(&self, index: Key) -> &Self::Output {
+        self.keys.get(&index).unwrap_or(&InputState::DEFAULT)
+    }
+}
+
+impl IndexMut<Key> for Keyboard {
+    fn index_mut(&mut self, index: Key) -> &mut Self::Output {
+        self.keys.entry(index).or_default()
+    }
 }
 
 /// A keyboard key.

@@ -1,14 +1,14 @@
 #![allow(missing_docs)]
 
 use modor::{
-    systems, App, BuiltEntity, Component, EntityBuilder, Query, SingleRef, TemporaryComponent,
+    systems, App, BuiltEntity, Component, EntityBuilder, Single, SingleRef, TemporaryComponent,
     World,
 };
 use modor_graphics::{
     model_2d, window_target, Camera2D, Color, Material, Model2DMaterial, Window, ZIndex2D,
     WINDOW_CAMERA_2D,
 };
-use modor_input::{InputModule, Mouse};
+use modor_input::Mouse;
 use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroupRef, CollisionType, PhysicsModule, RelativeTransform2D, Transform2D,
@@ -18,7 +18,6 @@ use modor_physics::{
 pub fn main() {
     App::new()
         .with_entity(PhysicsModule::build())
-        .with_entity(InputModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(window_target().updated(|w: &mut Window| w.is_cursor_shown = false))
         .with_entity(cursor())
@@ -104,11 +103,10 @@ impl Cursor {
     fn update_position(
         transform: &mut Transform2D,
         mouse: SingleRef<'_, '_, Mouse>,
-        window: SingleRef<'_, '_, Window>,
-        cameras: Query<'_, &Camera2D>,
+        window_camera: Single<'_, Window, (&Window, &Camera2D)>,
     ) {
-        let Some(camera) = cameras.iter().next() else { return; };
-        *transform.position = camera.world_position(window.get().size(), mouse.get().position());
+        let (window, camera) = window_camera.get();
+        *transform.position = camera.world_position(window.size(), mouse.get().position);
     }
 
     #[run]
