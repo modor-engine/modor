@@ -12,16 +12,11 @@ pub struct InputState {
 }
 
 impl InputState {
-    pub(crate) const DEFAULT: Self = Self::new();
-
-    /// Creates a released input state.
-    pub const fn new() -> Self {
-        Self {
-            is_pressed: false,
-            is_just_pressed: false,
-            is_just_released: false,
-        }
-    }
+    pub(crate) const DEFAULT: Self = Self {
+        is_pressed: false,
+        is_just_pressed: false,
+        is_just_released: false,
+    };
 
     /// Returns whether the input is pressed.
     pub const fn is_pressed(&self) -> bool {

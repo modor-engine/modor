@@ -107,7 +107,7 @@ pub struct Finger {
 
 impl Finger {
     const DEFAULT: Self = Self {
-        state: InputState::new(),
+        state: InputState::DEFAULT,
         position: Vec2::ZERO,
         delta: Vec2::ZERO,
     };

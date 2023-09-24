@@ -197,7 +197,7 @@ pub struct GamepadButtonState {
 
 impl GamepadButtonState {
     const DEFAULT: Self = Self {
-        state: InputState::new(),
+        state: InputState::DEFAULT,
         value: 0.,
     };
 

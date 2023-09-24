@@ -21,6 +21,7 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
     move_mouse(context);
     detect_mouse_motion(context);
     press_keyboard_key(context);
+    press_unknown_keyboard_key(context);
     enter_character(context);
     touch_screen(context);
     suspend_app(context);
@@ -132,6 +133,17 @@ fn press_keyboard_key(context: &mut TestRunnerContext) {
                 e.has(|k: &Keyboard| {
                     assert_eq!(k[Key::Space].is_pressed(), s.update_id == 1);
                 })
+            })
+        });
+    });
+}
+
+fn press_unknown_keyboard_key(context: &mut TestRunnerContext) {
+    App::new().with_entity(modor_input::module()).run(|a| {
+        testing::test_runner(a, context, 3, |s| {
+            s.next_events.push(unknown_key_event(&s));
+            s.app.assert::<With<Keyboard>>(1, |e| {
+                e.has(|k: &Keyboard| assert_eq!(k.pressed_iter().count(), 0))
             })
         });
     });
@@ -297,6 +309,23 @@ fn space_key_event(state: &UpdateState<'_>, is_pressed: bool) -> Event<'static, 
                     ElementState::Released
                 },
                 virtual_keycode: Some(VirtualKeyCode::Space),
+                modifiers: ModifiersState::empty(),
+            },
+            is_synthetic: false,
+        },
+    }
+}
+
+#[allow(deprecated)]
+fn unknown_key_event(state: &UpdateState<'_>) -> Event<'static, ()> {
+    Event::WindowEvent {
+        window_id: state.window.id(),
+        event: WindowEvent::KeyboardInput {
+            device_id: DEVICE_ID,
+            input: KeyboardInput {
+                scancode: 0,
+                state: ElementState::Pressed,
+                virtual_keycode: None,
                 modifiers: ModifiersState::empty(),
             },
             is_synthetic: false,
