@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+getrandom.workspace = true
 instant.workspace = true
 log.workspace = true
 rand.workspace = true

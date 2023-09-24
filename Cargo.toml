@@ -29,6 +29,7 @@ doc-comment = "0.3"
 fs_extra = "1.2"
 futures = "0.3"
 fxhash = "0.2"
+getrandom = { features = ["js"] } # To fix this issue: https://github.com/rust-random/getrandom/issues/208
 gilrs = "0.10"
 image = "0.24"
 instant = "0.1"
