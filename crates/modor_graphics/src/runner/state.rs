@@ -5,6 +5,7 @@ use crate::runner::display::Display;
 use crate::{platform, Window};
 use instant::Instant;
 use modor::App;
+use modor_input::{Fingers, Keyboard, Mouse};
 use std::time::Duration;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, TouchPhase, WindowEvent};
@@ -55,7 +56,8 @@ impl RunnerState {
                 event: DeviceEvent::MouseMotion { delta },
                 ..
             } => {
-                self.app.send_event(events::mouse_motion(delta));
+                self.app
+                    .update_mouse(|m| events::update_mouse_motion(m, delta));
             }
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => {
@@ -71,27 +73,29 @@ impl RunnerState {
                     self.app.update_window_size(size);
                 }
                 WindowEvent::MouseInput { button, state, .. } => {
-                    self.app.send_event(events::mouse_button(button, state));
+                    self.app.update_mouse(|m| events::update_mouse_button(m, button, state));
                 }
                 WindowEvent::MouseWheel { delta, .. } => {
-                    self.app.send_event(events::mouse_wheel(delta));
+                    self.app.update_mouse(|m| events::update_mouse_wheel(m, delta));
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    self.app.send_event(events::mouse_position(position));
+                    self.app.update_mouse(|m| events::update_mouse_position(m, position));
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(event) = events::keyboard_key(input) {
-                        self.app.send_event(event);
-                    }
+                    self.app.update_keyboard(|k| events::update_keyboard_key(k, input));
                 }
                 WindowEvent::ReceivedCharacter(character) => {
-                    self.app.send_event(events::character(character));
+                    self.app.update_keyboard(|k| events::update_entered_text(k, character));
                 }
                 WindowEvent::Touch(touch) => match touch.phase {
-                    TouchPhase::Started => self.app.send_event(events::started_touch(touch)),
-                    TouchPhase::Moved => self.app.send_event(events::moved_touch(touch)),
+                    TouchPhase::Started => {
+                        self.app.update_fingers(|f| events::press_finger(f, touch));
+                    },
+                    TouchPhase::Moved => {
+                        self.app.update_fingers(|f| events::move_finger(f, touch));
+                    },
                     TouchPhase::Ended | TouchPhase::Cancelled => {
-                        self.app.send_event(events::ended_touch(touch));
+                        self.app.update_fingers(|f| events::release_finger(f, touch));
                     }
                 },
                 _ => (),
@@ -128,7 +132,12 @@ impl RunnerState {
         if let Some(display) = &self.display {
             self.gamepads.treat_events(&mut self.app);
             self.window.request_redraw();
+            self.app.update_gamepads(modor_input::Gamepads::sync_d_pad);
             self.app.update(&mut self.window, display);
+            self.app.update_keyboard(Keyboard::refresh);
+            self.app.update_mouse(Mouse::refresh);
+            self.app.update_fingers(Fingers::refresh);
+            self.app.update_gamepads(modor_input::Gamepads::refresh);
             self.app
                 .frame_rate()
                 .sleep(self.previous_update_end, self.window_frame_time);

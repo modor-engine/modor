@@ -3,30 +3,55 @@
 /// # Examples
 ///
 /// See [`Mouse`](crate::Mouse).
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct InputState {
-    /// Whether the input is pressed.
-    pub is_pressed: bool,
-    /// Whether the input has just been pressed.
-    pub is_just_pressed: bool,
-    /// Whether the input has just been released.
-    pub is_just_released: bool,
+    is_pressed: bool,
+    is_just_pressed: bool,
+    is_just_released: bool,
 }
 
 impl InputState {
-    pub(crate) fn refresh(&mut self) {
-        self.is_just_pressed = false;
-        self.is_just_released = false;
+    pub(crate) const DEFAULT: Self = Self::new();
+
+    /// Creates a released input state.
+    pub const fn new() -> Self {
+        Self {
+            is_pressed: false,
+            is_just_pressed: false,
+            is_just_released: false,
+        }
     }
 
-    pub(crate) fn press(&mut self) {
+    /// Returns whether the input is pressed.
+    pub const fn is_pressed(&self) -> bool {
+        self.is_pressed
+    }
+
+    /// Returns whether the input has just been pressed.
+    pub const fn is_just_pressed(&self) -> bool {
+        self.is_just_pressed
+    }
+
+    /// Returns whether the input has just been released.
+    pub const fn is_just_released(&self) -> bool {
+        self.is_just_released
+    }
+
+    /// Presses the input.
+    pub fn press(&mut self) {
         self.is_pressed = true;
         self.is_just_pressed = true;
     }
 
-    pub(crate) fn release(&mut self) {
+    /// Releases the input.
+    pub fn release(&mut self) {
         self.is_pressed = false;
         self.is_just_released = true;
+    }
+
+    pub(crate) fn refresh(&mut self) {
+        self.is_just_pressed = false;
+        self.is_just_released = false;
     }
 }

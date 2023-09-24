@@ -14,7 +14,6 @@ rust-version.workspace = true
 
 [dependencies]
 fxhash.workspace = true
-log.workspace = true
 modor.workspace = true
 modor_math.workspace = true
 

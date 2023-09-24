@@ -12,48 +12,58 @@
 //! You can then start to use this module:
 //!
 //! ```rust
-//! use modor::{systems, App, EntityBuilder, SingletonComponent, SingleRef};
-//! use modor_input::{InputEvent, InputEventCollector, InputModule, Mouse, MouseButton, MouseEvent};
-//!
+//! # use modor::*;
+//! # use modor_input::*;
+//! #
 //! let mut app = App::new()
-//!     .with_entity(InputModule::build())
-//!     .with_entity(MouseAction);
-//! loop {
-//!     // By default, no input event is pushed in the module.
-//!     // Crates like `modor_graphics` can automatically send events to the module.
-//!     // It is also possible to create events manually, which can be convenient for testing.
-//!     app.update_components(|c: &mut InputEventCollector| {
-//!         c.push(InputEvent::Mouse(MouseEvent::PressedButton(MouseButton::Left)));
-//!     });
-//!     app.update();
-//!     # break;
+//!     .with_entity(modor_input::module())
+//!     .with_entity(MouseUpdate { is_left_button_pressed: true })
+//!     .with_entity(MouseStateDisplay);
+//!
+//! #[derive(SingletonComponent)]
+//! struct MouseUpdate {
+//!     is_left_button_pressed: bool
+//! }
+//!
+//! #[systems]
+//! impl MouseUpdate {
+//!     #[run_as(component(Mouse))]
+//!     fn run(&self, mut mouse: SingleMut<'_, '_, Mouse>) {
+//!         if self.is_left_button_pressed {
+//!             mouse.get_mut()[MouseButton::Left].press();
+//!         }
+//!     }
 //! }
 //!
 //! #[derive(SingletonComponent)]
-//! struct MouseAction;
+//! struct MouseStateDisplay;
 //!
 //! #[systems]
-//! impl MouseAction {
-//!     #[run]
-//!     fn run(mouse: SingleRef<'_, '_, Mouse>) {
-//!         assert!(mouse.get().button(MouseButton::Left).is_pressed);
+//! impl MouseStateDisplay {
+//!     #[run_after(component(Mouse))]
+//!     fn run(&mut self, mouse: SingleRef<'_, '_, Mouse>) {
+//!         if mouse.get()[MouseButton::Left].is_pressed() {
+//!             println!("Mouse left button is pressed");
+//!         } else {
+//!             println!("Mouse left button is not pressed");
+//!         }
 //!     }
 //! }
 //! ```
+//!
+//! Note that some crates like `modor_graphics` automatically update the input state.
 
 #[macro_use]
 extern crate modor;
-#[macro_use]
-extern crate log;
 
+mod components;
 mod data;
 mod entities;
 mod utils;
 
+pub use components::fingers::*;
+pub use components::gamepads::*;
+pub use components::keyboard::*;
+pub use components::mouse::*;
 pub use data::*;
-pub use entities::events::*;
-pub use entities::gamepads::*;
-pub use entities::keyboard::*;
 pub use entities::module::*;
-pub use entities::mouse::*;
-pub use entities::touch::*;

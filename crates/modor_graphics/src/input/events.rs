@@ -1,106 +1,69 @@
 use crate::input::mappings;
-use modor_input::{
-    GamepadEvent, InputEvent, KeyboardEvent, MouseEvent, MouseScrollUnit, TouchEvent,
-};
+use modor_input::{Fingers, Keyboard, Mouse, MouseScrollDelta};
 use modor_math::Vec2;
 use winit::dpi::PhysicalPosition;
-use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, Touch};
+use winit::event::{ElementState, KeyboardInput, MouseButton, Touch};
 
 #[allow(clippy::cast_possible_truncation)]
-pub(crate) fn mouse_motion(winit_delta: (f64, f64)) -> InputEvent {
-    let delta = Vec2::new(winit_delta.0 as f32, -winit_delta.1 as f32);
-    InputEvent::Mouse(MouseEvent::Moved(delta))
+pub(crate) fn update_mouse_motion(mouse: &mut Mouse, winit_delta: (f64, f64)) {
+    mouse.delta += Vec2::new(winit_delta.0 as f32, -winit_delta.1 as f32);
 }
 
-pub(crate) fn mouse_button(button: MouseButton, state: ElementState) -> InputEvent {
+pub(crate) fn update_mouse_button(mouse: &mut Mouse, button: MouseButton, state: ElementState) {
     let button = mappings::to_mouse_button(button);
-    InputEvent::Mouse(match state {
-        ElementState::Pressed => MouseEvent::PressedButton(button),
-        ElementState::Released => MouseEvent::ReleasedButton(button),
-    })
+    match state {
+        ElementState::Pressed => mouse[button].press(),
+        ElementState::Released => mouse[button].release(),
+    }
 }
 
-pub(crate) fn mouse_wheel(delta: MouseScrollDelta) -> InputEvent {
-    InputEvent::Mouse(match delta {
-        MouseScrollDelta::LineDelta(columns, rows) => {
-            let delta = Vec2::new(columns, -rows);
-            MouseEvent::Scroll(delta, MouseScrollUnit::Line)
+pub(crate) fn update_mouse_wheel(mouse: &mut Mouse, delta: winit::event::MouseScrollDelta) {
+    mouse.scroll_delta += match delta {
+        winit::event::MouseScrollDelta::LineDelta(columns, rows) => {
+            MouseScrollDelta::Lines(Vec2::new(columns, -rows))
         }
-        MouseScrollDelta::PixelDelta(delta) => {
+        winit::event::MouseScrollDelta::PixelDelta(delta) => {
             let delta = winit_pos_to_vec2(delta);
-            MouseEvent::Scroll(Vec2::new(delta.x, -delta.y), MouseScrollUnit::Pixel)
+            MouseScrollDelta::Pixels(Vec2::new(delta.x, -delta.y))
         }
-    })
+    };
 }
 
-pub(crate) fn mouse_position(position: PhysicalPosition<f64>) -> InputEvent {
-    let position = winit_pos_to_vec2(position);
-    InputEvent::Mouse(MouseEvent::UpdatedPosition(position))
+pub(crate) fn update_mouse_position(mouse: &mut Mouse, position: PhysicalPosition<f64>) {
+    mouse.position = winit_pos_to_vec2(position);
 }
 
-pub(crate) fn keyboard_key(input: KeyboardInput) -> Option<InputEvent> {
-    input.virtual_keycode.map(|c| {
-        let key = mappings::to_keyboard_key(c);
-        InputEvent::Keyboard(match input.state {
-            ElementState::Pressed => KeyboardEvent::PressedKey(key),
-            ElementState::Released => KeyboardEvent::ReleasedKey(key),
-        })
-    })
+pub(crate) fn update_keyboard_key(keyboard: &mut Keyboard, input: KeyboardInput) {
+    if let Some(keycode) = input.virtual_keycode {
+        let key = mappings::to_keyboard_key(keycode);
+        match input.state {
+            ElementState::Pressed => keyboard[key].press(),
+            ElementState::Released => keyboard[key].release(),
+        }
+    }
 }
 
-pub(crate) fn character(character: char) -> InputEvent {
-    InputEvent::Keyboard(KeyboardEvent::EnteredText(character.into()))
+pub(crate) fn update_entered_text(keyboard: &mut Keyboard, new_character: char) {
+    keyboard.text.push(new_character);
 }
 
-pub(crate) fn started_touch(touch: Touch) -> InputEvent {
+pub(crate) fn press_finger(fingers: &mut Fingers, touch: Touch) {
+    let finger = &mut fingers[touch.id];
+    finger.position = winit_pos_to_vec2(touch.location);
+    finger.state.press();
+}
+
+pub(crate) fn move_finger(fingers: &mut Fingers, touch: Touch) {
+    let finger = &mut fingers[touch.id];
     let position = winit_pos_to_vec2(touch.location);
-    InputEvent::Touch(TouchEvent::Started(touch.id, position))
+    finger.delta = position - finger.position;
+    finger.position = position;
 }
 
-pub(crate) fn moved_touch(touch: Touch) -> InputEvent {
-    let position = winit_pos_to_vec2(touch.location);
-    InputEvent::Touch(TouchEvent::UpdatedPosition(touch.id, position))
+pub(crate) fn release_finger(fingers: &mut Fingers, touch: Touch) {
+    let finger = &mut fingers[touch.id];
+    finger.state.release();
 }
-
-pub(crate) fn ended_touch(touch: Touch) -> InputEvent {
-    InputEvent::Touch(TouchEvent::Ended(touch.id))
-}
-
-// coverage: off (gamepads are not easily testable)
-
-pub(crate) fn pressed_gamepad_button(gamepad_id: u64, button: gilrs::Button) -> Option<InputEvent> {
-    mappings::to_gamepad_button(button)
-        .map(|button| InputEvent::Gamepad(GamepadEvent::PressedButton(gamepad_id, button)))
-}
-
-pub(crate) fn released_gamepad_button(
-    gamepad_id: u64,
-    button: gilrs::Button,
-) -> Option<InputEvent> {
-    mappings::to_gamepad_button(button)
-        .map(|button| InputEvent::Gamepad(GamepadEvent::ReleasedButton(gamepad_id, button)))
-}
-
-pub(crate) fn changed_gamepad_button(
-    gamepad_id: u64,
-    button: gilrs::Button,
-    value: f32,
-) -> Option<InputEvent> {
-    mappings::to_gamepad_button(button).map(|button| {
-        InputEvent::Gamepad(GamepadEvent::UpdatedButtonValue(gamepad_id, button, value))
-    })
-}
-
-pub(crate) fn changed_gamepad_axis(
-    gamepad_id: u64,
-    axis: gilrs::Axis,
-    value: f32,
-) -> Option<InputEvent> {
-    mappings::to_gamepad_axis(axis)
-        .map(|axis| InputEvent::Gamepad(GamepadEvent::UpdatedAxisValue(gamepad_id, axis, value)))
-}
-
-// coverage: on
 
 #[allow(clippy::cast_possible_truncation)]
 fn winit_pos_to_vec2(position: PhysicalPosition<f64>) -> Vec2 {

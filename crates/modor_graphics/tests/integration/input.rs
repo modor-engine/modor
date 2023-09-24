@@ -1,7 +1,7 @@
 use modor::{App, With};
 use modor_graphics::testing;
 use modor_graphics::testing::{TestRunnerContext, UpdateState};
-use modor_input::{Finger, InputModule, Key, Keyboard, Mouse, MouseButton};
+use modor_input::{Fingers, Key, Keyboard, Mouse, MouseButton};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, PhysicsModule};
@@ -27,13 +27,13 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
 }
 
 fn press_mouse_button(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 3, |s| {
             let is_pressed = s.update_id == 0;
             s.next_events.push(left_mouse_button_event(&s, is_pressed));
             s.app.assert::<With<Mouse>>(1, |e| {
                 e.has(|m: &Mouse| {
-                    assert_eq!(m.button(MouseButton::Left).is_pressed, s.update_id == 1);
+                    assert_eq!(m[MouseButton::Left].is_pressed(), s.update_id == 1);
                 })
             })
         });
@@ -41,7 +41,7 @@ fn press_mouse_button(context: &mut TestRunnerContext) {
 }
 
 fn move_mouse_wheel_in_lines(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 2, |s| {
             if s.update_id == 0 {
                 let delta = MouseScrollDelta::LineDelta(2., 3.);
@@ -50,7 +50,7 @@ fn move_mouse_wheel_in_lines(context: &mut TestRunnerContext) {
             } else {
                 s.app.assert::<With<Mouse>>(1, |e| {
                     e.has(|m: &Mouse| {
-                        assert_approx_eq!(m.scroll_delta_in_lines(100., 200.), Vec2::new(2., -3.));
+                        assert_approx_eq!(m.scroll_delta.as_lines(100., 200.), Vec2::new(2., -3.));
                     })
                 })
             }
@@ -59,7 +59,7 @@ fn move_mouse_wheel_in_lines(context: &mut TestRunnerContext) {
 }
 
 fn move_mouse_wheel_in_pixels(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 2, |s| {
             if s.update_id == 0 {
                 let delta = MouseScrollDelta::PixelDelta(PhysicalPosition::new(2., 3.));
@@ -68,7 +68,7 @@ fn move_mouse_wheel_in_pixels(context: &mut TestRunnerContext) {
             } else {
                 s.app.assert::<With<Mouse>>(1, |e| {
                     e.has(|m: &Mouse| {
-                        assert_approx_eq!(m.scroll_delta_in_pixels(100., 200.), Vec2::new(2., -3.));
+                        assert_approx_eq!(m.scroll_delta.as_pixels(100., 200.), Vec2::new(2., -3.));
                     })
                 })
             }
@@ -77,7 +77,7 @@ fn move_mouse_wheel_in_pixels(context: &mut TestRunnerContext) {
 }
 
 fn move_mouse(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 2, |s| {
             if s.update_id == 0 {
                 let position = PhysicalPosition::new(5., 9.);
@@ -85,7 +85,7 @@ fn move_mouse(context: &mut TestRunnerContext) {
                 s.app
             } else {
                 s.app.assert::<With<Mouse>>(1, |e| {
-                    e.has(|m: &Mouse| assert_eq!(m.position(), Vec2::new(5., 9.)))
+                    e.has(|m: &Mouse| assert_eq!(m.position, Vec2::new(5., 9.)))
                 })
             }
         });
@@ -93,7 +93,7 @@ fn move_mouse(context: &mut TestRunnerContext) {
 }
 
 fn detect_mouse_motion(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 2, |s| {
             if s.update_id == 0 {
                 s.next_events.push(mouse_motion_event((1., 2.)));
@@ -101,7 +101,7 @@ fn detect_mouse_motion(context: &mut TestRunnerContext) {
                 s.app
             } else {
                 s.app.assert::<With<Mouse>>(1, |e| {
-                    e.has(|m: &Mouse| assert_eq!(m.delta(), Vec2::new(4., -3.)))
+                    e.has(|m: &Mouse| assert_eq!(m.delta, Vec2::new(4., -3.)))
                 })
             }
         });
@@ -109,13 +109,13 @@ fn detect_mouse_motion(context: &mut TestRunnerContext) {
 }
 
 fn press_keyboard_key(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 3, |s| {
             let is_pressed = s.update_id == 0;
             s.next_events.push(space_key_event(&s, is_pressed));
             s.app.assert::<With<Keyboard>>(1, |e| {
                 e.has(|k: &Keyboard| {
-                    assert_eq!(k.key(Key::Space).is_pressed, s.update_id == 1);
+                    assert_eq!(k[Key::Space].is_pressed(), s.update_id == 1);
                 })
             })
         });
@@ -123,23 +123,22 @@ fn press_keyboard_key(context: &mut TestRunnerContext) {
 }
 
 fn enter_character(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 2, |s| {
             if s.update_id == 0 {
                 s.next_events.push(received_character_event(&s, 'A'));
                 s.next_events.push(received_character_event(&s, 'B'));
                 s.app
             } else {
-                s.app.assert::<With<Keyboard>>(1, |e| {
-                    e.has(|k: &Keyboard| assert_eq!(k.text(), "AB"))
-                })
+                s.app
+                    .assert::<With<Keyboard>>(1, |e| e.has(|k: &Keyboard| assert_eq!(k.text, "AB")))
             }
         });
     });
 }
 
 fn touch_screen(context: &mut TestRunnerContext) {
-    App::new().with_entity(InputModule::build()).run(|a| {
+    App::new().with_entity(modor_input::module()).run(|a| {
         testing::test_runner(a, context, 4, |s| match s.update_id {
             0 => {
                 let position = PhysicalPosition::new(4., 8.);
@@ -151,11 +150,11 @@ fn touch_screen(context: &mut TestRunnerContext) {
                 let position = PhysicalPosition::new(5., 8.);
                 s.next_events
                     .push(touch_event(&s, 42, position, TouchPhase::Moved));
-                s.app.assert::<With<Finger>>(1, |e| {
-                    e.has(|f: &Finger| {
-                        assert_eq!(f.id(), 42);
-                        assert!(f.state().is_pressed);
-                        assert_approx_eq!(f.position(), Vec2::new(4., 8.));
+                s.app.assert::<With<Fingers>>(1, |e| {
+                    e.has(|f: &Fingers| {
+                        assert!(f[42].state.is_pressed());
+                        assert_approx_eq!(f[42].position, Vec2::new(4., 8.));
+                        assert_approx_eq!(f[42].delta, Vec2::ZERO);
                     })
                 })
             }
@@ -163,18 +162,17 @@ fn touch_screen(context: &mut TestRunnerContext) {
                 let position = PhysicalPosition::new(5., 8.);
                 s.next_events
                     .push(touch_event(&s, 42, position, TouchPhase::Ended));
-                s.app.assert::<With<Finger>>(1, |e| {
-                    e.has(|f: &Finger| {
-                        assert_eq!(f.id(), 42);
-                        assert!(f.state().is_pressed);
-                        assert_approx_eq!(f.position(), Vec2::new(5., 8.));
+                s.app.assert::<With<Fingers>>(1, |e| {
+                    e.has(|f: &Fingers| {
+                        assert!(f[42].state.is_pressed());
+                        assert_approx_eq!(f[42].position, Vec2::new(5., 8.));
+                        assert_approx_eq!(f[42].delta, Vec2::new(1., 0.));
                     })
                 })
             }
-            _ => s.app.assert::<With<Finger>>(1, |e| {
-                e.has(|f: &Finger| {
-                    assert_eq!(f.id(), 42);
-                    assert!(!f.state().is_pressed);
+            _ => s.app.assert::<With<Fingers>>(1, |e| {
+                e.has(|f: &Fingers| {
+                    assert!(!f[42].state.is_pressed());
                 })
             }),
         });

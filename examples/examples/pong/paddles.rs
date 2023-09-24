@@ -2,9 +2,9 @@ use crate::ball::Ball;
 use crate::events::ResetEvent;
 use crate::CollisionGroup;
 use crate::{field, Side};
-use modor::{systems, BuiltEntity, Component, Query, Single, SingleRef};
+use modor::{systems, BuiltEntity, Component, Single, SingleRef};
 use modor_graphics::{model_2d, Camera2D, Model2DMaterial, Window, WINDOW_CAMERA_2D};
-use modor_input::{Finger, InputModule, Key, Keyboard};
+use modor_input::{Fingers, InputModule, Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{Collider2D, Dynamics2D, PhysicsModule, Transform2D};
 
@@ -75,14 +75,15 @@ impl PaddlePlayer {
         dynamics: &mut Dynamics2D,
         transform: &Transform2D,
         keyboard: SingleRef<'_, '_, Keyboard>,
-        fingers: Query<'_, &Finger>,
+        fingers: SingleRef<'_, '_, Fingers>,
         window_camera: Single<'_, Window, (&Window, &Camera2D)>,
     ) {
+        let fingers = fingers.get();
         dynamics.velocity.y = SPEED * keyboard.get().axis(self.down_key, self.up_key);
         if *dynamics.velocity == Vec2::ZERO {
-            for finger in fingers.iter() {
+            for finger_id in fingers.iter() {
                 let (window, camera) = window_camera.get();
-                let position = camera.world_position(window.size(), finger.position());
+                let position = camera.world_position(window.size(), fingers[finger_id].position);
                 if position.x >= self.touch_min_x && position.x <= self.touch_max_x {
                     dynamics.velocity.y = paddle_speed(transform, position, 0.01);
                     break;

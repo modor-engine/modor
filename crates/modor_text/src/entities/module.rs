@@ -9,6 +9,10 @@ use modor_graphics::GraphicsModule;
 ///
 /// The created entity can be identified using the [`TextModule`] component.
 ///
+/// # Dependencies
+///
+/// This module initializes automatically the graphics [module](modor_graphics::module()).
+///
 /// # Examples
 ///
 /// ```rust
