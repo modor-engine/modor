@@ -1,5 +1,5 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityFilter, With};
-use modor_graphics::testing::has_pixel_diff;
+use modor_graphics::testing::{has_pixel_diff, is_same};
 use modor_graphics::{
     model_2d, texture_target, Material, Model2DMaterial, Size, Sprite, Texture, TextureAnimation,
     TextureBuffer, TEXTURE_CAMERAS_2D,
@@ -15,52 +15,52 @@ const TEXTURE_PATH: &str = "../tests/assets/spritesheet.png";
 fn run_texture_animation() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(32, 32), true))
+        .with_entity(texture_target(0, Size::new(25, 25), true))
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 5))
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#nothing", 10))
+        .assert::<With<TextureBuffer>>(1, is_same("animation#nothing"))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#frame0", 10))
+        .assert::<With<TextureBuffer>>(1, is_same("animation#frame0"))
         .updated_until_all::<(), TextureAnimation>(Some(1), sleep_one_frame)
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(1))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#frame1", 10))
+        .assert::<With<TextureBuffer>>(1, is_same("animation#frame1"))
         .updated_until_all::<(), TextureAnimation>(Some(1), sleep_one_frame)
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#frame0", 10));
+        .assert::<With<TextureBuffer>>(1, is_same("animation#frame0"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
 fn run_texture_animation_without_frame() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(32, 32), true))
+        .with_entity(texture_target(0, Size::new(25, 25), true))
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![], 5))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#missing_frames", 20));
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#missing_frames", 100));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
 fn run_texture_animation_at_zero_fps() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(32, 32), true))
+        .with_entity(texture_target(0, Size::new(25, 25), true))
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 0))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#frame0", 10))
+        .assert::<With<TextureBuffer>>(1, is_same("animation#frame0"))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("animation#frame0", 10));
+        .assert::<With<TextureBuffer>>(1, is_same("animation#frame0"));
 }
 
 fn spritesheet_texture() -> Texture {

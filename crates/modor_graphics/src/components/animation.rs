@@ -95,11 +95,6 @@ impl TextureAnimation {
         }
     }
 
-    /// Returns the index of the current displayed sprite.
-    pub fn current_sprite_index(&self) -> usize {
-        self.current_sprite_idx.unwrap_or(0)
-    }
-
     #[run]
     fn update_material(&mut self, material: &mut Material) {
         if self.last_update_instant.elapsed() >= self.frame_duration() {
@@ -114,6 +109,11 @@ impl TextureAnimation {
             }
             self.last_update_instant = Instant::now();
         }
+    }
+
+    /// Returns the index of the current displayed sprite.
+    pub fn current_sprite_index(&self) -> usize {
+        self.current_sprite_idx.unwrap_or(0)
     }
 
     fn frame_duration(&self) -> Duration {
