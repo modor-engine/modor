@@ -75,7 +75,7 @@ pub struct TextureAnimation {
     /// The successive sprites displayed in loop during the animation.
     pub sprites: Vec<Sprite>,
     last_update_instant: Instant,
-    next_sprite_idx: usize,
+    current_sprite_idx: Option<usize>,
 }
 
 #[systems]
@@ -90,19 +90,19 @@ impl TextureAnimation {
             lines,
             frames_per_second: Self::DEFAULT_FRAMES_PER_SECOND,
             sprites: sprites.into(),
-            last_update_instant: Instant::now() - Self::frame_duration(1) * 2,
-            next_sprite_idx: 0,
+            last_update_instant: Instant::now(),
+            current_sprite_idx: None,
         }
     }
 
     /// Returns the index of the current displayed sprite.
     pub fn current_sprite_index(&self) -> usize {
-        self.next_sprite_idx.saturating_sub(1)
+        self.current_sprite_idx.unwrap_or(0)
     }
 
     #[run]
     fn update_material(&mut self, material: &mut Material) {
-        if self.last_update_instant.elapsed() >= Self::frame_duration(self.frames_per_second) {
+        if self.last_update_instant.elapsed() >= self.frame_duration() {
             if let Some(sprite_idx) = self.next_sprite_idx() {
                 let sprite = self.sprites[sprite_idx];
                 material.texture_size =
@@ -110,33 +110,39 @@ impl TextureAnimation {
                 material.texture_position = material
                     .texture_size
                     .with_scale(Vec2::new(sprite.column.into(), sprite.line.into()));
-                self.next_sprite_idx = sprite_idx + 1;
+                self.current_sprite_idx = Some(sprite_idx);
             }
             self.last_update_instant = Instant::now();
         }
     }
 
-    fn frame_duration(frames_per_second: u16) -> Duration {
-        if frames_per_second == 0 {
+    fn frame_duration(&self) -> Duration {
+        if self.current_sprite_idx.is_none() {
+            Duration::ZERO
+        } else if self.frames_per_second == 0 {
             Duration::MAX
         } else {
-            Duration::from_secs_f32(1. / f32::from(frames_per_second))
+            Duration::from_secs_f32(1. / f32::from(self.frames_per_second))
         }
     }
 
     fn next_sprite_idx(&self) -> Option<usize> {
-        if self.next_sprite_idx < self.sprites.len() {
-            Some(self.next_sprite_idx)
-        } else if self.sprites.is_empty() {
+        if self.sprites.is_empty() {
             error!("`TextureAnimation` without sprite");
             None
+        } else if let Some(current_sprite_idx) = self.current_sprite_idx {
+            if current_sprite_idx < self.sprites.len() - 1 {
+                Some(current_sprite_idx + 1)
+            } else {
+                Some(0)
+            }
         } else {
             Some(0)
         }
     }
 }
 
-/// A sprite inside a spritesheet.
+/// The configuration of a sprite inside a spritesheet.
 ///
 /// This is used to define the successive sprites displayed by [`TextureAnimation`].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -148,7 +154,8 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub const fn new(x: u16, y: u16) -> Self {
-        Self { column: x, line: y }
+    /// Creates a new sprite configuration.
+    pub const fn new(column: u16, line: u16) -> Self {
+        Self { column, line }
     }
 }
