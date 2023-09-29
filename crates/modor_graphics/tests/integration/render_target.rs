@@ -32,7 +32,7 @@ fn create_with_invalid_texture() {
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Loading)))
         })
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert!(matches!(t.state(), ResourceState::Error(_))))
         });
@@ -119,7 +119,7 @@ fn create_texture_target_entity_without_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(5, Size::new(30, 20), false))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert_eq!(t.key(), TEXTURE_TARGETS.get(5)))
                 .has(|t: &Texture| assert_eq!(t.size(), Some(Size::new(30, 20))))
@@ -134,7 +134,7 @@ fn create_texture_target_entity_with_buffer() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(5, Size::new(30, 20), true))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<RenderTarget>>(1, |e| {
             e.has(|t: &RenderTarget| assert_eq!(t.key(), TEXTURE_TARGETS.get(5)))
                 .has(|t: &Texture| assert_eq!(t.size(), Some(Size::new(30, 20))))

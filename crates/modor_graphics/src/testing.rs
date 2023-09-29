@@ -50,7 +50,7 @@ pub use crate::runner::testing::*;
 ///
 /// App::new()
 ///     .with_entity(texture())
-///     .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
 ///     .assert::<With<TextureBuffer>>(1, is_same("texture"));
 /// # }
 /// ```
@@ -104,7 +104,7 @@ where
 ///
 /// App::new()
 ///     .with_entity(texture())
-///     .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
 ///     .assert::<With<TextureBuffer>>(1, has_component_diff("texture", 1));
 /// # }
 /// ```
@@ -168,7 +168,7 @@ where
 ///
 /// App::new()
 ///     .with_entity(texture())
-///     .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
 ///     .assert::<With<TextureBuffer>>(1, has_pixel_diff("texture", 10));
 /// # }
 /// ```

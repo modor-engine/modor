@@ -73,7 +73,7 @@ fn create_from_file() {
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
@@ -89,7 +89,7 @@ fn create_from_path() {
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
         .updated()
         .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
@@ -103,7 +103,7 @@ fn create_from_unsupported_format() {
             "../tests/assets/text.txt",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, assert_invalid_format());
 }
 
@@ -116,7 +116,7 @@ fn create_from_corrupted_file() {
             "../tests/assets/corrupted-texture.png",
         )))
         .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, assert_invalid_format());
 }
 
@@ -140,7 +140,7 @@ fn create_with_default_params() {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(rectangle())
         .with_entity(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1));
 }
 
@@ -156,7 +156,7 @@ fn create_with_smooth() {
                 .with(|t| t.is_smooth = false)
                 .component(TestedTexture),
         )
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"))
         .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_smooth = true)
         .updated()
@@ -175,7 +175,7 @@ fn create_with_repeated() {
                 .with(|t| t.is_repeated = true)
                 .component(TestedTexture),
         )
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_repeated", 1))
         .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_repeated = false)
         .updated()

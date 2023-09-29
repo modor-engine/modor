@@ -13,7 +13,7 @@ fn assert_texture_with_not_existing_expected() {
         App::new()
             .with_entity(modor_graphics::module())
             .with_entity(same_texture())
-            .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+            .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
             .assert::<With<TextureBuffer>>(1, is_same("testing#new_expected"));
     }))
     .expect_err("texture assertion has not panicked");
@@ -29,7 +29,7 @@ fn assert_texture_with_same_texture() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(same_texture())
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("testing#texture"))
         .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 255))

@@ -1,3 +1,4 @@
+pub(crate) mod animation;
 pub(crate) mod anti_aliasing;
 pub(crate) mod camera;
 pub(crate) mod frame_rate;
