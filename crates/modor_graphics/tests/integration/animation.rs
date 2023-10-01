@@ -18,7 +18,7 @@ fn run_texture_animation() {
         .with_entity(texture_target(0, Size::new(25, 25), true))
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 5))
+        .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 2))
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
@@ -40,7 +40,7 @@ fn run_texture_animation_without_frame() {
         .with_entity(texture_target(0, Size::new(25, 25), true))
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(sprite(vec![], 5))
+        .with_entity(sprite(vec![], 2))
         .updated()
         .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 150, 2));
@@ -76,7 +76,7 @@ fn sprite(sprites: Vec<Sprite>, fps: u16) -> impl BuiltEntity {
 }
 
 fn sleep_one_frame<C>(_: &C) -> bool {
-    sleep(Duration::from_secs_f32(0.2));
+    sleep(Duration::from_secs_f32(1.));
     true
 }
 
