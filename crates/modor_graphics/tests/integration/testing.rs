@@ -31,8 +31,10 @@ fn assert_texture_with_same_texture() {
         .with_entity(same_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, is_same("testing#texture"))
-        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 0))
-        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 255))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 0, 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 0, 2))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 0, 10))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 255, 1))
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("testing#texture", 0))
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("testing#texture", 100_000));
 }
@@ -43,7 +45,8 @@ fn assert_texture_with_similar_texture() {
         .with_entity(modor_graphics::module())
         .with_entity(different_texture())
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 2))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 2, 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 1, 2))
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("testing#texture", 1));
 }
 
@@ -64,7 +67,7 @@ fn assert_texture_with_different_texture_using_component_diff() {
         .with_entity(modor_graphics::module())
         .with_entity(different_texture())
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 1));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("testing#texture", 1, 1));
 }
 
 #[should_panic = "texture is different"]

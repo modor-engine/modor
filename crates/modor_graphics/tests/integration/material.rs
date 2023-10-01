@@ -46,7 +46,7 @@ fn configure_texture() {
         .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture"))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = Some(TRANSPARENT_TEXTURE))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("material#transparent_texture", 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#transparent_texture", 1, 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = None)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#color_white"))
@@ -68,7 +68,10 @@ fn configure_color_and_texture() {
         .assert::<With<TextureBuffer>>(1, is_same("material#opaque_texture_red"))
         .with_update::<(), _>(|m: &mut Material| m.texture_key = Some(TRANSPARENT_TEXTURE))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("material#transparent_texture_red", 1))
+        .assert::<With<TextureBuffer>>(
+            1,
+            has_component_diff("material#transparent_texture_red", 1, 1),
+        )
         .with_update::<(), _>(|m: &mut Material| m.texture_key = None)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#color_red"));
@@ -85,11 +88,11 @@ fn configure_cropped_texture() {
         .with_entity(resources())
         .with_entity(material)
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("material#cropped_texture", 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#cropped_texture", 1, 1))
         .with_update::<(), _>(|m: &mut Material| m.texture_position = Vec2::ZERO)
         .with_update::<(), _>(|m: &mut Material| m.texture_size = Vec2::ONE)
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("material#opaque_texture", 1));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("material#opaque_texture", 1, 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]

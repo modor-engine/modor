@@ -1,7 +1,8 @@
 //! Testing utilities.
 
 use crate::TextureBuffer;
-use image::ColorType;
+use image::imageops::FilterType;
+use image::{ColorType, ImageBuffer, Rgba};
 use modor::{EntityAssertions, EntityFilter};
 use std::path::PathBuf;
 use std::{env, fs};
@@ -74,6 +75,9 @@ where
 ///
 /// The generated diff texture is a black texture, with white color for pixels that are different.
 ///
+/// The images are downscaled at a factor of `downscale_factor` using linear filtering
+/// before being compared.
+///
 /// # Panics
 ///
 /// This will panic if:
@@ -105,19 +109,24 @@ where
 /// App::new()
 ///     .with_entity(texture())
 ///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-///     .assert::<With<TextureBuffer>>(1, has_component_diff("texture", 1));
+///     .assert::<With<TextureBuffer>>(1, has_component_diff("texture", 1,1));
 /// # }
 /// ```
 pub fn has_component_diff<F>(
     key: &str,
     max_component_diff: u8,
+    downscale_factor: u8,
 ) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F> + '_
 where
     F: EntityFilter,
 {
     move |e| {
         e.has(|b: &TextureBuffer| {
-            assert_texture(b, key, MaxTextureDiff::Component(max_component_diff));
+            assert_texture(
+                b,
+                key,
+                MaxTextureDiff::Component(max_component_diff, downscale_factor),
+            );
         })
     }
 }
@@ -201,7 +210,7 @@ fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDiff) {
         let expected_data = image.to_rgba8().into_raw();
         assert_eq!(size.width, expected_width, "texture width is different");
         assert_eq!(size.height, expected_height, "texture height is different");
-        if !are_texture_similar(data, &expected_data, max_diff) {
+        if !are_texture_similar(data, &expected_data, expected_width, max_diff) {
             let diff_data = texture_diff(data, &expected_data);
             let diff_file = env::temp_dir().join(format!("diff_{key}.png"));
             image::save_buffer(
@@ -228,13 +237,18 @@ fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDiff) {
     }
 }
 
-fn are_texture_similar(texture1: &[u8], texture2: &[u8], max_diff: MaxTextureDiff) -> bool {
+fn are_texture_similar(
+    texture1: &[u8],
+    texture2: &[u8],
+    width: u32,
+    max_diff: MaxTextureDiff,
+) -> bool {
     match max_diff {
         MaxTextureDiff::Zero => texture1 == texture2,
-        MaxTextureDiff::Component(epsilon) => !texture1
-            .iter()
-            .zip(texture2)
-            .any(|(a, b)| a.abs_diff(*b) > epsilon),
+        MaxTextureDiff::Component(epsilon, factor) => !downscaled_texture(texture1, width, factor)
+            .into_iter()
+            .zip(downscaled_texture(texture2, width, factor))
+            .any(|(a, b)| a.abs_diff(b) > epsilon),
         MaxTextureDiff::PixelCount(pixel_count) => {
             texture1
                 .chunks(4)
@@ -244,6 +258,20 @@ fn are_texture_similar(texture1: &[u8], texture2: &[u8], max_diff: MaxTextureDif
                 <= pixel_count
         }
     }
+}
+
+#[allow(clippy::integer_division, clippy::cast_possible_truncation)]
+fn downscaled_texture(texture: &[u8], width: u32, factor: u8) -> Vec<u8> {
+    let height = (texture.len() as u32) / 4 / width;
+    let buffer: ImageBuffer<Rgba<u8>, _> =
+        ImageBuffer::from_raw(width, height, texture).expect("cannot downscale image");
+    image::imageops::resize(
+        &buffer,
+        width / u32::from(factor),
+        height / u32::from(factor),
+        FilterType::Triangle,
+    )
+    .into_raw()
 }
 
 fn texture_diff(texture1: &[u8], texture2: &[u8]) -> Vec<u8> {
@@ -262,6 +290,6 @@ fn texture_diff(texture1: &[u8], texture2: &[u8]) -> Vec<u8> {
 
 enum MaxTextureDiff {
     Zero,
-    Component(u8),
+    Component(u8, u8), // component diff, downscale factor
     PixelCount(usize),
 }
