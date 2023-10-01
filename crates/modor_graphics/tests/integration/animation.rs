@@ -76,7 +76,7 @@ fn sprite(sprites: Vec<Sprite>, fps: u16) -> impl BuiltEntity {
 }
 
 fn sleep_one_frame<C>(_: &C) -> bool {
-    sleep(Duration::from_secs_f32(1.));
+    sleep(Duration::from_secs_f32(0.5));
     true
 }
 
