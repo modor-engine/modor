@@ -38,13 +38,13 @@ fn create_for_transparent() {
         .with_entity(transparent_green_rectangle(-0.03, 1))
         .with_entity(transparent_green_rectangle(0.09, u16::MAX).component(Marker))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent", 1, 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1, 1))
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_reversed", 1, 1));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -57,15 +57,18 @@ fn create_for_opaque_and_transparent() {
         .with_entity(transparent_green_rectangle(-0.03, 1))
         .with_entity(transparent_green_rectangle(0.09, u16::MAX).component(Marker))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1))
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix", 1, 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_mix_reversed", 1))
+        .assert::<With<TextureBuffer>>(
+            1,
+            has_component_diff("z_index#transparent_mix_reversed", 1, 1),
+        )
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("z_index#transparent_mix_reversed", 1),
+            has_component_diff("z_index#transparent_mix_reversed", 1, 1),
         );
 }
 
@@ -78,19 +81,19 @@ fn create_for_transparent_texture() {
         .with_entity(transparent_blue_texture_rectangle(0.03, u16::MAX - 1))
         .with_entity(transparent_green_texture_rectangle(-0.03, 1))
         .with_entity(transparent_green_texture_rectangle(0.09, u16::MAX).component(Marker))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_texture", 10))
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_texture", 10, 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("z_index#transparent_texture_reversed", 10),
+            has_component_diff("z_index#transparent_texture_reversed", 10, 1),
         )
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("z_index#transparent_texture_reversed", 10),
+            has_component_diff("z_index#transparent_texture_reversed", 10, 1),
         );
 }
 
@@ -103,19 +106,19 @@ fn create_for_transparent_front_texture() {
         .with_entity(transparent_blue_front_texture_rectangle(0.03, u16::MAX - 1))
         .with_entity(transparent_green_front_texture_rectangle(-0.03, 1))
         .with_entity(transparent_green_front_texture_rectangle(0.09, u16::MAX).component(Marker))
-        .updated_until_all::<With<Texture>, Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_texture", 10))
+        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
+        .assert::<With<TextureBuffer>>(1, has_component_diff("z_index#transparent_texture", 10, 1))
         .with_update::<(), _>(|i: &mut ZIndex2D| *i = ZIndex2D::from(u16::MAX - u16::from(*i)))
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("z_index#transparent_texture_reversed", 10),
+            has_component_diff("z_index#transparent_texture_reversed", 10, 1),
         )
         .with_deleted_components::<With<Marker>, ZIndex2D>()
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("z_index#transparent_texture_reversed", 10),
+            has_component_diff("z_index#transparent_texture_reversed", 10, 1),
         );
 }
 

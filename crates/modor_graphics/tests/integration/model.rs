@@ -59,11 +59,14 @@ fn configure_transparent_with_one_camera() {
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("model#one_camera_transparent_blue", 1),
+            has_component_diff("model#one_camera_transparent_blue", 1, 1),
         )
         .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = OFFSET_CAMERA)
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("model#other_camera_transparent", 1))
+        .assert::<With<TextureBuffer>>(
+            1,
+            has_component_diff("model#other_camera_transparent", 1, 1),
+        )
         .with_update::<(), _>(|m: &mut Model| m.camera_keys[0] = missing_camera_key)
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("model#empty"));
@@ -98,12 +101,15 @@ fn configure_material() {
         .updated()
         .with_update::<With<Model>, _>(|m: &mut Model| m.material_key = TRANSPARENT_RED_MATERIAL)
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("model#one_camera_transparent_red", 1))
+        .assert::<With<TextureBuffer>>(
+            1,
+            has_component_diff("model#one_camera_transparent_red", 1, 1),
+        )
         .with_update::<With<Model>, _>(|m: &mut Model| m.material_key = TRANSPARENT_BLUE_MATERIAL)
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("model#one_camera_transparent_blue", 1),
+            has_component_diff("model#one_camera_transparent_blue", 1, 1),
         )
         .with_update::<With<Model>, _>(|m: &mut Model| m.material_key = OPAQUE_BLUE_MATERIAL)
         .updated()
@@ -172,7 +178,7 @@ fn replace_graphics_module_with_transparent_model() {
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("model#one_camera_transparent_blue", 1),
+            has_component_diff("model#one_camera_transparent_blue", 1, 1),
         );
 }
 
@@ -205,7 +211,7 @@ fn delete_and_recreate_graphics_module_with_transparent_model() {
         .updated()
         .assert::<With<TextureBuffer>>(
             1,
-            has_component_diff("model#one_camera_transparent_blue", 1),
+            has_component_diff("model#one_camera_transparent_blue", 1, 1),
         );
 }
 

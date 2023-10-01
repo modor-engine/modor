@@ -81,14 +81,16 @@ impl Collider2D {
     }
 
     pub(crate) fn collider_builder(&self, size: Vec2) -> ColliderBuilder {
+        let size = Vec2::new(size.x.abs(), size.y.abs());
         let builder = match self.shape {
             Collider2DShape::Rectangle => ColliderBuilder::cuboid(size.x / 2., size.y / 2.),
-            Collider2DShape::Circle => ColliderBuilder::ball(size.x.abs().min(size.y.abs()) / 2.),
+            Collider2DShape::Circle => ColliderBuilder::ball(size.x.min(size.y) / 2.),
         };
         builder.solver_groups(InteractionGroups::none())
     }
 
     pub(crate) fn update_collider(&self, size: Vec2, collider: &mut Collider) {
+        let size = Vec2::new(size.x.abs(), size.y.abs());
         let shape = collider.shape_mut();
         match self.shape {
             Collider2DShape::Rectangle => {
@@ -101,7 +103,7 @@ impl Collider2D {
                 shape
                     .as_ball_mut()
                     .expect("internal error: collider is not a ball")
-                    .radius = size.x.abs().min(size.y.abs()) / 2.;
+                    .radius = size.x.min(size.y) / 2.;
             }
         }
     }

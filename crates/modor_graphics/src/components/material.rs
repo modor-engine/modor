@@ -1,7 +1,7 @@
 use crate::components::shader::{Shader, DEFAULT_SHADER, ELLIPSE_SHADER};
 use crate::components::texture::TextureRegistry;
 use crate::gpu_data::uniform::Uniform;
-use crate::{Color, Renderer, Texture};
+use crate::{Color, Renderer, Texture, TextureAnimation};
 use modor::{Custom, SingleRef};
 use modor_math::Vec2;
 use modor_resources::{ResKey, Resource, ResourceAccessor, ResourceRegistry, ResourceState};
@@ -164,7 +164,7 @@ impl Material {
         }
     }
 
-    #[run_after(component(Renderer))]
+    #[run_after(component(Renderer), component(TextureAnimation))]
     fn update_uniform(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {

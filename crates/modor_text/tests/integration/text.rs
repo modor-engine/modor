@@ -67,7 +67,7 @@ fn create_text_2d() {
         .with_entity(texture_target(0, Size::new(100, 50), true))
         .with_entity(text_2d(TEXTURE_CAMERAS_2D.get(0), "text", 30.))
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("text#2d", 50));
+        .assert::<With<TextureBuffer>>(1, has_component_diff("text#2d", 50, 1));
 }
 
 fn text(updater: impl FnOnce(&mut Text)) -> impl BuiltEntity {

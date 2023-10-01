@@ -33,6 +33,16 @@ assets = "assets"
 target_sdk_version = 31
 
 [[example]]
+name = "animation_2d_android"
+path = "examples/animation_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "animation_2d"
+path = "examples/animation_2d.rs"
+crate-type = ["bin"]
+
+[[example]]
 name = "anti_aliasing_android"
 path = "examples/anti_aliasing.rs"
 crate-type = ["cdylib"]
