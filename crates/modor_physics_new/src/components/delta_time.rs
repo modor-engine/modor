@@ -20,7 +20,7 @@ use std::time::Duration;
 /// # use modor_physics_new::*;
 /// #
 /// fn print_delta_time(delta_time: &SingleRef<'_, '_, DeltaTime>) {
-///     println!("Duration of the last update: {:?}", delta_time.get());
+///     println!("Duration of the last update: {:?}", delta_time.get().get());
 /// }
 /// ```
 #[derive(SingletonComponent, NoSystem)]
