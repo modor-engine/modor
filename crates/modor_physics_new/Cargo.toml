@@ -1,0 +1,29 @@
+[package]
+name = "modor_physics_new"
+description = "Physics module of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "physics", "collision", "game", "engine"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+# TODO: clean up dependencies
+[dependencies]
+#fxhash.workspace = true
+log.workspace = true
+rapier2d.workspace = true
+#typed-index-collections.workspace = true
+modor.workspace = true
+modor_math.workspace = true
+
+[dev-dependencies]
+approx.workspace = true
+modor_internal.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
