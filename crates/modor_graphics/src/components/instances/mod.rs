@@ -79,7 +79,7 @@ fn create_instance(
         .to_normalized_f32();
     Instance {
         transform: (Mat4::from_scale(entity.transform.size.with_z(0.))
-            * Quat::from_z(*entity.transform.rotation).matrix()
+            * Quat::from_z(entity.transform.rotation).matrix()
             * Mat4::from_position(entity.transform.position.with_z(z)))
         .to_array(),
     }

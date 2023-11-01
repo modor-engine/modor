@@ -17,7 +17,7 @@ use std::time::Duration;
 ///
 /// ```rust
 /// # use modor::*;
-/// # use modor_physics_new::*;
+/// # use modor_physics::*;
 /// #
 /// fn print_delta_time(delta_time: &SingleRef<'_, '_, DeltaTime>) {
 ///     println!("Duration of the last update: {:?}", delta_time.get().get());

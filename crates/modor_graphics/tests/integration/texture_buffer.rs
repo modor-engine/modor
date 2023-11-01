@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::{Color, GraphicsModule, RenderTarget, Size, Texture, TextureBuffer};
 use modor_resources::ResKey;
 use std::iter;
@@ -106,6 +106,22 @@ fn delete_and_recreate_graphics_module() {
         .assert::<BufferEntity>(1, has_buffer_pixels([255, 255, 255, 255], Size::new(3, 2)));
 }
 
+assertion_functions!(
+    fn is_buffer_empty(buffer: &TextureBuffer) {
+        assert!(buffer.get().is_empty());
+        assert_eq!(buffer.size(), Size::ZERO);
+    }
+
+    fn has_buffer_pixels(buffer: &TextureBuffer, color: [u8; 4], size: Size) {
+        let expected_data = iter::repeat(color)
+            .take((size.width * size.height) as usize)
+            .flatten()
+            .collect::<Vec<_>>();
+        assert_eq!(buffer.get(), expected_data);
+        assert_eq!(buffer.size(), size);
+    }
+);
+
 fn buffer(size: Size) -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Texture::from_size(TEXTURE, size))
@@ -119,37 +135,6 @@ fn target_buffer(size: Size, color: Color) -> impl BuiltEntity {
         .component(TextureBuffer::default())
         .component(RenderTarget::new(target_key))
         .with(|t| t.background_color = color)
-}
-
-fn is_buffer_empty<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    |e| {
-        e.has(|b: &TextureBuffer| {
-            assert!(b.get().is_empty());
-            assert_eq!(b.size(), Size::ZERO);
-        })
-    }
-}
-
-fn has_buffer_pixels<F>(
-    color: [u8; 4],
-    size: Size,
-) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|b: &TextureBuffer| {
-            let expected_data = iter::repeat(color)
-                .take((size.width * size.height) as usize)
-                .flatten()
-                .collect::<Vec<_>>();
-            assert_eq!(b.get(), expected_data);
-            assert_eq!(b.size(), size);
-        })
-    }
 }
 
 type BufferEntity = With<TextureBuffer>;

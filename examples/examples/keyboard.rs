@@ -21,8 +21,8 @@ pub fn main() {
 
 fn text(position_y: f32, text: &str) -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
-        .updated(|t: &mut Transform2D| *t.position = Vec2::Y * position_y)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(1., 0.15))
+        .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
         .updated(|t: &mut Material| t.color = Color::INVISIBLE)
         .updated(|t: &mut Material| t.front_color = Color::WHITE)
 }

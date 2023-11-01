@@ -1,4 +1,7 @@
-pub(crate) mod collider_2d;
-pub(crate) mod dynamics_2d;
-pub(crate) mod relative_transform_2d;
-pub(crate) mod transform_2d;
+pub(crate) mod collider;
+pub(crate) mod collision_groups;
+pub(crate) mod delta_time;
+pub(crate) mod dynamics;
+pub(crate) mod physics_hook;
+pub(crate) mod pipeline;
+pub(crate) mod transform;

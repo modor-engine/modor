@@ -426,6 +426,10 @@ pub use modor_derive::systems;
 /// - `wasm`
 /// - `windows`
 ///
+/// It is also possible to parametrize the test using `cases(...)` argument, that accepts key-value
+/// pairs, where key is a test suffix and value is a string containing the arguments to pass to
+/// the test method.
+///
 /// # Platform-specific
 ///
 /// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
@@ -440,7 +444,10 @@ pub use modor_derive::systems;
 /// fn run_on_all_platforms() { }
 ///
 /// #[modor_test(disabled(linux, wasm))]
-/// fn run_on_all_platforms_expect_linux_and_wasm() { }
+/// fn run_on_all_platforms_except_linux_and_wasm() { }
+///
+/// #[modor_test(cases(zero = "0, false", one = "1, false", failure = "100, true"))]
+/// fn run_parametrized(number: u32, failure: bool) { }
 /// ```
 pub use modor_derive::modor_test;
 

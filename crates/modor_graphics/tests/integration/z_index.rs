@@ -186,8 +186,8 @@ fn transparent_green_front_texture_rectangle(position: f32, z_index: u16) -> imp
 
 fn rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
     model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.position = Vec2::new(position, position))
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.3)
+        .updated(|t: &mut Transform2D| t.position = Vec2::new(position, position))
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))
 }
 

@@ -1,6 +1,6 @@
-use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_math::Vec2;
-use modor_physics_new::{DeltaTime, Dynamics2D, Transform2D};
+use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::time::Duration;
 
@@ -21,14 +21,12 @@ fn create_new() {
 #[modor_test]
 fn update_velocity() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .updated()
-        .updated()
         .assert::<With<Dynamics2D>>(1, assert_position(Vec2::ZERO))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
-        .updated()
         .updated()
         .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
         .updated()
@@ -38,14 +36,12 @@ fn update_velocity() {
 #[modor_test]
 fn update_angular_velocity() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .updated()
-        .updated()
         .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
-        .updated()
         .updated()
         .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
         .updated()
@@ -59,51 +55,47 @@ fn update_angular_velocity() {
 #[modor_test]
 fn update_position() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
-        .updated()
         .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
         .with_update::<(), _>(|t: &mut Transform2D| t.position = Vec2::new(0., 0.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(0., 0.)))
+        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)));
+        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(8., 4.)));
 }
 
 #[modor_test]
 fn update_rotation() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
         .updated()
-        .updated()
         .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
         .with_update::<(), _>(|t: &mut Transform2D| t.rotation = 0.)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
+        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2));
+        .assert::<With<Dynamics2D>>(1, assert_rotation(-PI));
 }
 
 #[modor_test]
 fn remove_dynamics() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
         .updated()
-        .updated()
         .assert::<With<Transform2D>>(1, assert_position(Vec2::new(8., 4.)))
         .with_deleted_components::<(), Dynamics2D>()
-        .updated()
         .updated()
         .assert::<With<Transform2D>>(1, assert_position(Vec2::new(8., 4.)))
         .with_component::<With<Transform2D>, _>(|| {
@@ -112,50 +104,38 @@ fn remove_dynamics() {
             dynamics
         })
         .updated()
-        .updated()
         .assert::<With<Transform2D>>(1, assert_position(Vec2::new(10., 8.)));
 }
 
 #[modor_test]
 fn remove_transform() {
     App::new()
-        .with_entity(modor_physics_new::module())
+        .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
         .updated()
-        .updated()
         .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(8., 4.)))
         .with_deleted_components::<(), Transform2D>()
         .updated()
-        .updated()
         .with_component::<With<Dynamics2D>, _>(Transform2D::new)
-        .updated()
         .updated()
         .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)));
 }
+
+assertion_functions!(
+    fn assert_position(transform: &Transform2D, position: Vec2) {
+        assert_approx_eq!(transform.position, position);
+    }
+
+    fn assert_rotation(transform: &Transform2D, rotation: f32) {
+        assert_approx_eq!(transform.rotation, rotation);
+    }
+);
 
 fn physics_object() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
         .component(Dynamics2D::new())
-}
-
-fn assert_position<F>(
-    position: Vec2,
-) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| e.has(|t: &Transform2D| assert_approx_eq!(t.position, position))
-}
-
-fn assert_rotation<F>(
-    rotation: f32,
-) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| e.has(|t: &Transform2D| assert_approx_eq!(t.rotation, rotation))
 }

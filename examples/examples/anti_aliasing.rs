@@ -9,14 +9,13 @@ use modor_graphics::{
 };
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
-use modor_physics::{PhysicsModule, Transform2D};
+use modor_physics::Transform2D;
 use modor_text::{text_2d, Alignment, Text};
 use std::f32::consts::FRAC_PI_8;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_entity(PhysicsModule::build())
         .with_entity(modor_text::module())
         .with_entity(AntiAliasing::default())
         .with_entity(AntiAliasingController)
@@ -28,8 +27,8 @@ pub fn main() {
 
 fn object() -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
-        .updated(|t: &mut Transform2D| *t.rotation = FRAC_PI_8)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Material| m.color = Color::YELLOW)
 }
 
@@ -38,7 +37,7 @@ fn information() -> impl BuiltEntity {
         .updated(|m: &mut Material| m.front_color = Color::BLACK)
         .updated(|m: &mut Material| m.color = Color::INVISIBLE)
         .updated(|t: &mut Text| t.alignment = Alignment::Left)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .component(ZIndex2D::from(1))
         .component(Information)
 }

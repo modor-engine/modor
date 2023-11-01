@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
     model_2d, texture_target, Material, Model2DMaterial, Size, Texture, TextureBuffer,
@@ -208,56 +208,30 @@ fn set_source() {
         .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
 }
 
-fn assert_not_loaded<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|t: &Texture| {
-            assert_eq!(t.size(), None);
-            assert_eq!(t.state(), ResourceState::NotLoaded);
-        })
+assertion_functions!(
+    fn assert_not_loaded(texture: &Texture) {
+        assert_eq!(texture.size(), None);
+        assert_eq!(texture.state(), ResourceState::NotLoaded);
     }
-}
 
-fn assert_loaded<F>(size: Size) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|t: &Texture| {
-            assert_eq!(t.size(), Some(size));
-            assert_eq!(t.state(), ResourceState::Loaded);
-        })
+    fn assert_loaded(texture: &Texture, size: Size) {
+        assert_eq!(texture.size(), Some(size));
+        assert_eq!(texture.state(), ResourceState::Loaded);
     }
-}
 
-fn assert_loading<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|t: &Texture| {
-            assert_eq!(t.size(), None);
-            assert_eq!(t.state(), ResourceState::Loading);
-        })
+    fn assert_loading(texture: &Texture) {
+        assert_eq!(texture.size(), None);
+        assert_eq!(texture.state(), ResourceState::Loading);
     }
-}
 
-fn assert_invalid_format<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|t: &Texture| {
-            assert_eq!(t.size(), None);
-            assert!(matches!(
-                t.state(),
-                ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
-            ));
-        })
+    fn assert_invalid_format(texture: &Texture) {
+        assert_eq!(texture.size(), None);
+        assert!(matches!(
+            texture.state(),
+            ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
+        ));
     }
-}
+);
 
 fn buffer() -> impl BuiltEntity {
     EntityBuilder::new().component(TextureBuffer::default())

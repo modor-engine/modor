@@ -81,9 +81,7 @@ impl Vec2 {
 
     /// Returns the Euclidean distance with `other`.
     pub fn distance(self, other: Self) -> f32 {
-        let x_diff = self.x - other.x;
-        let y_diff = self.y - other.y;
-        x_diff.mul_add(x_diff, y_diff.powi(2)).sqrt()
+        (self - other).magnitude()
     }
 
     /// Returns the rotation between the vector and `other` in radians.

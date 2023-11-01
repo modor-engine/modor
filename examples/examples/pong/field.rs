@@ -1,4 +1,4 @@
-use crate::CollisionGroup;
+use crate::collisions::WALL_GROUP;
 use modor::{BuiltEntity, Component, EntityBuilder, NoSystem};
 use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
@@ -18,15 +18,15 @@ pub(crate) fn field() -> impl BuiltEntity {
 
 fn wall(orientation: WallOrientation) -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.position = orientation.position())
-        .updated(|t: &mut Transform2D| *t.size = orientation.size())
-        .component(Collider2D::rectangle(CollisionGroup::Wall))
+        .updated(|t: &mut Transform2D| t.position = orientation.position())
+        .updated(|t: &mut Transform2D| t.size = orientation.size())
+        .component(Collider2D::rectangle(WALL_GROUP))
         .component(orientation)
 }
 
 fn separator() -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(BORDER_WIDTH / 4., SIZE.y))
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(BORDER_WIDTH / 4., SIZE.y))
 }
 
 #[derive(Component, NoSystem, Clone, Copy, Debug)]

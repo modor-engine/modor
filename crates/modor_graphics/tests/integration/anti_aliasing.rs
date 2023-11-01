@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
     model_2d, texture_target, AntiAliasing, AntiAliasingMode, Color, GraphicsModule, Material,
@@ -94,25 +94,17 @@ fn delete_and_recreate_graphics_module() {
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12));
 }
 
-fn has_supported_modes<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    |e| {
-        e.has(|a: &AntiAliasing| {
-            assert!(a.supported_modes().len() >= 2);
-            assert_eq!(a.supported_modes()[0], AntiAliasingMode::None);
-            assert_ne!(a.supported_modes()[1], AntiAliasingMode::None);
-        })
+assertion_functions!(
+    fn has_supported_modes(anti_aliasing: &AntiAliasing) {
+        assert!(anti_aliasing.supported_modes().len() >= 2);
+        assert_eq!(anti_aliasing.supported_modes()[0], AntiAliasingMode::None);
+        assert_ne!(anti_aliasing.supported_modes()[1], AntiAliasingMode::None);
     }
-}
 
-fn has_not_supported_modes<F>() -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    |e| e.has(|a: &AntiAliasing| assert_eq!(a.supported_modes(), [AntiAliasingMode::None]))
-}
+    fn has_not_supported_modes(anti_aliasing: &AntiAliasing) {
+        assert_eq!(anti_aliasing.supported_modes(), [AntiAliasingMode::None]);
+    }
+);
 
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
@@ -122,7 +114,7 @@ fn resources() -> impl BuiltEntity {
 
 fn rectangle() -> impl BuiltEntity {
     model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
-        .updated(|t: &mut Transform2D| *t.rotation = FRAC_PI_8)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Material| m.color = Color::GREEN)
 }

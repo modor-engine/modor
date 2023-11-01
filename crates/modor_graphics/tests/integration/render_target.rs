@@ -176,8 +176,8 @@ fn secondary_target() -> impl BuiltEntity {
 
 fn blue_rectangle() -> impl BuiltEntity {
     model_2d(SECONDARY_CAMERA, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.position = Vec2::ONE * 0.25)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Material| m.color = Color::BLUE)
         .component(BlueRectangle)
 }

@@ -65,15 +65,15 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 ///     EntityBuilder::new()
 ///         .component(Camera2D::new(DYNAMIC_CAMERA, TARGET))
 ///         .component(Transform2D::new())
-///         .with(|t| *t.size = Vec2::ONE * 0.5) // zoom x2
+///         .with(|t| t.size = Vec2::ONE * 0.5) // zoom x2
 ///         .component(Dynamics2D::new())
-///         .with(|d| *d.velocity = Vec2::new(0.1, 0.2))
+///         .with(|d| d.velocity = Vec2::new(0.1, 0.2))
 /// }
 ///
 /// fn object() -> impl BuiltEntity {
 ///     model_2d(DYNAMIC_CAMERA, Model2DMaterial::Rectangle)
 ///         .updated(|m: &mut Model| m.camera_keys.push(DEFAULT_CAMERA)) // add other camera
-///         .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.3, 0.1))
+///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.3, 0.1))
 /// }
 /// ```
 #[must_use]
@@ -212,7 +212,7 @@ impl Camera2D {
             -1.,
         );
         Mat4::from_position(position)
-            * Quat::from_z(*self.transform.rotation).matrix()
+            * Quat::from_z(self.transform.rotation).matrix()
             * Mat4::from_scale(scale)
     }
 
@@ -224,7 +224,7 @@ impl Camera2D {
             .size
             .with_scale(Vec2::new(1. / x_scale, 1. / y_scale));
         Mat4::from_scale(scale.with_z(1.))
-            * Quat::from_z(-*self.transform.rotation).matrix()
+            * Quat::from_z(-self.transform.rotation).matrix()
             * Mat4::from_position(self.transform.position.with_z(0.))
     }
 }

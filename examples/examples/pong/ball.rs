@@ -1,13 +1,13 @@
+use crate::collisions::{BALL_GROUP, PADDLE_GROUP};
 use crate::events::ResetEvent;
 use crate::field::WallOrientation;
 use crate::paddles;
 use crate::scores::{LeftScore, RightScore};
-use crate::CollisionGroup;
 use instant::Instant;
 use modor::{systems, BuiltEntity, Query, SingleMut, SingleRef, SingletonComponent, World};
 use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
-use modor_physics::{Collider2D, Dynamics2D, PhysicsModule, Transform2D};
+use modor_physics::{Collider2D, Dynamics2D, Transform2D};
 use rand::Rng;
 use std::f32::consts::FRAC_PI_4;
 
@@ -17,11 +17,11 @@ const ACCELERATION: f32 = 0.05;
 
 pub(crate) fn ball() -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Ellipse)
-        .updated(|t: &mut Transform2D| *t.position = Vec2::ZERO)
-        .updated(|t: &mut Transform2D| *t.size = SIZE)
+        .updated(|t: &mut Transform2D| t.position = Vec2::ZERO)
+        .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())
-        .with(|d| *d.velocity = generate_ball_velocity())
-        .component(Collider2D::rectangle(CollisionGroup::Ball))
+        .with(|d| d.velocity = generate_ball_velocity())
+        .component(Collider2D::circle(BALL_GROUP))
         .component(Ball::default())
 }
 
@@ -40,7 +40,7 @@ impl Default for Ball {
 
 #[systems]
 impl Ball {
-    #[run_as(component(PhysicsModule))]
+    #[run_after(component(Transform2D), component(Dynamics2D))]
     fn reset(
         &mut self,
         transform: &mut Transform2D,
@@ -48,11 +48,11 @@ impl Ball {
         _event: SingleRef<'_, '_, ResetEvent>,
     ) {
         self.creation_instant = Instant::now();
-        *transform.position = Vec2::ZERO;
-        *dynamics.velocity = generate_ball_velocity();
+        transform.position = Vec2::ZERO;
+        dynamics.velocity = generate_ball_velocity();
     }
 
-    #[run_after(component(PhysicsModule))]
+    #[run_after(component(Dynamics2D), component(Collider2D))]
     fn handle_collision_with_walls(
         dynamics: &mut Dynamics2D,
         collider: &mut Collider2D,
@@ -82,32 +82,32 @@ impl Ball {
         }
     }
 
-    #[run_after(component(PhysicsModule))]
+    #[run_after(component(Dynamics2D), component(Transform2D), component(Collider2D))]
     fn handle_collision_with_paddle(
         dynamics: &mut Dynamics2D,
         transform: &Transform2D,
         collider: &Collider2D,
         transforms: Query<'_, &Transform2D>,
     ) {
-        for (_, paddle_transform) in collider.collided_as(&transforms, CollisionGroup::Paddle) {
+        for (_, paddle_transform) in collider.collided_as(&transforms, PADDLE_GROUP) {
             let normalized_direction = -transform.position.x.signum();
             let direction = dynamics.velocity.magnitude() * normalized_direction;
             let relative_y_offset = normalized_direction
                 * (transform.position.y - paddle_transform.position.y)
                 / (paddles::SIZE.y / 2.);
             let rotation = relative_y_offset * FRAC_PI_4;
-            *dynamics.velocity = Vec2::new(direction, 0.).with_rotation(rotation);
+            dynamics.velocity = Vec2::new(direction, 0.).with_rotation(rotation);
         }
     }
 
-    #[run_after(component(PhysicsModule))]
+    #[run_after(component(Dynamics2D))]
     fn update_acceleration(&self, dynamics: &mut Dynamics2D) {
         let speed = self
             .creation_instant
             .elapsed()
             .as_secs_f32()
             .mul_add(ACCELERATION, INITIAL_SPEED);
-        *dynamics.velocity = dynamics
+        dynamics.velocity = dynamics
             .velocity
             .with_magnitude(speed)
             .expect("ball velocity is zero");

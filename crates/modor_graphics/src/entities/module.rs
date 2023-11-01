@@ -10,6 +10,7 @@ use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTU
 use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 use modor_input::InputModule;
+use modor_physics::PhysicsModule;
 
 /// Creates the graphics module.
 ///
@@ -19,7 +20,8 @@ use modor_input::InputModule;
 ///
 /// # Dependencies
 ///
-/// This module initializes automatically the input [module](modor_input::module()).
+/// This module initializes automatically the [input module](modor_input::module())
+/// and [physics module](modor_physics::module()).
 ///
 /// # Platform-specific
 ///
@@ -55,6 +57,7 @@ pub fn module() -> impl BuiltEntity {
             Size::ONE,
             vec![0; 4],
         ))
+        .dependency::<PhysicsModule, _, _>(modor_physics::module)
         .dependency::<InputModule, _, _>(modor_input::module)
 }
 

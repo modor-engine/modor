@@ -47,16 +47,16 @@ use modor_resources::ResKey;
 /// fn red_rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Transform2D::new())
-///         .with(|t| *t.position = position)
-///         .with(|t| *t.size = size)
+///         .with(|t| t.position = position)
+///         .with(|t| t.size = size)
 ///         .component(Model::rectangle(RED_RECTANGLE_MATERIAL, CAMERA))
 /// }
 ///
 /// fn green_ellipse(position: Vec2, size: Vec2) -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .component(Transform2D::new())
-///         .with(|t| *t.position = position)
-///         .with(|t| *t.size = size)
+///         .with(|t| t.position = position)
+///         .with(|t| t.size = size)
 ///         .component(Model::rectangle(GREEN_ELLIPSE_MATERIAL, CAMERA))
 /// }
 /// ```

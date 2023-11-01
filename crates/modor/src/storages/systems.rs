@@ -103,15 +103,16 @@ impl SystemStorage {
         storages: Storages<'_>,
     ) {
         let system = &properties[system_idx];
+        let item_count = storages.item_count(
+            Some(system_idx),
+            system.archetype_filter_fn,
+            system.component_type_idx,
+        );
         let context = SystemContext {
             system_idx: Some(system_idx),
             archetype_filter_fn: system.archetype_filter_fn,
             component_type_idx: system.component_type_idx,
-            item_count: storages.item_count(
-                Some(system_idx),
-                system.archetype_filter_fn,
-                system.component_type_idx,
-            ),
+            item_count,
             storages,
         };
         (system.wrapper)(context);
@@ -120,7 +121,7 @@ impl SystemStorage {
             .write()
             .expect("internal error: cannot lock archetype state")
             .reset_system(system_idx);
-        trace!("system `{}` run", system.label);
+        trace!("system `{}` run {item_count} times", system.label);
     }
 }
 

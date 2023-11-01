@@ -281,13 +281,13 @@ fn offset_camera() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Camera2D::new(OFFSET_CAMERA, TEXTURE_TARGETS.get(0)))
         .component(Transform2D::new())
-        .with(|t| *t.position = Vec2::new(0.5, 0.5))
+        .with(|t| t.position = Vec2::new(0.5, 0.5))
 }
 
 fn rectangle(material_key: ResKey<Material>, position: Vec2) -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Transform2D::new())
-        .with(|t| *t.position = position)
+        .with(|t| t.position = position)
         .component(Model::rectangle(material_key, DEFAULT_CAMERA))
 }
 

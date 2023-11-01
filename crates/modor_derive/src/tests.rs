@@ -1,12 +1,13 @@
 #![allow(clippy::option_if_let_else)]
 
 use darling::ast::NestedMeta;
-use darling::util::PathList;
+use darling::util::{PathList, SpannedValue};
 use darling::FromMeta;
-use proc_macro2::TokenStream;
-use proc_macro_error::abort;
-use quote::quote;
+use proc_macro2::{Ident, TokenStream};
+use proc_macro_error::{abort, OptionExt};
+use quote::{quote, quote_spanned};
 use std::collections::HashMap;
+use syn::spanned::Spanned;
 use syn::{parse_quote, ItemFn, Meta, Path};
 
 pub(crate) struct TestFunction<'a> {
@@ -35,6 +36,14 @@ impl<'a> TestFunction<'a> {
 
     pub(crate) fn annotated(&self) -> TokenStream {
         self.check_platform_paths(&self.args);
+        if self.args.cases.0.is_empty() {
+            self.annotated_without_cases()
+        } else {
+            self.annotated_with_cases()
+        }
+    }
+
+    pub(crate) fn annotated_without_cases(&self) -> TokenStream {
         let function = &self.function;
         let disabled_platform_conditions = self.disabled_platform_conditions();
         quote! {
@@ -45,6 +54,45 @@ impl<'a> TestFunction<'a> {
                 ::wasm_bindgen_test::wasm_bindgen_test)
             ]
             #function
+        }
+    }
+
+    pub(crate) fn annotated_with_cases(&self) -> TokenStream {
+        let function = &self.function;
+        let main_function_ident = &function.sig.ident;
+        let disabled_platform_conditions = self.disabled_platform_conditions();
+        let test_functions = self.args.cases.0.iter().map(|(suffix, params)| {
+            let span = params.span();
+            let function_ident =
+                Ident::new(&format!("{main_function_ident}_{suffix}"), span.span());
+            let params = params
+                .parse::<TokenStream>()
+                .ok()
+                .expect_or_abort("cannot parse test case args")
+                .into_iter()
+                .map(|mut token| {
+                    token.set_span(span);
+                    token
+                })
+                .collect::<TokenStream>();
+            let params = quote_spanned! {span => #params};
+            quote_spanned! {
+                span =>
+                #[cfg_attr(any(#(#disabled_platform_conditions),*), allow(unused))]
+                #[cfg_attr(not(any(#(#disabled_platform_conditions),*)), test)]
+                #[cfg_attr(
+                    all(target_arch = "wasm32", not(any(#(#disabled_platform_conditions),*))),
+                    ::wasm_bindgen_test::wasm_bindgen_test)
+                ]
+                fn #function_ident() {
+                    #main_function_ident(#params);
+                }
+            }
+        });
+        quote! {
+            #function
+
+            #(#test_functions)*
         }
     }
 
@@ -108,4 +156,9 @@ impl<'a> TestFunction<'a> {
 struct TestArgs {
     #[darling(default)]
     disabled: PathList,
+    #[darling(default)]
+    cases: TestCases,
 }
+
+#[derive(Default, FromMeta)]
+struct TestCases(HashMap<String, SpannedValue<String>>);
