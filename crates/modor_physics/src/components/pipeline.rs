@@ -67,39 +67,18 @@ impl Pipeline2D {
         mut collider_entities: Query<'_, &mut Collider2D>,
     ) {
         self.integration_parameters.dt = delta.get().get().as_secs_f32();
-        self.physics_pipeline.step(
-            &Vector2::zeros(),
-            &self.integration_parameters,
-            &mut self.island_manager,
-            &mut self.broad_phase,
-            &mut self.narrow_phase,
-            &mut self.bodies,
-            &mut self.colliders,
-            &mut self.impulse_joints,
-            &mut self.multibody_joints,
-            &mut self.ccd_solver,
-            None,
-            hook.get(),
-            &(),
-        );
+        self.run_step(hook.get());
         for collider in collider_entities.iter_mut() {
             collider.collisions.clear();
         }
         for pair in self.narrow_phase.contact_pairs() {
-            if pair.manifolds.is_empty() {
-                continue;
-            }
             let entity1_id = self.collider_entity_id(pair.collider1);
             let entity2_id = self.collider_entity_id(pair.collider2);
-            let (Some(collider1), Some(collider2)) =
-                collider_entities.get_both_mut(entity1_id, entity2_id)
-                else {continue};
-            let (Some(rapier_collider_1), Some(rapier_collider_2)) =
-                (
-                    collider1.handle.and_then(|h| self.colliders.get(h)),
-                    collider2.handle.and_then(|h| self.colliders.get(h)),
-                )
-                else {continue};
+            let rapier_collider_1 = &self.colliders[pair.collider1];
+            let rapier_collider_2 = &self.colliders[pair.collider2];
+            let (collider1, collider2) = collider_entities.get_both_mut(entity1_id, entity2_id);
+            let collider1 = collider1.expect("internal error: collider not found");
+            let collider2 = collider2.expect("internal error: collider not found");
             for manifold in &pair.manifolds {
                 if manifold.points.iter().all(|p| p.dist > 0.) {
                     continue;
@@ -145,6 +124,24 @@ impl Pipeline2D {
         } else {
             self.colliders.insert(builder)
         }
+    }
+
+    fn run_step(&mut self, hook: &PhysicsHook) {
+        self.physics_pipeline.step(
+            &Vector2::zeros(),
+            &self.integration_parameters,
+            &mut self.island_manager,
+            &mut self.broad_phase,
+            &mut self.narrow_phase,
+            &mut self.bodies,
+            &mut self.colliders,
+            &mut self.impulse_joints,
+            &mut self.multibody_joints,
+            &mut self.ccd_solver,
+            None,
+            hook,
+            &(),
+        );
     }
 
     fn collider_entity_id(&self, handle: ColliderHandle) -> usize {

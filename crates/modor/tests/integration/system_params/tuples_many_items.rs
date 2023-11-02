@@ -1,15 +1,16 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, OtherValue, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID,
-    MISSING_ID, NO_VALUE_ID, OTHER_VALUE2, VALUE2,
+    NoValueFilter, OtherValue, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID,
+    MATCHING2_ID, MISSING_ID, NO_VALUE_ID, OTHER_VALUE2, VALUE2, VALUE2_CLONE,
 };
 use modor::{App, Filter, With};
 
 #[modor_test]
 fn run_query_iter() {
     QueryTester::<((&Value, &OtherValue), Filter<With<Enabled>>)>::run(|q| {
-        let values = [(VALUE2, OTHER_VALUE2)];
+        let values = [(VALUE2, OTHER_VALUE2), (VALUE2_CLONE, OTHER_VALUE2)];
         assert_iter(q.iter().map(convert), values);
+        let values = [(VALUE2_CLONE, OTHER_VALUE2), (VALUE2, OTHER_VALUE2)];
         assert_iter(q.iter().rev().map(convert), values);
     });
 }
@@ -17,8 +18,9 @@ fn run_query_iter() {
 #[modor_test]
 fn run_query_iter_mut() {
     QueryTester::<((&Value, &OtherValue), Filter<With<Enabled>>)>::run(|q| {
-        let values = [(VALUE2, OTHER_VALUE2)];
+        let values = [(VALUE2, OTHER_VALUE2), (VALUE2_CLONE, OTHER_VALUE2)];
         assert_iter(q.iter_mut().map(convert), values);
+        let values = [(VALUE2_CLONE, OTHER_VALUE2), (VALUE2, OTHER_VALUE2)];
         assert_iter(q.iter_mut().rev().map(convert), values);
     });
 }
@@ -56,6 +58,9 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
         assert_eq!(left.map(convert), Some((VALUE2, OTHER_VALUE2)));
         assert_eq!(right.map(convert), None);
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING2_CLONE_ID);
+        assert_eq!(left.map(convert), Some((VALUE2, OTHER_VALUE2)));
+        assert_eq!(right.map(convert), Some((VALUE2_CLONE, OTHER_VALUE2)));
         let (left, right) = q.get_both_mut(MATCHING1_ID, MISSING_ID);
         assert_eq!(left.map(convert), None);
         assert_eq!(right.map(convert), None);
@@ -78,7 +83,7 @@ fn run_system_with_param() {
         .with_component::<(), _>(Tracked::default)
         .updated()
         .assert::<Matching1Filter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, None)))
-        .assert::<Matching2Filter>(1, |e| {
+        .assert_any::<Matching2Filter>(2, |e| {
             e.has(|t: &Tracked| assert_eq!(t.0, Some(VALUE2)))
                 .has(|t: &Tracked| assert_eq!(t.1, Some(OTHER_VALUE2)))
         })

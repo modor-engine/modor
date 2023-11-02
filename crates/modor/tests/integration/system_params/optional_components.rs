@@ -1,16 +1,16 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID,
-    NO_VALUE_ID, VALUE1, VALUE2,
+    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID, MATCHING2_ID,
+    MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
 };
 use modor::{App, Filter, With};
 
 #[modor_test]
 fn run_query_iter() {
     QueryTester::<(Option<&Value>, Filter<With<Enabled>>)>::run(|q| {
-        let values = [Some(VALUE1), None, Some(VALUE2)];
+        let values = [Some(VALUE1), None, Some(VALUE2), Some(VALUE2_CLONE)];
         assert_iter(q.iter().map(|v| v.0.map(|v| v.0)), values);
-        let values = [Some(VALUE2), None, Some(VALUE1)];
+        let values = [Some(VALUE2_CLONE), Some(VALUE2), None, Some(VALUE1)];
         assert_iter(q.iter().rev().map(|v| v.0.map(|v| v.0)), values);
     });
 }
@@ -18,9 +18,9 @@ fn run_query_iter() {
 #[modor_test]
 fn run_query_iter_mut() {
     QueryTester::<(Option<&Value>, Filter<With<Enabled>>)>::run(|q| {
-        let values = [Some(VALUE1), None, Some(VALUE2)];
+        let values = [Some(VALUE1), None, Some(VALUE2), Some(VALUE2_CLONE)];
         assert_iter(q.iter_mut().map(|v| v.0.map(|v| v.0)), values);
-        let values = [Some(VALUE2), None, Some(VALUE1)];
+        let values = [Some(VALUE2_CLONE), Some(VALUE2), None, Some(VALUE1)];
         assert_iter(q.iter_mut().rev().map(|v| v.0.map(|v| v.0)), values);
     });
 }
@@ -60,6 +60,9 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
         assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE2)));
         assert_eq!(right.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE1)));
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING2_CLONE_ID);
+        assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE2)));
+        assert_eq!(right.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE2_CLONE)));
         let (left, right) = q.get_both_mut(MATCHING1_ID, MISSING_ID);
         assert_eq!(left.map(|v| v.0.map(|v| v.0)), Some(Some(VALUE1)));
         assert_eq!(right.map(|v| v.0.map(|v| v.0)), None);
@@ -84,7 +87,7 @@ fn run_system_with_param() {
         .assert::<Matching1Filter>(1, |e| {
             e.has(|t: &Tracked| assert_eq!(t.0, Some(Some(VALUE1))))
         })
-        .assert::<Matching2Filter>(1, |e| {
+        .assert_any::<Matching2Filter>(2, |e| {
             e.has(|t: &Tracked| assert_eq!(t.0, Some(Some(VALUE2))))
         })
         .assert::<DisabledFilter>(1, |e| e.has(|t: &Tracked| assert_eq!(t.0, None)))

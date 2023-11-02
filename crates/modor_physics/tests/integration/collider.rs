@@ -3,46 +3,57 @@ use modor_math::Vec2;
 use modor_physics::{
     Collider2D, CollisionGroup, CollisionType, DeltaTime, Dynamics2D, Transform2D,
 };
-use modor_resources::ResKey;
+use modor_resources::{IndexResKey, ResKey};
 use std::f32::consts::FRAC_PI_4;
+use std::sync::Mutex;
 use std::time::Duration;
 
 #[modor_test]
 fn create_rectangle() {
-    let collider = Collider2D::rectangle(GROUP1);
+    let collider = Collider2D::rectangle(GROUP.get(0));
     assert!(collider.collisions().is_empty());
 }
 
 #[modor_test]
 fn create_circle() {
-    let collider = Collider2D::circle(GROUP1);
+    let collider = Collider2D::circle(GROUP.get(0));
     assert!(collider.collisions().is_empty());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn check_collisions_for_collided_shapes(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Rectangle>>(1, assert_rectangle())
         .assert::<With<Circle>>(1, assert_circle());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
+fn check_collisions_for_collided_shapes_in_independent_groups(with_dynamics: bool) {
+    App::new()
+        .with_entity(rectangle(GROUP.get(5), with_dynamics))
+        .with_entity(circle(GROUP.get(5 + 1 + 32), with_dynamics))
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
+        .with_entity(groups())
+        .updated()
+        .assert::<With<Collider2D>>(2, assert_no_collision());
+}
+
+#[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn update_position(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = Vec2::new(5., 5.))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Collider2D>>(2, assert_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = circle_position())
@@ -57,13 +68,12 @@ fn update_position(with_dynamics: bool) {
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn update_size(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.size = Vec2::ONE * 0.01)
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Collider2D>>(2, assert_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| {
@@ -80,13 +90,12 @@ fn update_size(with_dynamics: bool) {
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn update_rotation(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
         .with_update::<With<Rectangle>, _>(|t: &mut Transform2D| t.rotation = 0.)
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Rectangle>>(1, assert_different_rectangle())
         .with_update::<With<Rectangle>, _>(|t: &mut Transform2D| t.rotation = FRAC_PI_4)
@@ -98,13 +107,12 @@ fn update_rotation(with_dynamics: bool) {
 #[modor_test]
 fn update_velocity() {
     App::new()
-        .with_entity(rectangle(GROUP1, false))
-        .with_entity(circle(GROUP2, true))
+        .with_entity(rectangle(GROUP.get(0), false))
+        .with_entity(circle(GROUP.get(1), true))
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = Vec2::new(5., 5.))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Collider2D>>(2, assert_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Dynamics2D| {
@@ -118,13 +126,12 @@ fn update_velocity() {
 #[modor_test]
 fn update_angular_velocity() {
     App::new()
-        .with_entity(rectangle(GROUP1, true))
+        .with_entity(rectangle(GROUP.get(0), true))
         .with_update::<With<Rectangle>, _>(|t: &mut Transform2D| t.rotation = 0.)
-        .with_entity(circle(GROUP2, false))
+        .with_entity(circle(GROUP.get(1), false))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .assert::<With<Rectangle>>(1, assert_different_rectangle())
         .with_update::<With<Rectangle>, _>(|t: &mut Dynamics2D| t.angular_velocity = FRAC_PI_4)
@@ -136,12 +143,11 @@ fn update_angular_velocity() {
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn remove_transform(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .with_deleted_components::<With<Collider2D>, Transform2D>()
         .updated()
@@ -165,12 +171,11 @@ fn remove_transform(with_dynamics: bool) {
 #[modor_test]
 fn remove_dynamics() {
     App::new()
-        .with_entity(rectangle(GROUP1, true))
-        .with_entity(circle(GROUP2, true))
+        .with_entity(rectangle(GROUP.get(0), true))
+        .with_entity(circle(GROUP.get(1), true))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .with_deleted_components::<With<Collider2D>, Dynamics2D>()
         .updated()
@@ -183,17 +188,16 @@ fn remove_dynamics() {
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn remove_collider(with_dynamics: bool) {
     App::new()
-        .with_entity(rectangle(GROUP1, with_dynamics))
-        .with_entity(circle(GROUP2, with_dynamics))
+        .with_entity(rectangle(GROUP.get(0), with_dynamics))
+        .with_entity(circle(GROUP.get(1), with_dynamics))
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
-        .with_entity(group1())
-        .with_entity(group2())
+        .with_entity(groups())
         .updated()
         .with_deleted_components::<With<Transform2D>, Collider2D>()
         .updated()
-        .with_component::<With<Rectangle>, _>(|| Collider2D::rectangle(GROUP1))
-        .with_component::<With<Circle>, _>(|| Collider2D::circle(GROUP2))
+        .with_component::<With<Rectangle>, _>(|| Collider2D::rectangle(GROUP.get(0)))
+        .with_component::<With<Circle>, _>(|| Collider2D::circle(GROUP.get(1)))
         .updated()
         .assert::<With<Rectangle>>(1, assert_rectangle())
         .assert::<With<Circle>>(1, assert_circle());
@@ -214,7 +218,7 @@ assertion_functions!(
         let penetration = collision_position - other_collision_position;
         assert_eq!(collider.collisions().len(), 1);
         assert_eq!(collider.collisions()[0].other_entity_id, CIRCLE_ID);
-        assert_eq!(collider.collisions()[0].other_group_key, GROUP2);
+        assert_eq!(collider.collisions()[0].other_group_key, GROUP.get(1));
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
     }
@@ -223,7 +227,7 @@ assertion_functions!(
         let collision_position = rectangle_collision_position();
         assert_eq!(collider.collisions().len(), 1);
         assert_eq!(collider.collisions()[0].other_entity_id, CIRCLE_ID);
-        assert_eq!(collider.collisions()[0].other_group_key, GROUP2);
+        assert_eq!(collider.collisions()[0].other_group_key, GROUP.get(1));
         let position = collider.collisions()[0].position;
         assert_approx_eq!(position, Vec2::new(collision_position.x * 2., 0.5));
         assert_approx_eq!(collider.collisions()[0].penetration, Vec2::new(0., 0.5));
@@ -235,11 +239,27 @@ assertion_functions!(
         let penetration = collision_position - other_collision_position;
         assert_eq!(collider.collisions().len(), 1);
         assert_eq!(collider.collisions()[0].other_entity_id, RECTANGLE_ID);
-        assert_eq!(collider.collisions()[0].other_group_key, GROUP1);
+        assert_eq!(collider.collisions()[0].other_group_key, GROUP.get(0));
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
     }
 );
+
+fn groups() -> impl BuiltEntity {
+    EntityBuilder::new().child_entities(|g| {
+        static LOCK: Mutex<()> = Mutex::new(());
+        let _guard = LOCK.lock(); // ensure correct internal ID ordering
+        for i in 0..64 {
+            g.add(CollisionGroup::new(GROUP.get(i), move |k| {
+                if k == GROUP.get(i + 1) {
+                    CollisionType::Sensor
+                } else {
+                    CollisionType::None
+                }
+            }));
+        }
+    })
+}
 
 fn rectangle(group: ResKey<CollisionGroup>, with_dynamics: bool) -> impl BuiltEntity {
     EntityBuilder::new()
@@ -269,22 +289,6 @@ fn circle_collision_position() -> Vec2 {
     circle_position() - (circle_position() - Vec2::Y * circle_radius()).with_rotation(-FRAC_PI_4)
 }
 
-fn group1() -> CollisionGroup {
-    CollisionGroup::new(GROUP1, |k| {
-        if k == GROUP1 {
-            CollisionType::Impulse
-        } else if k == GROUP2 {
-            CollisionType::Sensor
-        } else {
-            CollisionType::None
-        }
-    })
-}
-
-fn group2() -> CollisionGroup {
-    CollisionGroup::new(GROUP2, |_| CollisionType::None)
-}
-
 fn circle_radius() -> f32 {
     0.5_f32.sqrt()
 }
@@ -295,8 +299,7 @@ fn circle_position() -> Vec2 {
 
 const RECTANGLE_ID: usize = 0;
 const CIRCLE_ID: usize = 1;
-const GROUP1: ResKey<CollisionGroup> = ResKey::new("group1");
-const GROUP2: ResKey<CollisionGroup> = ResKey::new("group2");
+const GROUP: IndexResKey<CollisionGroup> = IndexResKey::new("dynamic-groups");
 
 #[derive(SingletonComponent, NoSystem)]
 struct Rectangle;
@@ -310,17 +313,17 @@ impl Circle {
     fn check_collisions(collider: &Collider2D, entities: Query<'_, Entity<'_>>) {
         if collider.collisions().is_empty() {
             assert_eq!(collider.collided(&entities).count(), 0);
-            assert_eq!(collider.collided_as(&entities, GROUP1).count(), 0);
+            assert_eq!(collider.collided_as(&entities, GROUP.get(0)).count(), 0);
         } else {
             let collisions: Vec<_> = collider.collided(&entities).collect();
             assert_eq!(collisions.len(), 1);
             assert_eq!(collisions[0].0.other_entity_id, RECTANGLE_ID);
             assert_eq!(collisions[0].1.id(), RECTANGLE_ID);
-            let collisions: Vec<_> = collider.collided_as(&entities, GROUP1).collect();
+            let collisions: Vec<_> = collider.collided_as(&entities, GROUP.get(0)).collect();
             assert_eq!(collisions.len(), 1);
             assert_eq!(collisions[0].0.other_entity_id, RECTANGLE_ID);
             assert_eq!(collisions[0].1.id(), RECTANGLE_ID);
         }
-        assert_eq!(collider.collided_as(&entities, GROUP2).count(), 0);
+        assert_eq!(collider.collided_as(&entities, GROUP.get(1)).count(), 0);
     }
 }

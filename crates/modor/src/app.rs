@@ -592,6 +592,7 @@ where
 /// # Examples
 ///
 /// ```rust
+/// #[macro_use]
 /// # use modor::*;
 /// #
 /// App::new()
@@ -601,7 +602,7 @@ where
 /// #[derive(Component, NoSystem)]
 /// struct Number(u32);
 ///
-/// assertion_function!(
+/// assertion_functions!(
 ///     fn my_assertion_method(actual_number: &Number, expected_number: u32) {
 ///         assert_eq!(actual_number.0, expected_number);
 ///     }

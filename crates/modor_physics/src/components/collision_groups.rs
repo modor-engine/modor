@@ -10,11 +10,11 @@ pub(crate) type CollisionGroupRegistry = ResourceRegistry<CollisionGroup>;
 /// # Example
 ///
 /// See [`Collider2D`](crate::Collider2D).
-#[derive(Component, Debug, Clone)]
+#[derive(Component)]
 pub struct CollisionGroup {
     pub(crate) id: u64,
     pub(crate) interactions: InteractionGroups,
-    pub(crate) collision_type_fn: fn(ResKey<Self>) -> CollisionType,
+    pub(crate) collision_type_fn: Box<dyn Fn(ResKey<Self>) -> CollisionType + Sync + Send>,
     key: ResKey<Self>,
 }
 
@@ -26,13 +26,16 @@ impl CollisionGroup {
     /// objects belonging to the created collision group, and defines how they should behave.
     /// Note that when two objects from a different collision group collide, the greatest
     /// `CollisionType` returned by `collision_type_fn` from both groups is used.
-    pub fn new(key: ResKey<Self>, collision_type_fn: fn(ResKey<Self>) -> CollisionType) -> Self {
+    pub fn new(
+        key: ResKey<Self>,
+        collision_type_fn: impl Fn(ResKey<Self>) -> CollisionType + Sync + Send + 'static,
+    ) -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         assert_ne!(id, u64::MAX, "too many `CollisionGroup` instances created");
         Self {
             key,
-            collision_type_fn,
+            collision_type_fn: Box::new(collision_type_fn),
             id,
             interactions: InteractionGroups::all(),
         }
@@ -40,27 +43,25 @@ impl CollisionGroup {
 
     #[run]
     fn update(entity: Entity<'_>, mut query: Query<'_, &mut Self>) {
-        let groups: Vec<_> = query.iter().cloned().collect();
+        let group = query
+            .get(entity.id())
+            .expect("internal error: collision group not found");
+        let interactions = InteractionGroups::new(
+            Group::from(group.memberships()),
+            Group::from(group.filter(query.iter())),
+        );
         query
             .get_mut(entity.id())
-            .expect("collision group not found")
-            .update_interactions(&groups);
-    }
-
-    fn update_interactions(&mut self, groups: &[Self]) {
-        self.interactions = InteractionGroups::new(
-            Group::from(self.memberships()),
-            Group::from(self.filter(groups)),
-        );
+            .expect("internal error: collision group not found")
+            .interactions = interactions;
     }
 
     fn memberships(&self) -> u32 {
         1 << (self.id % 32)
     }
 
-    fn filter(&self, groups: &[Self]) -> u32 {
+    fn filter<'a>(&self, groups: impl Iterator<Item = &'a Self>) -> u32 {
         groups
-            .iter()
             .filter(|group| {
                 (self.collision_type_fn)(group.key) != CollisionType::None
                     || (group.collision_type_fn)(self.key) != CollisionType::None

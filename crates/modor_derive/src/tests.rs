@@ -156,8 +156,10 @@ impl<'a> TestFunction<'a> {
 struct TestArgs {
     #[darling(default)]
     disabled: PathList,
+    // coverage: off (false positive)
     #[darling(default)]
     cases: TestCases,
+    // coverage: on
 }
 
 #[derive(Default, FromMeta)]
