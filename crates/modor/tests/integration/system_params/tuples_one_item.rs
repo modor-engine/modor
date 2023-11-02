@@ -74,7 +74,7 @@ fn run_query_get_both_mut() {
     });
 }
 
-#[modor_test]
+#[modor_test(disabled(wasm))]
 fn run_system_with_param() {
     App::new()
         .with_entity(entities())

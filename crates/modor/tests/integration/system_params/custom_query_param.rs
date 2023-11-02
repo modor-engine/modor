@@ -1,4 +1,7 @@
-use crate::system_params::{assert_iter, Enabled, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE, MATCHING2_CLONE_ID};
+use crate::system_params::{
+    assert_iter, Enabled, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID,
+    MATCHING2_ID, MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
+};
 use modor::{Custom, Filter, With};
 
 #[modor_test]
