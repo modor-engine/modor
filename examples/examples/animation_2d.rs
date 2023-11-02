@@ -7,13 +7,12 @@ use modor_graphics::{
 };
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
-use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
+use modor_physics::{Dynamics2D, Transform2D};
 use modor_resources::ResKey;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_entity(PhysicsModule::build())
         .with_entity(modor_text::module())
         .with_entity(window())
         .with_entity(character())
@@ -28,7 +27,7 @@ fn character() -> impl BuiltEntity {
     let texture_key = ResKey::unique("character");
     let sprites = Direction::Down.stopped_sprites();
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.15)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.15)
         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
         .component(Dynamics2D::new())
         .component(Texture::from_path(texture_key, "slime.png"))
@@ -52,12 +51,12 @@ impl Character {
         animation: &mut TextureAnimation,
         keyboard: SingleRef<'_, '_, Keyboard>,
     ) {
-        *dynamics.velocity = 0.2
+        dynamics.velocity = 0.2
             * keyboard
                 .get()
                 .direction(Key::Left, Key::Right, Key::Up, Key::Down);
-        self.direction = self.direction(*dynamics.velocity);
-        animation.sprites = self.direction.sprites(*dynamics.velocity == Vec2::ZERO);
+        self.direction = self.direction(dynamics.velocity);
+        animation.sprites = self.direction.sprites(dynamics.velocity == Vec2::ZERO);
         transform.size.x = self.direction.size_x_sign() * transform.size.x.abs();
     }
 

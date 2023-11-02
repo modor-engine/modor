@@ -586,3 +586,71 @@ where
         self
     }
 }
+
+/// Generates an assertion function usable in `App::assert*` methods from a simpler definition.
+///
+/// # Examples
+///
+/// ```rust
+/// #[macro_use]
+/// # use modor::*;
+/// #
+/// App::new()
+///     .with_entity(Number(42))
+///     .assert::<()>(1, my_assertion_method(42));
+///
+/// #[derive(Component, NoSystem)]
+/// struct Number(u32);
+///
+/// assertion_functions!(
+///     fn my_assertion_method(actual_number: &Number, expected_number: u32) {
+///         assert_eq!(actual_number.0, expected_number);
+///     }
+/// );
+/// ```
+///
+/// Which is equivalent to:
+/// ```rust
+/// # use modor::*;
+/// #
+/// App::new()
+///     .with_entity(Number(42))
+///     .assert::<()>(1, my_assertion_method(42));
+///
+/// #[derive(Component, NoSystem)]
+/// struct Number(u32);
+///
+/// fn my_assertion_method<F>(
+///     expected_number: u32
+/// ) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
+/// where
+///     F: EntityFilter,
+/// {
+///     move |e| e.has(|actual_number: &Number| {
+///         assert_eq!(actual_number.0, expected_number);
+///     })
+/// }
+/// ```
+#[macro_export]
+macro_rules! assertion_functions {
+    ($(
+        $(#[$attr:meta])*
+        $vis:vis fn $function_name:ident(
+            $component_name:ident: &$component_type:ty
+            $(,$param_name:ident: $param_type:ty)*$(,)?
+        )
+        $block:block
+    )*) => {
+        $(
+            $(#[$attr])*
+            $vis fn $function_name<F>(
+                $($param_name: $param_type),*
+            ) -> impl FnMut(::modor::EntityAssertions<'_, F>) -> ::modor::EntityAssertions<'_, F>
+            where
+                F: ::modor::EntityFilter,
+            {
+                move |e| e.has(|$component_name: &$component_type| $block)
+            }
+        )*
+    };
+}

@@ -5,14 +5,13 @@ use modor_graphics::{
     model_2d, window_target, Color, Material, Model2DMaterial, Texture, ZIndex2D, WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
-use modor_physics::{Dynamics2D, PhysicsModule, Transform2D};
+use modor_physics::{Dynamics2D, Transform2D};
 use modor_resources::ResKey;
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(window_target())
         .with_entity(background())
@@ -59,13 +58,13 @@ fn smiley(
     angular_velocity: f32,
 ) -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.position = position)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.2, 0.2))
+        .updated(|t: &mut Transform2D| t.position = position)
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.2))
         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
         .updated(|m: &mut Material| m.color = color)
         .component(Dynamics2D::new())
-        .with(|d| *d.velocity = velocity)
-        .with(|d| *d.angular_velocity = angular_velocity)
+        .with(|d| d.velocity = velocity)
+        .with(|d| d.angular_velocity = angular_velocity)
         .component(ZIndex2D::from(z_index))
         .component(Smiley)
 }

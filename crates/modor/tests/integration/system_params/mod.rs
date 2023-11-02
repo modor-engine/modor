@@ -33,10 +33,12 @@ const MATCHING1_ID: usize = 2;
 const DISABLED_ID: usize = 3;
 const NO_VALUE_ID: usize = 4;
 const MATCHING2_ID: usize = 5;
+const MATCHING2_CLONE_ID: usize = 6;
 const MISSING_ID: usize = 100;
 const VALUE1: u32 = 1;
 const VALUE2: u32 = 3;
 const OTHER_VALUE2: u32 = 4;
+const VALUE2_CLONE: u32 = 5;
 
 type Matching1Filter = (With<Value>, Not<With<OtherValue>>, With<Enabled>);
 type Matching2Filter = (With<Value>, With<OtherValue>, With<Enabled>);
@@ -48,9 +50,11 @@ fn entities() -> impl BuiltEntity {
     let disabled = entity(Some(2), None, false);
     let no_value = entity(None, None, true);
     let matching_2 = entity(Some(VALUE2), Some(OTHER_VALUE2), true);
+    let matching_2_clone = entity(Some(VALUE2_CLONE), Some(OTHER_VALUE2), true);
     EntityBuilder::new()
         .child_entity(matching1.child_entity(disabled))
         .child_entity(no_value.child_entity(matching_2))
+        .child_entity(matching_2_clone)
 }
 
 fn entity(value: Option<u32>, other_value: Option<u32>, is_enabled: bool) -> impl BuiltEntity {

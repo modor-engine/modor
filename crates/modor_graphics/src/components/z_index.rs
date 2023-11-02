@@ -29,13 +29,13 @@
 ///
 /// fn foreground() -> impl BuiltEntity {
 ///     model_2d(CAMERA, Model2DMaterial::Rectangle)
-///         .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
 ///         .component(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
 ///     model_2d(CAMERA, Model2DMaterial::Rectangle)
-///         .updated(|t: &mut Transform2D| *t.size = Vec2::ONE)
+///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE)
 ///         .component(ZIndex2D::from(0))
 /// }
 /// ```

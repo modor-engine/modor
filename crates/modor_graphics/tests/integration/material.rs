@@ -177,7 +177,7 @@ fn resources() -> impl BuiltEntity {
 
 fn rectangle() -> impl BuiltEntity {
     model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Key(MATERIAL))
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.8, 0.5))
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
 }
 
 fn opaque_texture() -> Texture {

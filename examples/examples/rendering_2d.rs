@@ -6,7 +6,7 @@ use modor_graphics::{
     model_2d, window_target, Color, Material, Model2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
-use modor_physics::{DeltaTime, Dynamics2D, PhysicsModule, Transform2D};
+use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
 use modor_resources::IndexResKey;
 use rand::Rng;
 use std::time::Duration;
@@ -30,7 +30,6 @@ const MATERIAL: IndexResKey<Material> = IndexResKey::new("sprite");
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
-        .with_entity(PhysicsModule::build())
         .with_entity(modor_graphics::module())
         .with_entity(FpsPrinter)
         .with_entity(window_target())
@@ -62,8 +61,8 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     let material_key = MATERIAL.get(entity_id % COLORS.len());
     let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(material_key))
-        .updated(|t: &mut Transform2D| *t.position = position)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.01)
+        .updated(|t: &mut Transform2D| t.position = position)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())
         .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
         .component(RandomMovement::new())
@@ -86,7 +85,7 @@ impl RandomMovement {
     fn update_velocity(&mut self, dynamics: &mut Dynamics2D) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            *dynamics.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
+            dynamics.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
                 .with_magnitude(0.05)
                 .unwrap_or(Vec2::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(100..200));

@@ -13,7 +13,7 @@ pub(crate) fn score(side: Side) -> impl BuiltEntity {
         .updated(|m: &mut Material| m.front_color = Color::WHITE)
         .updated(|t: &mut Transform2D| t.position.x = side.x_sign() * field::SIZE.x / 4.)
         .updated(|t: &mut Transform2D| t.position.y = field::SIZE.y / 2. - TEXT_HEIGHT / 2.)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.3, TEXT_HEIGHT))
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(0.3, TEXT_HEIGHT))
         .component_option((side == Side::Left).then_some(LeftScore(0)))
         .component_option((side == Side::Right).then_some(RightScore(0)))
 }

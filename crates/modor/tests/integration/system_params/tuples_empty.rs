@@ -1,22 +1,23 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, QueryTester, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID, NO_VALUE_ID,
+    NoValueFilter, QueryTester, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID, MATCHING2_ID,
+    MISSING_ID, NO_VALUE_ID,
 };
 use modor::{App, Filter, With};
 
 #[modor_test]
 fn run_query_iter() {
     QueryTester::<()>::run(|q| {
-        assert_iter(q.iter(), [(), (), (), (), (), ()]);
-        assert_iter(q.iter().rev(), [(), (), (), (), (), ()]);
+        assert_iter(q.iter(), [(), (), (), (), (), (), ()]);
+        assert_iter(q.iter().rev(), [(), (), (), (), (), (), ()]);
     });
 }
 
 #[modor_test]
 fn run_query_iter_mut() {
     QueryTester::<()>::run(|q| {
-        assert_iter(q.iter_mut(), [(), (), (), (), (), ()]);
-        assert_iter(q.iter_mut().rev(), [(), (), (), (), (), ()]);
+        assert_iter(q.iter_mut(), [(), (), (), (), (), (), ()]);
+        assert_iter(q.iter_mut().rev(), [(), (), (), (), (), (), ()]);
     });
 }
 
@@ -51,6 +52,9 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
         assert_eq!(left, Some(()));
         assert_eq!(right, Some(()));
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING2_CLONE_ID);
+        assert_eq!(left, Some(()));
+        assert_eq!(right, Some(()));
         let (left, right) = q.get_both_mut(MATCHING1_ID, MISSING_ID);
         assert_eq!(left, Some(()));
         assert_eq!(right, None);
@@ -66,14 +70,14 @@ fn run_query_get_both_mut() {
     });
 }
 
-#[modor_test]
+#[modor_test(disabled(wasm))]
 fn run_system_with_param() {
     App::new()
         .with_entity(entities())
         .with_component::<(), _>(Tracked::default)
         .updated()
         .assert::<Matching1Filter>(1, |e| e.has(|t: &Tracked| assert!(t.0)))
-        .assert::<Matching2Filter>(1, |e| e.has(|t: &Tracked| assert!(t.0)))
+        .assert_any::<Matching2Filter>(2, |e| e.has(|t: &Tracked| assert!(t.0)))
         .assert::<DisabledFilter>(1, |e| e.has(|t: &Tracked| assert!(!t.0)))
         .assert::<NoValueFilter>(1, |e| e.has(|t: &Tracked| assert!(t.0)));
 }

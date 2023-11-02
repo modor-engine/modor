@@ -26,7 +26,7 @@ fn text() -> impl BuiltEntity {
         .updated(|t: &mut Text| t.font_key = FONT)
         .updated(|m: &mut Material| m.color = Color::rgb(0.1, 0.1, 0.1))
         .updated(|m: &mut Material| m.front_color = Color::WHITE)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::new(1., 0.2))
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.2))
         .component(LoadingText::default())
 }
 

@@ -35,8 +35,8 @@
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
 //!     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-//!         .updated(|t: &mut Transform2D| *t.position = position)
-//!         .updated(|t: &mut Transform2D| *t.size = size)
+//!         .updated(|t: &mut Transform2D| t.position = position)
+//!         .updated(|t: &mut Transform2D| t.size = size)
 //!         .updated(|m: &mut Material| m.color = Color::RED)
 //! }
 //!

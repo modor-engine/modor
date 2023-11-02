@@ -41,8 +41,8 @@ fn background() -> impl BuiltEntity {
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(ALIVE_CELL_MATERIAL))
-        .updated(|t: &mut Transform2D| *t.position = to_word_position(x, y))
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE / GRID_SIZE as f32)
+        .updated(|t: &mut Transform2D| t.position = to_word_position(x, y))
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE / GRID_SIZE as f32)
         .component(ZIndex2D::from(1))
         .component(AliveCell)
 }
@@ -108,7 +108,7 @@ impl Grid {
             for y in 0..GRID_SIZE {
                 if self.are_cells_alive[x][y] {
                     if let Some((cell_transform, _, _)) = cells.next() {
-                        *cell_transform.position = to_word_position(x, y);
+                        cell_transform.position = to_word_position(x, y);
                     } else {
                         world.create_child_entity(entity.id(), alive_cell(x, y));
                     }

@@ -4,7 +4,7 @@ use modor_graphics::testing::{TestRunnerContext, UpdateState};
 use modor_input::{Fingers, Key, Keyboard, Mouse, MouseButton};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
-use modor_physics::{DeltaTime, PhysicsModule};
+use modor_physics::DeltaTime;
 use winit::dpi::PhysicalPosition;
 use winit::event::{
     DeviceEvent, DeviceId, ElementState, Event, KeyboardInput, ModifiersState, MouseScrollDelta,
@@ -219,28 +219,25 @@ fn touch_screen(context: &mut TestRunnerContext) {
 }
 
 fn suspend_app(context: &mut TestRunnerContext) {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(PhysicsModule::build())
-        .run(|a| {
-            testing::test_runner(a, context, 3, |s| match s.update_id {
-                0 => {
-                    s.next_events.push(Event::Suspended);
-                    s.app.assert::<With<DeltaTime>>(1, |e| {
-                        e.has(|d: &DeltaTime| assert_ne!(d.get().as_nanos(), 0))
-                    })
-                }
-                1 => {
-                    s.next_events.push(Event::Resumed);
-                    s.app.assert::<With<DeltaTime>>(1, |e| {
-                        e.has(|d: &DeltaTime| assert_eq!(d.get().as_nanos(), 0))
-                    })
-                }
-                _ => s.app.assert::<With<DeltaTime>>(1, |e| {
+    App::new().with_entity(modor_graphics::module()).run(|a| {
+        testing::test_runner(a, context, 3, |s| match s.update_id {
+            0 => {
+                s.next_events.push(Event::Suspended);
+                s.app.assert::<With<DeltaTime>>(1, |e| {
                     e.has(|d: &DeltaTime| assert_ne!(d.get().as_nanos(), 0))
-                }),
-            });
+                })
+            }
+            1 => {
+                s.next_events.push(Event::Resumed);
+                s.app.assert::<With<DeltaTime>>(1, |e| {
+                    e.has(|d: &DeltaTime| assert_eq!(d.get().as_nanos(), 0))
+                })
+            }
+            _ => s.app.assert::<With<DeltaTime>>(1, |e| {
+                e.has(|d: &DeltaTime| assert_ne!(d.get().as_nanos(), 0))
+            }),
         });
+    });
 }
 
 #[allow(deprecated)]

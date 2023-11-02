@@ -21,7 +21,7 @@ pub fn main() {
 
 fn finger_display(finger_id: u64) -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Ellipse)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.3)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .component(FingerPosition::new(finger_id))
 }
 
@@ -72,7 +72,7 @@ impl FingerPosition {
     fn update_display(&self, transform: &mut Transform2D, model: &mut Model) {
         if let Some(position) = self.1 {
             model.camera_keys = vec![WINDOW_CAMERA_2D];
-            *transform.position = position;
+            transform.position = position;
         } else {
             model.camera_keys = vec![];
         }

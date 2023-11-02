@@ -28,7 +28,7 @@ use modor_resources::ResKey;
 ///
 /// fn red_rectangle() -> impl BuiltEntity {
 ///     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
-///         .updated(|t: &mut Transform2D| *t.size = Vec2::new(0.2, 0.1))
+///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.1))
 ///         .updated(|m: &mut Material| m.color = Color::RED)
 /// }
 /// ```

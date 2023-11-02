@@ -1,4 +1,4 @@
-use modor::{App, BuiltEntity, EntityAssertions, EntityBuilder, EntityFilter, With};
+use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
     model_2d, texture_target, Camera2D, Color, Material, Model2DMaterial, Size, TEXTURE_TARGETS,
@@ -42,24 +42,6 @@ fn create_hidden() {
                 Vec2::new(0.5, -2. / 3.),
             ),
         );
-}
-
-fn assert_position<F>(
-    surface_size: Size,
-    surface_position: Vec2,
-    world_position: Vec2,
-) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    move |e| {
-        e.has(|c: &Camera2D| {
-            assert_approx_eq!(
-                c.world_position(surface_size, surface_position),
-                world_position
-            );
-        })
-    }
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -108,9 +90,9 @@ fn create_with_transform() {
         .updated()
         .with_component::<With<TestCamera>, _>(|| {
             let mut transform = Transform2D::new();
-            *transform.position = Vec2::ONE * 0.5;
-            *transform.size = Vec2::ONE * 2.;
-            *transform.rotation = FRAC_PI_2;
+            transform.position = Vec2::ONE * 0.5;
+            transform.size = Vec2::ONE * 2.;
+            transform.rotation = FRAC_PI_2;
             transform
         })
         .updated()
@@ -161,6 +143,20 @@ fn recreate_entity() {
         .assert::<With<Target2>>(1, is_same("camera#empty2"));
 }
 
+assertion_functions!(
+    fn assert_position(
+        camera: &Camera2D,
+        surface_size: Size,
+        surface_position: Vec2,
+        world_position: Vec2,
+    ) {
+        assert_approx_eq!(
+            camera.world_position(surface_size, surface_position),
+            world_position
+        );
+    }
+);
+
 fn resources() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_entity(texture_target(0, Size::new(30, 20), true).component(Target1))
@@ -170,8 +166,8 @@ fn resources() -> impl BuiltEntity {
 
 fn model() -> impl BuiltEntity {
     model_2d(CAMERA, Model2DMaterial::Rectangle)
-        .updated(|t: &mut Transform2D| *t.position = Vec2::ONE * 0.25)
-        .updated(|t: &mut Transform2D| *t.size = Vec2::ONE * 0.5)
+        .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Material| m.color = Color::BLUE)
 }
 

@@ -9,17 +9,24 @@
 //! modor_math = "0.1"
 //! ```
 //!
-//! You can start to use this module by creating an entity of type
-//! [`PhysicsModule`](crate::PhysicsModule):
+//! You can start to use this module the following way:
 //!
 //! ```rust
-//! use modor::App;
-//! use modor_physics::PhysicsModule;
+//! # use modor::*;
+//! # use modor_math::*;
+//! # use modor_physics::*;
+//! #
+//! App::new()
+//!     .with_entity(modor_physics::module())
+//!     .with_entity(object());
 //!
-//! let mut app = App::new().with_entity(PhysicsModule::build());
-//! loop {
-//!     app.update();
-//!     # break;
+//! fn object() -> impl BuiltEntity {
+//!     EntityBuilder::new()
+//!         .component(Transform2D::new())
+//!         .with(|t| t.position = Vec2::new(0.25, -0.25))
+//!         .with(|t| t.size = Vec2::ONE * 0.2)
+//!         .component(Dynamics2D::new())
+//!         .with(|d| d.velocity = Vec2::new(0.5, 0.2))
 //! }
 //! ```
 #![cfg_attr(test, allow(clippy::unwrap_used))]
@@ -28,19 +35,13 @@
 extern crate modor;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate modor_internal;
 
 mod components;
-mod data;
 mod entities;
-mod storages_2d;
-mod utils;
 
-pub use components::collider_2d::*;
-pub use components::dynamics_2d::*;
-pub use components::relative_transform_2d::*;
-pub use components::transform_2d::*;
-pub use data::*;
-pub use entities::delta_time::*;
+pub use components::collider::*;
+pub use components::collision_groups::*;
+pub use components::delta_time::*;
+pub use components::dynamics::*;
+pub use components::transform::*;
 pub use entities::module::*;

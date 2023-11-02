@@ -63,16 +63,6 @@ path = "examples/rendering_2d.rs"
 crate-type = ["bin"]
 
 [[example]]
-name = "rotation_2d_android"
-path = "examples/rotation_2d.rs"
-crate-type = ["cdylib"]
-
-[[example]]
-name = "rotation_2d"
-path = "examples/rotation_2d.rs"
-crate-type = ["bin"]
-
-[[example]]
 name = "text_2d_android"
 path = "examples/text_2d.rs"
 crate-type = ["cdylib"]

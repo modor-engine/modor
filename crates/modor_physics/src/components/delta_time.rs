@@ -4,29 +4,28 @@ use std::time::Duration;
 ///
 /// The physics module does not update automatically this entity.<br>
 /// Instead, the delta time can be manually set to simulate time, or be automatically updated
-/// by another module.
+/// by another module (e.g. graphics module).
 ///
-/// If the delta time is not defined or set, then its default value is `Duration::ZERO`.
+/// Default value is `Duration::ZERO`.
+///
+/// # Requirements
+///
+/// The component is created only if:
+/// - physics [`module`](crate::module()) is initialized
 ///
 /// # Examples
 ///
 /// ```rust
+/// # use modor::*;
 /// # use modor_physics::*;
 /// #
-/// fn print_delta_time(delta_time: &DeltaTime) {
-///     println!("Duration of the last update: {:?}", delta_time.get());
+/// fn print_delta_time(delta_time: &SingleRef<'_, '_, DeltaTime>) {
+///     println!("Duration of the last update: {:?}", delta_time.get().get());
 /// }
 /// ```
 #[derive(SingletonComponent, NoSystem)]
 pub struct DeltaTime {
-    duration: Duration,
-}
-
-impl From<Duration> for DeltaTime {
-    fn from(duration: Duration) -> Self {
-        debug!("delta time initialized to `{duration:?}`");
-        Self { duration }
-    }
+    pub(crate) duration: Duration,
 }
 
 impl DeltaTime {

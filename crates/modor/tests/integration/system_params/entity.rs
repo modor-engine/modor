@@ -1,15 +1,16 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_ID, MISSING_ID,
-    NO_VALUE_ID, ROOT_ID,
+    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID, MATCHING2_ID,
+    MISSING_ID, NO_VALUE_ID, ROOT_ID,
 };
 use modor::{App, Entity, Filter, With};
 
 #[modor_test]
 fn run_query_iter() {
     QueryTester::<(Entity<'_>, Filter<(With<Value>, With<Enabled>)>)>::run(|q| {
-        assert_iter(q.iter().map(|v| v.0.id()), [MATCHING1_ID, MATCHING2_ID]);
-        let ids = [MATCHING2_ID, MATCHING1_ID];
+        let ids = [MATCHING1_ID, MATCHING2_ID, MATCHING2_CLONE_ID];
+        assert_iter(q.iter().map(|v| v.0.id()), ids);
+        let ids = [MATCHING2_CLONE_ID, MATCHING2_ID, MATCHING1_ID];
         assert_iter(q.iter().rev().map(|v| v.0.id()), ids);
     });
 }
@@ -17,8 +18,9 @@ fn run_query_iter() {
 #[modor_test]
 fn run_query_iter_mut() {
     QueryTester::<(Entity<'_>, Filter<(With<Value>, With<Enabled>)>)>::run(|q| {
-        assert_iter(q.iter_mut().map(|v| v.0.id()), [MATCHING1_ID, MATCHING2_ID]);
-        let ids = [MATCHING2_ID, MATCHING1_ID];
+        let ids = [MATCHING1_ID, MATCHING2_ID, MATCHING2_CLONE_ID];
+        assert_iter(q.iter_mut().map(|v| v.0.id()), ids);
+        let ids = [MATCHING2_CLONE_ID, MATCHING2_ID, MATCHING1_ID];
         assert_iter(q.iter_mut().rev().map(|v| v.0.id()), ids);
     });
 }
@@ -56,6 +58,9 @@ fn run_query_get_both_mut() {
         let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING1_ID);
         assert_eq!(left.map(|v| v.0.id()), Some(MATCHING2_ID));
         assert_eq!(right.map(|v| v.0.id()), Some(MATCHING1_ID));
+        let (left, right) = q.get_both_mut(MATCHING2_ID, MATCHING2_CLONE_ID);
+        assert_eq!(left.map(|v| v.0.id()), Some(MATCHING2_ID));
+        assert_eq!(right.map(|v| v.0.id()), Some(MATCHING2_CLONE_ID));
         let (left, right) = q.get_both_mut(MATCHING1_ID, MISSING_ID);
         assert_eq!(left.map(|v| v.0.id()), Some(MATCHING1_ID));
         assert_eq!(right.map(|v| v.0.id()), None);
@@ -68,7 +73,7 @@ fn run_query_get_both_mut() {
     });
 }
 
-#[modor_test]
+#[modor_test(disabled(wasm))]
 fn run_system_with_param() {
     App::new()
         .with_entity(Blank)
@@ -81,7 +86,7 @@ fn run_system_with_param() {
                 .has(|t: &Tracked| assert_eq!(t.parent_id, Some(ROOT_ID)))
                 .has(|t: &Tracked| assert_eq!(t.child_ids, vec![DISABLED_ID]))
         })
-        .assert::<Matching2Filter>(1, |e| {
+        .assert_any::<Matching2Filter>(2, |e| {
             e.has(|t: &Tracked| assert_eq!(t.id, Some(MATCHING2_ID)))
                 .has(|t: &Tracked| assert_eq!(t.depth, Some(2)))
                 .has(|t: &Tracked| assert_eq!(t.parent_id, Some(NO_VALUE_ID)))

@@ -1,138 +1,35 @@
-use crate::storages_2d::core::{Core2DStorage, PhysicsEntity2D};
-use crate::{DeltaTime, RelativeTransform2D, Transform2D, ROOT_TRANSFORM};
-use modor::{BuiltEntity, Custom, Entity, EntityBuilder, Filter, Query, SingleRef, With};
+use crate::components::collision_groups::CollisionGroupRegistry;
+use crate::components::physics_hook::PhysicsHook;
+use crate::components::pipeline::Pipeline2D;
+use crate::DeltaTime;
+use modor::{BuiltEntity, EntityBuilder};
 use std::time::Duration;
 
-type RelativeTransform2DFilter = Filter<(With<Transform2D>, With<RelativeTransform2D>)>;
-
-/// The main entity of the physics module.
+/// Creates the physics module.
+///
+/// If this entity is not created, physics components will have no effect.
+///
+/// The created entity can be identified using the [`PhysicsModule`] component.
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use std::f32::consts::PI;
 /// # use modor::*;
-/// # use modor_math::*;
-/// # use modor_physics::*;
 /// #
-/// let mut app = App::new()
-///     .with_entity(PhysicsModule::build())
-///     .with_entity(build_object());
-/// loop {
-///     app.update();
-///     # break;
-/// }
-///
-/// fn build_object() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Transform2D::new())
-///         .with(|t| *t.position = Vec2::new(0.2, 0.3))
-///         .with(|t| *t.size = Vec2::new(0.25, 0.5))
-///         .with(|t| *t.rotation = 20_f32.to_radians())
-///         .component(RelativeTransform2D::new())
-///         .with(|t| t.rotation = Some(PI / 2.))
-///         .component(Dynamics2D::new())
-///         .with(|d| *d.velocity = Vec2::new(-0.01, 0.02))
-/// }
+/// App::new()
+///     .with_entity(modor_physics::module());
 /// ```
-///
-/// Colliders can be configured this way:
-/// ```rust
-/// # use std::f32::consts::PI;
-/// # use modor::*;
-/// # use modor_math::*;
-/// # use modor_physics::*;
-/// #
-/// let mut app = App::new()
-///     .with_entity(PhysicsModule::build())
-///     .with_entity(Ally::build());
-///
-/// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-/// enum CollisionGroup {
-///     Ally,
-///     Enemy,
-///     AllyBullet,
-///     EnemyBullet
-/// }
-///
-/// impl CollisionGroupRef for CollisionGroup {
-///     fn collision_type(&self, other: &Self) -> CollisionType {
-///         match (self, other) {
-///             (Self::Ally, Self::EnemyBullet) => CollisionType::Sensor,
-///             (Self::Enemy, Self::AllyBullet) => CollisionType::Sensor,
-///             _ => CollisionType::None,
-///         }
-///     }
-/// }
-///
-/// #[derive(Component)]
-/// struct Ally;
-///
-/// #[systems]
-/// impl Ally {
-///     fn build() -> impl BuiltEntity {
-///         EntityBuilder::new()
-///             .component(Self)
-///             .component(Transform2D::new())
-///             .component(Collider2D::circle(CollisionGroup::Ally))
-///     }
-/// }
-/// ```
-#[derive(SingletonComponent)]
-pub struct PhysicsModule {
-    core_2d: Core2DStorage,
+pub fn module() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .component(DeltaTime {
+            duration: Duration::ZERO,
+        })
+        .component(Pipeline2D::default())
+        .component(PhysicsHook::default())
+        .component(CollisionGroupRegistry::default())
 }
 
-#[systems]
-impl PhysicsModule {
-    /// Builds the module where all entities with a [`Collider2D`](crate::Collider2D) component
-    /// can collide with each other.
-    pub fn build() -> impl BuiltEntity {
-        info!("physics module created");
-        EntityBuilder::new()
-            .component(Self {
-                core_2d: Core2DStorage::default(),
-            })
-            .child_component(DeltaTime::from(Duration::ZERO))
-    }
-
-    #[run]
-    fn update_2d_absolute_from_relative(
-        entities: Query<'_, (Entity<'_>, RelativeTransform2DFilter)>,
-        mut components: Query<'_, (&mut Transform2D, Option<&mut RelativeTransform2D>)>,
-    ) {
-        for entity in Self::entities_sorted_by_depth(entities.iter().map(|(e, _)| e)) {
-            if let Some(parent_entity) = entity.parent() {
-                match components.get_both_mut(entity.id(), parent_entity.id()) {
-                    (Some((transform, Some(relative))), Some((parent, _))) => {
-                        transform.update_from_relative(relative, parent);
-                    }
-                    (Some((transform, Some(relative))), None) => {
-                        transform.update_from_relative(relative, &ROOT_TRANSFORM);
-                    }
-                    _ => unreachable!("internal error: unreachable absolute transform update case"),
-                }
-            } else if let Some((transform, Some(relative))) = components.get_mut(entity.id()) {
-                transform.update_from_relative(relative, &ROOT_TRANSFORM);
-            }
-        }
-    }
-
-    #[run_after_previous]
-    fn update_2d_bodies(
-        &mut self,
-        delta: SingleRef<'_, '_, DeltaTime>,
-        mut entities: Query<'_, Custom<PhysicsEntity2D<'_>>>,
-    ) {
-        self.core_2d.update(delta.get().get(), &mut entities);
-    }
-
-    fn entities_sorted_by_depth<'a, I>(entities: I) -> Vec<Entity<'a>>
-    where
-        I: Iterator<Item = Entity<'a>>,
-    {
-        let mut entities: Vec<_> = entities.collect();
-        entities.sort_unstable_by_key(|e| e.depth());
-        entities
-    }
-}
+/// The component that identifies the physics module entity created with [`module()`].
+#[non_exhaustive]
+#[derive(SingletonComponent, NoSystem)]
+pub struct PhysicsModule;
