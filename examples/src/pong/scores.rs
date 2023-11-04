@@ -1,5 +1,5 @@
-use crate::field;
-use crate::Side;
+use crate::pong::field;
+use crate::pong::Side;
 use modor::{systems, BuiltEntity, SingletonComponent};
 use modor_graphics::{Color, Material, WINDOW_CAMERA_2D};
 use modor_math::Vec2;

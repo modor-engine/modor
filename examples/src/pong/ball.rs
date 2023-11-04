@@ -1,8 +1,8 @@
-use crate::collisions::{BALL_GROUP, PADDLE_GROUP};
-use crate::events::ResetEvent;
-use crate::field::WallOrientation;
-use crate::paddles;
-use crate::scores::{LeftScore, RightScore};
+use crate::pong::collisions::{BALL_GROUP, PADDLE_GROUP};
+use crate::pong::events::ResetEvent;
+use crate::pong::field::WallOrientation;
+use crate::pong::paddles;
+use crate::pong::scores::{LeftScore, RightScore};
 use instant::Instant;
 use modor::{systems, BuiltEntity, Query, SingleMut, SingleRef, SingletonComponent, World};
 use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};

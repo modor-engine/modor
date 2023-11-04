@@ -1,7 +1,7 @@
-use crate::ball::Ball;
-use crate::collisions::PADDLE_GROUP;
-use crate::events::ResetEvent;
-use crate::{field, Side};
+use crate::pong::ball::Ball;
+use crate::pong::collisions::PADDLE_GROUP;
+use crate::pong::events::ResetEvent;
+use crate::pong::{field, Side};
 use modor::{systems, BuiltEntity, Component, Single, SingleRef};
 use modor_graphics::{model_2d, Camera2D, Model2DMaterial, Window, WINDOW_CAMERA_2D};
 use modor_input::{Fingers, Key, Keyboard};

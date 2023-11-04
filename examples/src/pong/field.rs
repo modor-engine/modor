@@ -1,4 +1,4 @@
-use crate::collisions::WALL_GROUP;
+use crate::pong::collisions::WALL_GROUP;
 use modor::{BuiltEntity, Component, EntityBuilder, NoSystem};
 use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;

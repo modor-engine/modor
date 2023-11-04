@@ -1,10 +1,8 @@
-#![allow(missing_docs)]
-
-use crate::ball::ball;
-use crate::collisions::collision_groups;
-use crate::field::field;
-use crate::paddles::{bot_paddle, player_paddle};
-use crate::scores::score;
+use crate::pong::ball::ball;
+use crate::pong::collisions::collision_groups;
+use crate::pong::field::field;
+use crate::pong::paddles::{bot_paddle, player_paddle};
+use crate::pong::scores::score;
 use modor::{App, BuiltEntity, EntityBuilder};
 use modor_graphics::window_target;
 
@@ -15,7 +13,6 @@ mod field;
 mod paddles;
 mod scores;
 
-#[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
     App::new()
         .with_entity(modor_text::module())
