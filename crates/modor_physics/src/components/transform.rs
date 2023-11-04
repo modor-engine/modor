@@ -1,5 +1,6 @@
-use crate::{Collider2D, Dynamics2D};
-use modor::{Filter, Or, With};
+use crate::components::pipeline::Pipeline2D;
+use crate::Dynamics2D;
+use modor::SingleMut;
 use modor_math::Vec2;
 
 /// The positioning of a 2D entity.
@@ -35,9 +36,6 @@ pub struct Transform2D {
     pub size: Vec2,
     /// Rotation of the entity in radians.
     pub rotation: f32,
-    pub(crate) old_position: Vec2,
-    pub(crate) old_size: Vec2,
-    pub(crate) old_rotation: f32,
 }
 
 #[systems]
@@ -49,17 +47,17 @@ impl Transform2D {
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
-            old_position: Vec2::ZERO,
-            old_size: Vec2::ONE,
-            old_rotation: 0.,
         }
     }
 
-    #[run_after(component(Dynamics2D), component(Collider2D))]
-    fn update(&mut self, _filter: Filter<Or<(With<Dynamics2D>, With<Collider2D>)>>) {
-        self.old_position = self.position;
-        self.old_size = self.size;
-        self.old_rotation = self.rotation;
+    #[run_after(component(Dynamics2D), component(Pipeline2D))]
+    fn update(&mut self, dynamics: &Dynamics2D, mut pipeline: SingleMut<'_, '_, Pipeline2D>) {
+        let pipeline = pipeline.get_mut();
+        if let Some(body) = dynamics.handle.and_then(|handle| pipeline.body_mut(handle)) {
+            self.position.x = body.translation().x;
+            self.position.y = body.translation().y;
+            self.rotation = body.rotation().angle();
+        }
     }
 }
 
@@ -75,9 +73,6 @@ impl Clone for Transform2D {
             position: self.position,
             size: self.size,
             rotation: self.rotation,
-            old_position: self.position,
-            old_size: self.size,
-            old_rotation: self.rotation,
         }
     }
 }

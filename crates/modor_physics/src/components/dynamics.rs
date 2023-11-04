@@ -1,4 +1,4 @@
-use crate::components::pipeline::{BodyHandleReset, BodyUpdate, Pipeline2D};
+use crate::components::pipeline::{BodyHandleReset, Pipeline2D, UnsynchronizedHandleDeletion};
 use crate::Transform2D;
 use modor::{Entity, Filter, Not, SingleMut, With};
 use modor_math::Vec2;
@@ -51,6 +51,12 @@ pub struct Dynamics2D {
     ///
     /// Default value is `0.0`.
     pub angular_velocity: f32,
+    // TODO: implement the following fields:
+    // pub force: Vec2,
+    // pub torque: Vec2,
+    // pub density: f32,
+    // pub damping: f32,
+    // pub dominance: i8,
     pub(crate) handle: Option<RigidBodyHandle>,
 }
 
@@ -71,8 +77,7 @@ impl Dynamics2D {
         self.handle = None;
     }
 
-    #[run_as(action(BodyUpdate))]
-    #[allow(clippy::float_cmp)]
+    #[run_after(action(UnsynchronizedHandleDeletion))]
     fn update_pipeline(
         &mut self,
         transform: &mut Transform2D,
@@ -81,33 +86,14 @@ impl Dynamics2D {
     ) {
         let pipeline = pipeline.get_mut();
         if let Some(body) = self.handle.and_then(|handle| pipeline.body_mut(handle)) {
-            if transform.position != transform.old_position {
-                body.set_translation(vector![transform.position.x, transform.position.y], true);
-            }
-            if transform.rotation != transform.old_rotation {
-                body.set_rotation(Rotation::new(transform.rotation), true);
-            }
+            body.set_translation(vector![transform.position.x, transform.position.y], true);
+            body.set_rotation(Rotation::new(transform.rotation), true);
             body.set_linvel(vector![self.velocity.x, self.velocity.y], true);
             body.set_angvel(self.angular_velocity, true);
             body.user_data = entity.id() as u128;
         } else {
             let builder = self.body_builder(entity.id(), transform);
             self.handle = Some(pipeline.create_body(builder));
-        }
-    }
-
-    #[run_after(component(Pipeline2D))]
-    #[allow(clippy::float_cmp)]
-    fn update_from_pipeline(
-        &mut self,
-        transform: &mut Transform2D,
-        mut pipeline: SingleMut<'_, '_, Pipeline2D>,
-    ) {
-        let pipeline = pipeline.get_mut();
-        if let Some(body) = self.handle.and_then(|handle| pipeline.body_mut(handle)) {
-            transform.position.x = body.translation().x;
-            transform.position.y = body.translation().y;
-            transform.rotation = body.rotation().angle();
         }
     }
 
