@@ -8,7 +8,7 @@ use modor_math::Vec2;
 /// # Related components
 ///
 /// - [`Dynamics2D`]
-/// - [`Collider2D`]
+/// - [`Collider2D`](crate::Collider2D)
 ///
 /// # Example
 ///

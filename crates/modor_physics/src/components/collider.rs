@@ -1,4 +1,5 @@
 use crate::components::collision_groups::CollisionGroupRegistry;
+use crate::components::dynamics::BodyUpdate;
 use crate::components::pipeline::{
     ColliderHandleRemoval, Pipeline2D, UnsynchronizedHandleDeletion,
 };
@@ -18,7 +19,6 @@ use rapier2d::na::vector;
 use rapier2d::pipeline::ActiveHooks;
 use rapier2d::prelude::{nalgebra, ColliderBuilder, SharedShape};
 use std::slice::Iter;
-use crate::components::dynamics::BodyUpdate;
 
 /// The collision properties of a 2D entity.
 ///
