@@ -1,9 +1,13 @@
-use crate::components::pipeline::{ColliderHandleRemoval, ColliderUpdate, Pipeline2D};
+use crate::components::collision_groups::CollisionGroupRegistry;
+use crate::components::dynamics::BodyUpdate;
+use crate::components::pipeline::{
+    ColliderHandleRemoval, Pipeline2D, UnsynchronizedHandleDeletion,
+};
 use crate::{CollisionGroup, Dynamics2D, Transform2D};
 use approx::AbsDiffEq;
 use modor::{
-    Custom, Entity, Filter, Not, Query, QuerySystemParam, QuerySystemParamWithLifetime, SingleMut,
-    With,
+    ComponentSystems, Custom, Entity, Filter, Not, Query, QuerySystemParam,
+    QuerySystemParamWithLifetime, SingleMut, With,
 };
 use modor_math::Vec2;
 use modor_resources::{ResKey, ResourceAccessor};
@@ -112,7 +116,6 @@ impl Collider2D {
     }
 
     #[run_as(action(ColliderUpdate))]
-    #[allow(clippy::float_cmp)]
     fn update_pipeline(
         &mut self,
         transform: &Transform2D,
@@ -126,21 +129,22 @@ impl Collider2D {
         let interactions = group.map_or_else(InteractionGroups::none, |group| group.interactions);
         let data = ColliderUserData::new(entity.id(), group.map_or(u64::MAX, |group| group.id));
         if let Some(collider) = self.handle.and_then(|handle| pipeline.collider_mut(handle)) {
-            if dynamics.is_none() && transform.position != transform.old_position {
+            if dynamics.is_none() {
                 collider.set_translation(vector![transform.position.x, transform.position.y]);
-            }
-            if transform.size != transform.old_size {
-                collider.set_shape(self.shape(transform));
-            }
-            if dynamics.is_none() && transform.rotation != transform.old_rotation {
                 collider.set_rotation(Rotation::new(transform.rotation));
             }
+            collider.set_shape(self.shape(transform));
             collider.set_collision_groups(interactions);
             collider.user_data = data.into();
         } else {
-            let builder = self.collider_builder(transform, interactions, data, dynamics.is_some());
-            self.handle = Some(pipeline.create_collider(builder, dynamics.and_then(|d| d.handle)));
+            let collider = self.create_collider(transform, interactions, data, dynamics.is_some());
+            self.handle = Some(pipeline.create_collider(collider, dynamics.and_then(|d| d.handle)));
         }
+    }
+
+    #[run_after(component(Pipeline2D))]
+    fn sync_pipeline() {
+        // do nothing, this system only waits for collision update
     }
 
     /// Returns the detected collisions.
@@ -188,22 +192,22 @@ impl Collider2D {
         }
     }
 
-    fn collider_builder(
+    fn create_collider(
         &mut self,
         transform: &Transform2D,
         interactions: InteractionGroups,
         data: ColliderUserData,
         has_dynamics: bool,
-    ) -> ColliderBuilder {
+    ) -> Collider {
         let mut collider = ColliderBuilder::new(self.shape(transform))
             .collision_groups(interactions)
             .active_collision_types(ActiveCollisionTypes::all())
             .active_hooks(ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::FILTER_INTERSECTION_PAIR)
-            .user_data(data.into());
+            .user_data(data.into())
+            .build();
         if !has_dynamics {
-            collider = collider
-                .translation(vector![transform.position.x, transform.position.y])
-                .rotation(transform.rotation);
+            collider.set_translation(vector![transform.position.x, transform.position.y]);
+            collider.set_rotation(Rotation::new(transform.rotation));
         }
         collider
     }
@@ -216,6 +220,14 @@ impl Collider2D {
         }
     }
 }
+
+#[derive(Action)]
+pub(crate) struct ColliderUpdate(
+    UnsynchronizedHandleDeletion,
+    BodyUpdate,
+    <CollisionGroup as ComponentSystems>::Action,
+    <CollisionGroupRegistry as ComponentSystems>::Action,
+);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Collider2DShape {

@@ -1,10 +1,12 @@
-use crate::components::pipeline::{BodyHandleReset, BodyUpdate, Pipeline2D};
+use crate::components::pipeline::{BodyHandleReset, Pipeline2D, UnsynchronizedHandleDeletion};
 use crate::Transform2D;
 use modor::{Entity, Filter, Not, SingleMut, With};
 use modor_math::Vec2;
-use rapier2d::dynamics::{RigidBodyBuilder, RigidBodyHandle, RigidBodyType};
+use rapier2d::dynamics::{
+    MassProperties, RigidBody, RigidBodyBuilder, RigidBodyHandle, RigidBodyType,
+};
 use rapier2d::math::Rotation;
-use rapier2d::na::vector;
+use rapier2d::na::{point, vector};
 use rapier2d::prelude::nalgebra;
 
 /// The dynamics properties of a 2D entity.
@@ -51,6 +53,45 @@ pub struct Dynamics2D {
     ///
     /// Default value is `0.0`.
     pub angular_velocity: f32,
+    /// Force applied on the entity.
+    ///
+    /// Will not have any effect if mass is zero.
+    ///
+    /// The acceleration of the entity corresponds to the force of the entity divided by its mass.
+    ///
+    /// Default value is [`Vec2::ZERO`].
+    pub force: Vec2,
+    /// Torque applied on the entity.
+    ///
+    /// Will not have any effect if angular inertia is zero.
+    ///
+    /// Default value is `0.`.
+    pub torque: f32,
+    /// Mass of the entity.
+    ///
+    /// A mass of zero is considered as infinite. In this case, force will not have any effect.
+    ///
+    /// Default value is `0.`.
+    pub mass: f32,
+    /// Angular inertia of the entity.
+    ///
+    /// An angular inertia of zero is considered as infinite. In this case, torque will not have
+    /// any effect.
+    ///
+    /// Default value is `0.`.
+    pub angular_inertia: f32,
+    /// Linear damping of the entity.
+    ///
+    /// This coefficient is used to automatically slow down the translation of the entity.
+    ///
+    /// Default value is `0.`.
+    pub damping: f32,
+    /// Angular damping of the entity.
+    ///
+    /// This coefficient is used to automatically slow down the rotation of the entity.
+    ///
+    /// Default value is `0.`.
+    pub angular_damping: f32,
     pub(crate) handle: Option<RigidBodyHandle>,
 }
 
@@ -62,6 +103,12 @@ impl Dynamics2D {
         Self {
             velocity: Vec2::ZERO,
             angular_velocity: 0.,
+            force: Vec2::ZERO,
+            torque: 0.,
+            mass: 0.,
+            angular_inertia: 0.,
+            damping: 0.,
+            angular_damping: 0.,
             handle: None,
         }
     }
@@ -72,7 +119,6 @@ impl Dynamics2D {
     }
 
     #[run_as(action(BodyUpdate))]
-    #[allow(clippy::float_cmp)]
     fn update_pipeline(
         &mut self,
         transform: &mut Transform2D,
@@ -81,44 +127,54 @@ impl Dynamics2D {
     ) {
         let pipeline = pipeline.get_mut();
         if let Some(body) = self.handle.and_then(|handle| pipeline.body_mut(handle)) {
-            if transform.position != transform.old_position {
-                body.set_translation(vector![transform.position.x, transform.position.y], true);
-            }
-            if transform.rotation != transform.old_rotation {
-                body.set_rotation(Rotation::new(transform.rotation), true);
-            }
+            body.set_translation(vector![transform.position.x, transform.position.y], true);
+            body.set_rotation(Rotation::new(transform.rotation), true);
             body.set_linvel(vector![self.velocity.x, self.velocity.y], true);
             body.set_angvel(self.angular_velocity, true);
+            body.reset_forces(true);
+            body.add_force(vector![self.force.x, self.force.y], true);
+            body.reset_torques(true);
+            body.add_torque(self.torque, true);
+            let mass = MassProperties::new(point![0., 0.], self.mass, self.angular_inertia);
+            body.set_additional_mass_properties(mass, true);
+            body.set_linear_damping(self.damping);
+            body.set_angular_damping(self.angular_damping);
             body.user_data = entity.id() as u128;
         } else {
-            let builder = self.body_builder(entity.id(), transform);
-            self.handle = Some(pipeline.create_body(builder));
+            let body = self.create_body(entity.id(), transform);
+            self.handle = Some(pipeline.create_body(body));
         }
     }
 
     #[run_after(component(Pipeline2D))]
-    #[allow(clippy::float_cmp)]
-    fn update_from_pipeline(
-        &mut self,
-        transform: &mut Transform2D,
-        mut pipeline: SingleMut<'_, '_, Pipeline2D>,
-    ) {
+    fn update(&mut self, mut pipeline: SingleMut<'_, '_, Pipeline2D>) {
         let pipeline = pipeline.get_mut();
         if let Some(body) = self.handle.and_then(|handle| pipeline.body_mut(handle)) {
-            transform.position.x = body.translation().x;
-            transform.position.y = body.translation().y;
-            transform.rotation = body.rotation().angle();
+            self.velocity.x = body.linvel().x;
+            self.velocity.y = body.linvel().y;
+            self.angular_velocity = body.angvel();
+            self.force.x = body.user_force().x;
+            self.force.y = body.user_force().y;
+            self.torque = body.user_torque();
         }
     }
 
-    fn body_builder(&self, entity_id: usize, transform: &mut Transform2D) -> RigidBodyBuilder {
-        RigidBodyBuilder::new(RigidBodyType::Dynamic)
+    fn create_body(&self, entity_id: usize, transform: &mut Transform2D) -> RigidBody {
+        let mass = MassProperties::new(point![0., 0.], self.mass, self.angular_inertia);
+        let mut body = RigidBodyBuilder::new(RigidBodyType::Dynamic)
             .can_sleep(false)
             .translation(vector![transform.position.x, transform.position.y])
             .rotation(transform.rotation)
             .linvel(vector![self.velocity.x, self.velocity.y])
             .angvel(self.angular_velocity)
+            .additional_mass_properties(mass)
+            .linear_damping(self.damping)
+            .angular_damping(self.angular_damping)
             .user_data(entity_id as u128)
+            .build();
+        body.add_force(vector![self.force.x, self.force.y], true);
+        body.add_torque(self.torque, true);
+        body
     }
 }
 
@@ -127,3 +183,6 @@ impl Default for Dynamics2D {
         Self::new()
     }
 }
+
+#[derive(Action)]
+pub(crate) struct BodyUpdate(UnsynchronizedHandleDeletion);

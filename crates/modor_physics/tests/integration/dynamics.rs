@@ -53,6 +53,69 @@ fn update_angular_velocity() {
 }
 
 #[modor_test]
+fn update_damping() {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
+        .with_entity(physics_object())
+        .updated()
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.damping = 0.5)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(6., 3.)));
+}
+
+#[modor_test]
+fn update_angular_damping() {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
+        .with_entity(physics_object())
+        .updated()
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_damping = 0.5)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_rotation(3. * FRAC_PI_4));
+}
+
+#[modor_test(cases(
+    equal_to_one = "1., Vec2::new(8., 4.)",
+    equal_to_two = "2., Vec2::new(4., 2.)"
+))]
+fn update_force_and_mass(mass: f32, expected_position: Vec2) {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
+        .with_entity(physics_object())
+        .updated()
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.mass = mass)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::ZERO))
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.force = Vec2::new(2., 1.))
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_position(expected_position));
+}
+
+#[modor_test(cases(equal_to_one = "1., -PI", equal_to_two = "2., FRAC_PI_2"))]
+fn update_torque_and_angular_inertia(angular_inertia: f32, expected_rotation: f32) {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
+        .with_entity(physics_object())
+        .updated()
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_inertia = angular_inertia)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
+        .with_update::<(), _>(|d: &mut Dynamics2D| d.torque = FRAC_PI_4)
+        .updated()
+        .assert::<With<Dynamics2D>>(1, assert_rotation(expected_rotation));
+}
+
+#[modor_test]
 fn update_position() {
     App::new()
         .with_entity(modor_physics::module())

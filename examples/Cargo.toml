@@ -68,6 +68,11 @@ path = "examples/android/mouse.rs"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "physics_2d_android"
+path = "examples/android/physics_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "pong_android"
 path = "examples/android/pong.rs"
 crate-type = ["cdylib"]
