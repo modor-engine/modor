@@ -12,6 +12,7 @@ pub mod game_of_life;
 pub mod gamepad;
 pub mod keyboard;
 pub mod mouse;
+pub mod physics_2d;
 pub mod pong;
 pub mod rendering_2d;
 pub mod text_2d;

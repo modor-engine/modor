@@ -1,12 +1,13 @@
 use crate::components::collider::{ColliderUpdate, ColliderUserData};
+use crate::components::dynamics::BodyUpdate;
 use crate::components::physics_hook::PhysicsHook;
 use crate::{Collider2D, Collision2D, DeltaTime, Dynamics2D};
 use modor::{Query, SingleRef};
 use rapier2d::dynamics::{
     CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
-    RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
+    RigidBodyHandle, RigidBodySet,
 };
-use rapier2d::geometry::{BroadPhase, ColliderBuilder, ColliderHandle, ColliderSet, NarrowPhase};
+use rapier2d::geometry::{BroadPhase, ColliderHandle, ColliderSet, NarrowPhase};
 use rapier2d::na::Vector2;
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::{Collider, RigidBody};
@@ -56,7 +57,7 @@ impl Pipeline2D {
     #[run_after_previous_and(
         component(DeltaTime),
         component(PhysicsHook),
-        component(Dynamics2D),
+        action(BodyUpdate),
         action(ColliderUpdate)
     )]
     fn update(
@@ -104,8 +105,8 @@ impl Pipeline2D {
         self.bodies.get_mut(handle)
     }
 
-    pub(crate) fn create_body(&mut self, builder: RigidBodyBuilder) -> RigidBodyHandle {
-        self.bodies.insert(builder)
+    pub(crate) fn create_body(&mut self, body: RigidBody) -> RigidBodyHandle {
+        self.bodies.insert(body)
     }
 
     pub(crate) fn collider_mut(&mut self, handle: ColliderHandle) -> Option<&mut Collider> {
@@ -114,14 +115,14 @@ impl Pipeline2D {
 
     pub(crate) fn create_collider(
         &mut self,
-        builder: ColliderBuilder,
+        collider: Collider,
         body_handle: Option<RigidBodyHandle>,
     ) -> ColliderHandle {
         if let Some(body_handle) = body_handle {
             self.colliders
-                .insert_with_parent(builder, body_handle, &mut self.bodies)
+                .insert_with_parent(collider, body_handle, &mut self.bodies)
         } else {
-            self.colliders.insert(builder)
+            self.colliders.insert(collider)
         }
     }
 

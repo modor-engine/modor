@@ -18,6 +18,7 @@ use rapier2d::na::vector;
 use rapier2d::pipeline::ActiveHooks;
 use rapier2d::prelude::{nalgebra, ColliderBuilder, SharedShape};
 use std::slice::Iter;
+use crate::components::dynamics::BodyUpdate;
 
 /// The collision properties of a 2D entity.
 ///
@@ -136,8 +137,8 @@ impl Collider2D {
             collider.set_collision_groups(interactions);
             collider.user_data = data.into();
         } else {
-            let builder = self.collider_builder(transform, interactions, data, dynamics.is_some());
-            self.handle = Some(pipeline.create_collider(builder, dynamics.and_then(|d| d.handle)));
+            let collider = self.create_collider(transform, interactions, data, dynamics.is_some());
+            self.handle = Some(pipeline.create_collider(collider, dynamics.and_then(|d| d.handle)));
         }
     }
 
@@ -191,22 +192,22 @@ impl Collider2D {
         }
     }
 
-    fn collider_builder(
+    fn create_collider(
         &mut self,
         transform: &Transform2D,
         interactions: InteractionGroups,
         data: ColliderUserData,
         has_dynamics: bool,
-    ) -> ColliderBuilder {
+    ) -> Collider {
         let mut collider = ColliderBuilder::new(self.shape(transform))
             .collision_groups(interactions)
             .active_collision_types(ActiveCollisionTypes::all())
             .active_hooks(ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::FILTER_INTERSECTION_PAIR)
-            .user_data(data.into());
+            .user_data(data.into())
+            .build();
         if !has_dynamics {
-            collider = collider
-                .translation(vector![transform.position.x, transform.position.y])
-                .rotation(transform.rotation);
+            collider.set_translation(vector![transform.position.x, transform.position.y]);
+            collider.set_rotation(Rotation::new(transform.rotation));
         }
         collider
     }
@@ -223,7 +224,7 @@ impl Collider2D {
 #[derive(Action)]
 pub(crate) struct ColliderUpdate(
     UnsynchronizedHandleDeletion,
-    <Dynamics2D as ComponentSystems>::Action,
+    BodyUpdate,
     <CollisionGroup as ComponentSystems>::Action,
     <CollisionGroupRegistry as ComponentSystems>::Action,
 );

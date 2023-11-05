@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use modor::{systems, App, BuiltEntity, Single, SingleRef, SingletonComponent};
 use modor_graphics::{
     model_2d, window_target, Camera2D, Color, Material, Model2DMaterial, Window, WINDOW_CAMERA_2D,
