@@ -94,7 +94,6 @@ pub enum CollisionType {
     None,
     /// Collision should happen but it doesn't produce forces.
     Sensor,
-    /// Collision should happen and it produces forces. This has currently the same effect as
-    /// [`CollisionType::Sensor`](CollisionType::Sensor).
+    /// Collision should happen and it produces forces.
     Impulse,
 }

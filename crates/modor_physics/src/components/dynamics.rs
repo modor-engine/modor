@@ -92,6 +92,13 @@ pub struct Dynamics2D {
     ///
     /// Default value is `0.`.
     pub angular_damping: f32,
+    /// Dominance of the entity.
+    ///
+    /// In case of collision between two entities, if both entities have a different dominance
+    /// group, then collision forces will only be applied on the entity with the smallest dominance.
+    ///
+    /// Default value is `0`.
+    pub dominance: i8,
     pub(crate) handle: Option<RigidBodyHandle>,
 }
 
@@ -109,6 +116,7 @@ impl Dynamics2D {
             angular_inertia: 0.,
             damping: 0.,
             angular_damping: 0.,
+            dominance: 0,
             handle: None,
         }
     }
@@ -139,6 +147,7 @@ impl Dynamics2D {
             body.set_additional_mass_properties(mass, true);
             body.set_linear_damping(self.damping);
             body.set_angular_damping(self.angular_damping);
+            body.set_dominance_group(self.dominance);
             body.user_data = entity.id() as u128;
         } else {
             let body = self.create_body(entity.id(), transform);
@@ -170,6 +179,7 @@ impl Dynamics2D {
             .additional_mass_properties(mass)
             .linear_damping(self.damping)
             .angular_damping(self.angular_damping)
+            .dominance_group(self.dominance)
             .user_data(entity_id as u128)
             .build();
         body.add_force(vector![self.force.x, self.force.y], true);

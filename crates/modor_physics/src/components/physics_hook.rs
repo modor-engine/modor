@@ -43,7 +43,8 @@ impl rapier2d::pipeline::PhysicsHooks for PhysicsHook {
             .unwrap_or_default();
         match collision_type {
             CollisionType::None => None,
-            CollisionType::Sensor | CollisionType::Impulse => Some(SolverFlags::empty()),
+            CollisionType::Sensor => Some(SolverFlags::empty()),
+            CollisionType::Impulse => Some(SolverFlags::COMPUTE_IMPULSES),
         }
     }
 }

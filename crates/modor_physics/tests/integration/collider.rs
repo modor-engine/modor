@@ -45,6 +45,72 @@ fn check_collisions_for_collided_shapes_in_independent_groups(with_dynamics: boo
         .assert::<With<Collider2D>>(2, assert_no_collision());
 }
 
+#[modor_test(cases(
+    zero = "0., Vec2::new(0.1, 0.25133)",
+    one = "1., Vec2::new(0.08966, 0.25133)"
+))]
+fn update_friction(friction: f32, expected_position: Vec2) {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(1.)))
+        .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
+        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
+        .with_entity(ground().updated(|c: &mut Collider2D| c.friction = friction))
+        .with_entity(
+            ball()
+                .updated(|t: &mut Transform2D| t.position = Vec2::Y * 0.251)
+                .updated(|d: &mut Dynamics2D| d.force = Vec2::new(1., -0.1))
+                .updated(|c: &mut Collider2D| c.friction = friction),
+        )
+        .updated()
+        .assert::<With<Ball>>(1, assert_position(expected_position));
+}
+
+#[modor_test(cases(zero = "0., Vec2::new(0., 0.22319)", one = "1., Vec2::new(0., 0.4032)"))]
+fn update_restitution(restitution: f32, expected_position: Vec2) {
+    let update_count = 10;
+    let mut updates = 0..(update_count - 1);
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(0.1)))
+        .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
+        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
+        .with_entity(ground().updated(|c: &mut Collider2D| c.restitution = restitution))
+        .with_entity(
+            ball()
+                .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
+                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
+                .updated(|c: &mut Collider2D| c.restitution = restitution),
+        )
+        .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
+        .assert::<With<Ball>>(1, assert_position(expected_position));
+}
+
+#[modor_test(cases(
+    less = "-1, Vec2::new(0., 0.4032)",
+    equal = "0, Vec2::new(0., 0.4032)",
+    greater = "1, Vec2::new(0., -0.1)"
+))]
+fn update_dominance(dominance: i8, expected_position: Vec2) {
+    let update_count = 10;
+    let mut updates = 0..(update_count - 1);
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(0.1)))
+        .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
+        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
+        .with_entity(ground().updated(|c: &mut Collider2D| c.restitution = 1.))
+        .with_entity(
+            ball()
+                .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
+                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
+                .updated(|d: &mut Dynamics2D| d.dominance = dominance)
+                .updated(|c: &mut Collider2D| c.restitution = 1.),
+        )
+        .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
+        .assert::<With<Ball>>(1, assert_position(expected_position));
+}
+
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn update_position(with_dynamics: bool) {
     App::new()
@@ -243,6 +309,10 @@ assertion_functions!(
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
     }
+
+    fn assert_position(transform: &Transform2D, position: Vec2) {
+        assert_approx_eq!(transform.position, position);
+    }
 );
 
 fn groups() -> impl BuiltEntity {
@@ -259,6 +329,18 @@ fn groups() -> impl BuiltEntity {
             }));
         }
     })
+}
+
+fn ground_collision_type(_group_key: ResKey<CollisionGroup>) -> CollisionType {
+    CollisionType::None
+}
+
+fn ball_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
+    if group_key == GROUND_GROUP {
+        CollisionType::Impulse
+    } else {
+        CollisionType::None
+    }
 }
 
 fn rectangle(group: ResKey<CollisionGroup>, with_dynamics: bool) -> impl BuiltEntity {
@@ -281,6 +363,26 @@ fn circle(group: ResKey<CollisionGroup>, with_dynamics: bool) -> impl BuiltEntit
         .component_option(with_dynamics.then(Dynamics2D::new))
 }
 
+fn ground() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .component(Ground)
+        .component(Transform2D::new())
+        .with(|t| t.size = Vec2::new(1., 0.01))
+        .component(Collider2D::rectangle(GROUND_GROUP))
+        .component(Dynamics2D::new())
+}
+
+fn ball() -> impl BuiltEntity {
+    EntityBuilder::new()
+        .component(Ball)
+        .component(Transform2D::new())
+        .with(|t| t.size = Vec2::ONE * 0.5)
+        .component(Collider2D::circle(BALL_GROUP))
+        .component(Dynamics2D::new())
+        .with(|d| d.mass = 10.)
+        .with(|d| d.angular_inertia = 10.)
+}
+
 fn rectangle_collision_position() -> Vec2 {
     circle_position() / 2.
 }
@@ -300,6 +402,8 @@ fn circle_position() -> Vec2 {
 const RECTANGLE_ID: usize = 0;
 const CIRCLE_ID: usize = 1;
 const GROUP: IndexResKey<CollisionGroup> = IndexResKey::new("dynamic-groups");
+const GROUND_GROUP: ResKey<CollisionGroup> = ResKey::new("ground");
+const BALL_GROUP: ResKey<CollisionGroup> = ResKey::new("ball");
 
 #[derive(SingletonComponent, NoSystem)]
 struct Rectangle;
@@ -327,3 +431,9 @@ impl Circle {
         assert_eq!(collider.collided_as(&entities, GROUP.get(1)).count(), 0);
     }
 }
+
+#[derive(SingletonComponent, NoSystem)]
+struct Ground;
+
+#[derive(SingletonComponent, NoSystem)]
+struct Ball;
