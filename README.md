@@ -65,6 +65,11 @@ You can use one of the following commands to run an example:
 
 For example: `cargo run --example rendering_2d --release`
 
+## Main libraries behind the scene
+
+- Graphics module is backed by [winit](https://github.com/rust-windowing/winit) and [wgpu](https://wgpu.rs/).
+- Physics module is backed by [rapier](https://rapier.rs/).
+
 ## License
 
 Licensed under either of

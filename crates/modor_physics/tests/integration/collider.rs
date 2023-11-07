@@ -114,6 +114,29 @@ fn update_dominance(dominance: i8, expected_position: Vec2) {
         .assert::<With<Ball>>(1, assert_position(expected_position));
 }
 
+#[modor_test(cases(
+    enabled = "true, Vec2::new(0., 0.255)",
+    disabled = "false, Vec2::new(0., -1.)"
+))]
+fn use_ccd(is_enabled: bool, expected_position: Vec2) {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(1.)))
+        .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
+        .with_entity(CollisionGroup::new(BALL_GROUP, |k| {
+            ball_collision_type(k, 1., 0.5)
+        }))
+        .with_entity(ground())
+        .with_entity(
+            ball()
+                .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
+                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
+                .updated(|d: &mut Dynamics2D| d.is_ccd_enabled = is_enabled),
+        )
+        .updated()
+        .assert::<With<Ball>>(1, assert_position(expected_position));
+}
+
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
 fn update_position(with_dynamics: bool) {
     App::new()
