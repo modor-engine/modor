@@ -4,7 +4,7 @@ use modor_graphics::{
 };
 use modor_input::{Fingers, Mouse, MouseButton};
 use modor_math::Vec2;
-use modor_physics::{Collider2D, CollisionGroup, CollisionType, Dynamics2D, Transform2D};
+use modor_physics::{Collider2D, CollisionGroup, CollisionType, Dynamics2D, Impulse, Transform2D};
 use modor_resources::ResKey;
 use rand::Rng;
 
@@ -40,7 +40,7 @@ fn wall_collision_type(_group_key: ResKey<CollisionGroup>) -> CollisionType {
 
 fn object_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
     if group_key == WALL_GROUP || group_key == OBJECT_GROUP {
-        CollisionType::Impulse
+        CollisionType::Impulse(Impulse::new(0.1, 0.8))
     } else {
         CollisionType::None
     }
@@ -61,8 +61,6 @@ fn horizontal_wall(y: f32) -> impl BuiltEntity {
 fn wall() -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
         .component(Collider2D::rectangle(WALL_GROUP))
-        .with(|c| c.restitution = 0.1)
-        .with(|c| c.friction = 0.8)
 }
 
 fn cannon() -> impl BuiltEntity {
@@ -114,8 +112,6 @@ fn object(
         .with(|d| d.mass = OBJECT_MASS)
         .with(|d| d.angular_inertia = OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
         .component(collider)
-        .with(|c| c.restitution = 0.1)
-        .with(|c| c.friction = 0.8)
 }
 
 #[derive(Component)]
