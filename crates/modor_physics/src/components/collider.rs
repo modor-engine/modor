@@ -83,27 +83,6 @@ use std::slice::Iter;
 /// ```
 #[derive(Component, Debug)]
 pub struct Collider2D {
-    /// Friction coefficient of the entity.
-    ///
-    /// When two entities collide, the applied coefficient is the average coefficient of
-    /// both entities.
-    ///
-    /// A coefficient of `0.0` means there is no friction (i.e. objects slide completely over each
-    /// other).
-    ///
-    /// Default value is `0.5`.
-    pub friction: f32,
-    /// Restitution coefficient of the entity.
-    ///
-    /// When two entities collide, the applied coefficient is the average coefficient of
-    /// both entities.
-    ///
-    /// A coefficient of `0.0` means that the entities do not bounce off each other at all.<br>
-    /// A coefficient of `1.0` means that the exit velocity magnitude is the same as the initial
-    /// velocity along the contact normal.
-    ///
-    /// Default value is `0.0`.
-    pub restitution: f32,
     pub(crate) group_key: ResKey<CollisionGroup>,
     pub(crate) handle: Option<ColliderHandle>,
     pub(crate) collisions: Vec<Collision2D>,
@@ -157,8 +136,6 @@ impl Collider2D {
             collider.set_shape(self.shape(transform));
             collider.set_collision_groups(interactions);
             collider.set_mass(0.);
-            collider.set_friction(self.friction);
-            collider.set_restitution(self.restitution);
             collider.user_data = data.into();
         } else {
             let collider = self.create_collider(transform, interactions, data, dynamics);
@@ -209,8 +186,6 @@ impl Collider2D {
 
     fn new(group_key: ResKey<CollisionGroup>, shape: Collider2DShape) -> Self {
         Self {
-            friction: 0.5,
-            restitution: 0.0,
             group_key,
             handle: None,
             collisions: vec![],
@@ -228,10 +203,8 @@ impl Collider2D {
         let mut collider = ColliderBuilder::new(self.shape(transform))
             .collision_groups(interactions)
             .active_collision_types(ActiveCollisionTypes::all())
-            .active_hooks(ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::FILTER_INTERSECTION_PAIR)
+            .active_hooks(ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS)
             .mass(0.)
-            .friction(self.friction)
-            .restitution(self.restitution)
             .user_data(data.into())
             .build();
         if dynamics.is_none() {

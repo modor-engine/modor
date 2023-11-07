@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, Entity, EntityBuilder, Query, With};
 use modor_math::Vec2;
 use modor_physics::{
-    Collider2D, CollisionGroup, CollisionType, DeltaTime, Dynamics2D, Transform2D,
+    Collider2D, CollisionGroup, CollisionType, DeltaTime, Dynamics2D, Impulse, Transform2D,
 };
 use modor_resources::{IndexResKey, ResKey};
 use std::f32::consts::FRAC_PI_4;
@@ -54,13 +54,14 @@ fn update_friction(friction: f32, expected_position: Vec2) {
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(1.)))
         .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
-        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
-        .with_entity(ground().updated(|c: &mut Collider2D| c.friction = friction))
+        .with_entity(CollisionGroup::new(BALL_GROUP, move |k| {
+            ball_collision_type(k, 0., friction)
+        }))
+        .with_entity(ground())
         .with_entity(
             ball()
                 .updated(|t: &mut Transform2D| t.position = Vec2::Y * 0.251)
-                .updated(|d: &mut Dynamics2D| d.force = Vec2::new(1., -0.1))
-                .updated(|c: &mut Collider2D| c.friction = friction),
+                .updated(|d: &mut Dynamics2D| d.force = Vec2::new(1., -0.1)),
         )
         .updated()
         .assert::<With<Ball>>(1, assert_position(expected_position));
@@ -74,13 +75,14 @@ fn update_restitution(restitution: f32, expected_position: Vec2) {
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(0.1)))
         .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
-        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
-        .with_entity(ground().updated(|c: &mut Collider2D| c.restitution = restitution))
+        .with_entity(CollisionGroup::new(BALL_GROUP, move |k| {
+            ball_collision_type(k, restitution, 0.5)
+        }))
+        .with_entity(ground())
         .with_entity(
             ball()
                 .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
-                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
-                .updated(|c: &mut Collider2D| c.restitution = restitution),
+                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y),
         )
         .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
         .assert::<With<Ball>>(1, assert_position(expected_position));
@@ -98,14 +100,15 @@ fn update_dominance(dominance: i8, expected_position: Vec2) {
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(0.1)))
         .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
-        .with_entity(CollisionGroup::new(BALL_GROUP, ball_collision_type))
-        .with_entity(ground().updated(|c: &mut Collider2D| c.restitution = 1.))
+        .with_entity(CollisionGroup::new(BALL_GROUP, |k| {
+            ball_collision_type(k, 1., 0.5)
+        }))
+        .with_entity(ground())
         .with_entity(
             ball()
                 .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
                 .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
-                .updated(|d: &mut Dynamics2D| d.dominance = dominance)
-                .updated(|c: &mut Collider2D| c.restitution = 1.),
+                .updated(|d: &mut Dynamics2D| d.dominance = dominance),
         )
         .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
         .assert::<With<Ball>>(1, assert_position(expected_position));
@@ -335,9 +338,13 @@ fn ground_collision_type(_group_key: ResKey<CollisionGroup>) -> CollisionType {
     CollisionType::None
 }
 
-fn ball_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
+fn ball_collision_type(
+    group_key: ResKey<CollisionGroup>,
+    restitution: f32,
+    friction: f32,
+) -> CollisionType {
     if group_key == GROUND_GROUP {
-        CollisionType::Impulse
+        CollisionType::Impulse(Impulse::new(restitution, friction))
     } else {
         CollisionType::None
     }
