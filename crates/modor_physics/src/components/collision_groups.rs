@@ -114,7 +114,7 @@ impl CollisionType {
     }
 }
 
-/// Properties of an collision of type [`CollisionType::Impulse`].
+/// Properties of a collision of type [`CollisionType::Impulse`].
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Impulse {
     /// Restitution coefficient of the collision.
@@ -144,7 +144,7 @@ impl Default for Impulse {
 }
 
 impl Impulse {
-    /// Creates a new impulse.
+    /// Creates a new impulse configuration.
     pub fn new(restitution: f32, friction: f32) -> Self {
         Self {
             restitution,
