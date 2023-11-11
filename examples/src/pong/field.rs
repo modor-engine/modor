@@ -1,26 +1,27 @@
-use crate::pong::collisions::WALL_GROUP;
+use crate::pong::collisions::{HORIZONTAL_WALL_GROUP, LEFT_WALL_GROUP, RIGHT_WALL_GROUP};
 use modor::{BuiltEntity, Component, EntityBuilder, NoSystem};
 use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
-use modor_physics::{Collider2D, Transform2D};
+use modor_physics::{Collider2D, CollisionGroup, Transform2D};
+use modor_resources::ResKey;
 
 pub(crate) const SIZE: Vec2 = Vec2::new(1. - BORDER_WIDTH, 0.75);
 pub(crate) const BORDER_WIDTH: f32 = 0.02;
 
 pub(crate) fn field() -> impl BuiltEntity {
     EntityBuilder::new()
-        .child_entity(wall(WallOrientation::Left))
-        .child_entity(wall(WallOrientation::Right))
-        .child_entity(wall(WallOrientation::Top))
-        .child_entity(wall(WallOrientation::Bottom))
+        .child_entity(wall(WallOrientation::Left, LEFT_WALL_GROUP))
+        .child_entity(wall(WallOrientation::Right, RIGHT_WALL_GROUP))
+        .child_entity(wall(WallOrientation::Top, HORIZONTAL_WALL_GROUP))
+        .child_entity(wall(WallOrientation::Bottom, HORIZONTAL_WALL_GROUP))
         .child_entity(separator())
 }
 
-fn wall(orientation: WallOrientation) -> impl BuiltEntity {
+fn wall(orientation: WallOrientation, group_key: ResKey<CollisionGroup>) -> impl BuiltEntity {
     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
         .updated(|t: &mut Transform2D| t.position = orientation.position())
         .updated(|t: &mut Transform2D| t.size = orientation.size())
-        .component(Collider2D::rectangle(WALL_GROUP))
+        .component(Collider2D::rectangle(group_key))
         .component(orientation)
 }
 
@@ -30,7 +31,7 @@ fn separator() -> impl BuiltEntity {
 }
 
 #[derive(Component, NoSystem, Clone, Copy, Debug)]
-pub(crate) enum WallOrientation {
+enum WallOrientation {
     Left,
     Right,
     Top,

@@ -1,7 +1,7 @@
 use crate::pong::ball::Ball;
 use crate::pong::collisions::PADDLE_GROUP;
 use crate::pong::events::ResetEvent;
-use crate::pong::{field, Side};
+use crate::pong::Side;
 use modor::{systems, BuiltEntity, Component, Single, SingleRef};
 use modor_graphics::{model_2d, Camera2D, Model2DMaterial, Window, WINDOW_CAMERA_2D};
 use modor_input::{Fingers, Key, Keyboard};
@@ -14,8 +14,8 @@ const SPEED: f32 = 1.;
 pub(crate) fn player_paddle(side: Side) -> impl BuiltEntity {
     let player = match side {
         Side::Left => PaddlePlayer {
-            up_key: Key::Z,
-            down_key: Key::S,
+            up_key: Key::Up,
+            down_key: Key::Down,
             touch_min_x: -1.,
             touch_max_x: 0.,
         },
@@ -38,6 +38,7 @@ fn paddle(side: Side) -> impl BuiltEntity {
         .updated(|t: &mut Transform2D| t.position = Vec2::X * 0.4 * side.x_sign())
         .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())
+        .with(|d| d.mass = 1.)
         .component(Collider2D::rectangle(PADDLE_GROUP))
         .component(Paddle)
 }
@@ -50,12 +51,6 @@ impl Paddle {
     #[run_after(component(Transform2D))]
     fn reset(transform: &mut Transform2D, _event: SingleRef<'_, '_, ResetEvent>) {
         transform.position.y = 0.;
-    }
-
-    #[run_after(component(Transform2D), component(PaddlePlayer), component(PaddleBot))]
-    fn handle_wall_collisions(transform: &mut Transform2D) {
-        const MAX_PADDLE_Y: f32 = (field::SIZE.y - SIZE.y - field::BORDER_WIDTH) / 2.;
-        transform.position.y = transform.position.y.clamp(-MAX_PADDLE_Y, MAX_PADDLE_Y);
     }
 }
 

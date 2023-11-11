@@ -6,7 +6,7 @@
 
 - Entity, component and system definition
 - Sequential and parallel system execution
-- Physics module to handle transforms, relative transforms, dynamic properties and colliders
+- Physics module to handle transforms, dynamic properties and colliders
 - Graphics module to draw models (rectangles, ellipses) with material (color, texture) in one or multiple render targets
   (window or texture)
 - Text module to draw texts

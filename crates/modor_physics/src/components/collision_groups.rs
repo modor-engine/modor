@@ -99,6 +99,10 @@ pub enum CollisionType {
     /// Collision should happen but it doesn't produce forces.
     Sensor,
     /// Collision should happen and it produces forces.
+    ///
+    /// Note that there is no effect if the entity doesn't have both a
+    /// [Dynamics2D](crate::Dynamics2D) and [Collider2D](crate::Collider2D) component,
+    /// or if [Collider2D](crate::Collider2D) mass and angular inertia are equal to zero.
     Impulse(Impulse),
 }
 

@@ -49,7 +49,7 @@ fn check_collisions_for_collided_shapes_in_independent_groups(with_dynamics: boo
     zero = "0., Vec2::new(0.1, 0.25133)",
     one = "1., Vec2::new(0.08966, 0.25133)"
 ))]
-fn update_friction(friction: f32, expected_position: Vec2) {
+fn set_friction(friction: f32, expected_position: Vec2) {
     App::new()
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(1.)))
@@ -68,7 +68,7 @@ fn update_friction(friction: f32, expected_position: Vec2) {
 }
 
 #[modor_test(cases(zero = "0., Vec2::new(0., 0.22319)", one = "1., Vec2::new(0., 0.4032)"))]
-fn update_restitution(restitution: f32, expected_position: Vec2) {
+fn set_restitution(restitution: f32, expected_position: Vec2) {
     let update_count = 10;
     let mut updates = 0..(update_count - 1);
     App::new()
@@ -93,7 +93,7 @@ fn update_restitution(restitution: f32, expected_position: Vec2) {
     equal = "0, Vec2::new(0., 0.4032)",
     greater = "1, Vec2::new(0., -0.1)"
 ))]
-fn update_dominance(dominance: i8, expected_position: Vec2) {
+fn set_dominance(dominance: i8, expected_position: Vec2) {
     let update_count = 10;
     let mut updates = 0..(update_count - 1);
     App::new()
@@ -111,6 +111,29 @@ fn update_dominance(dominance: i8, expected_position: Vec2) {
                 .updated(|d: &mut Dynamics2D| d.dominance = dominance),
         )
         .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
+        .assert::<With<Ball>>(1, assert_position(expected_position));
+}
+
+#[modor_test(cases(
+    enabled = "true, Vec2::new(0., 0.255)",
+    disabled = "false, Vec2::new(0., -1.)"
+))]
+fn set_ccd(is_enabled: bool, expected_position: Vec2) {
+    App::new()
+        .with_entity(modor_physics::module())
+        .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs_f32(1.)))
+        .with_entity(CollisionGroup::new(GROUND_GROUP, ground_collision_type))
+        .with_entity(CollisionGroup::new(BALL_GROUP, |k| {
+            ball_collision_type(k, 1., 0.5)
+        }))
+        .with_entity(ground())
+        .with_entity(
+            ball()
+                .updated(|t: &mut Transform2D| t.position = Vec2::Y * 1.)
+                .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y)
+                .updated(|d: &mut Dynamics2D| d.is_ccd_enabled = is_enabled),
+        )
+        .updated()
         .assert::<With<Ball>>(1, assert_position(expected_position));
 }
 
@@ -275,6 +298,8 @@ fn remove_collider(with_dynamics: bool) {
 assertion_functions!(
     fn assert_no_collision(collider: &Collider2D) {
         assert_eq!(collider.collisions().len(), 0);
+        assert!(!collider.is_colliding_with(GROUP.get(0)));
+        assert!(!collider.is_colliding_with(GROUP.get(1)));
     }
 
     fn assert_rotation(transform: &Transform2D, rotation: f32) {
@@ -290,6 +315,7 @@ assertion_functions!(
         assert_eq!(collider.collisions()[0].other_group_key, GROUP.get(1));
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
+        assert!(collider.is_colliding_with(GROUP.get(1)));
     }
 
     fn assert_different_rectangle(collider: &Collider2D) {
@@ -311,6 +337,7 @@ assertion_functions!(
         assert_eq!(collider.collisions()[0].other_group_key, GROUP.get(0));
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
+        assert!(collider.is_colliding_with(GROUP.get(0)));
     }
 
     fn assert_position(transform: &Transform2D, position: Vec2) {
@@ -424,18 +451,18 @@ impl Circle {
     fn check_collisions(collider: &Collider2D, entities: Query<'_, Entity<'_>>) {
         if collider.collisions().is_empty() {
             assert_eq!(collider.collided(&entities).count(), 0);
-            assert_eq!(collider.collided_as(&entities, GROUP.get(0)).count(), 0);
+            assert_eq!(collider.collided_with(&entities, GROUP.get(0)).count(), 0);
         } else {
             let collisions: Vec<_> = collider.collided(&entities).collect();
             assert_eq!(collisions.len(), 1);
             assert_eq!(collisions[0].0.other_entity_id, RECTANGLE_ID);
             assert_eq!(collisions[0].1.id(), RECTANGLE_ID);
-            let collisions: Vec<_> = collider.collided_as(&entities, GROUP.get(0)).collect();
+            let collisions: Vec<_> = collider.collided_with(&entities, GROUP.get(0)).collect();
             assert_eq!(collisions.len(), 1);
             assert_eq!(collisions[0].0.other_entity_id, RECTANGLE_ID);
             assert_eq!(collisions[0].1.id(), RECTANGLE_ID);
         }
-        assert_eq!(collider.collided_as(&entities, GROUP.get(1)).count(), 0);
+        assert_eq!(collider.collided_with(&entities, GROUP.get(1)).count(), 0);
     }
 }
 

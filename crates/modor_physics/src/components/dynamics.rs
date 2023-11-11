@@ -69,14 +69,15 @@ pub struct Dynamics2D {
     pub torque: f32,
     /// Mass of the entity.
     ///
-    /// A mass of zero is considered as infinite. In this case, force will not have any effect.
+    /// A mass of zero is considered as infinite. In this case, force will not have any effect
+    /// (even in case of collisions).
     ///
     /// Default value is `0.`.
     pub mass: f32,
     /// Angular inertia of the entity.
     ///
     /// An angular inertia of zero is considered as infinite. In this case, torque will not have
-    /// any effect.
+    /// any effect (even in case of collisions).
     ///
     /// Default value is `0.`.
     pub angular_inertia: f32,
@@ -99,6 +100,18 @@ pub struct Dynamics2D {
     ///
     /// Default value is `0`.
     pub dominance: i8,
+    /// Whether Continuous Collision Detection is enabled for the entity.
+    ///
+    /// This option is used to detect a collision even if the entity moves too fast.
+    /// CCD is performed using motion-clamping, which means each fast-moving entity with CCD enabled
+    /// will be stopped at the moment of their first contact. Both angular and translational motions
+    /// are taken into account.
+    ///
+    /// Note that CCD require additional computation, so it is recommended to enable it only for
+    /// entities that are expected to move fast.
+    ///
+    /// Default value is `false`.
+    pub is_ccd_enabled: bool,
     pub(crate) handle: Option<RigidBodyHandle>,
 }
 
@@ -117,6 +130,7 @@ impl Dynamics2D {
             damping: 0.,
             angular_damping: 0.,
             dominance: 0,
+            is_ccd_enabled: false,
             handle: None,
         }
     }
@@ -148,6 +162,7 @@ impl Dynamics2D {
             body.set_linear_damping(self.damping);
             body.set_angular_damping(self.angular_damping);
             body.set_dominance_group(self.dominance);
+            body.enable_ccd(self.is_ccd_enabled);
             body.user_data = entity.id() as u128;
         } else {
             let body = self.create_body(entity.id(), transform);
@@ -180,6 +195,7 @@ impl Dynamics2D {
             .linear_damping(self.damping)
             .angular_damping(self.angular_damping)
             .dominance_group(self.dominance)
+            .ccd_enabled(self.is_ccd_enabled)
             .user_data(entity_id as u128)
             .build();
         body.add_force(vector![self.force.x, self.force.y], true);

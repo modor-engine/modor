@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+approx.workspace = true
 getrandom.workspace = true
 instant.workspace = true
 log.workspace = true
@@ -70,6 +71,11 @@ crate-type = ["cdylib"]
 [[example]]
 name = "physics_2d_android"
 path = "examples/android/physics_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "platformer_android"
+path = "examples/android/platformer.rs"
 crate-type = ["cdylib"]
 
 [[example]]

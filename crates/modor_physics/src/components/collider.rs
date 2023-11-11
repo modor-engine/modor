@@ -148,6 +148,13 @@ impl Collider2D {
         // do nothing, this system only waits for collision update
     }
 
+    /// Returns whether the entity collides with another entity with `group_key`.
+    pub fn is_colliding_with(&self, group_key: ResKey<CollisionGroup>) -> bool {
+        self.collisions
+            .iter()
+            .any(|c| c.other_group_key == group_key)
+    }
+
     /// Returns the detected collisions.
     pub fn collisions(&self) -> &[Collision2D] {
         &self.collisions
@@ -169,7 +176,7 @@ impl Collider2D {
     /// Returns an iterator on colliding objects from collision group with `group_key` key.
     ///
     /// `query` is used to retrieved the information to return for each colliding object.
-    pub fn collided_as<'a, 'b, P>(
+    pub fn collided_with<'a, 'b, P>(
         &'a self,
         query: &'a Query<'b, P>,
         group_key: ResKey<CollisionGroup>,
@@ -322,7 +329,7 @@ where
 
 /// An iterator on colliding objects of a specific collision group.
 ///
-/// This struct is created by [`Collider2D::collided_as`].
+/// This struct is created by [`Collider2D::collided_with`].
 pub struct CollidedAs2DIter<'a, 'b, P>
 where
     P: 'static + QuerySystemParam,
