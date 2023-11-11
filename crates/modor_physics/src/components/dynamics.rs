@@ -69,14 +69,15 @@ pub struct Dynamics2D {
     pub torque: f32,
     /// Mass of the entity.
     ///
-    /// A mass of zero is considered as infinite. In this case, force will not have any effect.
+    /// A mass of zero is considered as infinite. In this case, force will not have any effect
+    /// (even in case of collisions).
     ///
     /// Default value is `0.`.
     pub mass: f32,
     /// Angular inertia of the entity.
     ///
     /// An angular inertia of zero is considered as infinite. In this case, torque will not have
-    /// any effect.
+    /// any effect (even in case of collisions).
     ///
     /// Default value is `0.`.
     pub angular_inertia: f32,
@@ -103,7 +104,8 @@ pub struct Dynamics2D {
     ///
     /// This option is used to detect a collision even if the entity moves too fast.
     /// CCD is performed using motion-clamping, which means each fast-moving entity with CCD enabled
-    /// will be stopped at the moment of their first contact.
+    /// will be stopped at the moment of their first contact. Both angular and translational motions
+    /// are taken into account.
     ///
     /// Note that CCD require additional computation, so it is recommended to enable it only for
     /// entities that are expected to move fast.

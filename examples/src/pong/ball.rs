@@ -1,6 +1,5 @@
-use crate::pong::collisions::{BALL_GROUP, PADDLE_GROUP};
+use crate::pong::collisions::{BALL_GROUP, LEFT_WALL_GROUP, PADDLE_GROUP, RIGHT_WALL_GROUP};
 use crate::pong::events::ResetEvent;
-use crate::pong::field::WallOrientation;
 use crate::pong::paddles;
 use crate::pong::scores::{LeftScore, RightScore};
 use instant::Instant;
@@ -21,6 +20,8 @@ pub(crate) fn ball() -> impl BuiltEntity {
         .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())
         .with(|d| d.velocity = generate_ball_velocity())
+        .with(|d| d.mass = 1.)
+        .with(|d| d.is_ccd_enabled = true)
         .component(Collider2D::circle(BALL_GROUP))
         .component(Ball::default())
 }
@@ -54,30 +55,19 @@ impl Ball {
 
     #[run_after(component(Dynamics2D), component(Collider2D))]
     fn handle_collision_with_walls(
-        dynamics: &mut Dynamics2D,
-        collider: &mut Collider2D,
-        walls: Query<'_, &WallOrientation>,
+        collider: &Collider2D,
         reset_event: Option<SingleRef<'_, '_, ResetEvent>>,
         mut left_score: SingleMut<'_, '_, LeftScore>,
         mut right_score: SingleMut<'_, '_, RightScore>,
         mut world: World<'_>,
     ) {
-        for (_, wall) in collider.collided(&walls) {
-            match wall {
-                WallOrientation::Left => {
-                    if reset_event.is_none() {
-                        world.create_root_entity(ResetEvent);
-                        right_score.get_mut().0 += 1;
-                    }
-                }
-                WallOrientation::Right => {
-                    if reset_event.is_none() {
-                        world.create_root_entity(ResetEvent);
-                        left_score.get_mut().0 += 1;
-                    }
-                }
-                WallOrientation::Top => dynamics.velocity.y = -dynamics.velocity.y.abs(),
-                WallOrientation::Bottom => dynamics.velocity.y = dynamics.velocity.y.abs(),
+        if reset_event.is_none() {
+            if collider.is_colliding_with(LEFT_WALL_GROUP) {
+                world.create_root_entity(ResetEvent);
+                right_score.get_mut().0 += 1;
+            } else if collider.is_colliding_with(RIGHT_WALL_GROUP) {
+                world.create_root_entity(ResetEvent);
+                left_score.get_mut().0 += 1;
             }
         }
     }
@@ -89,7 +79,7 @@ impl Ball {
         collider: &Collider2D,
         transforms: Query<'_, &Transform2D>,
     ) {
-        for (_, paddle_transform) in collider.collided_as(&transforms, PADDLE_GROUP) {
+        for (_, paddle_transform) in collider.collided_with(&transforms, PADDLE_GROUP) {
             let normalized_direction = -transform.position.x.signum();
             let direction = dynamics.velocity.magnitude() * normalized_direction;
             let relative_y_offset = normalized_direction
