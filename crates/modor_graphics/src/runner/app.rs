@@ -21,7 +21,7 @@ impl RunnerApp {
         }
     }
 
-    pub(super) fn update(&mut self, window: &mut WindowHandle, display: &Display) {
+    pub(super) fn update_window(&mut self, window: &mut WindowHandle, display: &Display) {
         self.app.update_components(|r: &mut Renderer| {
             r.update(&display.renderer);
         });
@@ -41,6 +41,9 @@ impl RunnerApp {
             }
             self.is_window_found = is_window_found;
         }
+    }
+
+    pub(super) fn update(&mut self) {
         self.app.update();
     }
 

@@ -1,6 +1,6 @@
 use winit::event::Event;
 use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindowTarget};
-use winit::platform::run_return::EventLoopExtRunReturn;
+use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 /// The context of a [test runner](crate::test_runner()).
