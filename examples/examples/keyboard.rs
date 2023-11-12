@@ -1,5 +1,6 @@
 #![allow(missing_docs)]
 
-pub fn main() {
+#[modor::modor_main]
+fn main() {
     modor_examples::keyboard::main();
 }

@@ -2,7 +2,8 @@ use crate::input::mappings;
 use modor_input::{Fingers, Keyboard, Mouse, MouseScrollDelta};
 use modor_math::Vec2;
 use winit::dpi::PhysicalPosition;
-use winit::event::{ElementState, KeyboardInput, MouseButton, Touch};
+use winit::event::{ElementState, KeyEvent, MouseButton, Touch};
+use winit::keyboard::PhysicalKey;
 
 #[allow(clippy::cast_possible_truncation)]
 pub(crate) fn update_mouse_motion(mouse: &mut Mouse, winit_delta: (f64, f64)) {
@@ -33,18 +34,21 @@ pub(crate) fn update_mouse_position(mouse: &mut Mouse, position: PhysicalPositio
     mouse.position = winit_pos_to_vec2(position);
 }
 
-pub(crate) fn update_keyboard_key(keyboard: &mut Keyboard, input: KeyboardInput) {
-    if let Some(keycode) = input.virtual_keycode {
-        let key = mappings::to_keyboard_key(keycode);
-        match input.state {
-            ElementState::Pressed => keyboard[key].press(),
-            ElementState::Released => keyboard[key].release(),
+pub(crate) fn update_keyboard_key(keyboard: &mut Keyboard, event: &KeyEvent) {
+    if let PhysicalKey::Code(code) = event.physical_key {
+        if let Some(key) = mappings::to_keyboard_key(code) {
+            match event.state {
+                ElementState::Pressed => keyboard[key].press(),
+                ElementState::Released => keyboard[key].release(),
+            }
         }
     }
 }
 
-pub(crate) fn update_entered_text(keyboard: &mut Keyboard, new_character: char) {
-    keyboard.text.push(new_character);
+pub(crate) fn update_entered_text(keyboard: &mut Keyboard, event: &KeyEvent) {
+    if let Some(text) = &event.text {
+        keyboard.text += text;
+    }
 }
 
 pub(crate) fn press_finger(fingers: &mut Fingers, touch: Touch) {

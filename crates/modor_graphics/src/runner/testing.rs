@@ -1,8 +1,7 @@
 use crate::runner::state::RunnerState;
 use crate::testing::TestRunnerContext;
 use modor::App;
-use winit::event::Event;
-use winit::event_loop::ControlFlow;
+use winit::event::{Event, WindowEvent};
 use winit::window::Window as WindowHandle;
 
 /// Runner mainly used to test with a window.
@@ -27,9 +26,15 @@ pub fn test_runner(
         |l| {
             let mut state = RunnerState::new(app, l);
             let mut update_id = 0;
-            TestRunnerContext::run(l, move |event, _event_loop, control_flow| {
-                let is_update = matches!(event, Event::MainEventsCleared);
-                state.treat_event(event, control_flow);
+            TestRunnerContext::run(l, move |event, event_loop| {
+                let is_update = matches!(
+                    event,
+                    Event::WindowEvent {
+                        event: WindowEvent::RedrawRequested,
+                        ..
+                    }
+                );
+                state.treat_event(event, event_loop);
                 if is_update {
                     let mut next_events = Vec::new();
                     let next_events_mut = &mut next_events;
@@ -43,12 +48,12 @@ pub fn test_runner(
                         f(update_state)
                     });
                     for event in next_events {
-                        state.treat_event(event, control_flow);
+                        state.treat_event(event, event_loop);
                     }
                     update_id += 1;
                 }
                 if update_count == update_id {
-                    *control_flow = ControlFlow::Exit;
+                    event_loop.exit();
                 }
             });
         },
@@ -60,5 +65,5 @@ pub struct UpdateState<'a> {
     pub app: App,
     pub window: &'a mut WindowHandle,
     pub update_id: u32,
-    pub next_events: &'a mut Vec<Event<'static, ()>>,
+    pub next_events: &'a mut Vec<Event<()>>,
 }

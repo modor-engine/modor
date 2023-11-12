@@ -5,8 +5,5 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: ndk
-      - dependency-name: ndk-glue
     labels:
       - "type: dependencies"

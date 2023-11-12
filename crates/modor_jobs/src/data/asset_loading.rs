@@ -115,8 +115,11 @@ pub enum AssetLoadingError {
     NotFoundDomWindow,
     /// `location.href` property cannot be retrieved, can only occurs for web platform.
     InvalidLocationHref(String),
-    /// I/O error occurs while retrieving the resource.
+    /// I/O error occurred while retrieving the resource.
     IoError(String),
+    /// App has not been correctly initialized (e.g. [`modor::modor_main`](modor::modor_main)
+    /// is not used).
+    InvalidAppInit,
 }
 
 // coverage: off (not necessary to test Display impl)
@@ -127,6 +130,10 @@ impl Display for AssetLoadingError {
             Self::NotFoundDomWindow => write!(f, "DOM window not found"),
             Self::InvalidLocationHref(m) => write!(f, "invalid location.ref property: {m}"),
             Self::IoError(m) => write!(f, "IO error: {m}"),
+            Self::InvalidAppInit => write!(
+                f,
+                "App incorrectly initialized (maybe modor::modor_main has not been used ?)"
+            ),
         }
     }
 }

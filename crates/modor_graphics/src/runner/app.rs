@@ -5,7 +5,7 @@ use modor_input::{Fingers, Gamepads, Keyboard, Mouse};
 use modor_physics::DeltaTime;
 use std::time::Duration;
 use winit::dpi::PhysicalSize;
-use winit::event_loop::ControlFlow;
+use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window as WindowHandle;
 
 pub(crate) struct RunnerApp {
@@ -35,8 +35,8 @@ impl RunnerApp {
                 window.set_visible(true);
             } else {
                 let size = Window::DEFAULT_SIZE;
+                let _ = window.request_inner_size(PhysicalSize::new(size.width, size.height));
                 window.set_visible(false);
-                window.set_inner_size(PhysicalSize::new(size.width, size.height));
                 window.set_title("");
             }
             self.is_window_found = is_window_found;
@@ -70,9 +70,9 @@ impl RunnerApp {
         });
     }
 
-    pub(super) fn close_window(&mut self, control_flow: &mut ControlFlow) {
+    pub(super) fn close_window(&mut self, event_loop: &EventLoopWindowTarget<()>) {
         self.app.update_components(|w: &mut Window| {
-            w.close_window(control_flow);
+            w.close_window(event_loop);
         });
     }
 

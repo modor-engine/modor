@@ -1,5 +1,5 @@
 use winit::event::Event;
-use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
+use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 
 /// The context of a [test runner](crate::test_runner()).
 ///
@@ -22,7 +22,7 @@ impl TestRunnerContext {
 
     pub(crate) fn run(
         _event_loop: &mut EventLoop<()>,
-        _f: impl FnMut(Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+        _f: impl FnMut(Event<()>, &EventLoopWindowTarget<()>),
     ) {
         // unsupported
     }
