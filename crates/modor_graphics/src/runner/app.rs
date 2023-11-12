@@ -21,13 +21,9 @@ impl RunnerApp {
         }
     }
 
-    pub(super) fn update_window(&mut self, window: &mut WindowHandle, display: &Display) {
-        self.app.update_components(|r: &mut Renderer| {
-            r.update(&display.renderer);
-        });
+    pub(super) fn update_window(&mut self, window: &mut WindowHandle) {
         let mut is_window_found = false;
         self.app.update_components(|w: &mut Window| {
-            w.update(window, &display.surface);
             is_window_found = true;
         });
         if is_window_found != self.is_window_found {
@@ -43,7 +39,13 @@ impl RunnerApp {
         }
     }
 
-    pub(super) fn update(&mut self) {
+    pub(super) fn update(&mut self, window: &mut WindowHandle, display: &Display) {
+        self.app.update_components(|r: &mut Renderer| {
+            r.update(&display.renderer);
+        });
+        self.app.update_components(|w: &mut Window| {
+            w.update(window, &display.surface);
+        });
         self.app.update();
     }
 

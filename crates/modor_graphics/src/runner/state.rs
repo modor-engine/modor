@@ -145,27 +145,26 @@ impl RunnerState {
     }
 
     fn update_window(&mut self) {
-        if let Some(display) = &self.display {
-            self.window.request_redraw();
-            self.app.update_window(&mut self.window, display);
-        } // coverage: off (`else` case only happens on Android)
-          // coverage: on
+        self.app.update_window(&mut self.window);
+        self.window.request_redraw();
     }
 
     fn update(&mut self) {
-        self.gamepads.treat_events(&mut self.app);
-        self.app.update_gamepads(modor_input::Gamepads::sync_d_pad);
-        self.app.update();
-        self.app.update_keyboard(Keyboard::refresh);
-        self.app.update_mouse(Mouse::refresh);
-        self.app.update_fingers(Fingers::refresh);
-        self.app.update_gamepads(modor_input::Gamepads::refresh);
-        self.app
-            .frame_rate()
-            .sleep(self.previous_update_end, self.window_frame_time);
-        let update_end = Instant::now();
-        self.update_delta_time(update_end);
-        self.previous_update_end = update_end;
+        if let Some(display) = &self.display {
+            self.gamepads.treat_events(&mut self.app);
+            self.app.update_gamepads(modor_input::Gamepads::sync_d_pad);
+            self.app.update(&mut self.window, display);
+            self.app.update_keyboard(Keyboard::refresh);
+            self.app.update_mouse(Mouse::refresh);
+            self.app.update_fingers(Fingers::refresh);
+            self.app.update_gamepads(modor_input::Gamepads::refresh);
+            self.app
+                .frame_rate()
+                .sleep(self.previous_update_end, self.window_frame_time);
+            let update_end = Instant::now();
+            self.update_delta_time(update_end);
+            self.previous_update_end = update_end;
+        }
     }
 
     fn update_delta_time(&mut self, update_end: Instant) {
