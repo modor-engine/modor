@@ -1,5 +1,6 @@
 use std::time::Duration;
 use wgpu::Limits;
+use winit::dpi::PhysicalSize;
 use winit::window::Window as WindowHandle;
 
 pub(crate) fn init_canvas(_handle: &WindowHandle) {
@@ -8,6 +9,10 @@ pub(crate) fn init_canvas(_handle: &WindowHandle) {
 
 pub(crate) fn update_canvas_cursor(_handle: &WindowHandle, _is_cursor_show: bool) {
     // does nothing
+}
+
+pub(crate) fn surface_size(_handle: &WindowHandle, size: PhysicalSize<u32>) -> PhysicalSize<u32> {
+    size
 }
 
 pub(crate) fn gpu_limits() -> Limits {

@@ -23,7 +23,7 @@ impl RunnerApp {
 
     pub(super) fn update_window(&mut self, window: &mut WindowHandle) {
         let mut is_window_found = false;
-        self.app.update_components(|w: &mut Window| {
+        self.app.update_components(|_: &mut Window| {
             is_window_found = true;
         });
         if is_window_found != self.is_window_found {

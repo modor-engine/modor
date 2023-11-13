@@ -1,7 +1,6 @@
 use crate::components::shader::Shader;
 use crate::data::size::NonZeroSize;
 use crate::{AntiAliasing, Color, GpuContext};
-use std::num::NonZeroU32;
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, LoadOp, Operations, RenderPass,
     RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, StoreOp,

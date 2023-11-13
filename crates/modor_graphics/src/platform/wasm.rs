@@ -1,6 +1,7 @@
 use std::time::Duration;
 use web_sys::Element;
 use wgpu::Limits;
+use winit::dpi::PhysicalSize;
 use winit::platform::web::WindowExtWebSys;
 use winit::window::Window as WindowHandle;
 
@@ -23,6 +24,20 @@ pub(crate) fn update_canvas_cursor(handle: &WindowHandle, is_cursor_show: bool) 
             .style()
             .set_property("cursor", if is_cursor_show { "auto" } else { "none" })
             .expect("cannot update canvas cursor property");
+    }
+}
+
+pub(crate) fn surface_size(handle: &WindowHandle, size: PhysicalSize<u32>) -> PhysicalSize<u32> {
+    if let Some(canvas) = handle.canvas() {
+        // If the size is not divided by the scale factor, then in case zoom is greater than 100%,
+        // the canvas is recursively resized until reaching the maximum allowed size.
+        let scale_factor = handle.scale_factor();
+        PhysicalSize::new(
+            (f64::from(size.width) / scale_factor).round() as u32,
+            (f64::from(size.height) / scale_factor).round() as u32,
+        )
+    } else {
+        size
     }
 }
 

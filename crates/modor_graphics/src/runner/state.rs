@@ -68,22 +68,12 @@ impl RunnerState {
                 WindowEvent::CloseRequested => {
                     self.app.close_window(event_loop);
                 }
-                WindowEvent::Resized(size) => {
-                    self.app.update_window_size(PhysicalSize::new(
-                        (f64::from(size.width) / self.window.scale_factor()).round() as u32,
-                        (f64::from(size.height) / self.window.scale_factor()).round() as u32,
+                WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+                    self.app.update_window_size(platform::surface_size(
+                        &self.window,
+                        self.window.inner_size(),
                     ));
                 }
-                // TODO: is it testable now ?
-                // coverage: off (untestable as new_inner_size is a reference)
-                WindowEvent::ScaleFactorChanged { .. } => {
-                    let size = self.window.inner_size();
-                    self.app.update_window_size(PhysicalSize::new(
-                        (f64::from(size.width) / self.window.scale_factor()).round() as u32,
-                        (f64::from(size.height) / self.window.scale_factor()).round() as u32,
-                    ));
-                }
-                // coverage: on
                 WindowEvent::MouseInput { button, state, .. } => {
                     self.app
                         .update_mouse(|m| events::update_mouse_button(m, button, state));
