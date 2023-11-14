@@ -95,9 +95,9 @@ fn character() -> impl BuiltEntity {
         .with(|d| d.force = Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS)
         .component(Collider2D::rectangle(CHARACTER_GROUP))
         .component(CharacterController {
-            jump_key: Key::Up,
-            left_key: Key::Left,
-            right_key: Key::Right,
+            jump_key: Key::ArrowUp,
+            left_key: Key::ArrowLeft,
+            right_key: Key::ArrowRight,
             next_velocity_x: 0.,
             next_force: Vec2::ZERO,
         })

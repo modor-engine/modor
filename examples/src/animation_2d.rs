@@ -49,9 +49,12 @@ impl Character {
         keyboard: SingleRef<'_, '_, Keyboard>,
     ) {
         dynamics.velocity = 0.2
-            * keyboard
-                .get()
-                .direction(Key::Left, Key::Right, Key::Up, Key::Down);
+            * keyboard.get().direction(
+                Key::ArrowLeft,
+                Key::ArrowRight,
+                Key::ArrowUp,
+                Key::ArrowDown,
+            );
         self.direction = self.direction(dynamics.velocity);
         animation.sprites = self.direction.sprites(dynamics.velocity == Vec2::ZERO);
         transform.size.x = self.direction.size_x_sign() * transform.size.x.abs();

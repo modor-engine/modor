@@ -34,23 +34,6 @@ pub(crate) fn update_mouse_position(mouse: &mut Mouse, position: PhysicalPositio
     mouse.position = winit_pos_to_vec2(position);
 }
 
-pub(crate) fn update_keyboard_key(keyboard: &mut Keyboard, event: &KeyEvent) {
-    if let PhysicalKey::Code(code) = event.physical_key {
-        if let Some(key) = mappings::to_keyboard_key(code) {
-            match event.state {
-                ElementState::Pressed => keyboard[key].press(),
-                ElementState::Released => keyboard[key].release(),
-            }
-        }
-    }
-}
-
-pub(crate) fn update_entered_text(keyboard: &mut Keyboard, event: &KeyEvent) {
-    if let Some(text) = &event.text {
-        keyboard.text += text;
-    }
-}
-
 pub(crate) fn press_finger(fingers: &mut Fingers, touch: Touch) {
     let finger = &mut fingers[touch.id];
     finger.position = winit_pos_to_vec2(touch.location);
@@ -73,3 +56,24 @@ pub(crate) fn release_finger(fingers: &mut Fingers, touch: Touch) {
 fn winit_pos_to_vec2(position: PhysicalPosition<f64>) -> Vec2 {
     Vec2::new(position.x as f32, position.y as f32)
 }
+
+// coverage: off (cannot be tested)
+
+pub(crate) fn update_keyboard_key(keyboard: &mut Keyboard, event: &KeyEvent) {
+    if let PhysicalKey::Code(code) = event.physical_key {
+        if let Some(key) = mappings::to_keyboard_key(code) {
+            match event.state {
+                ElementState::Pressed => keyboard[key].press(),
+                ElementState::Released => keyboard[key].release(),
+            }
+        }
+    }
+}
+
+pub(crate) fn update_entered_text(keyboard: &mut Keyboard, event: &KeyEvent) {
+    if let Some(text) = &event.text {
+        keyboard.text += text;
+    }
+}
+
+// coverage: on

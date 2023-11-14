@@ -14,14 +14,14 @@ const SPEED: f32 = 1.;
 pub(crate) fn player_paddle(side: Side) -> impl BuiltEntity {
     let player = match side {
         Side::Left => PaddlePlayer {
-            up_key: Key::Up,
-            down_key: Key::Down,
+            up_key: Key::ArrowUp,
+            down_key: Key::ArrowDown,
             touch_min_x: -1.,
             touch_max_x: 0.,
         },
         Side::Right => PaddlePlayer {
-            up_key: Key::Up,
-            down_key: Key::Down,
+            up_key: Key::ArrowUp,
+            down_key: Key::ArrowDown,
             touch_min_x: 0.,
             touch_max_x: 1.,
         },

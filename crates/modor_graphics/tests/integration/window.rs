@@ -73,7 +73,7 @@ fn create_target_window(context: &mut TestRunnerContext) {
                 let size = match s.update_id {
                     0 => Size::new(800, 600),
                     1 => {
-                        s.window.set_inner_size(PhysicalSize::new(400, 300));
+                        let _ = s.window.request_inner_size(PhysicalSize::new(400, 300));
                         thread::sleep(Duration::from_millis(100));
                         Size::new(800, 600)
                     }
@@ -143,7 +143,7 @@ fn resize_window(context: &mut TestRunnerContext) {
     App::new().with_entity(Window::default()).run(|a| {
         testing::test_runner(a, context, 10, |s| {
             if s.update_id == 0 {
-                s.window.set_inner_size(PhysicalSize::new(400, 300));
+                let _ = s.window.request_inner_size(PhysicalSize::new(400, 300));
                 thread::sleep(Duration::from_millis(100));
                 s.app
             } else {

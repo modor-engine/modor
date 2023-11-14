@@ -103,338 +103,454 @@ impl IndexMut<Key> for Keyboard {
 
 /// A keyboard key.
 ///
-/// The keys are virtual: they are not associated to a physical location on the keyboard.
+/// The keys are physical. For example, [`Key::KeyQ`] corresponds to <kbd>Q</kbd> with a QWERTY
+/// layout and <kbd>A</kbd> with a AZERTY layout.
+///
+/// The enum conforms to the UI Events Specification's
+/// [`KeyboardEvent.code`](https://w3c.github.io/uievents-code/#code-value-tables).
 ///
 /// # Examples
 ///
 /// See [`Keyboard`](Keyboard).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[non_exhaustive]
+#[allow(missing_docs)]
 pub enum Key {
-    /// The `1` key over the letters.
-    Key1,
-    /// The `2` key over the letters.
-    Key2,
-    /// The `3` key over the letters.
-    Key3,
-    /// The `4` key over the letters.
-    Key4,
-    /// The `5` key over the letters.
-    Key5,
-    /// The `6` key over the letters.
-    Key6,
-    /// The `7` key over the letters.
-    Key7,
-    /// The `8` key over the letters.
-    Key8,
-    /// The `9` key over the letters.
-    Key9,
-    /// The `0` key over the letters.
-    Key0,
-    /// The `A` key.
-    A,
-    /// The `B` key.
-    B,
-    /// The `C` key.
-    C,
-    /// The `D` key.
-    D,
-    /// The `E` key.
-    E,
-    /// The `F` key.
-    F,
-    /// The `G` key.
-    G,
-    /// The `H` key.
-    H,
-    /// The `I` key.
-    I,
-    /// The `J` key.
-    J,
-    /// The `K` key.
-    K,
-    /// The `L` key.
-    L,
-    /// The `M` key.
-    M,
-    /// The `N` key.
-    N,
-    /// The `O` key.
-    O,
-    /// The `N` key.
-    P,
-    /// The `Q` key.
-    Q,
-    /// The `R` key.
-    R,
-    /// The `S` key.
-    S,
-    /// The `T` key.
-    T,
-    /// The `U` key.
-    U,
-    /// The `V` key.
-    V,
-    /// The `W` key.
-    W,
-    /// The `X` key.
-    X,
-    /// The `Y` key.
-    Y,
-    /// The `Z` key.
-    Z,
-    /// The `Esc` key, next to `F1`.
-    Escape,
-    /// The `F1` key.
-    F1,
-    /// The `F2` key.
-    F2,
-    /// The `F3` key.
-    F3,
-    /// The `F4` key.
-    F4,
-    /// The `F5` key.
-    F5,
-    /// The `F6` key.
-    F6,
-    /// The `F7` key.
-    F7,
-    /// The `F8` key.
-    F8,
-    /// The `F9` key.
-    F9,
-    /// The `F10` key.
-    F10,
-    /// The `F11` key.
-    F11,
-    /// The `F12` key.
-    F12,
-    /// The `F13` key.
-    F13,
-    /// The `F14` key.
-    F14,
-    /// The `F15` key.
-    F15,
-    /// The `F16` key.
-    F16,
-    /// The `F17` key.
-    F17,
-    /// The `F18` key.
-    F18,
-    /// The `F19` key.
-    F19,
-    /// The `F20` key.
-    F20,
-    /// The `F21` key.
-    F21,
-    /// The `F22` key.
-    F22,
-    /// The `F23` key.
-    F23,
-    /// The `F24` key.
-    F24,
-    /// The `Print Screen / SysRq` key.
-    Snapshot,
-    /// The `Scroll Lock` key.
-    Scroll,
-    /// The `Pause / Break` key, next to `Scroll Lock`.
-    Pause,
-    /// The `Insert` key.
-    Insert,
-    /// The `Home` key.
-    Home,
-    /// The `Delete` key.
-    Delete,
-    /// The `End` key.
-    End,
-    /// The `Page Down` key.
-    PageDown,
-    /// The `Page Up` key.
-    PageUp,
-    /// The left arrow key.
-    Left,
-    /// The up arrow key.
-    Up,
-    /// The right arrow key.
-    Right,
-    /// The down arrow key.
-    Down,
-    /// The `Backspace` key, right over `Enter`.
-    Back,
-    /// The `Enter` key.
-    Return,
-    /// The space bar.
-    Space,
-    /// The `Compose` key.
-    Compose,
-    /// The `^` key.
-    Caret,
-    /// The `Num Lock` key.
-    Numlock,
-    /// The `0` key on the numeric keypad.
-    Numpad0,
-    /// The `1` key on the numeric keypad.
-    Numpad1,
-    /// The `2` key on the numeric keypad.
-    Numpad2,
-    /// The `3` key on the numeric keypad.
-    Numpad3,
-    /// The `4` key on the numeric keypad.
-    Numpad4,
-    /// The `5` key on the numeric keypad.
-    Numpad5,
-    /// The `6` key on the numeric keypad.
-    Numpad6,
-    /// The `7` key on the numeric keypad.
-    Numpad7,
-    /// The `8` key on the numeric keypad.
-    Numpad8,
-    /// The `9` key on the numeric keypad.
-    Numpad9,
-    /// The `+` key on the numeric keypad.
-    NumpadAdd,
-    /// The `/` key on the numeric keypad.
-    NumpadDivide,
-    /// The `.` key on the numeric keypad.
-    NumpadDecimal,
-    /// The `,` key on the numeric keypad.
-    NumpadComma,
-    /// The `Enter` key on the numeric keypad.
-    NumpadEnter,
-    /// The `=` key on the numeric keypad.
-    NumpadEquals,
-    /// The `*` key on the numeric keypad.
-    NumpadMultiply,
-    /// The `-` key on the numeric keypad.
-    NumpadSubtract,
-    /// The ABNT_C1 (Brazilian) key.
-    AbntC1,
-    /// The ABNT_C2 (Brazilian) key.
-    AbntC2,
-    /// The `'` key.
-    Apostrophe,
-    /// The Application key, also known as Menu key.
-    Apps,
-    /// The `*` key.
-    Asterisk,
-    /// The `@` key.
-    At,
-    /// The AX key.
-    Ax,
-    /// The `\\` key.
+    /// <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave.
+    /// This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd>
+    /// (hankaku/zenkaku/kanji) key on Japanese keyboards
+    Backquote,
+    /// Used for both the US <kbd>\\</kbd> (on the 101-key layout) and also for the key
+    /// located between the <kbd>"</kbd> and <kbd>Enter</kbd> keys on row C of the 102-,
+    /// 104- and 106-key layouts.
+    /// Labeled <kbd>#</kbd> on a UK (102) keyboard.
     Backslash,
-    /// The calculator key.
-    Calculator,
-    /// The `Caps Lock` key.
-    Capital,
-    /// The `:` key.
-    Colon,
-    /// The `,` key.
+    /// <kbd>[</kbd> on a US keyboard.
+    BracketLeft,
+    /// <kbd>]</kbd> on a US keyboard.
+    BracketRight,
+    /// <kbd>,</kbd> on a US keyboard.
     Comma,
-    /// The convert key (Japanese).
-    Convert,
-    /// The `=` key.
-    Equals,
-    /// The `\` ` key.
-    Grave,
-    /// The Kana key.
-    Kana,
-    /// The Kanji key.
-    Kanji,
-    /// The left `Alt` key.
-    LAlt,
-    /// The `[` key.
-    LBracket,
-    /// The left `Ctrl` key.
-    LControl,
-    /// The left `Shift` key.
-    LShift,
-    /// The left Windows key.
-    LWin,
-    /// The mail key.
-    Mail,
-    /// The media select key.
-    MediaSelect,
-    /// The media stop key.
-    MediaStop,
-    /// The `-` key.
+    /// <kbd>0</kbd> on a US keyboard.
+    Digit0,
+    /// <kbd>1</kbd> on a US keyboard.
+    Digit1,
+    /// <kbd>2</kbd> on a US keyboard.
+    Digit2,
+    /// <kbd>3</kbd> on a US keyboard.
+    Digit3,
+    /// <kbd>4</kbd> on a US keyboard.
+    Digit4,
+    /// <kbd>5</kbd> on a US keyboard.
+    Digit5,
+    /// <kbd>6</kbd> on a US keyboard.
+    Digit6,
+    /// <kbd>7</kbd> on a US keyboard.
+    Digit7,
+    /// <kbd>8</kbd> on a US keyboard.
+    Digit8,
+    /// <kbd>9</kbd> on a US keyboard.
+    Digit9,
+    /// <kbd>=</kbd> on a US keyboard.
+    Equal,
+    /// Located between the left <kbd>Shift</kbd> and <kbd>Z</kbd> keys.
+    /// Labeled <kbd>\\</kbd> on a UK keyboard.
+    IntlBackslash,
+    /// Located between the <kbd>/</kbd> and right <kbd>Shift</kbd> keys.
+    /// Labeled <kbd>\\</kbd> (ro) on a Japanese keyboard.
+    IntlRo,
+    /// Located between the <kbd>=</kbd> and <kbd>Backspace</kbd> keys.
+    /// Labeled <kbd>¥</kbd> (yen) on a Japanese keyboard. <kbd>\\</kbd> on a
+    /// Russian keyboard.
+    IntlYen,
+    /// <kbd>a</kbd> on a US keyboard.
+    /// Labeled <kbd>q</kbd> on an AZERTY (e.g., French) keyboard.
+    KeyA,
+    /// <kbd>b</kbd> on a US keyboard.
+    KeyB,
+    /// <kbd>c</kbd> on a US keyboard.
+    KeyC,
+    /// <kbd>d</kbd> on a US keyboard.
+    KeyD,
+    /// <kbd>e</kbd> on a US keyboard.
+    KeyE,
+    /// <kbd>f</kbd> on a US keyboard.
+    KeyF,
+    /// <kbd>g</kbd> on a US keyboard.
+    KeyG,
+    /// <kbd>h</kbd> on a US keyboard.
+    KeyH,
+    /// <kbd>i</kbd> on a US keyboard.
+    KeyI,
+    /// <kbd>j</kbd> on a US keyboard.
+    KeyJ,
+    /// <kbd>k</kbd> on a US keyboard.
+    KeyK,
+    /// <kbd>l</kbd> on a US keyboard.
+    KeyL,
+    /// <kbd>m</kbd> on a US keyboard.
+    KeyM,
+    /// <kbd>n</kbd> on a US keyboard.
+    KeyN,
+    /// <kbd>o</kbd> on a US keyboard.
+    KeyO,
+    /// <kbd>p</kbd> on a US keyboard.
+    KeyP,
+    /// <kbd>q</kbd> on a US keyboard.
+    /// Labeled <kbd>a</kbd> on an AZERTY (e.g., French) keyboard.
+    KeyQ,
+    /// <kbd>r</kbd> on a US keyboard.
+    KeyR,
+    /// <kbd>s</kbd> on a US keyboard.
+    KeyS,
+    /// <kbd>t</kbd> on a US keyboard.
+    KeyT,
+    /// <kbd>u</kbd> on a US keyboard.
+    KeyU,
+    /// <kbd>v</kbd> on a US keyboard.
+    KeyV,
+    /// <kbd>w</kbd> on a US keyboard.
+    /// Labeled <kbd>z</kbd> on an AZERTY (e.g., French) keyboard.
+    KeyW,
+    /// <kbd>x</kbd> on a US keyboard.
+    KeyX,
+    /// <kbd>y</kbd> on a US keyboard.
+    /// Labeled <kbd>z</kbd> on a QWERTZ (e.g., German) keyboard.
+    KeyY,
+    /// <kbd>z</kbd> on a US keyboard.
+    /// Labeled <kbd>w</kbd> on an AZERTY (e.g., French) keyboard, and <kbd>y</kbd> on a
+    /// QWERTZ (e.g., German) keyboard.
+    KeyZ,
+    /// <kbd>-</kbd> on a US keyboard.
     Minus,
-    /// The `🔇` key.
-    Mute,
-    /// The My Computer key.
-    MyComputer,
-    /// The Navigate Forward key.
-    NavigateForward,
-    /// The Navigate Backward key.
-    NavigateBackward,
-    /// The `⏭` key.
-    NextTrack,
-    /// The no convert key (Japanese).
-    NoConvert,
-    /// The OEM 102 key.
-    OEM102,
-    /// The `.` key.
+    /// <kbd>.</kbd> on a US keyboard.
     Period,
-    /// The `⏯` key.
-    PlayPause,
-    /// The `+ key.
-    Plus,
-    /// The `⏻` key.
-    Power,
-    /// The `⏮` key.
-    PrevTrack,
-    /// The right `Alt` key.
-    RAlt,
-    /// The `]` key.
-    RBracket,
-    /// The right `Ctrl` key.
-    RControl,
-    /// The right `Shift` key.
-    RShift,
-    /// The right Windows key.
-    RWin,
-    /// The `;` key.
+    /// <kbd>'</kbd> on a US keyboard.
+    Quote,
+    /// <kbd>;</kbd> on a US keyboard.
     Semicolon,
-    /// The `/` key.
+    /// <kbd>/</kbd> on a US keyboard.
     Slash,
-    /// The `💤` key.
-    Sleep,
-    /// The `⏹` key.
-    Stop,
-    /// The `SysRq` key.
-    Sysrq,
-    /// The `↹` key.
+    /// <kbd>Alt</kbd>, <kbd>Option</kbd>, or <kbd>⌥</kbd>.
+    AltLeft,
+    /// <kbd>Alt</kbd>, <kbd>Option</kbd>, or <kbd>⌥</kbd>.
+    /// This is labeled <kbd>AltGr</kbd> on many keyboard layouts.
+    AltRight,
+    /// <kbd>Backspace</kbd> or <kbd>⌫</kbd>.
+    /// Labeled <kbd>Delete</kbd> on Apple keyboards.
+    Backspace,
+    /// <kbd>CapsLock</kbd> or <kbd>⇪</kbd>
+    CapsLock,
+    /// The application context menu key, which is typically found between the right
+    /// <kbd>Super</kbd> key and the right <kbd>Control</kbd> key.
+    ContextMenu,
+    /// <kbd>Control</kbd> or <kbd>⌃</kbd>
+    ControlLeft,
+    /// <kbd>Control</kbd> or <kbd>⌃</kbd>
+    ControlRight,
+    /// <kbd>Enter</kbd> or <kbd>↵</kbd>. Labeled <kbd>Return</kbd> on Apple keyboards.
+    Enter,
+    /// The Windows, <kbd>⌘</kbd>, <kbd>Command</kbd>, or other OS symbol key.
+    MetaLeft,
+    /// The Windows, <kbd>⌘</kbd>, <kbd>Command</kbd>, or other OS symbol key.
+    MetaRight,
+    /// <kbd>Shift</kbd> or <kbd>⇧</kbd>
+    ShiftLeft,
+    /// <kbd>Shift</kbd> or <kbd>⇧</kbd>
+    ShiftRight,
+    /// <kbd> </kbd> (space)
+    Space,
+    /// <kbd>Tab</kbd> or <kbd>⇥</kbd>
     Tab,
-    /// The `_` key.
-    Underline,
-    /// A blank key.
-    Unlabeled,
-    /// The `🔉` key.
-    VolumeDown,
-    /// The `🔊` key.
-    VolumeUp,
-    /// The wake key.
-    Wake,
-    /// The web back.
-    WebBack,
-    /// The web favorites key.
-    WebFavorites,
-    /// The web forwawrd key.
-    WebForward,
-    /// The web home key.
-    WebHome,
-    /// The web refresh key.
-    WebRefresh,
-    /// The web search key.
-    WebSearch,
-    /// The web stop key.
-    WebStop,
-    /// The `¥` key.
-    Yen,
-    /// The copy key.
+    /// Japanese: <kbd>変</kbd> (henkan)
+    Convert,
+    /// Japanese: <kbd>カタカナ</kbd>/<kbd>ひらがな</kbd>/<kbd>ローマ字</kbd> (katakana/hiragana/romaji)
+    KanaMode,
+    /// Korean: HangulMode <kbd>한/영</kbd> (han/yeong)
+    ///
+    /// Japanese (Mac keyboard): <kbd>か</kbd> (kana)
+    Lang1,
+    /// Korean: Hanja <kbd>한</kbd> (hanja)
+    ///
+    /// Japanese (Mac keyboard): <kbd>英</kbd> (eisu)
+    Lang2,
+    /// Japanese (word-processing keyboard): Katakana
+    Lang3,
+    /// Japanese (word-processing keyboard): Hiragana
+    Lang4,
+    /// Japanese (word-processing keyboard): Zenkaku/Hankaku
+    Lang5,
+    /// Japanese: <kbd>無変換</kbd> (muhenkan)
+    NonConvert,
+    /// <kbd>⌦</kbd>. The forward delete key.
+    /// Note that on Apple keyboards, the key labelled <kbd>Delete</kbd> on the main part of
+    /// the keyboard is encoded as [`Key::Backspace`].
+    Delete,
+    /// <kbd>Page Down</kbd>, <kbd>End</kbd>, or <kbd>↘</kbd>
+    End,
+    /// <kbd>Help</kbd>. Not present on standard PC keyboards.
+    Help,
+    /// <kbd>Home</kbd> or <kbd>↖</kbd>
+    Home,
+    /// <kbd>Insert</kbd> or <kbd>Ins</kbd>. Not present on Apple keyboards.
+    Insert,
+    /// <kbd>Page Down</kbd>, <kbd>PgDn</kbd>, or <kbd>⇟</kbd>
+    PageDown,
+    /// <kbd>Page Up</kbd>, <kbd>PgUp</kbd>, or <kbd>⇞</kbd>
+    PageUp,
+    /// <kbd>↓</kbd>
+    ArrowDown,
+    /// <kbd>←</kbd>
+    ArrowLeft,
+    /// <kbd>→</kbd>
+    ArrowRight,
+    /// <kbd>↑</kbd>
+    ArrowUp,
+    /// On the Mac, this is used for the numpad <kbd>Clear</kbd> key.
+    NumLock,
+    /// <kbd>0 Ins</kbd> on a keyboard. <kbd>0</kbd> on a phone or remote control
+    Numpad0,
+    /// <kbd>1 End</kbd> on a keyboard. <kbd>1</kbd> or <kbd>1 QZ</kbd> on a phone or remote control
+    Numpad1,
+    /// <kbd>2 ↓</kbd> on a keyboard. <kbd>2 ABC</kbd> on a phone or remote control
+    Numpad2,
+    /// <kbd>3 PgDn</kbd> on a keyboard. <kbd>3 DEF</kbd> on a phone or remote control
+    Numpad3,
+    /// <kbd>4 ←</kbd> on a keyboard. <kbd>4 GHI</kbd> on a phone or remote control
+    Numpad4,
+    /// <kbd>5</kbd> on a keyboard. <kbd>5 JKL</kbd> on a phone or remote control
+    Numpad5,
+    /// <kbd>6 →</kbd> on a keyboard. <kbd>6 MNO</kbd> on a phone or remote control
+    Numpad6,
+    /// <kbd>7 Home</kbd> on a keyboard. <kbd>7 PQRS</kbd> or <kbd>7 PRS</kbd> on a phone
+    /// or remote control
+    Numpad7,
+    /// <kbd>8 ↑</kbd> on a keyboard. <kbd>8 TUV</kbd> on a phone or remote control
+    Numpad8,
+    /// <kbd>9 PgUp</kbd> on a keyboard. <kbd>9 WXYZ</kbd> or <kbd>9 WXY</kbd> on a phone
+    /// or remote control
+    Numpad9,
+    /// <kbd>+</kbd>
+    NumpadAdd,
+    /// Found on the Microsoft Natural Keyboard.
+    NumpadBackspace,
+    /// <kbd>C</kbd> or <kbd>A</kbd> (All Clear). Also for use with numpads that have a
+    /// <kbd>Clear</kbd> key that is separate from the <kbd>NumLock</kbd> key. On the Mac, the
+    /// numpad <kbd>Clear</kbd> key is encoded as [`Key::NumLock`].
+    NumpadClear,
+    /// <kbd>C</kbd> (Clear Entry)
+    NumpadClearEntry,
+    /// <kbd>,</kbd> (thousands separator). For locales where the thousands separator
+    /// is a "." (e.g., Brazil), this key may generate a <kbd>.</kbd>.
+    NumpadComma,
+    /// <kbd>. Del</kbd>. For locales where the decimal separator is "," (e.g.,
+    /// Brazil), this key may generate a <kbd>,</kbd>.
+    NumpadDecimal,
+    /// <kbd>/</kbd>
+    NumpadDivide,
+    NumpadEnter,
+    /// <kbd>=</kbd>
+    NumpadEqual,
+    /// <kbd>#</kbd> on a phone or remote control device. This key is typically found
+    /// below the <kbd>9</kbd> key and to the right of the <kbd>0</kbd> key.
+    NumpadHash,
+    /// <kbd>M</kbd> Add current entry to the value stored in memory.
+    NumpadMemoryAdd,
+    /// <kbd>M</kbd> Clear the value stored in memory.
+    NumpadMemoryClear,
+    /// <kbd>M</kbd> Replace the current entry with the value stored in memory.
+    NumpadMemoryRecall,
+    /// <kbd>M</kbd> Replace the value stored in memory with the current entry.
+    NumpadMemoryStore,
+    /// <kbd>M</kbd> Subtract current entry from the value stored in memory.
+    NumpadMemorySubtract,
+    /// <kbd>*</kbd> on a keyboard. For use with numpads that provide mathematical
+    /// operations (<kbd>+</kbd>, <kbd>-</kbd> <kbd>*</kbd> and <kbd>/</kbd>).
+    ///
+    /// Use [`Key::NumpadStar`] for the <kbd>*</kbd> key on phones and remote controls.
+    NumpadMultiply,
+    /// <kbd>(</kbd> Found on the Microsoft Natural Keyboard.
+    NumpadParenLeft,
+    /// <kbd>)</kbd> Found on the Microsoft Natural Keyboard.
+    NumpadParenRight,
+    /// <kbd>*</kbd> on a phone or remote control device.
+    ///
+    /// This key is typically found below the <kbd>7</kbd> key and to the left of
+    /// the <kbd>0</kbd> key.
+    ///
+    /// Use <kbd>"NumpadMultiply"</kbd> for the <kbd>*</kbd> key on
+    /// numeric keypads.
+    NumpadStar,
+    /// <kbd>-</kbd>
+    NumpadSubtract,
+    /// <kbd>Esc</kbd> or <kbd>⎋</kbd>
+    Escape,
+    /// <kbd>Fn</kbd> This is typically a hardware key that does not generate a separate code.
+    Fn,
+    /// <kbd>FLock</kbd> or <kbd>FnLock</kbd>. Function Lock key. Found on the Microsoft
+    /// Natural Keyboard.
+    FnLock,
+    /// <kbd>PrtScr SysRq</kbd> or <kbd>Print Screen</kbd>
+    PrintScreen,
+    /// <kbd>Scroll Lock</kbd>
+    ScrollLock,
+    /// <kbd>Pause Break</kbd>
+    Pause,
+    /// Some laptops place this key to the left of the <kbd>↑</kbd> key.
+    ///
+    /// This also the "back" button (triangle) on Android.
+    BrowserBack,
+    BrowserFavorites,
+    /// Some laptops place this key to the right of the <kbd>↑</kbd> key.
+    BrowserForward,
+    /// The "home" button on Android.
+    BrowserHome,
+    BrowserRefresh,
+    BrowserSearch,
+    BrowserStop,
+    /// <kbd>Eject</kbd> or <kbd>⏏</kbd>. This key is placed in the function section on some Apple
+    /// keyboards.
+    Eject,
+    /// Sometimes labelled <kbd>My Computer</kbd> on the keyboard
+    LaunchApp1,
+    /// Sometimes labelled <kbd>Calculator</kbd> on the keyboard
+    LaunchApp2,
+    LaunchMail,
+    MediaPlayPause,
+    MediaSelect,
+    MediaStop,
+    MediaTrackNext,
+    MediaTrackPrevious,
+    /// This key is placed in the function section on some Apple keyboards, replacing the
+    /// <kbd>Eject</kbd> key.
+    Power,
+    Sleep,
+    AudioVolumeDown,
+    AudioVolumeMute,
+    AudioVolumeUp,
+    WakeUp,
+    /// Legacy modifier key.
+    Super,
+    /// Legacy modifier key.
+    Hyper,
+    Turbo,
+    Abort,
+    Resume,
+    Suspend,
+    /// Found on Sun’s USB keyboard.
+    Again,
+    /// Found on Sun’s USB keyboard.
     Copy,
-    /// The paste key.
-    Paste,
-    /// The cut key.
+    /// Found on Sun’s USB keyboard.
     Cut,
+    /// Found on Sun’s USB keyboard.
+    Find,
+    /// Found on Sun’s USB keyboard.
+    Open,
+    /// Found on Sun’s USB keyboard.
+    Paste,
+    /// Found on Sun’s USB keyboard.
+    Props,
+    /// Found on Sun’s USB keyboard.
+    Select,
+    /// Found on Sun’s USB keyboard.
+    Undo,
+    /// Use for dedicated <kbd>ひらがな</kbd> key found on some Japanese word processing keyboards.
+    Hiragana,
+    /// Use for dedicated <kbd>カタカナ</kbd> key found on some Japanese word processing keyboards.
+    Katakana,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F1,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F2,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F3,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F4,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F5,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F6,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F7,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F8,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F9,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F10,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F11,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F12,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F13,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F14,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F15,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F16,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F17,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F18,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F19,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F20,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F21,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F22,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F23,
+    /// General-purpose function key.
+    /// Usually found at the top of the keyboard.
+    F24,
+    /// General-purpose function key.
+    F25,
+    /// General-purpose function key.
+    F26,
+    /// General-purpose function key.
+    F27,
+    /// General-purpose function key.
+    F28,
+    /// General-purpose function key.
+    F29,
+    /// General-purpose function key.
+    F30,
+    /// General-purpose function key.
+    F31,
+    /// General-purpose function key.
+    F32,
+    /// General-purpose function key.
+    F33,
+    /// General-purpose function key.
+    F34,
+    /// General-purpose function key.
+    F35,
 }

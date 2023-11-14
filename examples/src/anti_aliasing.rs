@@ -55,10 +55,10 @@ impl AntiAliasingController {
     ) {
         let keyboard = keyboard.get();
         let anti_aliasing = anti_aliasing.get_mut();
-        if keyboard[Key::Up].is_just_released() {
+        if keyboard[Key::ArrowUp].is_just_released() {
             Self::switch_to_next_mode(anti_aliasing);
         }
-        if keyboard[Key::Down].is_just_released() {
+        if keyboard[Key::ArrowDown].is_just_released() {
             Self::switch_to_previous_mode(anti_aliasing);
         }
         information.get_mut().content = format!(

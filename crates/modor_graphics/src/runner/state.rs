@@ -86,12 +86,14 @@ impl RunnerState {
                     self.app
                         .update_mouse(|m| events::update_mouse_position(m, position));
                 }
+                // coverage: off (cannot be tested)
                 WindowEvent::KeyboardInput { event, .. } => {
                     self.app
                         .update_keyboard(|k| events::update_keyboard_key(k, &event));
                     self.app
                         .update_keyboard(|k| events::update_entered_text(k, &event));
                 }
+                // coverage: on
                 WindowEvent::Touch(touch) => match touch.phase {
                     TouchPhase::Started => {
                         self.app.update_fingers(|f| events::press_finger(f, touch));

@@ -1,14 +1,13 @@
 use modor::{App, SingleRef, With};
 use modor_graphics::testing;
 use modor_graphics::testing::{TestRunnerContext, UpdateState};
-use modor_input::{Fingers, Key, Keyboard, Mouse, MouseButton};
+use modor_input::{Fingers, Mouse, MouseButton};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::DeltaTime;
 use winit::dpi::PhysicalPosition;
 use winit::event::{
-    DeviceEvent, DeviceId, ElementState, Event, KeyboardInput, ModifiersState, MouseScrollDelta,
-    Touch, TouchPhase, VirtualKeyCode, WindowEvent,
+    DeviceEvent, DeviceId, ElementState, Event, MouseScrollDelta, Touch, TouchPhase, WindowEvent,
 };
 
 #[allow(unsafe_code)] // safe because never passed to a winit function
@@ -20,9 +19,6 @@ pub fn run_window_tests(context: &mut TestRunnerContext) {
     move_mouse_wheel_in_pixels(context);
     move_mouse(context);
     detect_mouse_motion(context);
-    press_keyboard_key(context);
-    press_unknown_keyboard_key(context);
-    enter_character(context);
     touch_screen(context);
     suspend_app(context);
 }
@@ -124,50 +120,6 @@ fn detect_mouse_motion(context: &mut TestRunnerContext) {
         });
 }
 
-fn press_keyboard_key(context: &mut TestRunnerContext) {
-    App::new().with_entity(modor_input::module()).run(|a| {
-        testing::test_runner(a, context, 3, |s| {
-            let is_pressed = s.update_id == 0;
-            s.next_events.push(space_key_event(&s, is_pressed));
-            s.app.assert::<With<Keyboard>>(1, |e| {
-                e.has(|k: &Keyboard| {
-                    assert_eq!(k[Key::Space].is_pressed(), s.update_id == 1);
-                })
-            })
-        });
-    });
-}
-
-fn press_unknown_keyboard_key(context: &mut TestRunnerContext) {
-    App::new().with_entity(modor_input::module()).run(|a| {
-        testing::test_runner(a, context, 3, |s| {
-            s.next_events.push(unknown_key_event(&s));
-            s.app.assert::<With<Keyboard>>(1, |e| {
-                e.has(|k: &Keyboard| assert_eq!(k.pressed_iter().count(), 0))
-            })
-        });
-    });
-}
-
-fn enter_character(context: &mut TestRunnerContext) {
-    App::new()
-        .with_entity(modor_input::module())
-        .with_entity(KeyboardTest::new(1, |k| assert_eq!(k.text, "AB")))
-        .run(|a| {
-            testing::test_runner(a, context, 2, |s| {
-                if s.update_id == 0 {
-                    s.next_events.push(received_character_event(&s, 'A'));
-                    s.next_events.push(received_character_event(&s, 'B'));
-                    s.app
-                } else {
-                    s.app.assert::<With<Keyboard>>(1, |e| {
-                        e.has(|k: &Keyboard| assert_eq!(k.text, ""))
-                    })
-                }
-            });
-        });
-}
-
 fn touch_screen(context: &mut TestRunnerContext) {
     App::new()
         .with_entity(modor_input::module())
@@ -240,8 +192,7 @@ fn suspend_app(context: &mut TestRunnerContext) {
     });
 }
 
-#[allow(deprecated)]
-fn left_mouse_button_event(state: &UpdateState<'_>, is_pressed: bool) -> Event<'static, ()> {
+fn left_mouse_button_event(state: &UpdateState<'_>, is_pressed: bool) -> Event<()> {
     Event::WindowEvent {
         window_id: state.window.id(),
         event: WindowEvent::MouseInput {
@@ -252,88 +203,35 @@ fn left_mouse_button_event(state: &UpdateState<'_>, is_pressed: bool) -> Event<'
                 ElementState::Released
             },
             button: winit::event::MouseButton::Left,
-            modifiers: ModifiersState::empty(),
         },
     }
 }
 
-#[allow(deprecated)]
-fn mouse_wheel_event(state: &UpdateState<'_>, delta: MouseScrollDelta) -> Event<'static, ()> {
+fn mouse_wheel_event(state: &UpdateState<'_>, delta: MouseScrollDelta) -> Event<()> {
     Event::WindowEvent {
         window_id: state.window.id(),
         event: WindowEvent::MouseWheel {
             device_id: DEVICE_ID,
             delta,
             phase: TouchPhase::Started,
-            modifiers: ModifiersState::empty(),
         },
     }
 }
 
-#[allow(deprecated)]
-fn cursor_moved_event(
-    state: &UpdateState<'_>,
-    position: PhysicalPosition<f64>,
-) -> Event<'static, ()> {
+fn cursor_moved_event(state: &UpdateState<'_>, position: PhysicalPosition<f64>) -> Event<()> {
     Event::WindowEvent {
         window_id: state.window.id(),
         event: WindowEvent::CursorMoved {
             device_id: DEVICE_ID,
             position,
-            modifiers: ModifiersState::empty(),
         },
     }
 }
 
-fn mouse_motion_event(delta: (f64, f64)) -> Event<'static, ()> {
+fn mouse_motion_event(delta: (f64, f64)) -> Event<()> {
     Event::DeviceEvent {
         device_id: DEVICE_ID,
         event: DeviceEvent::MouseMotion { delta },
-    }
-}
-
-#[allow(deprecated)]
-fn space_key_event(state: &UpdateState<'_>, is_pressed: bool) -> Event<'static, ()> {
-    Event::WindowEvent {
-        window_id: state.window.id(),
-        event: WindowEvent::KeyboardInput {
-            device_id: DEVICE_ID,
-            input: KeyboardInput {
-                scancode: 0,
-                state: if is_pressed {
-                    ElementState::Pressed
-                } else {
-                    ElementState::Released
-                },
-                virtual_keycode: Some(VirtualKeyCode::Space),
-                modifiers: ModifiersState::empty(),
-            },
-            is_synthetic: false,
-        },
-    }
-}
-
-#[allow(deprecated)]
-fn unknown_key_event(state: &UpdateState<'_>) -> Event<'static, ()> {
-    Event::WindowEvent {
-        window_id: state.window.id(),
-        event: WindowEvent::KeyboardInput {
-            device_id: DEVICE_ID,
-            input: KeyboardInput {
-                scancode: 0,
-                state: ElementState::Pressed,
-                virtual_keycode: None,
-                modifiers: ModifiersState::empty(),
-            },
-            is_synthetic: false,
-        },
-    }
-}
-
-fn received_character_event(state: &UpdateState<'_>, character: char) -> Event<'static, ()> {
-    Event::WindowEvent {
-        window_id: state.window.id(),
-        event: WindowEvent::ReceivedCharacter(character),
     }
 }
 
@@ -342,7 +240,7 @@ fn touch_event(
     id: u64,
     position: PhysicalPosition<f64>,
     phase: TouchPhase,
-) -> Event<'static, ()> {
+) -> Event<()> {
     Event::WindowEvent {
         window_id: state.window.id(),
         event: WindowEvent::Touch(Touch {
@@ -376,32 +274,6 @@ impl MouseTest {
     fn update(&mut self, mouse: SingleRef<'_, '_, Mouse>) {
         if self.current_update_id == self.test_update_id {
             (self.test)(mouse.get());
-        }
-        self.current_update_id += 1;
-    }
-}
-
-#[derive(Component)]
-struct KeyboardTest {
-    current_update_id: usize,
-    test_update_id: usize,
-    test: fn(&Keyboard),
-}
-
-#[systems]
-impl KeyboardTest {
-    fn new(test_update_id: usize, test: fn(&Keyboard)) -> Self {
-        Self {
-            current_update_id: 0,
-            test_update_id,
-            test,
-        }
-    }
-
-    #[run]
-    fn update(&mut self, keyboard: SingleRef<'_, '_, Keyboard>) {
-        if self.current_update_id == self.test_update_id {
-            (self.test)(keyboard.get());
         }
         self.current_update_id += 1;
     }
