@@ -1,16 +1,4 @@
-use log::Level;
 use scoped_threadpool::Scope;
-
-pub(crate) fn check_catch_unwind_availability() {
-    // available
-}
-
-pub(crate) fn init_logging(level: Level) {
-    pretty_env_logger::formatted_builder()
-        .filter_level(log::LevelFilter::Trace) // allow all levels at compile time
-        .init();
-    log::set_max_level(level.to_level_filter());
-}
 
 /// A trait implemented for any type implementing [`Sync`], or implemented for any type on Web
 /// platform.

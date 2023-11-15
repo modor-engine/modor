@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::ItemFn;
 
+// coverage: off (associated derive macro cannot be tested)
+
 pub(crate) struct MainEndpoint<'a> {
     function: &'a ItemFn,
 }
@@ -22,6 +24,11 @@ impl<'a> MainEndpoint<'a> {
                 #function
                 #ident();
             }
+
+            // Unused main method, defined only to avoid error with Clippy
+            #[cfg(target_os = "android")]
+            #[allow(dead_code)]
+            fn main() {}
 
             #[cfg(not(target_os = "android"))]
             fn main() {

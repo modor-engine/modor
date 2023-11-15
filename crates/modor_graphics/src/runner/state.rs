@@ -65,9 +65,7 @@ impl RunnerState {
             }
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::RedrawRequested => self.update(),
-                WindowEvent::CloseRequested => {
-                    self.app.close_window(event_loop);
-                }
+                WindowEvent::CloseRequested => self.app.close_window(event_loop),
                 WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
                     self.app.update_window_size(platform::surface_size(
                         &self.window,

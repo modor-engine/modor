@@ -161,10 +161,14 @@ fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
     window.close_behavior = WindowCloseBehavior::Exit;
     App::new().with_entity(window).run(|a| {
         testing::test_runner(a, context, 10, |s| {
-            s.next_events.push(Event::WindowEvent {
-                window_id: s.window.id(),
-                event: WindowEvent::CloseRequested,
-            });
+            if s.update_id == 0 {
+                s.next_events.push(Event::WindowEvent {
+                    window_id: s.window.id(),
+                    event: WindowEvent::CloseRequested,
+                });
+            } else {
+                *s.is_exit_requested = true;
+            }
             update_count += 1;
             s.app
         });

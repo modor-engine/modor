@@ -19,6 +19,7 @@ mod system_params;
 mod temporary_components;
 mod tests;
 
+// coverage: off (cannot be tested)
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
 #[proc_macro_error::proc_macro_error]
@@ -26,6 +27,7 @@ pub fn modor_main(_args: TokenStream, item: TokenStream) -> TokenStream {
     let function = parse_macro_input!(item as ItemFn);
     MainEndpoint::new(&function).main_function().into()
 }
+// coverage: on
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]

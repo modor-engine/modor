@@ -567,3 +567,5 @@ pub use modor_derive::QuerySystemParam;
 /// struct MyEvent; // once created, only available during one app update
 /// ```
 pub use modor_derive::TemporaryComponent;
+
+// TODO: configure logger on Android

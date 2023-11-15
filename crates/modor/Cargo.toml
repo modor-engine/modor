@@ -29,6 +29,7 @@ console_log.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity.workspace = true
+android_logger.workspace = true
 
 [dev-dependencies]
 approx.workspace = true
