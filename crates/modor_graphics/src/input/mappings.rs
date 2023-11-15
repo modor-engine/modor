@@ -15,8 +15,6 @@ pub(crate) fn to_mouse_button(button: event::MouseButton) -> MouseButton {
     }
 }
 
-// TODO: rollback wgpu to 0.17
-
 #[allow(clippy::too_many_lines)]
 pub(crate) fn to_keyboard_key(code: KeyCode) -> Option<Key> {
     match code {

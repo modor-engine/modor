@@ -27,18 +27,15 @@ pub(crate) fn update_canvas_cursor(handle: &WindowHandle, is_cursor_show: bool) 
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub(crate) fn surface_size(handle: &WindowHandle, size: PhysicalSize<u32>) -> PhysicalSize<u32> {
-    if let Some(canvas) = handle.canvas() {
-        // If the size is not divided by the scale factor, then in case zoom is greater than 100%,
-        // the canvas is recursively resized until reaching the maximum allowed size.
-        let scale_factor = handle.scale_factor();
-        PhysicalSize::new(
-            (f64::from(size.width) / scale_factor).round() as u32,
-            (f64::from(size.height) / scale_factor).round() as u32,
-        )
-    } else {
-        size
-    }
+    // If the size is not divided by the scale factor, then in case zoom is greater than 100%,
+    // the canvas is recursively resized until reaching the maximum allowed size.
+    let scale_factor = handle.scale_factor();
+    PhysicalSize::new(
+        (f64::from(size.width) / scale_factor).round() as u32,
+        (f64::from(size.height) / scale_factor).round() as u32,
+    )
 }
 
 pub(crate) fn gpu_limits() -> Limits {

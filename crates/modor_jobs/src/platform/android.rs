@@ -15,7 +15,7 @@ pub(crate) async fn load_asset(path: String) -> Result<Vec<u8>, AssetLoadingErro
     let path = CString::new(path.into_bytes()).map_err(|_| AssetLoadingError::InvalidAssetPath)?;
     modor::ANDROID_APP
         .get()
-        .ok_or_else(|| AssetLoadingError::InvalidAppInit)?
+        .ok_or(AssetLoadingError::InvalidAppInit)?
         .asset_manager()
         .open(&path)
         .ok_or_else(|| AssetLoadingError::IoError(ErrorKind::NotFound.to_string()))?

@@ -5,8 +5,6 @@ use modor_graphics::{
     Model2DMaterial, RenderTarget, Size, Window, WindowCloseBehavior,
 };
 use modor_resources::ResKey;
-use std::thread;
-use std::time::Duration;
 use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 
@@ -74,7 +72,6 @@ fn create_target_window(context: &mut TestRunnerContext) {
                     0 => Size::new(800, 600),
                     1 => {
                         let _ = s.window.request_inner_size(PhysicalSize::new(400, 300));
-                        thread::sleep(Duration::from_millis(100));
                         Size::new(800, 600)
                     }
                     _ => Size::new(400, 300),
@@ -144,8 +141,11 @@ fn resize_window(context: &mut TestRunnerContext) {
         testing::test_runner(a, context, 10, |s| {
             if s.update_id == 0 {
                 let _ = s.window.request_inner_size(PhysicalSize::new(400, 300));
-                thread::sleep(Duration::from_millis(100));
                 s.app
+            } else if s.update_id == 1 {
+                s.app.assert::<With<Window>>(1, |e| {
+                    e.has(|w: &Window| assert_eq!(w.size(), Size::new(800, 600)))
+                })
             } else {
                 s.app.assert::<With<Window>>(1, |e| {
                     e.has(|w: &Window| assert_eq!(w.size(), Size::new(400, 300)))
@@ -160,7 +160,7 @@ fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
     let mut window = Window::default();
     window.close_behavior = WindowCloseBehavior::Exit;
     App::new().with_entity(window).run(|a| {
-        testing::test_runner(a, context, 3, |s| {
+        testing::test_runner(a, context, 10, |s| {
             s.next_events.push(Event::WindowEvent {
                 window_id: s.window.id(),
                 event: WindowEvent::CloseRequested,
@@ -169,7 +169,7 @@ fn close_window_with_exit_behavior(context: &mut TestRunnerContext) {
             s.app
         });
     });
-    assert_eq!(update_count, 1);
+    assert_eq!(update_count, 2);
 }
 
 fn close_window_with_none_behavior(context: &mut TestRunnerContext) {

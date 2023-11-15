@@ -15,7 +15,7 @@ use std::ops::{Index, IndexMut};
 /// #
 /// fn access_keyboard(keyboard: SingleRef<'_, '_, Keyboard>) {
 ///     let keyboard = keyboard.get();
-///     println!("Enter key pressed: {}", keyboard[Key::Return].is_pressed());
+///     println!("Enter key pressed: {}", keyboard[Key::Enter].is_pressed());
 ///     println!("Entered text: {}", keyboard.text);
 /// }
 /// ```
