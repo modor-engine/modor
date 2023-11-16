@@ -4,6 +4,8 @@ use modor::App;
 use winit::event::{Event, WindowEvent};
 use winit::window::Window as WindowHandle;
 
+// coverage: off (runner used only for testing purpose)
+
 /// Runner mainly used to test with a window.
 ///
 /// `f` is run after each `app` update.
