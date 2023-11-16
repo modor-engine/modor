@@ -109,10 +109,10 @@ fn delete_window(context: &mut TestRunnerContext) {
         .with_entity(
             EntityBuilder::new()
                 .component(Window::default())
-                .component(AutoRemove(1)),
+                .component(AutoRemove(2)),
         )
         .run(|a| {
-            testing::test_runner(a, context, 3, |s| {
+            testing::test_runner(a, context, 4, |s| {
                 assert_eq!(s.window.inner_size(), PhysicalSize::new(800, 600));
                 #[cfg(target_os = "windows")] // Window::is_visible not well supported on other platforms
                 assert_eq!(s.window.is_visible().unwrap(), s.update_id == 0);
