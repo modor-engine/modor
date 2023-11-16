@@ -106,6 +106,14 @@ pub enum MouseButton {
     Right,
     /// Middle/wheel button.
     Middle,
+    /// Back button.
+    ///
+    /// Note that this button may not work with all hardware.
+    Back,
+    /// Forward button.
+    ///
+    /// Note that this button may not work with all hardware.
+    Forward,
     /// One of the additional buttons of the mouse.
     Other(u16),
 }

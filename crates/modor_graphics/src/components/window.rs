@@ -1,7 +1,7 @@
 use crate::{platform, Size};
 use std::sync::Arc;
 use wgpu::Surface;
-use winit::event_loop::ControlFlow;
+use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window as WindowHandle;
 
 /// The main window where rendering is performed.
@@ -131,9 +131,9 @@ impl Window {
         });
     }
 
-    pub(crate) fn close_window(&mut self, control_flow: &mut ControlFlow) {
+    pub(crate) fn close_window(&mut self, event_loop: &EventLoopWindowTarget<()>) {
         match self.close_behavior {
-            WindowCloseBehavior::Exit => *control_flow = ControlFlow::Exit,
+            WindowCloseBehavior::Exit => event_loop.exit(),
             WindowCloseBehavior::None => self.is_closing_requested = true,
         }
     }

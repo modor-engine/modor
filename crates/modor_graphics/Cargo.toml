@@ -22,7 +22,6 @@ instant.workspace = true
 log.workspace = true
 spin_sleep.workspace = true
 typed-index-collections.workspace = true
-winit.workspace = true
 modor.workspace = true
 modor_input.workspace = true
 modor_internal.workspace = true
@@ -31,10 +30,18 @@ modor_math.workspace = true
 modor_physics.workspace = true
 modor_resources.workspace = true
 
+[target.'cfg(not(target_os = "android"))'.dependencies]
+winit = { workspace = true, features = ["rwh_05"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+winit = { workspace = true, features = ["android-native-activity", "rwh_05"] }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+instant.workspace = true
 wgpu.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+instant = { workspace = true, features = ["wasm-bindgen"] }
 web-sys.workspace = true
 wgpu = { workspace = true, features = ["webgl"] }
 

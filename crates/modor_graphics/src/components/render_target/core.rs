@@ -3,7 +3,7 @@ use crate::data::size::NonZeroSize;
 use crate::{AntiAliasing, Color, GpuContext};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, LoadOp, Operations, RenderPass,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, StoreOp,
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
     TextureViewDescriptor,
 };
@@ -99,17 +99,19 @@ impl TargetCore {
                     resolve_target: (self.sample_count > 1).then_some(view),
                     ops: Operations {
                         load: LoadOp::Clear(background_color.into()),
-                        store: true,
+                        store: StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
                     view: &self.depth_buffer_view,
                     depth_ops: Some(Operations {
                         load: LoadOp::Clear(1.0),
-                        store: true,
+                        store: StoreOp::Store,
                     }),
                     stencil_ops: None,
                 }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
             })
     }
 

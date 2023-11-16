@@ -25,9 +25,6 @@ reqwest.workspace = true
 wasm-bindgen-futures.workspace = true
 web-sys.workspace = true
 
-[target.'cfg(target_os = "android")'.dependencies]
-ndk-glue.workspace = true
-
 [dev-dependencies]
 modor.workspace = true
 modor_internal.workspace = true

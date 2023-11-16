@@ -35,6 +35,7 @@
 -A clippy::multiple_crate_versions # cannot be easily fixed
 -A clippy::must_use_candidate # many false positives
 -A clippy::needless_pass_by_value # not accurate
+-A clippy::option_if_let_else # many false positives
 -A clippy::redundant_pub_crate # not working well for now
 -A clippy::return_self_not_must_use # many false positives
 -A clippy::significant_drop_tightening # many false positives

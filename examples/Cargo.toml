@@ -23,8 +23,11 @@ modor_physics.workspace = true
 modor_resources.workspace = true
 modor_text.workspace = true
 
-[target.'cfg(target_os = "android")'.dependencies]
-ndk-glue.workspace = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+instant.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+instant = { workspace = true, features = ["wasm-bindgen"] }
 
 [package.metadata.android]
 build_targets = ["armv7-linux-androideabi"]

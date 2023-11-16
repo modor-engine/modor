@@ -27,18 +27,23 @@ pretty_env_logger.workspace = true
 console_error_panic_hook.workspace = true
 console_log.workspace = true
 
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity.workspace = true
+android_logger.workspace = true
+
 [dev-dependencies]
 approx.workspace = true
 doc-comment.workspace = true
-instant.workspace = true
 spin_sleep.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 compiletest_rs.workspace = true
 criterion = { workspace = true, features = ["rayon"] }
+instant.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 criterion.workspace = true
+instant = { workspace = true, features = ["wasm-bindgen"] }
 wasm-bindgen-test.workspace = true
 
 [[bench]]

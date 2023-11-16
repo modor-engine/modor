@@ -1,6 +1,6 @@
 use winit::event::Event;
-use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
-use winit::platform::run_return::EventLoopExtRunReturn;
+use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopWindowTarget};
+use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 /// The context of a [test runner](crate::test_runner()).
@@ -19,9 +19,10 @@ pub struct TestRunnerContext {
 impl Default for TestRunnerContext {
     fn default() -> Self {
         Self {
-            event_loop: winit::event_loop::EventLoopBuilder::new()
+            event_loop: EventLoopBuilder::new()
                 .with_any_thread(true)
-                .build(),
+                .build()
+                .expect("test runner initialization has failed"),
         }
     }
 }
@@ -34,8 +35,10 @@ impl TestRunnerContext {
 
     pub(crate) fn run(
         event_loop: &mut EventLoop<()>,
-        f: impl FnMut(Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+        f: impl FnMut(Event<()>, &EventLoopWindowTarget<()>),
     ) {
-        event_loop.run_return(f);
+        event_loop
+            .run_on_demand(f)
+            .expect("test runner update has failed");
     }
 }

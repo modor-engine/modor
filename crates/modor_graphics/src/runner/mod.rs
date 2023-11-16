@@ -1,6 +1,6 @@
+use crate::platform;
 use modor::App;
 use state::RunnerState;
-use winit::event_loop::EventLoop;
 
 // coverage: off (runner cannot be tested)
 
@@ -23,11 +23,13 @@ use winit::event_loop::EventLoop;
 ///
 /// See [`Window`](crate::Window).
 pub fn runner(app: App) {
-    let event_loop = EventLoop::new();
+    let event_loop = platform::event_loop();
     let mut state = RunnerState::new(app, &event_loop);
-    event_loop.run(move |event, _event_loop, control_flow| {
-        state.treat_event(event, control_flow);
-    });
+    event_loop
+        .run(move |event, event_loop| {
+            state.treat_event(event, event_loop);
+        })
+        .expect("graphics runner has failed");
 }
 
 // coverage: on

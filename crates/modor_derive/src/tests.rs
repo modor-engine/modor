@@ -1,5 +1,3 @@
-#![allow(clippy::option_if_let_else)]
-
 use darling::ast::NestedMeta;
 use darling::util::{PathList, SpannedValue};
 use darling::FromMeta;

@@ -13,11 +13,13 @@ pub(crate) fn spawn_future(future: impl JobFuture<()>) -> JobFutureJoinHandle<()
 #[allow(clippy::unused_async)]
 pub(crate) async fn load_asset(path: String) -> Result<Vec<u8>, AssetLoadingError> {
     let path = CString::new(path.into_bytes()).map_err(|_| AssetLoadingError::InvalidAssetPath)?;
-    ndk_glue::native_activity()
+    modor::ANDROID_APP
+        .get()
+        .ok_or(AssetLoadingError::InvalidAppInit)?
         .asset_manager()
         .open(&path)
         .ok_or_else(|| AssetLoadingError::IoError(ErrorKind::NotFound.to_string()))?
-        .get_buffer()
+        .buffer()
         .map_err(|e| AssetLoadingError::IoError(e.to_string()))
         .map(<[u8]>::to_vec)
 }

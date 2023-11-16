@@ -79,6 +79,61 @@ pub use systems::building::*;
 pub use systems::checks::*;
 pub use systems::traits::*;
 
+/// Main entrypoint of a Modor application.
+///
+/// Compared to a classic `main` function, this method correctly configures the engine to be used on
+/// platforms where the `main` function is not supported (e.g. Android).
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[modor_main]
+/// fn my_main() {
+///     App::new().update();
+/// }
+/// ```
+pub use modor_derive::modor_main;
+
+/// Defines a test method that is conditionally run depending on the platform.
+///
+/// This method adds the `#[test]` attribute to the method if the current platform is not in the
+/// list of disabled platforms.
+/// The list of disabled platforms must be specified in a `disabled(...)` argument.
+///
+/// The allowed platforms are:
+/// - `android`
+/// - `linux`
+/// - `macos`
+/// - `wasm`
+/// - `windows`
+///
+/// It is also possible to parametrize the test using `cases(...)` argument, that accepts key-value
+/// pairs, where key is a test suffix and value is a string containing the arguments to pass to
+/// the test method.
+///
+/// # Platform-specific
+///
+/// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
+/// `#[test]`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[modor_test]
+/// fn run_on_all_platforms() { }
+///
+/// #[modor_test(disabled(linux, wasm))]
+/// fn run_on_all_platforms_except_linux_and_wasm() { }
+///
+/// #[modor_test(cases(zero = "0, false", one = "1, false", failure = "100, true"))]
+/// fn run_parametrized(number: u32, failure: bool) { }
+/// ```
+pub use modor_derive::modor_test;
+
 /// Defines an action type.
 ///
 /// This macro implements the trait [`Action`].
@@ -412,44 +467,6 @@ pub use modor_derive::NoSystem;
 /// }
 /// ```
 pub use modor_derive::systems;
-
-/// Defines a test method that is conditionally run depending on the platform.
-///
-/// This method adds the `#[test]` attribute to the method if the current platform is not in the
-/// list of disabled platforms.
-/// The list of disabled platforms must be specified in a `disabled(...)` argument.
-///
-/// The allowed platforms are:
-/// - `android`
-/// - `linux`
-/// - `macos`
-/// - `wasm`
-/// - `windows`
-///
-/// It is also possible to parametrize the test using `cases(...)` argument, that accepts key-value
-/// pairs, where key is a test suffix and value is a string containing the arguments to pass to
-/// the test method.
-///
-/// # Platform-specific
-///
-/// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
-/// `#[test]`.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[modor_test]
-/// fn run_on_all_platforms() { }
-///
-/// #[modor_test(disabled(linux, wasm))]
-/// fn run_on_all_platforms_except_linux_and_wasm() { }
-///
-/// #[modor_test(cases(zero = "0, false", one = "1, false", failure = "100, true"))]
-/// fn run_parametrized(number: u32, failure: bool) { }
-/// ```
-pub use modor_derive::modor_test;
 
 /// Defines a custom system parameter.
 ///

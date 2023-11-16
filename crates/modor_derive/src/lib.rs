@@ -2,6 +2,7 @@
 
 use crate::actions::ActionStruct;
 use crate::components::ComponentType;
+use crate::main_endpoint::MainEndpoint;
 use crate::system_impl::SystemImpl;
 use crate::system_params::SystemParamStruct;
 use crate::temporary_components::TemporaryComponentStruct;
@@ -12,10 +13,21 @@ use syn::{parse_macro_input, DeriveInput, ItemFn, ItemImpl};
 mod actions;
 mod common;
 mod components;
+mod main_endpoint;
 mod system_impl;
 mod system_params;
 mod temporary_components;
 mod tests;
+
+// coverage: off (cannot be tested)
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_attribute]
+#[proc_macro_error::proc_macro_error]
+pub fn modor_main(_args: TokenStream, item: TokenStream) -> TokenStream {
+    let function = parse_macro_input!(item as ItemFn);
+    MainEndpoint::new(&function).main_function().into()
+}
+// coverage: on
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]

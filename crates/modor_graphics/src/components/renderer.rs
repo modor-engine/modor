@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Instance, PowerPreference,
-    Queue, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, TextureFormat,
-    TextureSampleType, TextureViewDimension,
+    BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Gles3MinorVersion,
+    Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, SamplerBindingType,
+    ShaderStages, Surface, TextureFormat, TextureSampleType, TextureViewDimension,
 };
 
 static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
@@ -111,7 +111,9 @@ impl GpuContext {
     pub(crate) fn instance() -> Instance {
         Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all),
+            flags: InstanceFlags::default(),
             dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+            gles_minor_version: Gles3MinorVersion::Automatic,
         })
     }
 
