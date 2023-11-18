@@ -93,7 +93,7 @@ struct Tracked(bool);
 #[systems]
 impl Tracked {
     #[run]
-    fn update(&mut self, _: (), _: Filter<With<Enabled>>) {
+    fn update(&mut self, (): (), _: Filter<With<Enabled>>) {
         self.0 = true;
     }
 }

@@ -25,87 +25,10 @@ jobs:
         id: retrieve-version
         run: bash .github/workflows/scripts/get_version.sh
 
-  test-ubuntu:
-    runs-on: ubuntu-22.04
-    needs: check-version
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Retrieve minimal supported rust version
-        id: rust_version
-        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-      - name: Install graphics dependencies
-        run: bash .github/workflows/scripts/install_graphic_dependencies_linux.sh
-      - name: Build
-        run: cargo build --all-targets
-      - name: Test
-        run: cargo test
-
-  test-windows:
-    runs-on: windows-2022
-    needs: check-version
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Retrieve minimal supported rust version
-        id: rust_version
-        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-      - name: Build
-        run: cargo build --all-targets
-      - name: Test
-        run: cargo test
-
-  test-macos:
-    runs-on: macos-11
-    needs: check-version
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Retrieve minimal supported rust version
-        id: rust_version
-        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-      - name: Build
-        run: cargo build --all-targets
-      # Tests are disabled because there is no available software renderer
-
-  test-web:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Retrieve minimal supported rust version
-        id: rust_version
-        run: bash .github/workflows/scripts/find_minimal_rust_version.sh
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-          target: wasm32-unknown-unknown
-          components: clippy
-      - name: Install wasm-pack
-        run: cargo install wasm-pack --debug
-      - name: Test
-        run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
-
   publish:
     environment: Deployment
     runs-on: ubuntu-22.04
-    needs:
-      - test-ubuntu
-      - test-windows
-      - test-macos
+    needs: check-version
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -124,8 +47,7 @@ jobs:
   create-release:
     environment: Deployment
     runs-on: ubuntu-22.04
-    needs:
-      - publish
+    needs: publish
     steps:
       - name: Install dependencies
         run: sudo apt-get install node-semver -y

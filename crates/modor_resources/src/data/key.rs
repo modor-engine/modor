@@ -1,3 +1,5 @@
+#![allow(clippy::non_canonical_clone_impl)]
+
 use crate::Resource;
 use derivative::Derivative;
 use std::fmt::Debug;

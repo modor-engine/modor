@@ -9,6 +9,7 @@ on:
       - main
   schedule:
     - cron: 0 2 * * SAT
+  workflow_dispatch: { }
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,12 +64,8 @@ jobs:
       - name: Install Linux general dependencies
         run: sudo apt-get update && sudo apt-get install libudev-dev
         if: matrix.target == 'x86_64-unknown-linux-gnu'
-      - name: List clippy lints
-        run: echo "LINTS=$(cat .lints | cut -f1 -d"#" | tr '\r\n' ' ')" >> $GITHUB_OUTPUT
-        id: list_lints
-        shell: bash
       - name: Run clippy
-        run: cargo clippy --all-targets --target ${{ matrix.target }} -- -D warnings ${{ steps.list_lints.outputs.LINTS }}
+        run: cargo clippy --all-targets --target ${{ matrix.target }} -- -D warnings
 
   test:
     strategy:

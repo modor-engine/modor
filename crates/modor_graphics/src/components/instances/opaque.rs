@@ -193,7 +193,7 @@ impl OpaqueInstanceRegistry {
     fn register_entity_in_group(&mut self, entity_id: usize, group_key: GroupKey) {
         self.entity_states
             .entry(entity_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(GroupKeyState {
                 group_key,
                 is_updated: true,

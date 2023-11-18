@@ -167,10 +167,7 @@ impl InstanceDetails {
 
     // returns existing position if the instance already exists, else returns None
     fn add(&mut self, entity_id: usize, group_key: GroupKey) -> Option<usize> {
-        let entity_positions = self
-            .entity_positions
-            .entry(entity_id)
-            .or_insert_with(FxHashMap::default);
+        let entity_positions = self.entity_positions.entry(entity_id).or_default();
         if let Some(&position) = entity_positions.get(&group_key) {
             self.instances[position].is_updated = true;
             Some(position)

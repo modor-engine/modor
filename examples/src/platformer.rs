@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, Query, SingleRef, SingletonComponent};

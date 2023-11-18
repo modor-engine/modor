@@ -15,7 +15,10 @@ pub(crate) fn add_suffix(ident: &Ident, suffix: &str) -> Ident {
 
 pub(crate) fn from_type(type_: &Type) -> Ident {
     let Type::Path(TypePath { path, .. }) = type_ else {
-        abort!(type_, "only path types are supported (for example, `module::Type<GenericType>`)");
+        abort!(
+            type_,
+            "only path types are supported (for example, `module::Type<GenericType>`)"
+        );
     };
     path.segments
         .last()

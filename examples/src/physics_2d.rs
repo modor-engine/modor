@@ -143,11 +143,11 @@ impl Cannon {
         }
     }
 
-    fn position(transform: &mut Transform2D) -> Vec2 {
+    fn position(transform: &Transform2D) -> Vec2 {
         CANNON_JOIN_POSITION + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(transform.rotation)
     }
 
-    fn object_initial_position(transform: &mut Transform2D) -> Vec2 {
+    fn object_initial_position(transform: &Transform2D) -> Vec2 {
         CANNON_JOIN_POSITION
             + (Vec2::Y * (CANNON_LENGTH + OBJECT_RADIUS / 2.)).with_rotation(transform.rotation)
     }

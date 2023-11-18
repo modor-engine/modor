@@ -16,7 +16,7 @@ pub fn main() {
         .run(modor_graphics::runner);
 }
 
-fn window() -> impl BuiltEntity + Sized {
+fn window() -> impl BuiltEntity {
     window_target().updated(|r: &mut RenderTarget| r.background_color = Color::DARK_GRAY)
 }
 

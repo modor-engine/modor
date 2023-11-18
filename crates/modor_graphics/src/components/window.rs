@@ -118,7 +118,7 @@ impl Window {
     }
 
     // on Windows, Window::set_title freezes the application if not run in main thread
-    pub(crate) fn update(&mut self, handle: &mut WindowHandle, surface: &Arc<Surface>) {
+    pub(crate) fn update(&mut self, handle: &WindowHandle, surface: &Arc<Surface>) {
         if self.surface.is_none() {
             self.surface = Some(surface.clone());
         }

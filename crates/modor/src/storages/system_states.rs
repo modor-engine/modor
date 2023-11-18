@@ -167,25 +167,25 @@ mod lock_state_tests {
     use crate::storages::systems::Access;
 
     #[test]
-    #[should_panic]
+    #[should_panic = "internal error: cannot write read component"]
     fn lock_write_for_read_resource() {
         LockState::Read(0).lock(Access::Write);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic = "internal error: cannot read written component"]
     fn lock_read_for_written_resource() {
         LockState::Written.lock(Access::Read);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic = "internal error: cannot write written component"]
     fn lock_write_for_written_resource() {
         LockState::Written.lock(Access::Write);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic = "internal error: cannot free already freed component"]
     fn unlock_unlocked_resource() {
         LockState::Free.unlock();
     }

@@ -29,6 +29,9 @@ instant.workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 instant = { workspace = true, features = ["wasm-bindgen"] }
 
+[lints]
+workspace = true
+
 [package.metadata.android]
 build_targets = ["armv7-linux-androideabi"]
 assets = "assets"
