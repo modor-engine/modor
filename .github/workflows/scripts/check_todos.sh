@@ -2,7 +2,7 @@
 set -xeuo pipefail
 
 while IFS= read -r -d '' file; do
-    matches=$((cat "$file" | awk 'tolower($0) ~ /todo/ && !/todocheck: off/') || exit 1)
+    matches=$((cat "$file" | awk 'tolower($0) ~ /todo/ && !/no-todocheck/') || exit 1)
     if [ ! -z "$matches" ]; then
         echo "TODO found in $file"
         exit 1

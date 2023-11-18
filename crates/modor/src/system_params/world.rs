@@ -71,8 +71,8 @@ impl<'a> World<'a> {
                 Box::new(move |c| {
                     let entity_idx = entity.build_entity(c, Some(parent_id.into()));
                     trace!(
-                        "child entity created with ID `{}` for entity with ID {parent_id}",
-                        entity_idx.0
+                        "child entity created with ID `{}` for entity with ID {parent_id}", // no-coverage
+                        entity_idx.0 // no-coverage
                     );
                 }),
             );
@@ -124,8 +124,8 @@ impl<'a> World<'a> {
                     };
                     c.add_component(component, type_idx, l, false);
                     trace!(
-                        "component of type `{}` added for entity with ID {entity_id}",
-                        any::type_name::<C>()
+                        "component of type `{}` added for entity with ID {entity_id}", // no-coverage
+                        any::type_name::<C>()                                          // no-coverage
                     );
                 }),
             );
@@ -149,8 +149,8 @@ impl<'a> World<'a> {
                 .delete_component(entity_id.into(), type_idx);
         }
         trace!(
-            "component of type `{}` deleted from entity with ID {entity_id}",
-            any::type_name::<C>()
+            "component of type `{}` deleted from entity with ID {entity_id}", // no-coverage
+            any::type_name::<C>()                                             // no-coverage
         );
     }
 

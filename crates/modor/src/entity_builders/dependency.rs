@@ -28,14 +28,14 @@ where
             .is_some();
         if singleton_exists {
             trace!(
-                "dependency entity for singleton of type `{}` not created as already existing",
-                any::type_name::<F>(),
+                "dependency entity for singleton of type `{}` not created as already existing", // no-coverage
+                any::type_name::<F>(), // no-coverage
             );
         } else {
             (self.builder)().build(core, None);
             trace!(
-                "dependency entity for singleton of type `{}` created",
-                any::type_name::<F>(),
+                "dependency entity for singleton of type `{}` created", // no-coverage
+                any::type_name::<F>(),                                  // no-coverage
             );
         }
     }

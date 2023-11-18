@@ -50,15 +50,15 @@ where
                 TypeId::of::<C::IsSingleton>() == TypeId::of::<True>(),
             );
             trace!(
-                "component `{}` added to entity with ID {}",
-                any::type_name::<C>(),
-                core.archetypes().entity_idxs(location.idx)[location.pos].0
+                "component `{}` added to entity with ID {}", // no-coverage
+                any::type_name::<C>(),                       // no-coverage
+                core.archetypes().entity_idxs(location.idx)[location.pos].0  // no-coverage
             );
         } else {
             trace!(
-                "component `{}` not added to entity with ID {} as condition is false",
-                any::type_name::<C>(),
-                core.archetypes().entity_idxs(location.idx)[location.pos].0
+                "component `{}` not added to entity with ID {} as condition is false", // no-coverage
+                any::type_name::<C>(), // no-coverage
+                core.archetypes().entity_idxs(location.idx)[location.pos].0  // no-coverage
             );
         }
     }
