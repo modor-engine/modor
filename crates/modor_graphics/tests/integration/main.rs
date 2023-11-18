@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate modor;
 
-#[modor_test(disabled(windows, macos, android, wasm))]
+#[modor_test(disabled(macos, android, wasm))]
 pub fn run_window_tests() {
     let mut context = modor_graphics::testing::TestRunnerContext::default();
     window::run_window_tests(&mut context);
