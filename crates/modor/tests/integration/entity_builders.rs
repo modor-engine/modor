@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, Not, Or, With};
 use modor_internal::assert_approx_eq;
 
@@ -29,7 +28,6 @@ fn build_entity_with_components() {
 #[modor_test]
 fn build_entity_with_option_component() {
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(
             EntityBuilder::new()
                 .component(Integer(10))
@@ -50,7 +48,6 @@ fn build_entity_with_option_component() {
 #[modor_test]
 fn build_entity_with_dependency() {
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(Singleton1(40))
         .with_entity(Singleton1(41))
         .with_entity(

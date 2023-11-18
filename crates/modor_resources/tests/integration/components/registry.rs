@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use modor::{App, Custom, With};
 use modor_jobs::AssetLoadingError;
 use modor_resources::{
@@ -26,7 +25,6 @@ fn retrieve_not_loaded_resource() {
 #[modor_test]
 fn retrieve_loading_resource() {
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(ValueRegistry::default())
         .with_entity(Value::new(VALUE1, ResourceState::Loading, 10))
         .with_entity(Value::new(VALUE2, ResourceState::Loaded, 20))
@@ -57,7 +55,6 @@ fn retrieve_error_resource() {
     const ERROR: ResourceLoadingError =
         ResourceLoadingError::AssetLoadingError(AssetLoadingError::InvalidAssetPath);
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(ValueRegistry::default())
         .with_entity(Value::new(VALUE1, ResourceState::Error(&ERROR), 10))
         .with_entity(Value::new(VALUE2, ResourceState::Loaded, 20))

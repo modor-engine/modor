@@ -1,11 +1,8 @@
-use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, Not, With};
 
 #[modor_test(disabled(wasm))]
 fn create_app_with_thread_count_and_log_level() {
-    let app = App::new()
-        .with_thread_count(2)
-        .with_log_level(LevelFilter::Info);
+    let app = App::new().with_thread_count(2);
     assert_eq!(app.thread_count(), 2);
     let app = app.with_thread_count(1);
     assert_eq!(app.thread_count(), 1);
@@ -15,9 +12,7 @@ fn create_app_with_thread_count_and_log_level() {
 
 #[modor_test(disabled(windows, linux, macos, android))]
 fn create_app_with_thread_count_and_log_level_for_wasm() {
-    let app = App::new()
-        .with_thread_count(2)
-        .with_log_level(LevelFilter::Info);
+    let app = App::new().with_thread_count(2);
     assert_eq!(app.thread_count(), 1);
 }
 

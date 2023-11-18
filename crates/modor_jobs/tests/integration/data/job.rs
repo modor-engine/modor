@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use modor::{App, With};
 use modor_jobs::{Job, JobPanickedError};
 use std::path::PathBuf;
@@ -41,7 +40,6 @@ impl FileLoader {
 #[modor_test(disabled(wasm))]
 fn run_successful_job() {
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(FileLoader::new("assets/test.txt"))
         .updated_until_all::<(), _>(Some(100), |l: &FileLoader| {
             thread::sleep(Duration::from_millis(10));
@@ -57,7 +55,6 @@ fn run_successful_job() {
 #[modor_test(disabled(wasm))]
 fn run_failing_job() {
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(FileLoader::new("not/existing/path"))
         .updated_until_all::<(), _>(Some(100), |l: &FileLoader| {
             thread::sleep(Duration::from_millis(10));
