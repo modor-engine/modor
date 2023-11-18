@@ -8,7 +8,7 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
-rust-version = "1.70.0"
+rust-version = "1.74.0"
 
 [workspace.dependencies]
 ab_glyph = "0.2"
@@ -66,3 +66,50 @@ modor_math = { version = "0.1.0", path = "crates/modor_math" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
 modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
 modor_text = { version = "0.1.0", path = "crates/modor_text" }
+
+[workspace.lints.rust]
+anonymous_parameters = "warn"
+elided_lifetimes_in_paths = "warn"
+missing_docs = "warn"
+trivial_numeric_casts = "warn"
+unreachable_pub = "warn"
+unsafe_code = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+unused_tuple_struct_fields = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+dbg_macro = "warn"
+decimal_literal_representation = "warn"
+filetype_is_file = "warn"
+float_cmp_const = "warn"
+get_unwrap = "warn"
+integer_division = "warn"
+lossy_float_literal = "warn"
+mem_forget = "warn"
+multiple_inherent_impl = "warn"
+print_stdout = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+todo = "warn" # no-todocheck
+unimplemented = "warn"
+unneeded_field_pattern = "warn"
+unwrap_used = "warn"
+use_debug = "warn"
+verbose_file_reads = "warn"
+wildcard_enum_match_arm = "warn"
+
+module_name_repetitions = { level = "allow", priority = 1 } # types are generally used without a module prefix
+missing_const_for_fn = { level = "allow", priority = 1 } # const may be removed in the future for some methods, which would be a breaking change
+missing_panics_doc = { level = "allow", priority = 1 } # many false positives due to internal errors that should not occur
+multiple_crate_versions = { level = "allow", priority = 1 } # cannot be easily fixed
+must_use_candidate = { level = "allow", priority = 1 } # many false positives
+needless_pass_by_value = { level = "allow", priority = 1 } # not accurate
+option_if_let_else = { level = "allow", priority = 1 } # many false positives
+redundant_pub_crate = { level = "allow", priority = 1 } # not working well for now
+return_self_not_must_use = { level = "allow", priority = 1 } # many false positives
+significant_drop_tightening = { level = "allow", priority = 1 } # many false positives

@@ -25,9 +25,11 @@ pub struct CoreStorage {
 }
 
 impl CoreStorage {
+    // coverage: off (only used for trace logging)
     pub(crate) fn archetypes(&self) -> &ArchetypeStorage {
         &self.archetypes
     }
+    // coverage: on
 
     pub(crate) fn components(&self) -> &ComponentStorage {
         &self.components

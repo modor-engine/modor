@@ -117,7 +117,7 @@ macro_rules! are_systems_run_in_parallel {
         #[derive(Component)]
         struct ParallelTester;
 
-        #[allow(unused_qualifications)]
+        #[allow(unused_qualifications, clippy::ignored_unit_patterns)]
         #[systems]
         impl ParallelTester {
             #[run]

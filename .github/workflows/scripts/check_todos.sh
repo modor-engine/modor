@@ -1,14 +1,10 @@
 #!/bin/bash
-set -xu
+set -xeuo pipefail
 
 while IFS= read -r -d '' file; do
-    grep -rli TODO "$file"
-    return_code=$?
-    if [ $return_code -eq 0 ]; then
-        echo "TODO found in code"
-        exit 1
-    elif [ $return_code -ne 1 ]; then
-        echo "Error while detecting TODOs in code"
+    matches=$((cat "$file" | awk 'tolower($0) ~ /todo/ && !/no-todocheck/') || exit 1)
+    if [ ! -z "$matches" ]; then
+        echo "TODO found in $file"
         exit 1
     fi
 done < <(find . -type f \( -name '*.rs' -o -name '*.toml' \) -print0)

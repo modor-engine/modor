@@ -12,3 +12,6 @@ rust-version.workspace = true
 cargo-run-wasm.workspace = true
 fs_extra.workspace = true
 pico-args.workspace = true
+
+[lints]
+workspace = true

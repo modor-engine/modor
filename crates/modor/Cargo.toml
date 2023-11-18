@@ -46,6 +46,9 @@ criterion.workspace = true
 instant = { workspace = true, features = ["wasm-bindgen"] }
 wasm-bindgen-test.workspace = true
 
+[lints]
+workspace = true
+
 [[bench]]
 name = "entity_creation"
 harness = false

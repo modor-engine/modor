@@ -150,10 +150,10 @@ impl Camera2D {
                         .and_modify(|u| u.transform = transform)
                         .or_insert_with(|| Self::create_uniform(context, transform));
                     trace!(
-                        "2D camera `{:?}` prepared for target `{:?}` of type `{:?}`",
-                        self.key,
-                        target_key,
-                        target_type
+                        "2D camera `{:?}` prepared for target `{:?}` of type `{:?}`", // no-coverage
+                        self.key,                                                     // no-coverage
+                        target_key,                                                   // no-coverage
+                        target_type                                                   // no-coverage
                     );
                 }
             }

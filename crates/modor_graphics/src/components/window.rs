@@ -1,5 +1,5 @@
+use crate::platform::ThreadSafeRc;
 use crate::{platform, Size};
-use std::sync::Arc;
 use wgpu::Surface;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window as WindowHandle;
@@ -71,7 +71,7 @@ pub struct Window {
     old_is_cursor_shown: bool,
     is_surface_refreshed: bool,
     is_closing_requested: bool,
-    surface: Option<Arc<Surface>>,
+    surface: Option<ThreadSafeRc<Surface>>,
 }
 
 impl Default for Window {
@@ -118,7 +118,7 @@ impl Window {
     }
 
     // on Windows, Window::set_title freezes the application if not run in main thread
-    pub(crate) fn update(&mut self, handle: &mut WindowHandle, surface: &Arc<Surface>) {
+    pub(crate) fn update(&mut self, handle: &WindowHandle, surface: &ThreadSafeRc<Surface>) {
         if self.surface.is_none() {
             self.surface = Some(surface.clone());
         }
@@ -142,11 +142,11 @@ impl Window {
         self.size = Size::new(width, height);
     }
 
-    pub(crate) fn surface(&self) -> Option<Arc<Surface>> {
+    pub(crate) fn surface(&self) -> Option<ThreadSafeRc<Surface>> {
         self.surface.clone()
     }
 
-    pub(crate) fn refreshed_surface(&mut self) -> Option<Arc<Surface>> {
+    pub(crate) fn refreshed_surface(&mut self) -> Option<ThreadSafeRc<Surface>> {
         if self.is_surface_refreshed {
             self.is_surface_refreshed = false;
             self.surface.clone()

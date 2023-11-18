@@ -215,7 +215,9 @@ impl RenderTarget {
         meshes: Custom<ResourceAccessor<'_, Mesh>>,
         textures: Custom<ResourceAccessor<'_, Texture>>,
     ) {
-        let Some(context) = renderer.get().state(&mut None).context() else { return; };
+        let Some(context) = renderer.get().state(&mut None).context() else {
+            return; // no-coverage (cannot be easily tested)
+        };
         if let Some(target) = &mut self.window {
             let target_texture_format = context
                 .surface_texture_format

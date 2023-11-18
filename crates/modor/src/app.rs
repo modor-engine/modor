@@ -101,6 +101,7 @@ impl App {
         self.core.systems().thread_count()
     }
 
+    // coverage: off (logs not easily testable)
     /// Set minimum log level.
     ///
     /// Default minimum log level is [`LevelFilter::Warn`].
@@ -109,6 +110,7 @@ impl App {
         info!("minimum log level set to '{level}'");
         self
     }
+    // coverage: on
 
     /// Changes the number of threads used by the `App` during update.
     ///

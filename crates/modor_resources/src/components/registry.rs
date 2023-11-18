@@ -123,9 +123,9 @@ where
             let key = resource.key();
             let previous = self.entity_ids.insert(key, entity.id());
             trace!(
-                "`{}` resource of type `{}` detected",
-                key.label(),
-                any::type_name::<R>()
+                "`{}` resource of type `{}` detected", // no-coverage
+                key.label(),                           // no-coverage
+                any::type_name::<R>()                  // no-coverage
             );
             if previous.is_some() {
                 self.duplicated_keys.run(key, |t| {
@@ -163,16 +163,16 @@ where
                 }),
                 ResourceState::Loading => {
                     trace!(
-                        "`{}` resource of type `{}` ignored as currently loading",
-                        key.label(),
-                        any::type_name::<R>()
+                        "`{}` resource of type `{}` ignored as currently loading", // no-coverage
+                        key.label(),                                               // no-coverage
+                        any::type_name::<R>()                                      // no-coverage
                     );
                 }
                 ResourceState::Error(_) => {
                     trace!(
-                        "`{}` resource of type `{}` ignored as loading failed",
-                        key.label(),
-                        any::type_name::<R>()
+                        "`{}` resource of type `{}` ignored as loading failed", // no-coverage
+                        key.label(),                                            // no-coverage
+                        any::type_name::<R>()                                   // no-coverage
                     );
                 }
                 ResourceState::Loaded => return Some(resource),

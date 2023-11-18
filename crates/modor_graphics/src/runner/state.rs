@@ -119,7 +119,7 @@ impl RunnerState {
         window.current_monitor().and_then(|m| {
             m.video_modes()
                 .map(|m| m.refresh_rate_millihertz())
-                .filter_map(|r| (r > 0).then_some(r))
+                .filter(|&r| r > 0)
                 .map(|r| Duration::from_secs_f64(1000. / f64::from(r)))
                 .fold(None, |a, b| Some(a.map_or(b, |a: Duration| a.min(b))))
         })
@@ -135,7 +135,7 @@ impl RunnerState {
     }
 
     fn update_window(&mut self) {
-        self.app.update_window(&mut self.window);
+        self.app.update_window(&self.window);
         self.window.request_redraw();
     }
 
@@ -143,7 +143,7 @@ impl RunnerState {
         if let Some(display) = &self.display {
             self.gamepads.treat_events(&mut self.app);
             self.app.update_gamepads(modor_input::Gamepads::sync_d_pad);
-            self.app.update(&mut self.window, display);
+            self.app.update(&self.window, display);
             self.app.update_keyboard(Keyboard::refresh);
             self.app.update_mouse(Mouse::refresh);
             self.app.update_fingers(Fingers::refresh);

@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
@@ -33,7 +32,6 @@ fn create_without_transform() {
 fn configure_opaque_with_one_camera() {
     let missing_camera_key = ResKey::new("missing");
     App::new()
-        .with_log_level(LevelFilter::Trace)
         .with_entity(modor_graphics::module())
         .with_entity(resources())
         .with_entity(transform().component(Model::rectangle(OPAQUE_BLUE_MATERIAL, DEFAULT_CAMERA)))

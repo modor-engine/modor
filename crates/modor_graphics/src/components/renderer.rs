@@ -1,8 +1,8 @@
 use crate::platform;
+use crate::platform::ThreadSafeRc;
 use futures::executor;
 use modor::SingleRef;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Gles3MinorVersion,
@@ -15,7 +15,7 @@ static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
 #[derive(SingletonComponent, Debug)]
 pub(crate) struct Renderer {
     pub(crate) version: Option<u8>,
-    context: Option<Arc<GpuContext>>,
+    context: Option<ThreadSafeRc<GpuContext>>,
 }
 
 #[systems]
@@ -37,12 +37,12 @@ impl Renderer {
         }
         if self.context.is_none() {
             let instance = GpuContext::instance();
-            self.context = Some(Arc::new(GpuContext::new(&instance, None)));
+            self.context = Some(ThreadSafeRc::new(GpuContext::new(&instance, None)));
             debug!("graphic context created for the current renderer");
         }
     }
 
-    pub(crate) fn update(&mut self, renderer: &Arc<GpuContext>) {
+    pub(crate) fn update(&mut self, renderer: &ThreadSafeRc<GpuContext>) {
         if self.context.is_none() {
             self.context = Some(renderer.clone());
             debug!("graphic context attached by runner to the current renderer");

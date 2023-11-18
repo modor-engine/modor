@@ -76,8 +76,8 @@ where
         let job = Self::job_future(future, sender);
         let join = platform::spawn_future(job);
         debug!(
-            "job producing value of type `{}` has started",
-            any::type_name::<T>()
+            "job producing value of type `{}` has started", // no-coverage
+            any::type_name::<T>()                           // no-coverage
         );
         Self {
             receiver: Some(receiver),
@@ -108,20 +108,20 @@ where
             if let Ok(Some(_)) | Err(_) = &result {
                 self.receiver = None;
                 debug!(
-                    "job producing value of type `{}` has finished",
-                    any::type_name::<T>()
+                    "job producing value of type `{}` has finished", // no-coverage
+                    any::type_name::<T>()                            // no-coverage
                 );
             } else {
                 trace!(
-                    "job producing value of type `{}` still in progress",
-                    any::type_name::<T>()
+                    "job producing value of type `{}` still in progress", // no-coverage
+                    any::type_name::<T>()                                 // no-coverage
                 );
             }
             result
         } else {
             debug!(
-                "job result of type `{}` already retrieved",
-                any::type_name::<T>()
+                "job result of type `{}` already retrieved", // no-coverage
+                any::type_name::<T>()                        // no-coverage
             );
             Ok(None)
         }

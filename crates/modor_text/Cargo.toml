@@ -18,6 +18,8 @@ modor.workspace = true
 modor_graphics.workspace = true
 modor_resources.workspace = true
 
-
 [dev-dependencies]
 modor_physics.workspace = true
+
+[lints]
+workspace = true

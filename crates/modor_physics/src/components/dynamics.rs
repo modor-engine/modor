@@ -183,7 +183,7 @@ impl Dynamics2D {
         }
     }
 
-    fn create_body(&self, entity_id: usize, transform: &mut Transform2D) -> RigidBody {
+    fn create_body(&self, entity_id: usize, transform: &Transform2D) -> RigidBody {
         let mass = MassProperties::new(point![0., 0.], self.mass, self.angular_inertia);
         let mut body = RigidBodyBuilder::new(RigidBodyType::Dynamic)
             .can_sleep(false)
