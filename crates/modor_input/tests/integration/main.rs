@@ -9,3 +9,4 @@ pub mod fingers;
 pub mod gamepads;
 pub mod keyboard;
 pub mod mouse;
+pub mod virtual_keyboard;

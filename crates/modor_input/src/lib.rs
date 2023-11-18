@@ -59,11 +59,13 @@ extern crate modor;
 mod components;
 mod data;
 mod entities;
+mod platform;
 mod utils;
 
 pub use components::fingers::*;
 pub use components::gamepads::*;
 pub use components::keyboard::*;
 pub use components::mouse::*;
+pub use components::virtual_keyboard::*;
 pub use data::*;
 pub use entities::module::*;

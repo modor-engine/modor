@@ -1,4 +1,4 @@
-use crate::{Fingers, Gamepads, Keyboard, Mouse};
+use crate::{Fingers, Gamepads, Keyboard, Mouse, VirtualKeyboard};
 use modor::{BuiltEntity, EntityBuilder};
 
 /// Creates the input module.
@@ -18,6 +18,7 @@ use modor::{BuiltEntity, EntityBuilder};
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_component(Keyboard::default())
+        .child_component(VirtualKeyboard::default())
         .child_component(Mouse::default())
         .child_component(Fingers::default())
         .child_component(Gamepads::default())
