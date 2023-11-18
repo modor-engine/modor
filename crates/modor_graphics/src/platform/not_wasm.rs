@@ -1,7 +1,10 @@
+use std::sync::Arc;
 use std::time::Duration;
 use wgpu::Limits;
 use winit::dpi::PhysicalSize;
 use winit::window::Window as WindowHandle;
+
+pub(crate) type ThreadSafeRc<T> = Arc<T>;
 
 pub(crate) fn init_canvas(_handle: &WindowHandle) {
     // does nothing

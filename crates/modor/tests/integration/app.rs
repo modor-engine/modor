@@ -66,7 +66,7 @@ fn assert_entity_has_existing_component() {
 }
 
 #[modor_test(disabled(wasm))]
-#[should_panic = "assertion failed: `(left == right)"]
+#[should_panic = "assertion `left == right` failed"]
 fn assert_entity_has_invalid_component() {
     App::new()
         .with_entity(Component1(10))
@@ -74,7 +74,7 @@ fn assert_entity_has_invalid_component() {
 }
 
 #[modor_test(disabled(wasm))]
-#[should_panic = "assertion failed: `(left == right)"]
+#[should_panic = "assertion `left == right` failed"]
 fn assert_entity_has_invalid_component_in_any_mode() {
     App::new()
         .with_entity(Component1(10))

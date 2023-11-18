@@ -1,9 +1,12 @@
+use std::rc;
 use std::time::Duration;
 use web_sys::Element;
 use wgpu::Limits;
 use winit::dpi::PhysicalSize;
 use winit::platform::web::WindowExtWebSys;
 use winit::window::Window as WindowHandle;
+
+pub(crate) type ThreadSafeRc<T> = rc::Rc<T>;
 
 pub(crate) const CANVAS_ID: &str = "modor";
 

@@ -1,7 +1,7 @@
 use crate::components::render_target::core::TargetCore;
 use crate::data::size::NonZeroSize;
+use crate::platform::ThreadSafeRc;
 use crate::{AntiAliasing, Color, FrameRate, GpuContext, Window};
-use std::sync::Arc;
 use wgpu::{
     PresentMode, RenderPass, Surface, SurfaceConfiguration, SurfaceTexture, TextureFormat,
     TextureUsages, TextureViewDescriptor,
@@ -10,7 +10,7 @@ use wgpu::{
 #[derive(Debug)]
 pub(crate) struct WindowTarget {
     core: TargetCore,
-    surface: Arc<Surface>,
+    surface: ThreadSafeRc<Surface>,
     surface_config: SurfaceConfiguration,
     current_texture: Option<SurfaceTexture>,
     has_immediate_mode: bool,

@@ -470,10 +470,10 @@ pub use modor_derive::systems;
 
 /// Defines a custom system parameter.
 ///
-/// This macro implements the [`CustomSystemParam`](crate::CustomSystemParam) trait.
-/// All inner types must implement [`SystemParam`](crate::SystemParam).
+/// This macro implements the [`CustomSystemParam`] trait.
+/// All inner types must implement [`SystemParam`].
 ///
-/// This type of system parameter cannot be used as [`Query`](crate::Query) parameter.
+/// This type of system parameter cannot be used as [`Query`] parameter.
 /// To define such system parameter, [`SystemParam`](macro@crate::SystemParam) derive macro can be
 /// used.
 ///
@@ -509,11 +509,10 @@ pub use modor_derive::SystemParam;
 
 /// Defines a custom query system parameter.
 ///
-/// This macro implements the [`CustomSystemParam`](crate::CustomSystemParam) and
-/// [`CustomQuerySystemParam`](crate::CustomQuerySystemParam) traits.
-/// All inner types must implement [`QuerySystemParam`](crate::QuerySystemParam).
+/// This macro implements the [`CustomSystemParam`] and [`CustomQuerySystemParam`] traits.
+/// All inner types must implement [`QuerySystemParam`].
 ///
-/// This type of system parameter can be used as [`Query`](crate::Query) parameter.
+/// This type of system parameter can be used as [`Query`] parameter.
 ///
 /// # Examples
 ///
@@ -553,7 +552,7 @@ pub use modor_derive::QuerySystemParam;
 
 /// Defines a temporary component.
 ///
-/// A temporary component is only available during one [`App`](crate::App) update. After the update,
+/// A temporary component is only available during one [`App`] update. After the update,
 /// the component is automatically deleted.
 ///
 /// Note that as this macro defines systems, no additional system can be defined for the component.
