@@ -101,6 +101,10 @@ impl Pipeline2D {
         }
     }
 
+    pub(crate) fn body(&self, handle: RigidBodyHandle) -> Option<&RigidBody> {
+        self.bodies.get(handle)
+    }
+
     pub(crate) fn body_mut(&mut self, handle: RigidBodyHandle) -> Option<&mut RigidBody> {
         self.bodies.get_mut(handle)
     }

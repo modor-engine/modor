@@ -1,0 +1,24 @@
+[package]
+name = "modor_ui"
+description = "UI module of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "graphics", "ui", "input", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+modor.workspace = true
+modor_graphics.workspace = true
+modor_input.workspace = true
+modor_physics.workspace = true
+modor_resources.workspace = true
+modor_text.workspace = true
+
+[lints]
+workspace = true

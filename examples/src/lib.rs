@@ -19,3 +19,4 @@ pub mod rendering_2d;
 pub mod text_2d;
 pub mod texture_2d;
 pub mod touch;
+pub mod ui;

@@ -12,5 +12,6 @@
 - Text module to draw texts
 - Input module to access keyboard, mouse, touch and gamepad states
 - Resources module to easily load and access resources like textures, font, sounds, ...
+- UI module with buttons
 - Asynchronous job utilities
 - Support for Windows, Linux, macOS, Android and WebAssembly

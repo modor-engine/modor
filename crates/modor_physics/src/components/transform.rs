@@ -1,6 +1,6 @@
 use crate::components::pipeline::Pipeline2D;
 use crate::Dynamics2D;
-use modor::SingleMut;
+use modor::SingleRef;
 use modor_math::Vec2;
 
 /// The positioning of a 2D entity.
@@ -51,9 +51,9 @@ impl Transform2D {
     }
 
     #[run_after(component(Dynamics2D), component(Pipeline2D))]
-    fn update(&mut self, dynamics: &Dynamics2D, mut pipeline: SingleMut<'_, '_, Pipeline2D>) {
-        let pipeline = pipeline.get_mut();
-        if let Some(body) = dynamics.handle.and_then(|handle| pipeline.body_mut(handle)) {
+    fn update(&mut self, dynamics: &Dynamics2D, pipeline: SingleRef<'_, '_, Pipeline2D>) {
+        let pipeline = pipeline.get();
+        if let Some(body) = dynamics.handle.and_then(|handle| pipeline.body(handle)) {
             self.position.x = body.translation().x;
             self.position.y = body.translation().y;
             self.rotation = body.rotation().angle();

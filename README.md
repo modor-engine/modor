@@ -52,6 +52,7 @@ modor_math = "0.1"
 modor_physics = "0.1"
 modor_resources = "0.1"
 modor_text = "0.1"
+modor_ui = "0.1"
 ```
 
 ## Examples

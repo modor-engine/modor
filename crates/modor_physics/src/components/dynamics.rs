@@ -1,6 +1,6 @@
 use crate::components::pipeline::{BodyHandleReset, Pipeline2D, UnsynchronizedHandleDeletion};
 use crate::Transform2D;
-use modor::{Entity, Filter, Not, SingleMut, With};
+use modor::{Entity, Filter, Not, SingleMut, SingleRef, With};
 use modor_math::Vec2;
 use rapier2d::dynamics::{
     MassProperties, RigidBody, RigidBodyBuilder, RigidBodyHandle, RigidBodyType,
@@ -171,9 +171,9 @@ impl Dynamics2D {
     }
 
     #[run_after(component(Pipeline2D))]
-    fn update(&mut self, mut pipeline: SingleMut<'_, '_, Pipeline2D>) {
-        let pipeline = pipeline.get_mut();
-        if let Some(body) = self.handle.and_then(|handle| pipeline.body_mut(handle)) {
+    fn update(&mut self, pipeline: SingleRef<'_, '_, Pipeline2D>) {
+        let pipeline = pipeline.get();
+        if let Some(body) = self.handle.and_then(|handle| pipeline.body(handle)) {
             self.velocity.x = body.linvel().x;
             self.velocity.y = body.linvel().y;
             self.angular_velocity = body.angvel();

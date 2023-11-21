@@ -66,6 +66,7 @@ modor_math = { version = "0.1.0", path = "crates/modor_math" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
 modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
 modor_text = { version = "0.1.0", path = "crates/modor_text" }
+modor_ui = { version = "0.1.0", path = "crates/modor_ui" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"
