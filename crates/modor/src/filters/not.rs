@@ -1,5 +1,7 @@
 use super::EntityFilter;
 use crate::storages::archetypes::ArchetypeIdx;
+use crate::storages::components::ComponentTypeIdx;
+use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
 use std::marker::PhantomData;
@@ -36,5 +38,9 @@ where
         storages: Storages<'_>,
     ) -> bool {
         !F::is_archetype_kept(system_idx, archetype_idx, storages)
+    }
+
+    fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+        F::mutation_component_type_idxs(core)
     }
 }

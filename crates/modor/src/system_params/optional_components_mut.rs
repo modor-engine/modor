@@ -7,6 +7,7 @@ use crate::storages::systems::{Access, ComponentTypeAccess, SystemProperties};
 use crate::system_params::internal::{LockableSystemParam, Mut};
 use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::system_params::optional_components_mut::internal::ComponentMutOptionIter;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::system_params::utils;
 use crate::systems::context::SystemContext;
 use crate::{
@@ -63,7 +64,7 @@ where
     where
         'b: 'a,
     {
-        ComponentMutOptionIter::new(guard)
+        ComponentMutOptionIter::new(guard, None)
     }
 
     #[inline]
@@ -92,20 +93,22 @@ where
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        ComponentOptionIter::new_mut(guard)
+        ComponentOptionIter::new_mut(guard, filter)
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        ComponentMutOptionIter::new(guard)
+        ComponentMutOptionIter::new(guard, filter)
     }
 
     #[inline]
@@ -173,6 +176,7 @@ where
 pub(crate) mod internal {
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
     use crate::storages::components::{ComponentArchetypes, ComponentTypeIdx};
+    use crate::system_params::query::internal::QueryFilterProperties;
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
     use crate::Component;
@@ -224,10 +228,17 @@ pub(crate) mod internal {
     where
         C: Component,
     {
-        pub(super) fn new(guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>) -> Self {
+        pub(super) fn new(
+            guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                len: guard.item_count,
-                components: ArchetypeComponentIter::new(guard).flatten(),
+                len: if let Some(filter) = filter {
+                    filter.item_count
+                } else {
+                    guard.item_count
+                },
+                components: ArchetypeComponentIter::new(guard, filter).flatten(),
             }
         }
     }
@@ -272,11 +283,14 @@ pub(crate) mod internal {
     where
         C: Component,
     {
-        fn new(guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>) -> Self {
+        fn new(
+            guard: &'a mut ComponentMutOptionGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
                 last_archetype_idx: None,
                 components: guard.components.iter_mut(),
-                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone_with_filter(filter),
                 type_idx: guard.context.component_type_idx::<C>(),
                 context: guard.context,
             }

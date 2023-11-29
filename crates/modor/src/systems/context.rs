@@ -1,4 +1,5 @@
 use super::iterations::FilteredArchetypeIdxIter;
+use crate::filters::QueryFilter;
 use crate::storages::actions::ActionStorage;
 use crate::storages::archetype_states::ArchetypeStateStorage;
 use crate::storages::archetypes::{ArchetypeIdx, ArchetypeStorage};
@@ -36,6 +37,7 @@ impl SystemContext<'_> {
             self.system_idx,
             self.archetype_filter_fn,
             self.component_type_idx,
+            None,
         )
     }
 
@@ -69,10 +71,16 @@ impl Storages<'_> {
         system_idx: Option<SystemIdx>,
         archetype_filter_fn: ArchetypeFilterFn,
         component_type_idx: Option<ComponentTypeIdx>,
+        dynamic_filter: Option<QueryFilter>,
     ) -> usize {
-        self.filter_archetype_idx_iter(system_idx, archetype_filter_fn, component_type_idx)
-            .map(|a| self.archetypes.entity_idxs(a).len())
-            .sum()
+        self.filter_archetype_idx_iter(
+            system_idx,
+            archetype_filter_fn,
+            component_type_idx,
+            dynamic_filter,
+        )
+        .map(|a| self.archetypes.entity_idxs(a).len())
+        .sum()
     }
 
     fn filter_archetype_idx_iter(
@@ -80,6 +88,7 @@ impl Storages<'_> {
         system_idx: Option<SystemIdx>,
         archetype_filter_fn: ArchetypeFilterFn,
         component_type_idx: Option<ComponentTypeIdx>,
+        dynamic_filter: Option<QueryFilter>,
     ) -> FilteredArchetypeIdxIter<'_> {
         let archetype_idxs = component_type_idx.map_or_else(
             || self.archetypes.all_sorted_idxs().iter(),
@@ -88,6 +97,7 @@ impl Storages<'_> {
         FilteredArchetypeIdxIter {
             archetype_idxs,
             archetype_filter_fn,
+            dynamic_filter,
             storages: *self,
             system_idx,
         }

@@ -189,7 +189,7 @@ impl CoreStorage {
             system_idx: None,
             archetype_filter_fn: system.archetype_filter_fn,
             component_type_idx: None,
-            item_count: storages.item_count(None, system.archetype_filter_fn, None),
+            item_count: storages.item_count(None, system.archetype_filter_fn, None, None),
             storages,
         });
         self.apply_updates();

@@ -122,7 +122,7 @@ impl SystemParam for EntityMut<'_> {
     where
         'b: 'a,
     {
-        (EntityIter::new(&guard.0), WorldStream::new(&guard.1))
+        (EntityIter::new(&guard.0, None), WorldStream::new(&guard.1))
     }
 
     #[inline]

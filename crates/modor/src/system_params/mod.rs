@@ -1,6 +1,7 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{EntityFilter, VariableSend, VariableSync};
 
@@ -44,6 +45,7 @@ pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'
     #[doc(hidden)]
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a;
@@ -51,6 +53,7 @@ pub trait QuerySystemParam: SystemParam + for<'a> QuerySystemParamWithLifetime<'
     #[doc(hidden)]
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a;

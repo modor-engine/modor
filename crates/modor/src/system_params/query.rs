@@ -3,10 +3,10 @@ use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
-use crate::system_params::query::internal::QueryStream;
+use crate::system_params::query::internal::{QueryFilterProperties, QueryStream};
 use crate::systems::context::SystemContext;
 use crate::{
-    EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    EntityFilter, QueryFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
     SystemParamWithLifetime,
 };
 
@@ -28,8 +28,9 @@ pub struct Query<'a, P>
 where
     P: 'static + QuerySystemParam,
 {
-    guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
     pub(super) context: SystemContext<'a>,
+    guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
+    filter: Option<QueryFilterProperties>,
 }
 
 impl<'a, P> Query<'a, P>
@@ -40,7 +41,11 @@ where
         guard: <P as SystemParamWithLifetime<'a>>::GuardBorrow,
         context: SystemContext<'a>,
     ) -> Self {
-        Self { guard, context }
+        Self {
+            context,
+            guard,
+            filter: None,
+        }
     }
 }
 
@@ -48,14 +53,31 @@ impl<P> Query<'_, P>
 where
     P: 'static + QuerySystemParam,
 {
+    /// Adds a dynamic filter to the query iterators.
+    ///
+    /// This filter has an effect only on [`Query::iter`] and [`Query::iter_mut`] methods.
+    ///
+    /// Note that if this method is called twice, the second call replaces the previous filter.
+    pub fn set_iter_filter(&mut self, filter: QueryFilter) {
+        self.filter = Some(QueryFilterProperties {
+            filter,
+            item_count: self.context.storages.item_count(
+                self.context.system_idx,
+                <P::Filter>::is_archetype_kept,
+                None,
+                Some(filter),
+            ),
+        });
+    }
+
     /// Returns an iterator on constant query results.
     pub fn iter(&self) -> <P as QuerySystemParamWithLifetime<'_>>::Iter {
-        P::query_iter(&self.guard)
+        P::query_iter(&self.guard, self.filter)
     }
 
     /// Returns an iterator on query results.
     pub fn iter_mut(&mut self) -> <P as QuerySystemParamWithLifetime<'_>>::IterMut {
-        P::query_iter_mut(&mut self.guard)
+        P::query_iter_mut(&mut self.guard, self.filter)
     }
 
     /// Returns the constant query result for the entity with ID `entity_id`.
@@ -186,10 +208,10 @@ where
     }
 }
 
-pub(super) mod internal {
+pub(crate) mod internal {
     use crate::system_params::{SystemParam, SystemParamWithLifetime};
     use crate::systems::context::SystemContext;
-    use crate::{EntityFilter, QuerySystemParam};
+    use crate::{EntityFilter, QueryFilter, QuerySystemParam};
     use std::marker::PhantomData;
     use std::ops::Range;
 
@@ -221,6 +243,7 @@ pub(super) mod internal {
                     item_count: self.context.storages.item_count(
                         self.context.system_idx,
                         <P::Filter>::is_archetype_kept,
+                        None,
                         None,
                     ),
                     storages: self.context.storages,
@@ -256,5 +279,11 @@ pub(super) mod internal {
                 guard: P::lock(guard.param_context),
             }
         }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct QueryFilterProperties {
+        pub(crate) filter: QueryFilter,
+        pub(crate) item_count: usize,
     }
 }

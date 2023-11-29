@@ -107,6 +107,7 @@ impl SystemStorage {
             Some(system_idx),
             system.archetype_filter_fn,
             system.component_type_idx,
+            None,
         );
         let context = SystemContext {
             system_idx: Some(system_idx),
