@@ -1,8 +1,8 @@
 use crate::system_params::{
-    assert_iter, Enabled, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID,
-    MATCHING2_ID, MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
+    assert_iter, Enabled, OtherValue, QueryTester, Value, DISABLED_ID, MATCHING1_ID,
+    MATCHING2_CLONE_ID, MATCHING2_ID, MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
 };
-use modor::{Custom, Filter, With};
+use modor::{Custom, Filter, QueryFilter, With};
 
 #[modor_test]
 fn run_query_iter() {
@@ -32,6 +32,42 @@ fn run_query_iter_mut() {
         let values = [VALUE1, VALUE2, VALUE2_CLONE];
         assert_iter(q.iter_mut().map(|v| v.0 .0), values);
         let values = [VALUE2_CLONE, VALUE2, VALUE1];
+        assert_iter(q.iter_mut().rev().map(|v| v.0 .0), values);
+    });
+}
+
+#[modor_test]
+fn run_query_filtered_iter() {
+    QueryTester::<Custom<NamedSystemParam<'_>>>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        let values = [VALUE2, VALUE2_CLONE];
+        assert_iter(q.iter().map(|v| v.value.0), values);
+        let values = [VALUE2_CLONE, VALUE2];
+        assert_iter(q.iter().rev().map(|v| v.value.0), values);
+    });
+    QueryTester::<Custom<UnnamedSystemParam<'_>>>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        let values = [VALUE2, VALUE2_CLONE];
+        assert_iter(q.iter().map(|v| v.0 .0), values);
+        let values = [VALUE2_CLONE, VALUE2];
+        assert_iter(q.iter().rev().map(|v| v.0 .0), values);
+    });
+}
+
+#[modor_test]
+fn run_query_filtered_iter_mut() {
+    QueryTester::<Custom<NamedSystemParam<'_>>>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        let values = [VALUE2, VALUE2_CLONE];
+        assert_iter(q.iter_mut().map(|v| v.value.0), values);
+        let values = [VALUE2_CLONE, VALUE2];
+        assert_iter(q.iter_mut().rev().map(|v| v.value.0), values);
+    });
+    QueryTester::<Custom<UnnamedSystemParam<'_>>>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        let values = [VALUE2, VALUE2_CLONE];
+        assert_iter(q.iter_mut().map(|v| v.0 .0), values);
+        let values = [VALUE2_CLONE, VALUE2];
         assert_iter(q.iter_mut().rev().map(|v| v.0 .0), values);
     });
 }

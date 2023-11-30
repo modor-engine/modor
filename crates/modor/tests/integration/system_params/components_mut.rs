@@ -1,9 +1,9 @@
 use crate::system_params::{
     assert_iter, entities, DisabledFilter, Enabled, Matching1Filter, Matching2Filter,
-    NoValueFilter, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID, MATCHING2_ID,
-    MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
+    NoValueFilter, OtherValue, QueryTester, Value, DISABLED_ID, MATCHING1_ID, MATCHING2_CLONE_ID,
+    MATCHING2_ID, MISSING_ID, NO_VALUE_ID, VALUE1, VALUE2, VALUE2_CLONE,
 };
-use modor::{App, Filter, With};
+use modor::{App, Filter, QueryFilter, With};
 
 #[modor_test]
 fn run_query_iter() {
@@ -20,6 +20,27 @@ fn run_query_iter_mut() {
     QueryTester::<(&mut Value, Filter<With<Enabled>>)>::run(|q| {
         assert_iter(q.iter_mut().map(|v| v.0 .0), [VALUE1, VALUE2, VALUE2_CLONE]);
         let values = [VALUE2_CLONE, VALUE2, VALUE1];
+        assert_iter(q.iter_mut().rev().map(|v| v.0 .0), values);
+    });
+}
+
+#[modor_test]
+fn run_query_filtered_iter() {
+    QueryTester::<(&mut Value, Filter<With<Enabled>>)>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        let values = [VALUE2, VALUE2_CLONE];
+        assert_iter(q.iter().map(|v| v.0 .0), values);
+        let values = [VALUE2_CLONE, VALUE2];
+        assert_iter(q.iter().rev().map(|v| v.0 .0), values);
+    });
+}
+
+#[modor_test]
+fn run_query_filtered_iter_mut() {
+    QueryTester::<(&mut Value, Filter<With<Enabled>>)>::run(|q| {
+        q.set_iter_filter(QueryFilter::new::<With<OtherValue>>());
+        assert_iter(q.iter_mut().map(|v| v.0 .0), [VALUE2, VALUE2_CLONE]);
+        let values = [VALUE2_CLONE, VALUE2];
         assert_iter(q.iter_mut().rev().map(|v| v.0 .0), values);
     });
 }
