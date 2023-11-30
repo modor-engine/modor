@@ -5,6 +5,7 @@ use crate::system_params::components::internal::{
     ComponentGuard, ComponentGuardBorrow, ComponentIter,
 };
 use crate::system_params::internal::{Const, LockableSystemParam};
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{
     Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
@@ -61,7 +62,7 @@ where
     where
         'b: 'a,
     {
-        ComponentIter::new(guard)
+        ComponentIter::new(guard, None)
     }
 
     #[inline]
@@ -90,20 +91,22 @@ where
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        ComponentIter::new(guard)
+        ComponentIter::new(guard, filter)
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        ComponentIter::new(guard)
+        ComponentIter::new(guard, filter)
     }
 
     #[inline]
@@ -162,6 +165,7 @@ pub(crate) mod internal {
     use crate::components_mut::internal::ComponentMutGuardBorrow;
     use crate::storages::archetypes::{ArchetypeEntityPos, ArchetypeIdx};
     use crate::storages::components::ComponentArchetypes;
+    use crate::system_params::query::internal::QueryFilterProperties;
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
     use crate::Component;
@@ -207,17 +211,31 @@ pub(crate) mod internal {
     }
 
     impl<'a, C> ComponentIter<'a, C> {
-        pub(crate) fn new(guard: &'a ComponentGuardBorrow<'_, C>) -> Self {
+        pub(crate) fn new(
+            guard: &'a ComponentGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                components: ArchetypeComponentIter::new(guard).flatten(),
-                len: guard.item_count,
+                components: ArchetypeComponentIter::new(guard, filter).flatten(),
+                len: if let Some(filter) = filter {
+                    filter.item_count
+                } else {
+                    guard.item_count
+                },
             }
         }
 
-        pub(crate) fn new_mut(guard: &'a ComponentMutGuardBorrow<'_, C>) -> Self {
+        pub(crate) fn new_mut(
+            guard: &'a ComponentMutGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                components: ArchetypeComponentIter::new_mut(guard).flatten(),
-                len: guard.item_count,
+                components: ArchetypeComponentIter::new_mut(guard, filter).flatten(),
+                len: if let Some(filter) = filter {
+                    filter.item_count
+                } else {
+                    guard.item_count
+                },
             }
         }
     }
@@ -257,19 +275,25 @@ pub(crate) mod internal {
     }
 
     impl<'a, C> ArchetypeComponentIter<'a, C> {
-        fn new(guard: &'a ComponentGuardBorrow<'_, C>) -> Self {
+        fn new(
+            guard: &'a ComponentGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
                 last_archetype_idx: None,
                 components: guard.components.iter(),
-                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone_with_filter(filter),
             }
         }
 
-        fn new_mut(guard: &'a ComponentMutGuardBorrow<'_, C>) -> Self {
+        fn new_mut(
+            guard: &'a ComponentMutGuardBorrow<'_, C>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
                 last_archetype_idx: None,
                 components: guard.components.iter(),
-                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone_with_filter(filter),
             }
         }
     }

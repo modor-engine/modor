@@ -3,6 +3,7 @@ use crate::entity::internal::{EntityGuard, EntityGuardBorrow};
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{
     EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
@@ -76,7 +77,7 @@ where
     where
         'b: 'a,
     {
-        FilterIter::new(guard)
+        FilterIter::new(guard, None)
     }
 
     #[inline]
@@ -105,20 +106,22 @@ where
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        FilterIter::new(guard)
+        FilterIter::new(guard, filter)
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        FilterIter::new(guard)
+        FilterIter::new(guard, filter)
     }
 
     #[inline]
@@ -168,6 +171,7 @@ where
 mod internal {
     use super::Filter;
     use crate::entity::internal::{EntityGuardBorrow, EntityIter};
+    use crate::system_params::query::internal::QueryFilterProperties;
     use crate::EntityFilter;
     use std::marker::PhantomData;
 
@@ -177,9 +181,12 @@ mod internal {
     }
 
     impl<'a, F> FilterIter<'a, F> {
-        pub fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
+        pub(crate) fn new(
+            guard: &'a EntityGuardBorrow<'_>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                inner: EntityIter::new(guard),
+                inner: EntityIter::new(guard, filter),
                 phantom: PhantomData,
             }
         }

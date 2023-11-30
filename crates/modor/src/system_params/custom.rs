@@ -1,6 +1,7 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
 use std::iter::Map;
@@ -169,20 +170,22 @@ where
 {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        T::Tuple::query_iter(guard).map(|t| T::from_tuple_const_param_mut_param(t))
+        T::Tuple::query_iter(guard, filter).map(|t| T::from_tuple_const_param_mut_param(t))
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        T::Tuple::query_iter_mut(guard).map(|t| T::from_tuple_mut_param(t))
+        T::Tuple::query_iter_mut(guard, filter).map(|t| T::from_tuple_mut_param(t))
     }
 
     #[inline]

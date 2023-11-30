@@ -1,6 +1,7 @@
 use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::systems::context::SystemContext;
 use crate::tuples::internal::EmptyTupleGuardBorrow;
@@ -46,7 +47,7 @@ impl SystemParam for () {
     where
         'b: 'a,
     {
-        EmptyTupleIter::new(guard)
+        EmptyTupleIter::new(guard, None)
     }
 
     #[inline]
@@ -69,20 +70,22 @@ impl<'a> QuerySystemParamWithLifetime<'a> for () {
 impl QuerySystemParam for () {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        EmptyTupleIter::new(guard)
+        EmptyTupleIter::new(guard, filter)
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        EmptyTupleIter::new(guard)
+        EmptyTupleIter::new(guard, filter)
     }
 
     #[inline]
@@ -201,21 +204,23 @@ macro_rules! impl_tuple_system_param {
             #[allow(non_snake_case)]
             fn query_iter<'a, 'b>(
                 guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+                filter: Option<QueryFilterProperties>,
             ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
             where
                 'b: 'a,
             {
-                query_iter!(guard $(,($params, $indexes))+)
+                query_iter!(guard, filter $(,($params, $indexes))+)
             }
 
             #[allow(non_snake_case)]
             fn query_iter_mut<'a, 'b>(
                 guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+                filter: Option<QueryFilterProperties>,
             ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
             where
                 'b: 'a,
             {
-                query_iter_mut!(guard $(,($params, $indexes))+)
+                query_iter_mut!(guard, filter $(,($params, $indexes))+)
             }
 
             #[inline]
@@ -329,30 +334,31 @@ macro_rules! nested_tuple_type {
 }
 
 macro_rules! query_iter {
-    ($guard:expr, ($param:ident, $index:tt)) => {
-        $param::query_iter(&$guard.$index).map(|i| (i,))
+    ($guard:expr, $filter:expr, ($param:ident, $index:tt)) => {
+        $param::query_iter(&$guard.$index, $filter).map(|i| (i,))
     };
-    ($guard:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
-        $param1::query_iter(&$guard.$index1).zip($param2::query_iter(&$guard.$index2))
+    ($guard:expr, $filter:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
+        $param1::query_iter(&$guard.$index1, $filter)
+            .zip($param2::query_iter(&$guard.$index2, $filter))
     };
-    ($guard:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
-        $param::query_iter(&$guard.$index)
-            $(.zip($params::query_iter(&$guard.$indexes)))+
+    ($guard:expr, $filter:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
+        $param::query_iter(&$guard.$index, $filter)
+            $(.zip($params::query_iter(&$guard.$indexes, $filter)))+
             .map(|nested_tuple!($param $(, $params)*)| ($param, $($params),*))
     };
 }
 
 macro_rules! query_iter_mut {
-    ($guard:expr, ($param:ident, $index:tt)) => {
-        $param::query_iter_mut(&mut $guard.$index).map(|i| (i,))
+    ($guard:expr, $filter:expr, ($param:ident, $index:tt)) => {
+        $param::query_iter_mut(&mut $guard.$index, $filter).map(|i| (i,))
     };
-    ($guard:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
-        $param1::query_iter_mut(&mut $guard.$index1)
-            .zip($param2::query_iter_mut(&mut $guard.$index2))
+    ($guard:expr, $filter:expr, ($param1:ident, $index1:tt), ($param2:ident, $index2:tt)) => {
+        $param1::query_iter_mut(&mut $guard.$index1, $filter)
+            .zip($param2::query_iter_mut(&mut $guard.$index2, $filter))
     };
-    ($guard:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
-        $param::query_iter_mut(&mut $guard.$index)
-            $(.zip($params::query_iter_mut(&mut $guard.$indexes)))+
+    ($guard:expr, $filter:expr, ($param:ident, $index:tt), $(($params:ident, $indexes:tt)),+) => {
+        $param::query_iter_mut(&mut $guard.$index, $filter)
+            $(.zip($params::query_iter_mut(&mut $guard.$indexes, $filter)))+
             .map(|nested_tuple!($param $(, $params)*)| ($param, $($params),*))
     };
 }
@@ -378,6 +384,7 @@ macro_rules! nested_tuple {
 run_for_tuples_with_idxs!(impl_tuple_system_param);
 
 mod internal {
+    use crate::system_params::query::internal::QueryFilterProperties;
     use crate::systems::context::SystemContext;
     use std::ops::Range;
 
@@ -408,9 +415,16 @@ mod internal {
     }
 
     impl EmptyTupleIter {
-        pub(crate) fn new(guard: &EmptyTupleGuardBorrow) -> Self {
+        pub(crate) fn new(
+            guard: &EmptyTupleGuardBorrow,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                item_positions: 0..guard.item_count,
+                item_positions: 0..if let Some(filter) = filter {
+                    filter.item_count
+                } else {
+                    guard.item_count
+                },
             }
         }
     }

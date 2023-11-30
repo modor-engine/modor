@@ -4,7 +4,7 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
-use crate::utils;
+use crate::{utils, QueryEntityFilter};
 use std::marker::PhantomData;
 
 /// A filter to keep only entities matching at least one of the sub-filters.
@@ -54,6 +54,12 @@ macro_rules! impl_tuple_filter {
             fn mutation_component_type_idxs(core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
                 utils::merge([$($params::mutation_component_type_idxs(core)),*])
             }
+        }
+
+        impl<$($params),*> QueryEntityFilter for Or<($($params,)*)>
+        where
+            $($params: QueryEntityFilter,)*
+        {
         }
     };
 }

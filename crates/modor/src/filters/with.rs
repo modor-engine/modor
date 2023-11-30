@@ -1,8 +1,10 @@
 use super::EntityFilter;
 use crate::storages::archetypes::ArchetypeIdx;
+use crate::storages::components::ComponentTypeIdx;
+use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
-use crate::Component;
+use crate::{Component, QueryEntityFilter};
 use std::any::TypeId;
 use std::marker::PhantomData;
 
@@ -50,4 +52,10 @@ where
             .type_ids(archetype_idx)
             .contains(&TypeId::of::<C>())
     }
+
+    fn mutation_component_type_idxs(_core: &mut CoreStorage) -> Vec<ComponentTypeIdx> {
+        vec![]
+    }
 }
+
+impl<C> QueryEntityFilter for With<C> where C: Component {}

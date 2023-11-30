@@ -3,6 +3,7 @@ use crate::storages::archetypes::EntityLocation;
 use crate::storages::core::CoreStorage;
 use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
+use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
 use std::iter::FusedIterator;
@@ -108,7 +109,7 @@ impl SystemParam for Entity<'_> {
     where
         'b: 'a,
     {
-        EntityIter::new(guard)
+        EntityIter::new(guard, None)
     }
 
     #[inline]
@@ -131,20 +132,22 @@ impl<'a> QuerySystemParamWithLifetime<'a> for Entity<'_> {
 impl QuerySystemParam for Entity<'_> {
     fn query_iter<'a, 'b>(
         guard: &'a <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::Iter
     where
         'b: 'a,
     {
-        EntityIter::new(guard)
+        EntityIter::new(guard, filter)
     }
 
     fn query_iter_mut<'a, 'b>(
         guard: &'a mut <Self as SystemParamWithLifetime<'b>>::GuardBorrow,
+        filter: Option<QueryFilterProperties>,
     ) -> <Self as QuerySystemParamWithLifetime<'a>>::IterMut
     where
         'b: 'a,
     {
-        EntityIter::new(guard)
+        EntityIter::new(guard, filter)
     }
 
     #[inline]
@@ -196,6 +199,7 @@ impl QuerySystemParam for Entity<'_> {
 
 pub(super) mod internal {
     use crate::storages::entities::EntityIdx;
+    use crate::system_params::query::internal::QueryFilterProperties;
     use crate::systems::context::SystemContext;
     use crate::systems::iterations::FilteredArchetypeIdxIter;
     use crate::Entity;
@@ -233,10 +237,17 @@ pub(super) mod internal {
     }
 
     impl<'a> EntityIter<'a> {
-        pub fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
+        pub(crate) fn new(
+            guard: &'a EntityGuardBorrow<'_>,
+            filter: Option<QueryFilterProperties>,
+        ) -> Self {
             Self {
-                entity_idxs: ArchetypeEntityIdxIter::new(guard).flatten(),
-                len: guard.item_count,
+                entity_idxs: ArchetypeEntityIdxIter::new(guard, filter).flatten(),
+                len: if let Some(filter) = filter {
+                    filter.item_count
+                } else {
+                    guard.item_count
+                },
                 context: guard.context,
             }
         }
@@ -282,9 +293,9 @@ pub(super) mod internal {
     }
 
     impl<'a> ArchetypeEntityIdxIter<'a> {
-        fn new(guard: &'a EntityGuardBorrow<'_>) -> Self {
+        fn new(guard: &'a EntityGuardBorrow<'_>, filter: Option<QueryFilterProperties>) -> Self {
             Self {
-                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone(),
+                sorted_archetype_idxs: guard.sorted_archetype_idxs.clone_with_filter(filter),
                 context: guard.context,
             }
         }
