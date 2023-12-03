@@ -11,7 +11,8 @@ use modor_resources::{ResKey, ResourceAccessor};
 ///
 /// Instances are rendered only if:
 /// - graphics [`module`](crate::module()) is initialized
-/// - instance entities linked to the [`InstanceGroup2D`] have [`Transform2D`] component
+/// - instance entities linked to the [`InstanceGroup2D`] have
+///      [`Transform2D`](modor_physics::Transform2D) component
 ///
 /// # Related components
 ///
@@ -39,6 +40,7 @@ pub struct InstanceRendering2D {
     pub camera_key: ResKey<Camera2D>,
     /// Key of the [`Material`] used to render the instances.
     pub material_key: ResKey<Material>,
+    pub(crate) is_transparent: bool,
 }
 
 #[systems]
@@ -55,13 +57,14 @@ impl InstanceRendering2D {
             mesh_key: RECTANGLE_MESH,
             camera_key,
             material_key,
+            is_transparent: false,
         }
     }
 
     #[run_after(component(MaterialRegistry), component(Material))]
-    fn update_shader_key(&mut self, materials: Custom<ResourceAccessor<'_, Material>>) {
-        self.shader_key = materials
-            .get(self.material_key)
-            .map(|material| material.shader_key);
+    fn update(&mut self, materials: Custom<ResourceAccessor<'_, Material>>) {
+        let material = materials.get(self.material_key);
+        self.shader_key = material.map(|material| material.shader_key);
+        self.is_transparent = material.map_or(false, Material::is_transparent);
     }
 }

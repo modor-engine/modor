@@ -219,8 +219,8 @@ impl RenderTarget {
                 .surface_texture_format
                 .expect("internal error: cannot determine window format");
             let mut pass = target.begin_render_pass(self.background_color, context);
-            for rendering in instance_renderings.iter().sorted_unstable() {
-                self.render_opaque_instances(
+            for rendering in Self::sorted_opaque_renderings(&instance_renderings) {
+                self.render_instances(
                     &mut pass,
                     RenderingMode::Opaque,
                     None,
@@ -233,7 +233,7 @@ impl RenderTarget {
             for (rendering, instance_group, i) in
                 Self::sorted_transparent_instances(&instance_renderings, &resources)
             {
-                self.render_opaque_instances(
+                self.render_instances(
                     &mut pass,
                     RenderingMode::Transparent(instance_group, i),
                     None,
@@ -253,7 +253,7 @@ impl RenderTarget {
         self.texture = if let (Some(mut target), Some(texture)) = (self.texture.take(), texture) {
             let mut pass = target.begin_render_pass(texture, self.background_color, context);
             for instance_rendering in instance_renderings.iter().sorted_unstable() {
-                self.render_opaque_instances(
+                self.render_instances(
                     &mut pass,
                     RenderingMode::Opaque,
                     Some(texture.key()),
@@ -266,7 +266,7 @@ impl RenderTarget {
             for (rendering, instance_group, i) in
                 Self::sorted_transparent_instances(&instance_renderings, &resources)
             {
-                self.render_opaque_instances(
+                self.render_instances(
                     &mut pass,
                     RenderingMode::Transparent(instance_group, i),
                     Some(texture.key()),
@@ -299,7 +299,7 @@ impl RenderTarget {
     }
 
     #[allow(clippy::cast_possible_truncation, clippy::too_many_arguments)]
-    fn render_opaque_instances<'a>(
+    fn render_instances<'a>(
         &mut self,
         pass: &mut RenderPass<'a>,
         mode: RenderingMode<'a>,
@@ -314,13 +314,6 @@ impl RenderTarget {
             return None;
         }
         let material = resources.materials.get(rendering.material_key)?;
-        let skip = match mode {
-            RenderingMode::Opaque => material.is_transparent(),
-            RenderingMode::Transparent(_, _) => !material.is_transparent(),
-        };
-        if skip {
-            return None;
-        }
         let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
         let texture = self.texture(
             rendering.material_key,
@@ -392,12 +385,22 @@ impl RenderTarget {
         resources.textures.get(texture_key)
     }
 
+    fn sorted_opaque_renderings<'a>(
+        instance_renderings: &'a Query<'_, &InstanceRendering2D>,
+    ) -> impl Iterator<Item = &'a InstanceRendering2D> {
+        instance_renderings
+            .iter()
+            .filter(|rendering| !rendering.is_transparent)
+            .sorted_unstable()
+    }
+
     fn sorted_transparent_instances<'a>(
         instance_renderings: &'a Query<'_, &InstanceRendering2D>,
         resources: &'a Custom<RenderingResources<'_>>,
     ) -> impl Iterator<Item = (&'a InstanceRendering2D, &'a InstanceGroup2D, usize)> {
         instance_renderings
             .iter()
+            .filter(|rendering| rendering.is_transparent)
             .filter_map(|rendering| {
                 resources
                     .instance_groups

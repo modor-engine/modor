@@ -28,7 +28,7 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// # Related components
 ///
 /// - [`Transform2D`]
-/// - [`InstanceRendering`](crate::InstanceRendering)
+/// - [`InstanceRendering2D`](crate::InstanceRendering2D)
 /// - [`RenderTarget`]
 ///
 /// # Entity functions creating this component
@@ -75,7 +75,7 @@ pub struct Camera2D {
     /// Keys of the [`RenderTarget`]s where the camera should be used.
     ///
     /// If the camera is used for a target, all associated
-    /// [`InstanceRendering`](crate::InstanceRendering)s will be performed in this target.
+    /// [`InstanceRendering2D`](crate::InstanceRendering2D)s will be performed in this target.
     pub target_keys: Vec<ResKey<RenderTarget>>,
     key: ResKey<Self>,
     transform: Transform2D,

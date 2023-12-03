@@ -107,15 +107,6 @@ where
     }
 }
 
-impl<T> From<DynamicBuffer<T>> for Vec<T>
-where
-    T: Debug,
-{
-    fn from(value: DynamicBuffer<T>) -> Self {
-        value.data
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum DynamicBufferUsage {
     Vertex,

@@ -8,12 +8,12 @@
 /// # Requirements
 ///
 /// The component is effective only if:
-/// - [`Transform2D`](crate::Transform2D) component is in the same entity
+/// - [`Transform2D`](modor_physics::Transform2D) component is in the same entity
 /// - An [`InstanceGroup2D`](crate::InstanceGroup2D) is linked to the entity
 ///
 /// # Related components
 ///
-/// - [`Transform2D`](crate::Transform2D)
+/// - [`Transform2D`](modor_physics::Transform2D)
 /// - [`InstanceGroup2D`](crate::InstanceGroup2D)
 ///
 /// # Examples

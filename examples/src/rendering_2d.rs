@@ -9,8 +9,6 @@ use modor_resources::IndexResKey;
 use rand::Rng;
 use std::time::Duration;
 
-// TODO: compare performance
-
 const SPRITE_COUNT: usize = 1000;
 const COLORS: [Color; 10] = [
     Color::RED,

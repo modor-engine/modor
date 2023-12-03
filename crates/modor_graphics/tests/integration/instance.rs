@@ -42,8 +42,8 @@ fn create_from_filter() {
         .assert::<With<TextureBuffer>>(1, is_same("instance#empty"))
         .with_entity(
             instance(Vec2::new(0.25, 0.25))
-                .component(Displayed)
-                .component(Temporary),
+                .component(Temporary)
+                .component(Displayed),
         )
         .with_entity(instance(Vec2::new(-0.25, -0.25)))
         .with_entity(instance(Vec2::new(0.25, -0.25)).component(Displayed))

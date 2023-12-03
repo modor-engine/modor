@@ -17,7 +17,7 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// # Related components
 ///
-/// - [`InstanceRendering`](crate::InstanceRendering)
+/// - [`InstanceRendering2D`](crate::InstanceRendering2D)
 /// - [`Texture`]
 ///
 /// # Entity functions creating this component
