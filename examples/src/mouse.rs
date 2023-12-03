@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Single, SingleRef, SingletonComponent};
 use modor_graphics::{
-    model_2d, window_target, Camera2D, Color, Material, Model2DMaterial, Window, WINDOW_CAMERA_2D,
+    instance_2d, window_target, Camera2D, Color, Material, MaterialType, Window, WINDOW_CAMERA_2D,
 };
 use modor_input::Mouse;
 use modor_math::Vec2;
@@ -18,7 +18,7 @@ pub fn main() {
 }
 
 fn cursor() -> impl BuiltEntity {
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Ellipse)
+    instance_2d(WINDOW_CAMERA_2D, MaterialType::Ellipse)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.02)
         .component(CursorPosition::default())
 }

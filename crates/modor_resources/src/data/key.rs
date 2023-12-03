@@ -1,4 +1,7 @@
-#![allow(clippy::non_canonical_clone_impl)]
+#![allow(
+    clippy::non_canonical_clone_impl,
+    clippy::non_canonical_partial_ord_impl
+)]
 
 use crate::Resource;
 use derivative::Derivative;
@@ -23,13 +26,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
     Debug(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = ""),
     Hash(bound = "")
 )]
 pub struct ResKey<R> {
     id: ResKeyId,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     label: &'static str,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     phantom: PhantomData<fn(R)>,
 }
 
@@ -40,7 +43,7 @@ impl<R> ResKey<R> {
         R: Resource,
     {
         Self {
-            id: ResKeyId::Label(id),
+            id: ResKeyId::Label,
             label: id,
             phantom: PhantomData,
         }
@@ -72,16 +75,11 @@ impl<R> ResKey<R> {
         }
     }
 
-    /// Returns the ID that identifies the key.
-    pub const fn id(self) -> ResKeyId {
-        self.id
-    }
-
     /// Returns the key label used to identify the key for debugging purpose.
     pub fn label(self) -> String {
         match self.id {
-            ResKeyId::Label(label) => label.into(),
-            ResKeyId::LabeledIndex(label, index) => format!("{label}.{index}"),
+            ResKeyId::Label => self.label.into(),
+            ResKeyId::LabeledIndex(index) => format!("{}.{index}", self.label),
             ResKeyId::Index(index) => format!("{}#{index}", self.label),
         }
     }
@@ -144,7 +142,7 @@ impl<R> IndexResKey<R> {
     /// Creates a new key identified by the ID of the generator and `index`.
     pub const fn get(self, index: usize) -> ResKey<R> {
         ResKey {
-            id: ResKeyId::LabeledIndex(self.root.label, index),
+            id: ResKeyId::LabeledIndex(index),
             label: self.root.label,
             phantom: PhantomData,
         }
@@ -152,12 +150,12 @@ impl<R> IndexResKey<R> {
 }
 
 /// The ID of a [`ResKey`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ResKeyId {
     /// The key is identified by a label.
-    Label(&'static str),
+    Label,
     /// The key is identified by a label and an index.
-    LabeledIndex(&'static str, usize),
+    LabeledIndex(usize),
     /// The key is identified by an index.
     Index(u64),
 }

@@ -1,12 +1,12 @@
 use crate::Text;
 use modor::BuiltEntity;
-use modor_graphics::{model_2d, Camera2D, Material, Model2DMaterial, Size, Texture};
+use modor_graphics::{instance_2d, Camera2D, Material, MaterialType, Size, Texture};
 use modor_resources::ResKey;
 
 /// Creates a 2D text entity.
 ///
 /// The created entity contains the following components:
-/// - All components created by [`model_2d`](model_2d()), including [`Material`]
+/// - All components created by [`instance_2d`](instance_2d()), including [`Material`]
 /// - [`Text`]
 /// - [`Texture`]
 ///
@@ -46,7 +46,7 @@ pub fn text_2d(
     font_height: f32,
 ) -> impl BuiltEntity {
     let texture_key = ResKey::unique("text-2d(modor_text)");
-    model_2d(camera_key, Model2DMaterial::Rectangle)
+    instance_2d(camera_key, MaterialType::Rectangle)
         .updated(|m: &mut Material| m.front_texture_key = Some(texture_key))
         .component(Texture::from_size(texture_key, Size::ZERO))
         .component(Text::new(text, font_height))

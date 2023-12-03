@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Component, SingleRef};
 use modor_graphics::{
-    model_2d, window_target, Color, Material, Model2DMaterial, RenderTarget, Sprite, Texture,
+    instance_2d, window_target, Color, Material, MaterialType, RenderTarget, Sprite, Texture,
     TextureAnimation, WINDOW_CAMERA_2D,
 };
 use modor_input::{Key, Keyboard};
@@ -23,7 +23,7 @@ fn window() -> impl BuiltEntity {
 fn character() -> impl BuiltEntity {
     let texture_key = ResKey::unique("character");
     let sprites = Direction::Down.stopped_sprites();
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.15)
         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
         .component(Dynamics2D::new())

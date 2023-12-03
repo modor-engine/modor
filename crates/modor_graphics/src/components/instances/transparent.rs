@@ -29,7 +29,7 @@ impl TransparentInstanceRegistry {
             self.buffer = Some(DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
-                "transparent_instances",
+                "modor_instance_buffer_transparent",
                 &context.device,
             ));
         }

@@ -1,18 +1,20 @@
-/// The Z-index of a rendered 2D [`Model`](crate::Model).
+/// The Z-index of a rendered 2D instance.
 ///
 /// It is created from a [`u16`] value, where `0` is the farthest from the camera,
 /// and [`u16::MAX`] the closest to the camera.
 ///
-/// By default, the z-index of a [`Model`](crate::Model) is `0`.
+/// By default, the z-index of an instance is `0`.
 ///
 /// # Requirements
 ///
 /// The component is effective only if:
-/// - [`Model`](crate::Model) component is in the same entity
+/// - [`Transform2D`](crate::Transform2D) component is in the same entity
+/// - An [`InstanceGroup2D`](crate::InstanceGroup2D) is linked to the entity
 ///
 /// # Related components
 ///
-/// - [`Model`](crate::Model)
+/// - [`Transform2D`](crate::Transform2D)
+/// - [`InstanceGroup2D`](crate::InstanceGroup2D)
 ///
 /// # Examples
 ///
@@ -28,13 +30,13 @@
 /// const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
 ///
 /// fn foreground() -> impl BuiltEntity {
-///     model_2d(CAMERA, Model2DMaterial::Rectangle)
+///     instance_2d(CAMERA, MaterialType::Rectangle)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
 ///         .component(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
-///     model_2d(CAMERA, Model2DMaterial::Rectangle)
+///     instance_2d(CAMERA, MaterialType::Rectangle)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE)
 ///         .component(ZIndex2D::from(0))
 /// }

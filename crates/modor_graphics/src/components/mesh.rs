@@ -69,7 +69,7 @@ impl Mesh {
                 self.vertex_buffer = Some(DynamicBuffer::new(
                     self.vertices.clone(),
                     DynamicBufferUsage::Vertex,
-                    format!("modor_vertex_buffer_{:?}", self.key),
+                    format!("modor_vertex_buffer_{}", self.key.label()),
                     &context.device,
                 ));
             }
@@ -77,7 +77,7 @@ impl Mesh {
                 self.index_buffer = Some(DynamicBuffer::new(
                     self.indices.clone(),
                     DynamicBufferUsage::Index,
-                    format!("modor_index_buffer_{:?}", self.key),
+                    format!("modor_index_buffer_{}", self.key.label()),
                     &context.device,
                 ));
             }

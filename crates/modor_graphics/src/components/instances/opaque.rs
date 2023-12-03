@@ -239,7 +239,7 @@ impl InstanceGroup {
             buffer: DynamicBuffer::new(
                 vec![],
                 DynamicBufferUsage::Instance,
-                format!("opaque_instances_{key:?}"),
+                format!("modor_instance_buffer_opaque_{key:?}"),
                 &context.device,
             ),
             entity_ids: vec![],

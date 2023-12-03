@@ -58,7 +58,7 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
-///     model_2d(CAMERA, Model2DMaterial::Rectangle)
+///     instance_2d(CAMERA, MaterialType::Rectangle)
 ///         .updated(|m: &mut Material| m.texture_key = Some(TEXTURE))
 /// }
 /// ```
@@ -195,7 +195,7 @@ impl Texture {
 
     fn create_texture(&self, image: &RgbaImage, context: &GpuContext) -> wgpu::Texture {
         context.device.create_texture(&TextureDescriptor {
-            label: Some(&format!("modor_texture_{:?}", self.key)),
+            label: Some(&format!("modor_texture_{}", self.key.label())),
             size: Extent3d {
                 width: image.width(),
                 height: image.height(),
@@ -220,7 +220,7 @@ impl Texture {
             AddressMode::ClampToEdge
         };
         context.device.create_sampler(&SamplerDescriptor {
-            label: Some(&format!("modor_texture_sampler_{:?}", self.key)),
+            label: Some(&format!("modor_texture_sampler_{}", self.key.label())),
             address_mode_u: address_mode,
             address_mode_v: address_mode,
             address_mode_w: address_mode,
@@ -257,7 +257,7 @@ impl Texture {
                     resource: BindingResource::Sampler(sampler),
                 },
             ],
-            label: Some(&format!("modor_texture_bind_group_{:?}", self.key)),
+            label: Some(&format!("modor_texture_bind_group_{}", self.key.label())),
         })
     }
 

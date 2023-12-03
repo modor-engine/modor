@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    model_2d, texture_target, Camera2D, Color, Material, Model2DMaterial, Size, TEXTURE_TARGETS,
+    instance_2d, texture_target, Camera2D, Color, Material, MaterialType, Size, TEXTURE_TARGETS,
 };
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
@@ -165,7 +165,7 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn model() -> impl BuiltEntity {
-    model_2d(CAMERA, Model2DMaterial::Rectangle)
+    instance_2d(CAMERA, MaterialType::Rectangle)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Material| m.color = Color::BLUE)

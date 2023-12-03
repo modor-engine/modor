@@ -19,6 +19,7 @@ futures.workspace = true
 gilrs.workspace = true
 image.workspace = true
 instant.workspace = true
+itertools.workspace = true
 log.workspace = true
 spin_sleep.workspace = true
 typed-index-collections.workspace = true

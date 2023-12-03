@@ -34,7 +34,7 @@
 //! }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
-//!     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+//!     instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
 //!         .updated(|t: &mut Transform2D| t.position = position)
 //!         .updated(|t: &mut Transform2D| t.size = size)
 //!         .updated(|m: &mut Material| m.color = Color::RED)
@@ -62,8 +62,9 @@ pub use components::animation::*;
 pub use components::anti_aliasing::*;
 pub use components::camera::*;
 pub use components::frame_rate::*;
+pub use components::instance_group::*;
+pub use components::instance_rendering::*;
 pub use components::material::*;
-pub use components::model::*;
 pub use components::render_target::*;
 pub use components::renderer::*;
 pub use components::texture::*;
@@ -72,7 +73,7 @@ pub use components::window::*;
 pub use components::z_index::*;
 pub use data::color::*;
 pub use data::size::*;
-pub use entities::models::*;
+pub use entities::instances::*;
 pub use entities::module::*;
 pub use entities::targets::*;
 pub use runner::*;
