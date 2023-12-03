@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, EntityMut, With};
 use modor_graphics::testing::TestRunnerContext;
 use modor_graphics::{
-    model_2d, testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material,
-    Model2DMaterial, RenderTarget, Size, Window, WindowCloseBehavior,
+    instance_2d, testing, AntiAliasing, AntiAliasingMode, Camera2D, Color, FrameRate, Material,
+    MaterialType, RenderTarget, Size, Window, WindowCloseBehavior,
 };
 use modor_resources::ResKey;
 use std::thread;
@@ -202,11 +202,11 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 }
 
 fn opaque_rectangle() -> impl BuiltEntity {
-    model_2d(CAMERA, Model2DMaterial::Rectangle)
+    instance_2d(CAMERA, MaterialType::Rectangle)
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
-    model_2d(CAMERA, Model2DMaterial::Rectangle)
+    instance_2d(CAMERA, MaterialType::Rectangle)
         .updated(|m: &mut Material| m.color = Color::WHITE.with_alpha(0.5))
 }
 

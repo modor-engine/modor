@@ -1,6 +1,5 @@
 use crate::components::camera::Camera2DRegistry;
-use crate::components::instances::opaque::OpaqueInstanceRegistry;
-use crate::components::instances::transparent::TransparentInstanceRegistry;
+use crate::components::instance_group::InstanceGroup2DRegistry;
 use crate::components::material::MaterialRegistry;
 use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::RenderTargetRegistry;
@@ -40,14 +39,13 @@ pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
         .component(GraphicsModule)
         .component(Renderer::new())
-        .component(OpaqueInstanceRegistry::default())
-        .component(TransparentInstanceRegistry::default())
         .component(RenderTargetRegistry::default())
         .component(Camera2DRegistry::default())
         .component(ShaderRegistry::default())
         .component(MeshRegistry::default())
         .component(MaterialRegistry::default())
         .component(TextureRegistry::default())
+        .component(InstanceGroup2DRegistry::default())
         .child_component(Shader::default())
         .child_component(Shader::ellipse())
         .child_component(Mesh::rectangle())

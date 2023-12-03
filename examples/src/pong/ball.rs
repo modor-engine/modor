@@ -4,7 +4,7 @@ use crate::pong::paddles;
 use crate::pong::scores::{LeftScore, RightScore};
 use instant::Instant;
 use modor::{systems, BuiltEntity, Query, SingleMut, SingleRef, SingletonComponent, World};
-use modor_graphics::{model_2d, Model2DMaterial, WINDOW_CAMERA_2D};
+use modor_graphics::{instance_2d, MaterialType, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{Collider2D, Dynamics2D, Transform2D};
 use rand::Rng;
@@ -15,7 +15,7 @@ const INITIAL_SPEED: f32 = 0.6;
 const ACCELERATION: f32 = 0.05;
 
 pub(crate) fn ball() -> impl BuiltEntity {
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Ellipse)
+    instance_2d(WINDOW_CAMERA_2D, MaterialType::Ellipse)
         .updated(|t: &mut Transform2D| t.position = Vec2::ZERO)
         .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())

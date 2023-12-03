@@ -8,7 +8,7 @@ use modor_resources::{ResKey, Resource, ResourceAccessor, ResourceRegistry, Reso
 
 pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 
-/// The aspect of a rendered [`Model`](crate::Model).
+/// The aspect of a rendered instance.
 ///
 /// # Requirements
 ///
@@ -17,11 +17,12 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// # Related components
 ///
-/// - [`Model`](crate::Model)
+/// - [`InstanceRendering2D`](crate::InstanceRendering2D)
+/// - [`Texture`]
 ///
 /// # Entity functions creating this component
 ///
-/// - [`model_2d`](crate::model_2d())
+/// - [`instance_2d`](crate::instance_2d())
 ///
 /// # Performance
 ///
@@ -61,7 +62,7 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// }
 ///
 /// fn sprite(position: Vec2) -> impl BuiltEntity {
-///     model_2d(CAMERA, Model2DMaterial::Key(TL_TEXTURE_MATERIAL))
+///     instance_2d(CAMERA, MaterialType::Key(TL_TEXTURE_MATERIAL))
 ///         .updated(|t: &mut Transform2D| t.position = position)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.1, 0.1))
 /// }
@@ -126,10 +127,9 @@ pub struct Material {
     /// Default is [`Color::BLACK`].
     pub front_color: Color,
     pub(crate) shader_key: ResKey<Shader>,
+    pub(crate) is_transparent: bool,
     key: ResKey<Self>,
     uniform: Option<Uniform<MaterialData>>,
-    is_transparent: bool,
-    old_is_transparent: bool,
     renderer_version: Option<u8>,
 }
 
@@ -155,11 +155,10 @@ impl Material {
             texture_size: Vec2::ONE,
             front_texture_key: None,
             front_color: Color::BLACK,
-            key,
             shader_key,
-            uniform: None,
             is_transparent: false,
-            old_is_transparent: false,
+            key,
+            uniform: None,
             renderer_version: None,
         }
     }
@@ -187,7 +186,7 @@ impl Material {
                     data,
                     Self::BINDING,
                     &context.material_bind_group_layout,
-                    &format!("material_{:?}", &self.key),
+                    &format!("material_{}", &self.key.label()),
                     &context.device,
                 ));
             }
@@ -196,20 +195,9 @@ impl Material {
 
     #[run_after(component(TextureRegistry), component(Texture))]
     fn update_transparency(&mut self, textures: Custom<ResourceAccessor<'_, Texture>>) {
-        self.old_is_transparent = self.is_transparent;
-        if !self.is_transparent {
-            self.is_transparent = (self.color.a > 0. && self.color.a < 1.)
-                || Self::is_texture_transparent(self.texture_key, &textures)
-                || Self::is_texture_transparent(self.front_texture_key, &textures);
-        }
-    }
-
-    pub(crate) fn is_transparent(&self) -> bool {
-        self.is_transparent
-    }
-
-    pub(crate) fn is_newly_transparent(&self) -> bool {
-        !self.old_is_transparent && self.is_transparent
+        self.is_transparent = (self.color.a > 0. && self.color.a < 1.)
+            || Self::is_texture_transparent(self.texture_key, &textures)
+            || Self::is_texture_transparent(self.front_texture_key, &textures);
     }
 
     pub(crate) fn uniform(&self) -> &Uniform<MaterialData> {

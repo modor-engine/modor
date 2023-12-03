@@ -28,6 +28,8 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// # Related components
 ///
 /// - [`Transform2D`]
+/// - [`InstanceRendering2D`](crate::InstanceRendering2D)
+/// - [`RenderTarget`]
 ///
 /// # Entity functions creating this component
 ///
@@ -43,16 +45,13 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 /// # use modor_graphics::*;
 /// # use modor_resources::*;
 /// #
-/// const DEFAULT_CAMERA: ResKey<Camera2D> = ResKey::new("default");
-/// const DYNAMIC_CAMERA: ResKey<Camera2D> = ResKey::new("dynamic");
+/// const CAMERA: ResKey<Camera2D> = ResKey::new("dynamic");
 /// const TARGET: ResKey<RenderTarget> = ResKey::new("main");
 ///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
 ///         .child_entity(render_target())
-///         .child_component(Camera2D::new(DEFAULT_CAMERA, TARGET))
-///         .child_entity(dynamic_camera())
-///         .child_entity(object())
+///         .child_entity(moving_camera())
 /// }
 ///
 /// fn render_target() -> impl BuiltEntity {
@@ -61,19 +60,13 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 ///         .component(RenderTarget::new(TARGET))
 /// }
 ///
-/// fn dynamic_camera() -> impl BuiltEntity {
+/// fn moving_camera() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .component(Camera2D::new(DYNAMIC_CAMERA, TARGET))
+///         .component(Camera2D::new(CAMERA, TARGET))
 ///         .component(Transform2D::new())
 ///         .with(|t| t.size = Vec2::ONE * 0.5) // zoom x2
 ///         .component(Dynamics2D::new())
 ///         .with(|d| d.velocity = Vec2::new(0.1, 0.2))
-/// }
-///
-/// fn object() -> impl BuiltEntity {
-///     model_2d(DYNAMIC_CAMERA, Model2DMaterial::Rectangle)
-///         .updated(|m: &mut Model| m.camera_keys.push(DEFAULT_CAMERA)) // add other camera
-///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.3, 0.1))
 /// }
 /// ```
 #[must_use]
@@ -81,8 +74,8 @@ pub(crate) type Camera2DRegistry = ResourceRegistry<Camera2D>;
 pub struct Camera2D {
     /// Keys of the [`RenderTarget`]s where the camera should be used.
     ///
-    /// If the camera is used for a target, all associated [`Model`](crate::Model)s will be rendered
-    /// in this target.
+    /// If the camera is used for a target, all associated
+    /// [`InstanceRendering2D`](crate::InstanceRendering2D)s will be performed in this target.
     pub target_keys: Vec<ResKey<RenderTarget>>,
     key: ResKey<Self>,
     transform: Transform2D,

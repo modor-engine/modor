@@ -1,4 +1,4 @@
-use crate::components::instances::Instance;
+use crate::components::instance_group::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
 use crate::{AntiAliasing, GpuContext, Renderer};
@@ -89,6 +89,12 @@ impl Shader {
         );
     }
 
+    pub(crate) fn pipeline(&self, texture_format: TextureFormat) -> &RenderPipeline {
+        self.pipelines
+            .get(&texture_format)
+            .expect("internal error: render pipeline not loaded")
+    }
+
     fn update_anti_aliasing(&mut self, anti_aliasing: Option<&AntiAliasing>, context: &GpuContext) {
         let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         if self.sample_count != sample_count {
@@ -121,12 +127,6 @@ impl Shader {
                 )
             });
         }
-    }
-
-    pub(crate) fn pipeline(&self, texture_format: TextureFormat) -> &RenderPipeline {
-        self.pipelines
-            .get(&texture_format)
-            .expect("internal error: render pipeline not loaded")
     }
 
     fn create_pipeline(

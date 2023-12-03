@@ -48,7 +48,7 @@ use std::time::Duration;
 ///         Sprite::new(1, 1),
 ///         Sprite::new(2, 1),
 ///     ];
-///     model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+///     instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
 ///         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
 ///         .component(TextureAnimation::new(3, 2, sprites))
 ///         .with(|a| a.frames_per_second = 5)

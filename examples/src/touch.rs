@@ -2,7 +2,7 @@ use modor::{
     systems, App, BuiltEntity, Component, Query, Single, SingleRef, SingletonComponent, World,
 };
 use modor_graphics::{
-    model_2d, window_target, Camera2D, Model, Model2DMaterial, Window, WINDOW_CAMERA_2D,
+    instance_2d, window_target, Camera2D, Material, MaterialType, Window, WINDOW_CAMERA_2D,
 };
 use modor_input::Fingers;
 use modor_math::Vec2;
@@ -17,7 +17,7 @@ pub fn main() {
 }
 
 fn finger_display(finger_id: u64) -> impl BuiltEntity {
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Ellipse)
+    instance_2d(WINDOW_CAMERA_2D, MaterialType::Ellipse)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .component(FingerPosition::new(finger_id))
 }
@@ -66,12 +66,12 @@ impl FingerPosition {
     }
 
     #[run_after_previous]
-    fn update_display(&self, transform: &mut Transform2D, model: &mut Model) {
+    fn update_display(&self, transform: &mut Transform2D, material: &mut Material) {
         if let Some(position) = self.1 {
-            model.camera_keys = vec![WINDOW_CAMERA_2D];
+            material.color.a = 1.;
             transform.position = position;
         } else {
-            model.camera_keys = vec![];
+            material.color.a = 0.;
         }
     }
 }

@@ -48,6 +48,7 @@ impl<'a> World<'a> {
                 None,
                 Box::new(|c| {
                     let entity_idx = entity.build_entity(c, None);
+                    c.delete_replaced_entities();
                     trace!("root entity created with ID {}", entity_idx.0);
                 }),
             );
@@ -70,6 +71,7 @@ impl<'a> World<'a> {
                 Some(parent_id.into()),
                 Box::new(move |c| {
                     let entity_idx = entity.build_entity(c, Some(parent_id.into()));
+                    c.delete_replaced_entities();
                     trace!(
                         "child entity created with ID `{}` for entity with ID {parent_id}", // no-coverage
                         entity_idx.0 // no-coverage

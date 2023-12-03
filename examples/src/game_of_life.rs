@@ -1,45 +1,43 @@
 use instant::Instant;
 use modor::{
-    systems, App, BuiltEntity, Component, Entity, Filter, NoSystem, Query, SingletonComponent,
-    With, World,
+    systems, App, BuiltEntity, Component, Entity, EntityBuilder, Filter, NoSystem, Query,
+    SingletonComponent, With, World,
 };
 use modor_graphics::{
-    model_2d, window_target, Color, Material, Model2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
+    instance_2d, instance_group_2d, window_target, Color, Material, MaterialType, ZIndex2D,
+    WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_resources::ResKey;
 use std::time::Duration;
 
 const GRID_SIZE: usize = 150;
 const REFRESH_PERIOD: Duration = Duration::from_millis(100);
 
-const ALIVE_CELL_MATERIAL: ResKey<Material> = ResKey::new("alive-cell");
-
 pub fn main() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(window_target())
-        .with_entity(alive_cell_material())
-        .with_entity(Grid::load())
+        .with_entity(alive_cell_instance_group())
         .with_entity(background())
+        .with_entity(Grid::load())
         .run(modor_graphics::runner);
 }
 
-fn alive_cell_material() -> Material {
-    let mut material = Material::new(ALIVE_CELL_MATERIAL);
-    material.color = Color::BLACK;
-    material
+fn background() -> impl BuiltEntity {
+    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
 }
 
-fn background() -> impl BuiltEntity {
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Rectangle)
+fn alive_cell_instance_group() -> impl BuiltEntity {
+    instance_group_2d::<With<AliveCell>>(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+        .updated(|m: &mut Material| m.color = Color::BLACK)
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
-    model_2d(WINDOW_CAMERA_2D, Model2DMaterial::Key(ALIVE_CELL_MATERIAL))
-        .updated(|t: &mut Transform2D| t.position = to_word_position(x, y))
-        .updated(|t: &mut Transform2D| t.size = Vec2::ONE / GRID_SIZE as f32)
+    EntityBuilder::new()
+        .component(Transform2D::new())
+        .with(|t| t.position = to_word_position(x, y))
+        .with(|t| t.size = Vec2::ONE / GRID_SIZE as f32)
         .component(ZIndex2D::from(1))
         .component(AliveCell)
 }

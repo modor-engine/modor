@@ -1,7 +1,5 @@
 use crate::components::camera::Camera2DRegistry;
-use crate::components::instances::opaque::OpaqueInstanceRegistry;
-use crate::components::instances::transparent::TransparentInstanceRegistry;
-use crate::components::instances::{GroupKey, Instance};
+use crate::components::instance_group::InstanceGroup2DRegistry;
 use crate::components::material::MaterialRegistry;
 use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::texture::TextureTarget;
@@ -9,14 +7,16 @@ use crate::components::render_target::window::WindowTarget;
 use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
-use crate::gpu_data::buffer::DynamicBuffer;
-use crate::{AntiAliasing, Camera2D, Color, FrameRate, Material, Renderer, Texture, Window};
-use modor::{Component, ComponentSystems, Custom, Single, SingleRef};
+use crate::{
+    AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D, Material,
+    Renderer, Texture, Window,
+};
+use itertools::Itertools;
+use modor::{Component, ComponentSystems, Custom, Query, Single, SingleRef};
 use modor_resources::{
     ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
 };
 use std::fmt::Debug;
-use std::ops::Range;
 use wgpu::{IndexFormat, RenderPass, TextureFormat};
 
 pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
@@ -189,8 +189,10 @@ impl RenderTarget {
     #[run_after(
         action(WindowTargetUpdate),
         action(TextureTargetUpdate),
-        component(OpaqueInstanceRegistry),
-        component(TransparentInstanceRegistry),
+        component(Renderer),
+        component(InstanceRendering2D),
+        component(InstanceGroup2DRegistry),
+        component(InstanceGroup2D),
         component(Camera2DRegistry),
         component(Camera2D),
         component(MaterialRegistry),
@@ -202,109 +204,85 @@ impl RenderTarget {
         component(TextureRegistry),
         component(Texture)
     )]
-    #[allow(clippy::too_many_arguments)]
     fn render(
         &mut self,
         texture: Option<&Texture>,
         renderer: SingleRef<'_, '_, Renderer>,
-        opaque_instances: SingleRef<'_, '_, OpaqueInstanceRegistry>,
-        transparent_instances: SingleRef<'_, '_, TransparentInstanceRegistry>,
-        cameras: Custom<ResourceAccessor<'_, Camera2D>>,
-        materials: Custom<ResourceAccessor<'_, Material>>,
-        shaders: Custom<ResourceAccessor<'_, Shader>>,
-        meshes: Custom<ResourceAccessor<'_, Mesh>>,
-        textures: Custom<ResourceAccessor<'_, Texture>>,
+        instance_renderings: Query<'_, &InstanceRendering2D>,
+        resources: Custom<RenderingResources<'_>>,
     ) {
         let Some(context) = renderer.get().state(&mut None).context() else {
             return; // no-coverage (cannot be easily tested)
         };
-        if let Some(target) = &mut self.window {
+        self.window = if let Some(mut target) = self.window.take() {
             let target_texture_format = context
                 .surface_texture_format
                 .expect("internal error: cannot determine window format");
             let mut pass = target.begin_render_pass(self.background_color, context);
-            for (group_key, instance_buffer) in opaque_instances.get().iter() {
-                Self::draw(
+            for rendering in Self::sorted_opaque_renderings(&instance_renderings) {
+                self.render_instances(
                     &mut pass,
-                    self.key,
-                    TargetType::Window,
+                    RenderingMode::Opaque,
+                    None,
                     target_texture_format,
-                    group_key,
-                    None,
-                    instance_buffer,
-                    None,
-                    &cameras,
-                    &materials,
-                    &shaders,
-                    &meshes,
-                    &textures,
-                    &mut self.is_texture_conflict_logged,
+                    TargetType::Window,
+                    rendering,
+                    &resources,
                 );
             }
-            for (group_key, instance_buffer, instance_range) in transparent_instances.get().iter() {
-                Self::draw(
+            for (rendering, instance_group, i) in
+                Self::sorted_transparent_instances(&instance_renderings, &resources)
+            {
+                self.render_instances(
                     &mut pass,
-                    self.key,
-                    TargetType::Window,
-                    target_texture_format,
-                    group_key,
+                    RenderingMode::Transparent(instance_group, i),
                     None,
-                    instance_buffer,
-                    Some(instance_range),
-                    &cameras,
-                    &materials,
-                    &shaders,
-                    &meshes,
-                    &textures,
-                    &mut self.is_texture_conflict_logged,
+                    target_texture_format,
+                    TargetType::Window,
+                    rendering,
+                    &resources,
                 );
             }
             drop(pass);
             target.end_render_pass(context);
             trace!("rendering done in window target `{:?}`", self.key);
-        }
-        if let (Some(target), Some(texture)) = (&mut self.texture, texture) {
+            Some(target)
+        } else {
+            None
+        };
+        self.texture = if let (Some(mut target), Some(texture)) = (self.texture.take(), texture) {
             let mut pass = target.begin_render_pass(texture, self.background_color, context);
-            for (group_key, instance_buffer) in opaque_instances.get().iter() {
-                Self::draw(
+            for instance_rendering in Self::sorted_opaque_renderings(&instance_renderings) {
+                self.render_instances(
                     &mut pass,
-                    self.key,
-                    TargetType::Texture,
-                    Shader::TEXTURE_FORMAT,
-                    group_key,
+                    RenderingMode::Opaque,
                     Some(texture.key()),
-                    instance_buffer,
-                    None,
-                    &cameras,
-                    &materials,
-                    &shaders,
-                    &meshes,
-                    &textures,
-                    &mut self.is_texture_conflict_logged,
+                    Shader::TEXTURE_FORMAT,
+                    TargetType::Texture,
+                    instance_rendering,
+                    &resources,
                 );
             }
-            for (group_key, instance_buffer, instance_range) in transparent_instances.get().iter() {
-                Self::draw(
+            for (rendering, instance_group, i) in
+                Self::sorted_transparent_instances(&instance_renderings, &resources)
+            {
+                self.render_instances(
                     &mut pass,
-                    self.key,
-                    TargetType::Texture,
-                    Shader::TEXTURE_FORMAT,
-                    group_key,
+                    RenderingMode::Transparent(instance_group, i),
                     Some(texture.key()),
-                    instance_buffer,
-                    Some(instance_range),
-                    &cameras,
-                    &materials,
-                    &shaders,
-                    &meshes,
-                    &textures,
-                    &mut self.is_texture_conflict_logged,
+                    Shader::TEXTURE_FORMAT,
+                    TargetType::Texture,
+                    rendering,
+                    &resources,
                 );
             }
             drop(pass);
             target.end_render_pass(context);
             trace!("rendering done in texture target `{:?}`", self.key);
-        }
+            Some(target)
+        } else {
+            None
+        };
     }
 
     pub(crate) fn surface_sizes(&self) -> impl Iterator<Item = (NonZeroSize, TargetType)> {
@@ -321,50 +299,40 @@ impl RenderTarget {
     }
 
     #[allow(clippy::cast_possible_truncation, clippy::too_many_arguments)]
-    fn draw<'a>(
+    fn render_instances<'a>(
+        &mut self,
         pass: &mut RenderPass<'a>,
-        target_key: ResKey<Self>,
-        target_type: TargetType,
-        target_texture_format: TextureFormat,
-        group_key: GroupKey,
+        mode: RenderingMode<'a>,
         target_texture_key: Option<ResKey<Texture>>,
-        instance_buffer: &'a DynamicBuffer<Instance>,
-        instance_range: Option<Range<usize>>,
-        cameras: &'a ResourceAccessor<'_, Camera2D>,
-        materials: &'a ResourceAccessor<'_, Material>,
-        shaders: &'a ResourceAccessor<'_, Shader>,
-        meshes: &'a ResourceAccessor<'_, Mesh>,
-        textures: &'a ResourceAccessor<'_, Texture>,
-        is_texture_conflict_logged: &mut bool,
+        target_texture_format: TextureFormat,
+        target_type: TargetType,
+        rendering: &InstanceRendering2D,
+        resources: &'a Custom<RenderingResources<'_>>,
     ) -> Option<()> {
-        let camera = cameras.get(group_key.camera_key)?;
-        if !camera.target_keys.contains(&target_key) {
+        let camera = resources.cameras.get(rendering.camera_key)?;
+        if !camera.target_keys.contains(&self.key) {
             return None;
         }
-        let material = materials.get(group_key.material_key)?;
+        let material = resources.materials.get(rendering.material_key)?;
         let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
-        let texture = Self::texture(
-            target_key,
-            group_key,
+        let texture = self.texture(
+            rendering.material_key,
             texture_key,
             target_texture_key,
-            textures,
-            is_texture_conflict_logged,
+            resources,
         )?;
         let texture_bind_ground = &texture.inner().bind_group;
         let front_texture_key = material.front_texture_key.unwrap_or(INVISIBLE_TEXTURE);
-        let front_texture = Self::texture(
-            target_key,
-            group_key,
+        let front_texture = self.texture(
+            rendering.material_key,
             front_texture_key,
             target_texture_key,
-            textures,
-            is_texture_conflict_logged,
+            resources,
         )?;
         let front_texture_bind_ground = &front_texture.inner().bind_group;
-        let shader = shaders.get(material.shader_key)?;
-        let mesh = meshes.get(group_key.mesh_key)?;
-        let camera_uniform = camera.uniform(target_key, target_type);
+        let shader = resources.shaders.get(material.shader_key)?;
+        let mesh = resources.meshes.get(rendering.mesh_key)?;
+        let camera_uniform = camera.uniform(self.key, target_type);
         let material_uniform = material.uniform();
         let vertex_buffer = mesh.vertex_buffer();
         let index_buffer = mesh.index_buffer();
@@ -373,37 +341,80 @@ impl RenderTarget {
         pass.set_bind_group(Shader::MATERIAL_GROUP, material_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::TEXTURE_GROUP, texture_bind_ground, &[]);
         pass.set_bind_group(Shader::FRONT_TEXTURE_GROUP, front_texture_bind_ground, &[]);
-        pass.set_vertex_buffer(0, vertex_buffer.buffer());
-        pass.set_vertex_buffer(1, instance_buffer.buffer());
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);
-        pass.draw_indexed(
-            0..(index_buffer.len() as u32),
-            0,
-            (instance_range.clone().map_or(0, |r| r.start) as u32)
-                ..(instance_range.map_or_else(|| instance_buffer.len(), |r| r.end) as u32),
-        );
+        pass.set_vertex_buffer(0, vertex_buffer.buffer());
+        match mode {
+            RenderingMode::Opaque => {
+                let instance_group = resources.instance_groups.get(rendering.group_key)?;
+                pass.set_vertex_buffer(1, instance_group.buffer().buffer());
+                pass.draw_indexed(
+                    0..(index_buffer.len() as u32),
+                    0,
+                    0..(instance_group.buffer().len() as u32),
+                );
+            }
+            RenderingMode::Transparent(instance_group, i) => {
+                pass.set_vertex_buffer(1, instance_group.buffer().buffer());
+                pass.draw_indexed(
+                    0..(index_buffer.len() as u32),
+                    0,
+                    i as u32..((i + 1) as u32),
+                );
+            }
+        }
         Some(())
     }
 
     fn texture<'a>(
-        target_key: ResKey<Self>,
-        group_key: GroupKey,
+        &mut self,
+        material_key: ResKey<Material>,
         texture_key: ResKey<Texture>,
         target_texture_key: Option<ResKey<Texture>>,
-        textures: &'a ResourceAccessor<'_, Texture>,
-        is_texture_conflict_logged: &mut bool,
+        resources: &'a Custom<RenderingResources<'_>>,
     ) -> Option<&'a Texture> {
         if target_texture_key == Some(texture_key) {
-            if !*is_texture_conflict_logged {
+            if !self.is_texture_conflict_logged {
                 error!(
                     "texture `{:?}` used at same time as render target `{:?}` and material `{:?}`",
-                    texture_key, target_key, group_key.material_key,
+                    texture_key, self.key, material_key,
                 );
-                *is_texture_conflict_logged = true;
+                self.is_texture_conflict_logged = true;
             }
             return None;
         }
-        textures.get(texture_key)
+        resources.textures.get(texture_key)
+    }
+
+    fn sorted_opaque_renderings<'a>(
+        instance_renderings: &'a Query<'_, &InstanceRendering2D>,
+    ) -> impl Iterator<Item = &'a InstanceRendering2D> {
+        instance_renderings
+            .iter()
+            .filter(|rendering| !rendering.is_transparent)
+            .sorted_unstable()
+    }
+
+    fn sorted_transparent_instances<'a>(
+        instance_renderings: &'a Query<'_, &InstanceRendering2D>,
+        resources: &'a Custom<RenderingResources<'_>>,
+    ) -> impl Iterator<Item = (&'a InstanceRendering2D, &'a InstanceGroup2D, usize)> {
+        instance_renderings
+            .iter()
+            .filter(|rendering| rendering.is_transparent)
+            .filter_map(|rendering| {
+                resources
+                    .instance_groups
+                    .get(rendering.group_key)
+                    .map(|group| (rendering, group))
+            })
+            .flat_map(|(rendering, group)| {
+                (0..group.buffer().len()).map(move |i| (rendering, group, i))
+            })
+            .sorted_unstable_by(|(rendering1, group1, i1), (rendering2, group2, i2)| {
+                let z1 = group1.buffer()[*i1].z();
+                let z2 = &group2.buffer()[*i2].z();
+                z1.total_cmp(z2).then(rendering1.cmp(rendering2))
+            })
     }
 }
 
@@ -449,6 +460,22 @@ enum TargetState {
     Loading,
     Loaded,
     Error(ResourceLoadingError),
+}
+
+#[derive(SystemParam)]
+struct RenderingResources<'a> {
+    instance_groups: Custom<ResourceAccessor<'a, InstanceGroup2D>>,
+    cameras: Custom<ResourceAccessor<'a, Camera2D>>,
+    materials: Custom<ResourceAccessor<'a, Material>>,
+    shaders: Custom<ResourceAccessor<'a, Shader>>,
+    meshes: Custom<ResourceAccessor<'a, Mesh>>,
+    textures: Custom<ResourceAccessor<'a, Texture>>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum RenderingMode<'a> {
+    Opaque,
+    Transparent(&'a InstanceGroup2D, usize),
 }
 
 mod core;

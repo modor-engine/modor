@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
-    model_2d, texture_target, Color, Material, Model2DMaterial, RenderTarget, Size, Texture,
+    instance_2d, texture_target, Color, Material, MaterialType, RenderTarget, Size, Texture,
     TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
@@ -176,7 +176,7 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Key(MATERIAL))
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), MaterialType::Key(MATERIAL))
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
 }
 

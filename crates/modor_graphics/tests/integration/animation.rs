@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityFilter, With};
 use modor_graphics::testing::has_component_diff;
 use modor_graphics::{
-    model_2d, texture_target, Material, Model2DMaterial, Size, Sprite, Texture, TextureAnimation,
+    instance_2d, texture_target, Material, MaterialType, Size, Sprite, Texture, TextureAnimation,
     TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_resources::testing::wait_resource_loading;
@@ -89,7 +89,7 @@ fn spritesheet_texture() -> Texture {
 }
 
 fn sprite(sprites: Vec<Sprite>, fps: u16) -> impl BuiltEntity {
-    model_2d(TEXTURE_CAMERAS_2D.get(0), Model2DMaterial::Rectangle)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), MaterialType::Rectangle)
         .updated(|m: &mut Material| m.texture_key = Some(SPRITESHEET_TEXTURE))
         .component(TextureAnimation::new(5, 9, sprites))
         .with(|a| a.frames_per_second = fps)
