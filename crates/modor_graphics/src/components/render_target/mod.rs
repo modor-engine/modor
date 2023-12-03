@@ -252,7 +252,7 @@ impl RenderTarget {
         };
         self.texture = if let (Some(mut target), Some(texture)) = (self.texture.take(), texture) {
             let mut pass = target.begin_render_pass(texture, self.background_color, context);
-            for instance_rendering in instance_renderings.iter().sorted_unstable() {
+            for instance_rendering in Self::sorted_opaque_renderings(&instance_renderings) {
                 self.render_instances(
                     &mut pass,
                     RenderingMode::Opaque,

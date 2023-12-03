@@ -127,9 +127,9 @@ pub struct Material {
     /// Default is [`Color::BLACK`].
     pub front_color: Color,
     pub(crate) shader_key: ResKey<Shader>,
+    pub(crate) is_transparent: bool,
     key: ResKey<Self>,
     uniform: Option<Uniform<MaterialData>>,
-    is_transparent: bool,
     renderer_version: Option<u8>,
 }
 
@@ -155,10 +155,10 @@ impl Material {
             texture_size: Vec2::ONE,
             front_texture_key: None,
             front_color: Color::BLACK,
-            key,
             shader_key,
-            uniform: None,
             is_transparent: false,
+            key,
+            uniform: None,
             renderer_version: None,
         }
     }
@@ -198,10 +198,6 @@ impl Material {
         self.is_transparent = (self.color.a > 0. && self.color.a < 1.)
             || Self::is_texture_transparent(self.texture_key, &textures)
             || Self::is_texture_transparent(self.front_texture_key, &textures);
-    }
-
-    pub(crate) fn is_transparent(&self) -> bool {
-        self.is_transparent
     }
 
     pub(crate) fn uniform(&self) -> &Uniform<MaterialData> {

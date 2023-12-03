@@ -65,6 +65,6 @@ impl InstanceRendering2D {
     fn update(&mut self, materials: Custom<ResourceAccessor<'_, Material>>) {
         let material = materials.get(self.material_key);
         self.shader_key = material.map(|material| material.shader_key);
-        self.is_transparent = material.map_or(false, Material::is_transparent);
+        self.is_transparent = material.map_or(false, |material| material.is_transparent);
     }
 }
