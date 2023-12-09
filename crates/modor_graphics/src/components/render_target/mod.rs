@@ -8,8 +8,8 @@ use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
 use crate::{
-    AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D, Material,
-    Renderer, Texture, Window,
+    errors, AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D,
+    Material, Renderer, Texture, Window,
 };
 use itertools::Itertools;
 use modor::{Component, ComponentSystems, Custom, Query, Single, SingleRef};
@@ -94,6 +94,7 @@ pub struct RenderTarget {
     window_state: TargetState,
     texture_state: TargetState,
     is_texture_conflict_logged: bool,
+    is_rendering_error_logged: bool,
     window_renderer_version: Option<u8>,
     texture_renderer_version: Option<u8>,
 }
@@ -110,6 +111,7 @@ impl RenderTarget {
             window_state: TargetState::NotLoaded,
             texture_state: TargetState::NotLoaded,
             is_texture_conflict_logged: false,
+            is_rendering_error_logged: false,
             window_renderer_version: None,
             texture_renderer_version: None,
         }
@@ -243,9 +245,14 @@ impl RenderTarget {
                     &resources,
                 );
             }
-            drop(pass);
-            target.end_render_pass(context);
-            trace!("rendering done in window target `{:?}`", self.key);
+            let result = errors::validate_wgpu(context, || drop(pass));
+            target.end_render_pass(context, result.is_ok());
+            trace!(
+                "rendering done in window target `{}` (error: {})", // no-coverage
+                self.key.label(),                                   // no-coverage
+                result.is_err()                                     // no-coverage
+            );
+            self.log_rendering_error(result);
             Some(target)
         } else {
             None
@@ -276,9 +283,15 @@ impl RenderTarget {
                     &resources,
                 );
             }
-            drop(pass);
-            target.end_render_pass(context);
-            trace!("rendering done in texture target `{:?}`", self.key);
+            let result = errors::validate_wgpu(context, || drop(pass));
+            dbg!(&result);
+            target.end_render_pass(context, result.is_ok());
+            trace!(
+                "rendering done in texture target `{}` (error: {})", // no-coverage
+                self.key.label(),                                    // no-coverage
+                result.is_err()                                      // no-coverage
+            );
+            self.log_rendering_error(result);
             Some(target)
         } else {
             None
@@ -375,8 +388,11 @@ impl RenderTarget {
         if target_texture_key == Some(texture_key) {
             if !self.is_texture_conflict_logged {
                 error!(
-                    "texture `{:?}` used at same time as render target `{:?}` and material `{:?}`",
-                    texture_key, self.key, material_key,
+                    "texture `{}` cannot be used to render instance in render target `{}` with \
+                    material `{}` because the texture is the target",
+                    texture_key.label(),
+                    self.key.label(),
+                    material_key.label(),
                 );
                 self.is_texture_conflict_logged = true;
             }
@@ -415,6 +431,18 @@ impl RenderTarget {
                 let z2 = &group2.buffer()[*i2].z();
                 z1.total_cmp(z2).then(rendering1.cmp(rendering2))
             })
+    }
+
+    fn log_rendering_error(&mut self, result: Result<(), wgpu::Error>) {
+        if !self.is_rendering_error_logged {
+            if let Err(error) = result {
+                error!(
+                    "error while rendering target `{}`: {error}",
+                    self.key.label()
+                );
+                self.is_rendering_error_logged = true;
+            }
+        }
     }
 }
 

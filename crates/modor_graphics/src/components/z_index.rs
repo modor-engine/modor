@@ -30,13 +30,13 @@
 /// const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
 ///
 /// fn foreground() -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Rectangle)
+///     instance_2d(CAMERA, None)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
 ///         .component(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Rectangle)
+///     instance_2d(CAMERA, None)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE)
 ///         .component(ZIndex2D::from(0))
 /// }

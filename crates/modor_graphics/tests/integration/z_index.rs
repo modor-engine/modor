@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    instance_2d, texture_target, Color, Material, MaterialType, Size, Texture, TextureBuffer,
-    ZIndex2D, TEXTURE_CAMERAS_2D,
+    instance_2d, texture_target, Color, Material, Size, Texture, TextureBuffer, ZIndex2D,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -185,7 +185,7 @@ fn transparent_green_front_texture_rectangle(position: f32, z_index: u16) -> imp
 }
 
 fn rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), MaterialType::Rectangle)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), None)
         .updated(|t: &mut Transform2D| t.position = Vec2::new(position, position))
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))

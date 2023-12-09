@@ -1,7 +1,7 @@
-use crate::components::shader::{Shader, DEFAULT_SHADER, ELLIPSE_SHADER};
+use crate::components::shader::Shader;
 use crate::components::texture::TextureRegistry;
 use crate::gpu_data::uniform::Uniform;
-use crate::{Color, Renderer, Texture, TextureAnimation};
+use crate::{Color, Renderer, Texture, TextureAnimation, DEFAULT_SHADER};
 use modor::{Custom, SingleRef};
 use modor_math::Vec2;
 use modor_resources::{ResKey, Resource, ResourceAccessor, ResourceRegistry, ResourceState};
@@ -22,6 +22,7 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// # Entity functions creating this component
 ///
+/// - [`instance_group_2d`](crate::instance_group_2d())
 /// - [`instance_2d`](crate::instance_2d())
 ///
 /// # Performance
@@ -31,50 +32,7 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 ///
 /// # Examples
 ///
-/// ```rust
-/// # use std::char::MAX;
-/// use modor::*;
-/// # use modor_physics::*;
-/// # use modor_math::*;
-/// # use modor_graphics::*;
-/// # use modor_resources::*;
-/// #
-/// const BLUE_ELLIPSE_MATERIAL: ResKey<Material> = ResKey::new("blue-ellipse");
-/// const FULL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("full-texture");
-/// const TL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("top-left-texture");
-/// const TR_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("top-right-texture");
-/// const BL_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("bottom-left-texture");
-/// const BR_TEXTURE_MATERIAL: ResKey<Material> = ResKey::new("bottom-right-texture");
-/// const TEXTURE: ResKey<Texture> = ResKey::new("sprite");
-/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
-///
-/// fn root() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .child_component(Material::ellipse(BLUE_ELLIPSE_MATERIAL))
-///         .with(|m| m.color = Color::BLUE)
-///         .child_component(Material::new(FULL_TEXTURE_MATERIAL))
-///         .with(|m| m.texture_key = Some(TEXTURE))
-///         .child_component(texture_quarter_material(TL_TEXTURE_MATERIAL, Vec2::new(0., 0.)))
-///         .child_component(texture_quarter_material(TR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.)))
-///         .child_component(texture_quarter_material(BL_TEXTURE_MATERIAL, Vec2::new(0., 0.5)))
-///         .child_component(texture_quarter_material(BR_TEXTURE_MATERIAL, Vec2::new(0.5, 0.5)))
-///         .child_entity(sprite(Vec2::new(0.4, 0.2)))
-/// }
-///
-/// fn sprite(position: Vec2) -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Key(TL_TEXTURE_MATERIAL))
-///         .updated(|t: &mut Transform2D| t.position = position)
-///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.1, 0.1))
-/// }
-///
-/// fn texture_quarter_material(key: ResKey<Material>, position: Vec2) -> Material {
-///     let mut material = Material::new(key);
-///     material.texture_key = Some(TEXTURE);
-///     material.texture_position = position;
-///     material.texture_size = Vec2::new(0.5, 0.5);
-///     material
-/// }
-/// ```
+/// See [`InstanceGroup2D`](crate::InstanceGroup2D).
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Material {
@@ -126,7 +84,10 @@ pub struct Material {
     ///
     /// Default is [`Color::BLACK`].
     pub front_color: Color,
-    pub(crate) shader_key: ResKey<Shader>,
+    /// Key of the [`Shader`].
+    ///
+    /// Default is [`DEFAULT_SHADER`].
+    pub shader_key: ResKey<Shader>,
     pub(crate) is_transparent: bool,
     key: ResKey<Self>,
     uniform: Option<Uniform<MaterialData>>,
@@ -139,15 +100,6 @@ impl Material {
 
     /// Creates a new material with a unique `key`.
     pub fn new(key: ResKey<Self>) -> Self {
-        Self::new_internal(key, DEFAULT_SHADER)
-    }
-
-    /// Creates a material with a unique `key` that crops the rendered model to obtain an ellipse.
-    pub fn ellipse(key: ResKey<Self>) -> Self {
-        Self::new_internal(key, ELLIPSE_SHADER)
-    }
-
-    fn new_internal(key: ResKey<Self>, shader_key: ResKey<Shader>) -> Self {
         Self {
             color: Color::WHITE,
             texture_key: None,
@@ -155,7 +107,7 @@ impl Material {
             texture_size: Vec2::ONE,
             front_texture_key: None,
             front_color: Color::BLACK,
-            shader_key,
+            shader_key: DEFAULT_SHADER,
             is_transparent: false,
             key,
             uniform: None,

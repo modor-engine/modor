@@ -34,7 +34,7 @@
 //! }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
-//!     instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+//!     instance_2d(WINDOW_CAMERA_2D, None)
 //!         .updated(|t: &mut Transform2D| t.position = position)
 //!         .updated(|t: &mut Transform2D| t.size = size)
 //!         .updated(|m: &mut Material| m.color = Color::RED)
@@ -51,6 +51,7 @@ extern crate log;
 mod components;
 mod data;
 mod entities;
+mod errors;
 mod gpu_data;
 mod input;
 mod platform;
@@ -67,6 +68,7 @@ pub use components::instance_rendering::*;
 pub use components::material::*;
 pub use components::render_target::*;
 pub use components::renderer::*;
+pub use components::shader::*;
 pub use components::texture::*;
 pub use components::texture_buffer::*;
 pub use components::window::*;

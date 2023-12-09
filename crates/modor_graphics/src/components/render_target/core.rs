@@ -115,12 +115,16 @@ impl TargetCore {
             })
     }
 
-    pub(crate) fn submit_command_queue(&mut self, context: &GpuContext) {
-        let encoder = self
-            .encoder
-            .take()
-            .expect("internal error: encoder not initialized");
-        context.queue.submit(Some(encoder.finish()));
+    pub(crate) fn submit_command_queue(&mut self, context: &GpuContext, send_encoder: bool) {
+        if send_encoder {
+            let encoder = self
+                .encoder
+                .take()
+                .expect("internal error: encoder not initialized");
+            context.queue.submit(Some(encoder.finish()));
+        } else {
+            self.encoder = None;
+        }
     }
 
     fn create_color_buffer_view(

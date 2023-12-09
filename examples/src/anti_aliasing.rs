@@ -2,8 +2,7 @@ use modor::{
     systems, App, BuiltEntity, NoSystem, Single, SingleMut, SingleRef, SingletonComponent,
 };
 use modor_graphics::{
-    instance_2d, window_target, AntiAliasing, Color, Material, MaterialType, ZIndex2D,
-    WINDOW_CAMERA_2D,
+    instance_2d, window_target, AntiAliasing, Color, Material, ZIndex2D, WINDOW_CAMERA_2D,
 };
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
@@ -23,7 +22,7 @@ pub fn main() {
 }
 
 fn object() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Material| m.color = Color::YELLOW)
