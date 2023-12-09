@@ -9,7 +9,5 @@ pub(crate) fn validate_wgpu<T>(
 ) -> Result<T, wgpu::Error> {
     context.device.push_error_scope(ErrorFilter::Validation);
     let value = f();
-    executor::block_on(context.device.pop_error_scope())
-        .map(|e| Err(e))
-        .unwrap_or(Ok(value))
+    executor::block_on(context.device.pop_error_scope()).map_or(Ok(value), |e| Err(e))
 }

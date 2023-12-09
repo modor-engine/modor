@@ -284,7 +284,6 @@ impl RenderTarget {
                 );
             }
             let result = errors::validate_wgpu(context, || drop(pass));
-            dbg!(&result);
             target.end_render_pass(context, result.is_ok());
             trace!(
                 "rendering done in texture target `{}` (error: {})", // no-coverage

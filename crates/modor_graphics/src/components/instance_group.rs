@@ -90,7 +90,7 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 ///         ))
 ///         .child_component(Material::new(material_key))
 ///         .with(|m| m.color = Color::GREEN)
-///         .with(|m| m.shader = ELLIPSE_SHADER)
+///         .with(|m| m.shader_key = ELLIPSE_SHADER)
 ///         .component(Transform2D::new())
 ///         .with(|t| t.position = position)
 ///         .with(|t| t.size = size)
