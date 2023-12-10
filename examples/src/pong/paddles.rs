@@ -3,7 +3,7 @@ use crate::pong::collisions::PADDLE_GROUP;
 use crate::pong::events::ResetEvent;
 use crate::pong::Side;
 use modor::{systems, BuiltEntity, Component, Single, SingleRef};
-use modor_graphics::{instance_2d, Camera2D, MaterialType, Window, WINDOW_CAMERA_2D};
+use modor_graphics::{instance_2d, Camera2D, Window, WINDOW_CAMERA_2D};
 use modor_input::{Fingers, Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{Collider2D, Dynamics2D, Transform2D};
@@ -34,7 +34,7 @@ pub(crate) fn bot_paddle(side: Side) -> impl BuiltEntity {
 }
 
 fn paddle(side: Side) -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = Vec2::X * 0.4 * side.x_sign())
         .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())

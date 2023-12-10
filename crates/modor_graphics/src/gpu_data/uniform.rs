@@ -3,7 +3,6 @@ use crate::GpuContext;
 use bytemuck::Pod;
 use modor::{VariableSend, VariableSync};
 use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
 use wgpu::{BindGroup, BindGroupLayout, BindingResource, Device};
 
 #[derive(Debug)]
@@ -44,6 +43,10 @@ where
         }
     }
 
+    pub(crate) fn get_mut(&mut self) -> &mut T {
+        &mut self.buffer[0]
+    }
+
     pub(crate) fn is_changed(&self) -> bool {
         self.buffer.is_changed()
     }
@@ -68,25 +71,5 @@ where
             entries: &[wgpu::BindGroupEntry { binding, resource }],
             label: Some(&format!("modor_uniform_bind_group_{label_suffix}")),
         })
-    }
-}
-
-impl<T> Deref for Uniform<T>
-where
-    T: Debug,
-{
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.buffer[0]
-    }
-}
-
-impl<T> DerefMut for Uniform<T>
-where
-    T: Debug,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.buffer[0]
     }
 }

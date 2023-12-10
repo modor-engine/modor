@@ -17,10 +17,6 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 
 /// A group of instances to render.
 ///
-/// As it is possible to use one [`InstanceGroup2D`] per instance to display, it is recommended to
-/// put all instances displayed with the same camera, material and mesh in the same
-/// [`InstanceGroup2D`] for better rendering performance.
-///
 /// # Requirements
 ///
 /// Instances are rendered only if:
@@ -38,6 +34,12 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 /// - [`instance_group_2d`](crate::instance_group_2d())
 /// - [`instance_2d`](crate::instance_2d())
 ///
+/// # Performance
+///
+/// As it is possible to use one [`InstanceGroup2D`] per instance to display, it is recommended to
+/// put all instances displayed with the same camera, material and mesh in the same
+/// [`InstanceGroup2D`] for better rendering performance.
+///
 /// # Examples
 ///
 /// ```rust
@@ -47,16 +49,8 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 /// # use modor_graphics::*;
 /// # use modor_resources::*;
 /// #
-/// const RED_RECTANGLE_MATERIAL: ResKey<Material> = ResKey::new("red-rectangle");
-/// const GREEN_ELLIPSE_MATERIAL: ResKey<Material> = ResKey::new("green-ellipse");
-/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
-///
 /// fn root() -> impl BuiltEntity {
 ///     EntityBuilder::new()
-///         .child_component(Material::new(RED_RECTANGLE_MATERIAL))
-///         .with(|m| m.color = Color::RED)
-///         .child_component(Material::ellipse(GREEN_ELLIPSE_MATERIAL))
-///         .with(|m| m.color = Color::GREEN)
 ///         .child_entity(red_rectangle_instance_group())
 ///         .child_entity(red_rectangle(Vec2::ZERO, Vec2::new(0.5, 0.2)))
 ///         .child_entity(red_rectangle(Vec2::new(-0.1, 0.2), Vec2::ONE * 0.1))
@@ -64,15 +58,18 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 /// }
 ///
 /// fn red_rectangle_instance_group() -> impl BuiltEntity {
-///     let group_key = ResKey::new("green-ellipse");
+///     let group_key = ResKey::new("red-rectangle");
+///     let material_key = ResKey::new("red-rectangle");
 ///     let filter = QueryFilter::new::<With<RedRectangle>>();
 ///     EntityBuilder::new()
 ///         .component(InstanceGroup2D::from_filter(group_key, filter))
 ///         .component(InstanceRendering2D::new(
 ///             group_key,
-///             CAMERA,
-///             RED_RECTANGLE_MATERIAL,
+///             WINDOW_CAMERA_2D,
+///             material_key,
 ///         ))
+///         .component(Material::new(material_key))
+///         .with(|m| m.color = Color::RED)
 /// }
 ///
 /// fn red_rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
@@ -84,14 +81,18 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 /// }
 ///
 /// fn green_ellipse(position: Vec2, size: Vec2) -> impl BuiltEntity {
-///     let group_key = ResKey::new("green-ellipse");
+///     let group_key = ResKey::unique("green-ellipse");
+///     let material_key = ResKey::unique("green-ellipse");
 ///     EntityBuilder::new()
 ///         .component(InstanceGroup2D::from_self(group_key))
 ///         .component(InstanceRendering2D::new(
 ///             group_key,
-///             CAMERA,
-///             GREEN_ELLIPSE_MATERIAL,
+///             WINDOW_CAMERA_2D,
+///             material_key,
 ///         ))
+///         .child_component(Material::new(material_key))
+///         .with(|m| m.color = Color::GREEN)
+///         .with(|m| m.shader_key = ELLIPSE_SHADER)
 ///         .component(Transform2D::new())
 ///         .with(|t| t.position = position)
 ///         .with(|t| t.size = size)

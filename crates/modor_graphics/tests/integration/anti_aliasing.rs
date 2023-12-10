@@ -2,7 +2,7 @@ use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
     instance_2d, texture_target, AntiAliasing, AntiAliasingMode, Color, GraphicsModule, Material,
-    MaterialType, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
+    Size, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -113,7 +113,7 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), MaterialType::Rectangle)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), None)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Material| m.color = Color::GREEN)

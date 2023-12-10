@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, has_pixel_diff, is_same};
 use modor_graphics::{
-    instance_2d, texture_target, Color, Material, MaterialType, RenderTarget, Size, Texture,
-    TextureBuffer, TEXTURE_CAMERAS_2D,
+    instance_2d, texture_target, Color, Material, RenderTarget, Size, Texture, TextureBuffer,
+    ELLIPSE_SHADER, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -134,14 +134,15 @@ fn configure_front_color_and_texture() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_ellipse() {
-    let mut material = Material::ellipse(MATERIAL);
+fn create_with_not_default_shader() {
+    let mut material = Material::new(MATERIAL);
     material.color = Color::GREEN;
     material.texture_key = Some(OPAQUE_TEXTURE);
     material.texture_position = Vec2::new(0.5, 0.);
     material.texture_size = Vec2::new(0.5, 1.);
     material.front_color = Color::RED;
     material.front_texture_key = Some(TRANSPARENT_TEXTURE);
+    material.shader_key = ELLIPSE_SHADER;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(resources())
@@ -176,7 +177,7 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), MaterialType::Key(MATERIAL))
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Some(MATERIAL))
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
 }
 

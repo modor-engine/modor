@@ -10,6 +10,12 @@ use crate::{Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 use modor_input::InputModule;
 use modor_physics::PhysicsModule;
+use modor_resources::ResKey;
+
+/// The key of a built-in [`Shader`] that display 2D instances as rectangles.
+pub const DEFAULT_SHADER: ResKey<Shader> = ResKey::new("default(modor_graphics)");
+/// The key of a built-in [`Shader`] that display 2D instances as ellipses.
+pub const ELLIPSE_SHADER: ResKey<Shader> = ResKey::new("ellipse(modor_graphics)");
 
 /// Creates the graphics module.
 ///
@@ -46,8 +52,14 @@ pub fn module() -> impl BuiltEntity {
         .component(MaterialRegistry::default())
         .component(TextureRegistry::default())
         .component(InstanceGroup2DRegistry::default())
-        .child_component(Shader::default())
-        .child_component(Shader::ellipse())
+        .child_component(Shader::from_string(
+            DEFAULT_SHADER,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")),
+        ))
+        .child_component(Shader::from_string(
+            ELLIPSE_SHADER,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
+        ))
         .child_component(Mesh::rectangle())
         .child_component(Texture::from_size(WHITE_TEXTURE, Size::ONE))
         .child_component(Texture::from_buffer(

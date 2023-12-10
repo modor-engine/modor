@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, texture_target, window_target, Camera2D, Color, Material, MaterialType,
+    instance_2d, texture_target, window_target, Camera2D, Color, InstanceRendering2D, Material,
     RenderTarget, Size, Texture, TextureBuffer, Window, TARGET_TEXTURES, TEXTURE_CAMERAS_2D,
     TEXTURE_TARGETS, WINDOW_CAMERA_2D, WINDOW_TARGET,
 };
@@ -94,7 +94,7 @@ fn render_target_in_target() {
         .with_entity(main_texture().component(RenderTarget::new(MAIN_TARGET)))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_target"))
-        .with_entity(blue_rectangle(MaterialType::Key(TARGET_MATERIAL)))
+        .with_entity(blue_rectangle(Some(TARGET_MATERIAL)))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
         .updated()
@@ -156,8 +156,11 @@ fn resource() -> impl BuiltEntity {
         .child_component(Material::new(TARGET_MATERIAL))
         .with(|m| m.texture_key = Some(SECONDARY_TARGET_TEXTURE))
         .child_entity(secondary_target())
-        .child_entity(blue_rectangle(MaterialType::Rectangle))
-        .child_entity(instance_2d(MAIN_CAMERA, MaterialType::Key(TARGET_MATERIAL)))
+        .child_entity(blue_rectangle(None))
+        .child_entity(
+            instance_2d(MAIN_CAMERA, None)
+                .updated(|r: &mut InstanceRendering2D| r.material_key = TARGET_MATERIAL),
+        )
 }
 
 fn secondary_target() -> impl BuiltEntity {
@@ -172,8 +175,8 @@ fn secondary_target() -> impl BuiltEntity {
         .component(SecondaryTarget)
 }
 
-fn blue_rectangle(material: MaterialType) -> impl BuiltEntity {
-    instance_2d(SECONDARY_CAMERA, material)
+fn blue_rectangle(material_key: Option<ResKey<Material>>) -> impl BuiltEntity {
+    instance_2d(SECONDARY_CAMERA, material_key)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Material| m.color = Color::BLUE)

@@ -57,8 +57,8 @@ assertion_functions!(
     ///     .assert::<With<TextureBuffer>>(1, is_same("texture"));
     /// # }
     /// ```
-    pub fn is_same(buffer: &TextureBuffer, key: &'static str) {
-        assert_texture(buffer, key, MaxTextureDiff::Zero);
+    pub fn is_same(buffer: &TextureBuffer, key: impl AsRef<str>) {
+        assert_texture(buffer, key.as_ref(), MaxTextureDiff::Zero);
     }
 
     /// Asserts the [`TextureBuffer`](TextureBuffer) is similar to the expected texture
@@ -114,13 +114,13 @@ assertion_functions!(
     /// ```
     pub fn has_component_diff(
         buffer: &TextureBuffer,
-        key: &'static str,
+        key: impl AsRef<str>,
         max_component_diff: u8,
         downscale_factor: u8,
     ) {
         assert_texture(
             buffer,
-            key,
+            key.as_ref(),
             MaxTextureDiff::Component(max_component_diff, downscale_factor),
         );
     }
@@ -176,10 +176,14 @@ assertion_functions!(
     ///     .assert::<With<TextureBuffer>>(1, has_pixel_diff("texture", 10));
     /// # }
     /// ```
-    pub fn has_pixel_diff(buffer: &TextureBuffer, key: &'static str, max_pixel_count_diff: usize) {
+    pub fn has_pixel_diff(
+        buffer: &TextureBuffer,
+        key: impl AsRef<str>,
+        max_pixel_count_diff: usize,
+    ) {
         assert_texture(
             buffer,
-            key,
+            key.as_ref(),
             MaxTextureDiff::PixelCount(max_pixel_count_diff),
         );
     }

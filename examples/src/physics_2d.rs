@@ -1,6 +1,7 @@
 use modor::{systems, App, BuiltEntity, Component, Single, SingleRef, World};
 use modor_graphics::{
-    instance_2d, window_target, Camera2D, Color, Material, MaterialType, Window, WINDOW_CAMERA_2D,
+    instance_2d, window_target, Camera2D, Color, Material, Shader, Window, DEFAULT_SHADER,
+    ELLIPSE_SHADER, WINDOW_CAMERA_2D,
 };
 use modor_input::{Fingers, Mouse, MouseButton};
 use modor_math::Vec2;
@@ -59,12 +60,11 @@ fn horizontal_wall(y: f32) -> impl BuiltEntity {
 }
 
 fn wall() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
-        .component(Collider2D::rectangle(WALL_GROUP))
+    instance_2d(WINDOW_CAMERA_2D, None).component(Collider2D::rectangle(WALL_GROUP))
 }
 
 fn cannon() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.05, CANNON_LENGTH))
         .component(Cannon)
 }
@@ -74,7 +74,7 @@ fn box_(position: Vec2, velocity: Vec2) -> impl BuiltEntity {
         position,
         velocity,
         RECTANGLE_INERTIA_FACTOR,
-        MaterialType::Rectangle,
+        DEFAULT_SHADER,
         Collider2D::rectangle(OBJECT_GROUP),
     )
 }
@@ -84,7 +84,7 @@ fn ball(position: Vec2, velocity: Vec2) -> impl BuiltEntity {
         position,
         velocity,
         CIRCLE_INERTIA_FACTOR,
-        MaterialType::Ellipse,
+        ELLIPSE_SHADER,
         Collider2D::circle(OBJECT_GROUP),
     )
 }
@@ -93,7 +93,7 @@ fn object(
     position: Vec2,
     velocity: Vec2,
     inertia_factor: f32,
-    material: MaterialType,
+    shader_key: ResKey<Shader>,
     collider: Collider2D,
 ) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
@@ -102,10 +102,11 @@ fn object(
         rng.gen_range(0.0..1.0),
         rng.gen_range(0.0..1.0),
     );
-    instance_2d(WINDOW_CAMERA_2D, material)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * OBJECT_RADIUS * 2.)
         .updated(|t: &mut Material| t.color = color)
+        .updated(|t: &mut Material| t.shader_key = shader_key)
         .component(Dynamics2D::new())
         .with(|d| d.velocity = velocity)
         .with(|d| d.force = -Vec2::Y * GRAVITY * OBJECT_MASS)

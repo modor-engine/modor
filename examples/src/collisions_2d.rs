@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Component, Single, SingleRef, TemporaryComponent, World};
 use modor_graphics::{
-    instance_2d, window_target, Camera2D, Color, Material, MaterialType, Window, ZIndex2D,
+    instance_2d, window_target, Camera2D, Color, Material, Window, ZIndex2D, ELLIPSE_SHADER,
     WINDOW_CAMERA_2D,
 };
 use modor_input::Mouse;
@@ -42,7 +42,7 @@ fn shape_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
 }
 
 fn cursor() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.05, 0.1))
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Material| m.color = Color::GREEN)
@@ -52,7 +52,7 @@ fn cursor() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = Vec2::X * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.3))
         .updated(|m: &mut Material| m.color = Color::CYAN)
@@ -61,10 +61,11 @@ fn rectangle() -> impl BuiltEntity {
 }
 
 fn circle() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Ellipse)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = -Vec2::X * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.4)
         .updated(|m: &mut Material| m.color = Color::CYAN)
+        .updated(|m: &mut Material| m.shader_key = ELLIPSE_SHADER)
         .component(Collider2D::circle(SHAPE_GROUP))
         .component(Shape)
 }
@@ -75,10 +76,11 @@ fn collision_mark(collision: &Collision2D, is_cursor: bool) -> impl BuiltEntity 
     } else {
         Color::DARK_GRAY
     };
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Ellipse)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = collision.position)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.02)
         .updated(|m: &mut Material| m.color = color)
+        .updated(|m: &mut Material| m.shader_key = ELLIPSE_SHADER)
         .component(ZIndex2D::from(if is_cursor { 2 } else { 3 }))
         .component(AutoRemoved)
         .child_entity(collision_penetration(collision, is_cursor))
@@ -96,7 +98,7 @@ fn collision_penetration(collision: &Collision2D, is_cursor: bool) -> impl Built
         .with_magnitude(0.0025)
         .unwrap_or_default();
     let position = collision.position - collision.penetration / 2. + lateral_offset;
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.005, collision.penetration.magnitude()))
         .updated(|t: &mut Transform2D| t.rotation = Vec2::Y.rotation(-collision.penetration))

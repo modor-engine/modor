@@ -9,10 +9,9 @@ use modor_resources::{
     ResourceSource, ResourceState,
 };
 use wgpu::{
-    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
-    FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Sampler, SamplerDescriptor,
-    TextureAspect, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
-    TextureViewDescriptor,
+    AddressMode, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Sampler,
+    SamplerDescriptor, TextureAspect, TextureDescriptor, TextureDimension, TextureUsages,
+    TextureView, TextureViewDescriptor,
 };
 
 pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
@@ -58,7 +57,7 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Rectangle)
+///     instance_2d(CAMERA, None)
 ///         .updated(|m: &mut Material| m.texture_key = Some(TEXTURE))
 /// }
 /// ```
@@ -77,6 +76,7 @@ pub struct Texture {
     ///
     /// Default is `false`.
     pub is_repeated: bool,
+    pub(crate) is_reloaded: bool,
     key: ResKey<Self>,
     handler: ResourceHandler<LoadedImage, TextureData>,
     texture: Option<LoadedTexture>,
@@ -91,6 +91,7 @@ impl Texture {
             key,
             is_smooth: true,
             is_repeated: false,
+            is_reloaded: false,
             handler: ResourceHandler::new(source.into()),
             texture: None,
             renderer_version: None,
@@ -128,6 +129,7 @@ impl Texture {
 
     #[run_after(component(Renderer))]
     fn update(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
+        self.is_reloaded = false;
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.texture = None;
@@ -168,10 +170,12 @@ impl Texture {
         Self::write_texture(&image, &texture, context);
         let view = texture.create_view(&TextureViewDescriptor::default());
         let sampler = self.create_sampler(context);
+        self.is_reloaded = true;
         LoadedTexture {
             texture,
+            view,
+            sampler,
             size: Size::new(image.width(), image.height()).into(),
-            bind_group: self.create_bind_group(&view, &sampler, context),
             is_transparent: image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255),
             is_repeated: self.is_repeated,
             is_smooth: self.is_smooth,
@@ -181,11 +185,11 @@ impl Texture {
     fn update_loaded_texture(&mut self, context: &GpuContext) {
         self.texture = if let Some(mut texture) = self.texture.take() {
             if texture.is_smooth != self.is_smooth || texture.is_repeated != self.is_repeated {
-                let view = texture
+                texture.view = texture
                     .texture
                     .create_view(&TextureViewDescriptor::default());
-                let sampler = self.create_sampler(context);
-                texture.bind_group = self.create_bind_group(&view, &sampler, context);
+                texture.sampler = self.create_sampler(context);
+                self.is_reloaded = true;
             }
             Some(texture)
         } else {
@@ -205,8 +209,8 @@ impl Texture {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: Shader::TEXTURE_FORMAT,
-            usage: TextureUsages::TEXTURE_BINDING // for attachment to models
-                | TextureUsages::COPY_DST // for attachment to models
+            usage: TextureUsages::TEXTURE_BINDING // for attachment to instances
+                | TextureUsages::COPY_DST // for attachment to instances
                 | TextureUsages::RENDER_ATTACHMENT // for rendering
                 | TextureUsages::COPY_SRC, // for rendering
             view_formats: &[],
@@ -236,28 +240,6 @@ impl Texture {
             compare: None,
             anisotropy_clamp: 1,
             border_color: None,
-        })
-    }
-
-    fn create_bind_group(
-        &self,
-        view: &TextureView,
-        sampler: &Sampler,
-        context: &GpuContext,
-    ) -> BindGroup {
-        context.device.create_bind_group(&BindGroupDescriptor {
-            layout: &context.texture_bind_group_layout,
-            entries: &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: BindingResource::TextureView(view),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: BindingResource::Sampler(sampler),
-                },
-            ],
-            label: Some(&format!("modor_texture_bind_group_{}", self.key.label())),
         })
     }
 
@@ -363,8 +345,9 @@ impl From<TextureSource> for ResourceSource<TextureData> {
 #[derive(Debug)]
 pub(crate) struct LoadedTexture {
     pub(crate) texture: wgpu::Texture,
+    pub(crate) view: TextureView,
+    pub(crate) sampler: Sampler,
     pub(crate) size: NonZeroSize,
-    pub(crate) bind_group: BindGroup,
     pub(crate) is_transparent: bool,
     pub(crate) is_repeated: bool,
     pub(crate) is_smooth: bool,
