@@ -10,7 +10,7 @@ struct MaterialUniform {
     front_color: vec4<f32>,
 }
 
-struct ModelVertex {
+struct Vertex {
     @location(0)
     position: vec3<f32>,
     @location(1)
@@ -58,7 +58,7 @@ var front_texture: texture_2d<f32>;
 var front_texture_sampler: sampler;
 
 @vertex
-fn vs_main(vertex: ModelVertex, instance: Instance) -> Fragment {
+fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
     let transform = mat4x4<f32>(
         instance.transform_0,
         instance.transform_1,

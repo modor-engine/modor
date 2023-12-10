@@ -176,12 +176,7 @@ fn secondary_target() -> impl BuiltEntity {
 }
 
 fn blue_rectangle(material_key: Option<ResKey<Material>>) -> impl BuiltEntity {
-    let material = if let Some(material_key) = material_key {
-        Some(material_key)
-    } else {
-        None
-    };
-    instance_2d(SECONDARY_CAMERA, material)
+    instance_2d(SECONDARY_CAMERA, material_key)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Material| m.color = Color::BLUE)

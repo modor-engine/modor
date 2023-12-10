@@ -27,7 +27,7 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 ///
 /// If a [`Texture`] component is in the same entity, then the rendering is performed in this
 /// texture. This texture can then be displayed in another render target.
-/// If the texture is used in its own render target, then the attached models are not displayed.
+/// If the texture is used in its own render target, then the attached instances are not displayed.
 ///
 /// # Requirements
 ///

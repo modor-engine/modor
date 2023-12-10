@@ -25,27 +25,22 @@ pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 /// - [`instance_group_2d`](crate::instance_group_2d())
 /// - [`instance_2d`](crate::instance_2d())
 ///
-/// # Performance
-///
-/// As models are rendered by batch based on the material, recreating the same material for each
-/// model is less performant than creating it once for all models.
-///
 /// # Examples
 ///
 /// See [`InstanceGroup2D`](crate::InstanceGroup2D).
 #[must_use]
 #[derive(Component, Debug)]
 pub struct Material {
-    /// Color of the rendered model.
+    /// Color of the rendered instance.
     ///
     /// This color is multiplied to the texture when a [`texture_key`](#structfield.texture_key)
     /// is defined.
     ///
     /// Default is [`Color::WHITE`].
     pub color: Color,
-    /// Key of the [`Texture`] used to render the model.
+    /// Key of the [`Texture`] used to render the instance.
     ///
-    /// If the texture is not loaded, then the models attached to the material are not rendered.
+    /// If the texture is not loaded, then the instances attached to the material are not rendered.
     ///
     /// Default is [`None`].
     pub texture_key: Option<ResKey<Texture>>,
@@ -66,7 +61,7 @@ pub struct Material {
     ///
     /// This texture is placed on top of the main texture defined using
     /// [`texture_key`](#structfield.texture_key). In contrary to the main texture, the initial
-    /// aspect ratio is always kept during rendering. For example with a rectangle model:
+    /// aspect ratio is always kept during rendering. For example with a rectangle instance:
     /// - Main texture is stretched to cover the whole rectangle, so the aspect ratio might not be
     /// kept.
     /// - Foreground texture is centered on the rectangle and keeps its aspect ratio,
@@ -75,7 +70,7 @@ pub struct Material {
     /// For example, the foreground texture is useful for rendering a text that should not be
     /// stretched.
     ///
-    /// If the texture is not loaded, then the models attached to the material are not rendered.
+    /// If the texture is not loaded, then the instances attached to the material are not rendered.
     ///
     /// Default is [`None`].
     pub front_texture_key: Option<ResKey<Texture>>,

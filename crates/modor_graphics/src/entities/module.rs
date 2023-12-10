@@ -12,7 +12,9 @@ use modor_input::InputModule;
 use modor_physics::PhysicsModule;
 use modor_resources::ResKey;
 
+/// The key of a built-in [`Shader`] that display 2D instances as rectangles.
 pub const DEFAULT_SHADER: ResKey<Shader> = ResKey::new("default(modor_graphics)");
+/// The key of a built-in [`Shader`] that display 2D instances as ellipses.
 pub const ELLIPSE_SHADER: ResKey<Shader> = ResKey::new("ellipse(modor_graphics)");
 
 /// Creates the graphics module.

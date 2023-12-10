@@ -205,8 +205,8 @@ impl Texture {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: Shader::TEXTURE_FORMAT,
-            usage: TextureUsages::TEXTURE_BINDING // for attachment to models
-                | TextureUsages::COPY_DST // for attachment to models
+            usage: TextureUsages::TEXTURE_BINDING // for attachment to instances
+                | TextureUsages::COPY_DST // for attachment to instances
                 | TextureUsages::RENDER_ATTACHMENT // for rendering
                 | TextureUsages::COPY_SRC, // for rendering
             view_formats: &[],

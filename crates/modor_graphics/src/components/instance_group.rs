@@ -17,10 +17,6 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 
 /// A group of instances to render.
 ///
-/// As it is possible to use one [`InstanceGroup2D`] per instance to display, it is recommended to
-/// put all instances displayed with the same camera, material and mesh in the same
-/// [`InstanceGroup2D`] for better rendering performance.
-///
 /// # Requirements
 ///
 /// Instances are rendered only if:
@@ -37,6 +33,12 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 ///
 /// - [`instance_group_2d`](crate::instance_group_2d())
 /// - [`instance_2d`](crate::instance_2d())
+///
+/// # Performance
+///
+/// As it is possible to use one [`InstanceGroup2D`] per instance to display, it is recommended to
+/// put all instances displayed with the same camera, material and mesh in the same
+/// [`InstanceGroup2D`] for better rendering performance.
 ///
 /// # Examples
 ///

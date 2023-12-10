@@ -36,10 +36,10 @@ use std::time::Duration;
 ///     let texture_key = ResKey::unique("spritesheet");
 ///     EntityBuilder::new()
 ///         .component(Texture::from_path(texture_key, "spritesheet.png"))
-///         .child_entity(animated_model(texture_key))
+///         .child_entity(animated_instance(texture_key))
 /// }
 ///
-/// fn animated_model(texture_key : ResKey<Texture>) -> impl BuiltEntity {
+/// fn animated_instance(texture_key : ResKey<Texture>) -> impl BuiltEntity {
 ///     let sprites = vec![
 ///         Sprite::new(0, 0),
 ///         Sprite::new(1, 0),

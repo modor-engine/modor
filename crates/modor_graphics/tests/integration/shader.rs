@@ -62,6 +62,7 @@ fn create_with(shader_filename: &str) {
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(instance(shader_key))
         .updated()
+        .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#empty"));
 }
 

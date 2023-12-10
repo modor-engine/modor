@@ -18,6 +18,124 @@ use wgpu::{
 
 pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 
+/// A shader that defines a rendering logic.
+///
+/// # Requirements
+///
+/// The shader is effective only if:
+/// - graphics [`module`](crate::module()) is initialized
+/// - the shader is linked to a [`Material`](crate::Material).
+///
+/// # Related components
+///
+/// - [`Material`](crate::Material)
+///
+/// # Built-in shaders
+///
+/// - [`DEFAULT_SHADER`](crate::DEFAULT_SHADER)
+/// - [`ELLIPSE_SHADER`](crate::ELLIPSE_SHADER)
+///
+/// # Code
+///
+/// This component only supports code in [WGSL](https://www.w3.org/TR/WGSL/) format.
+///
+/// # Examples
+///
+/// Example of supported WGSL code:
+/// ```wgsl
+/// struct CameraUniform {
+///     transform: mat4x4<f32>,
+/// };
+///
+/// struct MaterialUniform {
+///     color: vec4<f32>,
+///     texture_part_position: vec2<f32>,
+///     texture_part_size: vec2<f32>,
+///     front_color: vec4<f32>,
+/// }
+///
+/// struct Vertex {
+///     @location(0)
+///     position: vec3<f32>,
+///     @location(1)
+///     texture_position: vec2<f32>,
+/// };
+///
+/// struct Instance {
+///     @location(2)
+///     transform_0: vec4<f32>,
+///     @location(3)
+///     transform_1: vec4<f32>,
+///     @location(4)
+///     transform_2: vec4<f32>,
+///     @location(5)
+///     transform_3: vec4<f32>,
+/// };
+///
+/// struct Fragment {
+///     @builtin(position)
+///     position: vec4<f32>,
+/// };
+///
+/// @group(0)
+/// @binding(0)
+/// var<uniform> camera: CameraUniform;
+///
+/// @group(1)
+/// @binding(0)
+/// var<uniform> material: MaterialUniform;
+///
+/// @group(2)
+/// @binding(0)
+/// var texture: texture_2d<f32>;
+///
+/// @group(2)
+/// @binding(1)
+/// var texture_sampler: sampler;
+///
+/// @group(3)
+/// @binding(0)
+/// var front_texture: texture_2d<f32>;
+///
+/// @group(3)
+/// @binding(1)
+/// var front_texture_sampler: sampler;
+///
+/// @vertex
+/// fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
+///     let transform = mat4x4<f32>(
+///         instance.transform_0,
+///         instance.transform_1,
+///         instance.transform_2,
+///         instance.transform_3,
+///     );
+///     return Fragment(camera.transform * transform * vec4<f32>(vertex.position, 1.));
+/// }
+///
+/// @fragment
+/// fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
+///     // Just render the model in red.
+///     return vec4(1., 0., 0., 1.);
+/// }
+/// ```
+///
+/// It is highly recommended to define the same structure and bindings, as they correspond to the
+/// data sent to the shader.
+///
+/// Then the shader can be defined:
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_resources::*;
+/// #
+/// fn custom_instance() -> impl BuiltEntity {
+///     let shader_key = ResKey::unique("custom");
+///     instance_2d(WINDOW_CAMERA_2D, None)
+///         .updated(|m: &mut Material| m.shader_key = shader_key)
+///         // shader can also be defined outside this entity to be used by multiple instances
+///         .component(Shader::from_path(shader_key, "path/to/shader"))
+/// }
+/// ```
 #[derive(Component, Debug)]
 pub struct Shader {
     texture_count: u8,
@@ -46,6 +164,7 @@ impl Shader {
         >>::LAYOUT,
     ];
 
+    /// Creates a new shader identified by a unique `key` and created from code `source`.
     pub fn new(key: ResKey<Self>, source: ShaderSource) -> Self {
         Self {
             texture_count: 2,
@@ -59,10 +178,16 @@ impl Shader {
         }
     }
 
+    /// Creates a new shader identified by a unique `key` and created with given `code`.
+    ///
+    /// This method is equivalent to [`Shader::new`] with [`ShaderSource::String`] source.
     pub fn from_string(key: ResKey<Self>, code: &'static str) -> Self {
         Self::new(key, ShaderSource::String(code))
     }
 
+    /// Creates a new shader identified by a unique `key` and created with a given code file `path`.
+    ///
+    /// This method is equivalent to [`Shader::new`] with [`ShaderSource::Path`] source.
     pub fn from_path(key: ResKey<Self>, path: impl Into<String>) -> Self {
         Self::new(key, ShaderSource::Path(path.into()))
     }
@@ -254,10 +379,18 @@ impl Resource for Shader {
     }
 }
 
+/// The code source of a [`Shader`].
+///
+/// Sources loaded synchronously are ready after the next [`App`](modor::App) update. Sources loaded
+/// asynchronously can take more updates to be ready.
+///
+/// # Examples
+///
+/// See [`Shader`].
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum ShaderSource {
-    /// Shader loaded synchronously from given file bytes.
+    /// Shader loaded synchronously from given code.
     ///
     /// This variant is generally used in combination with [`include_str!`].
     String(&'static str),
