@@ -98,7 +98,6 @@ impl Shader {
             .expect("internal error: render pipeline not loaded")
     }
 
-    // TODO: test
     /// Sets the shader `source` and start reloading of the shader.
     ///
     /// If the previous source is already loaded, the shader remains valid until the new source
