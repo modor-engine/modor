@@ -197,41 +197,41 @@ impl Material {
         front_sampler: &Sampler,
         context: &GpuContext,
     ) {
-        self.bind_group = if let Some(buffer) = self.buffer.as_ref() {
-            Some(
-                context.device.create_bind_group(&BindGroupDescriptor {
-                    layout: shader
-                        .material_bind_group_layout
-                        .as_ref()
-                        .expect("internal error: material bind group not initialized"),
-                    entries: &[
-                        BindGroupEntry {
-                            binding: 0,
-                            resource: buffer.resource(),
-                        },
-                        BindGroupEntry {
-                            binding: 1,
-                            resource: BindingResource::TextureView(back_view),
-                        },
-                        BindGroupEntry {
-                            binding: 2,
-                            resource: BindingResource::Sampler(back_sampler),
-                        },
-                        BindGroupEntry {
-                            binding: 3,
-                            resource: BindingResource::TextureView(front_view),
-                        },
-                        BindGroupEntry {
-                            binding: 4,
-                            resource: BindingResource::Sampler(front_sampler),
-                        },
-                    ],
-                    label: Some(&format!("modor_bind_group_material_{}", self.key.label())),
-                }),
-            )
-        } else {
-            None
-        };
+        self.bind_group = Some(
+            context.device.create_bind_group(&BindGroupDescriptor {
+                layout: shader
+                    .material_bind_group_layout
+                    .as_ref()
+                    .expect("internal error: material bind group not initialized"),
+                entries: &[
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: self
+                            .buffer
+                            .as_ref()
+                            .expect("internal error: material buffer not initialized")
+                            .resource(),
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: BindingResource::TextureView(back_view),
+                    },
+                    BindGroupEntry {
+                        binding: 2,
+                        resource: BindingResource::Sampler(back_sampler),
+                    },
+                    BindGroupEntry {
+                        binding: 3,
+                        resource: BindingResource::TextureView(front_view),
+                    },
+                    BindGroupEntry {
+                        binding: 4,
+                        resource: BindingResource::Sampler(front_sampler),
+                    },
+                ],
+                label: Some(&format!("modor_bind_group_material_{}", self.key.label())),
+            }),
+        );
     }
 
     fn update_buffer(&mut self, context: &GpuContext) {
@@ -263,12 +263,8 @@ impl Resource for Material {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        if self.buffer.is_some() {
-            if self.bind_group.is_some() {
-                ResourceState::Loaded
-            } else {
-                ResourceState::Loading
-            }
+        if self.buffer.is_some() && self.bind_group.is_some() {
+            ResourceState::Loaded
         } else {
             ResourceState::NotLoaded
         }
