@@ -1,10 +1,12 @@
-use crate::components::shader::Shader;
-use crate::components::texture::TextureRegistry;
-use crate::gpu_data::uniform::Uniform;
+use crate::components::renderer::GpuContext;
+use crate::components::shader::{Shader, ShaderRegistry};
+use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
+use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::{Color, Renderer, Texture, TextureAnimation, DEFAULT_SHADER};
 use modor::{Custom, SingleRef};
 use modor_math::Vec2;
 use modor_resources::{ResKey, Resource, ResourceAccessor, ResourceRegistry, ResourceState};
+use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Sampler, TextureView};
 
 pub(crate) type MaterialRegistry = ResourceRegistry<Material>;
 
@@ -84,15 +86,17 @@ pub struct Material {
     /// Default is [`DEFAULT_SHADER`].
     pub shader_key: ResKey<Shader>,
     pub(crate) is_transparent: bool,
+    pub(crate) bind_group: Option<BindGroup>,
     key: ResKey<Self>,
-    uniform: Option<Uniform<MaterialData>>,
+    buffer: Option<DynamicBuffer<MaterialData>>,
     renderer_version: Option<u8>,
+    old_texture_key: Option<ResKey<Texture>>,
+    old_front_texture_key: Option<ResKey<Texture>>,
+    old_shader_key: ResKey<Shader>,
 }
 
 #[systems]
 impl Material {
-    const BINDING: u32 = 0;
-
     /// Creates a new material with a unique `key`.
     pub fn new(key: ResKey<Self>) -> Self {
         Self {
@@ -105,37 +109,64 @@ impl Material {
             shader_key: DEFAULT_SHADER,
             is_transparent: false,
             key,
-            uniform: None,
+            bind_group: None,
+            buffer: None,
             renderer_version: None,
+            old_texture_key: None,
+            old_front_texture_key: None,
+            old_shader_key: DEFAULT_SHADER,
         }
     }
 
-    #[run_after(component(Renderer), component(TextureAnimation))]
-    fn update_uniform(&mut self, renderer: Option<SingleRef<'_, '_, Renderer>>) {
+    #[run_after(
+        component(Renderer),
+        component(TextureAnimation),
+        component(Shader),
+        component(ShaderRegistry),
+        component(Texture),
+        component(TextureRegistry)
+    )]
+    fn update(
+        &mut self,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
+        shaders: Custom<ResourceAccessor<'_, Shader>>,
+        textures: Custom<ResourceAccessor<'_, Texture>>,
+    ) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
-            self.uniform = None;
+            self.bind_group = None;
+            self.buffer = None;
         }
         if let Some(context) = state.context() {
-            let data = MaterialData {
-                color: self.color.into(),
-                texture_part_position: [self.texture_position.x, self.texture_position.y],
-                texture_part_size: [self.texture_size.x, self.texture_size.y],
-                front_color: self.front_color.into(),
-            };
-            if let Some(uniform) = &mut self.uniform {
-                if data != **uniform {
-                    **uniform = data;
-                    uniform.sync(context);
+            if let (Some(shader), Some(texture), Some(front_texture)) = (
+                shaders.get(self.shader_key),
+                textures.get(self.texture_key.unwrap_or(WHITE_TEXTURE)),
+                textures.get(self.front_texture_key.unwrap_or(INVISIBLE_TEXTURE)),
+            ) {
+                self.update_buffer(context);
+                if self.bind_group.is_none()
+                    || self.texture_key != self.old_texture_key
+                    || self.front_texture_key != self.old_front_texture_key
+                    || self.shader_key != self.old_shader_key
+                    || shader.is_material_bind_group_layout_reloaded
+                    || texture.is_reloaded
+                    || front_texture.is_reloaded
+                {
+                    self.update_bind_group(
+                        shader,
+                        &texture.inner().view,
+                        &texture.inner().sampler,
+                        &front_texture.inner().view,
+                        &front_texture.inner().sampler,
+                        context,
+                    );
                 }
+                self.old_texture_key = self.texture_key;
+                self.old_front_texture_key = self.front_texture_key;
+                self.old_shader_key = self.shader_key;
             } else {
-                self.uniform = Some(Uniform::new(
-                    data,
-                    Self::BINDING,
-                    &context.material_bind_group_layout,
-                    &format!("material_{}", &self.key.label()),
-                    &context.device,
-                ));
+                self.bind_group = None;
+                self.buffer = None;
             }
         }
     }
@@ -147,12 +178,6 @@ impl Material {
             || Self::is_texture_transparent(self.front_texture_key, &textures);
     }
 
-    pub(crate) fn uniform(&self) -> &Uniform<MaterialData> {
-        self.uniform
-            .as_ref()
-            .expect("internal error: material uniform not initialized")
-    }
-
     fn is_texture_transparent(
         texture_key: Option<ResKey<Texture>>,
         textures: &Custom<ResourceAccessor<'_, Texture>>,
@@ -162,6 +187,74 @@ impl Material {
             .and_then(|&k| textures.get(k))
             .map_or(false, |t| t.inner().is_transparent)
     }
+
+    fn update_bind_group(
+        &mut self,
+        shader: &Shader,
+        back_view: &TextureView,
+        back_sampler: &Sampler,
+        front_view: &TextureView,
+        front_sampler: &Sampler,
+        context: &GpuContext,
+    ) {
+        self.bind_group = if let Some(buffer) = self.buffer.as_ref() {
+            Some(
+                context.device.create_bind_group(&BindGroupDescriptor {
+                    layout: shader
+                        .material_bind_group_layout
+                        .as_ref()
+                        .expect("internal error: material bind group not initialized"),
+                    entries: &[
+                        BindGroupEntry {
+                            binding: 0,
+                            resource: buffer.resource(),
+                        },
+                        BindGroupEntry {
+                            binding: 1,
+                            resource: BindingResource::TextureView(back_view),
+                        },
+                        BindGroupEntry {
+                            binding: 2,
+                            resource: BindingResource::Sampler(back_sampler),
+                        },
+                        BindGroupEntry {
+                            binding: 3,
+                            resource: BindingResource::TextureView(front_view),
+                        },
+                        BindGroupEntry {
+                            binding: 4,
+                            resource: BindingResource::Sampler(front_sampler),
+                        },
+                    ],
+                    label: Some(&format!("modor_bind_group_material_{}", self.key.label())),
+                }),
+            )
+        } else {
+            None
+        };
+    }
+
+    fn update_buffer(&mut self, context: &GpuContext) {
+        let data = MaterialData {
+            color: self.color.into(),
+            texture_part_position: [self.texture_position.x, self.texture_position.y],
+            texture_part_size: [self.texture_size.x, self.texture_size.y],
+            front_color: self.front_color.into(),
+        };
+        if let Some(buffer) = &mut self.buffer {
+            if data != buffer[0] {
+                buffer[0] = data;
+                buffer.sync(context);
+            }
+        } else {
+            self.buffer = Some(DynamicBuffer::new(
+                vec![data],
+                DynamicBufferUsage::Uniform,
+                format!("modor_uniform_buffer_material_{}", &self.key.label()),
+                &context.device,
+            ));
+        }
+    }
 }
 
 impl Resource for Material {
@@ -170,8 +263,12 @@ impl Resource for Material {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        if self.uniform.is_some() {
-            ResourceState::Loaded
+        if self.buffer.is_some() {
+            if self.bind_group.is_some() {
+                ResourceState::Loaded
+            } else {
+                ResourceState::Loading
+            }
         } else {
             ResourceState::NotLoaded
         }

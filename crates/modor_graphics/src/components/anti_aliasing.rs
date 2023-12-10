@@ -1,10 +1,8 @@
 use crate::components::renderer::{GpuContext, Renderer};
 use crate::components::shader::Shader;
-use futures::executor;
+use crate::errors;
 use modor::SingleRef;
-use wgpu::{
-    ErrorFilter, Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-};
+use wgpu::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 /// The anti-aliasing configuration.
 ///
@@ -83,25 +81,25 @@ impl AntiAliasing {
         texture_formats: &[TextureFormat],
         sample_count: u32,
     ) -> bool {
-        context.device.push_error_scope(ErrorFilter::Validation);
-        for format in texture_formats.iter().copied() {
-            context.device.create_texture(&TextureDescriptor {
-                label: Some("modor_color_texture"),
-                size: Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count,
-                dimension: TextureDimension::D2,
-                format,
-                usage: TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            });
-        }
-        let error = executor::block_on(context.device.pop_error_scope());
-        error.is_none()
+        errors::validate_wgpu(context, || {
+            for format in texture_formats.iter().copied() {
+                context.device.create_texture(&TextureDescriptor {
+                    label: Some("modor_color_texture"),
+                    size: Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count,
+                    dimension: TextureDimension::D2,
+                    format,
+                    usage: TextureUsages::RENDER_ATTACHMENT,
+                    view_formats: &[],
+                });
+            }
+        })
+        .is_ok()
     }
 }
 

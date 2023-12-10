@@ -2,7 +2,6 @@ use crate::components::renderer::GpuContext;
 use futures::executor;
 use wgpu::ErrorFilter;
 
-// TODO: use everywhere
 pub(crate) fn validate_wgpu<T>(
     context: &GpuContext,
     f: impl FnOnce() -> T,

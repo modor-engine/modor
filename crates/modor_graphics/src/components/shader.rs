@@ -10,10 +10,12 @@ use modor_resources::{
 };
 use std::collections::hash_map::Entry;
 use wgpu::{
-    BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
-    FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor, PolygonMode,
-    PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, StencilState, TextureFormat, VertexBufferLayout, VertexState,
+    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
+    BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
+    DepthStencilState, FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor,
+    PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
+    SamplerBindingType, ShaderModuleDescriptor, ShaderStages, StencilState, TextureFormat,
+    TextureSampleType, TextureViewDimension, VertexBufferLayout, VertexState,
 };
 
 pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
@@ -85,20 +87,20 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 /// @binding(0)
 /// var<uniform> material: MaterialUniform;
 ///
-/// @group(2)
-/// @binding(0)
+/// @group(1)
+/// @binding(1)
 /// var texture: texture_2d<f32>;
 ///
-/// @group(2)
-/// @binding(1)
+/// @group(1)
+/// @binding(2)
 /// var texture_sampler: sampler;
 ///
-/// @group(3)
-/// @binding(0)
+/// @group(1)
+/// @binding(3)
 /// var front_texture: texture_2d<f32>;
 ///
-/// @group(3)
-/// @binding(1)
+/// @group(1)
+/// @binding(4)
 /// var front_texture_sampler: sampler;
 ///
 /// @vertex
@@ -138,7 +140,8 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 /// ```
 #[derive(Component, Debug)]
 pub struct Shader {
-    texture_count: u8,
+    pub(crate) material_bind_group_layout: Option<BindGroupLayout>,
+    pub(crate) is_material_bind_group_layout_reloaded: bool,
     key: ResKey<Self>,
     pipelines: FxHashMap<TextureFormat, RenderPipeline>,
     handler: ResourceHandler<LoadedShader, &'static str>,
@@ -153,8 +156,6 @@ impl Shader {
     pub(crate) const TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
     pub(crate) const CAMERA_GROUP: u32 = 0;
     pub(crate) const MATERIAL_GROUP: u32 = 1;
-    pub(crate) const TEXTURE_GROUP: u32 = 2;
-    pub(crate) const FRONT_TEXTURE_GROUP: u32 = 3;
 
     #[allow(clippy::cast_possible_truncation)]
     const VERTEX_BUFFER_LAYOUTS: &'static [VertexBufferLayout<'static>] = &[
@@ -167,7 +168,8 @@ impl Shader {
     /// Creates a new shader identified by a unique `key` and created from code `source`.
     pub fn new(key: ResKey<Self>, source: ShaderSource) -> Self {
         Self {
-            texture_count: 2,
+            material_bind_group_layout: None,
+            is_material_bind_group_layout_reloaded: false,
             key,
             pipelines: FxHashMap::default(),
             handler: ResourceHandler::new(source.into()),
@@ -198,9 +200,11 @@ impl Shader {
         renderer: Option<SingleRef<'_, '_, Renderer>>,
         anti_aliasing: Option<SingleRef<'_, '_, AntiAliasing>>,
     ) {
+        self.is_material_bind_group_layout_reloaded = false;
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
             self.pipelines.clear();
+            self.material_bind_group_layout = None;
         }
         if let Some(context) = state.context() {
             self.handler.update::<Self>(self.key);
@@ -209,6 +213,7 @@ impl Shader {
                 self.error = None;
                 self.pipelines.clear();
             }
+            self.update_texture_bind_group(context);
             let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
             let result = self.update_anti_aliasing(anti_aliasing, context);
             self.update_error(result);
@@ -237,6 +242,64 @@ impl Shader {
         }
     }
 
+    fn update_texture_bind_group(&mut self, context: &GpuContext) {
+        if self.material_bind_group_layout.is_none() {
+            self.material_bind_group_layout = Some(context.device.create_bind_group_layout(
+                &BindGroupLayoutDescriptor {
+                    entries: &[
+                        BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: ShaderStages::VERTEX_FRAGMENT,
+                            ty: BindingType::Buffer {
+                                ty: BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: ShaderStages::VERTEX_FRAGMENT,
+                            ty: BindingType::Texture {
+                                multisampled: false,
+                                view_dimension: TextureViewDimension::D2,
+                                sample_type: TextureSampleType::Float { filterable: true },
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: ShaderStages::VERTEX_FRAGMENT,
+                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: ShaderStages::VERTEX_FRAGMENT,
+                            ty: BindingType::Texture {
+                                multisampled: false,
+                                view_dimension: TextureViewDimension::D2,
+                                sample_type: TextureSampleType::Float { filterable: true },
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: ShaderStages::VERTEX_FRAGMENT,
+                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                    ],
+                    label: Some(&format!(
+                        "modor_bind_group_layout_texture_{}",
+                        self.key.label(),
+                    )),
+                },
+            ));
+            self.is_material_bind_group_layout_reloaded = true;
+        }
+    }
+
     fn update_anti_aliasing(
         &mut self,
         anti_aliasing: Option<&AntiAliasing>,
@@ -250,10 +313,12 @@ impl Shader {
             self.sample_count = sample_count;
             for (texture_format, pipeline) in &mut self.pipelines {
                 *pipeline = Self::create_pipeline(
-                    self.texture_count,
                     code,
                     self.key,
                     *texture_format,
+                    self.material_bind_group_layout
+                        .as_ref()
+                        .expect("internal error: material bind group not initialized"),
                     self.sample_count,
                     context,
                 )?;
@@ -273,10 +338,12 @@ impl Shader {
         for texture_format in texture_formats {
             if let Entry::Vacant(entry) = self.pipelines.entry(texture_format) {
                 entry.insert(Self::create_pipeline(
-                    self.texture_count,
                     code,
                     self.key,
                     texture_format,
+                    self.material_bind_group_layout
+                        .as_ref()
+                        .expect("internal error: material bind group not initialized"),
                     self.sample_count,
                     context,
                 )?);
@@ -286,10 +353,10 @@ impl Shader {
     }
 
     fn create_pipeline(
-        texture_count: u8,
         code: &str,
         key: ResKey<Self>,
         texture_format: TextureFormat,
+        texture_bind_group_layout: &BindGroupLayout,
         sample_count: u32,
         context: &GpuContext,
     ) -> Result<RenderPipeline, wgpu::Error> {
@@ -298,23 +365,14 @@ impl Shader {
                 label: Some(&format!("modor_shader_{}", key.label())),
                 source: wgpu::ShaderSource::Wgsl(code.into()),
             });
-            let mut group_layouts = vec![
-                &context.camera_bind_group_layout,
-                &context.material_bind_group_layout,
-            ];
-            // TODO: put all textures in one bind group
-            //     - Bind group layout is maintained in Shader
-            //     - Bind group is maintained in Material
-            //         - Material Uniform can also be put in the same binding group
-            //     - Texture resources (view + sampler) are maintained in Texture
-            for _ in 0..texture_count {
-                group_layouts.push(&context.texture_bind_group_layout);
-            }
             let layout = context
                 .device
                 .create_pipeline_layout(&PipelineLayoutDescriptor {
                     label: Some(&format!("modor_pipeline_layout_{}", key.label())),
-                    bind_group_layouts: &group_layouts,
+                    bind_group_layouts: &[
+                        &context.camera_bind_group_layout,
+                        texture_bind_group_layout,
+                    ],
                     push_constant_ranges: &[],
                 });
             context
