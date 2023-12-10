@@ -9,7 +9,7 @@ struct MaterialUniform {
     front_color: vec4<f32>,
 }
 
-struct ModelVertex {
+struct Vertex {
     @location(0)
     position: vec3<f32>,
     @location(1)
@@ -46,24 +46,24 @@ var<uniform> camera: CameraUniform;
 @binding(0)
 var<uniform> material: MaterialUniform;
 
-@group(2)
-@binding(0)
+@group(1)
+@binding(1)
 var texture: texture_2d<f32>;
 
-@group(2)
-@binding(1)
+@group(1)
+@binding(2)
 var texture_sampler: sampler;
 
-@group(3)
-@binding(0)
+@group(1)
+@binding(3)
 var front_texture: texture_2d<f32>;
 
-@group(3)
-@binding(1)
+@group(1)
+@binding(4)
 var front_texture_sampler: sampler;
 
 @vertex
-fn vs_main(vertex: ModelVertex, instance: Instance) -> Fragment {
+fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
     let transform = mat4x4<f32>(
         instance.transform_0,
         instance.transform_1,

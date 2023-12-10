@@ -140,7 +140,7 @@ impl Camera2D {
                     let transform = self.gpu_matrix(surface_size).to_array();
                     self.target_uniforms
                         .entry(target_part_key)
-                        .and_modify(|u| u.transform = transform)
+                        .and_modify(|u| u.get_mut().transform = transform)
                         .or_insert_with(|| Self::create_uniform(context, transform));
                     trace!(
                         "2D camera `{:?}` prepared for target `{:?}` of type `{:?}`", // no-coverage

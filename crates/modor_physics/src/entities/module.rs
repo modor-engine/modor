@@ -21,6 +21,7 @@ use std::time::Duration;
 /// ```
 pub fn module() -> impl BuiltEntity {
     EntityBuilder::new()
+        .component(PhysicsModule)
         .component(DeltaTime {
             duration: Duration::ZERO,
         })

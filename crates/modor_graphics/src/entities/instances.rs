@@ -8,7 +8,7 @@ use modor_resources::{ResKey, Resource};
 /// The created entity contains the following components:
 /// - [`InstanceGroup2D`]
 /// - [`InstanceRendering2D`]
-/// - [`Material`] if `material` is not [`MaterialType::Key`]
+/// - [`Material`] if `material` is [`None`]
 ///
 /// # Examples
 ///
@@ -29,7 +29,7 @@ use modor_resources::{ResKey, Resource};
 /// # }
 ///
 /// fn red_rectangle_instance_group() -> impl BuiltEntity {
-///     instance_group_2d::<With<RedRectangle>>(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+///     instance_group_2d::<With<RedRectangle>>(WINDOW_CAMERA_2D, None)
 ///         .updated(|m: &mut Material| m.color = Color::RED)
 /// }
 ///
@@ -46,7 +46,7 @@ use modor_resources::{ResKey, Resource};
 /// ```
 pub fn instance_group_2d<F>(
     camera_key: ResKey<Camera2D>,
-    material: MaterialType,
+    material_key: Option<ResKey<Material>>,
 ) -> impl BuiltEntity
 where
     F: QueryEntityFilter,
@@ -54,7 +54,7 @@ where
     let filter = QueryFilter::new::<F>();
     let group_key = ResKey::unique("instance-group-2d(modor_graphics)");
     let group = InstanceGroup2D::from_filter(group_key, filter);
-    rendered_instance_group_2d(camera_key, material, group)
+    rendered_instance_group_2d(camera_key, material_key, group)
 }
 
 /// Creates a 2D instance entity.
@@ -63,7 +63,11 @@ where
 /// - [`Transform2D`]
 /// - [`InstanceGroup2D`]
 /// - [`InstanceRendering2D`]
-/// - [`Material`] if `material` is not [`MaterialType::Key`]
+/// - [`Material`] if `material` is [`None`]
+///
+/// This method is useful to quickly create a rendered entity.
+/// However, for performance reasons, consider using [`instance_group_2d`] instead if multiple
+/// entities are rendered with the same camera, material and mesh.
 ///
 /// # Examples
 ///
@@ -82,53 +86,34 @@ where
 /// # }
 ///
 /// fn red_rectangle() -> impl BuiltEntity {
-///     instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+///     instance_2d(WINDOW_CAMERA_2D, None)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.1))
 ///         .updated(|m: &mut Material| m.color = Color::RED)
 /// }
 /// ```
-pub fn instance_2d(camera_key: ResKey<Camera2D>, material: MaterialType) -> impl BuiltEntity {
+pub fn instance_2d(
+    camera_key: ResKey<Camera2D>,
+    material_key: Option<ResKey<Material>>,
+) -> impl BuiltEntity {
     let group_key = ResKey::unique("instance-2d(modor_graphics)");
     let group = InstanceGroup2D::from_self(group_key);
-    rendered_instance_group_2d(camera_key, material, group).component(Transform2D::new())
+    rendered_instance_group_2d(camera_key, material_key, group).component(Transform2D::new())
 }
 
 fn rendered_instance_group_2d(
     camera_key: ResKey<Camera2D>,
-    material: MaterialType,
+    material_key: Option<ResKey<Material>>,
     group: InstanceGroup2D,
 ) -> impl BuiltEntity {
-    let material_key = match material {
-        MaterialType::Key(key) => key,
-        MaterialType::Rectangle | MaterialType::Ellipse => {
-            ResKey::unique("instance-group-2d(modor_graphics)")
-        }
-    };
-    let material = match material {
-        MaterialType::Key(_) => None,
-        MaterialType::Rectangle => Some(Material::new(material_key)),
-        MaterialType::Ellipse => Some(Material::ellipse(material_key)),
-    };
+    let is_material_missing = material_key.is_none();
+    let material_key =
+        material_key.unwrap_or_else(|| ResKey::unique("instance-group-2d(modor_graphics)"));
     EntityBuilder::new()
-        .component_option(material)
+        .component_option(is_material_missing.then(|| Material::new(material_key)))
         .component(InstanceRendering2D::new(
             group.key(),
             camera_key,
             material_key,
         ))
         .component(group)
-}
-
-/// The type of material attached to a model created with [`instance_2d`].
-///
-/// # Examples
-///
-/// See [`instance_2d`].
-pub enum MaterialType {
-    /// Existing material.
-    Key(ResKey<Material>),
-    /// New white rectangle material specific to the model.
-    Rectangle,
-    /// New white ellipse material specific to the model.
-    Ellipse,
 }

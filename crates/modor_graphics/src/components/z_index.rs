@@ -30,13 +30,13 @@
 /// const BACKGROUND_MATERIAL: ResKey<Material> = ResKey::new("background");
 ///
 /// fn foreground() -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Rectangle)
+///     instance_2d(CAMERA, None)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
 ///         .component(ZIndex2D::from(1))
 /// }
 ///
 /// fn background() -> impl BuiltEntity {
-///     instance_2d(CAMERA, MaterialType::Rectangle)
+///     instance_2d(CAMERA, None)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::ONE)
 ///         .component(ZIndex2D::from(0))
 /// }
@@ -48,7 +48,7 @@
 pub struct ZIndex2D(u16);
 
 impl ZIndex2D {
-    // Returns the model depth between `0.` and `1.`.
+    // Returns the instance depth between `0.` and `1.`.
     pub(crate) fn to_normalized_f32(self) -> f32 {
         (f32::from(self.0) + 0.5) / (f32::from(u16::MAX) + 1.)
     }

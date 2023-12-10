@@ -1,7 +1,7 @@
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, Query, SingleRef, SingletonComponent};
-use modor_graphics::{instance_2d, window_target, Color, Material, MaterialType, WINDOW_CAMERA_2D};
+use modor_graphics::{instance_2d, window_target, Color, Material, WINDOW_CAMERA_2D};
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::{Collider2D, CollisionGroup, CollisionType, Dynamics2D, Impulse, Transform2D};
@@ -74,7 +74,7 @@ fn character_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType 
 }
 
 fn platform(position: Vec2, size: Vec2, velocity: Vec2) -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = size)
         .updated(|t: &mut Material| t.color = Color::GREEN)
@@ -85,7 +85,7 @@ fn platform(position: Vec2, size: Vec2, velocity: Vec2) -> impl BuiltEntity {
 }
 
 fn character() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+    instance_2d(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = Vec2::new(0., 0.5))
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.03, 0.1))
         .component(Dynamics2D::new())

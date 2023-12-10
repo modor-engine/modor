@@ -47,7 +47,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// fn text() -> impl BuiltEntity {
 ///     let texture_key = ResKey::unique("text");
 ///     let material_key = ResKey::unique("text");
-///     instance_2d(CAMERA, MaterialType::Key(material_key))
+///     instance_2d(CAMERA, Some(material_key))
 ///         .component(Text::new("my text", 30.))
 ///         .with(|t| t.font_key = FONT)
 ///         .component(Texture::from_size(texture_key, Size::ZERO))

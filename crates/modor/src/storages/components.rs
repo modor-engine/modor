@@ -150,6 +150,7 @@ impl ComponentStorage {
             if singleton_location == location {
                 self.singleton_locations[type_idx] = None;
             } else if singleton_location == last_archetype_location {
+                // case where new singleton has been added before removing the old one
                 self.singleton_locations[type_idx] = Some(location);
             }
         }

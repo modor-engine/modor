@@ -5,11 +5,11 @@ use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::texture::TextureTarget;
 use crate::components::render_target::window::WindowTarget;
 use crate::components::shader::{Shader, ShaderRegistry};
-use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
+use crate::components::texture::{INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
 use crate::{
-    AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D, Material,
-    Renderer, Texture, Window,
+    errors, AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D,
+    Material, Renderer, Texture, Window,
 };
 use itertools::Itertools;
 use modor::{Component, ComponentSystems, Custom, Query, Single, SingleRef};
@@ -27,7 +27,7 @@ pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 ///
 /// If a [`Texture`] component is in the same entity, then the rendering is performed in this
 /// texture. This texture can then be displayed in another render target.
-/// If the texture is used in its own render target, then the attached models are not displayed.
+/// If the texture is used in its own render target, then the attached instances are not displayed.
 ///
 /// # Requirements
 ///
@@ -94,6 +94,7 @@ pub struct RenderTarget {
     window_state: TargetState,
     texture_state: TargetState,
     is_texture_conflict_logged: bool,
+    is_rendering_error_logged: bool,
     window_renderer_version: Option<u8>,
     texture_renderer_version: Option<u8>,
 }
@@ -110,6 +111,7 @@ impl RenderTarget {
             window_state: TargetState::NotLoaded,
             texture_state: TargetState::NotLoaded,
             is_texture_conflict_logged: false,
+            is_rendering_error_logged: false,
             window_renderer_version: None,
             texture_renderer_version: None,
         }
@@ -200,9 +202,7 @@ impl RenderTarget {
         component(ShaderRegistry),
         component(Shader),
         component(MeshRegistry),
-        component(Mesh),
-        component(TextureRegistry),
-        component(Texture)
+        component(Mesh)
     )]
     fn render(
         &mut self,
@@ -243,9 +243,14 @@ impl RenderTarget {
                     &resources,
                 );
             }
-            drop(pass);
-            target.end_render_pass(context);
-            trace!("rendering done in window target `{:?}`", self.key);
+            let result = errors::validate_wgpu(context, || drop(pass));
+            target.end_render_pass(context, result.is_ok());
+            trace!(
+                "rendering done in window target `{}` (error: {})", // no-coverage
+                self.key.label(),                                   // no-coverage
+                result.is_err()                                     // no-coverage
+            );
+            self.log_rendering_error(result);
             Some(target)
         } else {
             None
@@ -276,9 +281,14 @@ impl RenderTarget {
                     &resources,
                 );
             }
-            drop(pass);
-            target.end_render_pass(context);
-            trace!("rendering done in texture target `{:?}`", self.key);
+            let result = errors::validate_wgpu(context, || drop(pass));
+            target.end_render_pass(context, result.is_ok());
+            trace!(
+                "rendering done in texture target `{}` (error: {})", // no-coverage
+                self.key.label(),                                    // no-coverage
+                result.is_err()                                      // no-coverage
+            );
+            self.log_rendering_error(result);
             Some(target)
         } else {
             None
@@ -315,32 +325,22 @@ impl RenderTarget {
         }
         let material = resources.materials.get(rendering.material_key)?;
         let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
-        let texture = self.texture(
-            rendering.material_key,
-            texture_key,
-            target_texture_key,
-            resources,
-        )?;
-        let texture_bind_ground = &texture.inner().bind_group;
+        self.check_texture(rendering.material_key, texture_key, target_texture_key)?;
         let front_texture_key = material.front_texture_key.unwrap_or(INVISIBLE_TEXTURE);
-        let front_texture = self.texture(
+        self.check_texture(
             rendering.material_key,
             front_texture_key,
             target_texture_key,
-            resources,
         )?;
-        let front_texture_bind_ground = &front_texture.inner().bind_group;
         let shader = resources.shaders.get(material.shader_key)?;
         let mesh = resources.meshes.get(rendering.mesh_key)?;
         let camera_uniform = camera.uniform(self.key, target_type);
-        let material_uniform = material.uniform();
+        let material_bind_group = material.bind_group.as_ref()?;
         let vertex_buffer = mesh.vertex_buffer();
         let index_buffer = mesh.index_buffer();
         pass.set_pipeline(shader.pipeline(target_texture_format));
         pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
-        pass.set_bind_group(Shader::MATERIAL_GROUP, material_uniform.bind_group(), &[]);
-        pass.set_bind_group(Shader::TEXTURE_GROUP, texture_bind_ground, &[]);
-        pass.set_bind_group(Shader::FRONT_TEXTURE_GROUP, front_texture_bind_ground, &[]);
+        pass.set_bind_group(Shader::MATERIAL_GROUP, material_bind_group, &[]);
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);
         pass.set_vertex_buffer(0, vertex_buffer.buffer());
         match mode {
@@ -365,24 +365,27 @@ impl RenderTarget {
         Some(())
     }
 
-    fn texture<'a>(
+    fn check_texture(
         &mut self,
         material_key: ResKey<Material>,
         texture_key: ResKey<Texture>,
         target_texture_key: Option<ResKey<Texture>>,
-        resources: &'a Custom<RenderingResources<'_>>,
-    ) -> Option<&'a Texture> {
+    ) -> Option<()> {
         if target_texture_key == Some(texture_key) {
             if !self.is_texture_conflict_logged {
                 error!(
-                    "texture `{:?}` used at same time as render target `{:?}` and material `{:?}`",
-                    texture_key, self.key, material_key,
+                    "texture `{}` cannot be used to render instance in render target `{}` with \
+                    material `{}` because the texture is the target",
+                    texture_key.label(),
+                    self.key.label(),
+                    material_key.label(),
                 );
                 self.is_texture_conflict_logged = true;
             }
-            return None;
+            None
+        } else {
+            Some(())
         }
-        resources.textures.get(texture_key)
     }
 
     fn sorted_opaque_renderings<'a>(
@@ -415,6 +418,18 @@ impl RenderTarget {
                 let z2 = &group2.buffer()[*i2].z();
                 z1.total_cmp(z2).then(rendering1.cmp(rendering2))
             })
+    }
+
+    fn log_rendering_error(&mut self, result: Result<(), wgpu::Error>) {
+        if !self.is_rendering_error_logged {
+            if let Err(error) = result {
+                error!(
+                    "error while rendering target `{}`: {error}",
+                    self.key.label()
+                );
+                self.is_rendering_error_logged = true;
+            }
+        }
     }
 }
 
@@ -469,7 +484,6 @@ struct RenderingResources<'a> {
     materials: Custom<ResourceAccessor<'a, Material>>,
     shaders: Custom<ResourceAccessor<'a, Shader>>,
     meshes: Custom<ResourceAccessor<'a, Mesh>>,
-    textures: Custom<ResourceAccessor<'a, Texture>>,
 }
 
 #[derive(Clone, Copy, Debug)]

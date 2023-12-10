@@ -36,10 +36,10 @@ use std::time::Duration;
 ///     let texture_key = ResKey::unique("spritesheet");
 ///     EntityBuilder::new()
 ///         .component(Texture::from_path(texture_key, "spritesheet.png"))
-///         .child_entity(animated_model(texture_key))
+///         .child_entity(animated_instance(texture_key))
 /// }
 ///
-/// fn animated_model(texture_key : ResKey<Texture>) -> impl BuiltEntity {
+/// fn animated_instance(texture_key : ResKey<Texture>) -> impl BuiltEntity {
 ///     let sprites = vec![
 ///         Sprite::new(0, 0),
 ///         Sprite::new(1, 0),
@@ -48,7 +48,7 @@ use std::time::Duration;
 ///         Sprite::new(1, 1),
 ///         Sprite::new(2, 1),
 ///     ];
-///     instance_2d(WINDOW_CAMERA_2D, MaterialType::Rectangle)
+///     instance_2d(WINDOW_CAMERA_2D, None)
 ///         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
 ///         .component(TextureAnimation::new(3, 2, sprites))
 ///         .with(|a| a.frames_per_second = 5)

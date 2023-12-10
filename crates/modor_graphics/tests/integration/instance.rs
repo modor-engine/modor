@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, QueryEntityFilter, QueryFilter, With};
-use modor_graphics::testing::{has_pixel_diff, is_same};
+use modor_graphics::testing::is_same;
 use modor_graphics::{
     instance_2d, instance_group_2d, texture_target, InstanceGroup2D, InstanceRendering2D, Material,
-    MaterialType, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
+    Size, TextureBuffer, ELLIPSE_SHADER, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -54,54 +54,37 @@ fn create_from_filter() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_rectangle_instance_2d() {
+fn create_instance_2d_with_new_material() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(instance_2d(
-            TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Rectangle,
-        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), None))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_rectangle"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_ellipse_instance_2d() {
+fn create_instance_2d_with_external_material() {
+    let material_key = ResKey::new("material");
+    let mut material = Material::new(material_key);
+    material.shader_key = ELLIPSE_SHADER;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(instance_2d(
-            TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Ellipse,
-        ))
+        .with_entity(material)
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), Some(material_key)))
         .updated()
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("instance#instance_2d_ellipse", 10));
+        .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_ellipse"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_instance_2d_with_custom_material() {
-    let material_key = ResKey::new("custom");
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(Material::ellipse(material_key))
-        .with_entity(instance_2d(
-            TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Key(material_key),
-        ))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, has_pixel_diff("instance#instance_2d_ellipse", 10));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_rectangle_instance_group_2d() {
+fn create_instance_group_2d_with_default_material() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Rectangle,
+            None,
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))
@@ -111,31 +94,17 @@ fn create_rectangle_instance_group_2d() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
-fn create_ellipse_instance_group_2d() {
+fn create_instance_group_2d_with_external_material() {
+    let material_key = ResKey::new("material");
+    let mut material = Material::new(material_key);
+    material.shader_key = ELLIPSE_SHADER;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(material)
         .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Ellipse,
-        ))
-        .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
-        .with_entity(instance(Vec2::new(-0.25, -0.25)))
-        .with_entity(instance(Vec2::new(0.25, -0.25)).component(Displayed))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("instance#filter_all_instances_ellipse"));
-}
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_instance_group_2d_with_custom_material() {
-    let material_key = ResKey::new("custom");
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(Material::ellipse(material_key))
-        .with_entity(instance_group_2d::<With<Displayed>>(
-            TEXTURE_CAMERAS_2D.get(0),
-            MaterialType::Key(material_key),
+            Some(material_key),
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))

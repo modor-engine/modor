@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Gles3MinorVersion,
-    Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, SamplerBindingType,
-    ShaderStages, Surface, TextureFormat, TextureSampleType, TextureViewDimension,
+    Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, ShaderStages, Surface,
+    TextureFormat,
 };
 
 static RENDERER_VERSION: AtomicU8 = AtomicU8::new(0);
@@ -81,8 +81,6 @@ pub(crate) struct GpuContext {
     pub(crate) device: Device,
     pub(crate) queue: Queue,
     pub(crate) camera_bind_group_layout: BindGroupLayout,
-    pub(crate) material_bind_group_layout: BindGroupLayout,
-    pub(crate) texture_bind_group_layout: BindGroupLayout,
     pub(crate) surface_texture_format: Option<TextureFormat>,
 }
 
@@ -98,8 +96,6 @@ impl GpuContext {
         let (device, queue) = Self::retrieve_device(&adapter);
         Self {
             camera_bind_group_layout: Self::camera_bind_group_layout(&device),
-            material_bind_group_layout: Self::material_bind_group_layout(&device),
-            texture_bind_group_layout: Self::texture_bind_group_layout(&device),
             surface_texture_format: surface
                 .and_then(|s| s.get_capabilities(&adapter).formats.into_iter().next()),
             adapter,
@@ -144,46 +140,6 @@ impl GpuContext {
                 count: None,
             }],
             label: Some("modor_bind_group_layout_camera"),
-        })
-    }
-
-    fn material_bind_group_layout(device: &Device) -> BindGroupLayout {
-        device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-            label: Some("modor_bind_group_layout_material"),
-        })
-    }
-
-    fn texture_bind_group_layout(device: &Device) -> BindGroupLayout {
-        device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: TextureViewDimension::D2,
-                        sample_type: TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-            label: Some("modor_bind_group_layout_texture"),
         })
     }
 }
