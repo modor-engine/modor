@@ -165,7 +165,7 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn model() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(CAMERA, None)
+    instance_2d(CAMERA, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)

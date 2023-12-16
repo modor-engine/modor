@@ -34,11 +34,6 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 ///
 /// - [`Material`](crate::Material)
 ///
-/// # Built-in shaders
-///
-/// - [`DEFAULT_SHADER`](crate::DEFAULT_SHADER)
-/// - [`ELLIPSE_SHADER`](crate::ELLIPSE_SHADER)
-///
 /// # Code
 ///
 /// This component only supports code in [WGSL](https://www.w3.org/TR/WGSL/) format.

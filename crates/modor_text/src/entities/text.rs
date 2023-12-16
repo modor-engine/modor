@@ -6,7 +6,7 @@ use modor_resources::ResKey;
 /// Creates a 2D text entity.
 ///
 /// The created entity contains the following components:
-/// - All components created by [`instance_2d`](instance_2d::<Default2DMaterial>()), including [`Material`]
+/// - All components created by [`instance_2d`](instance_2d()), including material
 /// - [`Text`]
 /// - [`Texture`]
 ///
@@ -46,7 +46,7 @@ pub fn text_2d(
     font_height: f32,
 ) -> impl BuiltEntity {
     let texture_key = ResKey::unique("text-2d(modor_text)");
-    instance_2d::<Default2DMaterial>(camera_key, None)
+    instance_2d(camera_key, Default2DMaterial::new())
         .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(texture_key))
         .component(Texture::from_size(texture_key, Size::ZERO))
         .component(Text::new(text, font_height))

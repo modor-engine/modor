@@ -17,7 +17,7 @@ pub fn main() {
 }
 
 fn finger_display(finger_id: u64) -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
         .component(FingerPosition::new(finger_id))

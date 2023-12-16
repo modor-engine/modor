@@ -19,7 +19,7 @@ pub fn main() {
 fn background() -> impl BuiltEntity {
     let texture_key = ResKey::unique("background");
     let background_data = include_bytes!("../assets/background.png");
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
         .component(Texture::from_file(texture_key, background_data))
 }
@@ -54,7 +54,7 @@ fn smiley(
     velocity: Vec2,
     angular_velocity: f32,
 ) -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.2))
         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))

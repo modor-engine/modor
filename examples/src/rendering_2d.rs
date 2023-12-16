@@ -60,7 +60,7 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
     let material_key = MATERIAL.get(entity_id % COLORS.len());
     let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, Some(material_key))
+    instance_2d(WINDOW_CAMERA_2D, material_key)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())

@@ -141,7 +141,7 @@ fn textures() -> impl BuiltEntity {
 }
 
 fn instance(is_ellipse: bool) -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(TEXTURE_CAMERAS_2D.get(0), None)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
         .updated(|m: &mut Default2DMaterial| m.color = Color::GRAY)
         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(BACK_TEXTURE))
@@ -153,7 +153,7 @@ fn instance(is_ellipse: bool) -> impl BuiltEntity {
 }
 
 fn custom_instance() -> impl BuiltEntity {
-    instance_2d::<CustomMaterial>(TEXTURE_CAMERAS_2D.get(0), None)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), CustomMaterial::default())
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
 }
 

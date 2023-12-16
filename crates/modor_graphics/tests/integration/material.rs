@@ -33,10 +33,7 @@ fn update_properties() {
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomMaterial>(material_key))
-        .with_entity(instance_2d::<CustomMaterial>(
-            TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
-        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#red"))
         .with_update::<(), CustomMaterial>(|m| m.color = Color::GREEN)
@@ -71,10 +68,7 @@ fn use_material_with_empty_data() {
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<EmptyMaterial>(material_key))
-        .with_entity(instance_2d::<EmptyMaterial>(
-            TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
-        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#blue"));
 }
@@ -93,10 +87,7 @@ fn create_material_with_texture_count_different_than_shader() {
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomMaterial>(material_key))
         .with_update::<(), CustomMaterial>(|m| m.texture_keys = vec![TEXTURE])
-        .with_entity(instance_2d::<CustomMaterial>(
-            TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
-        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#empty"))
         .updated()

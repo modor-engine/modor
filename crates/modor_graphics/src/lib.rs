@@ -28,7 +28,7 @@
 //! # }
 //!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
-//!     instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+//!     instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
 //!         .updated(|t: &mut Transform2D| t.position = position)
 //!         .updated(|t: &mut Transform2D| t.size = size)
 //!         .updated(|m: &mut Default2DMaterial| m.color = Color::RED)

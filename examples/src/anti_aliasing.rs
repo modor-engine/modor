@@ -22,7 +22,7 @@ pub fn main() {
 }
 
 fn object() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
         .updated(|m: &mut Default2DMaterial| m.color = Color::YELLOW)

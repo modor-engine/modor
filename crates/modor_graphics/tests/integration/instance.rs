@@ -58,9 +58,9 @@ fn create_instance_2d_with_new_material() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(instance_2d::<Default2DMaterial>(
+        .with_entity(instance_2d(
             TEXTURE_CAMERAS_2D.get(0),
-            None,
+            Default2DMaterial::new(),
         ))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_rectangle"));
@@ -76,10 +76,7 @@ fn create_instance_2d_with_external_material() {
             material::<Default2DMaterial>(material_key)
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
-        .with_entity(instance_2d::<Default2DMaterial>(
-            TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
-        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_ellipse"));
 }
@@ -89,9 +86,9 @@ fn create_instance_group_2d_with_default_material() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(instance_group_2d::<Default2DMaterial, With<Displayed>>(
+        .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            None,
+            Default2DMaterial::new(),
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))
@@ -110,9 +107,9 @@ fn create_instance_group_2d_with_external_material() {
             material::<Default2DMaterial>(material_key)
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
-        .with_entity(instance_group_2d::<Default2DMaterial, With<Displayed>>(
+        .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
+            material_key,
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))

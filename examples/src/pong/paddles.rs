@@ -34,7 +34,7 @@ pub(crate) fn bot_paddle(side: Side) -> impl BuiltEntity {
 }
 
 fn paddle(side: Side) -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = Vec2::X * 0.4 * side.x_sign())
         .updated(|t: &mut Transform2D| t.size = SIZE)
         .component(Dynamics2D::new())

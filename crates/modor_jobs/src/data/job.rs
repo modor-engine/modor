@@ -12,7 +12,7 @@ use std::fmt::{Debug, Display, Formatter};
 ///
 /// # Example
 ///
-/// ```
+/// ```rust
 /// # use std::path::{Path, PathBuf};
 /// # use modor::*;
 /// # use modor_jobs::*;

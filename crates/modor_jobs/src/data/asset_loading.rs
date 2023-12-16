@@ -12,7 +12,7 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///
 /// # Example
 ///
-/// ```
+/// ```rust
 /// # use std::path::*;
 /// # use modor::*;
 /// # use modor_jobs::*;

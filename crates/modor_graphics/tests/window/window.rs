@@ -202,11 +202,11 @@ fn close_window_with_none_behavior(context: &mut TestRunnerContext) {
 }
 
 fn opaque_rectangle() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(CAMERA, None)
+    instance_2d(CAMERA, Default2DMaterial::new())
 }
 
 fn transparent_rectangle() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(CAMERA, None)
+    instance_2d(CAMERA, Default2DMaterial::new())
         .updated(|m: &mut Default2DMaterial| m.color = Color::WHITE.with_alpha(0.5))
 }
 

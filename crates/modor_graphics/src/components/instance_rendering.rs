@@ -27,7 +27,11 @@ use modor_resources::{ResKey, ResourceAccessor};
 ///
 /// # Examples
 ///
-/// See [`InstanceGroup2D`].
+/// # Examples
+///
+/// See [`instance_group_2d`](crate::instance_group_2d()) and
+/// [`instance_2d`](crate::instance_2d()) as most of the time these methods will be used
+/// to create an instance rendering.
 #[non_exhaustive]
 #[derive(Component, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InstanceRendering2D {

@@ -25,11 +25,11 @@ pub fn main() {
 }
 
 fn background() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
 }
 
 fn alive_cell_instance_group() -> impl BuiltEntity {
-    instance_group_2d::<Default2DMaterial, With<AliveCell>>(WINDOW_CAMERA_2D, None)
+    instance_group_2d::<With<AliveCell>>(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|m: &mut Default2DMaterial| m.color = Color::BLACK)
 }
 

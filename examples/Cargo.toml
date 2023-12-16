@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 approx.workspace = true
+bytemuck.workspace = true
 getrandom.workspace = true
 instant.workspace = true
 log.workspace = true
@@ -52,6 +53,11 @@ crate-type = ["cdylib"]
 [[example]]
 name = "collisions_2d_android"
 path = "examples/android/collisions_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "custom_shader_android"
+path = "examples/android/custom_shader.rs"
 crate-type = ["cdylib"]
 
 [[example]]

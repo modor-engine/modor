@@ -238,7 +238,7 @@ fn buffer() -> impl BuiltEntity {
 }
 
 fn rectangle() -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(TEXTURE_CAMERAS_2D.get(0), None)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(RECTANGLE_TEXTURE))
         .updated(|m: &mut Default2DMaterial| m.texture_size = Vec2::ONE * 2.)
 }

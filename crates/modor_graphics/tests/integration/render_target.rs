@@ -94,7 +94,7 @@ fn render_target_in_target() {
         .with_entity(main_texture().component(RenderTarget::new(MAIN_TARGET)))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_target"))
-        .with_entity(blue_rectangle(Some(TARGET_MATERIAL)))
+        .with_entity(blue_rectangle_with_material(TARGET_MATERIAL))
         .updated()
         .assert::<With<MainTarget>>(1, is_same("render_target#target_in_use"))
         .updated()
@@ -159,9 +159,9 @@ fn resource() -> impl BuiltEntity {
             },
         ))
         .child_entity(secondary_target())
-        .child_entity(blue_rectangle(None))
+        .child_entity(blue_rectangle())
         .child_entity(
-            instance_2d::<Default2DMaterial>(MAIN_CAMERA, None)
+            instance_2d(MAIN_CAMERA, Default2DMaterial::new())
                 .updated(|r: &mut InstanceRendering2D| r.material_key = TARGET_MATERIAL),
         )
 }
@@ -178,8 +178,16 @@ fn secondary_target() -> impl BuiltEntity {
         .component(SecondaryTarget)
 }
 
-fn blue_rectangle(material_key: Option<ResKey<Material>>) -> impl BuiltEntity {
-    instance_2d::<Default2DMaterial>(SECONDARY_CAMERA, material_key)
+fn blue_rectangle() -> impl BuiltEntity {
+    instance_2d(SECONDARY_CAMERA, Default2DMaterial::new())
+        .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
+        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
+        .component(BlueRectangle)
+}
+
+fn blue_rectangle_with_material(material_key: ResKey<Material>) -> impl BuiltEntity {
+    instance_2d(SECONDARY_CAMERA, material_key)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
