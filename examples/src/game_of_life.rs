@@ -4,7 +4,8 @@ use modor::{
     SingletonComponent, With, World,
 };
 use modor_graphics::{
-    instance_2d, instance_group_2d, window_target, Color, Material, ZIndex2D, WINDOW_CAMERA_2D,
+    instance_2d, instance_group_2d, window_target, Color, Default2DMaterial, ZIndex2D,
+    WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -24,12 +25,12 @@ pub fn main() {
 }
 
 fn background() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
 }
 
 fn alive_cell_instance_group() -> impl BuiltEntity {
-    instance_group_2d::<With<AliveCell>>(WINDOW_CAMERA_2D, None)
-        .updated(|m: &mut Material| m.color = Color::BLACK)
+    instance_group_2d::<Default2DMaterial, With<AliveCell>>(WINDOW_CAMERA_2D, None)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::BLACK)
 }
 
 fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {

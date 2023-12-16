@@ -1,6 +1,6 @@
 use crate::pong::collisions::{HORIZONTAL_WALL_GROUP, LEFT_WALL_GROUP, RIGHT_WALL_GROUP};
 use modor::{BuiltEntity, Component, EntityBuilder, NoSystem};
-use modor_graphics::{instance_2d, WINDOW_CAMERA_2D};
+use modor_graphics::{instance_2d, Default2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::{Collider2D, CollisionGroup, Transform2D};
 use modor_resources::ResKey;
@@ -18,7 +18,7 @@ pub(crate) fn field() -> impl BuiltEntity {
 }
 
 fn wall(orientation: WallOrientation, group_key: ResKey<CollisionGroup>) -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = orientation.position())
         .updated(|t: &mut Transform2D| t.size = orientation.size())
         .component(Collider2D::rectangle(group_key))
@@ -26,7 +26,7 @@ fn wall(orientation: WallOrientation, group_key: ResKey<CollisionGroup>) -> impl
 }
 
 fn separator() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(BORDER_WIDTH / 4., SIZE.y))
 }
 

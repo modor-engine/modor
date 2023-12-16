@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder};
 use modor_graphics::{
-    instance_2d, window_target, Color, Material, Texture, ZIndex2D, WINDOW_CAMERA_2D,
+    instance_2d, window_target, Color, Default2DMaterial, Texture, ZIndex2D, WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
 use modor_physics::{Dynamics2D, Transform2D};
@@ -19,8 +19,8 @@ pub fn main() {
 fn background() -> impl BuiltEntity {
     let texture_key = ResKey::unique("background");
     let background_data = include_bytes!("../assets/background.png");
-    instance_2d(WINDOW_CAMERA_2D, None)
-        .updated(|m: &mut Material| m.texture_key = Some(texture_key))
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
         .component(Texture::from_file(texture_key, background_data))
 }
 
@@ -54,11 +54,11 @@ fn smiley(
     velocity: Vec2,
     angular_velocity: f32,
 ) -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.2))
-        .updated(|m: &mut Material| m.texture_key = Some(texture_key))
-        .updated(|m: &mut Material| m.color = color)
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.color = color)
         .component(Dynamics2D::new())
         .with(|d| d.velocity = velocity)
         .with(|d| d.angular_velocity = angular_velocity)

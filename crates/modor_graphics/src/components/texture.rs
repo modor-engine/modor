@@ -57,8 +57,8 @@ pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(mod
 /// }
 ///
 /// fn sprite() -> impl BuiltEntity {
-///     instance_2d(CAMERA, None)
-///         .updated(|m: &mut Material| m.texture_key = Some(TEXTURE))
+///     instance_2d::<Default2DMaterial>(CAMERA, None)
+///         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(TEXTURE))
 /// }
 /// ```
 pub struct Texture {

@@ -1,7 +1,7 @@
 use modor::{systems, App, BuiltEntity, Component, SingleRef};
 use modor_graphics::{
-    instance_2d, window_target, Color, Material, RenderTarget, Sprite, Texture, TextureAnimation,
-    WINDOW_CAMERA_2D,
+    instance_2d, window_target, Color, Default2DMaterial, RenderTarget, Sprite, Texture,
+    TextureAnimation, WINDOW_CAMERA_2D,
 };
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
@@ -23,9 +23,9 @@ fn window() -> impl BuiltEntity {
 fn character() -> impl BuiltEntity {
     let texture_key = ResKey::unique("character");
     let sprites = Direction::Down.stopped_sprites();
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.15)
-        .updated(|m: &mut Material| m.texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
         .component(Dynamics2D::new())
         .component(Texture::from_path(texture_key, "slime.png"))
         .with(|t| t.is_smooth = false)

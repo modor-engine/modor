@@ -2,7 +2,7 @@ use modor::{
     systems, App, BuiltEntity, NoSystem, Single, SingleMut, SingleRef, SingletonComponent,
 };
 use modor_graphics::{
-    instance_2d, window_target, AntiAliasing, Color, Material, ZIndex2D, WINDOW_CAMERA_2D,
+    instance_2d, window_target, AntiAliasing, Color, Default2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
 };
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
@@ -22,16 +22,16 @@ pub fn main() {
 }
 
 fn object() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
-        .updated(|m: &mut Material| m.color = Color::YELLOW)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::YELLOW)
 }
 
 fn information() -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, "", 50.)
-        .updated(|m: &mut Material| m.front_color = Color::BLACK)
-        .updated(|m: &mut Material| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::BLACK)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
         .updated(|t: &mut Text| t.alignment = Alignment::Left)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .component(ZIndex2D::from(1))

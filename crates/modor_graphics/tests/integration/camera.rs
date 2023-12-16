@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, texture_target, Camera2D, Color, Material, Size, TEXTURE_TARGETS,
+    instance_2d, texture_target, Camera2D, Color, Default2DMaterial, Size, TEXTURE_TARGETS,
 };
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
@@ -165,10 +165,10 @@ fn resources() -> impl BuiltEntity {
 }
 
 fn model() -> impl BuiltEntity {
-    instance_2d(CAMERA, None)
+    instance_2d::<Default2DMaterial>(CAMERA, None)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
-        .updated(|m: &mut Material| m.color = Color::BLUE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
 }
 
 fn test_camera(camera: Camera2D) -> impl BuiltEntity {

@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component};
-use modor_graphics::{window_target, Color, Material, WINDOW_CAMERA_2D};
+use modor_graphics::{window_target, Color, Default2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_resources::ResKey;
@@ -21,8 +21,8 @@ pub fn main() {
 fn text() -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, "Loading", 300.)
         .updated(|t: &mut Text| t.font_key = FONT)
-        .updated(|m: &mut Material| m.color = Color::rgb(0.1, 0.1, 0.1))
-        .updated(|m: &mut Material| m.front_color = Color::WHITE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::rgb(0.1, 0.1, 0.1))
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::WHITE)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.2))
         .component(LoadingText::default())
 }

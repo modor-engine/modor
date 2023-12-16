@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Single, SingleRef, SingletonComponent};
 use modor_graphics::{
-    instance_2d, window_target, Camera2D, Color, Material, Window, ELLIPSE_SHADER, WINDOW_CAMERA_2D,
+    instance_2d, window_target, Camera2D, Color, Default2DMaterial, Window, WINDOW_CAMERA_2D,
 };
 use modor_input::Mouse;
 use modor_math::Vec2;
@@ -18,9 +18,9 @@ pub fn main() {
 }
 
 fn cursor() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.02)
-        .updated(|m: &mut Material| m.shader_key = ELLIPSE_SHADER)
+        .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
         .component(CursorPosition::default())
 }
 
@@ -28,8 +28,8 @@ fn text(position_y: f32, text: &str) -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
         .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
-        .updated(|t: &mut Material| t.color = Color::INVISIBLE)
-        .updated(|t: &mut Material| t.front_color = Color::WHITE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::WHITE)
 }
 
 #[derive(SingletonComponent, Default)]

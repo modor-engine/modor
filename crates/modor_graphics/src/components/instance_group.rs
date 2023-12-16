@@ -68,8 +68,8 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 ///             WINDOW_CAMERA_2D,
 ///             material_key,
 ///         ))
-///         .component(Material::new(material_key))
-///         .with(|m| m.color = Color::RED)
+///         .inherited(material::<Default2DMaterial>(material_key))
+///         .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
 /// }
 ///
 /// fn red_rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
@@ -90,9 +90,9 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 ///             WINDOW_CAMERA_2D,
 ///             material_key,
 ///         ))
-///         .child_component(Material::new(material_key))
-///         .with(|m| m.color = Color::GREEN)
-///         .with(|m| m.shader_key = ELLIPSE_SHADER)
+///         .inherited(material::<Default2DMaterial>(material_key))
+///         .updated(|m: &mut Default2DMaterial| m.color = Color::GREEN)
+///         .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
 ///         .component(Transform2D::new())
 ///         .with(|t| t.position = position)
 ///         .with(|t| t.size = size)

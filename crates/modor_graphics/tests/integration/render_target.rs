@@ -1,9 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, texture_target, window_target, Camera2D, Color, InstanceRendering2D, Material,
-    RenderTarget, Size, Texture, TextureBuffer, Window, TARGET_TEXTURES, TEXTURE_CAMERAS_2D,
-    TEXTURE_TARGETS, WINDOW_CAMERA_2D, WINDOW_TARGET,
+    instance_2d, material, texture_target, window_target, Camera2D, Color, Default2DMaterial,
+    InstanceRendering2D, Material, RenderTarget, Size, Texture, TextureBuffer, Window,
+    TARGET_TEXTURES, TEXTURE_CAMERAS_2D, TEXTURE_TARGETS, WINDOW_CAMERA_2D, WINDOW_TARGET,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -153,12 +153,15 @@ fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_component(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
         .child_component(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
-        .child_component(Material::new(TARGET_MATERIAL))
-        .with(|m| m.texture_key = Some(SECONDARY_TARGET_TEXTURE))
+        .child_entity(material::<Default2DMaterial>(TARGET_MATERIAL).updated(
+            |m: &mut Default2DMaterial| {
+                m.texture_key = Some(SECONDARY_TARGET_TEXTURE);
+            },
+        ))
         .child_entity(secondary_target())
         .child_entity(blue_rectangle(None))
         .child_entity(
-            instance_2d(MAIN_CAMERA, None)
+            instance_2d::<Default2DMaterial>(MAIN_CAMERA, None)
                 .updated(|r: &mut InstanceRendering2D| r.material_key = TARGET_MATERIAL),
         )
 }
@@ -176,10 +179,10 @@ fn secondary_target() -> impl BuiltEntity {
 }
 
 fn blue_rectangle(material_key: Option<ResKey<Material>>) -> impl BuiltEntity {
-    instance_2d(SECONDARY_CAMERA, material_key)
+    instance_2d::<Default2DMaterial>(SECONDARY_CAMERA, material_key)
         .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
-        .updated(|m: &mut Material| m.color = Color::BLUE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
         .component(BlueRectangle)
 }
 

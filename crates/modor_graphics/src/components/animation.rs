@@ -1,4 +1,4 @@
-use crate::Material;
+use crate::Default2DMaterial;
 use instant::Instant;
 use modor_math::Vec2;
 use std::time::Duration;
@@ -48,8 +48,8 @@ use std::time::Duration;
 ///         Sprite::new(1, 1),
 ///         Sprite::new(2, 1),
 ///     ];
-///     instance_2d(WINDOW_CAMERA_2D, None)
-///         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
+///     instance_2d::<Default2DMaterial>(WINDOW_CAMERA_2D, None)
+///         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
 ///         .component(TextureAnimation::new(3, 2, sprites))
 ///         .with(|a| a.frames_per_second = 5)
 /// }
@@ -95,8 +95,9 @@ impl TextureAnimation {
         }
     }
 
+    // TODO: generalize
     #[run]
-    fn update_material(&mut self, material: &mut Material) {
+    fn update_material(&mut self, material: &mut Default2DMaterial) {
         if self.last_update_instant.elapsed() >= self.frame_duration() {
             if let Some(sprite_idx) = self.next_sprite_idx() {
                 let sprite = self.sprites[sprite_idx];

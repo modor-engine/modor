@@ -1,4 +1,4 @@
-use crate::components::material::MaterialRegistry;
+use crate::components::material::{MaterialRegistry, MaterialUpdate};
 use crate::components::mesh::{Mesh, RECTANGLE_MESH};
 use crate::components::shader::Shader;
 use crate::{Camera2D, InstanceGroup2D, Material};
@@ -61,7 +61,11 @@ impl InstanceRendering2D {
         }
     }
 
-    #[run_after(component(MaterialRegistry), component(Material))]
+    #[run_after(
+        component(MaterialRegistry),
+        component(Material),
+        action(MaterialUpdate)
+    )]
     fn update(&mut self, materials: Custom<ResourceAccessor<'_, Material>>) {
         let material = materials.get(self.material_key);
         self.shader_key = material.map(|material| material.shader_key);

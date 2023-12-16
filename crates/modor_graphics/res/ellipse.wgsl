@@ -1,8 +1,8 @@
-struct CameraUniform {
+struct Camera {
     transform: mat4x4<f32>,
 };
 
-struct MaterialUniform {
+struct Material {
     color: vec4<f32>,
     texture_part_position: vec2<f32>,
     texture_part_size: vec2<f32>,
@@ -40,11 +40,11 @@ struct Fragment {
 
 @group(0)
 @binding(0)
-var<uniform> camera: CameraUniform;
+var<uniform> camera: Camera;
 
 @group(1)
 @binding(0)
-var<uniform> material: MaterialUniform;
+var<uniform> material: Material;
 
 @group(1)
 @binding(1)

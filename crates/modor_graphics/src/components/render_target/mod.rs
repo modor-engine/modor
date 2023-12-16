@@ -1,11 +1,10 @@
 use crate::components::camera::Camera2DRegistry;
 use crate::components::instance_group::InstanceGroup2DRegistry;
-use crate::components::material::MaterialRegistry;
+use crate::components::material::{MaterialRegistry, MaterialUpdate};
 use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::texture::TextureTarget;
 use crate::components::render_target::window::WindowTarget;
 use crate::components::shader::{Shader, ShaderRegistry};
-use crate::components::texture::{INVISIBLE_TEXTURE, WHITE_TEXTURE};
 use crate::data::size::NonZeroSize;
 use crate::{
     errors, AntiAliasing, Camera2D, Color, FrameRate, InstanceGroup2D, InstanceRendering2D,
@@ -199,6 +198,7 @@ impl RenderTarget {
         component(Camera2D),
         component(MaterialRegistry),
         component(Material),
+        action(MaterialUpdate),
         component(ShaderRegistry),
         component(Shader),
         component(MeshRegistry),
@@ -324,14 +324,9 @@ impl RenderTarget {
             return None;
         }
         let material = resources.materials.get(rendering.material_key)?;
-        let texture_key = material.texture_key.unwrap_or(WHITE_TEXTURE);
-        self.check_texture(rendering.material_key, texture_key, target_texture_key)?;
-        let front_texture_key = material.front_texture_key.unwrap_or(INVISIBLE_TEXTURE);
-        self.check_texture(
-            rendering.material_key,
-            front_texture_key,
-            target_texture_key,
-        )?;
+        for &texture_key in &material.texture_keys {
+            self.check_texture(rendering.material_key, texture_key, target_texture_key)?;
+        }
         let shader = resources.shaders.get(material.shader_key)?;
         let mesh = resources.meshes.get(rendering.mesh_key)?;
         let camera_uniform = camera.uniform(self.key, target_type);
