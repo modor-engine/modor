@@ -1,5 +1,6 @@
 use crate::MaterialSource;
 use instant::Instant;
+use modor::{VariableSend, VariableSync};
 use modor_math::Vec2;
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -56,7 +57,7 @@ use std::time::Duration;
 /// }
 /// ```
 #[derive(Component, Debug, Clone)]
-pub struct TextureAnimation<M: 'static + Sync + Send> {
+pub struct TextureAnimation<M: 'static + VariableSync + VariableSend> {
     /// The number of columns in the texture.
     ///
     /// The width of a sprite in pixels is the width of the texture in pixels divided by the
