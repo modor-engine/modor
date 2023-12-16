@@ -8,6 +8,7 @@
 pub mod animation_2d;
 pub mod anti_aliasing;
 pub mod collisions_2d;
+pub mod custom_shader;
 pub mod game_of_life;
 pub mod gamepad;
 pub mod keyboard;

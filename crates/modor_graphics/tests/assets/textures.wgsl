@@ -1,13 +1,6 @@
-struct CameraUniform {
+struct Camera {
     transform: mat4x4<f32>,
 };
-
-struct MaterialUniform {
-    color: vec4<f32>,
-    texture_part_position: vec2<f32>,
-    texture_part_size: vec2<f32>,
-    front_color: vec4<f32>,
-}
 
 struct Vertex {
     @location(0)
@@ -30,31 +23,29 @@ struct Instance {
 struct Fragment {
     @builtin(position)
     position: vec4<f32>,
+    @location(0)
+    texture_position: vec2<f32>,
 };
 
 @group(0)
 @binding(0)
-var<uniform> camera: CameraUniform;
-
-@group(1)
-@binding(0)
-var<uniform> material: MaterialUniform;
+var<uniform> camera: Camera;
 
 @group(1)
 @binding(1)
-var texture: texture_2d<f32>;
+var texture1: texture_2d<f32>;
 
 @group(1)
 @binding(2)
-var texture_sampler: sampler;
+var texture1_sampler: sampler;
 
 @group(1)
 @binding(3)
-var front_texture: texture_2d<f32>;
+var texture2: texture_2d<f32>;
 
 @group(1)
 @binding(4)
-var front_texture_sampler: sampler;
+var texture2_sampler: sampler;
 
 @vertex
 fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
@@ -64,10 +55,15 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
         instance.transform_2,
         instance.transform_3,
     );
-    return Fragment(camera.transform * transform * vec4<f32>(vertex.position, 1.));
+    return Fragment(
+        camera.transform * transform * vec4<f32>(vertex.position, 1.),
+        vertex.texture_position,
+    );
 }
 
 @fragment
 fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
-    return vec4(1., 0., 0., 1.);
+    let color1 = textureSample(texture1, texture1_sampler, fragment.texture_position);
+    let color2 = textureSample(texture2, texture2_sampler, fragment.texture_position);
+    return color1 * color2;
 }

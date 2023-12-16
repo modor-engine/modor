@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, QueryEntityFilter, QueryFilter, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, instance_group_2d, texture_target, InstanceGroup2D, InstanceRendering2D, Material,
-    Size, TextureBuffer, ELLIPSE_SHADER, TEXTURE_CAMERAS_2D,
+    instance_2d, instance_group_2d, material, texture_target, Default2DMaterial, InstanceGroup2D,
+    InstanceRendering2D, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -58,7 +58,10 @@ fn create_instance_2d_with_new_material() {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), None))
+        .with_entity(instance_2d(
+            TEXTURE_CAMERAS_2D.get(0),
+            Default2DMaterial::new(),
+        ))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_rectangle"));
 }
@@ -66,13 +69,14 @@ fn create_instance_2d_with_new_material() {
 #[modor_test(disabled(macos, android, wasm))]
 fn create_instance_2d_with_external_material() {
     let material_key = ResKey::new("material");
-    let mut material = Material::new(material_key);
-    material.shader_key = ELLIPSE_SHADER;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(material)
-        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), Some(material_key)))
+        .with_entity(
+            material::<Default2DMaterial>(material_key)
+                .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
+        )
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_ellipse"));
 }
@@ -84,7 +88,7 @@ fn create_instance_group_2d_with_default_material() {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            None,
+            Default2DMaterial::new(),
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))
@@ -96,15 +100,16 @@ fn create_instance_group_2d_with_default_material() {
 #[modor_test(disabled(macos, android, wasm))]
 fn create_instance_group_2d_with_external_material() {
     let material_key = ResKey::new("material");
-    let mut material = Material::new(material_key);
-    material.shader_key = ELLIPSE_SHADER;
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(material)
+        .with_entity(
+            material::<Default2DMaterial>(material_key)
+                .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
+        )
         .with_entity(instance_group_2d::<With<Displayed>>(
             TEXTURE_CAMERAS_2D.get(0),
-            Some(material_key),
+            material_key,
         ))
         .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
         .with_entity(instance(Vec2::new(-0.25, -0.25)))
@@ -116,14 +121,13 @@ fn create_instance_group_2d_with_external_material() {
 fn self_instance_group() -> impl BuiltEntity {
     let group_key = ResKey::new("self-instance-group");
     let material_key = ResKey::new("self-instance-group");
-    EntityBuilder::new()
+    material::<Default2DMaterial>(material_key)
         .component(InstanceGroup2D::from_self(group_key))
         .component(InstanceRendering2D::new(
             group_key,
             TEXTURE_CAMERAS_2D.get(0),
             material_key,
         ))
-        .component(Material::new(material_key))
 }
 
 fn filtered_instance_group<F>() -> impl BuiltEntity
@@ -133,14 +137,13 @@ where
     let group_key = ResKey::new("self-instance-group");
     let material_key = ResKey::new("self-instance-group");
     let filter = QueryFilter::new::<F>();
-    EntityBuilder::new()
+    material::<Default2DMaterial>(material_key)
         .component(InstanceGroup2D::from_filter(group_key, filter))
         .component(InstanceRendering2D::new(
             group_key,
             TEXTURE_CAMERAS_2D.get(0),
             material_key,
         ))
-        .component(Material::new(material_key))
 }
 
 fn instance(position: Vec2) -> impl BuiltEntity {

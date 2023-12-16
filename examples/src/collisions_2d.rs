@@ -1,6 +1,6 @@
 use modor::{systems, App, BuiltEntity, Component, Single, SingleRef, TemporaryComponent, World};
 use modor_graphics::{
-    instance_2d, window_target, Camera2D, Color, Material, Window, ZIndex2D, ELLIPSE_SHADER,
+    instance_2d, window_target, Camera2D, Color, Default2DMaterial, Window, ZIndex2D,
     WINDOW_CAMERA_2D,
 };
 use modor_input::Mouse;
@@ -42,30 +42,30 @@ fn shape_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
 }
 
 fn cursor() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.05, 0.1))
         .updated(|t: &mut Transform2D| t.rotation = FRAC_PI_8)
-        .updated(|m: &mut Material| m.color = Color::GREEN)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::GREEN)
         .component(Collider2D::rectangle(CURSOR_GROUP))
         .component(ZIndex2D::from(1))
         .component(Cursor)
 }
 
 fn rectangle() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = Vec2::X * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.3))
-        .updated(|m: &mut Material| m.color = Color::CYAN)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::CYAN)
         .component(Collider2D::rectangle(SHAPE_GROUP))
         .component(Shape)
 }
 
 fn circle() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = -Vec2::X * 0.25)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.4)
-        .updated(|m: &mut Material| m.color = Color::CYAN)
-        .updated(|m: &mut Material| m.shader_key = ELLIPSE_SHADER)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::CYAN)
+        .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
         .component(Collider2D::circle(SHAPE_GROUP))
         .component(Shape)
 }
@@ -76,11 +76,11 @@ fn collision_mark(collision: &Collision2D, is_cursor: bool) -> impl BuiltEntity 
     } else {
         Color::DARK_GRAY
     };
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = collision.position)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.02)
-        .updated(|m: &mut Material| m.color = color)
-        .updated(|m: &mut Material| m.shader_key = ELLIPSE_SHADER)
+        .updated(|m: &mut Default2DMaterial| m.color = color)
+        .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
         .component(ZIndex2D::from(if is_cursor { 2 } else { 3 }))
         .component(AutoRemoved)
         .child_entity(collision_penetration(collision, is_cursor))
@@ -98,11 +98,11 @@ fn collision_penetration(collision: &Collision2D, is_cursor: bool) -> impl Built
         .with_magnitude(0.0025)
         .unwrap_or_default();
     let position = collision.position - collision.penetration / 2. + lateral_offset;
-    instance_2d(WINDOW_CAMERA_2D, None)
+    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.005, collision.penetration.magnitude()))
         .updated(|t: &mut Transform2D| t.rotation = Vec2::Y.rotation(-collision.penetration))
-        .updated(|m: &mut Material| m.color = color)
+        .updated(|m: &mut Default2DMaterial| m.color = color)
         .component(ZIndex2D::from(if is_cursor { 2 } else { 3 }))
 }
 
@@ -122,7 +122,11 @@ impl Cursor {
     }
 
     #[run_after(component(Collider2D))]
-    fn update_material(material: &mut Material, collider: &Collider2D, mut world: World<'_>) {
+    fn update_material(
+        material: &mut Default2DMaterial,
+        collider: &Collider2D,
+        mut world: World<'_>,
+    ) {
         material.color = if collider.collisions().is_empty() {
             Color::GREEN
         } else {

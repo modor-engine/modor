@@ -1,7 +1,7 @@
 use crate::pong::field;
 use crate::pong::Side;
 use modor::{systems, BuiltEntity, SingletonComponent};
-use modor_graphics::{Color, Material, WINDOW_CAMERA_2D};
+use modor_graphics::{Color, Default2DMaterial, WINDOW_CAMERA_2D};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_text::{text_2d, Text};
@@ -9,8 +9,8 @@ use modor_text::{text_2d, Text};
 pub(crate) fn score(side: Side) -> impl BuiltEntity {
     const TEXT_HEIGHT: f32 = 0.2;
     text_2d(WINDOW_CAMERA_2D, "0", 100.)
-        .updated(|m: &mut Material| m.color = Color::INVISIBLE)
-        .updated(|m: &mut Material| m.front_color = Color::WHITE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::WHITE)
         .updated(|t: &mut Transform2D| t.position.x = side.x_sign() * field::SIZE.x / 4.)
         .updated(|t: &mut Transform2D| t.position.y = field::SIZE.y / 2. - TEXT_HEIGHT / 2.)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.3, TEXT_HEIGHT))

@@ -1,7 +1,8 @@
 use instant::Instant;
 use modor::{systems, App, BuiltEntity, Component, EntityBuilder, SingleRef, SingletonComponent};
 use modor_graphics::{
-    instance_2d, window_target, Color, Material, ZIndex2D, ELLIPSE_SHADER, WINDOW_CAMERA_2D,
+    instance_2d, material, window_target, Color, Default2DMaterial, Material, ZIndex2D,
+    WINDOW_CAMERA_2D,
 };
 use modor_math::Vec2;
 use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
@@ -38,10 +39,11 @@ pub fn main() {
 fn materials() -> impl BuiltEntity {
     EntityBuilder::new().child_entities(|g| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
-            let mut material = Material::new(MATERIAL.get(color_id));
-            material.color = color;
-            material.shader_key = ELLIPSE_SHADER;
-            g.add(material);
+            g.add(
+                material::<Default2DMaterial>(MATERIAL.get(color_id))
+                    .updated(|m: &mut Default2DMaterial| m.color = color)
+                    .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
+            );
         }
     })
 }
@@ -58,7 +60,7 @@ fn sprite(entity_id: usize) -> impl BuiltEntity {
     let mut rng = rand::thread_rng();
     let material_key = MATERIAL.get(entity_id % COLORS.len());
     let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-    instance_2d(WINDOW_CAMERA_2D, Some(material_key))
+    instance_2d(WINDOW_CAMERA_2D, material_key)
         .updated(|t: &mut Transform2D| t.position = position)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.01)
         .component(Dynamics2D::new())

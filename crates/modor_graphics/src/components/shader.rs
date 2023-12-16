@@ -8,7 +8,9 @@ use modor_resources::{
     Load, ResKey, Resource, ResourceHandler, ResourceLoadingError, ResourceRegistry,
     ResourceSource, ResourceState,
 };
+use regex::Regex;
 use std::collections::hash_map::Entry;
+use std::str::FromStr;
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
     BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
@@ -32,24 +34,33 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 ///
 /// - [`Material`](crate::Material)
 ///
-/// # Built-in shaders
-///
-/// - [`DEFAULT_SHADER`](crate::DEFAULT_SHADER)
-/// - [`ELLIPSE_SHADER`](crate::ELLIPSE_SHADER)
-///
 /// # Code
 ///
 /// This component only supports code in [WGSL](https://www.w3.org/TR/WGSL/) format.
+///
+/// # Bindings
+///
+/// The code can include the following bindings:
+/// - group `0`
+///     - binding `0`: camera data as defined in the below example
+/// - group `1`
+///     - binding `0`: material data as defined in the below example
+///         (fields can vary depending on the associated [`Material`](crate::Material)s)
+///     - binding `(i * 2)`: `texture_2d<f32>` value corresponding to texture `i`
+///     - binding `(i * 2 + 1)`: `sampler` value corresponding to texture `i`
+///
+/// The number of defined textures must be the same as the number of textures defined in the
+/// associated [`Material`](crate::Material)s.
 ///
 /// # Examples
 ///
 /// Example of supported WGSL code:
 /// ```wgsl
-/// struct CameraUniform {
+/// struct Camera {
 ///     transform: mat4x4<f32>,
 /// };
 ///
-/// struct MaterialUniform {
+/// struct Material {
 ///     color: vec4<f32>,
 ///     texture_part_position: vec2<f32>,
 ///     texture_part_size: vec2<f32>,
@@ -81,11 +92,11 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 ///
 /// @group(0)
 /// @binding(0)
-/// var<uniform> camera: CameraUniform;
+/// var<uniform> camera: Camera;
 ///
 /// @group(1)
 /// @binding(0)
-/// var<uniform> material: MaterialUniform;
+/// var<uniform> material: Material;
 ///
 /// @group(1)
 /// @binding(1)
@@ -121,31 +132,17 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 /// }
 /// ```
 ///
-/// It is highly recommended to define the same structure and bindings, as they correspond to the
-/// data sent to the shader.
+/// It is recommended to define the same structures and bindings.
 ///
-/// Then the shader can be defined:
-/// ```rust
-/// # use modor::*;
-/// # use modor_graphics::*;
-/// # use modor_resources::*;
-/// #
-/// fn custom_instance() -> impl BuiltEntity {
-///     let shader_key = ResKey::unique("custom");
-///     instance_2d(WINDOW_CAMERA_2D, None)
-///         .updated(|m: &mut Material| m.shader_key = shader_key)
-///         // shader can also be defined outside this entity to be used by multiple instances
-///         .component(Shader::from_path(shader_key, "path/to/shader"))
-/// }
-/// ```
+/// Then the shader can be defined and linked to a [`Material`](crate::Material).
 #[derive(Component, Debug)]
 pub struct Shader {
     pub(crate) material_bind_group_layout: Option<BindGroupLayout>,
     pub(crate) is_material_bind_group_layout_reloaded: bool,
     key: ResKey<Self>,
     pipelines: FxHashMap<TextureFormat, RenderPipeline>,
-    handler: ResourceHandler<LoadedShader, &'static str>,
-    code: Option<String>,
+    handler: ResourceHandler<LoadedCode, &'static str>,
+    code: Option<LoadedCode>,
     error: Option<ResourceLoadingError>,
     sample_count: u32,
     renderer_version: Option<u8>,
@@ -209,7 +206,7 @@ impl Shader {
         if let Some(context) = state.context() {
             self.handler.update::<Self>(self.key);
             if let Some(shader) = self.handler.resource() {
-                self.code = Some(shader.code);
+                self.code = Some(shader);
                 self.error = None;
                 self.pipelines.clear();
             }
@@ -242,54 +239,42 @@ impl Shader {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn update_texture_bind_group(&mut self, context: &GpuContext) {
-        if self.material_bind_group_layout.is_none() {
+        if let (Some(code), None) = (&self.code, &self.material_bind_group_layout) {
+            let mut entries = vec![BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }];
+            for i in 0..code.texture_count {
+                entries.extend([
+                    BindGroupLayoutEntry {
+                        binding: (i * 2 + 1) as u32,
+                        visibility: ShaderStages::VERTEX_FRAGMENT,
+                        ty: BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: TextureViewDimension::D2,
+                            sample_type: TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: (i * 2 + 2) as u32,
+                        visibility: ShaderStages::VERTEX_FRAGMENT,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ]);
+            }
             self.material_bind_group_layout = Some(context.device.create_bind_group_layout(
                 &BindGroupLayoutDescriptor {
-                    entries: &[
-                        BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: ShaderStages::VERTEX_FRAGMENT,
-                            ty: BindingType::Buffer {
-                                ty: BufferBindingType::Uniform,
-                                has_dynamic_offset: false,
-                                min_binding_size: None,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: ShaderStages::VERTEX_FRAGMENT,
-                            ty: BindingType::Texture {
-                                multisampled: false,
-                                view_dimension: TextureViewDimension::D2,
-                                sample_type: TextureSampleType::Float { filterable: true },
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 2,
-                            visibility: ShaderStages::VERTEX_FRAGMENT,
-                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 3,
-                            visibility: ShaderStages::VERTEX_FRAGMENT,
-                            ty: BindingType::Texture {
-                                multisampled: false,
-                                view_dimension: TextureViewDimension::D2,
-                                sample_type: TextureSampleType::Float { filterable: true },
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 4,
-                            visibility: ShaderStages::VERTEX_FRAGMENT,
-                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                    ],
+                    entries: &entries,
                     label: Some(&format!(
                         "modor_bind_group_layout_texture_{}",
                         self.key.label(),
@@ -313,7 +298,7 @@ impl Shader {
             self.sample_count = sample_count;
             for (texture_format, pipeline) in &mut self.pipelines {
                 *pipeline = Self::create_pipeline(
-                    code,
+                    &code.string,
                     self.key,
                     *texture_format,
                     self.material_bind_group_layout
@@ -338,7 +323,7 @@ impl Shader {
         for texture_format in texture_formats {
             if let Entry::Vacant(entry) = self.pipelines.entry(texture_format) {
                 entry.insert(Self::create_pipeline(
-                    code,
+                    &code.string,
                     self.key,
                     texture_format,
                     self.material_bind_group_layout
@@ -468,20 +453,39 @@ pub enum ShaderSource {
 }
 
 #[derive(Debug)]
-struct LoadedShader {
-    code: String,
+struct LoadedCode {
+    texture_count: usize,
+    string: String,
 }
 
-impl Load<&'static str> for LoadedShader {
+impl LoadedCode {
+    fn extract_texture_count(code: &str) -> usize {
+        let texture_binding_regex = Regex::new(r"@group\(1\)\s*@binding\(([0-9]+)\)")
+            .expect("internal error: invalid texture count regex");
+        let binding_count = texture_binding_regex
+            .captures_iter(code)
+            .filter_map(|c| usize::from_str(&c[1]).ok())
+            .max()
+            .unwrap_or(0);
+        (binding_count + 1).div_euclid(2)
+    }
+}
+
+impl Load<&'static str> for LoadedCode {
     fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
         String::from_utf8(data)
-            .map(|code| Self { code })
+            .map(|string| Self {
+                texture_count: Self::extract_texture_count(&string),
+                string,
+            })
             .map_err(|err| ResourceLoadingError::InvalidFormat(format!("{err}")))
     }
 
     fn load_from_data(data: &&'static str) -> Result<Self, ResourceLoadingError> {
+        let string = (*data).to_string();
         Ok(Self {
-            code: (*data).to_string(),
+            texture_count: Self::extract_texture_count(&string),
+            string,
         })
     }
 }

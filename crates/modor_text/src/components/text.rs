@@ -35,7 +35,6 @@ const TEXTURE_PADDING_PX: u32 = 1;
 /// # use modor_text::*;
 /// # use modor_resources::*;
 /// #
-/// const CAMERA: ResKey<Camera2D> = ResKey::new("main");
 /// const FONT: ResKey<Font> = ResKey::new("custom");
 ///
 /// fn root() -> impl BuiltEntity {
@@ -46,13 +45,11 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///
 /// fn text() -> impl BuiltEntity {
 ///     let texture_key = ResKey::unique("text");
-///     let material_key = ResKey::unique("text");
-///     instance_2d(CAMERA, Some(material_key))
+///     instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
+///         .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(texture_key))
 ///         .component(Text::new("my text", 30.))
 ///         .with(|t| t.font_key = FONT)
 ///         .component(Texture::from_size(texture_key, Size::ZERO))
-///         .component(Material::new(material_key))
-///         .with(|m| m.front_texture_key = Some(texture_key))
 /// }
 /// ```
 #[derive(Component, Debug)]

@@ -27,20 +27,12 @@
 //!     .run(modor_graphics::runner);
 //! # }
 //!
-//! fn materials() -> impl BuiltEntity {
-//!     EntityBuilder::new()
-//!         .child_component(Material::new(MATERIAL))
-//!         .with(|m| m.color = Color::RED)
-//! }
-//!
 //! fn rectangle(position: Vec2, size: Vec2) -> impl BuiltEntity {
-//!     instance_2d(WINDOW_CAMERA_2D, None)
+//!     instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
 //!         .updated(|t: &mut Transform2D| t.position = position)
 //!         .updated(|t: &mut Transform2D| t.size = size)
-//!         .updated(|m: &mut Material| m.color = Color::RED)
+//!         .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
 //! }
-//!
-//! const MATERIAL: ResKey<Material> = ResKey::new("rectangle");
 //! ```
 
 #[macro_use]
@@ -75,7 +67,8 @@ pub use components::window::*;
 pub use components::z_index::*;
 pub use data::color::*;
 pub use data::size::*;
-pub use entities::instances::*;
+pub use entities::instance::*;
+pub use entities::material::*;
 pub use entities::module::*;
 pub use entities::targets::*;
 pub use runner::*;

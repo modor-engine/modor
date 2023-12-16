@@ -33,17 +33,12 @@ struct Fragment {
 @binding(0)
 var<uniform> camera: Camera;
 
-@group(0)
-@binding(1)
-var<uniform> invalid_camera: Camera;
-
 @group(1)
 @binding(0)
 var<uniform> material: Material;
 
 @vertex
 fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
-    let cam = invalid_camera;
     let transform = mat4x4<f32>(
         instance.transform_0,
         instance.transform_1,
@@ -55,5 +50,5 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
 
 @fragment
 fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
-    return vec4(1., 0., 0., 1.);
+    return vec4(0., 1., 0., 1.);
 }

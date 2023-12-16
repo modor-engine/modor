@@ -1,7 +1,7 @@
 use modor::{App, BuiltEntity, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    instance_2d, texture_target, Color, Material, Size, Texture, TextureBuffer, ZIndex2D,
+    instance_2d, texture_target, Color, Default2DMaterial, Size, Texture, TextureBuffer, ZIndex2D,
     TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
@@ -123,25 +123,27 @@ fn create_for_transparent_front_texture() {
 }
 
 fn opaque_blue_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::BLUE)
+    rectangle(position, z_index).updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
 }
 
 fn transparent_blue_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::BLUE.with_alpha(0.5))
+    rectangle(position, z_index)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE.with_alpha(0.5))
 }
 
 fn opaque_green_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::GREEN)
+    rectangle(position, z_index).updated(|m: &mut Default2DMaterial| m.color = Color::GREEN)
 }
 
 fn transparent_green_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    rectangle(position, z_index).updated(|m: &mut Material| m.color = Color::GREEN.with_alpha(0.5))
+    rectangle(position, z_index)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::GREEN.with_alpha(0.5))
 }
 
 fn transparent_blue_texture_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
     let texture_key = ResKey::unique("transparent-green-texture-rectangle");
     opaque_blue_rectangle(position, z_index)
-        .updated(|m: &mut Material| m.texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
         .component(Texture::from_path(
             texture_key,
             "../tests/assets/transparent-texture.png",
@@ -151,7 +153,7 @@ fn transparent_blue_texture_rectangle(position: f32, z_index: u16) -> impl Built
 fn transparent_green_texture_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
     let texture_key = ResKey::unique("transparent-green-texture-rectangle");
     opaque_green_rectangle(position, z_index)
-        .updated(|m: &mut Material| m.texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
         .component(Texture::from_path(
             texture_key,
             "../tests/assets/transparent-texture.png",
@@ -162,9 +164,9 @@ fn transparent_green_texture_rectangle(position: f32, z_index: u16) -> impl Buil
 fn transparent_blue_front_texture_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
     let texture_key = ResKey::unique("transparent-green-texture-rectangle");
     rectangle(position, z_index)
-        .updated(|m: &mut Material| m.front_texture_key = Some(texture_key))
-        .updated(|m: &mut Material| m.front_color = Color::BLUE)
-        .updated(|m: &mut Material| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::BLUE)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
         .component(Texture::from_path(
             texture_key,
             "../tests/assets/transparent-texture.png",
@@ -174,9 +176,9 @@ fn transparent_blue_front_texture_rectangle(position: f32, z_index: u16) -> impl
 fn transparent_green_front_texture_rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
     let texture_key = ResKey::unique("transparent-green-texture-rectangle");
     rectangle(position, z_index)
-        .updated(|m: &mut Material| m.front_texture_key = Some(texture_key))
-        .updated(|m: &mut Material| m.front_color = Color::GREEN)
-        .updated(|m: &mut Material| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(texture_key))
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::GREEN)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
         .component(Texture::from_path(
             texture_key,
             "../tests/assets/transparent-texture.png",
@@ -185,7 +187,7 @@ fn transparent_green_front_texture_rectangle(position: f32, z_index: u16) -> imp
 }
 
 fn rectangle(position: f32, z_index: u16) -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), None)
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.position = Vec2::new(position, position))
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.3)
         .component(ZIndex2D::from(z_index))

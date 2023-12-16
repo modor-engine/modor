@@ -254,15 +254,15 @@ fn are_texture_similar(
     }
 }
 
-#[allow(clippy::integer_division, clippy::cast_possible_truncation)]
+#[allow(clippy::cast_possible_truncation)]
 fn downscaled_texture(texture: &[u8], width: u32, factor: u8) -> Vec<u8> {
-    let height = (texture.len() as u32) / 4 / width;
+    let height = (texture.len() as u32).div_euclid(4 * width);
     let buffer: ImageBuffer<Rgba<u8>, _> =
         ImageBuffer::from_raw(width, height, texture).expect("cannot downscale image");
     image::imageops::resize(
         &buffer,
-        width / u32::from(factor),
-        height / u32::from(factor),
+        width.div_euclid(u32::from(factor)),
+        height.div_euclid(u32::from(factor)),
         FilterType::Triangle,
     )
     .into_raw()

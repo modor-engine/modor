@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    instance_2d, texture_target, Color, GraphicsModule, Material, Shader, ShaderSource, Size,
-    Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
+    instance_2d, texture_target, Color, Default2DMaterial, GraphicsModule, MaterialSource, Shader,
+    ShaderSource, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -11,14 +11,13 @@ use modor_resources::ResKey;
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_from_path() {
-    let shader_key = ResKey::new("custom");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(instance(shader_key))
-        .with_entity(Shader::from_path(shader_key, "../tests/assets/custom.wgsl"))
+        .with_entity(custom_instance())
+        .with_entity(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#empty"))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
@@ -28,14 +27,13 @@ fn create_from_path() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_from_string() {
-    let shader_key = ResKey::new("custom");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_string(shader_key, CUSTOM_SHADER_CODE))
-        .with_entity(instance(shader_key))
+        .with_entity(Shader::from_string(CUSTOM_SHADER, CUSTOM_SHADER_CODE))
+        .with_entity(custom_instance())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#custom"));
 }
@@ -49,18 +47,17 @@ fn create_from_string() {
     )
 )]
 fn create_with(shader_filename: &str) {
-    let shader_key = ResKey::new("custom");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(Shader::from_path(
-            shader_key,
+            CUSTOM_SHADER,
             format!("../tests/assets/{shader_filename}"),
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(instance(shader_key))
+        .with_entity(custom_instance())
         .updated()
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#empty"));
@@ -70,7 +67,6 @@ fn create_with(shader_filename: &str) {
 fn set_source() {
     #[derive(Component, NoSystem)]
     struct CustomShader;
-    let shader_key = ResKey::new("custom");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
@@ -78,11 +74,11 @@ fn set_source() {
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(
             EntityBuilder::new()
-                .component(Shader::from_path(shader_key, "../tests/assets/custom.wgsl"))
+                .component(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
                 .component(CustomShader),
         )
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(instance(shader_key))
+        .with_entity(custom_instance())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#custom"))
         .with_update::<With<CustomShader>, _>(|s: &mut Shader| {
@@ -94,15 +90,14 @@ fn set_source() {
 
 #[modor_test(disabled(macos, android, wasm))]
 fn delete_and_recreate_graphics_module() {
-    let shader_key = ResKey::new("custom");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_path(shader_key, "../tests/assets/custom.wgsl"))
+        .with_entity(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(instance(shader_key))
+        .with_entity(custom_instance())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#custom"))
         .with_deleted_entities::<With<GraphicsModule>>()
@@ -116,18 +111,15 @@ fn delete_and_recreate_graphics_module() {
 
 #[modor_test(
     disabled(macos, android, wasm),
-    cases(
-        default = "\"default\", modor_graphics::DEFAULT_SHADER",
-        ellipse = "\"ellipse\", modor_graphics::ELLIPSE_SHADER"
-    )
+    cases(default = "\"default\", false", ellipse = "\"ellipse\", true")
 )]
-fn use_builtin(label: &str, shader_key: ResKey<Shader>) {
+fn use_builtin(label: &str, is_ellipse: bool) {
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(instance(shader_key))
+        .with_entity(instance(is_ellipse))
         .updated()
         .assert::<With<TextureBuffer>>(1, has_component_diff(&format!("shader#{label}"), 50, 2));
 }
@@ -148,25 +140,64 @@ fn textures() -> impl BuiltEntity {
         .with(|t| t.is_repeated = false)
 }
 
-fn instance(shader_key: ResKey<Shader>) -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), None)
+fn instance(is_ellipse: bool) -> impl BuiltEntity {
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
-        .updated(|m: &mut Material| m.color = Color::GRAY)
-        .updated(|m: &mut Material| m.texture_key = Some(BACK_TEXTURE))
-        .updated(|m: &mut Material| m.texture_position = Vec2::new(0.5, 0.))
-        .updated(|m: &mut Material| m.texture_size = Vec2::new(0.5, 1.))
-        .updated(|m: &mut Material| m.front_color = Color::RED)
-        .updated(|m: &mut Material| m.front_texture_key = Some(FRONT_TEXTURE))
-        .updated(|m: &mut Material| m.shader_key = shader_key)
+        .updated(|m: &mut Default2DMaterial| m.color = Color::GRAY)
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(BACK_TEXTURE))
+        .updated(|m: &mut Default2DMaterial| m.texture_position = Vec2::new(0.5, 0.))
+        .updated(|m: &mut Default2DMaterial| m.texture_size = Vec2::new(0.5, 1.))
+        .updated(|m: &mut Default2DMaterial| m.front_color = Color::RED)
+        .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(FRONT_TEXTURE))
+        .updated(|m: &mut Default2DMaterial| m.is_ellipse = is_ellipse)
+}
+
+fn custom_instance() -> impl BuiltEntity {
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), CustomMaterial::default())
+        .updated(|t: &mut Transform2D| t.size = Vec2::new(0.8, 0.5))
+}
+
+#[derive(Component, NoSystem)]
+struct CustomMaterial {
+    unused_color: Color,
+}
+
+impl Default for CustomMaterial {
+    fn default() -> Self {
+        Self {
+            unused_color: Color::WHITE,
+        }
+    }
+}
+
+impl MaterialSource for CustomMaterial {
+    type Data = [f32; 4];
+
+    fn data(&self) -> Self::Data {
+        self.unused_color.into()
+    }
+
+    fn texture_keys(&self) -> Vec<ResKey<Texture>> {
+        vec![]
+    }
+
+    fn shader_key(&self) -> ResKey<Shader> {
+        CUSTOM_SHADER
+    }
+
+    fn is_transparent(&self) -> bool {
+        false
+    }
 }
 
 const BACK_TEXTURE: ResKey<Texture> = ResKey::new("background");
 const FRONT_TEXTURE: ResKey<Texture> = ResKey::new("foreground");
+const CUSTOM_SHADER: ResKey<Shader> = ResKey::new("custom");
 const CUSTOM_SHADER_CODE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/tests/assets/custom.wgsl"
+    "/tests/assets/red.wgsl"
 ));
 const CUSTOM2_SHADER_CODE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/tests/assets/custom2.wgsl"
+    "/tests/assets/green.wgsl"
 ));

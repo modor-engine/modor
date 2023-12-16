@@ -1,9 +1,11 @@
-use crate::Material;
+use crate::MaterialSource;
 use instant::Instant;
+use modor::{VariableSend, VariableSync};
 use modor_math::Vec2;
+use std::marker::PhantomData;
 use std::time::Duration;
 
-/// A animation configuration of a material texture.
+/// A animation configuration of a material texture of type `M`.
 ///
 /// This component helps to change at regular interval the part of a texture used by a material.
 ///
@@ -16,11 +18,11 @@ use std::time::Duration;
 ///
 /// The texture can be loaded only if:
 /// - graphics [`module`](crate::module()) is initialized
-/// - [`Material`] component is in the same entity and has an attached texture
+/// - material of type `M` is in the same entity
 ///
 /// # Related components
 ///
-/// - [`Material`]
+/// - [`Material`](crate::Material)
 /// - [`Texture`](crate::Texture)
 ///
 /// # Examples
@@ -48,14 +50,14 @@ use std::time::Duration;
 ///         Sprite::new(1, 1),
 ///         Sprite::new(2, 1),
 ///     ];
-///     instance_2d(WINDOW_CAMERA_2D, None)
-///         .updated(|m: &mut Material| m.texture_key = Some(texture_key))
-///         .component(TextureAnimation::new(3, 2, sprites))
+///     instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
+///         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(texture_key))
+///         .component(TextureAnimation::<Default2DMaterial>::new(3, 2, sprites))
 ///         .with(|a| a.frames_per_second = 5)
 /// }
 /// ```
 #[derive(Component, Debug, Clone)]
-pub struct TextureAnimation {
+pub struct TextureAnimation<M: 'static + VariableSync + VariableSend> {
     /// The number of columns in the texture.
     ///
     /// The width of a sprite in pixels is the width of the texture in pixels divided by the
@@ -76,10 +78,14 @@ pub struct TextureAnimation {
     pub sprites: Vec<Sprite>,
     last_update_instant: Instant,
     current_sprite_idx: Option<usize>,
+    phantom: PhantomData<M>,
 }
 
 #[systems]
-impl TextureAnimation {
+impl<M> TextureAnimation<M>
+where
+    M: AnimatedMaterialSource,
+{
     const DEFAULT_FRAMES_PER_SECOND: u16 = 10;
 
     /// Creates a new animation.
@@ -92,19 +98,20 @@ impl TextureAnimation {
             sprites: sprites.into(),
             last_update_instant: Instant::now(),
             current_sprite_idx: None,
+            phantom: PhantomData,
         }
     }
 
     #[run]
-    fn update_material(&mut self, material: &mut Material) {
+    fn update_material(&mut self, material: &mut M) {
         if self.last_update_instant.elapsed() >= self.frame_duration() {
             if let Some(sprite_idx) = self.next_sprite_idx() {
                 let sprite = self.sprites[sprite_idx];
-                material.texture_size =
+                let sprite_size =
                     Vec2::new(1. / f32::from(self.columns), 1. / f32::from(self.lines));
-                material.texture_position = material
-                    .texture_size
-                    .with_scale(Vec2::new(sprite.column.into(), sprite.line.into()));
+                let sprite_position =
+                    sprite_size.with_scale(Vec2::new(sprite.column.into(), sprite.line.into()));
+                material.update(sprite_size, sprite_position);
                 self.current_sprite_idx = Some(sprite_idx);
             }
             self.last_update_instant = Instant::now();
@@ -158,4 +165,19 @@ impl Sprite {
     pub const fn new(column: u16, line: u16) -> Self {
         Self { column, line }
     }
+}
+
+/// A trait for defining a material supporting [`TextureAnimation`].
+///
+/// # Examples
+///
+/// See [`TextureAnimation`].
+pub trait AnimatedMaterialSource: MaterialSource {
+    /// Updates the material to display the `sprite`.
+    ///
+    /// `sprite_size` is the size of the sprite in texture distances
+    /// (each coordinate between `0.` and `1.`).<br>
+    /// `sprite_position` is the size of the sprite in texture coordinates
+    /// (each coordinate between `0.` and `1.` from top-left corner of the texture).
+    fn update(&mut self, sprite_size: Vec2, sprite_position: Vec2);
 }

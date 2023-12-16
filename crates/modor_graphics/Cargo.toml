@@ -14,6 +14,7 @@ rust-version.workspace = true
 
 [dependencies]
 bytemuck.workspace = true
+derivative.workspace = true
 fxhash.workspace = true
 futures.workspace = true
 gilrs.workspace = true
@@ -21,6 +22,7 @@ image.workspace = true
 instant.workspace = true
 itertools.workspace = true
 log.workspace = true
+regex.workspace = true
 spin_sleep.workspace = true
 typed-index-collections.workspace = true
 modor.workspace = true

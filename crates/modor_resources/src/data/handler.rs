@@ -9,7 +9,7 @@ use std::{any, mem};
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// # use modor::*;
 /// # use modor_resources::*;
 /// #

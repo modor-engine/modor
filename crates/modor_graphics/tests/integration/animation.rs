@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityAssertions, EntityFilter, With};
 use modor_graphics::testing::has_component_diff;
 use modor_graphics::{
-    instance_2d, texture_target, Material, Size, Sprite, Texture, TextureAnimation, TextureBuffer,
-    TEXTURE_CAMERAS_2D,
+    instance_2d, texture_target, Default2DMaterial, Size, Sprite, Texture, TextureAnimation,
+    TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::ResKey;
@@ -18,9 +18,9 @@ fn run_texture_animation_first_frame() {
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 2))
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 50, 2));
 }
 
@@ -32,9 +32,9 @@ fn run_texture_animation_second_frame() {
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 2))
-        .updated_until_all::<(), TextureAnimation>(Some(1), sleep_one_frame)
+        .updated_until_all::<(), TextureAnimation<Default2DMaterial>>(Some(1), sleep_one_frame)
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(1))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(1))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame1", 50, 2));
 }
 
@@ -46,10 +46,10 @@ fn run_texture_animation_first_frame_again() {
         .with_entity(spritesheet_texture())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 2))
-        .updated_until_all::<(), TextureAnimation>(Some(1), sleep_one_frame)
-        .updated_until_all::<(), TextureAnimation>(Some(1), sleep_one_frame)
+        .updated_until_all::<(), TextureAnimation<Default2DMaterial>>(Some(1), sleep_one_frame)
+        .updated_until_all::<(), TextureAnimation<Default2DMaterial>>(Some(1), sleep_one_frame)
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 50, 2));
 }
 
@@ -62,7 +62,7 @@ fn run_texture_animation_without_frame() {
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![], 2))
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 150, 2));
 }
 
@@ -75,10 +75,10 @@ fn run_texture_animation_at_zero_fps() {
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(sprite(vec![Sprite::new(0, 2), Sprite::new(1, 2)], 0))
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 50, 2))
         .updated()
-        .assert::<With<TextureAnimation>>(1, assert_sprite_index(0))
+        .assert::<With<TextureAnimation<Default2DMaterial>>>(1, assert_sprite_index(0))
         .assert::<With<TextureBuffer>>(1, has_component_diff("animation#frame0", 50, 2));
 }
 
@@ -89,9 +89,9 @@ fn spritesheet_texture() -> Texture {
 }
 
 fn sprite(sprites: Vec<Sprite>, fps: u16) -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), None)
-        .updated(|m: &mut Material| m.texture_key = Some(SPRITESHEET_TEXTURE))
-        .component(TextureAnimation::new(5, 9, sprites))
+    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
+        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(SPRITESHEET_TEXTURE))
+        .component(TextureAnimation::<Default2DMaterial>::new(5, 9, sprites))
         .with(|a| a.frames_per_second = fps)
 }
 
@@ -106,7 +106,9 @@ fn assert_sprite_index<F>(
 where
     F: EntityFilter,
 {
-    move |e| e.has(|a: &TextureAnimation| assert_eq!(a.current_sprite_index(), index))
+    move |e| {
+        e.has(|a: &TextureAnimation<Default2DMaterial>| assert_eq!(a.current_sprite_index(), index))
+    }
 }
 
 const SPRITESHEET_TEXTURE: ResKey<Texture> = ResKey::new("spritesheet");
