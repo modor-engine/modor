@@ -1,5 +1,5 @@
 use modor::{systems, App, BuiltEntity, SingleRef, SingletonComponent};
-use modor_graphics::{window_target, Color, Default2DMaterial, WINDOW_CAMERA_2D};
+use modor_graphics::{window_target, WINDOW_CAMERA_2D};
 use modor_input::{GamepadStick, Gamepads};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -20,8 +20,6 @@ fn text(position_y: f32, text: &str) -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
         .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
         .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
-        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
-        .updated(|m: &mut Default2DMaterial| m.front_color = Color::WHITE)
 }
 
 #[derive(SingletonComponent, Default)]

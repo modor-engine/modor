@@ -5,7 +5,7 @@ use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::RenderTargetRegistry;
 use crate::components::renderer::Renderer;
 use crate::components::shader::{Shader, ShaderRegistry};
-use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
+use crate::components::texture::{TextureRegistry, WHITE_TEXTURE};
 use crate::{NoInstanceData, Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 use modor_input::InputModule;
@@ -60,11 +60,6 @@ pub fn module() -> impl BuiltEntity {
         ))
         .child_component(Mesh::rectangle())
         .child_component(Texture::from_size(WHITE_TEXTURE, Size::ONE))
-        .child_component(Texture::from_buffer(
-            INVISIBLE_TEXTURE,
-            Size::ONE,
-            vec![0; 4],
-        ))
         .dependency::<PhysicsModule, _, _>(modor_physics::module)
         .dependency::<InputModule, _, _>(modor_input::module)
 }

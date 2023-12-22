@@ -1,9 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
-use modor_graphics::{texture_target, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D};
+use modor_graphics::{texture_target, Color, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D};
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::ResKey;
-use modor_text::{text_2d, Alignment, Font, Text};
+use modor_text::{text_2d, Alignment, Font, Text, Text2DMaterial};
 
 #[modor_test(disabled(macos, android, wasm))]
 fn create_default() {
@@ -66,6 +66,7 @@ fn create_text_2d() {
         .with_entity(modor_text::module())
         .with_entity(texture_target(0, Size::new(100, 50), true))
         .with_entity(text_2d(TEXTURE_CAMERAS_2D.get(0), "text", 30.))
+        .with_update::<(), _>(|m: &mut Text2DMaterial| m.color = Color::GREEN)
         .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
         .assert::<With<TextureBuffer>>(1, has_component_diff("text#2d", 50, 1));
 }

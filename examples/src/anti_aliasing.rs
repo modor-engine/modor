@@ -7,7 +7,7 @@ use modor_graphics::{
 use modor_input::{Key, Keyboard};
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_text::{text_2d, Alignment, Text};
+use modor_text::{text_2d, Alignment, Text, Text2DMaterial};
 use std::f32::consts::FRAC_PI_8;
 
 pub fn main() {
@@ -30,8 +30,7 @@ fn object() -> impl BuiltEntity {
 
 fn information() -> impl BuiltEntity {
     text_2d(WINDOW_CAMERA_2D, "", 50.)
-        .updated(|m: &mut Default2DMaterial| m.front_color = Color::BLACK)
-        .updated(|m: &mut Default2DMaterial| m.color = Color::INVISIBLE)
+        .updated(|m: &mut Text2DMaterial| m.color = Color::BLACK)
         .updated(|t: &mut Text| t.alignment = Alignment::Left)
         .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
         .component(ZIndex2D::from(1))
