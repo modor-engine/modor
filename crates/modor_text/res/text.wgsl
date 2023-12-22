@@ -4,8 +4,6 @@ struct Camera {
 
 struct Material {
     color: vec4<f32>,
-    texture_part_position: vec2<f32>,
-    texture_part_size: vec2<f32>,
 }
 
 struct Vertex {
@@ -31,8 +29,6 @@ struct Fragment {
     position: vec4<f32>,
     @location(0)
     texture_position: vec2<f32>,
-    @location(1)
-    inner_position: vec2<f32>,
 };
 
 @group(0)
@@ -59,10 +55,16 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
         instance.transform_2,
         instance.transform_3,
     );
+    let texture_size = textureDimensions(texture);
+    let transform_texture_ratio = length(instance.transform_0.xyz) / length(instance.transform_1.xyz)
+        * f32(texture_size.y) / f32(texture_size.x);
+    let ratio = vec2(
+        max(transform_texture_ratio, 1.),
+        max(1. / transform_texture_ratio, 1.),
+    );
     return Fragment(
         camera.transform * transform * vec4<f32>(vertex.position, 1.),
-        vertex.texture_position * material.texture_part_size + material.texture_part_position,
-        vec2<f32>(vertex.position.x, vertex.position.y),
+        vertex.texture_position * ratio + (vec2(1., 1.) - ratio) / 2.,
     );
 }
 
@@ -70,10 +72,6 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
 fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
     let color = textureSample(texture, texture_sampler, fragment.texture_position) * material.color;
     if (color.a == 0.) {
-        discard;
-    }
-    let distance = sqrt(pow(fragment.inner_position.x, 2.) + pow(fragment.inner_position.y, 2.));
-    if (distance > 0.5) {
         discard;
     }
     return color;

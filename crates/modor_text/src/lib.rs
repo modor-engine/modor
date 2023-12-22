@@ -34,6 +34,7 @@ mod components;
 mod entities;
 
 pub use components::font::*;
+pub use components::material::*;
 pub use components::text::*;
 pub use entities::module::*;
 pub use entities::text::*;

@@ -17,7 +17,6 @@ use wgpu::{
 pub(crate) type TextureRegistry = ResourceRegistry<Texture>;
 
 pub(crate) const WHITE_TEXTURE: ResKey<Texture> = ResKey::new("white(modor_graphics)");
-pub(crate) const INVISIBLE_TEXTURE: ResKey<Texture> = ResKey::new("invisible(modor_graphics)");
 
 #[must_use]
 #[derive(Component, Debug)]

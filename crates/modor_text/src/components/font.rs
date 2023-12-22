@@ -30,29 +30,7 @@ pub(crate) type FontRegistry = ResourceRegistry<Font>;
 ///
 /// # Examples
 ///
-/// ```rust
-/// # use modor::*;
-/// # use modor_graphics::*;
-/// # use modor_physics::*;
-/// # use modor_text::*;
-/// # use modor_resources::*;
-/// #
-/// const FONT: ResKey<Font> = ResKey::new("custom");
-/// const TEXTURE: ResKey<Texture> = ResKey::new("text");
-///
-/// fn root() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .child_component(Font::from_path(FONT, "font.ttf"))
-///         .child_entity(text())
-/// }
-///
-/// fn text() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Text::new("my text", 30.))
-///         .with(|t| t.font_key = FONT)
-///         .component(Texture::from_size(TEXTURE, Size::ZERO))
-/// }
-/// ```
+/// See [`text_2d`](crate::text_2d()).
 #[derive(Component, Debug)]
 pub struct Font {
     key: ResKey<Self>,

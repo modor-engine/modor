@@ -144,12 +144,6 @@ fn textures() -> impl BuiltEntity {
         ))
         .with(|t| t.is_smooth = false)
         .with(|t| t.is_repeated = false)
-        .child_component(Texture::from_path(
-            FRONT_TEXTURE,
-            "../tests/assets/no-border.png",
-        ))
-        .with(|t| t.is_smooth = false)
-        .with(|t| t.is_repeated = false)
 }
 
 fn instance(is_ellipse: bool) -> impl BuiltEntity {
@@ -159,8 +153,6 @@ fn instance(is_ellipse: bool) -> impl BuiltEntity {
         .updated(|m: &mut Default2DMaterial| m.texture_key = Some(BACK_TEXTURE))
         .updated(|m: &mut Default2DMaterial| m.texture_position = Vec2::new(0.5, 0.))
         .updated(|m: &mut Default2DMaterial| m.texture_size = Vec2::new(0.5, 1.))
-        .updated(|m: &mut Default2DMaterial| m.front_color = Color::RED)
-        .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(FRONT_TEXTURE))
         .updated(|m: &mut Default2DMaterial| m.is_ellipse = is_ellipse)
 }
 
@@ -204,7 +196,6 @@ impl MaterialSource for CustomMaterial {
 }
 
 const BACK_TEXTURE: ResKey<Texture> = ResKey::new("background");
-const FRONT_TEXTURE: ResKey<Texture> = ResKey::new("foreground");
 const CUSTOM_SHADER: ResKey<Shader> = ResKey::new("custom");
 const CUSTOM_SHADER_CODE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

@@ -28,30 +28,7 @@ const TEXTURE_PADDING_PX: u32 = 1;
 ///
 /// # Examples
 ///
-/// ```rust
-/// # use modor::*;
-/// # use modor_graphics::*;
-/// # use modor_physics::*;
-/// # use modor_text::*;
-/// # use modor_resources::*;
-/// #
-/// const FONT: ResKey<Font> = ResKey::new("custom");
-///
-/// fn root() -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .child_component(Font::from_path(FONT, "font.ttf"))
-///         .child_entity(text())
-/// }
-///
-/// fn text() -> impl BuiltEntity {
-///     let texture_key = ResKey::unique("text");
-///     instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
-///         .updated(|m: &mut Default2DMaterial| m.front_texture_key = Some(texture_key))
-///         .component(Text::new("my text", 30.))
-///         .with(|t| t.font_key = FONT)
-///         .component(Texture::from_size(texture_key, Size::ZERO))
-/// }
-/// ```
+/// See [`text_2d`](crate::text_2d()) as most of the time this method will be used to create a text.
 #[derive(Component, Debug)]
 pub struct Text {
     /// Text to render.

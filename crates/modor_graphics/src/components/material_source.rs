@@ -1,7 +1,7 @@
 #![allow(clippy::trailing_empty_array)]
 
 use crate::components::material_source::internal::MaterialData;
-use crate::components::texture::{INVISIBLE_TEXTURE, WHITE_TEXTURE};
+use crate::components::texture::WHITE_TEXTURE;
 use crate::entities::module::{DEFAULT_SHADER, ELLIPSE_SHADER};
 use crate::{AnimatedMaterialSource, Color, Shader, Texture};
 use bytemuck::Pod;
@@ -300,6 +300,7 @@ impl InstanceData for NoInstanceData {
 ///
 /// - [`Material`](crate::Material)
 /// - [`MaterialSync`](crate::MaterialSync)
+/// - [`Texture`](crate::Texture)
 ///
 /// # Examples
 ///
@@ -334,28 +335,6 @@ pub struct Default2DMaterial {
     ///
     /// Default is [`Vec2::ONE`].
     pub texture_size: Vec2,
-    /// Key of the foreground texture.
-    ///
-    /// This texture is placed on top of the main texture defined using
-    /// [`texture_key`](#structfield.texture_key). In contrary to the main texture, the initial
-    /// aspect ratio is always kept during rendering. For example with a rectangle instance:
-    /// - Main texture is stretched to cover the whole rectangle, so the aspect ratio might not be
-    /// kept.
-    /// - Foreground texture is centered on the rectangle and keeps its aspect ratio,
-    /// which means the texture might not cover the whole rectangle.
-    ///
-    /// For example, the foreground texture is useful for rendering a text that should not be
-    /// stretched.
-    ///
-    /// If the texture is not loaded, then the instances attached to the material are not rendered.
-    ///
-    /// Default is [`None`].
-    pub front_texture_key: Option<ResKey<Texture>>,
-    /// Color that is multiplied to the foreground texture when
-    /// [`front_texture_key`](#structfield.front_texture_key) is defined.
-    ///
-    /// Default is [`Color::BLACK`].
-    pub front_color: Color,
     /// Whether the instance is rendered as an ellipse.
     ///
     /// If `false`, then the instance is displayed as a rectangle.
@@ -371,8 +350,6 @@ impl Default for Default2DMaterial {
             texture_key: None,
             texture_position: Vec2::ZERO,
             texture_size: Vec2::ONE,
-            front_texture_key: None,
-            front_color: Color::BLACK,
             is_ellipse: false,
         }
     }
@@ -394,15 +371,11 @@ impl MaterialSource for Default2DMaterial {
             color: self.color.into(),
             texture_part_position: [self.texture_position.x, self.texture_position.y],
             texture_part_size: [self.texture_size.x, self.texture_size.y],
-            front_color: self.front_color.into(),
         }
     }
 
     fn texture_keys(&self) -> Vec<ResKey<Texture>> {
-        vec![
-            self.texture_key.unwrap_or(WHITE_TEXTURE),
-            self.front_texture_key.unwrap_or(INVISIBLE_TEXTURE),
-        ]
+        vec![self.texture_key.unwrap_or(WHITE_TEXTURE)]
     }
 
     fn shader_key(&self) -> ResKey<Shader> {
@@ -414,8 +387,7 @@ impl MaterialSource for Default2DMaterial {
     }
 
     fn is_transparent(&self) -> bool {
-        (self.color.a > 0. && self.color.a < 1.)
-            || (self.front_color.a > 0. && self.front_color.a < 1.)
+        self.color.a > 0. && self.color.a < 1.
     }
 }
 
@@ -433,6 +405,5 @@ mod internal {
         pub(crate) color: [f32; 4],
         pub(crate) texture_part_position: [f32; 2],
         pub(crate) texture_part_size: [f32; 2],
-        pub(crate) front_color: [f32; 4],
     }
 }
