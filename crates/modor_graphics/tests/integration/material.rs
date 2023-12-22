@@ -2,9 +2,9 @@ use bytemuck::{Pod, Zeroable};
 use modor::{App, Changed, SystemParamWithLifetime, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, material, texture_target, Color, GraphicsModule, InstanceData, InstanceGroup2D,
-    Material, MaterialSource, NoInstanceData, Shader, Size, Texture, TextureBuffer,
-    TEXTURE_CAMERAS_2D,
+    instance_2d, instance_2d_with_key, material, texture_target, Color, GraphicsModule,
+    InstanceData, InstanceGroup2D, InstanceRendering2D, Material, MaterialSource, NoInstanceData,
+    Shader, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::{ResKey, Resource, ResourceState};
@@ -106,10 +106,12 @@ fn create_material_with_texture_count_different_than_shader() {
 fn create_material_with_instance_data(is_transparent: bool) {
     let instance_material_key = ResKey::new("instance");
     let simple_material_key = ResKey::new("simple");
+    let group_key = ResKey::new("group");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(texture_target(1, Size::new(30, 20), true))
+        .with_entity(texture_target(2, Size::new(30, 20), true))
         .with_entity(Shader::from_path::<CustomInstanceData>(
             INSTANCE_SHADER,
             "../tests/assets/instance.wgsl",
@@ -122,19 +124,28 @@ fn create_material_with_instance_data(is_transparent: bool) {
         .with_entity(material::<CustomInstanceMaterial>(instance_material_key))
         .with_entity(material::<CustomMaterial>(simple_material_key))
         .with_update::<(), _>(|m: &mut CustomInstanceMaterial| m.is_transparent = is_transparent)
-        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), instance_material_key))
-        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(1), simple_material_key)) // to test with multiple instance groups
+        .with_entity(instance_2d_with_key(
+            group_key,
+            TEXTURE_CAMERAS_2D.get(0),
+            instance_material_key,
+        ))
+        .with_entity(InstanceRendering2D::new(
+            group_key,
+            TEXTURE_CAMERAS_2D.get(1),
+            instance_material_key,
+        ))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(2), simple_material_key))
         .updated()
-        .assert::<With<TextureBuffer>>(2, is_same("material#red"))
+        .assert::<With<TextureBuffer>>(3, is_same("material#red"))
         .with_component::<With<InstanceGroup2D>, _>(|| CustomColor(Color::GREEN))
         .with_update::<(), CustomMaterial>(|m| m.color = Color::GREEN)
         .updated()
-        .assert::<With<TextureBuffer>>(2, is_same("material#green"))
+        .assert::<With<TextureBuffer>>(3, is_same("material#green"))
         .with_update::<(), _>(|i: &mut CustomColor| i.0 = Color::BLUE)
         .with_update::<(), CustomMaterial>(|m| m.color = Color::BLUE)
         .updated()
         .updated()
-        .assert::<With<TextureBuffer>>(2, is_same("material#blue"));
+        .assert::<With<TextureBuffer>>(3, is_same("material#blue"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]

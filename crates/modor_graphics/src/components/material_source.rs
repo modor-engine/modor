@@ -293,7 +293,8 @@ impl InstanceData for NoInstanceData {
 ///
 /// The material is effective only if:
 /// - graphics [`module`](crate::module()) is initialized
-/// - the entity contains components of type [`Material`] and [`MaterialSync<Default2DMaterial>`]
+/// - the entity contains components of type [`Material`](crate::Material)
+///     and [`MaterialSync<Default2DMaterial>`](crate::MaterialSync)
 ///
 /// # Related components
 ///

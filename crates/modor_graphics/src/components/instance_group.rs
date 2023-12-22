@@ -111,6 +111,24 @@ impl InstanceGroup2D {
     }
 
     #[run_after_previous_and(component(Transform2D), component(ZIndex2D), component(Renderer))]
+    fn update(
+        &mut self,
+        entity: Entity<'_>,
+        instances: Query<'_, Custom<InstanceEntity<'_, UpdatedInstanceFilter>>>,
+        renderer: Option<SingleRef<'_, '_, Renderer>>,
+    ) {
+        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if let Some(context) = state.context() {
+            if self.is_initialized {
+                self.register_instances(entity, instances, context);
+                for buffer in self.buffers.values_mut() {
+                    buffer.is_updated = false;
+                }
+            }
+        }
+    }
+
+    #[run_after_previous_and(component(Transform2D), component(ZIndex2D), component(Renderer))]
     fn init(
         &mut self,
         entity: Entity<'_>,
@@ -137,24 +155,6 @@ impl InstanceGroup2D {
         }
     }
 
-    #[run_after_previous]
-    fn update(
-        &mut self,
-        entity: Entity<'_>,
-        instances: Query<'_, Custom<InstanceEntity<'_, UpdatedInstanceFilter>>>,
-        renderer: Option<SingleRef<'_, '_, Renderer>>,
-    ) {
-        let state = Renderer::option_state(&renderer, &mut self.renderer_version);
-        if let Some(context) = state.context() {
-            if self.is_initialized {
-                self.register_instances(entity, instances, context);
-                for buffer in self.buffers.values_mut() {
-                    buffer.is_updated = false;
-                }
-            }
-        }
-    }
-
     pub(crate) fn update_material_instances<T>(
         &mut self,
         query: &mut Query<'_, T::Query>,
@@ -171,8 +171,8 @@ impl InstanceGroup2D {
         if buffer.is_updated {
             return;
         }
-        for &entity_id in &self.entity_ids
-            [(buffer.data.len().div_euclid(buffer.item_size))..self.entity_ids.len()]
+        for &entity_id in
+            &self.entity_ids[buffer.data.len().div_euclid(buffer.item_size)..self.entity_ids.len()]
         {
             let instance = query.get_mut(entity_id).map(T::data).unwrap_or_default();
             buffer.add(instance);
