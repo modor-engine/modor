@@ -118,6 +118,13 @@ impl InstanceGroup2D {
         renderer: Option<SingleRef<'_, '_, Renderer>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
+        if state.is_removed() {
+            self.buffers.clear();
+            self.z_indexes.clear();
+            self.entity_ids.clear();
+            self.entity_positions.clear();
+            self.is_initialized = false;
+        }
         if let Some(context) = state.context() {
             if self.is_initialized {
                 self.register_instances(entity, instances, context);
@@ -136,13 +143,6 @@ impl InstanceGroup2D {
         renderer: Option<SingleRef<'_, '_, Renderer>>,
     ) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
-        if state.is_removed() {
-            self.buffers.clear();
-            self.z_indexes.clear();
-            self.entity_ids.clear();
-            self.entity_positions.clear();
-            self.is_initialized = false;
-        }
         if let Some(context) = state.context() {
             if !self.is_initialized {
                 self.buffers.insert(
