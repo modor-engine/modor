@@ -58,10 +58,8 @@ pub fn instance_group_2d<F>(
 where
     F: QueryEntityFilter,
 {
-    let filter = QueryFilter::new::<F>();
     let group_key = ResKey::unique("instance-group-2d(modor_graphics)");
-    let group = InstanceGroup2D::from_filter(group_key, filter);
-    rendered_instance_group_2d(camera_key, material_ref, group)
+    instance_group_2d_with_key::<F>(group_key, camera_key, material_ref)
 }
 
 /// Creates a 2D instance entity.
@@ -106,6 +104,130 @@ pub fn instance_2d(
     material_ref: impl MaterialRef,
 ) -> impl BuiltEntity {
     let group_key = ResKey::unique("instance-2d(modor_graphics)");
+    instance_2d_with_key(group_key, camera_key, material_ref)
+}
+
+/// Creates a 2D instance group entity with an explicit `group_key`.
+///
+/// This method is more convenient than [`instance_group_2d`] in case additional [`InstanceRendering2D`] components
+/// must be created.
+///
+/// The created entity contains the following components:
+/// - [`InstanceGroup2D`]
+/// - [`InstanceRendering2D`]
+/// - All component created by [`material`](crate::material()) if `material_ref` refers to a new
+///     material.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
+/// use modor_resources::ResKey;
+/// #
+/// # fn no_run() {
+/// App::new()
+///     .with_entity(modor_graphics::module())
+///     .with_entity(window_target())
+///     .with_entity(texture_target(0, Size::new(1920, 1080), false))
+///     .with_entity(red_rectangle_instance_group())
+///     .with_entity(red_rectangle(Vec2::new(0.25, -0.25)))
+///     .with_entity(red_rectangle(Vec2::new(-0.3, 0.1)))
+///     .run(modor_graphics::runner);
+/// # }
+///
+/// fn red_rectangle_instance_group() -> impl BuiltEntity {
+///     let group_key = ResKey::unique("red-rectangle");
+///     let material_key = ResKey::unique("red-rectangle");
+///     instance_group_2d_with_key::<With<RedRectangle>>(group_key, WINDOW_CAMERA_2D, material_key)
+///         .child_entity(
+///             material::<Default2DMaterial>(material_key)
+///                 .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
+///         )
+///         .child_component(InstanceRendering2D::new(group_key, TEXTURE_CAMERAS_2D.get(0), material_key))
+/// }
+///
+/// fn red_rectangle(position: Vec2) -> impl BuiltEntity {
+///     EntityBuilder::new()
+///         .component(Transform2D::new())
+///         .with(|t| t.position = position)
+///         .with(|t| t.size = Vec2::new(0.2, 0.1))
+///         .component(RedRectangle)
+/// }
+///
+/// #[derive(Component, NoSystem)]
+/// struct RedRectangle;
+/// ```
+///
+/// See [`material`](crate::material) to specify an existing material.
+pub fn instance_group_2d_with_key<F>(
+    group_key: ResKey<InstanceGroup2D>,
+    camera_key: ResKey<Camera2D>,
+    material_ref: impl MaterialRef,
+) -> impl BuiltEntity
+where
+    F: QueryEntityFilter,
+{
+    let filter = QueryFilter::new::<F>();
+    let group = InstanceGroup2D::from_filter(group_key, filter);
+    rendered_instance_group_2d(camera_key, material_ref, group)
+}
+
+/// Creates a 2D instance entity with an explicit `group_key`.
+///
+/// This method is more convenient than [`instance_2d`] in case additional [`InstanceRendering2D`] components
+/// must be created.
+///
+/// The created entity contains the following components:
+/// - [`Transform2D`]
+/// - [`InstanceGroup2D`]
+/// - [`InstanceRendering2D`]
+/// - All component created by [`material`](crate::material()) if `material_ref` refers to a new
+///     material.
+///
+/// This method is useful to quickly create a rendered entity.
+/// However, for performance reasons, consider using [`instance_group_2d_with_key`] instead if multiple
+/// entities are rendered with the same camera, material and mesh.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_math::*;
+/// # use modor_physics::*;
+/// # use modor_resources::*;
+/// #
+/// # fn no_run() {
+/// App::new()
+///     .with_entity(modor_graphics::module())
+///     .with_entity(window_target())
+///     .with_entity(texture_target(0, Size::new(1920, 1080), false))
+///     .with_entity(red_rectangle())
+///     .run(modor_graphics::runner);
+/// # }
+///
+/// fn red_rectangle() -> impl BuiltEntity {
+///     let group_key = ResKey::new("red-rectangle");
+///     let material_key = ResKey::new("red-rectangle");
+///     instance_2d_with_key(group_key, WINDOW_CAMERA_2D, material_key)
+///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.1))
+///         .child_entity(
+///             material::<Default2DMaterial>(material_key)
+///                 .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
+///         )
+///         .child_component(InstanceRendering2D::new(group_key, TEXTURE_CAMERAS_2D.get(0), material_key))
+/// }
+/// ```
+///
+/// See [`material`](crate::material) to specify an existing material.
+pub fn instance_2d_with_key(
+    group_key: ResKey<InstanceGroup2D>,
+    camera_key: ResKey<Camera2D>,
+    material_ref: impl MaterialRef,
+) -> impl BuiltEntity {
     let group = InstanceGroup2D::from_self(group_key);
     rendered_instance_group_2d(camera_key, material_ref, group).component(Transform2D::new())
 }

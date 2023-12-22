@@ -1,5 +1,5 @@
 use crate::components::camera::Camera2DRegistry;
-use crate::components::instance_group::InstanceGroup2DRegistry;
+use crate::components::instance_group::{Instance, InstanceGroup2DRegistry};
 use crate::components::material::{MaterialRegistry, MaterialUpdate};
 use crate::components::mesh::{Mesh, MeshRegistry};
 use crate::components::render_target::texture::TextureTarget;
@@ -15,6 +15,7 @@ use modor::{Component, ComponentSystems, Custom, Query, Single, SingleRef};
 use modor_resources::{
     ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
 };
+use std::any::TypeId;
 use std::fmt::Debug;
 use wgpu::{IndexFormat, RenderPass, TextureFormat};
 
@@ -341,15 +342,29 @@ impl RenderTarget {
         match mode {
             RenderingMode::Opaque => {
                 let instance_group = resources.instance_groups.get(rendering.group_key)?;
-                pass.set_vertex_buffer(1, instance_group.buffer().buffer());
+                let main_buffer = instance_group
+                    .buffer(TypeId::of::<Instance>())
+                    .expect("internal error: instance buffer not initialized");
+                pass.set_vertex_buffer(1, main_buffer.data.buffer());
+                if material.instance_data_size > 0 {
+                    let material_buffer = instance_group.buffer(material.instance_data_type)?;
+                    pass.set_vertex_buffer(2, material_buffer.data.buffer());
+                }
                 pass.draw_indexed(
                     0..(index_buffer.len() as u32),
                     0,
-                    0..(instance_group.buffer().len() as u32),
+                    0..((main_buffer.data.len().div_euclid(main_buffer.item_size)) as u32),
                 );
             }
             RenderingMode::Transparent(instance_group, i) => {
-                pass.set_vertex_buffer(1, instance_group.buffer().buffer());
+                let main_buffer = instance_group
+                    .buffer(TypeId::of::<Instance>())
+                    .expect("internal error: instance buffer not initialized");
+                pass.set_vertex_buffer(1, main_buffer.data.buffer());
+                if material.instance_data_size > 0 {
+                    let material_buffer = instance_group.buffer(material.instance_data_type)?;
+                    pass.set_vertex_buffer(2, material_buffer.data.buffer());
+                }
                 pass.draw_indexed(
                     0..(index_buffer.len() as u32),
                     0,
@@ -406,12 +421,16 @@ impl RenderTarget {
                     .map(|group| (rendering, group))
             })
             .flat_map(|(rendering, group)| {
-                (0..group.buffer().len()).map(move |i| (rendering, group, i))
+                let main_buffer = group
+                    .buffer(TypeId::of::<Instance>())
+                    .expect("internal error: instance buffer not initialized");
+                (0..main_buffer.data.len().div_euclid(main_buffer.item_size))
+                    .map(move |i| (rendering, group, i))
             })
             .sorted_unstable_by(|(rendering1, group1, i1), (rendering2, group2, i2)| {
-                let z1 = group1.buffer()[*i1].z();
-                let z2 = &group2.buffer()[*i2].z();
-                z1.total_cmp(z2).then(rendering1.cmp(rendering2))
+                let z1 = group1.z_indexes[*i1];
+                let z2 = group2.z_indexes[*i2];
+                z1.total_cmp(&z2).then(rendering1.cmp(rendering2))
             })
     }
 

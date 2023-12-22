@@ -6,7 +6,7 @@ use crate::storages::systems::SystemProperties;
 use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{
-    EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    ConstSystemParam, EntityFilter, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
     SystemParamWithLifetime,
 };
 use std::marker::PhantomData;
@@ -167,6 +167,8 @@ where
         (Self::get(guard, location1), Self::get(guard, location2))
     }
 }
+
+impl<F> ConstSystemParam for Filter<F> where F: EntityFilter {}
 
 mod internal {
     use super::Filter;

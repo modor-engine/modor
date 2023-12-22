@@ -7,7 +7,8 @@ use crate::system_params::optional_components::internal::ComponentOptionIter;
 use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{
-    Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime,
+    Component, ConstSystemParam, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime,
 };
 use std::any;
 
@@ -162,6 +163,8 @@ where
     type LockedType = C;
     type Mutability = Const;
 }
+
+impl<C> ConstSystemParam for Option<&C> where C: Component {}
 
 pub(crate) mod internal {
     use crate::optional_components_mut::internal::ComponentMutOptionGuardBorrow;

@@ -1,8 +1,9 @@
 use modor::{App, BuiltEntity, EntityBuilder, QueryEntityFilter, QueryFilter, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, instance_group_2d, material, texture_target, Default2DMaterial, InstanceGroup2D,
-    InstanceRendering2D, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
+    instance_2d, instance_2d_with_key, instance_group_2d, instance_group_2d_with_key, material,
+    texture_target, Default2DMaterial, InstanceGroup2D, InstanceRendering2D, Size, TextureBuffer,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -82,6 +83,41 @@ fn create_instance_2d_with_external_material() {
 }
 
 #[modor_test(disabled(macos, android, wasm))]
+fn create_instance_2d_with_key_and_new_material() {
+    let group_key = ResKey::new("group");
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(instance_2d_with_key(
+            group_key,
+            TEXTURE_CAMERAS_2D.get(0),
+            Default2DMaterial::new(),
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_rectangle"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_instance_2d_with_key_and_external_material() {
+    let group_key = ResKey::new("group");
+    let material_key = ResKey::new("material");
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(
+            material::<Default2DMaterial>(material_key)
+                .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
+        )
+        .with_entity(instance_2d_with_key(
+            group_key,
+            TEXTURE_CAMERAS_2D.get(0),
+            material_key,
+        ))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("instance#instance_2d_ellipse"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
 fn create_instance_group_2d_with_default_material() {
     App::new()
         .with_entity(modor_graphics::module())
@@ -108,6 +144,47 @@ fn create_instance_group_2d_with_external_material() {
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
         .with_entity(instance_group_2d::<With<Displayed>>(
+            TEXTURE_CAMERAS_2D.get(0),
+            material_key,
+        ))
+        .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
+        .with_entity(instance(Vec2::new(-0.25, -0.25)))
+        .with_entity(instance(Vec2::new(0.25, -0.25)).component(Displayed))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("instance#filter_all_instances_ellipse"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_instance_group_2d_with_key_and_default_material() {
+    let group_key = ResKey::new("group");
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(instance_group_2d_with_key::<With<Displayed>>(
+            group_key,
+            TEXTURE_CAMERAS_2D.get(0),
+            Default2DMaterial::new(),
+        ))
+        .with_entity(instance(Vec2::new(0.25, 0.25)).component(Displayed))
+        .with_entity(instance(Vec2::new(-0.25, -0.25)))
+        .with_entity(instance(Vec2::new(0.25, -0.25)).component(Displayed))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("instance#filter_all_instances"));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_instance_group_2d_with_key_and_external_material() {
+    let group_key = ResKey::new("group");
+    let material_key = ResKey::new("material");
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(
+            material::<Default2DMaterial>(material_key)
+                .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
+        )
+        .with_entity(instance_group_2d_with_key::<With<Displayed>>(
+            group_key,
             TEXTURE_CAMERAS_2D.get(0),
             material_key,
         ))

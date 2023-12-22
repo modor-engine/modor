@@ -5,7 +5,10 @@ use crate::storages::entities::EntityIdx;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
-use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
+use crate::{
+    ConstSystemParam, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime,
+};
 use std::iter::FusedIterator;
 
 /// A system parameter for retrieving information about the entity.
@@ -196,6 +199,8 @@ impl QuerySystemParam for Entity<'_> {
         (Self::get(guard, location1), Self::get(guard, location2))
     }
 }
+
+impl ConstSystemParam for Entity<'_> {}
 
 pub(super) mod internal {
     use crate::storages::entities::EntityIdx;

@@ -1,7 +1,7 @@
 use crate::components::instance_group::Instance;
 use crate::components::mesh::Vertex;
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::{errors, AntiAliasing, GpuContext, Renderer};
+use crate::{errors, AntiAliasing, GpuContext, InstanceData, Renderer};
 use fxhash::FxHashMap;
 use modor::SingleRef;
 use modor_resources::{
@@ -9,15 +9,18 @@ use modor_resources::{
     ResourceSource, ResourceState,
 };
 use regex::Regex;
+use std::any::TypeId;
 use std::collections::hash_map::Entry;
 use std::str::FromStr;
+use std::{any, mem};
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
-    BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
-    DepthStencilState, FragmentState, FrontFace, MultisampleState, PipelineLayoutDescriptor,
-    PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-    SamplerBindingType, ShaderModuleDescriptor, ShaderStages, StencilState, TextureFormat,
-    TextureSampleType, TextureViewDimension, VertexBufferLayout, VertexState,
+    BufferAddress, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction,
+    DepthBiasState, DepthStencilState, FragmentState, FrontFace, MultisampleState,
+    PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline,
+    RenderPipelineDescriptor, SamplerBindingType, ShaderModuleDescriptor, ShaderStages,
+    StencilState, TextureFormat, TextureSampleType, TextureViewDimension, VertexAttribute,
+    VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
 };
 
 pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
@@ -38,6 +41,21 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 ///
 /// This component only supports code in [WGSL](https://www.w3.org/TR/WGSL/) format.
 ///
+/// # Input locations
+///
+/// The code can include the following locations:
+/// - location `0`: vertex position.
+/// - location `1`: texture position for the vertex.
+/// - location `2`: column 1 of the instance transform matrix.
+/// - location `3`: column 2 of the instance transform matrix.
+/// - location `4`: column 3 of the instance transform matrix.
+/// - location `5`: column 4 of the instance transform matrix.
+/// - location `6` or more: material data per instance. These locations must be defined
+///     in a struct named `MaterialInstance` which corresponds to
+///     [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData) on Rust side.
+///
+/// Below examples show how to define these locations correctly.
+///
 /// # Bindings
 ///
 /// The code can include the following bindings:
@@ -52,93 +70,19 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 /// The number of defined textures must be the same as the number of textures defined in the
 /// associated [`Material`](crate::Material)s.
 ///
+/// Below examples show how to define these bindings correctly.
+///
 /// # Examples
 ///
-/// Example of supported WGSL code:
-/// ```wgsl
-/// struct Camera {
-///     transform: mat4x4<f32>,
-/// };
-///
-/// struct Material {
-///     color: vec4<f32>,
-///     texture_part_position: vec2<f32>,
-///     texture_part_size: vec2<f32>,
-///     front_color: vec4<f32>,
-/// }
-///
-/// struct Vertex {
-///     @location(0)
-///     position: vec3<f32>,
-///     @location(1)
-///     texture_position: vec2<f32>,
-/// };
-///
-/// struct Instance {
-///     @location(2)
-///     transform_0: vec4<f32>,
-///     @location(3)
-///     transform_1: vec4<f32>,
-///     @location(4)
-///     transform_2: vec4<f32>,
-///     @location(5)
-///     transform_3: vec4<f32>,
-/// };
-///
-/// struct Fragment {
-///     @builtin(position)
-///     position: vec4<f32>,
-/// };
-///
-/// @group(0)
-/// @binding(0)
-/// var<uniform> camera: Camera;
-///
-/// @group(1)
-/// @binding(0)
-/// var<uniform> material: Material;
-///
-/// @group(1)
-/// @binding(1)
-/// var texture: texture_2d<f32>;
-///
-/// @group(1)
-/// @binding(2)
-/// var texture_sampler: sampler;
-///
-/// @group(1)
-/// @binding(3)
-/// var front_texture: texture_2d<f32>;
-///
-/// @group(1)
-/// @binding(4)
-/// var front_texture_sampler: sampler;
-///
-/// @vertex
-/// fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
-///     let transform = mat4x4<f32>(
-///         instance.transform_0,
-///         instance.transform_1,
-///         instance.transform_2,
-///         instance.transform_3,
-///     );
-///     return Fragment(camera.transform * transform * vec4<f32>(vertex.position, 1.));
-/// }
-///
-/// @fragment
-/// fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
-///     // Just render the model in red.
-///     return vec4(1., 0., 0., 1.);
-/// }
-/// ```
-///
+/// See [`MaterialSource`](crate::MaterialSource) for an example of supported WGSL code.
 /// It is recommended to define the same structures and bindings.
-///
-/// Then the shader can be defined and linked to a [`Material`](crate::Material).
 #[derive(Component, Debug)]
 pub struct Shader {
     pub(crate) material_bind_group_layout: Option<BindGroupLayout>,
     pub(crate) is_material_bind_group_layout_reloaded: bool,
+    pub(crate) material_instance_type: TypeId,
+    pub(crate) material_instance_type_name: &'static str,
+    material_instance_size: usize,
     key: ResKey<Self>,
     pipelines: FxHashMap<TextureFormat, RenderPipeline>,
     handler: ResourceHandler<LoadedCode, &'static str>,
@@ -163,10 +107,19 @@ impl Shader {
     ];
 
     /// Creates a new shader identified by a unique `key` and created from code `source`.
-    pub fn new(key: ResKey<Self>, source: ShaderSource) -> Self {
+    ///
+    /// `I` is the material data type per instance, it must be the same as
+    /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
+    pub fn new<I>(key: ResKey<Self>, source: ShaderSource) -> Self
+    where
+        I: InstanceData,
+    {
         Self {
             material_bind_group_layout: None,
             is_material_bind_group_layout_reloaded: false,
+            material_instance_type: TypeId::of::<I>(),
+            material_instance_type_name: any::type_name::<I>(),
+            material_instance_size: mem::size_of::<I>(),
             key,
             pipelines: FxHashMap::default(),
             handler: ResourceHandler::new(source.into()),
@@ -180,15 +133,27 @@ impl Shader {
     /// Creates a new shader identified by a unique `key` and created with given `code`.
     ///
     /// This method is equivalent to [`Shader::new`] with [`ShaderSource::String`] source.
-    pub fn from_string(key: ResKey<Self>, code: &'static str) -> Self {
-        Self::new(key, ShaderSource::String(code))
+    ///
+    /// `I` is the material data type per instance, it must be the same as
+    /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
+    pub fn from_string<I>(key: ResKey<Self>, code: &'static str) -> Self
+    where
+        I: InstanceData,
+    {
+        Self::new::<I>(key, ShaderSource::String(code))
     }
 
     /// Creates a new shader identified by a unique `key` and created with a given code file `path`.
     ///
     /// This method is equivalent to [`Shader::new`] with [`ShaderSource::Path`] source.
-    pub fn from_path(key: ResKey<Self>, path: impl Into<String>) -> Self {
-        Self::new(key, ShaderSource::Path(path.into()))
+    ///
+    /// `I` is the material data type per instance, it should be the same as
+    /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
+    pub fn from_path<I>(key: ResKey<Self>, path: impl Into<String>) -> Self
+    where
+        I: InstanceData,
+    {
+        Self::new::<I>(key, ShaderSource::Path(path.into()))
     }
 
     #[run_after(component(Renderer), component(AntiAliasing))]
@@ -298,13 +263,14 @@ impl Shader {
             self.sample_count = sample_count;
             for (texture_format, pipeline) in &mut self.pipelines {
                 *pipeline = Self::create_pipeline(
-                    &code.string,
+                    code,
                     self.key,
                     *texture_format,
                     self.material_bind_group_layout
                         .as_ref()
                         .expect("internal error: material bind group not initialized"),
                     self.sample_count,
+                    self.material_instance_size,
                     context,
                 )?;
             }
@@ -323,13 +289,14 @@ impl Shader {
         for texture_format in texture_formats {
             if let Entry::Vacant(entry) = self.pipelines.entry(texture_format) {
                 entry.insert(Self::create_pipeline(
-                    &code.string,
+                    code,
                     self.key,
                     texture_format,
                     self.material_bind_group_layout
                         .as_ref()
                         .expect("internal error: material bind group not initialized"),
                     self.sample_count,
+                    self.material_instance_size,
                     context,
                 )?);
             }
@@ -338,17 +305,18 @@ impl Shader {
     }
 
     fn create_pipeline(
-        code: &str,
+        code: &LoadedCode,
         key: ResKey<Self>,
         texture_format: TextureFormat,
         texture_bind_group_layout: &BindGroupLayout,
         sample_count: u32,
+        material_instance_size: usize,
         context: &GpuContext,
     ) -> Result<RenderPipeline, wgpu::Error> {
         errors::validate_wgpu(context, || {
             let module = context.device.create_shader_module(ShaderModuleDescriptor {
                 label: Some(&format!("modor_shader_{}", key.label())),
-                source: wgpu::ShaderSource::Wgsl(code.into()),
+                source: wgpu::ShaderSource::Wgsl(code.string.as_str().into()),
             });
             let layout = context
                 .device
@@ -360,6 +328,14 @@ impl Shader {
                     ],
                     push_constant_ranges: &[],
                 });
+            let mut buffer_layout = Self::VERTEX_BUFFER_LAYOUTS.to_vec();
+            if material_instance_size > 0 {
+                buffer_layout.push(VertexBufferLayout {
+                    array_stride: material_instance_size as BufferAddress,
+                    step_mode: VertexStepMode::Instance,
+                    attributes: &code.instance_vertex_attributes,
+                });
+            }
             context
                 .device
                 .create_render_pipeline(&RenderPipelineDescriptor {
@@ -368,7 +344,7 @@ impl Shader {
                     vertex: VertexState {
                         module: &module,
                         entry_point: "vs_main",
-                        buffers: Self::VERTEX_BUFFER_LAYOUTS,
+                        buffers: &buffer_layout,
                     },
                     fragment: Some(FragmentState {
                         module: &module,
@@ -452,41 +428,98 @@ pub enum ShaderSource {
     Path(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct LoadedCode {
     texture_count: usize,
+    instance_vertex_attributes: Vec<VertexAttribute>,
     string: String,
 }
 
 impl LoadedCode {
     fn extract_texture_count(code: &str) -> usize {
-        let texture_binding_regex = Regex::new(r"@group\(1\)\s*@binding\(([0-9]+)\)")
-            .expect("internal error: invalid texture count regex");
-        let binding_count = texture_binding_regex
+        let binding_count = Regex::new(r"@group\(1\)\s*@binding\(([0-9]+)\)")
+            .expect("internal error: invalid texture count regex")
             .captures_iter(code)
             .filter_map(|c| usize::from_str(&c[1]).ok())
             .max()
             .unwrap_or(0);
         (binding_count + 1).div_euclid(2)
     }
+
+    fn extract_material_instance_struct(code: &str) -> Option<String> {
+        Regex::new(r"(?s)struct\s+MaterialInstance\s*\{[^}]*}")
+            .expect("internal error: invalid material instance struct regex")
+            .captures(code)
+            .map(|capture| capture[0].to_string())
+    }
+
+    fn extract_material_instance_layout(struct_code: &str) -> Result<Vec<VertexAttribute>, String> {
+        let mut offset = 0;
+        Regex::new(r"@location\(([0-9]+)\)\s*\w+\s*:\s*([\w<>]+)")
+            .expect("internal error: invalid material instance layout regex")
+            .captures_iter(struct_code)
+            .filter_map(|capture| u32::from_str(&capture[1]).ok().map(|l| (capture, l)))
+            .map(|(capture, shader_location)| {
+                Self::format(&capture[2]).map(|format| {
+                    let attribute = VertexAttribute {
+                        format,
+                        offset,
+                        shader_location,
+                    };
+                    offset += format.size();
+                    attribute
+                })
+            })
+            .collect()
+    }
+
+    fn format(type_: &str) -> Result<VertexFormat, String> {
+        match type_ {
+            "f32" => Ok(VertexFormat::Float32),
+            "i32" => Ok(VertexFormat::Sint32),
+            "u32" => Ok(VertexFormat::Uint32),
+            "vec2<f32>" => Ok(VertexFormat::Float32x2),
+            "vec2<i32>" => Ok(VertexFormat::Sint32x2),
+            "vec2<u32>" => Ok(VertexFormat::Uint32x2),
+            "vec3<f32>" => Ok(VertexFormat::Float32x3),
+            "vec3<i32>" => Ok(VertexFormat::Sint32x3),
+            "vec3<u32>" => Ok(VertexFormat::Uint32x3),
+            "vec4<f32>" => Ok(VertexFormat::Float32x4),
+            "vec4<i32>" => Ok(VertexFormat::Sint32x4),
+            "vec4<u32>" => Ok(VertexFormat::Uint32x4),
+            _ => Err(format!(
+                "WGSL type `{type_}` not supported in MaterialInstance"
+            )),
+        }
+    }
+}
+
+impl TryFrom<String> for LoadedCode {
+    type Error = String;
+
+    fn try_from(string: String) -> Result<Self, Self::Error> {
+        let instance_struct = Self::extract_material_instance_struct(&string);
+        Ok(Self {
+            texture_count: Self::extract_texture_count(&string),
+            instance_vertex_attributes: if let Some(instance_struct) = instance_struct {
+                Self::extract_material_instance_layout(&instance_struct)
+            } else {
+                Ok(vec![])
+            }?,
+            string,
+        })
+    }
 }
 
 impl Load<&'static str> for LoadedCode {
     fn load_from_file(data: Vec<u8>) -> Result<Self, ResourceLoadingError> {
-        String::from_utf8(data)
-            .map(|string| Self {
-                texture_count: Self::extract_texture_count(&string),
-                string,
-            })
-            .map_err(|err| ResourceLoadingError::InvalidFormat(format!("{err}")))
+        let code = String::from_utf8(data)
+            .map_err(|err| ResourceLoadingError::InvalidFormat(format!("{err}")))?;
+        Self::try_from(code).map_err(ResourceLoadingError::InvalidFormat)
     }
 
     fn load_from_data(data: &&'static str) -> Result<Self, ResourceLoadingError> {
-        let string = (*data).to_string();
-        Ok(Self {
-            texture_count: Self::extract_texture_count(&string),
-            string,
-        })
+        Self::try_from((*data).to_string()).map_err(ResourceLoadingError::InvalidFormat)
     }
 }
 
@@ -496,5 +529,246 @@ impl From<ShaderSource> for ResourceSource<&'static str> {
             ShaderSource::String(string) => ResourceSource::SyncData(string),
             ShaderSource::Path(path) => ResourceSource::AsyncPath(path),
         }
+    }
+}
+
+#[allow(clippy::unwrap_used)]
+#[cfg(test)]
+mod loaded_code_tests {
+    use crate::components::shader::LoadedCode;
+    use wgpu::{VertexAttribute, VertexFormat};
+
+    #[modor_test]
+    fn load_code_with_no_material() {
+        let code = "
+        @group(0)
+        @binding(0)
+        var<uniform> camera: Camera;
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.string, code);
+        assert_eq!(loaded_code.texture_count, 0);
+    }
+
+    #[modor_test]
+    fn load_code_with_no_texture() {
+        let code = "
+        @group(0)
+        @binding(0)
+        var<uniform> camera: Camera;
+
+        @group(1)
+        @binding(0)
+        var<uniform> material: Material;
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.string, code);
+        assert_eq!(loaded_code.texture_count, 0);
+    }
+
+    #[modor_test]
+    fn load_code_with_one_texture() {
+        let code = "
+        @group(0)
+        @binding(0)
+        var<uniform> camera: Camera;
+
+        @group(1)
+        @binding(0)
+        var<uniform> material: Material;
+
+        @group(1)
+        @binding(1)
+        var texture: texture_2d<f32>;
+
+        @group(1)
+        @binding(2)
+        var texture_sampler: sampler;
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.string, code);
+        assert_eq!(loaded_code.texture_count, 1);
+    }
+
+    #[modor_test]
+    fn load_code_with_many_textures() {
+        let code = "
+        @group(0)
+        @binding(0)
+        var<uniform> camera: Camera;
+
+        @group(1)
+        @binding(0)
+        var<uniform> material: Material;
+
+        @group(1)
+        @binding(1)
+        var texture: texture_2d<f32>;
+
+        @group(1)
+        @binding(2)
+        var texture_sampler: sampler;
+
+        @group(1)
+        @binding(3)
+        var texture2: texture_2d<f32>;
+
+        @group(1)
+        @binding(4)
+        var texture_sampler2: sampler;
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.string, code);
+        assert_eq!(loaded_code.texture_count, 2);
+    }
+
+    #[modor_test]
+    fn load_code_without_material_instance_struct() {
+        let code = "
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.instance_vertex_attributes, vec![]);
+    }
+
+    #[modor_test]
+    fn load_code_with_empty_material_instance_struct() {
+        let code = "
+        struct MaterialInstance {
+        }
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(loaded_code.instance_vertex_attributes, vec![]);
+    }
+
+    #[modor_test]
+    fn load_code_with_one_material_instance_location() {
+        let code = "
+        struct MaterialInstance {
+            @location(6)
+            variable: u32
+        }
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(
+            loaded_code.instance_vertex_attributes,
+            vec![VertexAttribute {
+                format: VertexFormat::Uint32,
+                offset: 0,
+                shader_location: 6,
+            }]
+        );
+    }
+
+    #[modor_test]
+    fn load_code_with_many_material_instance_location() {
+        let code = "
+        struct MaterialInstance {
+            @location(6)
+            variable: u32,
+            @location(7)
+            variable: vec2<u32>,
+            @location(8)
+            variable: vec3<u32>,
+            @location(9)
+            variable: vec4<u32>,
+            @location(10)
+            variable: i32,
+            @location(11)
+            variable: vec2<i32>,
+            @location(12)
+            variable: vec3<i32>,
+            @location(13)
+            variable: vec4<i32>,
+            @location(14)
+            variable: f32,
+            @location(15)
+            variable: vec2<f32>,
+            @location(16)
+            variable: vec3<f32>,
+            @location(17)
+            variable: vec4<f32>,
+        }
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string()).unwrap();
+        assert_eq!(
+            loaded_code.instance_vertex_attributes,
+            vec![
+                VertexAttribute {
+                    format: VertexFormat::Uint32,
+                    offset: 0,
+                    shader_location: 6,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Uint32x2,
+                    offset: 4,
+                    shader_location: 7,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Uint32x3,
+                    offset: 12,
+                    shader_location: 8,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Uint32x4,
+                    offset: 24,
+                    shader_location: 9,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Sint32,
+                    offset: 40,
+                    shader_location: 10,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Sint32x2,
+                    offset: 44,
+                    shader_location: 11,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Sint32x3,
+                    offset: 52,
+                    shader_location: 12,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Sint32x4,
+                    offset: 64,
+                    shader_location: 13,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32,
+                    offset: 80,
+                    shader_location: 14,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x2,
+                    offset: 84,
+                    shader_location: 15,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: 92,
+                    shader_location: 16,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 104,
+                    shader_location: 17,
+                },
+            ]
+        );
+    }
+
+    #[modor_test]
+    fn load_code_with_unsupported_material_instance_location() {
+        let code = "
+        struct MaterialInstance {
+            @location(6)
+            variable: i8
+        }
+        ";
+        let loaded_code = LoadedCode::try_from(code.to_string());
+        assert_eq!(
+            loaded_code,
+            Err("WGSL type `i8` not supported in MaterialInstance".to_string())
+        );
     }
 }

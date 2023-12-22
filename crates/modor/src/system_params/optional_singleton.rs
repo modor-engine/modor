@@ -2,7 +2,8 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::systems::context::SystemContext;
 use crate::{
-    Component, Query, QuerySystemParam, Single, SystemParam, SystemParamWithLifetime, True,
+    Component, ConstSystemParam, Query, QuerySystemParam, Single, SystemParam,
+    SystemParamWithLifetime, True,
 };
 
 #[allow(clippy::use_self)]
@@ -66,4 +67,11 @@ where
                 .map(|entity_idx| Single { query, entity_idx })
         })
     }
+}
+
+impl<'c, S, P> ConstSystemParam for Option<Single<'c, S, P>>
+where
+    S: Component<IsSingleton = True>,
+    P: 'static + QuerySystemParam + ConstSystemParam,
+{
 }
