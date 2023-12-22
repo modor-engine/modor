@@ -5,7 +5,7 @@ use crate::system_params::query::internal::QueryFilterProperties;
 use crate::system_params::tuples::internal::{EmptyTupleGuard, EmptyTupleIter};
 use crate::systems::context::SystemContext;
 use crate::tuples::internal::EmptyTupleGuardBorrow;
-use crate::utils;
+use crate::{utils, ConstSystemParam};
 use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
 use std::iter::{Map, Zip};
 
@@ -125,6 +125,8 @@ impl QuerySystemParam for () {
         (Some(()), Some(()))
     }
 }
+
+impl ConstSystemParam for () {}
 
 macro_rules! impl_tuple_system_param {
     ($(($params:ident, $indexes:tt)),+) => {
@@ -263,6 +265,12 @@ macro_rules! impl_tuple_system_param {
                     (move || {Some(($(items.$indexes.1?,)+))})(),
                 )
             }
+        }
+
+        impl<$($params),+> ConstSystemParam for ($($params,)+)
+        where
+            $($params: QuerySystemParam + ConstSystemParam,)+
+        {
         }
     };
 }

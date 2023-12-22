@@ -5,8 +5,8 @@ use crate::system_params::query::internal::{QueryGuard, QueryGuardBorrow};
 use crate::system_params::singleton::internal::SingleStream;
 use crate::systems::context::SystemContext;
 use crate::{
-    Component, Entity, Filter, Query, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
-    SystemParamWithLifetime, True, With,
+    Component, ConstSystemParam, Entity, Filter, Query, QuerySystemParam,
+    QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime, True, With,
 };
 
 /// A [`Single`] to retrieve the singleton component of type `S` as immutable reference.
@@ -144,6 +144,13 @@ where
                     .expect("internal error: cannot retrieve singleton ID"),
             })
     }
+}
+
+impl<'c, S, P> ConstSystemParam for Single<'c, S, P>
+where
+    S: Component<IsSingleton = True>,
+    P: 'static + QuerySystemParam + ConstSystemParam,
+{
 }
 
 pub(super) mod internal {

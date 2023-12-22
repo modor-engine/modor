@@ -58,6 +58,7 @@ pub use components::frame_rate::*;
 pub use components::instance_group::*;
 pub use components::instance_rendering::*;
 pub use components::material::*;
+pub use components::material_source::*;
 pub use components::render_target::*;
 pub use components::renderer::*;
 pub use components::shader::*;

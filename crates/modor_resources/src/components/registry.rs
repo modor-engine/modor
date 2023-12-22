@@ -150,42 +150,72 @@ where
         self.entity_ids.contains_key(&key)
     }
 
-    /// Returns the resource corresponding to the `key` if it exists and is in
+    /// Returns the immutable resource corresponding to the `key` if it exists and is in
     /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
     pub fn get<'a>(&self, key: ResKey<R>, query: &'a Query<'_, &R>) -> Option<&'a R> {
         if let Some(resource) = self.entity_ids.get(&key).and_then(|&i| query.get(i)) {
-            match resource.state() {
-                ResourceState::NotLoaded => self.not_loaded_keys.run(key, |t| {
+            self.is_resource_valid(key, resource.state())
+                .then_some(resource)
+        } else {
+            self.log_missing_key(key);
+            None
+        }
+    }
+
+    /// Returns the mutable resource corresponding to the `key` if it exists and is in
+    /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
+    pub fn get_mut<'a>(
+        &self,
+        key: ResKey<R>,
+        query: &'a mut Query<'_, &mut R>,
+    ) -> Option<&'a mut R> {
+        if let Some(resource) = self.entity_ids.get(&key).and_then(|&i| query.get_mut(i)) {
+            self.is_resource_valid(key, resource.state())
+                .then_some(resource)
+        } else {
+            self.log_missing_key(key);
+            None
+        }
+    }
+
+    fn is_resource_valid(&self, key: ResKey<R>, state: ResourceState<'_>) -> bool {
+        match state {
+            ResourceState::NotLoaded => {
+                self.not_loaded_keys.run(key, |t| {
                     warn!(
                         "try to use not loaded `{}` resource of type `{t}`",
                         key.label()
                     );
-                }),
-                ResourceState::Loading => {
-                    trace!(
-                        "`{}` resource of type `{}` ignored as currently loading", // no-coverage
-                        key.label(),                                               // no-coverage
-                        any::type_name::<R>()                                      // no-coverage
-                    );
-                }
-                ResourceState::Error(_) => {
-                    trace!(
-                        "`{}` resource of type `{}` ignored as loading failed", // no-coverage
-                        key.label(),                                            // no-coverage
-                        any::type_name::<R>()                                   // no-coverage
-                    );
-                }
-                ResourceState::Loaded => return Some(resource),
+                });
+                false
             }
-        } else {
-            self.missing_keys.run(key, |t| {
-                warn!(
-                    "try to use not found `{}` resource of type `{t}`",
-                    key.label()
+            ResourceState::Loading => {
+                trace!(
+                    "`{}` resource of type `{}` ignored as currently loading", // no-coverage
+                    key.label(),                                               // no-coverage
+                    any::type_name::<R>()                                      // no-coverage
                 );
-            });
+                false
+            }
+            ResourceState::Error(_) => {
+                trace!(
+                    "`{}` resource of type `{}` ignored as loading failed", // no-coverage
+                    key.label(),                                            // no-coverage
+                    any::type_name::<R>()                                   // no-coverage
+                );
+                false
+            }
+            ResourceState::Loaded => true,
         }
-        None
+    }
+
+    fn log_missing_key(&self, key: ResKey<R>) {
+        self.missing_keys.run(key, |t| {
+            warn!(
+                "try to use not found `{}` resource of type `{t}`",
+                key.label()
+            );
+        });
     }
 }
 
@@ -266,6 +296,35 @@ where
         self.registry
             .as_ref()
             .and_then(|r| r.get().get(key, &self.resources))
+    }
+}
+
+/// A system parameter to facilitate retrieval of mutable resources.
+///
+/// # Examples
+///
+/// See [`ResourceRegistry`](ResourceRegistry).
+#[derive(SystemParam)]
+pub struct ResourceAccessorMut<'a, R>
+where
+    R: Component,
+{
+    /// Resource registry.
+    pub registry: Option<SingleRef<'a, 'static, ResourceRegistry<R>>>,
+    /// Resource query.
+    pub resources: Query<'a, &'static mut R>,
+}
+
+impl<R> ResourceAccessorMut<'_, R>
+where
+    R: Resource + Component,
+{
+    /// Returns the mutable resource corresponding to the `key` if it exists and is in
+    /// [`ResourceState::Loaded`](ResourceState::Loaded) state.
+    pub fn get_mut(&mut self, key: ResKey<R>) -> Option<&mut R> {
+        self.registry
+            .as_mut()
+            .and_then(|r| r.get_mut().get_mut(key, &mut self.resources))
     }
 }
 

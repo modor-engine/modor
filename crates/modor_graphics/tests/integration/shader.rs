@@ -1,8 +1,8 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::{has_component_diff, is_same};
 use modor_graphics::{
-    instance_2d, texture_target, Color, Default2DMaterial, GraphicsModule, MaterialSource, Shader,
-    ShaderSource, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
+    instance_2d, texture_target, Color, Default2DMaterial, GraphicsModule, MaterialSource,
+    NoInstanceData, Shader, ShaderSource, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -17,7 +17,10 @@ fn create_from_path() {
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(custom_instance())
-        .with_entity(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
+        .with_entity(Shader::from_path::<NoInstanceData>(
+            CUSTOM_SHADER,
+            "../tests/assets/red.wgsl",
+        ))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#empty"))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
@@ -32,7 +35,10 @@ fn create_from_string() {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_string(CUSTOM_SHADER, CUSTOM_SHADER_CODE))
+        .with_entity(Shader::from_string::<NoInstanceData>(
+            CUSTOM_SHADER,
+            CUSTOM_SHADER_CODE,
+        ))
         .with_entity(custom_instance())
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("shader#custom"));
@@ -52,7 +58,7 @@ fn create_with(shader_filename: &str) {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_path(
+        .with_entity(Shader::from_path::<NoInstanceData>(
             CUSTOM_SHADER,
             format!("../tests/assets/{shader_filename}"),
         ))
@@ -74,7 +80,10 @@ fn set_source() {
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(
             EntityBuilder::new()
-                .component(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
+                .component(Shader::from_path::<NoInstanceData>(
+                    CUSTOM_SHADER,
+                    "../tests/assets/red.wgsl",
+                ))
                 .component(CustomShader),
         )
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
@@ -95,7 +104,10 @@ fn delete_and_recreate_graphics_module() {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_path(CUSTOM_SHADER, "../tests/assets/red.wgsl"))
+        .with_entity(Shader::from_path::<NoInstanceData>(
+            CUSTOM_SHADER,
+            "../tests/assets/red.wgsl",
+        ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(custom_instance())
         .updated()
@@ -172,6 +184,7 @@ impl Default for CustomMaterial {
 
 impl MaterialSource for CustomMaterial {
     type Data = [f32; 4];
+    type InstanceData = NoInstanceData;
 
     fn data(&self) -> Self::Data {
         self.unused_color.into()

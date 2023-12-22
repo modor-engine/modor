@@ -6,7 +6,7 @@ use crate::components::render_target::RenderTargetRegistry;
 use crate::components::renderer::Renderer;
 use crate::components::shader::{Shader, ShaderRegistry};
 use crate::components::texture::{TextureRegistry, INVISIBLE_TEXTURE, WHITE_TEXTURE};
-use crate::{Size, Texture};
+use crate::{NoInstanceData, Size, Texture};
 use modor::{BuiltEntity, EntityBuilder};
 use modor_input::InputModule;
 use modor_physics::PhysicsModule;
@@ -50,11 +50,11 @@ pub fn module() -> impl BuiltEntity {
         .component(MaterialRegistry::default())
         .component(TextureRegistry::default())
         .component(InstanceGroup2DRegistry::default())
-        .child_component(Shader::from_string(
+        .child_component(Shader::from_string::<NoInstanceData>(
             DEFAULT_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")),
         ))
-        .child_component(Shader::from_string(
+        .child_component(Shader::from_string::<NoInstanceData>(
             ELLIPSE_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
         ))

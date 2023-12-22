@@ -112,6 +112,9 @@ pub trait QuerySystemParamWithLifetime<'a>: SystemParamWithLifetime<'a> {
         + ExactSizeIterator;
 }
 
+/// A trait implemented for constant system params.
+pub trait ConstSystemParam: SystemParam {}
+
 pub(crate) mod internal {
     use crate::SystemParam;
     use std::any::Any;

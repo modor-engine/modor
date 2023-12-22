@@ -3,7 +3,10 @@ use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemProperties;
 use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
-use crate::{QuerySystemParam, QuerySystemParamWithLifetime, SystemParam, SystemParamWithLifetime};
+use crate::{
+    ConstSystemParam, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    SystemParamWithLifetime,
+};
 use std::iter::Map;
 use std::ops::{Deref, DerefMut};
 
@@ -228,4 +231,11 @@ where
             t2.map(|t| T::from_tuple_mut_param(t)),
         )
     }
+}
+
+impl<T> ConstSystemParam for Custom<T>
+where
+    T: CustomSystemParam,
+    <T>::Tuple: ConstSystemParam,
+{
 }

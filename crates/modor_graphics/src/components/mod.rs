@@ -5,6 +5,7 @@ pub(crate) mod frame_rate;
 pub(crate) mod instance_group;
 pub(crate) mod instance_rendering;
 pub(crate) mod material;
+pub(crate) mod material_source;
 pub(crate) mod mesh;
 pub(crate) mod render_target;
 pub(crate) mod renderer;

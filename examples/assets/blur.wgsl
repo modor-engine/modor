@@ -4,8 +4,8 @@ struct Camera {
 
 struct Material {
     blur_factor: f32,
-    sample_count: u32,
-    padding: vec2<f32>, // some platforms like WebGL require 16 bytes alignment for uniform data
+    padding1: f32,          // some platforms like WebGL require 16 bytes alignment for uniform data
+    padding2: vec2<f32>,    // some platforms like WebGL require 16 bytes alignment for uniform data
 };
 
 struct Vertex {
@@ -26,11 +26,18 @@ struct Instance {
     transform_3: vec4<f32>,
 };
 
+struct MaterialInstance {
+    @location(6)
+    sample_count: u32,
+};
+
 struct Fragment {
     @builtin(position)
     position: vec4<f32>,
     @location(0)
     texture_position: vec2<f32>,
+    @location(1)
+    sample_count: u32,
 };
 
 @group(0)
@@ -50,7 +57,7 @@ var texture: texture_2d<f32>;
 var texture_sampler: sampler;
 
 @vertex
-fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
+fn vs_main(vertex: Vertex, instance: Instance, material_instance: MaterialInstance) -> Fragment {
     let transform = mat4x4<f32>(
         instance.transform_0,
         instance.transform_1,
@@ -60,13 +67,14 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
     return Fragment(
         camera.transform * transform * vec4<f32>(vertex.position, 1.),
         vertex.texture_position,
+        material_instance.sample_count,
     );
 }
 
 @fragment
 fn fs_main(fragment: Fragment) -> @location(0) vec4<f32> {
     var color_sum = vec4<f32>();
-    let sample_count_f32 = f32(material.sample_count);
+    let sample_count_f32 = f32(fragment.sample_count);
     for (var x: f32 = -1. * sample_count_f32; x < 1. * sample_count_f32 + 0.5; x += 1.) {
         for (var y: f32 = -1. * sample_count_f32; y < 1. * sample_count_f32 + 0.5; y += 1.) {
             color_sum += color(fragment, material.blur_factor * x, material.blur_factor * y);

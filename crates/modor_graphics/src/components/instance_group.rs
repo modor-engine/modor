@@ -1,7 +1,8 @@
-use crate::components::renderer::Renderer;
+use crate::components::renderer::{GpuContext, Renderer};
 use crate::gpu_data::buffer::{DynamicBuffer, DynamicBufferUsage};
 use crate::gpu_data::vertex_buffer::VertexBuffer;
-use crate::ZIndex2D;
+use crate::{InstanceData, ZIndex2D};
+use bytemuck::Pod;
 use fxhash::FxHashMap;
 use modor::{
     Changed, Custom, CustomQuerySystemParam, Entity, EntityFilter, Filter, Or, Query, QueryFilter,
@@ -10,9 +11,19 @@ use modor::{
 use modor_math::{Mat4, Quat};
 use modor_physics::Transform2D;
 use modor_resources::{ResKey, Resource, ResourceRegistry, ResourceState};
+use std::any::TypeId;
+use std::{any, mem};
 use wgpu::{vertex_attr_array, VertexAttribute, VertexStepMode};
 
 pub(crate) type InstanceGroup2DRegistry = ResourceRegistry<InstanceGroup2D>;
+pub(crate) type InstanceDataUpdateQuery<'a, T> = Query<
+    'a,
+    (
+        <T as InstanceData>::Query,
+        Entity<'static>,
+        Filter<<T as InstanceData>::UpdateFilter>,
+    ),
+>;
 type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 
 /// A group of instances to render.
@@ -47,7 +58,8 @@ type UpdatedInstanceFilter = Or<(Changed<Transform2D>, Changed<ZIndex2D>)>;
 /// to create an instance group.
 #[derive(Component, Debug)]
 pub struct InstanceGroup2D {
-    instances: Option<DynamicBuffer<Instance>>,
+    pub(crate) z_indexes: Vec<f32>,
+    buffers: FxHashMap<TypeId, InstanceBuffer>,
     entity_ids: Vec<usize>,
     entity_positions: FxHashMap<usize, usize>,
     is_initialized: bool,
@@ -62,7 +74,8 @@ impl InstanceGroup2D {
     /// as instance.
     pub fn from_self(key: ResKey<Self>) -> Self {
         Self {
-            instances: None,
+            buffers: FxHashMap::default(),
+            z_indexes: vec![],
             entity_ids: vec![],
             entity_positions: FxHashMap::default(),
             is_initialized: false,
@@ -76,7 +89,8 @@ impl InstanceGroup2D {
     /// instances.
     pub fn from_filter(key: ResKey<Self>, filter: QueryFilter) -> Self {
         Self {
-            instances: None,
+            buffers: FxHashMap::default(),
+            z_indexes: vec![],
             entity_ids: vec![],
             entity_positions: FxHashMap::default(),
             is_initialized: false,
@@ -105,21 +119,19 @@ impl InstanceGroup2D {
     ) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if state.is_removed() {
-            self.instances = None;
+            self.buffers.clear();
+            self.z_indexes.clear();
             self.entity_ids.clear();
             self.entity_positions.clear();
             self.is_initialized = false;
         }
         if let Some(context) = state.context() {
             if !self.is_initialized {
-                self.instances = Some(DynamicBuffer::new(
-                    vec![],
-                    DynamicBufferUsage::Instance,
-                    format!("modor_instance_buffer_{}", self.key.label()),
-                    &context.device,
-                ));
-                self.register_instances(entity, instances);
-                self.instances_mut().sync(context);
+                self.buffers.insert(
+                    TypeId::of::<Instance>(),
+                    InstanceBuffer::new::<Instance>(context, self.key),
+                );
+                self.register_instances(entity, instances, context);
                 self.is_initialized = true;
             }
         }
@@ -135,22 +147,50 @@ impl InstanceGroup2D {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         if let Some(context) = state.context() {
             if self.is_initialized {
-                self.register_instances(entity, instances);
-                self.instances_mut().sync(context);
+                self.register_instances(entity, instances, context);
             }
         }
     }
 
-    pub(crate) fn buffer(&self) -> &DynamicBuffer<Instance> {
-        self.instances
-            .as_ref()
-            .expect("internal error: instance buffer not initialized")
+    pub(crate) fn update_material_instances<T>(
+        &mut self,
+        query: &mut Query<'_, T::Query>,
+        filtered_query: &mut InstanceDataUpdateQuery<'_, T>,
+        context: &GpuContext,
+    ) where
+        T: InstanceData,
+    {
+        let is_already_registered = self.buffers.contains_key(&TypeId::of::<T>());
+        let buffer = self
+            .buffers
+            .entry(TypeId::of::<T>())
+            .or_insert_with(|| InstanceBuffer::new::<T>(context, self.key));
+        for &entity_id in &self.entity_ids
+            [(buffer.data.len().div_euclid(buffer.item_size))..self.entity_ids.len()]
+        {
+            let instance = query.get_mut(entity_id).map(T::data).unwrap_or_default();
+            buffer.add(instance);
+        }
+        if is_already_registered {
+            for (item, entity, _) in filtered_query.iter_mut() {
+                if let Some(&position) = self.entity_positions.get(&entity.id()) {
+                    let instance = T::data(item);
+                    buffer.replace(instance, position);
+                }
+            }
+        }
+        buffer.sync(context);
+    }
+
+    pub(crate) fn buffer(&self, type_id: TypeId) -> Option<&InstanceBuffer> {
+        self.buffers.get(&type_id)
     }
 
     fn register_instances<F>(
         &mut self,
         entity: Entity<'_>,
         mut instances: Query<'_, Custom<InstanceEntity<'_, F>>>,
+        context: &GpuContext,
     ) where
         F: EntityFilter,
     {
@@ -162,11 +202,13 @@ impl InstanceGroup2D {
         } else if let Some(instance) = instances.get(entity.id()) {
             self.register_instance(instance.entity.id(), Instance::from_entity(&instance));
         }
+        self.buffer_mut::<Instance>().sync(context);
     }
 
-    fn register_instance(&mut self, entity_id: usize, instances: Instance) {
+    fn register_instance(&mut self, entity_id: usize, instance: Instance) {
         if let Some(&position) = self.entity_positions.get(&entity_id) {
-            self.instances_mut()[position] = instances;
+            self.z_indexes[position] = instance.z();
+            self.buffer_mut::<Instance>().replace(instance, position);
             trace!(
                 "instance with ID {entity_id} updated in instance group {}", // no-coverage
                 self.key.label()                                             // no-coverage
@@ -175,7 +217,8 @@ impl InstanceGroup2D {
             let position = self.entity_ids.len();
             self.entity_positions.insert(entity_id, position);
             self.entity_ids.push(entity_id);
-            self.instances_mut().push(instances);
+            self.z_indexes.push(instance.z());
+            self.buffer_mut::<Instance>().add(instance);
             trace!(
                 "instance with ID {entity_id} added in instance group {}", // no-coverage
                 self.key.label()                                           // no-coverage
@@ -185,7 +228,10 @@ impl InstanceGroup2D {
 
     fn delete_instance(&mut self, entity_id: usize) {
         if let Some(position) = self.entity_positions.remove(&entity_id) {
-            self.instances_mut().swap_remove(position);
+            for buffer in self.buffers.values_mut() {
+                buffer.delete(position);
+            }
+            self.z_indexes.swap_remove(position);
             self.entity_ids.swap_remove(position);
             if let Some(moved_entity_id) = self.entity_ids.get(position) {
                 let last_entity_position = self
@@ -201,9 +247,12 @@ impl InstanceGroup2D {
         }
     }
 
-    fn instances_mut(&mut self) -> &mut DynamicBuffer<Instance> {
-        self.instances
-            .as_mut()
+    fn buffer_mut<T>(&mut self) -> &mut InstanceBuffer
+    where
+        T: Pod,
+    {
+        self.buffers
+            .get_mut(&TypeId::of::<T>())
             .expect("internal error: instance buffer not loaded")
     }
 }
@@ -214,11 +263,66 @@ impl Resource for InstanceGroup2D {
     }
 
     fn state(&self) -> ResourceState<'_> {
-        if self.instances.is_some() {
-            ResourceState::Loaded
-        } else {
+        if self.buffers.is_empty() {
             ResourceState::NotLoaded
+        } else {
+            ResourceState::Loaded
         }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct InstanceBuffer {
+    pub(crate) data: DynamicBuffer<u8>,
+    pub(crate) item_size: usize,
+}
+
+impl InstanceBuffer {
+    fn new<T>(context: &GpuContext, key: ResKey<InstanceGroup2D>) -> Self
+    where
+        T: Pod,
+    {
+        Self {
+            data: DynamicBuffer::new(
+                vec![],
+                DynamicBufferUsage::Instance,
+                format!(
+                    "modor_instance_buffer_{}_{}",
+                    key.label(),
+                    any::type_name::<T>()
+                ),
+                &context.device,
+            ),
+            item_size: mem::size_of::<T>(),
+        }
+    }
+
+    fn add<T>(&mut self, item: T)
+    where
+        T: Pod,
+    {
+        self.data
+            .extend_from_slice(bytemuck::cast_slice::<_, u8>(&[item]));
+    }
+
+    fn replace<T>(&mut self, item: T, position: usize)
+    where
+        T: Pod,
+    {
+        self.data.splice(
+            (position * self.item_size)..((position + 1) * self.item_size),
+            bytemuck::cast_slice::<_, u8>(&[item]).iter().copied(),
+        );
+    }
+
+    fn delete(&mut self, position: usize) {
+        for i in (0..self.item_size).rev() {
+            self.data.swap_remove(position * self.item_size + i);
+        }
+    }
+
+    fn sync(&mut self, context: &GpuContext) {
+        self.data.sync(context);
     }
 }
 

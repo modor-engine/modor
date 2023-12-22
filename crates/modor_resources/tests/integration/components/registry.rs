@@ -1,7 +1,8 @@
 use modor::{App, Custom, With};
 use modor_jobs::AssetLoadingError;
 use modor_resources::{
-    ResKey, Resource, ResourceAccessor, ResourceLoadingError, ResourceRegistry, ResourceState,
+    ResKey, Resource, ResourceAccessor, ResourceAccessorMut, ResourceLoadingError,
+    ResourceRegistry, ResourceState,
 };
 
 const VALUE1: ResKey<Value> = ResKey::new("val1");
@@ -19,6 +20,8 @@ fn retrieve_not_loaded_resource() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, None))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -33,6 +36,8 @@ fn retrieve_loading_resource() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, None))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -47,6 +52,8 @@ fn retrieve_loaded_resource() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(10)))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, Some(10)))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -63,6 +70,8 @@ fn retrieve_error_resource() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, None))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -77,6 +86,8 @@ fn retrieve_resource_with_duplicated_key() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(20)))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, Some(20)))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -90,18 +101,24 @@ fn retrieve_resource_with_replaced_key() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(10)))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, Some(10)))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         })
         .with_update::<(), _>(|v: &mut Value| *v = Value::new(VALUE2, ResourceState::Loaded, 20))
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
                 .has(|v: &RetrievedValue| assert!(!v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, None))
+                .has(|v: &RetrievedValue| assert!(!v.exists_mut))
         })
         .with_update::<(), _>(|v: &mut Value| *v = Value::new(VALUE1, ResourceState::Loaded, 30))
         .updated()
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, Some(30)))
                 .has(|v: &RetrievedValue| assert!(v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, Some(30)))
+                .has(|v: &RetrievedValue| assert!(v.exists_mut))
         });
 }
 
@@ -116,6 +133,8 @@ fn retrieve_resource_with_missing_key() {
         .assert::<With<RetrievedValue>>(1, |e| {
             e.has(|v: &RetrievedValue| assert_eq!(v.value, None))
                 .has(|v: &RetrievedValue| assert!(!v.exists))
+                .has(|v: &RetrievedValue| assert_eq!(v.value_mut, None))
+                .has(|v: &RetrievedValue| assert!(!v.exists_mut))
         });
 }
 
@@ -149,6 +168,8 @@ struct RetrievedValue {
     key: ResKey<Value>,
     value: Option<u32>,
     exists: bool,
+    value_mut: Option<u32>,
+    exists_mut: bool,
 }
 
 #[systems]
@@ -158,6 +179,8 @@ impl RetrievedValue {
             key,
             value: None,
             exists: false,
+            value_mut: None,
+            exists_mut: false,
         }
     }
 
@@ -165,5 +188,11 @@ impl RetrievedValue {
     fn update(&mut self, values: Custom<ResourceAccessor<'_, Value>>) {
         self.value = values.get(self.key).map(|v| v.value);
         self.exists = values.registry.as_ref().unwrap().get().exists(self.key);
+    }
+
+    #[run_after(component(ValueRegistry), component(Value))]
+    fn update_mut(&mut self, mut values: Custom<ResourceAccessorMut<'_, Value>>) {
+        self.value_mut = values.get_mut(self.key).map(|v| v.value);
+        self.exists_mut = values.registry.as_mut().unwrap().get_mut().exists(self.key);
     }
 }

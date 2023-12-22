@@ -8,7 +8,7 @@ use crate::system_params::internal::{Const, LockableSystemParam};
 use crate::system_params::query::internal::QueryFilterProperties;
 use crate::systems::context::SystemContext;
 use crate::{
-    Component, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
+    Component, ConstSystemParam, QuerySystemParam, QuerySystemParamWithLifetime, SystemParam,
     SystemParamWithLifetime, With,
 };
 use std::any;
@@ -160,6 +160,8 @@ where
     type LockedType = C;
     type Mutability = Const;
 }
+
+impl<C> ConstSystemParam for &C where C: Component {}
 
 pub(crate) mod internal {
     use crate::components_mut::internal::ComponentMutGuardBorrow;
