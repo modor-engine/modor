@@ -2,8 +2,9 @@ use bytemuck::{Pod, Zeroable};
 use modor::{App, Changed, SystemParamWithLifetime, With};
 use modor_graphics::testing::is_same;
 use modor_graphics::{
-    instance_2d, material, texture_target, Color, InstanceData, InstanceGroup2D, Material,
-    MaterialSource, NoInstanceData, Shader, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D,
+    instance_2d, material, texture_target, Color, GraphicsModule, InstanceData, InstanceGroup2D,
+    Material, MaterialSource, NoInstanceData, Shader, Size, Texture, TextureBuffer,
+    TEXTURE_CAMERAS_2D,
 };
 use modor_resources::testing::wait_resource_loading;
 use modor_resources::{ResKey, Resource, ResourceState};
@@ -103,27 +104,37 @@ fn create_material_with_texture_count_different_than_shader() {
     cases(opaque = "false", transparent = "true")
 )]
 fn create_material_with_instance_data(is_transparent: bool) {
-    let material_key = ResKey::new("material");
+    let instance_material_key = ResKey::new("instance");
+    let simple_material_key = ResKey::new("simple");
     App::new()
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(texture_target(1, Size::new(30, 20), true))
         .with_entity(Shader::from_path::<CustomInstanceData>(
             INSTANCE_SHADER,
             "../tests/assets/instance.wgsl",
         ))
+        .with_entity(Shader::from_path::<NoInstanceData>(
+            COLOR_SHADER,
+            "../tests/assets/color.wgsl",
+        ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomInstanceMaterial>(material_key))
+        .with_entity(material::<CustomInstanceMaterial>(instance_material_key))
+        .with_entity(material::<CustomMaterial>(simple_material_key))
         .with_update::<(), _>(|m: &mut CustomInstanceMaterial| m.is_transparent = is_transparent)
-        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), instance_material_key))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(1), simple_material_key)) // to test with multiple instance groups
         .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("material#red"))
+        .assert::<With<TextureBuffer>>(2, is_same("material#red"))
         .with_component::<With<InstanceGroup2D>, _>(|| CustomColor(Color::GREEN))
+        .with_update::<(), CustomMaterial>(|m| m.color = Color::GREEN)
         .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("material#green"))
+        .assert::<With<TextureBuffer>>(2, is_same("material#green"))
         .with_update::<(), _>(|i: &mut CustomColor| i.0 = Color::BLUE)
+        .with_update::<(), CustomMaterial>(|m| m.color = Color::BLUE)
         .updated()
         .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("material#blue"));
+        .assert::<With<TextureBuffer>>(2, is_same("material#blue"));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -144,6 +155,29 @@ fn create_material_with_incorrect_instance_data_type() {
         .assert::<With<CustomInstanceMaterial>>(1, |e| {
             e.has(|m: &Material| assert!(matches!(m.state(), ResourceState::Error(_))))
         });
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn delete_and_recreate_graphics_module_with_instance_data() {
+    let material_key = ResKey::new("material");
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(texture_target(0, Size::new(30, 20), true))
+        .with_entity(Shader::from_path::<CustomInstanceData>(
+            INSTANCE_SHADER,
+            "../tests/assets/instance.wgsl",
+        ))
+        .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
+        .with_entity(material::<CustomInstanceMaterial>(material_key))
+        .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
+        .with_component::<With<InstanceGroup2D>, _>(|| CustomColor(Color::GREEN))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("material#green"))
+        .with_deleted_entities::<With<GraphicsModule>>()
+        .updated()
+        .with_entity(modor_graphics::module())
+        .updated()
+        .assert::<With<TextureBuffer>>(1, is_same("material#green"));
 }
 
 #[derive(Component)]

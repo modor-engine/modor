@@ -148,6 +148,9 @@ impl InstanceGroup2D {
         if let Some(context) = state.context() {
             if self.is_initialized {
                 self.register_instances(entity, instances, context);
+                for buffer in self.buffers.values_mut() {
+                    buffer.is_updated = false;
+                }
             }
         }
     }
@@ -165,6 +168,9 @@ impl InstanceGroup2D {
             .buffers
             .entry(TypeId::of::<T>())
             .or_insert_with(|| InstanceBuffer::new::<T>(context, self.key));
+        if buffer.is_updated {
+            return;
+        }
         for &entity_id in &self.entity_ids
             [(buffer.data.len().div_euclid(buffer.item_size))..self.entity_ids.len()]
         {
@@ -179,6 +185,7 @@ impl InstanceGroup2D {
                 }
             }
         }
+        buffer.is_updated = true;
         buffer.sync(context);
     }
 
@@ -275,6 +282,7 @@ impl Resource for InstanceGroup2D {
 pub(crate) struct InstanceBuffer {
     pub(crate) data: DynamicBuffer<u8>,
     pub(crate) item_size: usize,
+    is_updated: bool,
 }
 
 impl InstanceBuffer {
@@ -294,6 +302,7 @@ impl InstanceBuffer {
                 &context.device,
             ),
             item_size: mem::size_of::<T>(),
+            is_updated: false,
         }
     }
 

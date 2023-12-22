@@ -12,7 +12,7 @@ use modor::{
 use modor_math::Vec2;
 use modor_resources::ResKey;
 
-/// A trait for defining a component type used to configure a [`Material`].
+/// A trait for defining a component type used to configure a [`Material`](crate::Material).
 ///
 /// # Example
 ///
@@ -213,7 +213,7 @@ pub trait MaterialSource: ComponentSystems {
     type Data: Pod + VariableSync + VariableSend;
     /// Raw instance data type.
     ///
-    /// In case this type has a size of zero with [`mem::size_of`](mem::size_of()) (e.g. [`NoInstanceData`]),
+    /// In case this type has a size of zero with [`mem::size_of`](std::mem::size_of()) (e.g. [`NoInstanceData`]),
     /// then no instance data are sent to the shader.
     ///
     /// It must be the same instance data type as the one passed to [`Shader`].
@@ -280,9 +280,11 @@ impl InstanceData for NoInstanceData {
     type Query = ();
     type UpdateFilter = ();
 
+    // coverage: off (method never called)
     fn data(_item: <Self::Query as SystemParamWithLifetime<'_>>::Param) -> Self {
         unreachable!("disabled instance data")
     }
+    // coverage: on
 }
 
 /// The default material configuration for 2D rendering.
@@ -295,8 +297,8 @@ impl InstanceData for NoInstanceData {
 ///
 /// # Related components
 ///
-/// - [`Material`]
-/// - [`MaterialSync`]
+/// - [`Material`](crate::Material)
+/// - [`MaterialSync`](crate::MaterialSync)
 ///
 /// # Examples
 ///
