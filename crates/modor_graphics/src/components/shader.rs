@@ -10,7 +10,6 @@ use modor_resources::{
 };
 use regex::Regex;
 use std::any::TypeId;
-use std::collections::hash_map::Entry;
 use std::str::FromStr;
 use std::{any, mem};
 use wgpu::{
@@ -83,6 +82,7 @@ pub struct Shader {
     pub(crate) material_instance_type: TypeId,
     pub(crate) material_instance_type_name: &'static str,
     material_instance_size: usize,
+    replace_alpha: bool,
     key: ResKey<Self>,
     pipelines: FxHashMap<(TextureFormat, bool), RenderPipeline>,
     handler: ResourceHandler<LoadedCode, &'static str>,
@@ -110,7 +110,13 @@ impl Shader {
     ///
     /// `I` is the material data type per instance, it must be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
-    pub fn new<I>(key: ResKey<Self>, source: ShaderSource) -> Self
+    ///
+    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
+    ///     transparent shape might be visible.
+    /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
+    ///     transparent shape will never be visible.
+    pub fn new<I>(key: ResKey<Self>, source: ShaderSource, replace_alpha: bool) -> Self
     where
         I: InstanceData,
     {
@@ -120,6 +126,7 @@ impl Shader {
             material_instance_type: TypeId::of::<I>(),
             material_instance_type_name: any::type_name::<I>(),
             material_instance_size: mem::size_of::<I>(),
+            replace_alpha,
             key,
             pipelines: FxHashMap::default(),
             handler: ResourceHandler::new(source.into()),
@@ -136,11 +143,17 @@ impl Shader {
     ///
     /// `I` is the material data type per instance, it must be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
-    pub fn from_string<I>(key: ResKey<Self>, code: &'static str) -> Self
+    ///
+    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
+    ///     transparent shape might be visible.
+    /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
+    ///     transparent shape will never be visible.
+    pub fn from_string<I>(key: ResKey<Self>, code: &'static str, replace_alpha: bool) -> Self
     where
         I: InstanceData,
     {
-        Self::new::<I>(key, ShaderSource::String(code))
+        Self::new::<I>(key, ShaderSource::String(code), replace_alpha)
     }
 
     /// Creates a new shader identified by a unique `key` and created with a given code file `path`.
@@ -149,11 +162,17 @@ impl Shader {
     ///
     /// `I` is the material data type per instance, it should be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
-    pub fn from_path<I>(key: ResKey<Self>, path: impl Into<String>) -> Self
+    ///
+    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
+    ///     transparent shape might be visible.
+    /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
+    ///     transparent shape will never be visible.
+    pub fn from_path<I>(key: ResKey<Self>, path: impl Into<String>, replace_alpha: bool) -> Self
     where
         I: InstanceData,
     {
-        Self::new::<I>(key, ShaderSource::Path(path.into()))
+        Self::new::<I>(key, ShaderSource::Path(path.into()), replace_alpha)
     }
 
     #[run_after(component(Renderer), component(AntiAliasing))]
@@ -265,25 +284,26 @@ impl Shader {
         let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         if self.sample_count != sample_count {
             self.sample_count = sample_count;
-            for (&(texture_format, is_anti_aliasing_enabled), pipeline) in &mut self.pipelines {
+            let keys: Vec<_> = self.pipelines.keys().copied().collect();
+            for (texture_format, is_anti_aliasing_enabled) in keys {
                 if is_anti_aliasing_enabled {
-                    *pipeline = Self::create_pipeline(
-                        code,
-                        self.key,
-                        texture_format,
-                        self.material_bind_group_layout
-                            .as_ref()
-                            .expect("internal error: material bind group not initialized"),
-                        self.sample_count,
-                        self.material_instance_size,
-                        context,
-                    )?;
+                    self.pipelines.insert(
+                        (texture_format, is_anti_aliasing_enabled),
+                        Self::create_pipeline(
+                            self,
+                            code,
+                            texture_format,
+                            self.sample_count,
+                            context,
+                        )?,
+                    );
                 }
             }
         }
         Ok(())
     }
 
+    #[allow(clippy::map_entry)]
     fn update_texture_formats(&mut self, context: &GpuContext) -> Result<(), wgpu::Error> {
         let Some(code) = &self.code else {
             return Ok(());
@@ -300,18 +320,11 @@ impl Shader {
                 } else {
                     1
                 };
-                if let Entry::Vacant(entry) = self.pipelines.entry(key) {
-                    entry.insert(Self::create_pipeline(
-                        code,
-                        self.key,
-                        texture_format,
-                        self.material_bind_group_layout
-                            .as_ref()
-                            .expect("internal error: material bind group not initialized"),
-                        sample_count,
-                        self.material_instance_size,
-                        context,
-                    )?);
+                if !self.pipelines.contains_key(&key) {
+                    self.pipelines.insert(
+                        key,
+                        Self::create_pipeline(self, code, texture_format, sample_count, context)?,
+                    );
                 }
             }
         }
@@ -319,33 +332,33 @@ impl Shader {
     }
 
     fn create_pipeline(
+        &self,
         code: &LoadedCode,
-        key: ResKey<Self>,
         texture_format: TextureFormat,
-        texture_bind_group_layout: &BindGroupLayout,
         sample_count: u32,
-        material_instance_size: usize,
         context: &GpuContext,
     ) -> Result<RenderPipeline, wgpu::Error> {
         errors::validate_wgpu(context, || {
             let module = context.device.create_shader_module(ShaderModuleDescriptor {
-                label: Some(&format!("modor_shader_{}", key.label())),
+                label: Some(&format!("modor_shader_{}", self.key.label())),
                 source: wgpu::ShaderSource::Wgsl(code.string.as_str().into()),
             });
             let layout = context
                 .device
                 .create_pipeline_layout(&PipelineLayoutDescriptor {
-                    label: Some(&format!("modor_pipeline_layout_{}", key.label())),
+                    label: Some(&format!("modor_pipeline_layout_{}", self.key.label())),
                     bind_group_layouts: &[
                         &context.camera_bind_group_layout,
-                        texture_bind_group_layout,
+                        self.material_bind_group_layout
+                            .as_ref()
+                            .expect("internal error: material bind group not initialized"),
                     ],
                     push_constant_ranges: &[],
                 });
             let mut buffer_layout = Self::VERTEX_BUFFER_LAYOUTS.to_vec();
-            if material_instance_size > 0 {
+            if self.material_instance_size > 0 {
                 buffer_layout.push(VertexBufferLayout {
-                    array_stride: material_instance_size as BufferAddress,
+                    array_stride: self.material_instance_size as BufferAddress,
                     step_mode: VertexStepMode::Instance,
                     attributes: &code.instance_vertex_attributes,
                 });
@@ -353,7 +366,7 @@ impl Shader {
             context
                 .device
                 .create_render_pipeline(&RenderPipelineDescriptor {
-                    label: Some(&format!("modor_render_pipeline_{}", key.label())),
+                    label: Some(&format!("modor_render_pipeline_{}", self.key.label())),
                     layout: Some(&layout),
                     vertex: VertexState {
                         module: &module,
@@ -365,7 +378,11 @@ impl Shader {
                         entry_point: "fs_main",
                         targets: &[Some(ColorTargetState {
                             format: texture_format,
-                            blend: Some(BlendState::ALPHA_BLENDING),
+                            blend: Some(if self.replace_alpha {
+                                BlendState::REPLACE
+                            } else {
+                                BlendState::ALPHA_BLENDING
+                            }),
                             write_mask: ColorWrites::ALL,
                         })],
                     }),

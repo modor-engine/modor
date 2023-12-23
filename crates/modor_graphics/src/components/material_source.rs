@@ -33,6 +33,7 @@ use modor_resources::ResKey;
 ///     .with_entity(Shader::from_path::<BlurInstanceData>(
 ///         BLUR_SHADER,
 ///         "blur.wgsl",
+///         false,
 ///     ))
 ///     .with_entity(Texture::from_path(TEXTURE, "texture.png"))
 ///     .with_entity(sprite_group())

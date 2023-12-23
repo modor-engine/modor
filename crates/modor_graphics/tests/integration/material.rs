@@ -28,10 +28,12 @@ fn update_properties() {
         .with_entity(Shader::from_path::<NoInstanceData>(
             COLOR_SHADER,
             "../tests/assets/color.wgsl",
+            false,
         ))
         .with_entity(Shader::from_path::<NoInstanceData>(
             TEXTURE_SHADER,
             "../tests/assets/textures.wgsl",
+            false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomMaterial>(material_key))
@@ -67,6 +69,7 @@ fn use_material_with_empty_data() {
         .with_entity(Shader::from_path::<NoInstanceData>(
             TEXTURE_SHADER,
             "../tests/assets/textures.wgsl",
+            false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<EmptyMaterial>(material_key))
@@ -84,6 +87,7 @@ fn create_material_with_texture_count_different_than_shader() {
         .with_entity(Shader::from_path::<NoInstanceData>(
             COLOR_SHADER,
             "../tests/assets/color.wgsl",
+            false,
         ))
         .with_entity(Texture::from_size(TEXTURE, Size::new(1, 1)))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
@@ -115,10 +119,12 @@ fn create_material_with_instance_data(is_transparent: bool) {
         .with_entity(Shader::from_path::<CustomInstanceData>(
             INSTANCE_SHADER,
             "../tests/assets/instance.wgsl",
+            false,
         ))
         .with_entity(Shader::from_path::<NoInstanceData>(
             COLOR_SHADER,
             "../tests/assets/color.wgsl",
+            false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomInstanceMaterial>(instance_material_key))
@@ -157,6 +163,7 @@ fn create_material_with_incorrect_instance_data_type() {
         .with_entity(Shader::from_path::<OtherCustomInstanceData>(
             INSTANCE_SHADER,
             "../tests/assets/instance.wgsl",
+            false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomInstanceMaterial>(material_key))
@@ -177,6 +184,7 @@ fn delete_and_recreate_graphics_module_with_instance_data() {
         .with_entity(Shader::from_path::<CustomInstanceData>(
             INSTANCE_SHADER,
             "../tests/assets/instance.wgsl",
+            false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(material::<CustomInstanceMaterial>(material_key))

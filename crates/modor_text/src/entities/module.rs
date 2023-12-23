@@ -32,6 +32,7 @@ pub fn module() -> impl BuiltEntity {
         .child_component(Shader::from_string::<NoInstanceData>(
             TEXT_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/text.wgsl")),
+            false,
         ))
         .dependency::<GraphicsModule, _, _>(modor_graphics::module)
 }

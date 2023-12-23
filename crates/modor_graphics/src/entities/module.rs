@@ -53,10 +53,12 @@ pub fn module() -> impl BuiltEntity {
         .child_component(Shader::from_string::<NoInstanceData>(
             DEFAULT_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")),
+            false,
         ))
         .child_component(Shader::from_string::<NoInstanceData>(
             ELLIPSE_SHADER,
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")),
+            false,
         ))
         .child_component(Mesh::rectangle())
         .child_component(Texture::from_size(WHITE_TEXTURE, Size::ONE))
