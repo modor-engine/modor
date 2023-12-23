@@ -1,5 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::{Color, GraphicsModule, RenderTarget, Size, Texture, TextureBuffer};
+use modor_graphics::{
+    Color, GraphicsModule, Pixel, RenderTarget, Size, Texture, TextureBuffer, TextureBufferPart,
+};
 use modor_resources::ResKey;
 use std::iter;
 
@@ -16,7 +18,7 @@ fn create_without_texture() {
 fn create_with_loaded_texture() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .assert::<BufferEntity>(1, has_buffer_pixels([255, 255, 255, 255], Size::new(3, 2)));
 }
@@ -28,6 +30,40 @@ fn create_with_target_texture() {
         .with_entity(target_buffer(Size::new(3, 2), Color::RED))
         .updated()
         .assert::<BufferEntity>(1, has_buffer_pixels([255, 0, 0, 255], Size::new(3, 2)));
+}
+
+#[modor_test(disabled(macos, android, wasm))]
+fn create_buffer_with_specific_pixels() {
+    App::new()
+        .with_entity(modor_graphics::module())
+        .with_entity(buffer(
+            Size::new(3, 2),
+            vec![
+                255, 0, 0, 255, // 0, 0
+                0, 255, 0, 255, // 1, 0
+                0, 0, 255, 255, // 2, 0
+                255, 255, 0, 255, // 0, 1
+                0, 255, 255, 255, // 1, 1
+                255, 0, 255, 255, // 2, 1
+            ],
+        ))
+        .with_update::<(), _>(|b: &mut TextureBuffer| {
+            b.part = TextureBufferPart::Pixels(vec![
+                Pixel::new(1, 0),
+                Pixel::new(2, 1),
+                Pixel::new(3, 0),
+                Pixel::new(0, 2),
+            ]);
+        })
+        .updated()
+        .assert::<BufferEntity>(1, has_pixel(0, 0, None))
+        .assert::<BufferEntity>(1, has_pixel(1, 0, Some(Color::rgba(0., 1., 0., 1.))))
+        .assert::<BufferEntity>(1, has_pixel(2, 0, None))
+        .assert::<BufferEntity>(1, has_pixel(0, 1, None))
+        .assert::<BufferEntity>(1, has_pixel(1, 1, None))
+        .assert::<BufferEntity>(1, has_pixel(2, 1, Some(Color::rgba(1., 0., 1., 1.))))
+        .assert::<BufferEntity>(1, has_pixel(3, 0, None))
+        .assert::<BufferEntity>(1, has_pixel(0, 2, None));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -45,7 +81,7 @@ fn add_associated_texture() {
 fn delete_associated_texture() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .with_deleted_components::<BufferEntity, Texture>()
         .updated()
@@ -56,7 +92,7 @@ fn delete_associated_texture() {
 fn replace_associated_texture() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .with_component::<BufferEntity, _>(|| Texture::from_size(TEXTURE, Size::new(4, 5)))
         .updated()
@@ -66,7 +102,7 @@ fn replace_associated_texture() {
 #[modor_test]
 fn create_without_graphics_module() {
     App::new()
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .assert::<BufferEntity>(1, is_buffer_empty());
 }
@@ -74,7 +110,7 @@ fn create_without_graphics_module() {
 #[modor_test(disabled(macos, android, wasm))]
 fn create_graphics_module() {
     App::new()
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .with_entity(modor_graphics::module())
         .updated()
@@ -85,7 +121,7 @@ fn create_graphics_module() {
 fn replace_graphics_module() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .with_entity(modor_graphics::module())
         .updated()
@@ -96,7 +132,7 @@ fn replace_graphics_module() {
 fn delete_and_recreate_graphics_module() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(Size::new(3, 2)))
+        .with_entity(white_buffer(Size::new(3, 2)))
         .updated()
         .with_deleted_entities::<With<GraphicsModule>>()
         .updated()
@@ -119,12 +155,33 @@ assertion_functions!(
             .collect::<Vec<_>>();
         assert_eq!(buffer.get(), expected_data);
         assert_eq!(buffer.size(), size);
+        assert_eq!(
+            buffer.pixel(Pixel::new(0, 0)),
+            Some(Color::rgba(
+                f32::from(color[0]) / 255.,
+                f32::from(color[1]) / 255.,
+                f32::from(color[2]) / 255.,
+                f32::from(color[3]) / 255.
+            ))
+        );
+        assert_eq!(buffer.pixel(Pixel::new(size.width, 0)), None);
+        assert_eq!(buffer.pixel(Pixel::new(0, size.height)), None);
+    }
+
+    fn has_pixel(buffer: &TextureBuffer, x: u32, y: u32, color: Option<Color>) {
+        assert_eq!(buffer.pixel(Pixel::new(x, y)), color);
     }
 );
 
-fn buffer(size: Size) -> impl BuiltEntity {
+fn white_buffer(size: Size) -> impl BuiltEntity {
     EntityBuilder::new()
         .component(Texture::from_size(TEXTURE, size))
+        .component(TextureBuffer::default())
+}
+
+fn buffer(size: Size, data: Vec<u8>) -> impl BuiltEntity {
+    EntityBuilder::new()
+        .component(Texture::from_buffer(TEXTURE, size, data))
         .component(TextureBuffer::default())
 }
 
