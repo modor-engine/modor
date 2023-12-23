@@ -146,6 +146,7 @@ assertion_functions!(
     fn is_buffer_empty(buffer: &TextureBuffer) {
         assert!(buffer.get().is_empty());
         assert_eq!(buffer.size(), Size::ZERO);
+        assert_eq!(buffer.pixel(Pixel::new(0, 0)), None);
     }
 
     fn has_buffer_pixels(buffer: &TextureBuffer, color: [u8; 4], size: Size) {
