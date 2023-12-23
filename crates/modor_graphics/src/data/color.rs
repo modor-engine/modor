@@ -1,6 +1,6 @@
 /// A color.
 #[must_use]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color {
     /// Red component between `0.0` and `1.0`.
     pub r: f32,

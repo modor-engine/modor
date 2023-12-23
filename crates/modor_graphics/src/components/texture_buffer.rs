@@ -1,10 +1,14 @@
 use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
-use crate::{GpuContext, RenderTarget, Size, Texture};
+use crate::{Color, GpuContext, RenderTarget, Size, Texture};
+use fxhash::FxHashMap;
 use modor::SingleRef;
 use std::mem;
 use std::num::NonZeroU32;
-use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode, SubmissionIndex};
+use wgpu::{
+    Buffer, BufferView, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
+    SubmissionIndex,
+};
 
 /// The content of a GPU buffer texture.
 ///
@@ -39,6 +43,7 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 ///         .component(RenderTarget::new(target_key))
 ///         .component(Texture::from_size(texture_key, Size::new(800, 600)))
 ///         .component(TextureBuffer::default())
+///         .with(|b| b.part = TextureBufferPart::All)
 ///         .component(Screenshot)
 /// }
 ///
@@ -56,13 +61,20 @@ use wgpu::{Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
 /// ```
 #[derive(Component, Debug, Default)]
 pub struct TextureBuffer {
+    /// Part of the texture that can be accessed.
+    ///
+    /// Default is [`TextureBufferPart::All`].
+    pub part: TextureBufferPart,
     buffer: Option<BufferDetails>,
     data: Vec<u8>,
+    pixels: FxHashMap<Pixel, Color>,
     renderer_version: Option<u8>,
 }
 
 #[systems]
 impl TextureBuffer {
+    const COMPONENT_COUNT_PER_PIXEL: u32 = 4;
+
     #[run_after(component(Texture), component(Renderer), component(RenderTarget))]
     fn update(&mut self, texture: Option<&Texture>, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
@@ -85,16 +97,50 @@ impl TextureBuffer {
                 .as_ref()
                 .expect("internal error: texture buffer not created");
             let index = Self::copy_texture_in_buffer(context, texture, buffer);
-            self.data = Self::retrieve_buffer(context, buffer, index);
+            let view = Self::buffer_view(context, buffer, index);
+            match &self.part {
+                TextureBufferPart::All => self.data = Self::retrieve_buffer(&view, buffer),
+                TextureBufferPart::Pixels(pixels) => {
+                    self.pixels.clear();
+                    for &pixel in pixels {
+                        if let Some(color) = Self::retrieve_pixel_color(pixel, &view, buffer) {
+                            self.pixels.insert(pixel, color);
+                        }
+                    }
+                }
+            }
+            drop(view);
+            buffer.buffer.unmap();
         }
     }
 
     /// Returns the RGBA texture buffer.
     ///
-    /// Returns empty buffer if there is no associated [`Texture`](Texture) component
-    /// or if the buffer is not yet synchronized.
+    /// Returns empty buffer in the following cases:
+    /// - There is no associated [`Texture`](Texture) component.
+    /// - The buffer is not yet synchronized.
+    /// - [`TextureBuffer::part`](#structfield.part) is not equal to [`TextureBufferPart::All`].
     pub fn get(&self) -> &[u8] {
         &self.data
+    }
+
+    /// Returns a pixel color.
+    ///
+    /// The color is returned only if the pixel coordinates are not out of bound.
+    ///
+    /// In case [`TextureBuffer::part`](#structfield.part) is equal to [`TextureBufferPart::Pixels`], the pixel must
+    /// be specified.
+    pub fn pixel(&self, pixel: Pixel) -> Option<Color> {
+        let Some(buffer) = &self.buffer else {
+            return None;
+        };
+        if pixel.x >= u32::from(buffer.size.width) || pixel.y >= u32::from(buffer.size.height) {
+            return None;
+        }
+        self.pixels.get(&pixel).copied().or_else(|| {
+            let color_start = pixel.y * Self::COMPONENT_COUNT_PER_PIXEL + pixel.x;
+            Self::extract_color(&self.data, color_start)
+        })
     }
 
     /// Returns the texture size.
@@ -154,26 +200,52 @@ impl TextureBuffer {
         context.queue.submit(Some(encoder.finish()))
     }
 
-    fn retrieve_buffer(
+    fn buffer_view<'a>(
         context: &GpuContext,
-        buffer: &BufferDetails,
+        buffer: &'a BufferDetails,
         index: SubmissionIndex,
-    ) -> Vec<u8> {
-        let padded_row_bytes = Self::calculate_padded_row_bytes(buffer.size.width.into());
-        let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(buffer.size.width.into());
+    ) -> BufferView<'a> {
         let slice = buffer.buffer.slice(..);
         slice.map_async(MapMode::Read, |_| ());
         context
             .device
             .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
-        let data = slice
-            .get_mapped_range()
+        slice.get_mapped_range()
+    }
+
+    fn retrieve_buffer(view: &BufferView<'_>, buffer: &BufferDetails) -> Vec<u8> {
+        let padded_row_bytes = Self::calculate_padded_row_bytes(buffer.size.width.into());
+        let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(buffer.size.width.into());
+        let data = view
             .chunks(padded_row_bytes as usize)
             .flat_map(|a| &a[..unpadded_row_bytes as usize])
             .copied()
             .collect();
-        buffer.buffer.unmap();
         data
+    }
+
+    fn retrieve_pixel_color(
+        pixel: Pixel,
+        view: &BufferView<'_>,
+        buffer: &BufferDetails,
+    ) -> Option<Color> {
+        let padded_row_bytes = Self::calculate_padded_row_bytes(buffer.size.width.into());
+        let color_start = pixel.y * padded_row_bytes + Self::COMPONENT_COUNT_PER_PIXEL * pixel.x;
+        Self::extract_color(view, color_start)
+    }
+
+    fn extract_color(data: &[u8], start_index: u32) -> Option<Color> {
+        if start_index as usize >= data.len() {
+            return None;
+        }
+        let end_index = start_index + Self::COMPONENT_COUNT_PER_PIXEL;
+        let color = &data[start_index as usize..end_index as usize];
+        Some(Color::rgba(
+            f32::from(color[0]) / 255.,
+            f32::from(color[1]) / 255.,
+            f32::from(color[2]) / 255.,
+            f32::from(color[3]) / 255.,
+        ))
     }
 
     fn calculate_padded_row_bytes(width: u32) -> u32 {
@@ -187,6 +259,40 @@ impl TextureBuffer {
     fn calculate_unpadded_row_bytes(width: u32) -> u32 {
         let bytes_per_pixel = mem::size_of::<u32>() as u32;
         width * bytes_per_pixel
+    }
+}
+
+/// The part of a texture that is retrieved from GPU.
+///
+/// # Examples
+///
+/// See [`TextureBuffer`].
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum TextureBufferPart {
+    /// All data of the texture are retrieved.
+    ///
+    /// Note that this may have impact on performance.
+    #[default]
+    All,
+    /// Only specific pixels are retrieved.
+    ///
+    /// In case full texture data are not needed, this should be faster than [`TextureBufferPart::All`].
+    Pixels(Vec<Pixel>),
+}
+
+/// The coordinates of a pixel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Pixel {
+    /// X coordinate from left side of the texture.
+    pub x: u32,
+    /// Y coordinate from top side of the texture.
+    pub y: u32,
+}
+
+impl Pixel {
+    /// Creates new pixel coordinates.
+    pub fn new(x: u32, y: u32) -> Self {
+        Self { x, y }
     }
 }
 
