@@ -19,6 +19,11 @@ use std::any::TypeId;
 use std::fmt::Debug;
 use wgpu::{IndexFormat, RenderPass, TextureFormat};
 
+/// Main rendering category.
+///
+/// Corresponds to standard/final rendering of objects.
+pub const MAIN_RENDERING: &str = "MAIN";
+
 pub(crate) type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
 
 /// The target for a rendering.
@@ -94,6 +99,13 @@ pub struct RenderTarget {
     ///
     /// Default is `true`.
     pub is_anti_aliasing_enabled: bool,
+    /// Rendering category.
+    ///
+    /// This is a label used to differentiate different types of renderings, like standard rendering, color picking,
+    /// lighting, ...
+    ///
+    /// Default is [`MAIN_RENDERING`].
+    pub category: &'static str,
     key: ResKey<Self>,
     window: Option<WindowTarget>,
     texture: Option<TextureTarget>,
@@ -112,6 +124,7 @@ impl RenderTarget {
         Self {
             background_color: Color::BLACK,
             is_anti_aliasing_enabled: true,
+            category: "MAIN",
             key,
             window: None,
             texture: None,
@@ -366,7 +379,7 @@ impl RenderTarget {
                 pass.draw_indexed(
                     0..(index_buffer.len() as u32),
                     0,
-                    0..((main_buffer.data.len().div_euclid(main_buffer.item_size)) as u32),
+                    0..(main_buffer.data.len().div_euclid(main_buffer.item_size) as u32),
                 );
             }
             RenderingMode::Transparent(instance_group, i) => {
