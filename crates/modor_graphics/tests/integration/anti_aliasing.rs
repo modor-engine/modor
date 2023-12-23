@@ -2,7 +2,7 @@ use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::testing::has_pixel_diff;
 use modor_graphics::{
     instance_2d, texture_target, AntiAliasing, AntiAliasingMode, Color, Default2DMaterial,
-    GraphicsModule, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
+    GraphicsModule, RenderTarget, Size, TextureBuffer, TEXTURE_CAMERAS_2D,
 };
 use modor_math::Vec2;
 use modor_physics::Transform2D;
@@ -49,6 +49,12 @@ fn run_msaa_in_texture() {
             )(e)
         })
         .with_entity(AntiAliasing::from(AntiAliasingMode::None))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12))
+        .with_entity(AntiAliasing::from(AntiAliasingMode::MsaaX4))
+        .updated()
+        .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#msaa_x4", 12))
+        .with_update::<(), _>(|t: &mut RenderTarget| t.is_anti_aliasing_enabled = false)
         .updated()
         .assert::<With<TextureBuffer>>(1, has_pixel_diff("anti_aliasing#none", 12));
 }

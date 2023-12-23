@@ -84,7 +84,7 @@ pub struct Shader {
     pub(crate) material_instance_type_name: &'static str,
     material_instance_size: usize,
     key: ResKey<Self>,
-    pipelines: FxHashMap<TextureFormat, RenderPipeline>,
+    pipelines: FxHashMap<(TextureFormat, bool), RenderPipeline>,
     handler: ResourceHandler<LoadedCode, &'static str>,
     code: Option<LoadedCode>,
     error: Option<ResourceLoadingError>,
@@ -184,9 +184,13 @@ impl Shader {
         }
     }
 
-    pub(crate) fn pipeline(&self, texture_format: TextureFormat) -> &RenderPipeline {
+    pub(crate) fn pipeline(
+        &self,
+        texture_format: TextureFormat,
+        is_anti_aliasing_enabled: bool,
+    ) -> &RenderPipeline {
         self.pipelines
-            .get(&texture_format)
+            .get(&(texture_format, is_anti_aliasing_enabled))
             .expect("internal error: render pipeline not loaded")
     }
 
@@ -261,18 +265,20 @@ impl Shader {
         let sample_count = anti_aliasing.map_or(1, |a| a.mode.sample_count());
         if self.sample_count != sample_count {
             self.sample_count = sample_count;
-            for (texture_format, pipeline) in &mut self.pipelines {
-                *pipeline = Self::create_pipeline(
-                    code,
-                    self.key,
-                    *texture_format,
-                    self.material_bind_group_layout
-                        .as_ref()
-                        .expect("internal error: material bind group not initialized"),
-                    self.sample_count,
-                    self.material_instance_size,
-                    context,
-                )?;
+            for (&(texture_format, is_anti_aliasing_enabled), pipeline) in &mut self.pipelines {
+                if is_anti_aliasing_enabled {
+                    *pipeline = Self::create_pipeline(
+                        code,
+                        self.key,
+                        texture_format,
+                        self.material_bind_group_layout
+                            .as_ref()
+                            .expect("internal error: material bind group not initialized"),
+                        self.sample_count,
+                        self.material_instance_size,
+                        context,
+                    )?;
+                }
             }
         }
         Ok(())
@@ -287,18 +293,26 @@ impl Shader {
             |format| vec![Self::TEXTURE_FORMAT, format],
         );
         for texture_format in texture_formats {
-            if let Entry::Vacant(entry) = self.pipelines.entry(texture_format) {
-                entry.insert(Self::create_pipeline(
-                    code,
-                    self.key,
-                    texture_format,
-                    self.material_bind_group_layout
-                        .as_ref()
-                        .expect("internal error: material bind group not initialized"),
-                    self.sample_count,
-                    self.material_instance_size,
-                    context,
-                )?);
+            for is_anti_aliasing_enabled in [false, true] {
+                let key = (texture_format, is_anti_aliasing_enabled);
+                let sample_count = if is_anti_aliasing_enabled {
+                    self.sample_count
+                } else {
+                    1
+                };
+                if let Entry::Vacant(entry) = self.pipelines.entry(key) {
+                    entry.insert(Self::create_pipeline(
+                        code,
+                        self.key,
+                        texture_format,
+                        self.material_bind_group_layout
+                            .as_ref()
+                            .expect("internal error: material bind group not initialized"),
+                        sample_count,
+                        self.material_instance_size,
+                        context,
+                    )?);
+                }
             }
         }
         Ok(())

@@ -88,6 +88,12 @@ pub struct RenderTarget {
     ///
     /// Default is [`Color::BLACK`].
     pub background_color: Color,
+    /// Whether anti-aliasing should be used.
+    ///
+    /// If `true`, then anti-aliasing is configured with [`AntiAliasing`].
+    ///
+    /// Default is `true`.
+    pub is_anti_aliasing_enabled: bool,
     key: ResKey<Self>,
     window: Option<WindowTarget>,
     texture: Option<TextureTarget>,
@@ -105,6 +111,7 @@ impl RenderTarget {
     pub fn new(key: ResKey<Self>) -> Self {
         Self {
             background_color: Color::BLACK,
+            is_anti_aliasing_enabled: true,
             key,
             window: None,
             texture: None,
@@ -129,7 +136,10 @@ impl RenderTarget {
         if state.is_removed() || window.is_none() {
             self.window = None;
         }
-        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
+        let anti_aliasing = anti_aliasing
+            .as_ref()
+            .map(SingleRef::get)
+            .filter(|_| self.is_anti_aliasing_enabled);
         if let (Some(context), Some(window)) = (state.context(), window) {
             let frame_rate = frame_rate
                 .as_ref()
@@ -160,7 +170,10 @@ impl RenderTarget {
         if state.is_removed() || texture.is_none() {
             self.texture = None;
         }
-        let anti_aliasing = anti_aliasing.as_ref().map(SingleRef::get);
+        let anti_aliasing = anti_aliasing
+            .as_ref()
+            .map(SingleRef::get)
+            .filter(|_| self.is_anti_aliasing_enabled);
         if let (Some(context), Some(texture)) = (state.context(), texture) {
             self.texture = (texture.state() == ResourceState::Loaded).then(|| {
                 self.texture
@@ -334,7 +347,7 @@ impl RenderTarget {
         let material_bind_group = material.bind_group.as_ref()?;
         let vertex_buffer = mesh.vertex_buffer();
         let index_buffer = mesh.index_buffer();
-        pass.set_pipeline(shader.pipeline(target_texture_format));
+        pass.set_pipeline(shader.pipeline(target_texture_format, self.is_anti_aliasing_enabled));
         pass.set_bind_group(Shader::CAMERA_GROUP, camera_uniform.bind_group(), &[]);
         pass.set_bind_group(Shader::MATERIAL_GROUP, material_bind_group, &[]);
         pass.set_index_buffer(index_buffer.buffer(), IndexFormat::Uint16);
