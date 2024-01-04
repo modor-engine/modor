@@ -28,7 +28,7 @@ use modor_math::Vec2;
 ///         .with(|t| t.size = Vec2::ONE * 0.2)
 /// }
 /// ```
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct Transform2D {
     /// Position of the entity in world units.
     pub position: Vec2,
@@ -64,15 +64,5 @@ impl Transform2D {
 impl Default for Transform2D {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Clone for Transform2D {
-    fn clone(&self) -> Self {
-        Self {
-            position: self.position,
-            size: self.size,
-            rotation: self.rotation,
-        }
     }
 }

@@ -246,7 +246,7 @@ pub struct MaterialSync<S: Any> {
 #[systems]
 impl<S> MaterialSync<S>
 where
-    S: ComponentSystems + MaterialSource,
+    S: MaterialSource,
 {
     #[run_as(action(MaterialUpdate))]
     fn update_material(

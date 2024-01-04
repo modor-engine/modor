@@ -74,7 +74,7 @@ fn create_instance_2d_with_external_material() {
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(
-            material::<Default2DMaterial>(material_key)
+            material(material_key, Default2DMaterial::default())
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
@@ -105,7 +105,7 @@ fn create_instance_2d_with_key_and_external_material() {
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(
-            material::<Default2DMaterial>(material_key)
+            material(material_key, Default2DMaterial::default())
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
         .with_entity(instance_2d_with_key(
@@ -140,7 +140,7 @@ fn create_instance_group_2d_with_external_material() {
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(
-            material::<Default2DMaterial>(material_key)
+            material(material_key, Default2DMaterial::default())
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
         .with_entity(instance_group_2d::<With<Displayed>>(
@@ -180,7 +180,7 @@ fn create_instance_group_2d_with_key_and_external_material() {
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(
-            material::<Default2DMaterial>(material_key)
+            material(material_key, Default2DMaterial::default())
                 .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
         )
         .with_entity(instance_group_2d_with_key::<With<Displayed>>(
@@ -198,7 +198,7 @@ fn create_instance_group_2d_with_key_and_external_material() {
 fn self_instance_group() -> impl BuiltEntity {
     let group_key = ResKey::new("self-instance-group");
     let material_key = ResKey::new("self-instance-group");
-    material::<Default2DMaterial>(material_key)
+    material(material_key, Default2DMaterial::default())
         .component(InstanceGroup2D::from_self(group_key))
         .component(InstanceRendering2D::new(
             group_key,
@@ -214,7 +214,7 @@ where
     let group_key = ResKey::new("self-instance-group");
     let material_key = ResKey::new("self-instance-group");
     let filter = QueryFilter::new::<F>();
-    material::<Default2DMaterial>(material_key)
+    material(material_key, Default2DMaterial::default())
         .component(InstanceGroup2D::from_filter(group_key, filter))
         .component(InstanceRendering2D::new(
             group_key,

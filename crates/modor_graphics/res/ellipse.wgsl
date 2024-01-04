@@ -4,8 +4,8 @@ struct Camera {
 
 struct Material {
     color: vec4<f32>,
-    texture_part_position: vec2<f32>,
-    texture_part_size: vec2<f32>,
+    texture_position: vec2<f32>,
+    texture_size: vec2<f32>,
 }
 
 struct Vertex {
@@ -61,7 +61,7 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
     );
     return Fragment(
         camera.transform * transform * vec4<f32>(vertex.position, 1.),
-        vertex.texture_position * material.texture_part_size + material.texture_part_position,
+        vertex.texture_position * material.texture_size + material.texture_position,
         vec2<f32>(vertex.position.x, vertex.position.y),
     );
 }

@@ -187,12 +187,24 @@ impl RetrievedValue {
     #[run_after(component(ValueRegistry), component(Value))]
     fn update(&mut self, values: Custom<ResourceAccessor<'_, Value>>) {
         self.value = values.get(self.key).map(|v| v.value);
-        self.exists = values.registry.as_ref().unwrap().get().exists(self.key);
+        self.exists = values
+            .registry
+            .as_ref()
+            .unwrap()
+            .get()
+            .entity_id(self.key)
+            .is_some();
     }
 
     #[run_after(component(ValueRegistry), component(Value))]
     fn update_mut(&mut self, mut values: Custom<ResourceAccessorMut<'_, Value>>) {
         self.value_mut = values.get_mut(self.key).map(|v| v.value);
-        self.exists_mut = values.registry.as_mut().unwrap().get_mut().exists(self.key);
+        self.exists_mut = values
+            .registry
+            .as_mut()
+            .unwrap()
+            .get_mut()
+            .entity_id(self.key)
+            .is_some();
     }
 }

@@ -143,11 +143,11 @@ where
         }
     }
 
-    /// Returns whether a resource with a given `key` exists.
+    /// Returns entity ID of the resource corresponding to the `key` if it exists.
     ///
     /// Note that the status of the resource is not checked.
-    pub fn exists(&self, key: ResKey<R>) -> bool {
-        self.entity_ids.contains_key(&key)
+    pub fn entity_id(&self, key: ResKey<R>) -> Option<usize> {
+        self.entity_ids.get(&key).copied()
     }
 
     /// Returns the immutable resource corresponding to the `key` if it exists and is in

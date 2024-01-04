@@ -1,13 +1,13 @@
 use crate::{Material, MaterialSource, MaterialSync};
-use modor::{BuiltEntity, ComponentSystems, EntityBuilder};
+use modor::{BuiltEntity, EntityBuilder};
 use modor_resources::ResKey;
 
 /// Creates a material entity.
 ///
 /// The created entity contains the following components:
 /// - [`Material`]
-/// - [`MaterialSync`]
-/// - Component of type `M` created using [`Default`] implementation
+/// - [`MaterialSync<M>`]
+/// - Component of type `M`
 ///
 /// # Entity functions creating this entity
 ///
@@ -33,7 +33,7 @@ use modor_resources::ResKey;
 /// # }
 ///
 /// fn blue_ellipse_material() -> impl BuiltEntity {
-///     material::<Default2DMaterial>(BLUE_ELLIPSE_MATERIAL)
+///     material(BLUE_ELLIPSE_MATERIAL, Default2DMaterial::default())
 ///         .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
 ///         .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
 /// }
@@ -42,12 +42,12 @@ use modor_resources::ResKey;
 ///     instance_2d(WINDOW_CAMERA_2D, BLUE_ELLIPSE_MATERIAL)
 /// }
 /// ```
-pub fn material<M>(key: ResKey<Material>) -> impl BuiltEntity
+pub fn material<M>(key: ResKey<Material>, material: M) -> impl BuiltEntity
 where
-    M: ComponentSystems + MaterialSource + Default,
+    M: MaterialSource,
 {
     EntityBuilder::new()
         .component(Material::new(key))
         .component(MaterialSync::<M>::default())
-        .component(M::default())
+        .component(material)
 }
