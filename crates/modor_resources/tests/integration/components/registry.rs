@@ -144,12 +144,16 @@ type ValueRegistry = ResourceRegistry<Value>;
 struct Value {
     key: ResKey<Self>,
     state: ResourceState<'static>,
-    value: u32,
+    inner: u32,
 }
 
 impl Value {
     fn new(key: ResKey<Self>, state: ResourceState<'static>, value: u32) -> Self {
-        Self { key, state, value }
+        Self {
+            key,
+            state,
+            inner: value,
+        }
     }
 }
 
@@ -186,7 +190,7 @@ impl RetrievedValue {
 
     #[run_after(component(ValueRegistry), component(Value))]
     fn update(&mut self, values: Custom<ResourceAccessor<'_, Value>>) {
-        self.value = values.get(self.key).map(|v| v.value);
+        self.value = values.get(self.key).map(|v| v.inner);
         self.exists = values
             .registry
             .as_ref()
@@ -198,7 +202,7 @@ impl RetrievedValue {
 
     #[run_after(component(ValueRegistry), component(Value))]
     fn update_mut(&mut self, mut values: Custom<ResourceAccessorMut<'_, Value>>) {
-        self.value_mut = values.get_mut(self.key).map(|v| v.value);
+        self.value_mut = values.get_mut(self.key).map(|v| v.inner);
         self.exists_mut = values
             .registry
             .as_mut()

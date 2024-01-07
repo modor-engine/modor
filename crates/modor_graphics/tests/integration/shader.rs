@@ -18,12 +18,13 @@ fn create_from_path() {
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
         .with_entity(custom_instance())
-        .with_entity(Shader::from_path::<NoInstanceData>(
+        .with_entity(custom_shader(Shader::from_path::<NoInstanceData>(
             CUSTOM_SHADER,
             "../tests/assets/red.wgsl",
             false,
-        ))
+        )))
         .updated()
+        .assert::<With<CustomShader>>(1, |e| e.has(|s: &Shader| assert!(!s.is_alpha_replaced())))
         .assert::<With<TextureBuffer>>(1, is_same("shader#empty"))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .updated()
@@ -37,13 +38,14 @@ fn create_from_string() {
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .with_entity(textures())
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_string::<NoInstanceData>(
+        .with_entity(custom_shader(Shader::from_string::<NoInstanceData>(
             CUSTOM_SHADER,
             CUSTOM_SHADER_CODE,
             false,
-        ))
+        )))
         .with_entity(custom_instance())
         .updated()
+        .assert::<With<CustomShader>>(1, |e| e.has(|s: &Shader| assert!(!s.is_alpha_replaced())))
         .assert::<With<TextureBuffer>>(1, is_same("shader#custom"));
 }
 
@@ -53,11 +55,11 @@ fn create_with_alpha_replacing() {
         .with_entity(modor_graphics::module())
         .with_entity(texture_target(0, Size::new(30, 20), true))
         .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .with_entity(Shader::from_path::<NoInstanceData>(
+        .with_entity(custom_shader(Shader::from_path::<NoInstanceData>(
             CUSTOM_SHADER,
             "../tests/assets/color.wgsl",
             true,
-        ))
+        )))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
         .with_entity(colored_instance(Vec2::ONE, 0, Color::RED))
         .with_entity(colored_instance(
@@ -66,6 +68,7 @@ fn create_with_alpha_replacing() {
             Color::GREEN.with_alpha(0.2),
         ))
         .updated()
+        .assert::<With<CustomShader>>(1, |e| e.has(|s: &Shader| assert!(s.is_alpha_replaced())))
         .assert::<With<TextureBuffer>>(1, is_same("shader#alpha_replacing"));
 }
 
@@ -195,6 +198,15 @@ fn colored_instance(size: Vec2, z: u16, color: Color) -> impl BuiltEntity {
         .updated(|t: &mut Transform2D| t.size = size)
         .component(ZIndex2D::from(z))
 }
+
+fn custom_shader(shader: Shader) -> impl BuiltEntity {
+    EntityBuilder::new()
+        .component(shader)
+        .component(CustomShader)
+}
+
+#[derive(Component, NoSystem)]
+struct CustomShader;
 
 #[derive(Component, NoSystem)]
 struct CustomMaterial {

@@ -17,7 +17,6 @@ pub(crate) struct Default2DPickingMaterial {
 impl MaterialSource for Default2DPickingMaterial {
     type Data = Default2DPickingMaterialData;
     type InstanceData = Default2DPickingMaterialInstanceData;
-    // TODO: add bool constant for texture transparency autodetection (default: true)
 
     fn data(&self) -> Self::Data {
         Default2DPickingMaterialData {
@@ -82,6 +81,7 @@ impl InstanceData for Default2DPickingMaterialInstanceData {
     type Query = Entity<'static>;
     type UpdateFilter = Not<()>; // entity ID is immutable, so no need to perform update
 
+    #[allow(clippy::cast_possible_truncation)]
     fn data(item: <Self::Query as SystemParamWithLifetime<'_>>::Param) -> Self {
         let entity_id = [item.id() as u32];
         let color: &[u8] = bytemuck::cast_slice(&entity_id);

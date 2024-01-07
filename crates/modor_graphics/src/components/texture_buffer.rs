@@ -59,9 +59,40 @@ use wgpu::{
 ///     }
 /// }
 /// ```
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_resources::*;
+/// #
+/// #[derive(Component)]
+/// struct ColorPicker {
+///     pixel: Pixel,
+///     color: Option<Color>,
+/// }
+///
+/// #[systems]
+/// impl ColorPicker {
+///     #[run_as(action(TextureBufferPartUpdate))]
+///     fn update_buffer(&mut self, buffer: &mut TextureBuffer) {
+///         if let TextureBufferPart::Pixels(pixels) = &mut buffer.part {
+///             pixels.push(self.pixel);
+///         }
+///     }
+///
+///     #[run_after(component(TextureBuffer))]
+///     fn retrieve_color(&mut self, buffer: &TextureBuffer) {
+///         self.color = buffer.pixel(self.pixel);
+///     }
+/// }
+/// ```
 #[derive(Component, Debug, Default)]
 pub struct TextureBuffer {
     /// Part of the texture that can be accessed.
+    ///
+    /// At the beginning of each app update, the list of pixels is reset in case the value is
+    /// [`TextureBufferPart::Pixels`]. To register a pixel for the current app update, the field
+    /// must be updated during [`TextureBufferPartUpdate`] action (see [`TextureBuffer`] examples).
     ///
     /// Default is [`TextureBufferPart::All`].
     pub part: TextureBufferPart,
@@ -276,7 +307,11 @@ impl TextureBuffer {
 #[derive(Action)]
 struct PreTextureBufferPartUpdate;
 
-// TODO: add doc + doc example + mention texture part reset
+/// The action during which the [`TextureBufferPart`] of a [`TextureBuffer`] should be updated.
+///
+/// # Examples
+///
+/// See [`TextureBuffer`].
 #[derive(Action)]
 pub struct TextureBufferPartUpdate(
     PreTextureBufferPartUpdate,
@@ -298,10 +333,13 @@ pub enum TextureBufferPart {
     /// Note that this may have impact on performance.
     #[default]
     All,
-    // TODO: mention texture part reset
     /// Only specific pixels are retrieved.
     ///
     /// In case full texture data are not needed, this should be faster than [`TextureBufferPart::All`].
+    ///
+    /// Note that as [`TextureBuffer`] clears the list of pixels at the beginning of each app update.
+    /// So registering pixels for a new update should be performed during [`TextureBufferPartUpdate`] action
+    /// (see [`TextureBuffer`] examples).
     Pixels(Vec<Pixel>),
 }
 

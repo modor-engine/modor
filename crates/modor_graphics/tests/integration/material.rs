@@ -72,7 +72,7 @@ fn use_material_with_empty_data() {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material(material_key, EmptyMaterial::default()))
+        .with_entity(material(material_key, EmptyMaterial))
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#blue"));
@@ -251,7 +251,7 @@ struct CustomMaterialData {
     color: [f32; 4],
 }
 
-#[derive(Component, NoSystem, Default)]
+#[derive(Component, NoSystem)]
 struct EmptyMaterial;
 
 impl MaterialSource for EmptyMaterial {

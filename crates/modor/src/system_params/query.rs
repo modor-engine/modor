@@ -70,11 +70,13 @@ where
         });
     }
 
+    #[allow(clippy::iter_without_into_iter)] // TODO: create issue
     /// Returns an iterator on constant query results.
     pub fn iter(&self) -> <P as QuerySystemParamWithLifetime<'_>>::Iter {
         P::query_iter(&self.guard, self.filter)
     }
 
+    #[allow(clippy::iter_without_into_iter)] // TODO: create issue
     /// Returns an iterator on query results.
     pub fn iter_mut(&mut self) -> <P as QuerySystemParamWithLifetime<'_>>::IterMut {
         P::query_iter_mut(&mut self.guard, self.filter)

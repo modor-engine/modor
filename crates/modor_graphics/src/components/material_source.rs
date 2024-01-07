@@ -242,10 +242,10 @@ pub trait MaterialSource: ComponentSystems {
     /// rendering artifacts caused by transparency.
     ///
     /// Note that transparency is automatically detected for textures returned by
-    /// [`MaterialSource::texture_keys`].
-    /// It means that if [`MaterialSource::is_transparent`]
-    /// returns `false` but one of the textures contains transparent pixels, then the instances
-    /// are considered as transparent.
+    /// [`MaterialSource::texture_keys`] (except if [`Shader::is_alpha_replaced`] returns `true`).
+    ///
+    /// It means that if [`MaterialSource::is_transparent`] returns `false` but one of the textures contains
+    /// transparent pixels, then the instances are considered as transparent.
     fn is_transparent(&self) -> bool;
 }
 
@@ -301,7 +301,7 @@ impl InstanceData for NoInstanceData {
 ///
 /// - [`Material`](crate::Material)
 /// - [`MaterialSync`](crate::MaterialSync)
-/// - [`Texture`](crate::Texture)
+/// - [`Texture`]
 ///
 /// # Examples
 ///

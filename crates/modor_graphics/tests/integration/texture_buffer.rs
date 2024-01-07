@@ -1,6 +1,7 @@
 use modor::{App, BuiltEntity, EntityBuilder, With};
 use modor_graphics::{
     Color, GraphicsModule, Pixel, RenderTarget, Size, Texture, TextureBuffer, TextureBufferPart,
+    TextureBufferPartUpdate,
 };
 use modor_resources::ResKey;
 use std::iter;
@@ -36,25 +37,29 @@ fn create_with_target_texture() {
 fn create_buffer_with_specific_pixels() {
     App::new()
         .with_entity(modor_graphics::module())
-        .with_entity(buffer(
-            Size::new(3, 2),
-            vec![
-                255, 0, 0, 255, // 0, 0
-                0, 255, 0, 255, // 1, 0
-                0, 0, 255, 255, // 2, 0
-                255, 255, 0, 255, // 0, 1
-                0, 255, 255, 255, // 1, 1
-                255, 0, 255, 255, // 2, 1
-            ],
-        ))
-        .with_update::<(), _>(|b: &mut TextureBuffer| {
-            b.part = TextureBufferPart::Pixels(vec![
-                Pixel::new(1, 0),
-                Pixel::new(2, 1),
-                Pixel::new(3, 0),
-                Pixel::new(0, 2),
-            ]);
-        })
+        .with_entity(
+            buffer(
+                Size::new(3, 2),
+                vec![
+                    255, 0, 0, 255, // 0, 0
+                    0, 255, 0, 255, // 1, 0
+                    0, 0, 255, 255, // 2, 0
+                    255, 255, 0, 255, // 0, 1
+                    0, 255, 255, 255, // 1, 1
+                    255, 0, 255, 255, // 2, 1
+                ],
+            )
+            .component(PixelUpdater {
+                pixels: vec![
+                    Pixel::new(1, 0),
+                    Pixel::new(2, 1),
+                    Pixel::new(3, 0),
+                    Pixel::new(0, 2),
+                ],
+                is_done: false,
+            }),
+        )
+        .with_update::<(), _>(|b: &mut TextureBuffer| b.part = TextureBufferPart::Pixels(vec![]))
         .updated()
         .assert::<BufferEntity>(1, has_pixel(0, 0, None))
         .assert::<BufferEntity>(1, has_pixel(1, 0, Some(Color::rgba(0., 1., 0., 1.))))
@@ -63,7 +68,10 @@ fn create_buffer_with_specific_pixels() {
         .assert::<BufferEntity>(1, has_pixel(1, 1, None))
         .assert::<BufferEntity>(1, has_pixel(2, 1, Some(Color::rgba(1., 0., 1., 1.))))
         .assert::<BufferEntity>(1, has_pixel(3, 0, None))
-        .assert::<BufferEntity>(1, has_pixel(0, 2, None));
+        .assert::<BufferEntity>(1, has_pixel(0, 2, None))
+        .updated()
+        .assert::<BufferEntity>(1, has_pixel(1, 0, None))
+        .assert::<BufferEntity>(1, has_pixel(2, 1, None));
 }
 
 #[modor_test(disabled(macos, android, wasm))]
@@ -193,6 +201,25 @@ fn target_buffer(size: Size, color: Color) -> impl BuiltEntity {
         .component(TextureBuffer::default())
         .component(RenderTarget::new(target_key))
         .with(|t| t.background_color = color)
+}
+
+#[derive(Debug, Component)]
+struct PixelUpdater {
+    pixels: Vec<Pixel>,
+    is_done: bool,
+}
+
+#[systems]
+impl PixelUpdater {
+    #[run_as(action(TextureBufferPartUpdate))]
+    fn update_buffer(&mut self, buffer: &mut TextureBuffer) {
+        if !self.is_done {
+            if let TextureBufferPart::Pixels(pixels) = &mut buffer.part {
+                *pixels = self.pixels.clone();
+                self.is_done = true;
+            }
+        }
+    }
 }
 
 type BufferEntity = With<TextureBuffer>;

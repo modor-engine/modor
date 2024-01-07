@@ -6,18 +6,13 @@ use modor::{
 };
 use modor_graphics::{
     instance_2d, instance_group_2d, texture_target, window_target, Color, Default2DMaterial, Pixel,
-    RenderTarget, Size, TextureBuffer, TextureBufferPart, TextureBufferPartUpdate, ZIndex2D,
-    TARGET_TEXTURES, TEXTURE_CAMERAS_2D, WINDOW_CAMERA_2D, WINDOW_TARGET,
+    Size, TextureBuffer, TextureBufferPartUpdate, ZIndex2D, TARGET_TEXTURES, TEXTURE_CAMERAS_2D,
+    WINDOW_CAMERA_2D, WINDOW_TARGET,
 };
 use modor_input::Mouse;
 use modor_math::Vec2;
 use modor_physics::Transform2D;
-use modor_picking::{NoPicking, Picking, PickingBuffer};
-use modor_resources::ResourceRegistry;
-
-// TODO: investigate offset issue (test on another machine)
-
-type RenderTargetRegistry = ResourceRegistry<RenderTarget>;
+use modor_picking::{NoPicking, PickingBuffer};
 
 #[modor::modor_main]
 fn main() {
@@ -107,40 +102,28 @@ impl Default for PickingIndicator {
 #[systems]
 impl PickingIndicator {
     #[run_as(action(TextureBufferPartUpdate))]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn update_picking(
         &mut self,
         mut picking_buffer: Custom<PickingBuffer<'_>>,
         mouse: SingleRef<'_, '_, Mouse>,
     ) {
-        if let Some(buffer) = picking_buffer.generated_buffer(WINDOW_TARGET) {
-            let mouse = mouse.get();
-            self.mouse_position = Pixel::new(mouse.position.x as u32, mouse.position.y as u32);
-            buffer.part = TextureBufferPart::All;
-            if let TextureBufferPart::Pixels(pixels) = &mut buffer.part {
-                pixels.push(self.mouse_position);
-            }
-        }
+        let mouse = mouse.get();
+        self.mouse_position = Pixel::new(mouse.position.x as u32, mouse.position.y as u32);
+        picking_buffer.register(self.mouse_position, WINDOW_TARGET);
     }
 
-    #[run_after(
-        component(Picking),
-        component(RenderTargetRegistry),
-        component(TextureBuffer),
-        component(Transform2D)
-    )]
+    #[run_after(component(TextureBuffer), component(Transform2D))]
     fn update(
         &mut self,
-        mut picking_buffer: Custom<PickingBuffer<'_>>,
+        picking_buffer: Custom<PickingBuffer<'_>>,
         transforms: Query<'_, &Transform2D>,
     ) {
-        if let Some(picked_entity_id) =
-            picking_buffer.picked_entity_id(self.mouse_position, WINDOW_TARGET)
-        {
-            if let Some(transform) = transforms.get(picked_entity_id) {
+        self.size = Vec2::ZERO;
+        if let Some(entity_id) = picking_buffer.entity_id(self.mouse_position, WINDOW_TARGET) {
+            if let Some(transform) = transforms.get(entity_id) {
                 self.position = transform.position;
                 self.size = transform.size;
-            } else {
-                self.size = Vec2::ZERO;
             }
         }
     }
