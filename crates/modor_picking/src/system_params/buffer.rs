@@ -6,8 +6,8 @@ use modor_resources::{ResKey, ResourceRegistry};
 /// A system parameter to access picking buffer of a `RenderTarget` of
 /// [`MAIN_RENDERING`](modor_graphics::MAIN_RENDERING) category.
 ///
-/// Note that when a target has both a [`Window`] and a [`Texture`], the [`Window`] is tracked in priority
-/// by the picking module.
+/// Note that when a target has both a [`Window`](modor_graphics::Window) and a [`Texture`](modor_graphics::Texture),
+/// the [`Window`](modor_graphics::Window) is tracked in priority by the picking module.
 ///
 /// # Requirements
 ///

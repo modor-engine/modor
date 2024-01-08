@@ -18,7 +18,7 @@ use std::marker::PhantomData;
 ///
 /// Any rendering using a material not registered with this component will not be tracked by the picking module.
 ///
-/// [`Default2DMaterial`](crate::Default2DMaterial) is supported by default by the picking module.
+/// [`Default2DMaterial`](modor_graphics::Default2DMaterial) is supported by default by the picking module.
 ///
 /// # Requirements
 ///
