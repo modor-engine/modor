@@ -14,6 +14,8 @@ use modor_math::Vec2;
 use modor_physics::Transform2D;
 use modor_picking::{NoPicking, PickingBuffer};
 
+// TODO: refactor this example
+
 #[modor::modor_main]
 fn main() {
     App::new()

@@ -29,8 +29,8 @@ fn check_collisions_for_collided_shapes(with_dynamics: bool) {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -42,7 +42,7 @@ fn check_collisions_for_collided_shapes_in_independent_groups(with_dynamics: boo
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Collider2D>>(2, assert_no_collision());
+        .assert::<With<Collider2D>>(2, has_no_collision());
 }
 
 #[modor_test(cases(
@@ -64,7 +64,7 @@ fn set_friction(friction: f32, expected_position: Vec2) {
                 .updated(|d: &mut Dynamics2D| d.force = Vec2::new(1., -0.1)),
         )
         .updated()
-        .assert::<With<Ball>>(1, assert_position(expected_position));
+        .assert::<With<Ball>>(1, has_position(expected_position));
 }
 
 #[modor_test(cases(zero = "0., Vec2::new(0., 0.22319)", one = "1., Vec2::new(0., 0.4032)"))]
@@ -85,7 +85,7 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
                 .updated(|d: &mut Dynamics2D| d.force = -20. * Vec2::Y),
         )
         .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
-        .assert::<With<Ball>>(1, assert_position(expected_position));
+        .assert::<With<Ball>>(1, has_position(expected_position));
 }
 
 #[modor_test(cases(
@@ -111,7 +111,7 @@ fn set_dominance(dominance: i8, expected_position: Vec2) {
                 .updated(|d: &mut Dynamics2D| d.dominance = dominance),
         )
         .updated_until_all::<(), _>(Some(update_count), |_: &Ball| updates.next().is_none())
-        .assert::<With<Ball>>(1, assert_position(expected_position));
+        .assert::<With<Ball>>(1, has_position(expected_position));
 }
 
 #[modor_test(cases(
@@ -134,7 +134,7 @@ fn set_ccd(is_enabled: bool, expected_position: Vec2) {
                 .updated(|d: &mut Dynamics2D| d.is_ccd_enabled = is_enabled),
         )
         .updated()
-        .assert::<With<Ball>>(1, assert_position(expected_position));
+        .assert::<With<Ball>>(1, has_position(expected_position));
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -147,14 +147,14 @@ fn update_position(with_dynamics: bool) {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Collider2D>>(2, assert_no_collision())
+        .assert::<With<Collider2D>>(2, has_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = circle_position())
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle())
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions())
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = Vec2::new(5., 5.))
         .updated()
-        .assert::<With<Collider2D>>(2, assert_no_collision());
+        .assert::<With<Collider2D>>(2, has_no_collision());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -167,7 +167,7 @@ fn update_size(with_dynamics: bool) {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Collider2D>>(2, assert_no_collision())
+        .assert::<With<Collider2D>>(2, has_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| {
             t.size = Vec2::ONE * 2. * circle_radius();
         })
@@ -175,8 +175,8 @@ fn update_size(with_dynamics: bool) {
         .updated()
         .with_update::<With<Circle>, _>(|t: &mut Transform2D| t.position = circle_position())
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -189,11 +189,11 @@ fn update_rotation(with_dynamics: bool) {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Rectangle>>(1, assert_different_rectangle())
+        .assert::<With<Rectangle>>(1, has_different_rectangle_collisions())
         .with_update::<With<Rectangle>, _>(|t: &mut Transform2D| t.rotation = FRAC_PI_4)
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test]
@@ -206,13 +206,13 @@ fn update_velocity() {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Collider2D>>(2, assert_no_collision())
+        .assert::<With<Collider2D>>(2, has_no_collision())
         .with_update::<With<Circle>, _>(|t: &mut Dynamics2D| {
             t.velocity = Vec2::new(-5., -5.) + circle_position();
         })
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test]
@@ -225,11 +225,11 @@ fn update_angular_velocity() {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(1)))
         .with_entity(groups())
         .updated()
-        .assert::<With<Rectangle>>(1, assert_different_rectangle())
+        .assert::<With<Rectangle>>(1, has_different_rectangle_collisions())
         .with_update::<With<Rectangle>, _>(|t: &mut Dynamics2D| t.angular_velocity = FRAC_PI_4)
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -256,8 +256,8 @@ fn remove_transform(with_dynamics: bool) {
             transform
         })
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test]
@@ -273,8 +273,8 @@ fn remove_dynamics() {
         .updated()
         .with_component::<With<Transform2D>, _>(Dynamics2D::new)
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 #[modor_test(cases(with_dynamics = "true", without_dynamics = "false"))]
@@ -291,22 +291,26 @@ fn remove_collider(with_dynamics: bool) {
         .with_component::<With<Rectangle>, _>(|| Collider2D::rectangle(GROUP.get(0)))
         .with_component::<With<Circle>, _>(|| Collider2D::circle(GROUP.get(1)))
         .updated()
-        .assert::<With<Rectangle>>(1, assert_rectangle())
-        .assert::<With<Circle>>(1, assert_circle());
+        .assert::<With<Rectangle>>(1, has_rectangle_collisions())
+        .assert::<With<Circle>>(1, has_circle_collisions());
 }
 
 assertion_functions!(
-    fn assert_no_collision(collider: &Collider2D) {
+    fn has_position(transform: &Transform2D, position: Vec2) {
+        assert_approx_eq!(transform.position, position);
+    }
+
+    fn has_rotation(transform: &Transform2D, rotation: f32) {
+        assert_approx_eq!(transform.rotation, rotation);
+    }
+
+    fn has_no_collision(collider: &Collider2D) {
         assert_eq!(collider.collisions().len(), 0);
         assert!(!collider.is_colliding_with(GROUP.get(0)));
         assert!(!collider.is_colliding_with(GROUP.get(1)));
     }
 
-    fn assert_rotation(transform: &Transform2D, rotation: f32) {
-        assert_approx_eq!(transform.rotation, rotation);
-    }
-
-    fn assert_rectangle(collider: &Collider2D) {
+    fn has_rectangle_collisions(collider: &Collider2D) {
         let collision_position = rectangle_collision_position();
         let other_collision_position = circle_collision_position();
         let penetration = collision_position - other_collision_position;
@@ -318,7 +322,7 @@ assertion_functions!(
         assert!(collider.is_colliding_with(GROUP.get(1)));
     }
 
-    fn assert_different_rectangle(collider: &Collider2D) {
+    fn has_different_rectangle_collisions(collider: &Collider2D) {
         let collision_position = rectangle_collision_position();
         assert_eq!(collider.collisions().len(), 1);
         assert_eq!(collider.collisions()[0].other_entity_id, CIRCLE_ID);
@@ -328,7 +332,7 @@ assertion_functions!(
         assert_approx_eq!(collider.collisions()[0].penetration, Vec2::new(0., 0.5));
     }
 
-    fn assert_circle(collider: &Collider2D) {
+    fn has_circle_collisions(collider: &Collider2D) {
         let collision_position = circle_collision_position();
         let other_collision_position = rectangle_collision_position();
         let penetration = collision_position - other_collision_position;
@@ -338,10 +342,6 @@ assertion_functions!(
         assert_approx_eq!(collider.collisions()[0].position, collision_position);
         assert_approx_eq!(collider.collisions()[0].penetration, penetration);
         assert!(collider.is_colliding_with(GROUP.get(0)));
-    }
-
-    fn assert_position(transform: &Transform2D, position: Vec2) {
-        assert_approx_eq!(transform.position, position);
     }
 );
 

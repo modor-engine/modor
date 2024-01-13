@@ -20,11 +20,11 @@ fn create_hidden() {
         .assert::<With<Target2>>(1, is_same("camera#empty2"))
         .assert::<With<TestCamera>>(
             1,
-            assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(-2. / 3., 0.5)),
+            has_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(-2. / 3., 0.5)),
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(
+            has_position(
                 Size::new(800, 600),
                 Vec2::new(800., 600.),
                 Vec2::new(2. / 3., -0.5),
@@ -32,11 +32,11 @@ fn create_hidden() {
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(-0.5, 2. / 3.)),
+            has_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(-0.5, 2. / 3.)),
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(
+            has_position(
                 Size::new(600, 800),
                 Vec2::new(600., 800.),
                 Vec2::new(0.5, -2. / 3.),
@@ -99,11 +99,11 @@ fn create_with_transform() {
         .assert::<With<Target1>>(1, is_same("camera#not_empty_offset1"))
         .assert::<With<TestCamera>>(
             1,
-            assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(1.5, 11. / 6.)),
+            has_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(1.5, 11. / 6.)),
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(
+            has_position(
                 Size::new(800, 600),
                 Vec2::new(800., 600.),
                 Vec2::new(-0.5, -5. / 6.),
@@ -111,11 +111,11 @@ fn create_with_transform() {
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(11. / 6., 1.5)),
+            has_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(11. / 6., 1.5)),
         )
         .assert::<With<TestCamera>>(
             1,
-            assert_position(
+            has_position(
                 Size::new(600, 800),
                 Vec2::new(600., 800.),
                 Vec2::new(-5. / 6., -0.5),
@@ -144,7 +144,7 @@ fn recreate_entity() {
 }
 
 assertion_functions!(
-    fn assert_position(
+    fn has_position(
         camera: &Camera2D,
         surface_size: Size,
         surface_position: Vec2,
