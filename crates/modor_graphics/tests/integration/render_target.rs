@@ -153,11 +153,13 @@ fn resource() -> impl BuiltEntity {
     EntityBuilder::new()
         .child_component(Camera2D::new(MAIN_CAMERA, MAIN_TARGET))
         .child_component(Camera2D::new(SECONDARY_CAMERA, SECONDARY_TARGET))
-        .child_entity(material::<Default2DMaterial>(TARGET_MATERIAL).updated(
-            |m: &mut Default2DMaterial| {
-                m.texture_key = Some(SECONDARY_TARGET_TEXTURE);
-            },
-        ))
+        .child_entity(
+            material(TARGET_MATERIAL, Default2DMaterial::default()).updated(
+                |m: &mut Default2DMaterial| {
+                    m.texture_key = Some(SECONDARY_TARGET_TEXTURE);
+                },
+            ),
+        )
         .child_entity(secondary_target())
         .child_entity(blue_rectangle())
         .child_entity(

@@ -4,6 +4,7 @@ use crate::storages::components::ComponentTypeIdx;
 use crate::storages::core::CoreStorage;
 use crate::storages::systems::SystemIdx;
 use crate::systems::context::Storages;
+use crate::QueryEntityFilter;
 use std::marker::PhantomData;
 
 /// A filter to keep only entities that do not match another filter `F`.
@@ -44,3 +45,5 @@ where
         F::mutation_component_type_idxs(core)
     }
 }
+
+impl<F> QueryEntityFilter for Not<F> where F: QueryEntityFilter {}

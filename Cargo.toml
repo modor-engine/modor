@@ -8,7 +8,7 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
-rust-version = "1.74.0"
+rust-version = "1.75.0"
 
 [workspace.dependencies]
 ab_glyph = "0.2"
@@ -65,6 +65,7 @@ modor_input = { version = "0.1.0", path = "crates/modor_input" }
 modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
 modor_jobs = { version = "0.1.0", path = "crates/modor_jobs" }
 modor_math = { version = "0.1.0", path = "crates/modor_math" }
+modor_picking = { version = "0.1.0", path = "crates/modor_picking" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
 modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
 modor_text = { version = "0.1.0", path = "crates/modor_text" }

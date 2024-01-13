@@ -1,0 +1,26 @@
+[package]
+name = "modor_picking"
+description = "Color picking module of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "graphics", "cursor", "mouse", "color"]
+categories = ["game-engines"]
+exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bytemuck.workspace = true
+derivative.workspace = true
+fxhash.workspace = true
+modor.workspace = true
+modor_graphics.workspace = true
+modor_math.workspace = true
+modor_physics.workspace = true
+modor_resources.workspace = true
+
+[lints]
+workspace = true

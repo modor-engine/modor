@@ -2,8 +2,8 @@ use crate::components::renderer::Renderer;
 use crate::data::size::NonZeroSize;
 use crate::{Color, GpuContext, RenderTarget, Size, Texture};
 use fxhash::FxHashMap;
-use modor::SingleRef;
-use std::mem;
+use modor::{ComponentSystems, SingleRef};
+use modor_input::{Fingers, Gamepads, Keyboard, Mouse};
 use std::num::NonZeroU32;
 use wgpu::{
     Buffer, BufferView, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, MapMode,
@@ -59,9 +59,40 @@ use wgpu::{
 ///     }
 /// }
 /// ```
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_resources::*;
+/// #
+/// #[derive(Component)]
+/// struct ColorPicker {
+///     pixel: Pixel,
+///     color: Option<Color>,
+/// }
+///
+/// #[systems]
+/// impl ColorPicker {
+///     #[run_as(action(TextureBufferPartUpdate))]
+///     fn update_buffer(&mut self, buffer: &mut TextureBuffer) {
+///         if let TextureBufferPart::Pixels(pixels) = &mut buffer.part {
+///             pixels.push(self.pixel);
+///         }
+///     }
+///
+///     #[run_after(component(TextureBuffer))]
+///     fn retrieve_color(&mut self, buffer: &TextureBuffer) {
+///         self.color = buffer.pixel(self.pixel);
+///     }
+/// }
+/// ```
 #[derive(Component, Debug, Default)]
 pub struct TextureBuffer {
     /// Part of the texture that can be accessed.
+    ///
+    /// At the beginning of each app update, the list of pixels is reset in case the value is
+    /// [`TextureBufferPart::Pixels`]. To register a pixel for the current app update, the field
+    /// must be updated during [`TextureBufferPartUpdate`] action (see [`TextureBuffer`] examples).
     ///
     /// Default is [`TextureBufferPart::All`].
     pub part: TextureBufferPart,
@@ -75,7 +106,19 @@ pub struct TextureBuffer {
 impl TextureBuffer {
     const COMPONENT_COUNT_PER_PIXEL: u32 = 4;
 
-    #[run_after(component(Texture), component(Renderer), component(RenderTarget))]
+    #[run_as(action(PreTextureBufferPartUpdate))]
+    fn reset_part(&mut self) {
+        if let TextureBufferPart::Pixels(pixels) = &mut self.part {
+            pixels.clear();
+        }
+    }
+
+    #[run_after(
+        component(Texture),
+        component(Renderer),
+        component(RenderTarget),
+        action(TextureBufferPartUpdate)
+    )]
     fn update(&mut self, texture: Option<&Texture>, renderer: Option<SingleRef<'_, '_, Renderer>>) {
         let state = Renderer::option_state(&renderer, &mut self.renderer_version);
         let texture_size = texture.and_then(Texture::size).map(NonZeroSize::from);
@@ -120,6 +163,8 @@ impl TextureBuffer {
     /// - There is no associated [`Texture`](Texture) component.
     /// - The buffer is not yet synchronized.
     /// - [`TextureBuffer::part`](#structfield.part) is not equal to [`TextureBufferPart::All`].
+    ///
+    /// Note that the read texture uses sRGB format, so further transformations might be required to obtain RGB colors.
     pub fn get(&self) -> &[u8] {
         &self.data
     }
@@ -130,6 +175,8 @@ impl TextureBuffer {
     ///
     /// In case [`TextureBuffer::part`](#structfield.part) is equal to [`TextureBufferPart::Pixels`], the pixel must
     /// be specified.
+    ///
+    /// Note that the read texture uses sRGB format, so further transformations might be required to obtain RGB colors.
     pub fn pixel(&self, pixel: Pixel) -> Option<Color> {
         let Some(buffer) = &self.buffer else {
             return None;
@@ -138,7 +185,8 @@ impl TextureBuffer {
             return None;
         }
         self.pixels.get(&pixel).copied().or_else(|| {
-            let color_start = pixel.y * Self::COMPONENT_COUNT_PER_PIXEL + pixel.x;
+            let color_start = Self::COMPONENT_COUNT_PER_PIXEL
+                * (pixel.y * u32::from(buffer.size.width) + pixel.x);
             Self::extract_color(&self.data, color_start)
         })
     }
@@ -215,7 +263,7 @@ impl TextureBuffer {
 
     fn retrieve_buffer(view: &BufferView<'_>, buffer: &BufferDetails) -> Vec<u8> {
         let padded_row_bytes = Self::calculate_padded_row_bytes(buffer.size.width.into());
-        let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(buffer.size.width.into());
+        let unpadded_row_bytes = u32::from(buffer.size.width) * Self::COMPONENT_COUNT_PER_PIXEL;
         let data = view
             .chunks(padded_row_bytes as usize)
             .flat_map(|a| &a[..unpadded_row_bytes as usize])
@@ -249,18 +297,29 @@ impl TextureBuffer {
     }
 
     fn calculate_padded_row_bytes(width: u32) -> u32 {
-        let unpadded_bytes_per_row = Self::calculate_unpadded_row_bytes(width);
+        let unpadded_bytes_per_row = width * Self::COMPONENT_COUNT_PER_PIXEL;
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
         let padded_bytes_per_row_padding = (align - unpadded_bytes_per_row % align) % align;
         unpadded_bytes_per_row + padded_bytes_per_row_padding
     }
-
-    #[allow(clippy::cast_possible_truncation)]
-    fn calculate_unpadded_row_bytes(width: u32) -> u32 {
-        let bytes_per_pixel = mem::size_of::<u32>() as u32;
-        width * bytes_per_pixel
-    }
 }
+
+#[derive(Action)]
+struct PreTextureBufferPartUpdate;
+
+/// The action during which the [`TextureBufferPart`] of a [`TextureBuffer`] should be updated.
+///
+/// # Examples
+///
+/// See [`TextureBuffer`].
+#[derive(Action)]
+pub struct TextureBufferPartUpdate(
+    PreTextureBufferPartUpdate,
+    <Keyboard as ComponentSystems>::Action,
+    <Mouse as ComponentSystems>::Action,
+    <Fingers as ComponentSystems>::Action,
+    <Gamepads as ComponentSystems>::Action,
+);
 
 /// The part of a texture that is retrieved from GPU.
 ///
@@ -277,6 +336,10 @@ pub enum TextureBufferPart {
     /// Only specific pixels are retrieved.
     ///
     /// In case full texture data are not needed, this should be faster than [`TextureBufferPart::All`].
+    ///
+    /// Note that as [`TextureBuffer`] clears the list of pixels at the beginning of each app update.
+    /// So registering pixels for a new update should be performed during [`TextureBufferPartUpdate`] action
+    /// (see [`TextureBuffer`] examples).
     Pixels(Vec<Pixel>),
 }
 

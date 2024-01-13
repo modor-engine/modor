@@ -50,7 +50,7 @@ pub struct QueryFilter {
 
 impl QueryFilter {
     /// Creates a new dynamic query filter.
-    pub fn new<F>() -> Self
+    pub const fn new<F>() -> Self
     where
         F: QueryEntityFilter,
     {

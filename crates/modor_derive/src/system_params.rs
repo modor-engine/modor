@@ -62,13 +62,17 @@ impl<'a> SystemParamStruct<'a> {
         );
         let const_query_impl_block = self.query_impl_block(&self.const_ident);
         quote! {
+            #[allow(unused_qualifications)]
             #impl_block
+            #[allow(unused_qualifications)]
             #query_impl_block
 
-            #[allow(unused)]
+            #[allow(unused, unused_qualifications)]
             #const_struct
 
+            #[allow(unused_qualifications)]
             #const_impl_block
+            #[allow(unused_qualifications)]
             #const_query_impl_block
         }
     }

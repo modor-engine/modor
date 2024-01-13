@@ -115,8 +115,9 @@ impl Material {
                 {
                     self.update_bind_group(shader, &textures, context);
                 }
-                self.is_transparent =
-                    source.is_transparent() || textures.iter().any(|t| t.inner().is_transparent);
+                self.is_transparent = source.is_transparent()
+                    || (!shader.is_alpha_replaced()
+                        && textures.iter().any(|t| t.inner().is_transparent));
                 self.texture_keys = texture_keys;
                 self.shader_key = shader_key;
                 if shader.material_instance_type != self.instance_data_type {
@@ -246,7 +247,7 @@ pub struct MaterialSync<S: Any> {
 #[systems]
 impl<S> MaterialSync<S>
 where
-    S: ComponentSystems + MaterialSource,
+    S: MaterialSource,
 {
     #[run_as(action(MaterialUpdate))]
     fn update_material(

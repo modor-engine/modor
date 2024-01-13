@@ -30,7 +30,7 @@ pub(crate) type ShaderRegistry = ResourceRegistry<Shader>;
 ///
 /// The shader is effective only if:
 /// - graphics [`module`](crate::module()) is initialized
-/// - the shader is linked to a [`Material`](crate::Material).
+/// - the shader is linked to a [`Material`](crate::Material)
 ///
 /// # Related components
 ///
@@ -82,7 +82,7 @@ pub struct Shader {
     pub(crate) material_instance_type: TypeId,
     pub(crate) material_instance_type_name: &'static str,
     material_instance_size: usize,
-    replace_alpha: bool,
+    is_alpha_replaced: bool,
     key: ResKey<Self>,
     pipelines: FxHashMap<(TextureFormat, bool), RenderPipeline>,
     handler: ResourceHandler<LoadedCode, &'static str>,
@@ -111,12 +111,12 @@ impl Shader {
     /// `I` is the material data type per instance, it must be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
     ///
-    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// Value of `is_alpha_replaced` controls how alpha channel should be treated:
     /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
     ///     transparent shape might be visible.
     /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
     ///     transparent shape will never be visible.
-    pub fn new<I>(key: ResKey<Self>, source: ShaderSource, replace_alpha: bool) -> Self
+    pub fn new<I>(key: ResKey<Self>, source: ShaderSource, is_alpha_replaced: bool) -> Self
     where
         I: InstanceData,
     {
@@ -126,7 +126,7 @@ impl Shader {
             material_instance_type: TypeId::of::<I>(),
             material_instance_type_name: any::type_name::<I>(),
             material_instance_size: mem::size_of::<I>(),
-            replace_alpha,
+            is_alpha_replaced,
             key,
             pipelines: FxHashMap::default(),
             handler: ResourceHandler::new(source.into()),
@@ -144,16 +144,16 @@ impl Shader {
     /// `I` is the material data type per instance, it must be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
     ///
-    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// Value of `is_alpha_replaced` controls how alpha channel should be treated:
     /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
     ///     transparent shape might be visible.
     /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
     ///     transparent shape will never be visible.
-    pub fn from_string<I>(key: ResKey<Self>, code: &'static str, replace_alpha: bool) -> Self
+    pub fn from_string<I>(key: ResKey<Self>, code: &'static str, is_alpha_replaced: bool) -> Self
     where
         I: InstanceData,
     {
-        Self::new::<I>(key, ShaderSource::String(code), replace_alpha)
+        Self::new::<I>(key, ShaderSource::String(code), is_alpha_replaced)
     }
 
     /// Creates a new shader identified by a unique `key` and created with a given code file `path`.
@@ -163,16 +163,16 @@ impl Shader {
     /// `I` is the material data type per instance, it should be the same as
     /// [`MaterialSource::InstanceData`](crate::MaterialSource::InstanceData).
     ///
-    /// Value of `replace_alpha` controls how alpha channel should be treated:
+    /// Value of `is_alpha_replaced` controls how alpha channel should be treated:
     /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
     ///     transparent shape might be visible.
     /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
     ///     transparent shape will never be visible.
-    pub fn from_path<I>(key: ResKey<Self>, path: impl Into<String>, replace_alpha: bool) -> Self
+    pub fn from_path<I>(key: ResKey<Self>, path: impl Into<String>, is_alpha_replaced: bool) -> Self
     where
         I: InstanceData,
     {
-        Self::new::<I>(key, ShaderSource::Path(path.into()), replace_alpha)
+        Self::new::<I>(key, ShaderSource::Path(path.into()), is_alpha_replaced)
     }
 
     #[run_after(component(Renderer), component(AntiAliasing))]
@@ -203,14 +203,15 @@ impl Shader {
         }
     }
 
-    pub(crate) fn pipeline(
-        &self,
-        texture_format: TextureFormat,
-        is_anti_aliasing_enabled: bool,
-    ) -> &RenderPipeline {
-        self.pipelines
-            .get(&(texture_format, is_anti_aliasing_enabled))
-            .expect("internal error: render pipeline not loaded")
+    /// Returns whether color of rendered instances is always replaced without taking alpha into account.
+    ///
+    /// Returned value tells how alpha channel is treated:
+    /// - `false`: apply standard alpha blending with non-premultiplied alpha. It means shapes rendered behind a
+    ///     transparent shape might be visible.
+    /// - `true`: don't apply any color blending, just overwrites the output color. It means shapes rendered behind a
+    ///     transparent shape will never be visible.
+    pub fn is_alpha_replaced(&self) -> bool {
+        self.is_alpha_replaced
     }
 
     /// Sets the shader `source` and start reloading of the shader.
@@ -219,6 +220,16 @@ impl Shader {
     /// is loaded.
     pub fn set_source(&mut self, source: ShaderSource) {
         self.handler.set_source(source.into());
+    }
+
+    pub(crate) fn pipeline(
+        &self,
+        texture_format: TextureFormat,
+        is_anti_aliasing_enabled: bool,
+    ) -> &RenderPipeline {
+        self.pipelines
+            .get(&(texture_format, is_anti_aliasing_enabled))
+            .expect("internal error: render pipeline not loaded")
     }
 
     fn update_error(&mut self, result: Result<(), wgpu::Error>) {
@@ -378,7 +389,7 @@ impl Shader {
                         entry_point: "fs_main",
                         targets: &[Some(ColorTargetState {
                             format: texture_format,
-                            blend: Some(if self.replace_alpha {
+                            blend: Some(if self.is_alpha_replaced {
                                 BlendState::REPLACE
                             } else {
                                 BlendState::ALPHA_BLENDING

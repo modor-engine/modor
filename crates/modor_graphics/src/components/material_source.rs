@@ -1,6 +1,6 @@
 #![allow(clippy::trailing_empty_array)]
 
-use crate::components::material_source::internal::MaterialData;
+use crate::components::material_source::internal::Default2DMaterialData;
 use crate::components::texture::WHITE_TEXTURE;
 use crate::entities::module::{DEFAULT_SHADER, ELLIPSE_SHADER};
 use crate::{AnimatedMaterialSource, Color, Shader, Texture};
@@ -242,10 +242,10 @@ pub trait MaterialSource: ComponentSystems {
     /// rendering artifacts caused by transparency.
     ///
     /// Note that transparency is automatically detected for textures returned by
-    /// [`MaterialSource::texture_keys`].
-    /// It means that if [`MaterialSource::is_transparent`]
-    /// returns `false` but one of the textures contains transparent pixels, then the instances
-    /// are considered as transparent.
+    /// [`MaterialSource::texture_keys`] (except if [`Shader::is_alpha_replaced`] returns `true`).
+    ///
+    /// It means that if [`MaterialSource::is_transparent`] returns `false` but one of the textures contains
+    /// transparent pixels, then the instances are considered as transparent.
     fn is_transparent(&self) -> bool;
 }
 
@@ -301,7 +301,7 @@ impl InstanceData for NoInstanceData {
 ///
 /// - [`Material`](crate::Material)
 /// - [`MaterialSync`](crate::MaterialSync)
-/// - [`Texture`](crate::Texture)
+/// - [`Texture`]
 ///
 /// # Examples
 ///
@@ -364,14 +364,14 @@ impl Default2DMaterial {
 }
 
 impl MaterialSource for Default2DMaterial {
-    type Data = MaterialData;
+    type Data = Default2DMaterialData;
     type InstanceData = NoInstanceData;
 
     fn data(&self) -> Self::Data {
-        MaterialData {
+        Default2DMaterialData {
             color: self.color.into(),
-            texture_part_position: [self.texture_position.x, self.texture_position.y],
-            texture_part_size: [self.texture_size.x, self.texture_size.y],
+            texture_position: [self.texture_position.x, self.texture_position.y],
+            texture_size: [self.texture_size.x, self.texture_size.y],
         }
     }
 
@@ -402,9 +402,9 @@ impl AnimatedMaterialSource for Default2DMaterial {
 mod internal {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
-    pub struct MaterialData {
+    pub struct Default2DMaterialData {
         pub(crate) color: [f32; 4],
-        pub(crate) texture_part_position: [f32; 2],
-        pub(crate) texture_part_size: [f32; 2],
+        pub(crate) texture_position: [f32; 2],
+        pub(crate) texture_size: [f32; 2],
     }
 }

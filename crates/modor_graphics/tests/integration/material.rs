@@ -36,7 +36,7 @@ fn update_properties() {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomMaterial>(material_key))
+        .with_entity(material(material_key, CustomMaterial::default()))
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#red"))
@@ -72,7 +72,7 @@ fn use_material_with_empty_data() {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<EmptyMaterial>(material_key))
+        .with_entity(material(material_key, EmptyMaterial))
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#blue"));
@@ -91,7 +91,7 @@ fn create_material_with_texture_count_different_than_shader() {
         ))
         .with_entity(Texture::from_size(TEXTURE, Size::new(1, 1)))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomMaterial>(material_key))
+        .with_entity(material(material_key, CustomMaterial::default()))
         .with_update::<(), CustomMaterial>(|m| m.texture_keys = vec![TEXTURE])
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
@@ -127,8 +127,11 @@ fn create_material_with_instance_data(is_transparent: bool) {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomInstanceMaterial>(instance_material_key))
-        .with_entity(material::<CustomMaterial>(simple_material_key))
+        .with_entity(material(
+            instance_material_key,
+            CustomInstanceMaterial::default(),
+        ))
+        .with_entity(material(simple_material_key, CustomMaterial::default()))
         .with_update::<(), _>(|m: &mut CustomInstanceMaterial| m.is_transparent = is_transparent)
         .with_entity(instance_2d_with_key(
             group_key,
@@ -166,7 +169,7 @@ fn create_material_with_incorrect_instance_data_type() {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomInstanceMaterial>(material_key))
+        .with_entity(material(material_key, CustomInstanceMaterial::default()))
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .updated()
         .assert::<With<TextureBuffer>>(1, is_same("material#empty"))
@@ -187,7 +190,7 @@ fn delete_and_recreate_graphics_module_with_instance_data() {
             false,
         ))
         .updated_until_all::<(), Shader>(Some(100), wait_resource_loading)
-        .with_entity(material::<CustomInstanceMaterial>(material_key))
+        .with_entity(material(material_key, CustomInstanceMaterial::default()))
         .with_entity(instance_2d(TEXTURE_CAMERAS_2D.get(0), material_key))
         .with_component::<With<InstanceGroup2D>, _>(|| CustomColor(Color::GREEN))
         .updated()
@@ -248,7 +251,7 @@ struct CustomMaterialData {
     color: [f32; 4],
 }
 
-#[derive(Component, NoSystem, Default)]
+#[derive(Component, NoSystem)]
 struct EmptyMaterial;
 
 impl MaterialSource for EmptyMaterial {

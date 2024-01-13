@@ -514,6 +514,8 @@ pub use modor_derive::SystemParam;
 ///
 /// This type of system parameter can be used as [`Query`] parameter.
 ///
+/// Constant equivalent of the system parameter is generated with `Const` prefix in its name.
+///
 /// # Examples
 ///
 /// ```rust

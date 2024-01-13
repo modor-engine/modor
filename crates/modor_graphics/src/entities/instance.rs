@@ -3,7 +3,7 @@ use crate::{
     Camera2D, Default2DMaterial, InstanceGroup2D, InstanceRendering2D, Material, MaterialSource,
     MaterialSync,
 };
-use modor::{BuiltEntity, ComponentSystems, EntityBuilder, QueryEntityFilter, QueryFilter};
+use modor::{BuiltEntity, EntityBuilder, QueryEntityFilter, QueryFilter};
 use modor_physics::Transform2D;
 use modor_resources::{ResKey, Resource};
 
@@ -143,7 +143,7 @@ pub fn instance_2d(
 ///     let material_key = ResKey::unique("red-rectangle");
 ///     instance_group_2d_with_key::<With<RedRectangle>>(group_key, WINDOW_CAMERA_2D, material_key)
 ///         .child_entity(
-///             material::<Default2DMaterial>(material_key)
+///             material(material_key, Default2DMaterial::default())
 ///                 .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
 ///         )
 ///         .child_component(InstanceRendering2D::new(group_key, TEXTURE_CAMERAS_2D.get(0), material_key))
@@ -215,7 +215,7 @@ where
 ///     instance_2d_with_key(group_key, WINDOW_CAMERA_2D, material_key)
 ///         .updated(|t: &mut Transform2D| t.size = Vec2::new(0.2, 0.1))
 ///         .child_entity(
-///             material::<Default2DMaterial>(material_key)
+///             material(material_key, Default2DMaterial::default())
 ///                 .updated(|m: &mut Default2DMaterial| m.color = Color::RED)
 ///         )
 ///         .child_component(InstanceRendering2D::new(group_key, TEXTURE_CAMERAS_2D.get(0), material_key))
@@ -265,7 +265,7 @@ where
 /// A trait implemented for types referencing a [`Material`].
 pub trait MaterialRef {
     #[doc(hidden)]
-    type MaterialType: ComponentSystems + MaterialSource;
+    type MaterialType: MaterialSource;
 
     #[doc(hidden)]
     fn value(self) -> MaterialRefValue<Self::MaterialType>;
@@ -273,7 +273,7 @@ pub trait MaterialRef {
 
 impl<T> MaterialRef for T
 where
-    T: ComponentSystems + MaterialSource,
+    T: MaterialSource,
 {
     type MaterialType = T;
 

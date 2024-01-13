@@ -40,7 +40,7 @@ fn materials() -> impl BuiltEntity {
     EntityBuilder::new().child_entities(|g| {
         for (color_id, color) in COLORS.into_iter().enumerate() {
             g.add(
-                material::<Default2DMaterial>(MATERIAL.get(color_id))
+                material(MATERIAL.get(color_id), Default2DMaterial::default())
                     .updated(|m: &mut Default2DMaterial| m.color = color)
                     .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
             );

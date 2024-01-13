@@ -25,12 +25,12 @@ fn update_velocity() {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::ZERO))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::ZERO))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(4., 2.)))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(8., 4.)));
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(8., 4.)));
 }
 
 #[modor_test]
@@ -40,16 +40,16 @@ fn update_angular_velocity() {
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
+        .assert::<With<Dynamics2D>>(1, has_rotation(0.))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
+        .assert::<With<Dynamics2D>>(1, has_rotation(FRAC_PI_2))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(-PI))
+        .assert::<With<Dynamics2D>>(1, has_rotation(-PI))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(-FRAC_PI_2))
+        .assert::<With<Dynamics2D>>(1, has_rotation(-FRAC_PI_2))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(0.));
+        .assert::<With<Dynamics2D>>(1, has_rotation(0.));
 }
 
 #[modor_test]
@@ -61,10 +61,10 @@ fn update_damping() {
         .updated()
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(4., 2.)))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.damping = 0.5)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(6., 3.)));
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(6., 3.)));
 }
 
 #[modor_test]
@@ -76,10 +76,10 @@ fn update_angular_damping() {
         .updated()
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
+        .assert::<With<Dynamics2D>>(1, has_rotation(FRAC_PI_2))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_damping = 0.5)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(3. * FRAC_PI_4));
+        .assert::<With<Dynamics2D>>(1, has_rotation(3. * FRAC_PI_4));
 }
 
 #[modor_test(cases(
@@ -94,10 +94,10 @@ fn update_force_and_mass(mass: f32, expected_position: Vec2) {
         .updated()
         .with_update::<(), _>(|d: &mut Dynamics2D| d.mass = mass)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::ZERO))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::ZERO))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.force = Vec2::new(2., 1.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(expected_position));
+        .assert::<With<Dynamics2D>>(1, has_position(expected_position));
 }
 
 #[modor_test(cases(equal_to_one = "1., -PI", equal_to_two = "2., FRAC_PI_2"))]
@@ -109,10 +109,10 @@ fn update_torque_and_angular_inertia(angular_inertia: f32, expected_rotation: f3
         .updated()
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_inertia = angular_inertia)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
+        .assert::<With<Dynamics2D>>(1, has_rotation(0.))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.torque = FRAC_PI_4)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(expected_rotation));
+        .assert::<With<Dynamics2D>>(1, has_rotation(expected_rotation));
 }
 
 #[modor_test]
@@ -123,12 +123,12 @@ fn update_position() {
         .with_entity(physics_object())
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(4., 2.)))
         .with_update::<(), _>(|t: &mut Transform2D| t.position = Vec2::new(0., 0.))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(4., 2.)))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(8., 4.)));
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(8., 4.)));
 }
 
 #[modor_test]
@@ -137,15 +137,15 @@ fn update_rotation() {
         .with_entity(modor_physics::module())
         .with_update::<(), _>(|d: &mut DeltaTime| d.set(Duration::from_secs(2)))
         .with_entity(physics_object())
-        .assert::<With<Dynamics2D>>(1, assert_rotation(0.))
+        .assert::<With<Dynamics2D>>(1, has_rotation(0.))
         .with_update::<(), _>(|d: &mut Dynamics2D| d.angular_velocity = FRAC_PI_4)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
+        .assert::<With<Dynamics2D>>(1, has_rotation(FRAC_PI_2))
         .with_update::<(), _>(|t: &mut Transform2D| t.rotation = 0.)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(FRAC_PI_2))
+        .assert::<With<Dynamics2D>>(1, has_rotation(FRAC_PI_2))
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_rotation(-PI));
+        .assert::<With<Dynamics2D>>(1, has_rotation(-PI));
 }
 
 #[modor_test]
@@ -157,17 +157,17 @@ fn remove_dynamics() {
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
         .updated()
-        .assert::<With<Transform2D>>(1, assert_position(Vec2::new(8., 4.)))
+        .assert::<With<Transform2D>>(1, has_position(Vec2::new(8., 4.)))
         .with_deleted_components::<(), Dynamics2D>()
         .updated()
-        .assert::<With<Transform2D>>(1, assert_position(Vec2::new(8., 4.)))
+        .assert::<With<Transform2D>>(1, has_position(Vec2::new(8., 4.)))
         .with_component::<With<Transform2D>, _>(|| {
             let mut dynamics = Dynamics2D::new();
             dynamics.velocity = Vec2::new(1., 2.);
             dynamics
         })
         .updated()
-        .assert::<With<Transform2D>>(1, assert_position(Vec2::new(10., 8.)));
+        .assert::<With<Transform2D>>(1, has_position(Vec2::new(10., 8.)));
 }
 
 #[modor_test]
@@ -179,20 +179,20 @@ fn remove_transform() {
         .with_update::<(), _>(|d: &mut Dynamics2D| d.velocity = Vec2::new(2., 1.))
         .updated()
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(8., 4.)))
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(8., 4.)))
         .with_deleted_components::<(), Transform2D>()
         .updated()
         .with_component::<With<Dynamics2D>, _>(Transform2D::new)
         .updated()
-        .assert::<With<Dynamics2D>>(1, assert_position(Vec2::new(4., 2.)));
+        .assert::<With<Dynamics2D>>(1, has_position(Vec2::new(4., 2.)));
 }
 
 assertion_functions!(
-    fn assert_position(transform: &Transform2D, position: Vec2) {
+    fn has_position(transform: &Transform2D, position: Vec2) {
         assert_approx_eq!(transform.position, position);
     }
 
-    fn assert_rotation(transform: &Transform2D, rotation: f32) {
+    fn has_rotation(transform: &Transform2D, rotation: f32) {
         assert_approx_eq!(transform.rotation, rotation);
     }
 );
