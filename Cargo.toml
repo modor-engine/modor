@@ -55,7 +55,7 @@ typed-index-collections = "3.0"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
-wgpu = "0.18"
+wgpu = "0.19"
 winit = "0.29"
 
 modor = { version = "0.1.0", path = "crates/modor" }
