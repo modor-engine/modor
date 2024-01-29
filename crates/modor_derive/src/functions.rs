@@ -1,3 +1,4 @@
+use crate::utils;
 use darling::ast::NestedMeta;
 use darling::util::{PathList, SpannedValue};
 use darling::FromMeta;
@@ -9,12 +10,13 @@ use syn::spanned::Spanned;
 use syn::{parse_quote, ItemFn, Meta, Path};
 
 pub(crate) fn main_function(function: &ItemFn) -> TokenStream {
+    let crate_ = utils::crate_ident();
     let ident = &function.sig.ident;
     quote! {
         #[cfg(target_os = "android")]
         #[no_mangle]
-        fn android_main(app: modor::AndroidApp) {
-            let _ = modor::ANDROID_APP.get_or_init(move || app);
+        fn android_main(app: #crate_::android_activity::AndroidApp) {
+            let _ = #crate_::ANDROID_APP.get_or_init(move || app);
             #function
             #ident();
         }
@@ -81,6 +83,7 @@ impl<'a> TestContext<'a> {
     }
 
     fn annotated_without_cases(&self) -> TokenStream {
+        let crate_ = utils::crate_ident();
         let function = &self.function;
         let disabled_platform_conditions = self.disabled_platform_conditions();
         quote! {
@@ -88,13 +91,14 @@ impl<'a> TestContext<'a> {
             #[cfg_attr(not(any(#(#disabled_platform_conditions),*)), test)]
             #[cfg_attr(
                 all(target_arch = "wasm32", not(any(#(#disabled_platform_conditions),*))),
-                ::wasm_bindgen_test::wasm_bindgen_test)
+                ::#crate_::wasm_bindgen_test::wasm_bindgen_test)
             ]
             #function
         }
     }
 
     fn annotated_with_cases(&self) -> TokenStream {
+        let crate_ = utils::crate_ident();
         let function = &self.function;
         let main_function_ident = &function.sig.ident;
         let disabled_platform_conditions = self.disabled_platform_conditions();
@@ -119,7 +123,7 @@ impl<'a> TestContext<'a> {
                 #[cfg_attr(not(any(#(#disabled_platform_conditions),*)), test)]
                 #[cfg_attr(
                     all(target_arch = "wasm32", not(any(#(#disabled_platform_conditions),*))),
-                    ::wasm_bindgen_test::wasm_bindgen_test)
+                    ::#crate_::wasm_bindgen_test::wasm_bindgen_test)
                 ]
                 fn #function_ident() {
                     #main_function_ident(#params);

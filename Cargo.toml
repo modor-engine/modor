@@ -13,7 +13,7 @@ rust-version = "1.75.0"
 [workspace.dependencies]
 anymap3 = "1.0"
 approx = "0.5"
-android-activity = "0.5"
+android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
 cargo-run-wasm = "0.3"
 console_error_panic_hook = "0.1"

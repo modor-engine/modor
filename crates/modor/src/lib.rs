@@ -115,14 +115,19 @@ pub use app::*;
 pub use context::*;
 pub use object::*;
 pub use objects::*;
+#[allow(unused_imports, unreachable_pub)]
+pub use platform::*;
 pub use ranges::*;
 pub use reference::*;
 pub use result::*;
 pub use role::*;
 
-// Add missing reexports (to support main/test macros)
+#[cfg(target_os = "android")]
+pub use android_activity;
 pub use log;
 pub use rayon;
+#[cfg(target_arch = "wasm32")]
+pub use wasm_bindgen_test;
 
 /// Defines the main function of a Modor application.
 ///
@@ -159,7 +164,7 @@ pub use modor_derive::main;
 ///
 /// # Platform-specific
 ///
-/// - Web: function is annotated with `#[::wasm_bindgen_test::wasm_bindgen_test]` instead of
+/// - Web: function is annotated with `#[wasm_bindgen_test::wasm_bindgen_test]` instead of
 /// `#[test]`.
 ///
 /// # Examples
