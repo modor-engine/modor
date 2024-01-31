@@ -1,4 +1,4 @@
-use crate::{Context, Error, Id, Object, SingletonObject};
+use crate::{Error, Id, Object, SingletonObject, UpdateContext};
 use fxhash::FxHashSet;
 use log::error;
 use rayon::iter::{
@@ -95,6 +95,8 @@ where
         generation_ids: vec![],
         logged_errors: None,
     };
+
+    // TODO: add exists(Id<T>) method (is getting list of deleted items still needed ?)
 
     /// Returns an immutable reference to the object with a given `id`.
     ///
@@ -258,7 +260,7 @@ where
         }
     }
 
-    pub(crate) fn update(&mut self, context: &mut Context<'_, T>) {
+    pub(crate) fn update(&mut self, context: &mut UpdateContext<'_>) {
         if let Some(logged_errors) = &self.logged_errors {
             for (index, generation_id, object) in self
                 .objects
@@ -318,10 +320,10 @@ where
         object: &mut T,
         object_index: usize,
         object_generation_id: u64,
-        context: &mut Context<'_, T>,
+        context: &mut UpdateContext<'_>,
         logged_errors: &RwLock<FxHashSet<String>>,
     ) {
-        context.self_id = Some(Id::new(object_index, object_generation_id));
+        context.self_id = Some(Id::<T>::new(object_index, object_generation_id).into());
         if let Err(err) = object.update(context) {
             let message = format!("{err}");
             let exists = logged_errors

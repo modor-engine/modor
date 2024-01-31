@@ -2,9 +2,13 @@ use crate::storages::actions::{Action, ActionStorage};
 use crate::storages::hierarchy::HierarchyStorage;
 use crate::storages::object_ids::{ObjectIdStorage, ReservedObjectId};
 use crate::storages::objects::ObjectStorage;
-use crate::{logging, Context, DynId, Id, IntoResult, Object, UsizeRange};
+use crate::{
+    logging, BuildContext, Context, DynId, Id, Object, ObjectResult, UnitResult, UpdateContext,
+    UsizeRange,
+};
 use log::{debug, error, info, LevelFilter};
 use std::any;
+use std::marker::PhantomData;
 
 // TODO: add tests
 
@@ -17,14 +21,14 @@ use std::any;
 /// [`App`](App) can also be used for testing:
 ///
 /// ```rust
-/// # use modor::{App, Object, NoRole, Context};
+/// # use modor::{App, Object, NoRole, UpdateContext};
 /// #
 /// struct Counter(usize);
 ///
 /// impl Object for Counter {
 ///     type Role = NoRole;
 ///
-///     fn update(&mut self, _ctx: &mut Context<'_, Self>) -> modor::Result<()> {
+///     fn update(&mut self, _ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
 ///         self.0 += 1;
 ///         Ok(())
 ///     }
@@ -89,10 +93,10 @@ impl App {
     /// If the object is a singleton and already exists, then nothing happens.
     ///
     /// In case an error is raised during creation, then no object is created.
-    pub fn create<T, R>(&mut self, builder: impl FnOnce(&mut Context<'_, T>) -> R) -> &mut Self
+    pub fn create<T, R>(&mut self, builder: impl FnOnce(&mut BuildContext<'_>) -> R) -> &mut Self
     where
         T: Object,
-        R: IntoResult<T>,
+        R: ObjectResult<Object = T>,
     {
         let id = self.object_ids.reserve();
         let _ = self.create_object_or_rollback(id, None, builder);
@@ -101,17 +105,19 @@ impl App {
 
     /// Runs code for each object of type `T`.
     ///
+    /// This method is generally used for testing purpose.
+    ///
     /// # Panics
     ///
     /// This will panic if the actual number of objects of type `T` doesn't match `expected_count`.
     pub fn for_each<T, R>(
         &mut self,
         expected_count: impl UsizeRange,
-        mut f: impl FnMut(&mut T, &mut Context<'_, T>) -> R,
+        mut f: impl FnMut(&mut T, &mut UpdateContext<'_>) -> R,
     ) -> &mut Self
     where
         T: Object,
-        R: IntoResult<()>,
+        R: UnitResult,
     {
         let mut actual_count = 0;
         self.objects
@@ -119,9 +125,10 @@ impl App {
                 for (id, object) in objects.iter_mut_enumerated() {
                     let mut context = Context {
                         objects: all_objects,
-                        object_ids: &self.object_ids,
-                        actions: &self.actions,
-                        self_id: Some(id),
+                        object_ids: &mut self.object_ids,
+                        actions: &mut self.actions,
+                        self_id: Some(id.into()),
+                        phantom: PhantomData,
                     };
                     let result = f(object, &mut context);
                     actual_count += 1;
@@ -143,14 +150,8 @@ impl App {
 
     /// Runs [`Object::update`] for all created objects.
     pub fn update(&mut self) -> &mut Self {
-        self.objects.update(&self.object_ids, &self.actions);
+        self.objects.update(&mut self.object_ids, &mut self.actions);
         let _ = self.run_actions();
-        self
-    }
-
-    /// Executes a `runner` that has access to the `App`.
-    pub fn run(&mut self, runner: impl FnOnce(&mut Self)) -> &mut Self {
-        runner(self);
         self
     }
 
@@ -158,11 +159,11 @@ impl App {
         &mut self,
         id: ReservedObjectId<T>,
         parent: Option<DynId>,
-        builder: impl FnOnce(&mut Context<'_, T>) -> R,
+        builder: impl FnOnce(&mut BuildContext<'_>) -> R,
     ) -> crate::Result<()>
     where
         T: Object,
-        R: IntoResult<T>,
+        R: ObjectResult<Object = T>,
     {
         let id = match id {
             ReservedObjectId::New(id) => id,
@@ -188,17 +189,18 @@ impl App {
         &mut self,
         id: Id<T>,
         parent: Option<DynId>,
-        builder: impl FnOnce(&mut Context<'_, T>) -> R,
+        builder: impl FnOnce(&mut BuildContext<'_>) -> R,
     ) -> crate::Result<()>
     where
         T: Object,
-        R: IntoResult<T>,
+        R: ObjectResult<Object = T>,
     {
-        let mut context = Context::<T> {
+        let mut context = BuildContext {
             objects: &mut self.objects,
-            object_ids: &self.object_ids,
-            actions: &self.actions,
-            self_id: Some(id),
+            object_ids: &mut self.object_ids,
+            actions: &mut self.actions,
+            self_id: Some(id.into()),
+            phantom: PhantomData,
         };
         let object = builder(&mut context).into_result()?;
         self.objects.add_object(id, object);

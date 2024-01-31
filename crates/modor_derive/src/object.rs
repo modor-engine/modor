@@ -16,7 +16,7 @@ pub(crate) fn impl_block(input: &DeriveInput, trait_ident: &Ident) -> TokenStrea
 
             fn update(
                 &mut self,
-                _access: &mut ::#crate_ident::Context<'_, Self>
+                _access: &mut ::#crate_ident::UpdateContext<'_>
             ) -> ::#crate_ident::Result<()> {
                 Ok(())
             }

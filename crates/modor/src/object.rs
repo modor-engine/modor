@@ -1,4 +1,4 @@
-use crate::{Context, Role};
+use crate::{Role, UpdateContext};
 use std::any::Any;
 
 /// A trait for defining an object.
@@ -38,7 +38,7 @@ pub trait Object: Sized + Any {
     ///
     /// Any error not explicitly handled in this method can be returned to be logged.
     /// Note that this doesn't stop the execution of the application.
-    fn update(&mut self, ctx: &mut Context<'_, Self>) -> crate::Result<()>;
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> crate::Result<()>;
 }
 
 /// A trait for defining a singleton object.
@@ -75,7 +75,7 @@ pub trait SingletonObject: Object {
     ///
     /// Any error not explicitly handled in this method can be returned to be logged.
     /// Note that this doesn't stop the execution of the application.
-    fn update(&mut self, ctx: &mut Context<'_, Self>) -> crate::Result<()>;
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> crate::Result<()>;
 }
 
 impl<T> Object for T
@@ -87,7 +87,7 @@ where
 
     type Role = <Self as SingletonObject>::Role;
 
-    fn update(&mut self, ctx: &mut Context<'_, Self>) -> crate::Result<()> {
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> crate::Result<()> {
         SingletonObject::update(self, ctx)
     }
 }

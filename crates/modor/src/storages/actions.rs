@@ -1,22 +1,21 @@
 use crate::{App, DynId};
 use derivative::Derivative;
-use std::cell::RefCell;
 use std::mem;
 
 #[derive(Default, Derivative)]
 #[derivative(Debug)]
 pub(crate) struct ActionStorage {
     #[derivative(Debug = "ignore")]
-    actions: RefCell<Vec<Action>>,
+    actions: Vec<Action>,
 }
 
 impl ActionStorage {
-    pub(crate) fn push(&self, action: Action) {
-        self.actions.borrow_mut().push(action);
+    pub(crate) fn push(&mut self, action: Action) {
+        self.actions.push(action);
     }
 
     pub(crate) fn take(&mut self) -> Vec<Action> {
-        mem::take(self.actions.get_mut())
+        mem::take(&mut self.actions)
     }
 }
 

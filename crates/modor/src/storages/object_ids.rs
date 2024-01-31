@@ -2,27 +2,25 @@ use crate::{DynId, Id, Object};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use std::any::TypeId;
-use std::cell::RefCell;
 
 #[derive(Default, Debug)]
 pub(crate) struct ObjectIdStorage {
-    object_ids: RefCell<FxHashMap<TypeId, ObjectIds>>,
+    object_ids: FxHashMap<TypeId, ObjectIds>,
 }
 
 impl ObjectIdStorage {
-    pub(crate) fn reserve<T>(&self) -> ReservedObjectId<T>
+    pub(crate) fn reserve<T>(&mut self) -> ReservedObjectId<T>
     where
         T: Object,
     {
         self.object_ids
-            .borrow_mut()
             .entry(TypeId::of::<T>())
             .or_insert_with(ObjectIds::new::<T>)
             .reserve()
     }
 
     pub(crate) fn delete(&mut self, id: DynId) {
-        if let Some(ids) = self.object_ids.get_mut().get_mut(&id.object_type_id) {
+        if let Some(ids) = self.object_ids.get_mut(&id.object_type_id) {
             ids.delete(id);
         }
     }

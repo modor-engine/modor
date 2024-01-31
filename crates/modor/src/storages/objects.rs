@@ -6,6 +6,7 @@ use fxhash::FxHashMap;
 use log::trace;
 use std::any;
 use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 
 #[derive(Default, Debug)]
 pub(crate) struct ObjectStorage {
@@ -48,10 +49,9 @@ impl ObjectStorage {
     }
 
     pub(crate) fn delete_object(&mut self, id: DynId) {
-        self.objects
-            .get_mut(&id.object_type_id)
-            .expect("internal error: missing object type when deleting object")
-            .delete(id);
+        if let Some(objects) = self.objects.get_mut(&id.object_type_id) {
+            objects.delete(id);
+        }
     }
 
     pub(crate) fn lock<T>(
@@ -70,7 +70,7 @@ impl ObjectStorage {
     }
 
     #[allow(clippy::needless_collect)]
-    pub(crate) fn update(&mut self, object_ids: &ObjectIdStorage, actions: &ActionStorage) {
+    pub(crate) fn update(&mut self, object_ids: &mut ObjectIdStorage, actions: &mut ActionStorage) {
         trace!("object update started");
         for type_id in self.ordering.sorted_types() {
             let mut objects = self
@@ -97,7 +97,7 @@ struct DynObjects {
     objects: Box<dyn Any>,
     lock_fn: fn(&mut Self) -> crate::Result<DynObjects>,
     unlock_fn: fn(&mut Self, DynObjects),
-    update_fn: fn(&mut Self, &mut ObjectStorage, &ObjectIdStorage, &ActionStorage),
+    update_fn: fn(&mut Self, &mut ObjectStorage, &mut ObjectIdStorage, &mut ActionStorage),
     delete_fn: fn(&mut Self, DynId),
 }
 
@@ -121,6 +121,7 @@ impl DynObjects {
                         object_ids,
                         actions,
                         self_id: None,
+                        phantom: PhantomData,
                     });
                 }
             },
@@ -164,8 +165,8 @@ impl DynObjects {
     fn update(
         &mut self,
         objects: &mut ObjectStorage,
-        object_ids: &ObjectIdStorage,
-        actions: &ActionStorage,
+        object_ids: &mut ObjectIdStorage,
+        actions: &mut ActionStorage,
     ) {
         (self.update_fn)(self, objects, object_ids, actions);
     }

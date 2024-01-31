@@ -1,5 +1,6 @@
-use crate::{Context, Object};
+use crate::{Context, Error, Object};
 use derivative::Derivative;
+use std::any;
 use std::any::TypeId;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -42,13 +43,10 @@ where
     ///
     /// The following errors can be returned:
     ///
-    /// - [`Error::ObjectNotFound`](crate::Error::ObjectNotFound)
-    /// - [`Error::ObjectTypeAlreadyLocked`](crate::Error::ObjectTypeAlreadyLocked)
+    /// - [`Error::ObjectNotFound`]
+    /// - [`Error::ObjectTypeAlreadyLocked`]
     #[inline]
-    pub fn get<'a, O>(self, context: &'a Context<'_, O>) -> crate::Result<&'a T>
-    where
-        O: Object,
-    {
+    pub fn get<'a, U>(self, context: &'a Context<'_, U>) -> crate::Result<&'a T> {
         context.objects()?.get(self)
     }
 
@@ -58,13 +56,10 @@ where
     ///
     /// The following errors can be returned:
     ///
-    /// - [`Error::ObjectNotFound`](crate::Error::ObjectNotFound)
-    /// - [`Error::ObjectTypeAlreadyLocked`](crate::Error::ObjectTypeAlreadyLocked)
+    /// - [`Error::ObjectNotFound`]
+    /// - [`Error::ObjectTypeAlreadyLocked`]
     #[inline]
-    pub fn get_mut<'a, O>(self, context: &'a mut Context<'_, O>) -> crate::Result<&'a mut T>
-    where
-        O: Object,
-    {
+    pub fn get_mut<'a, U>(self, context: &'a mut Context<'_, U>) -> crate::Result<&'a mut T> {
         context.objects_mut()?.get_mut(self)
     }
 }
@@ -72,6 +67,13 @@ where
 impl<T> Display for Id<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}|{}", self.index, self.generation_id)
+    }
+}
+
+impl<T> From<Id<T>> for usize {
+    #[inline]
+    fn from(value: Id<T>) -> Self {
+        value.index
     }
 }
 
@@ -90,16 +92,24 @@ pub struct DynId {
 impl DynId {
     /// Returns the typed version of the ID.
     ///
-    /// `None` is returned if the object is not of type `T`.
-    pub fn typed<T>(self) -> Option<Id<T>>
+    /// # Errors
+    ///
+    /// The following errors can be returned:
+    ///
+    /// - [`Error::InvalidIdType`]
+    pub fn typed<T>(self) -> crate::Result<Id<T>>
     where
         T: Object,
     {
-        (self.object_type_id == TypeId::of::<T>()).then_some(Id {
-            index: self.index,
-            generation_id: self.generation_id,
-            phantom: PhantomData,
-        })
+        if self.object_type_id == TypeId::of::<T>() {
+            Ok(Id {
+                index: self.index,
+                generation_id: self.generation_id,
+                phantom: PhantomData,
+            })
+        } else {
+            Err(Error::InvalidIdType(any::type_name::<T>()))
+        }
     }
 }
 
@@ -120,5 +130,12 @@ where
 impl Display for DynId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}|{}", self.index, self.generation_id)
+    }
+}
+
+impl From<DynId> for usize {
+    #[inline]
+    fn from(value: DynId) -> Self {
+        value.index
     }
 }

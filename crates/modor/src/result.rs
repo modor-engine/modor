@@ -20,6 +20,10 @@ pub enum Error {
     /// [`Context::lock_objects`](crate::Context::lock_objects).
     #[error("objects with type `{0}` accessed but already locked")]
     ObjectTypeAlreadyLocked(&'static str),
+    /// The requested object type is already locked, for example by
+    /// [`Context::lock_objects`](crate::Context::lock_objects).
+    #[error("invalid object type `{0}` used to convert ID")]
+    InvalidIdType(&'static str),
     /// Any other error.
     #[error("error occurred: {0}")]
     Other(#[from] Arc<dyn error::Error + Sync + Send>),
@@ -31,23 +35,52 @@ pub(crate) enum InternalError {
     ObjectCreationFailed(&'static str),
 }
 
-/// A trait implemented for types that can be converted to a [`Result<T>`].
-pub trait IntoResult<T> {
+/// A trait implemented for types that can be converted to a [`Result`] of object type.
+pub trait ObjectResult {
+    /// The object type.
+    type Object: Object;
+
     /// Converts `self` to a result.
     #[allow(clippy::missing_errors_doc)]
-    fn into_result(self) -> Result<T>;
+    fn into_result(self) -> Result<Self::Object>;
 }
 
-impl<T> IntoResult<T> for T {
+impl<T> ObjectResult for T
+where
+    T: Object,
+{
+    type Object = T;
+
     fn into_result(self) -> Result<T> {
         Ok(self)
     }
 }
 
-impl<T> IntoResult<T> for Result<T>
+impl<T> ObjectResult for Result<T>
 where
     T: Object,
 {
+    type Object = T;
+
+    fn into_result(self) -> Self {
+        self
+    }
+}
+
+/// A trait implemented for types that can be converted to a [`Result<()>`].
+pub trait UnitResult {
+    /// Converts `self` to a result.
+    #[allow(clippy::missing_errors_doc)]
+    fn into_result(self) -> Result<()>;
+}
+
+impl UnitResult for () {
+    fn into_result(self) -> Result<()> {
+        Ok(self)
+    }
+}
+
+impl UnitResult for Result<()> {
     fn into_result(self) -> Self {
         self
     }

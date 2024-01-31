@@ -4,7 +4,7 @@
 
 use instant::Instant;
 use modor::log::{info, LevelFilter};
-use modor::{App, Context, Id, NoRole, Object, SingletonObject};
+use modor::{App, BuildContext, Id, NoRole, Object, SingletonObject, UpdateContext};
 
 #[modor::main]
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
 struct Main;
 
 impl Main {
-    fn new(ctx: &mut Context<'_, Self>) -> Self {
+    fn new(ctx: &mut BuildContext<'_>) -> Self {
         for _ in 0..1_000_000 {
             ctx.create(Parent::new);
         }
@@ -40,14 +40,14 @@ struct Parent {
 impl Object for Parent {
     type Role = NoRole;
 
-    fn update(&mut self, ctx: &mut Context<'_, Self>) -> modor::Result<()> {
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
         self.value += self.child.get(ctx)?.child.get(ctx)?.value;
         Ok(())
     }
 }
 
 impl Parent {
-    fn new(ctx: &mut Context<'_, Self>) -> Self {
+    fn new(ctx: &mut BuildContext<'_>) -> Self {
         Self {
             child: ctx.create(Child::new),
             value: 0,
@@ -61,7 +61,7 @@ struct Child {
 }
 
 impl Child {
-    fn new(ctx: &mut Context<'_, Self>) -> Self {
+    fn new(ctx: &mut BuildContext<'_>) -> Self {
         Self {
             child: ctx.create(|_| GrandChild::new()),
         }
