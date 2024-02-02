@@ -41,7 +41,7 @@ fn assert_correct_object_count_with_for_each() {
 }
 
 #[modor::test]
-#[should_panic = "assertion failed: expected 4 objects of type integration::app::Level3, \
+#[should_panic = "assertion failed: expected 4 objects of type integration::Level3, \
     3 objects found"]
 fn assert_incorrect_object_count_with_for_each() {
     App::new()
