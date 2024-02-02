@@ -1,5 +1,4 @@
 use crate::{Level1, Level2, Level3, OtherLevel2};
-use log::LevelFilter;
 use modor::{App, NoRole, Object, SingletonObject, UpdateContext};
 
 #[modor::test]
