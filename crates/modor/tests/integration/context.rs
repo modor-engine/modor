@@ -1,5 +1,5 @@
 use crate::{Level1, Level2, Level3, OtherLevel2};
-use modor::{App, Error, NoRole, Object, UpdateContext};
+use modor::{App, BuildContext, Error, NoRole, Object, UpdateContext};
 use modor_derive::SingletonObject;
 
 #[modor::test]
@@ -184,6 +184,23 @@ fn delete_missing_object() {
 }
 
 #[modor::test]
+fn delete_missing_singleton() {
+    let mut id = None;
+    App::new()
+        .create(|_| Root)
+        .for_each(1, |_: &mut Root, ctx| {
+            id = Some(ctx.create(|ctx| MissingSingleton::new_failed(ctx)));
+        })
+        .for_each(1, |_: &mut Root, ctx| {
+            if let Some(id) = id {
+                ctx.delete(id);
+            } else {
+                panic!("id not initialized");
+            }
+        });
+}
+
+#[modor::test]
 fn delete_self_object() {
     App::new()
         .create(|_| Root)
@@ -211,6 +228,13 @@ impl Object for SelfIdTester {
 
 #[derive(SingletonObject)]
 struct MissingSingleton;
+
+impl MissingSingleton {
+    fn new_failed(ctx: &BuildContext<'_>) -> modor::Result<Self> {
+        ctx.singleton::<Self>()?;
+        Ok(Self)
+    }
+}
 
 #[derive(SingletonObject)]
 struct ExistingSingleton;

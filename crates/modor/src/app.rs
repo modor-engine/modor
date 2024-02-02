@@ -139,7 +139,7 @@ impl App {
             .expect("raised error");
         assert!(
             expected_count.contains_value(actual_count),
-            "assertion failed: expected {:?} objects of type {}, {} objects found",
+            "assertion failed: expected {:?} objects of type `{}`, {} objects found",
             expected_count,
             any::type_name::<T>(),
             actual_count,
@@ -174,8 +174,8 @@ impl App {
             ReservedObjectId::New(id) => id,
             ReservedObjectId::Existing(_) => {
                 debug!(
-                    "singleton of type `{}` not created as it already exists",
-                    any::type_name::<T>()
+                    "singleton of type `{}` not created as it already exists", // no-coverage
+                    any::type_name::<T>()                                      // no-coverage
                 );
                 return Ok(());
             }

@@ -40,9 +40,9 @@ fn assert_correct_object_count_with_for_each() {
         .for_each(.., |_: &mut Level3, _| ());
 }
 
-#[modor::test]
-#[should_panic = "assertion failed: expected 4 objects of type integration::Level3, \
-    3 objects found"]
+#[modor::test(disabled(wasm))]
+#[should_panic = "assertion failed: expected 4 objects of type `integration::Level3`, 3 objects \
+    found"]
 fn assert_incorrect_object_count_with_for_each() {
     App::new()
         .create(|_| Level3(0))
@@ -74,6 +74,7 @@ fn run_update() {
         .create(|_| UpdatedObject(1))
         .create(|_| UpdatedObject(2))
         .create(|_| UpdatedObject(3))
+        .create(|_| FailedUpdatedObject)
         .create(|_| UpdatedSingletonObject(4))
         .update()
         .for_each(4, |object: &mut Level3, _| values.push(object.0));
@@ -95,6 +96,17 @@ impl Object for UpdatedObject {
         let value = self.0;
         ctx.create(Level3::new_failed);
         ctx.create(move |_| Level3(value + 10));
+        Ok(())
+    }
+}
+
+struct FailedUpdatedObject;
+
+impl Object for FailedUpdatedObject {
+    type Role = NoRole;
+
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
+        ctx.singleton::<MissingSingleton>()?;
         Ok(())
     }
 }

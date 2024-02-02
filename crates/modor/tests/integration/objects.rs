@@ -69,6 +69,12 @@ fn iterate_on_immutable_objects() {
         assert!(result.contains(&1));
         assert!(result.contains(&2));
         assert!(result.contains(&3));
+        let objects = ctx.objects_mut::<Integer>()?;
+        let result: Vec<_> = (&*objects).into_iter().map(|int| int.0).collect();
+        assert_eq!(result.len(), 3);
+        assert!(result.contains(&1));
+        assert!(result.contains(&2));
+        assert!(result.contains(&3));
         Ok(())
     });
 }
@@ -78,6 +84,12 @@ fn iterate_on_mutable_objects() {
     setup_app().for_each(1, |_root: &mut IntegerRoot, ctx| {
         let objects = ctx.objects_mut::<Integer>()?;
         let result: Vec<_> = objects.iter_mut().map(|int| int.0).collect();
+        assert_eq!(result.len(), 3);
+        assert!(result.contains(&1));
+        assert!(result.contains(&2));
+        assert!(result.contains(&3));
+        let objects = ctx.objects_mut::<Integer>()?;
+        let result: Vec<_> = objects.into_iter().map(|int| int.0).collect();
         assert_eq!(result.len(), 3);
         assert!(result.contains(&1));
         assert!(result.contains(&2));

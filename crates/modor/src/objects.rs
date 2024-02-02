@@ -327,12 +327,12 @@ where
     }
 
     fn reduce_object_vec_size(&mut self) {
-        for _ in (0..self.objects.len()).rev() {
-            if !matches!(self.objects.last(), Some(None)) {
-                return;
-            }
-            self.objects.pop();
-        }
+        let removed_count = self
+            .objects
+            .iter()
+            .map_while(|o| o.is_none().then_some(()))
+            .count();
+        self.objects.truncate(self.objects.len() - removed_count);
     }
 }
 
