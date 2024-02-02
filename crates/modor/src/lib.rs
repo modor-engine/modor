@@ -49,7 +49,7 @@
 //!     type Role = ResourceReader;
 //!
 //!     // Run at each execution of `App::update()`
-//!     fn update(&mut self, ctx: &mut Context<'_, Self>) -> modor::Result<()> {
+//!     fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
 //!         for counter in ctx.objects::<Counter>()? {
 //!             let step = counter.config.get(ctx)?.step;
 //!             println!("Value of counter with step {}: {}", step, counter.value);
@@ -69,14 +69,14 @@
 //!     type Role = Resource;
 //!
 //!     // Run at each execution of `App::update()`
-//!     fn update(&mut self, ctx: &mut Context<'_, Self>) -> modor::Result<()> {
+//!     fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
 //!         self.value += self.config.get(ctx)?.step;
 //!         Ok(())
 //!     }
 //! }
 //!
 //! impl Counter {
-//!     fn new(ctx: &mut Context<'_, Self>, step: u32) -> Self {
+//!     fn new(ctx: &mut BuildContext<'_>, step: u32) -> Self {
 //!         Self {
 //!             value: 0,
 //!             config: ctx.create(move |_| CounterConfig::new(step)),
@@ -102,7 +102,6 @@
 mod app;
 mod context;
 mod id;
-mod logging;
 mod object;
 mod objects;
 mod platform;

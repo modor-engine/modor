@@ -1,14 +1,14 @@
-use crate::storages::actions::{Action, ActionStorage};
 use crate::storages::hierarchy::HierarchyStorage;
 use crate::storages::object_ids::{ObjectIdStorage, ReservedObjectId};
 use crate::storages::objects::ObjectStorage;
 use crate::{
-    logging, BuildContext, Context, DynId, Id, Object, ObjectResult, UnitResult, UpdateContext,
+    platform, BuildContext, Context, DynId, Id, Object, ObjectResult, UnitResult, UpdateContext,
     UsizeRange,
 };
-use log::{debug, error, info, LevelFilter};
+use log::{debug, error, info, Level, LevelFilter};
 use std::any;
 use std::marker::PhantomData;
+use std::sync::Once;
 
 // TODO: add tests
 
@@ -50,17 +50,17 @@ pub struct App {
     pub(crate) objects: ObjectStorage,
     pub(crate) object_ids: ObjectIdStorage,
     pub(crate) hierarchy: HierarchyStorage,
-    pub(crate) actions: ActionStorage,
 }
 
 impl Default for App {
     fn default() -> Self {
-        logging::init();
+        const DEFAULT_LEVEL: Level = Level::Warn;
+        static INIT: Once = Once::new();
+        INIT.call_once(|| platform::init_logging(DEFAULT_LEVEL));
         Self {
             objects: ObjectStorage::default(),
             object_ids: ObjectIdStorage::default(),
             hierarchy: HierarchyStorage::default(),
-            actions: ActionStorage::default(),
         }
     }
 }
@@ -119,6 +119,7 @@ impl App {
         T: Object,
         R: UnitResult,
     {
+        let mut actions = Vec::new();
         let mut actual_count = 0;
         self.objects
             .lock(|all_objects, objects| {
@@ -126,7 +127,7 @@ impl App {
                     let mut context = Context {
                         objects: all_objects,
                         object_ids: &mut self.object_ids,
-                        actions: &mut self.actions,
+                        actions: &mut actions,
                         self_id: Some(id.into()),
                         phantom: PhantomData,
                     };
@@ -144,14 +145,19 @@ impl App {
             any::type_name::<T>(),
             actual_count,
         );
-        let _ = self.run_actions();
+        for action in actions {
+            let _ = self.run_action(action);
+        }
         self
     }
 
     /// Runs [`Object::update`] for all created objects.
     pub fn update(&mut self) -> &mut Self {
-        self.objects.update(&mut self.object_ids, &mut self.actions);
-        let _ = self.run_actions();
+        let mut actions = Vec::new();
+        self.objects.update(&mut self.object_ids, &mut actions);
+        for action in actions {
+            let _ = self.run_action(action);
+        }
         self
     }
 
@@ -195,17 +201,21 @@ impl App {
         T: Object,
         R: ObjectResult<Object = T>,
     {
+        let mut actions = Vec::new();
         let mut context = BuildContext {
             objects: &mut self.objects,
             object_ids: &mut self.object_ids,
-            actions: &mut self.actions,
+            actions: &mut actions,
             self_id: Some(id.into()),
             phantom: PhantomData,
         };
+        // hierarchy updated before object is built to ensure a correct rollback in case of error
+        self.hierarchy.add(id, parent);
         let object = builder(&mut context).into_result()?;
         self.objects.add_object(id, object);
-        self.hierarchy.add(id, parent);
-        self.run_actions()?;
+        for action in actions {
+            self.run_action(action)?;
+        }
         Ok(())
     }
 
@@ -213,17 +223,23 @@ impl App {
         self.hierarchy.delete(id, &mut |id| {
             self.object_ids.delete(id);
             self.objects.delete_object(id);
-            debug!("object with ID {} deleted", id);
         });
     }
 
-    fn run_actions(&mut self) -> crate::Result<()> {
-        for action in self.actions.take() {
-            match action {
-                Action::ObjectDeletion(id) => self.delete_object(id),
-                Action::Other(action) => action(self)?,
+    fn run_action(&mut self, action: Action) -> crate::Result<()> {
+        match action {
+            Action::ObjectDeletion(id) => {
+                self.delete_object(id);
+                Ok(())
             }
+            Action::Other(action) => action(self),
         }
-        Ok(())
     }
 }
+
+pub(crate) enum Action {
+    ObjectDeletion(DynId),
+    Other(OtherAction),
+}
+
+pub(crate) type OtherAction = Box<dyn FnOnce(&mut App) -> crate::Result<()>>;

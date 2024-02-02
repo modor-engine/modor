@@ -1,10 +1,10 @@
 use crate::{DynId, Id, Object};
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 
 #[derive(Debug, Default)]
 pub(crate) struct HierarchyStorage {
     parents: FxHashMap<DynId, Option<DynId>>,
-    children: FxHashMap<DynId, Vec<DynId>>,
+    children: FxHashMap<DynId, FxHashSet<DynId>>,
 }
 
 impl HierarchyStorage {
@@ -14,26 +14,27 @@ impl HierarchyStorage {
     {
         if let Some(parent) = parent {
             *self.parents.entry(object.into()).or_default() = Some(parent);
-            self.children.entry(parent).or_default().push(object.into());
+            self.children
+                .entry(parent)
+                .or_default()
+                .insert(object.into());
         }
     }
 
-    pub(crate) fn delete(&mut self, object: DynId, action: &mut impl FnMut(DynId)) {
+    pub(crate) fn delete(&mut self, object: DynId, callback: &mut impl FnMut(DynId)) {
         if let Some(Some(parent)) = self.parents.remove(&object) {
             if let Some(parent_children) = self.children.get_mut(&parent) {
-                if let Some(pos) = parent_children.iter().position(|&i| i == object) {
-                    parent_children.swap_remove(pos);
-                }
+                parent_children.remove(&object);
             }
         }
-        self.delete_child(object, action);
+        self.delete_child(object, callback);
     }
 
-    fn delete_child(&mut self, object: DynId, action: &mut impl FnMut(DynId)) {
-        action(object);
+    fn delete_child(&mut self, object: DynId, callback: &mut impl FnMut(DynId)) {
+        callback(object);
         self.parents.remove(&object);
         for &id in self.children.remove(&object).iter().flatten() {
-            self.delete(id, action);
+            self.delete_child(id, callback);
         }
     }
 }

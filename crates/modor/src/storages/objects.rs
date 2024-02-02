@@ -1,4 +1,4 @@
-use crate::storages::actions::ActionStorage;
+use crate::app::Action;
 use crate::storages::object_ids::ObjectIdStorage;
 use crate::storages::ordering::OrderingStorage;
 use crate::{Context, DynId, Id, Object, Objects};
@@ -70,7 +70,7 @@ impl ObjectStorage {
     }
 
     #[allow(clippy::needless_collect)]
-    pub(crate) fn update(&mut self, object_ids: &mut ObjectIdStorage, actions: &mut ActionStorage) {
+    pub(crate) fn update(&mut self, object_ids: &mut ObjectIdStorage, actions: &mut Vec<Action>) {
         trace!("object update started");
         for type_id in self.ordering.sorted_types() {
             let mut objects = self
@@ -97,7 +97,7 @@ struct DynObjects {
     objects: Box<dyn Any>,
     lock_fn: fn(&mut Self) -> crate::Result<DynObjects>,
     unlock_fn: fn(&mut Self, DynObjects),
-    update_fn: fn(&mut Self, &mut ObjectStorage, &mut ObjectIdStorage, &mut ActionStorage),
+    update_fn: fn(&mut Self, &mut ObjectStorage, &mut ObjectIdStorage, &mut Vec<Action>),
     delete_fn: fn(&mut Self, DynId),
 }
 
@@ -166,7 +166,7 @@ impl DynObjects {
         &mut self,
         objects: &mut ObjectStorage,
         object_ids: &mut ObjectIdStorage,
-        actions: &mut ActionStorage,
+        actions: &mut Vec<Action>,
     ) {
         (self.update_fn)(self, objects, object_ids, actions);
     }

@@ -9,9 +9,10 @@ use modor::{App, BuildContext, Id, NoRole, Object, SingletonObject, UpdateContex
 #[modor::main]
 fn main() {
     let mut app = App::new();
-    app.set_log_level(LevelFilter::Trace);
+    app.set_log_level(LevelFilter::Info);
     let start = Instant::now();
     app.create(Main::new);
+    app.for_each(.., |_: &mut Parent, ctx| ctx.delete_self());
     info!("Creation time: {:?}", start.elapsed());
     let start = Instant::now();
     for _ in 0..100 {

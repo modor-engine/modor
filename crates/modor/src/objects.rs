@@ -6,7 +6,6 @@ use rayon::iter::{
 };
 use std::iter::{Copied, Enumerate, FilterMap, Flatten, Zip};
 use std::slice::{Iter, IterMut};
-use std::sync::{Arc, RwLock};
 use std::{any, mem};
 
 /// An iterator over immutable reference to objects of type `T` and their associated [`Id<T>`].
@@ -71,7 +70,7 @@ pub struct Objects<T> {
     is_locked: bool,
     objects: Vec<Option<T>>,
     generation_ids: Vec<u64>,
-    logged_errors: Option<Arc<RwLock<FxHashSet<String>>>>,
+    logged_errors: Option<FxHashSet<String>>,
 }
 
 impl<T> Default for Objects<T> {
@@ -80,7 +79,7 @@ impl<T> Default for Objects<T> {
             is_locked: false,
             objects: vec![],
             generation_ids: vec![],
-            logged_errors: Some(Arc::default()),
+            logged_errors: Some(FxHashSet::default()),
         }
     }
 }
@@ -261,15 +260,26 @@ where
     }
 
     pub(crate) fn update(&mut self, context: &mut UpdateContext<'_>) {
-        if let Some(logged_errors) = &self.logged_errors {
-            for (index, generation_id, object) in self
-                .objects
-                .iter_mut()
-                .enumerate()
-                .zip(&self.generation_ids)
-                .filter_map(|((i, o), &g)| o.as_mut().map(|o| (i, g, o)))
-            {
-                Self::update_object(object, index, generation_id, context, logged_errors);
+        self.reduce_object_vec_size();
+        let logged_errors = self
+            .logged_errors
+            .as_mut()
+            .expect("cannot update locked object");
+        for (index, generation_id, object) in self
+            .objects
+            .iter_mut()
+            .enumerate()
+            .zip(&self.generation_ids)
+            .filter_map(|((i, o), &g)| o.as_mut().map(|o| (i, g, o)))
+        {
+            context.self_id = Some(Id::<T>::new(index, generation_id).into());
+            if let Err(err) = object.update(context) {
+                if logged_errors.insert(format!("{err}")) {
+                    error!(
+                        "error when updating object of type `{}`: {err}",
+                        any::type_name::<T>(),
+                    );
+                }
             }
         }
     }
@@ -316,29 +326,12 @@ where
         }
     }
 
-    fn update_object(
-        object: &mut T,
-        object_index: usize,
-        object_generation_id: u64,
-        context: &mut UpdateContext<'_>,
-        logged_errors: &RwLock<FxHashSet<String>>,
-    ) {
-        context.self_id = Some(Id::<T>::new(object_index, object_generation_id).into());
-        if let Err(err) = object.update(context) {
-            let message = format!("{err}");
-            let exists = logged_errors
-                .read()
-                .map_or(false, |errors| errors.contains(&message));
-            if exists {
+    fn reduce_object_vec_size(&mut self) {
+        for _ in (0..self.objects.len()).rev() {
+            if !matches!(self.objects.last(), Some(None)) {
                 return;
             }
-            if let Ok(mut logged_errors) = logged_errors.write() {
-                logged_errors.insert(message);
-            }
-            error!(
-                "error when updating object of type `{}`: {err}",
-                any::type_name::<T>(),
-            );
+            self.objects.pop();
         }
     }
 }

@@ -1,7 +1,8 @@
-use crate::storages::actions::{Action, ActionStorage};
+use crate::app::Action;
 use crate::storages::object_ids::ObjectIdStorage;
 use crate::storages::objects::ObjectStorage;
 use crate::{DynId, Error, Id, InternalError, Object, ObjectResult, Objects, SingletonObject};
+use derivative::Derivative;
 use std::any;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -10,11 +11,13 @@ use std::sync::Arc;
 pub trait ContextType {}
 
 /// The [`Context`] type for object creation.
+#[derive(Debug)]
 pub struct BuildContextType;
 
 impl ContextType for BuildContextType {}
 
 /// The [`Context`] type for object update.
+#[derive(Debug)]
 pub struct UpdateContextType;
 
 impl ContextType for UpdateContextType {}
@@ -30,11 +33,13 @@ pub type UpdateContext<'a> = Context<'a, UpdateContextType>;
 /// # Examples
 ///
 /// See [`modor`](crate).
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Context<'a, T> {
     pub(crate) objects: &'a mut ObjectStorage,
     pub(crate) object_ids: &'a mut ObjectIdStorage,
-    pub(crate) actions: &'a mut ActionStorage,
+    #[derivative(Debug = "ignore")]
+    pub(crate) actions: &'a mut Vec<Action>,
     pub(crate) self_id: Option<DynId>,
     pub(crate) phantom: PhantomData<fn(T)>,
 }
@@ -137,10 +142,10 @@ impl<U> Context<'_, U> {
         })
     }
 
-    /// Creates a new object.
+    /// Creates a new object and returns its unique ID.
     ///
-    /// If the object is a singleton and already exists, or if an error is raised during creation,
-    /// then nothing happens.
+    /// If the object is a singleton and already exists, nothing happens and the ID of the existing
+    /// singleton is returned. If an error is raised during creation, then nothing happens.
     ///
     /// The object is actually created after all objects have been updated.
     ///

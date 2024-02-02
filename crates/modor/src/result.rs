@@ -25,7 +25,7 @@ pub enum Error {
     #[error("invalid object type `{0}` used to convert ID")]
     InvalidIdType(&'static str),
     /// Any other error.
-    #[error("error occurred: {0}")]
+    #[error("{0}")]
     Other(#[from] Arc<dyn error::Error + Sync + Send>),
 }
 
