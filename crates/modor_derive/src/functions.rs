@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use syn::spanned::Spanned;
 use syn::{parse_quote, ItemFn, Meta, Path};
 
+// coverage: off (cannot be tested)
 pub(crate) fn main_function(function: &ItemFn) -> TokenStream {
     let crate_ = utils::crate_ident();
     let ident = &function.sig.ident;
@@ -33,6 +34,7 @@ pub(crate) fn main_function(function: &ItemFn) -> TokenStream {
         }
     }
 }
+// coverage: on
 
 pub(crate) fn test_function(
     function: &ItemFn,

@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![cfg(not(target_arch = "wasm32"))]
 
 use compiletest_rs::common::Mode;
 use compiletest_rs::Config;
