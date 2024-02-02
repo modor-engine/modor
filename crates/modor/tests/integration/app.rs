@@ -1,4 +1,5 @@
 use crate::{Level1, Level2, Level3, OtherLevel2};
+use log::LevelFilter;
 use modor::{App, NoRole, Object, SingletonObject, UpdateContext};
 
 #[modor::test]
@@ -77,8 +78,9 @@ fn run_update() {
         .create(|_| FailedUpdatedObject)
         .create(|_| UpdatedSingletonObject(4))
         .update()
-        .for_each(4, |object: &mut Level3, _| values.push(object.0));
-    assert_eq!(values, [11, 12, 13, 14]);
+        .update()
+        .for_each(8, |object: &mut Level3, _| values.push(object.0));
+    assert_eq!(values, [12, 11, 12, 11, 13, 14, 13, 14]);
 }
 
 #[derive(SingletonObject)]
@@ -100,17 +102,6 @@ impl Object for UpdatedObject {
     }
 }
 
-struct FailedUpdatedObject;
-
-impl Object for FailedUpdatedObject {
-    type Role = NoRole;
-
-    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
-        ctx.singleton::<MissingSingleton>()?;
-        Ok(())
-    }
-}
-
 struct UpdatedSingletonObject(u32);
 
 impl SingletonObject for UpdatedSingletonObject {
@@ -120,6 +111,17 @@ impl SingletonObject for UpdatedSingletonObject {
         let value = self.0;
         ctx.create(Level3::new_failed);
         ctx.create(move |_| Level3(value + 10));
+        Ok(())
+    }
+}
+
+struct FailedUpdatedObject;
+
+impl Object for FailedUpdatedObject {
+    type Role = NoRole;
+
+    fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
+        ctx.singleton::<MissingSingleton>()?;
         Ok(())
     }
 }

@@ -95,8 +95,6 @@ where
         logged_errors: None,
     };
 
-    // TODO: add exists(Id<T>) method (is getting list of deleted items still needed ?)
-
     /// Returns an immutable reference to the object with a given `id`.
     ///
     /// # Errors
@@ -242,13 +240,12 @@ where
     }
 
     pub(crate) fn add(&mut self, object: T, id: Id<T>) {
-        if let Some(current_object) = self.objects.get_mut(id.index) {
-            *current_object = Some(object);
-            self.generation_ids[id.index] = id.generation_id;
-        } else {
-            self.objects.push(Some(object));
-            self.generation_ids.push(id.generation_id);
+        for _ in self.objects.len()..=id.index {
+            self.objects.push(None);
+            self.generation_ids.push(0);
         }
+        self.objects[id.index] = Some(object);
+        self.generation_ids[id.index] = id.generation_id;
     }
 
     pub(crate) fn delete(&mut self, id: Id<T>) {
@@ -319,7 +316,7 @@ where
     }
 
     fn check_id(&self, id: Id<T>) -> crate::Result<()> {
-        if self.generation_ids[id.index] == id.generation_id {
+        if self.generation_ids.get(id.index) == Some(&id.generation_id) {
             Ok(())
         } else {
             Err(Error::ObjectNotFound(any::type_name::<T>()))
@@ -327,12 +324,14 @@ where
     }
 
     fn reduce_object_vec_size(&mut self) {
-        let removed_count = self
-            .objects
-            .iter()
-            .map_while(|o| o.is_none().then_some(()))
-            .count();
-        self.objects.truncate(self.objects.len() - removed_count);
+        let new_len = self.objects.len()
+            - self
+                .objects
+                .iter()
+                .map_while(|o| o.is_none().then_some(()))
+                .count();
+        self.objects.truncate(new_len);
+        self.generation_ids.truncate(new_len);
     }
 }
 
