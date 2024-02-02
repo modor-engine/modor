@@ -8,66 +8,38 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
-rust-version = "1.74.0"
+rust-version = "1.75.0"
 
 [workspace.dependencies]
-ab_glyph = "0.2"
 approx = "0.5"
-android-activity = "0.5"
+android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
-async-std = { version = "1.12", features = ["tokio1"] }
-bytemuck = { version = "1.8", features = ["derive"] }
 cargo-run-wasm = "0.3"
 compiletest_rs = "0.10"
 console_error_panic_hook = "0.1"
 console_log = "1.0"
-criterion = { version = "0.4", default-features = false, features = [
-    "plotters",
-    "cargo_bench_support",
-] }
 darling = "0.20"
 derivative = "2.2"
-doc-comment = "0.3"
 fs_extra = "1.2"
 futures = "0.3"
 fxhash = "0.2"
-getrandom = { version = "*", features = ["js"] } # To fix this issue: https://github.com/rust-random/getrandom/issues/208
-gilrs = "0.10"
-image = "0.24"
 instant = "0.1"
-itertools = "0.12"
 log = "0.4"
+petgraph = "0.6"
 pico-args = "0.5"
 pretty_env_logger = "0.5"
-proc-macro-crate = "2.0"
+proc-macro-crate = "3.0"
 proc-macro-error = "1.0"
 proc-macro2 = "1.0"
 quote = "1.0"
-rand = "0.8"
-rapier2d = "0.17"
-regex = "1.10"
-reqwest = "0.11"
-scoped_threadpool = "0.1"
-spin_sleep = "1.1"
-static_assertions = "1.1"
-syn = { version = "2.0", features = ["full", "extra-traits"] }
-typed-index-collections = "3.0"
-wasm-bindgen-futures = "0.4"
+rayon = "1.8"
+syn = { version = "2.0", features = ["full"] }
+thiserror = "1.0"
 wasm-bindgen-test = "0.3"
-web-sys = { version = "0.3", features = ["Location"] }
-wgpu = "0.18"
-winit = "0.29"
 
 modor = { version = "0.1.0", path = "crates/modor" }
-modor_derive = { version = "0.1.0", path = "crates/modor_derive" }
-modor_graphics = { version = "0.1.0", path = "crates/modor_graphics" }
-modor_input = { version = "0.1.0", path = "crates/modor_input" }
 modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
-modor_jobs = { version = "0.1.0", path = "crates/modor_jobs" }
-modor_math = { version = "0.1.0", path = "crates/modor_math" }
-modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
-modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
-modor_text = { version = "0.1.0", path = "crates/modor_text" }
+modor_derive = { version = "0.1.0", path = "crates/modor_derive" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

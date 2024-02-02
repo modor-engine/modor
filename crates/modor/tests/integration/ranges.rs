@@ -1,6 +1,6 @@
 use modor::UsizeRange;
 
-#[modor_test]
+#[modor::test]
 fn check_whether_value_is_contained() {
     assert!(1.contains_value(1));
     assert!(!1.contains_value(2));
