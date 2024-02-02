@@ -46,3 +46,7 @@ fn invalid_disabled_unknown_platform() {}
 #[modor::test(disabled(windows::platform))]
 //~^ error: allowed platforms are ["android", "linux", "macos", "wasm", "windows"]
 fn invalid_disabled_unknown_path_platform() {}
+
+#[modor::test(cases(one = 1))]
+//~^ error: Unexpected literal type `int`
+fn not_string_case_value() {}

@@ -1,7 +1,9 @@
 use crate::app::Action;
 use crate::storages::object_ids::ObjectIdStorage;
 use crate::storages::objects::ObjectStorage;
-use crate::{DynId, Error, Id, InternalError, Object, ObjectResult, Objects, SingletonObject};
+use crate::{
+    DynId, Error, Id, InternalError, Object, ObjectResult, Objects, SingletonObject, UnitResult,
+};
 use derivative::Derivative;
 use std::any;
 use std::marker::PhantomData;
@@ -123,12 +125,13 @@ impl<U> Context<'_, U> {
     /// The following errors can be returned:
     ///
     /// - [`Error::ObjectTypeAlreadyLocked`]
-    pub fn lock_objects<T>(
+    pub fn lock_objects<T, R>(
         &mut self,
-        f: impl FnOnce(&mut Context<'_, U>, &mut Objects<T>) -> crate::Result<()>,
+        f: impl FnOnce(&mut Context<'_, U>, &mut Objects<T>) -> R,
     ) -> crate::Result<()>
     where
         T: Object,
+        R: UnitResult,
     {
         self.objects.lock::<T>(|all_objects, objects| {
             let mut context = Context {
@@ -138,7 +141,7 @@ impl<U> Context<'_, U> {
                 self_id: self.self_id,
                 phantom: PhantomData,
             };
-            f(&mut context, objects)
+            f(&mut context, objects).into_result()
         })
     }
 

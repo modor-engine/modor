@@ -10,8 +10,6 @@ use std::any;
 use std::marker::PhantomData;
 use std::sync::Once;
 
-// TODO: add tests
-
 /// The entrypoint of the engine.
 ///
 /// # Examples
@@ -109,7 +107,8 @@ impl App {
     ///
     /// # Panics
     ///
-    /// This will panic if the actual number of objects of type `T` doesn't match `expected_count`.
+    /// This will panic if the actual number of objects of type `T` doesn't match `expected_count`
+    /// or if an error is returned from `f`.
     pub fn for_each<T, R>(
         &mut self,
         expected_count: impl UsizeRange,

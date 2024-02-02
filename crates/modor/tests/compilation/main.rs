@@ -6,7 +6,17 @@ use compiletest_rs::Config;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[modor::test(cases(one = "1", two = "2"))]
+fn check_test_cases(value: u32) {
+    assert!(value == 1 || value == 2);
+}
+
 #[modor::test(disabled(wasm))]
+fn check_test_disabled_platforms() {
+    // do nothing, just ensure it compiles
+}
+
+#[modor::test]
 fn check_compilation_failures() {
     let root_path = env!("CARGO_MANIFEST_DIR");
     let target_debug_path = [root_path, "..", "..", "target", "debug"]

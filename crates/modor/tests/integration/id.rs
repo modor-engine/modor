@@ -9,7 +9,7 @@ fn retrieve_immutable_object_from_id() {
             parent.missing.get(ctx),
             Err(Error::ObjectNotFound(_))
         ));
-        ctx.lock_objects::<Child>(|ctx, _| {
+        ctx.lock_objects::<Child, _>(|ctx, _| {
             assert!(matches!(
                 parent.existing.get(ctx),
                 Err(Error::ObjectTypeAlreadyLocked(_))
@@ -18,7 +18,6 @@ fn retrieve_immutable_object_from_id() {
                 parent.missing.get(ctx),
                 Err(Error::ObjectTypeAlreadyLocked(_))
             ));
-            Ok(())
         })?;
         Ok(())
     });
@@ -32,7 +31,7 @@ fn retrieve_mutable_object_from_id() {
             parent.missing.get_mut(ctx),
             Err(Error::ObjectNotFound(_))
         ));
-        ctx.lock_objects::<Child>(|ctx, _| {
+        ctx.lock_objects::<Child, _>(|ctx, _| {
             assert!(matches!(
                 parent.existing.get_mut(ctx),
                 Err(Error::ObjectTypeAlreadyLocked(_))
@@ -41,7 +40,6 @@ fn retrieve_mutable_object_from_id() {
                 parent.missing.get_mut(ctx),
                 Err(Error::ObjectTypeAlreadyLocked(_))
             ));
-            Ok(())
         })?;
         Ok(())
     });

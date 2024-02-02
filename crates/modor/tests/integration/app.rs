@@ -1,4 +1,5 @@
-use modor::{App, BuildContext, NoRole, Object, SingletonObject, UpdateContext};
+use crate::{Level1, Level2, Level3, OtherLevel2};
+use modor::{App, NoRole, Object, SingletonObject, UpdateContext};
 
 #[modor::test]
 fn create_object() {
@@ -77,51 +78,6 @@ fn run_update() {
         .update()
         .for_each(4, |object: &mut Level3, _| values.push(object.0));
     assert_eq!(values, [11, 12, 13, 14]);
-}
-
-#[derive(Object)]
-struct Level1;
-
-impl Level1 {
-    fn new(ctx: &mut BuildContext<'_>) -> Self {
-        ctx.create(|_| OtherLevel2);
-        ctx.create(Level2::new);
-        Self
-    }
-
-    fn new_failed(ctx: &mut BuildContext<'_>) -> Self {
-        ctx.create(|_| OtherLevel2);
-        ctx.create(Level2::new_failed);
-        Self
-    }
-}
-
-#[derive(Object)]
-struct Level2;
-
-impl Level2 {
-    fn new(ctx: &mut BuildContext<'_>) -> Self {
-        ctx.create(|_| Level3(0));
-        Self
-    }
-
-    fn new_failed(ctx: &mut BuildContext<'_>) -> Self {
-        ctx.create(Level3::new_failed);
-        Self
-    }
-}
-
-#[derive(Object)]
-struct OtherLevel2;
-
-#[derive(Object)]
-struct Level3(u32);
-
-impl Level3 {
-    fn new_failed(ctx: &mut BuildContext<'_>) -> modor::Result<Self> {
-        ctx.singleton::<MissingSingleton>()?;
-        Ok(Self(0))
-    }
 }
 
 #[derive(SingletonObject)]

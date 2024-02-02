@@ -31,6 +31,8 @@ pub trait Object: Sized + Any {
     ///
     /// This method is run once per instance during [`App::update`](crate::App::update).
     ///
+    /// As the update locks objects of type `Self`, `ctx` cannot access to these objects.
+    ///
     /// Note that in case no logic is performed in this method, you can quickly implement the
     /// [`Object`] trait with the [`Object`](macro@crate::Object) derive macro.
     ///
@@ -67,6 +69,8 @@ pub trait SingletonObject: Object {
     /// Updates the object.
     ///
     /// This method is run once per instance during [`App::update`](crate::App::update).
+    ///
+    /// As the update locks objects of type `Self`, `ctx` cannot access to these objects.
     ///
     /// Note that in case no logic is performed in this method, you can quickly implement the
     /// [`Object`] trait with the [`Object`](macro@crate::Object) derive macro.
