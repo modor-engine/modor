@@ -1,8 +1,8 @@
 [package]
-name = "modor_internal"
-description = "Internal module of Modor game engine for common utils"
+name = "modor_math"
+description = "Math module of Modor game engine"
 readme = "./README.md"
-keywords = ["modor", "internal"]
+keywords = ["modor", "math", "vector"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
 version.workspace = true
@@ -14,6 +14,13 @@ rust-version.workspace = true
 
 [dependencies]
 approx.workspace = true
+
+[dev-dependencies]
+modor_internal.workspace = true
+modor.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
 
 [lints]
 workspace = true
