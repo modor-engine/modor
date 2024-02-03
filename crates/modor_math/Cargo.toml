@@ -19,5 +19,8 @@ approx.workspace = true
 modor_internal.workspace = true
 modor.workspace = true
 
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
+
 [lints]
 workspace = true
