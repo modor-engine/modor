@@ -1,3 +1,2 @@
-pub mod enum_node;
-pub mod struct_node;
-pub mod tuple_struct_node;
+pub mod node;
+pub mod test;
