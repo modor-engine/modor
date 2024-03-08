@@ -15,31 +15,26 @@ approx = "0.5"
 android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
 cargo-run-wasm = "0.3"
-compiletest_rs = "0.10"
 console_error_panic_hook = "0.1"
 console_log = "1.0"
 darling = "0.20"
-derivative = "2.2"
 fs_extra = "1.2"
-futures = "0.3"
 fxhash = "0.2"
 instant = "0.1"
 log = "0.4"
-petgraph = "0.6"
 pico-args = "0.5"
 pretty_env_logger = "0.5"
 proc-macro-crate = "3.0"
 proc-macro-error = "1.0"
 proc-macro2 = "1.0"
 quote = "1.0"
-rayon = "1.8"
 syn = { version = "2.0", features = ["full"] }
-thiserror = "1.0"
 wasm-bindgen-test = "0.3"
 
 modor = { version = "0.1.0", path = "crates/modor" }
-modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
 modor_derive = { version = "0.1.0", path = "crates/modor_derive" }
+modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
+modor_math = { version = "0.1.0", path = "crates/modor_math" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

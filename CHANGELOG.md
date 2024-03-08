@@ -4,8 +4,7 @@
 
 ### Added
 
-- Object definition
-- Ordering with roles
+- Node definition
 - Physics module
 - Graphics module for 2D rendering
 - Text module
