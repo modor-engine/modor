@@ -156,6 +156,10 @@ pub use modor_derive::Node;
 
 /// Implements [`Visit`].
 ///
+/// `#[modor(skip)]` can be added on a field to skip its automatic update, for example because:
+/// - the field type doesn't implement [`Node`].
+/// - the field is a node but shouldn't be updated for performance reasons.
+///
 /// # Examples
 ///
 /// See [`modor`](crate).
