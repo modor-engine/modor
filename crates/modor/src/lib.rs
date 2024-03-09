@@ -2,131 +2,76 @@
 //!
 //! It has been designed with the following principles in mind:
 //!
-//! - *Simplicity*: everything in the engine is an "object" accessible by any other object.
-//! - *Modularity*: the engine makes it easy to:
-//!     - Extend functionalities of the engine with reusable modules.
-//!     - Split big projects into multiple independent crates.
-//!     - Reduce coupling between parts of a crate.
-//! - *Performance*: the engine can take advantage of CPU caching and parallelization for the most
-//!   demanding operations.
+//! - *Modularity*: the engine makes it easy to extend functionalities in an integrated way and to
+//!     limit coupling between the different parts of an application.
+//! - *Compile-time checking*: the API is designed to avoid as many errors as possible during
+//!     runtime.
+//! - *Simplicity*: the emphasis is on simplifying the API while guaranteeing good performance for
+//!   real-life use cases.
 //!
 //! # Examples
 //!
 //! ```rust
 //! # use modor::*;
+//! # use log::*;
 //! #
 //! fn main() {
-//!     App::new()
-//!         .create(|_| CounterDisplay)
-//!         .create(|ctx| Counter::new(ctx, 1))
-//!         .create(|ctx| Counter::new(ctx, 2))
-//!         .create(|ctx| Counter::new(ctx, 5))
-//!         .update();
+//!     let mut app = App::new::<Root>(Level::Info);
+//!     app.update();
+//!     app.update();
+//!     app.update();
 //! }
 //!
-//! // Roles are used to order object updates.
-//! // Note that modules like physics and graphics modules already provide commonly used roles.
-//! struct Resource;
-//!
-//! impl Role for Resource {
-//!     fn constraints() -> Vec<RoleConstraint> {
-//!         vec![]
-//!     }
+//! #[derive(Visit)]
+//! struct Root {
+//!     counter: Counter,
 //! }
 //!
-//! struct ResourceReader;
-//!
-//! impl Role for ResourceReader {
-//!     fn constraints() -> Vec<RoleConstraint> {
-//!         vec![RoleConstraint::after::<Resource>()]
-//!     }
-//! }
-//!
-//! struct CounterDisplay;
-//!
-//! // Singleton objects have a maximum of one instance that can be easily accessed.
-//! impl SingletonObject for CounterDisplay {
-//!     type Role = ResourceReader;
-//!
-//!     // Run at each execution of `App::update()`
-//!     fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
-//!         for counter in ctx.objects::<Counter>()? {
-//!             let step = counter.config.get(ctx)?.step;
-//!             println!("Value of counter with step {}: {}", step, counter.value);
-//!         }
-//!         Ok(())
-//!     }
-//! }
-//!
-//! struct Counter {
-//!     value: u32,
-//!     config: Id<CounterConfig>, // Enables easy access to the associated CounterConfig instance
-//! }
-//!
-//! // Regular objects can have any number of instances on which it is easy to iterate, and can be
-//! // individually accessed by ID.
-//! impl Object for Counter {
-//!     type Role = Resource;
-//!
-//!     // Run at each execution of `App::update()`
-//!     fn update(&mut self, ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
-//!         self.value += self.config.get(ctx)?.step;
-//!         Ok(())
-//!     }
-//! }
-//!
-//! impl Counter {
-//!     fn new(ctx: &mut BuildContext<'_>, step: u32) -> Self {
+//! impl RootNode for Root {
+//!     fn on_create(ctx: &mut Context<'_>) -> Self {
 //!         Self {
-//!             value: 0,
-//!             config: ctx.create(move |_| CounterConfig::new(step)),
+//!             counter: Counter::default()
 //!         }
 //!     }
 //! }
 //!
-//! // Objects without an `update()` method can be defined with less verbosity.
-//! #[derive(Object)] // SingletonObject can also be derived
-//! struct CounterConfig {
-//!     step: u32
+//! impl Node for Root {
+//!     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+//!         println!("Update counter...");
+//!     }
+//!
+//!     fn on_exit(&mut self, ctx: &mut Context<'_>) {
+//!         println!("Counter updated, new value is {}", self.counter.value);
+//!     }
 //! }
 //!
-//! impl CounterConfig {
-//!     fn new(step: u32) -> Self {
-//!         Self { step }
+//! #[derive(Default, Visit)]
+//! struct Counter {
+//!     #[modor(skip)] // u32 does not implement `Node` trait, so it cannot be visited
+//!     value: u32,
+//! }
+//!
+//! impl Node for Counter {
+//!     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+//!         self.value += 1;
 //!     }
 //! }
 //! ```
 
-#![allow(clippy::non_canonical_clone_impl)] // Warning coming from Derivative macro
-
-mod app;
-mod context;
-mod id;
-mod object;
-mod objects;
-mod platform;
-mod ranges;
-mod result;
-mod role;
-mod storages;
-
-pub use app::*;
-pub use context::*;
-pub use id::*;
-pub use object::*;
-pub use objects::*;
-#[allow(unused_imports, unreachable_pub)]
-pub use platform::*;
-pub use ranges::*;
-pub use result::*;
-pub use role::*;
-
 #[cfg(target_os = "android")]
 pub use android_activity;
 pub use log;
-pub use rayon;
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen_test;
+
+mod app;
+mod node;
+mod platform;
+
+pub use app::*;
+pub use node::*;
+#[allow(unused_imports, unreachable_pub)]
+pub use platform::*;
 
 /// Defines the main function of a Modor application.
 ///
@@ -135,12 +80,17 @@ pub use wasm_bindgen_test;
 /// # Examples
 ///
 /// ```rust
-/// # use modor::App;
+/// # use modor::*;
+/// # use log::*;
 /// #
 /// #[modor::main]
 /// fn my_main() {
-///     App::new().update();
+///     let mut app = App::new::<RootNode>(Level::Info);
+///     app.update();
 /// }
+///
+/// #[derive(Default, RootNode, Node, Visit)]
+/// struct RootNode;
 /// ```
 pub use modor_derive::main;
 
@@ -180,16 +130,37 @@ pub use modor_derive::main;
 /// ```
 pub use modor_derive::test;
 
-/// Implements [`Object`] with a disabled [`Object::update`] method.
+/// Implements [`RootNode`].
+///
+/// The type must implement [`Default`] trait.
 ///
 /// # Examples
 ///
-/// See [`modor`](crate).
-pub use modor_derive::Object;
+/// ```rust
+/// # use modor::*;
+///
+/// #[derive(Default, RootNode, Node, Visit)]
+/// struct Root {
+///     #[modor(skip)]
+///     value: u32,
+/// }
+/// ```
+pub use modor_derive::RootNode;
 
-/// Implements [`SingletonObject`] with a disabled [`SingletonObject::update`] method.
+/// Implements [`Node`].
+///
+/// # Examples
+///
+/// See [`RootNode`](macro@crate::RootNode).
+pub use modor_derive::Node;
+
+/// Implements [`Visit`].
+///
+/// `#[modor(skip)]` can be added on a field to skip its automatic update, for example because:
+/// - the field type doesn't implement [`Node`].
+/// - the field is a node but shouldn't be updated for performance reasons.
 ///
 /// # Examples
 ///
 /// See [`modor`](crate).
-pub use modor_derive::SingletonObject;
+pub use modor_derive::Visit;

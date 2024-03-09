@@ -1,244 +1,152 @@
-use crate::storages::hierarchy::HierarchyStorage;
-use crate::storages::object_ids::{ObjectIdStorage, ReservedObjectId};
-use crate::storages::objects::ObjectStorage;
-use crate::{
-    platform, BuildContext, Context, DynId, Id, Object, ObjectResult, UnitResult, UpdateContext,
-    UsizeRange,
-};
-use log::{debug, error, info, Level, LevelFilter};
+use crate::{platform, Node, RootNode};
+use fxhash::FxHashMap;
+use log::{debug, Level};
 use std::any;
-use std::marker::PhantomData;
-use std::sync::Once;
+use std::any::{Any, TypeId};
+use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
 
 /// The entrypoint of the engine.
 ///
 /// # Examples
 ///
 /// See [`modor`](crate).
-///
-/// [`App`](App) can also be used for testing:
-///
-/// ```rust
-/// # use modor::{App, Object, NoRole, UpdateContext};
-/// #
-/// struct Counter(usize);
-///
-/// impl Object for Counter {
-///     type Role = NoRole;
-///
-///     fn update(&mut self, _ctx: &mut UpdateContext<'_>) -> modor::Result<()> {
-///         self.0 += 1;
-///         Ok(())
-///     }
-/// }
-///
-/// #[modor::test]
-/// fn test_counter() {
-/// # }
-/// # fn main() {
-///     App::new()
-///         .create(|_| Counter(0))
-///         .for_each(1, |counter: &mut Counter, _ctx| assert_eq!(counter.0, 0))
-///         .update()
-///         .for_each(1, |counter: &mut Counter, _ctx| assert_eq!(counter.0, 1));
-/// }
-/// ```
 #[derive(Debug)]
 pub struct App {
-    pub(crate) objects: ObjectStorage,
-    pub(crate) object_ids: ObjectIdStorage,
-    pub(crate) hierarchy: HierarchyStorage,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        const DEFAULT_LEVEL: Level = Level::Warn;
-        static INIT: Once = Once::new();
-        INIT.call_once(|| platform::init_logging(DEFAULT_LEVEL));
-        Self {
-            objects: ObjectStorage::default(),
-            object_ids: ObjectIdStorage::default(),
-            hierarchy: HierarchyStorage::default(),
-        }
-    }
+    roots: FxHashMap<TypeId, RootNodeData>,
 }
 
 impl App {
-    /// Creates a new empty `App`.
+    /// Creates a new app with an initial root node of type `T`.
+    ///
+    /// This also configures logging with a minimum `log_level` to display.
     ///
     /// # Platform-specific
     ///
     /// - Web: logging is initialized using the `console_log` crate and panic hook using the
     ///     `console_error_panic_hook` crate.
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    // coverage: off (logs not easily testable)
-    /// Set minimum log level.
-    ///
-    /// Default minimum log level is [`LevelFilter::Warn`].
-    pub fn set_log_level(&mut self, level: LevelFilter) -> &mut Self {
-        log::set_max_level(level);
-        info!("minimum log level set to '{level}'");
-        self
-    }
-    // coverage: on
-
-    /// Creates a new object.
-    ///
-    /// If the object is a singleton and already exists, then nothing happens.
-    ///
-    /// In case an error is raised during creation, then no object is created.
-    pub fn create<T, R>(&mut self, builder: impl FnOnce(&mut BuildContext<'_>) -> R) -> &mut Self
+    pub fn new<T>(log_level: Level) -> Self
     where
-        T: Object,
-        R: ObjectResult<Object = T>,
+        T: RootNode,
     {
-        let id = self.object_ids.reserve();
-        let _ = self.create_object_or_rollback(id, None, builder);
-        self
-    }
-
-    /// Runs code for each object of type `T`.
-    ///
-    /// This method is generally used for testing purpose.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the actual number of objects of type `T` doesn't match `expected_count`
-    /// or if an error is returned from `f`.
-    pub fn for_each<T, R>(
-        &mut self,
-        expected_count: impl UsizeRange,
-        mut f: impl FnMut(&mut T, &mut UpdateContext<'_>) -> R,
-    ) -> &mut Self
-    where
-        T: Object,
-        R: UnitResult,
-    {
-        let mut actions = Vec::new();
-        let mut actual_count = 0;
-        self.objects
-            .lock(|all_objects, objects| {
-                for (id, object) in objects.iter_mut_enumerated() {
-                    let mut context = Context {
-                        objects: all_objects,
-                        object_ids: &mut self.object_ids,
-                        actions: &mut actions,
-                        self_id: Some(id.into()),
-                        phantom: PhantomData,
-                    };
-                    let result = f(object, &mut context);
-                    actual_count += 1;
-                    result.into_result()?;
-                }
-                Ok(())
-            })
-            .expect("raised error");
-        assert!(
-            expected_count.contains_value(actual_count),
-            "assertion failed: expected {:?} objects of type `{}`, {} objects found",
-            expected_count,
-            any::type_name::<T>(),
-            actual_count,
-        );
-        for action in actions {
-            let _ = self.run_action(action);
-        }
-        self
-    }
-
-    /// Runs [`Object::update`] for all created objects.
-    pub fn update(&mut self) -> &mut Self {
-        let mut actions = Vec::new();
-        self.objects.update(&mut self.object_ids, &mut actions);
-        for action in actions {
-            let _ = self.run_action(action);
-        }
-        self
-    }
-
-    pub(crate) fn create_object_or_rollback<T, R>(
-        &mut self,
-        id: ReservedObjectId<T>,
-        parent: Option<DynId>,
-        builder: impl FnOnce(&mut BuildContext<'_>) -> R,
-    ) -> crate::Result<()>
-    where
-        T: Object,
-        R: ObjectResult<Object = T>,
-    {
-        let id = match id {
-            ReservedObjectId::New(id) => id,
-            ReservedObjectId::Existing(_) => {
-                debug!(
-                    "singleton of type `{}` not created as it already exists", // no-coverage
-                    any::type_name::<T>()                                      // no-coverage
-                );
-                return Ok(());
-            }
+        platform::init_logging(log_level);
+        debug!("initialize app...");
+        let mut app = Self {
+            roots: FxHashMap::default(),
         };
-        let result = self.create_object(id, parent, builder);
-        if let Err(err) = &result {
-            self.delete_object(id.into());
-            error!("`{}` object not created: {err}", any::type_name::<T>());
+        app.root::<T>();
+        debug!("app initialized");
+        app
+    }
+
+    /// Update all root nodes registered in the app.
+    ///
+    /// [`Node::update`] method is called for each registered root node.
+    ///
+    /// Note that update order is predictable inside a root node, but it is not between root nodes.
+    #[allow(clippy::needless_collect)]
+    pub fn update(&mut self) {
+        debug!("run update app...");
+        let roots = self.roots.values().cloned().collect::<Vec<_>>();
+        let mut ctx = Context { app: self };
+        for root in roots {
+            (root.update_fn)(root.value, &mut ctx);
+        }
+        debug!("app updated");
+    }
+
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    pub fn root<T>(&mut self) -> RefMut<'_, T>
+    where
+        T: RootNode,
+    {
+        let type_id = TypeId::of::<T>();
+        let root = if self.roots.contains_key(&type_id) {
+            self.retrieve_root::<T>(type_id)
         } else {
-            debug!("`{}` object with ID {} created", any::type_name::<T>(), id);
-        }
-        result
-    }
-
-    fn create_object<T, R>(
-        &mut self,
-        id: Id<T>,
-        parent: Option<DynId>,
-        builder: impl FnOnce(&mut BuildContext<'_>) -> R,
-    ) -> crate::Result<()>
-    where
-        T: Object,
-        R: ObjectResult<Object = T>,
-    {
-        let mut actions = Vec::new();
-        let mut context = BuildContext {
-            objects: &mut self.objects,
-            object_ids: &mut self.object_ids,
-            actions: &mut actions,
-            self_id: Some(id.into()),
-            phantom: PhantomData,
+            self.create_root::<T>(type_id)
         };
-        // hierarchy updated before object is built to ensure a correct rollback in case of error
-        self.hierarchy.add(id, parent);
-        let object = builder(&mut context).into_result()?;
-        self.objects.add_object(id, object);
-        for action in actions {
-            self.run_action(action)?;
-        }
-        Ok(())
+        RefMut::map(root, Self::downcast_root)
     }
 
-    fn delete_object(&mut self, id: DynId) {
-        self.hierarchy.delete(id, &mut |id| {
-            self.object_ids.delete(id);
-            self.objects.delete_object(id);
-        });
+    fn create_root<T>(&mut self, type_id: TypeId) -> RefMut<'_, dyn Any>
+    where
+        T: RootNode,
+    {
+        let mut ctx = Context { app: self };
+        debug!("create root node `{}`...", any::type_name::<T>());
+        let root = RootNodeData::new(T::on_create(&mut ctx));
+        debug!("root node `{}` created", any::type_name::<T>());
+        self.roots.entry(type_id).or_insert(root).value.borrow_mut()
     }
 
-    fn run_action(&mut self, action: Action) -> crate::Result<()> {
-        match action {
-            Action::ObjectDeletion(id) => {
-                self.delete_object(id);
-                Ok(())
-            }
-            Action::Other(action) => action(self),
-        }
+    fn retrieve_root<T>(&mut self, type_id: TypeId) -> RefMut<'_, dyn Any> {
+        self.roots
+            .get_mut(&type_id)
+            .expect("internal error: missing root node")
+            .value
+            .try_borrow_mut()
+            .unwrap_or_else(|_| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+    }
+
+    fn downcast_root<T>(value: &mut dyn Any) -> &mut T
+    where
+        T: Any,
+    {
+        value
+            .downcast_mut::<T>()
+            .expect("internal error: misconfigured root node")
     }
 }
 
-pub(crate) enum Action {
-    ObjectDeletion(DynId),
-    Other(OtherAction),
+/// The context accessible during node update.
+#[derive(Debug)]
+pub struct Context<'a> {
+    app: &'a mut App,
 }
 
-pub(crate) type OtherAction = Box<dyn FnOnce(&mut App) -> crate::Result<()>>;
+impl Context<'_> {
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    pub fn root<T>(&mut self) -> RefMut<'_, T>
+    where
+        T: RootNode,
+    {
+        self.app.root()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RootNodeData {
+    value: Rc<RefCell<dyn Any>>,
+    update_fn: fn(Rc<RefCell<dyn Any>>, &mut Context<'_>),
+}
+
+impl RootNodeData {
+    fn new<T>(value: T) -> Self
+    where
+        T: RootNode,
+    {
+        Self {
+            value: Rc::new(RefCell::new(value)),
+            update_fn: Self::update_root::<T>,
+        }
+    }
+
+    fn update_root<T>(value: Rc<RefCell<dyn Any>>, ctx: &mut Context<'_>)
+    where
+        T: RootNode,
+    {
+        Node::update(
+            value
+                .borrow_mut()
+                .downcast_mut::<T>()
+                .expect("internal error: misconfigured root node"),
+            ctx,
+        );
+    }
+}

@@ -11,21 +11,19 @@ Modor is a *mod*ular and *o*bject-o*r*iented game engine.
 
 It has been designed with the following principles in mind:
 
-- *Simplicity*: everything in the engine is an "object" accessible by any other object.
-- *Modularity*: the engine makes it easy to:
-    - Extend functionalities of the engine with reusable modules.
-    - Split big projects into multiple independent crates.
-    - Reduce coupling between parts of a crate.
-- *Performance*: the engine can take advantage of CPU caching and parallelization for the most
-  demanding operations.
+- *Modularity*: the engine makes it easy to extend functionalities in an integrated way and to limit
+  coupling between the different parts of an application.
+- *Compile-time checking*: the API is designed to avoid as many errors as possible during runtime.
+- *Simplicity*: the emphasis is on simplifying the API while guaranteeing good performance for
+  real-life use cases.
 
 ## ⚠️ Warning ⚠️
 
 Before considering to use this game engine, please keep in mind that:
 
 - It is developed by a single person in his spare time.
-- As this engine can already be used to develop 2D games, some important features might still be
-  missing.
+- Although this engine can already be used to develop 2D games, some important features might still
+  be missing.
 - This engine is code-oriented, so no editor is included.
 
 ## Supported platforms
