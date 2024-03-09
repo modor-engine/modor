@@ -2,8 +2,7 @@ use crate::utils;
 use darling::ast::NestedMeta;
 use darling::util::{PathList, SpannedValue};
 use darling::FromMeta;
-use proc_macro2::{Ident, TokenStream};
-use proc_macro_error::{abort, OptionExt};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use std::collections::HashMap;
 use syn::spanned::Spanned;
@@ -22,7 +21,7 @@ pub(crate) fn main_function(function: &ItemFn) -> TokenStream {
             #ident();
         }
 
-        // Unused main method, defined only to avoid error with Clippy
+        // Unused main method to remove Clippy warning
         #[cfg(target_os = "android")]
         #[allow(dead_code)]
         fn main() {}
@@ -41,11 +40,11 @@ pub(crate) fn test_function(
     args: TokenStream,
 ) -> Result<TokenStream, TokenStream> {
     let context = TestContext::new(function, args)?;
-    context.check_platform_paths();
+    context.check_platform_paths()?;
     if context.args.cases.0.is_empty() {
         Ok(context.annotated_without_cases())
     } else {
-        Ok(context.annotated_with_cases())
+        context.annotated_with_cases()
     }
 }
 
@@ -72,16 +71,20 @@ impl<'a> TestContext<'a> {
         })
     }
 
-    fn check_platform_paths(&self) {
+    fn check_platform_paths(&self) -> Result<(), TokenStream> {
         for platform in self.args.disabled.iter() {
-            if platform.segments.len() > 1 {
-                abort!(
-                    platform,
-                    "allowed platforms are {:?}",
-                    self.supported_platforms
-                );
+            if platform.segments.len() > 1
+                || !self
+                    .platform_conditions
+                    .contains_key(platform_as_str(platform).as_str())
+            {
+                return Err(error(
+                    platform.span(),
+                    &format!("allowed platforms are {:?}", self.supported_platforms),
+                ));
             }
         }
+        Ok(())
     }
 
     fn annotated_without_cases(&self) -> TokenStream {
@@ -99,19 +102,19 @@ impl<'a> TestContext<'a> {
         }
     }
 
-    fn annotated_with_cases(&self) -> TokenStream {
+    fn annotated_with_cases(&self) -> Result<TokenStream, TokenStream> {
         let crate_ = utils::crate_ident();
         let function = &self.function;
         let main_function_ident = &function.sig.ident;
         let disabled_platform_conditions = self.disabled_platform_conditions();
-        let test_functions = self.args.cases.0.iter().map(|(suffix, params)| {
+        let mut test_functions = vec![];
+        for (suffix, params) in &self.args.cases.0 {
             let span = params.span();
             let function_ident =
                 Ident::new(&format!("{main_function_ident}_{suffix}"), span.span());
             let params = params
                 .parse::<TokenStream>()
-                .ok()
-                .expect_or_abort("cannot parse test case args")
+                .map_err(|_| error(Span::call_site(), "cannot parse test case args"))?
                 .into_iter()
                 .map(|mut token| {
                     token.set_span(span);
@@ -119,7 +122,7 @@ impl<'a> TestContext<'a> {
                 })
                 .collect::<TokenStream>();
             let params = quote_spanned! {span => #params};
-            quote_spanned! {
+            test_functions.push(quote_spanned! {
                 span =>
                 #[cfg_attr(any(#(#disabled_platform_conditions),*), allow(unused))]
                 #[cfg_attr(not(any(#(#disabled_platform_conditions),*)), test)]
@@ -130,13 +133,13 @@ impl<'a> TestContext<'a> {
                 fn #function_ident() {
                     #main_function_ident(#params);
                 }
-            }
-        });
-        quote! {
+            });
+        }
+        Ok(quote! {
             #function
 
             #(#test_functions)*
-        }
+        })
     }
 
     fn disabled_platform_conditions(&self) -> Vec<Meta> {
@@ -149,16 +152,7 @@ impl<'a> TestContext<'a> {
     }
 
     fn platform_condition(&self, platform: &Path) -> Meta {
-        self.platform_conditions
-            .get(platform.segments[0].ident.to_string().as_str())
-            .unwrap_or_else(|| {
-                abort!(
-                    platform,
-                    "allowed platforms are {:?}",
-                    self.supported_platforms
-                )
-            })
-            .clone()
+        self.platform_conditions[platform_as_str(platform).as_str()].clone()
     }
 
     fn platform_conditions() -> HashMap<&'static str, Meta> {
@@ -183,11 +177,19 @@ impl<'a> TestContext<'a> {
     }
 }
 
+fn error(span: Span, error: &str) -> TokenStream {
+    syn::Error::new(span, error).into_compile_error()
+}
+
+fn platform_as_str(platform: &Path) -> String {
+    platform.segments[0].ident.to_string()
+}
+
 #[derive(FromMeta)]
 struct TestArgs {
+    // coverage: off (false positive)
     #[darling(default)]
     disabled: PathList,
-    // coverage: off (false positive)
     #[darling(default)]
     cases: TestCases,
     // coverage: on
@@ -195,3 +197,25 @@ struct TestArgs {
 
 #[derive(Default, FromMeta)]
 struct TestCases(HashMap<String, SpannedValue<String>>);
+
+#[cfg(test)]
+mod tests {
+    use proc_macro2::TokenStream;
+    use syn::ItemFn;
+
+    #[test]
+    fn exclude_unsupported_platform_from_test_without_cases() -> syn::Result<()> {
+        let function = syn::parse_str::<ItemFn>("fn test() {}")?;
+        let args = syn::parse_str::<TokenStream>("disabled(xbox)")?;
+        assert!(super::test_function(&function, args).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn exclude_unsupported_platform_from_test_with_cases() -> syn::Result<()> {
+        let function = syn::parse_str::<ItemFn>("fn test() {}")?;
+        let args = syn::parse_str::<TokenStream>("disabled(xbox), cases(one=\"1\")")?;
+        assert!(super::test_function(&function, args).is_err());
+        Ok(())
+    }
+}

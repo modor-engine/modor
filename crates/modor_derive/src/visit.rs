@@ -78,7 +78,9 @@ struct VisitField {
     ident: Option<Ident>,
     ty: Type,
     #[darling(default)]
+    // coverage: off (incorrect coverage result)
     skip: bool,
+    // coverage: on
 }
 
 #[derive(FromVariant)]
@@ -86,5 +88,7 @@ struct VisitField {
 struct VisitVariant {
     ident: Ident,
     #[darling(default)]
+    // coverage: off (incorrect coverage result)
     skip: bool,
+    // coverage: on
 }

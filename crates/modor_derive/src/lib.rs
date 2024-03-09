@@ -12,7 +12,6 @@ mod visit;
 // coverage: off (cannot be tested)
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
-#[proc_macro_error::proc_macro_error]
 pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
     let function = parse_macro_input!(item as ItemFn);
     functions::main_function(&function).into()
@@ -21,7 +20,6 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_attribute]
-#[proc_macro_error::proc_macro_error]
 pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
     let function = parse_macro_input!(item as ItemFn);
     let args = args.into();
@@ -32,7 +30,6 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(RootNode)]
-#[proc_macro_error::proc_macro_error]
 pub fn root_node_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     root_node::impl_block(&input).into()
@@ -40,7 +37,6 @@ pub fn root_node_derive(item: TokenStream) -> TokenStream {
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(Node)]
-#[proc_macro_error::proc_macro_error]
 pub fn node_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     node::impl_block(&input).into()
@@ -48,7 +44,6 @@ pub fn node_derive(item: TokenStream) -> TokenStream {
 
 #[allow(missing_docs)] // doc available in `modor` crate
 #[proc_macro_derive(Visit, attributes(modor))]
-#[proc_macro_error::proc_macro_error]
 pub fn visit_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     visit::impl_block(&input)

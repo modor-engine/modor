@@ -5,7 +5,6 @@
 )] // Warnings coming from Derivative macro
 
 // TODO: add doc
-// TODO: cleanup dependencies
 
 #[cfg(target_os = "android")]
 pub use android_activity;
