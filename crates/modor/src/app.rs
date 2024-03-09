@@ -6,12 +6,26 @@ use std::any::{Any, TypeId};
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
+/// The entrypoint of the engine.
+///
+/// # Examples
+///
+/// See [`modor`](crate).
 #[derive(Debug)]
 pub struct App {
     roots: FxHashMap<TypeId, RootNodeData>,
 }
 
 impl App {
+    /// Creates a new app with an initial root node of type `T`.
+    ///
+    /// This also configures logging with a minimum `log_level` to display.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: logging is initialized using the `console_log` crate and panic hook using the
+    ///     `console_error_panic_hook` crate.
+    /// - Other: logging is initialized using the `pretty_env_logger` crate.
     pub fn new<T>(log_level: Level) -> Self
     where
         T: RootNode,
@@ -26,6 +40,11 @@ impl App {
         app
     }
 
+    /// Update all root nodes registered in the app.
+    ///
+    /// [`Node::update`] method is called for each registered root node.
+    ///
+    /// Note that update order is predictable inside a root node, but it is not between root nodes.
     #[allow(clippy::needless_collect)]
     pub fn update(&mut self) {
         debug!("run update app...");
@@ -37,6 +56,9 @@ impl App {
         debug!("app updated");
     }
 
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
     pub fn root<T>(&mut self) -> RefMut<'_, T>
     where
         T: RootNode,
@@ -80,12 +102,16 @@ impl App {
     }
 }
 
+/// The context accessible during node update.
 #[derive(Debug)]
 pub struct Context<'a> {
     app: &'a mut App,
 }
 
 impl Context<'_> {
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
     pub fn root<T>(&mut self) -> RefMut<'_, T>
     where
         T: RootNode,
@@ -95,7 +121,7 @@ impl Context<'_> {
 }
 
 #[derive(Clone, Debug)]
-pub struct RootNodeData {
+struct RootNodeData {
     value: Rc<RefCell<dyn Any>>,
     update_fn: fn(Rc<RefCell<dyn Any>>, &mut Context<'_>),
 }
