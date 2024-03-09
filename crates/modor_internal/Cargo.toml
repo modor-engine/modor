@@ -1,6 +1,6 @@
 [package]
 name = "modor_internal"
-description = "Internal module of Modor game engine for common utils"
+description = "Internal utilities for Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "internal"]
 categories = ["game-engines"]

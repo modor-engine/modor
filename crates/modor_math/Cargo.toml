@@ -1,6 +1,6 @@
 [package]
 name = "modor_math"
-description = "Math module of Modor game engine"
+description = "Math crate of Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "math", "vector"]
 categories = ["game-engines"]
