@@ -1,8 +1,7 @@
 use modor::log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
 use modor_math::Vec2;
-use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta};
-use std::time::Duration;
+use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
 fn recreate_group() {
@@ -61,7 +60,6 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().duration = Duration::from_secs(2);
         Self {
             body1: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
             body2: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),

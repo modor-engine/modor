@@ -40,6 +40,8 @@ fn colliding_bodies_with_sensor() {
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.75);
     assert_eq!(body.collisions()[0].other_index, 1);
     assert_eq!(body.collisions()[0].other_group_index, group2.index());
+    assert!(body.is_colliding_with(&group2));
+    assert!(!body.is_colliding_with(&group1));
     let body = body2(&mut app);
     assert_approx_eq!(body.position, Vec2::X);
     assert_eq!(body.collisions().len(), 1);
@@ -47,6 +49,8 @@ fn colliding_bodies_with_sensor() {
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.75);
     assert_eq!(body.collisions()[0].other_index, 0);
     assert_eq!(body.collisions()[0].other_group_index, group1.index());
+    assert!(body.is_colliding_with(&group1));
+    assert!(!body.is_colliding_with(&group2));
 }
 
 #[modor::test]
@@ -65,6 +69,8 @@ fn colliding_bodies_with_impulse() {
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.053_567);
     assert_eq!(body.collisions()[0].other_index, 1);
     assert_eq!(body.collisions()[0].other_group_index, group2.index());
+    assert!(body.is_colliding_with(&group2));
+    assert!(!body.is_colliding_with(&group1));
     let body = body2(&mut app);
     assert!(body.position.x > 1.1);
     assert_eq!(body.collisions().len(), 1);
@@ -72,6 +78,8 @@ fn colliding_bodies_with_impulse() {
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.053_567);
     assert_eq!(body.collisions()[0].other_index, 0);
     assert_eq!(body.collisions()[0].other_group_index, group1.index());
+    assert!(body.is_colliding_with(&group1));
+    assert!(!body.is_colliding_with(&group2));
 }
 
 #[modor::test(cases(
