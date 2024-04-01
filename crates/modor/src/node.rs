@@ -11,7 +11,9 @@ use std::ops::DerefMut;
 ///
 /// See [`modor`](crate).
 pub trait RootNode: 'static + Node {
+    /// Creates the root node.
     ///
+    /// Note that this method shouldn't be called manually to create the node.
     fn on_create(ctx: &mut Context<'_>) -> Self;
 }
 
@@ -35,6 +37,8 @@ pub trait Node: Visit {
     fn on_exit(&mut self, ctx: &mut Context<'_>) {}
 
     /// Runs node update.
+    ///
+    /// This method should be automatically called by [`Visit::visit`].
     ///
     /// By default, the following methods are executed in order:
     /// - [`Node::on_enter`]
