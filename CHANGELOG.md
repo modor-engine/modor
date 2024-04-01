@@ -5,10 +5,10 @@
 ### Added
 
 - Node definition
-- Physics module
-- Graphics module for 2D rendering
-- Text module
-- Input module with support of keyboard, mouse, touch and gamepads
-- Resources module to easily load and access resources like textures, font, sounds, ...
+- Physics for 2D objects
+- Graphics for 2D rendering
+- Text rendering
+- Input support for keyboard, mouse, touch and gamepads
+- Resources handling to easily load and access resources like textures, font, sounds, ...
 - Asynchronous job utilities
 - Support for Windows, Linux, macOS, Android and WebAssembly

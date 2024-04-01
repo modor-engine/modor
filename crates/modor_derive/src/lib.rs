@@ -46,7 +46,14 @@ pub fn node_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_derive(Visit, attributes(modor))]
 pub fn visit_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    visit::impl_block(&input)
+    visit::impl_block_with_visit(&input)
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(NoVisit)]
+pub fn no_visit_derive(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    visit::impl_block_without_visit(&input).into()
 }

@@ -61,11 +61,11 @@ For example: `cargo run --example rendering_2d --release`
 
 ## Behind the scene
 
-Here are the main libaries used behind the modules of modor:
+Here are the main libraries used to implement Modor:
 
-- Graphics module is backed by [winit](https://github.com/rust-windowing/winit)
+- Graphics crate is backed by [winit](https://github.com/rust-windowing/winit)
   and [wgpu](https://wgpu.rs/).
-- Physics module is backed by [rapier](https://rapier.rs/).
+- Physics crate is backed by [rapier](https://rapier.rs/).
 
 ## License
 

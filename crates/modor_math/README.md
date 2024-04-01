@@ -1,3 +1,3 @@
 # modor_math
 
-Math module of [Modor](https://github.com/modor-engine/modor).
+Math crate of [Modor](https://github.com/modor-engine/modor).

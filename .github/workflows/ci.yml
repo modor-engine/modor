@@ -113,8 +113,6 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --debug
         if: matrix.target == 'wasm32-unknown-unknown'
-      - name: Prepare compilation tests
-        run: bash -x .github/workflows/scripts/prepare_compilation_tests.sh
       - name: Test WASM
         run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
         if: matrix.target == 'wasm32-unknown-unknown'
@@ -149,8 +147,6 @@ jobs:
         run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
       - name: Install grcov
         run: cargo install grcov --debug
-      - name: Prepare compilation tests
-        run: bash -x .github/workflows/scripts/prepare_compilation_tests.sh
       - name: Run unit tests
         run: xvfb-run --server-args="-screen 0 1920x1080x24" cargo test --lib --tests
         env:

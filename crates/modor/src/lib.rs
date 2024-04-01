@@ -138,7 +138,7 @@ pub use modor_derive::test;
 ///
 /// ```rust
 /// # use modor::*;
-///
+/// #
 /// #[derive(Default, RootNode, Node, Visit)]
 /// struct Root {
 ///     #[modor(skip)]
@@ -154,7 +154,24 @@ pub use modor_derive::RootNode;
 /// See [`RootNode`](macro@crate::RootNode).
 pub use modor_derive::Node;
 
-/// Implements [`Visit`].
+/// Implements [`Visit`] in case there is no inner node.
+///
+/// This macro can be used instead of [`Visit`](macro@crate::Visit) when there is no inner node.
+/// This avoids unnecessary usage of `#[modor(skip)]` in case all fields should be skipped.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Default, RootNode, Node, NoVisit)]
+/// struct Root {
+///     value: u32,
+/// }
+/// ```
+pub use modor_derive::NoVisit;
+
+/// Implements [`Visit`] so that inner node are visited.
 ///
 /// `#[modor(skip)]` can be added on a field to skip its automatic update, for example because:
 /// - the field type doesn't implement [`Node`].

@@ -3,8 +3,6 @@ use fxhash::FxHashMap;
 use log::{debug, Level};
 use std::any;
 use std::any::{Any, TypeId};
-use std::cell::{RefCell, RefMut};
-use std::rc::Rc;
 
 /// The entrypoint of the engine.
 ///
@@ -13,7 +11,8 @@ use std::rc::Rc;
 /// See [`modor`](crate).
 #[derive(Debug)]
 pub struct App {
-    roots: FxHashMap<TypeId, RootNodeData>,
+    root_indexes: FxHashMap<TypeId, usize>,
+    roots: Vec<RootNodeData>, // ensures deterministic update order
 }
 
 impl App {
@@ -33,7 +32,8 @@ impl App {
         platform::init_logging(log_level);
         debug!("initialize app...");
         let mut app = Self {
-            roots: FxHashMap::default(),
+            root_indexes: FxHashMap::default(),
+            roots: vec![],
         };
         app.root::<T>();
         debug!("app initialized");
@@ -44,64 +44,72 @@ impl App {
     ///
     /// [`Node::update`] method is called for each registered root node.
     ///
-    /// Note that update order is predictable inside a root node, but it is not between root nodes.
-    #[allow(clippy::needless_collect)]
+    /// Root nodes are updated in the order in which they are created.
     pub fn update(&mut self) {
         debug!("run update app...");
-        let roots = self.roots.values().cloned().collect::<Vec<_>>();
-        let mut ctx = Context { app: self };
-        for root in roots {
-            (root.update_fn)(root.value, &mut ctx);
+        for root_index in 0..self.roots.len() {
+            let root = &mut self.roots[root_index];
+            let mut value = root
+                .value
+                .take()
+                .expect("internal error: root node already borrowed");
+            let update_fn = root.update_fn;
+            update_fn(&mut *value, &mut self.ctx());
+            self.roots[root_index].value = Some(value);
         }
         debug!("app updated");
+    }
+
+    /// Returns an update context.
+    ///
+    /// This method is generally used for testing purpose.
+    pub fn ctx(&mut self) -> Context<'_> {
+        Context { app: self }
     }
 
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn root<T>(&mut self) -> RefMut<'_, T>
+    pub fn root<T>(&mut self) -> &mut T
     where
         T: RootNode,
     {
         let type_id = TypeId::of::<T>();
-        let root = if self.roots.contains_key(&type_id) {
+        let root = if self.root_indexes.contains_key(&type_id) {
             self.retrieve_root::<T>(type_id)
         } else {
             self.create_root::<T>(type_id)
         };
-        RefMut::map(root, Self::downcast_root)
+        root.downcast_mut::<T>()
+            .expect("internal error: misconfigured root node")
     }
 
-    fn create_root<T>(&mut self, type_id: TypeId) -> RefMut<'_, dyn Any>
+    fn create_root<T>(&mut self, type_id: TypeId) -> &mut dyn Any
     where
         T: RootNode,
     {
-        let mut ctx = Context { app: self };
         debug!("create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::on_create(&mut ctx));
+        let root = RootNodeData::new(T::on_create(&mut self.ctx()));
         debug!("root node `{}` created", any::type_name::<T>());
-        self.roots.entry(type_id).or_insert(root).value.borrow_mut()
-    }
-
-    fn retrieve_root<T>(&mut self, type_id: TypeId) -> RefMut<'_, dyn Any> {
-        self.roots
-            .get_mut(&type_id)
-            .expect("internal error: missing root node")
+        let index = self.roots.len();
+        self.root_indexes.insert(type_id, index);
+        self.roots.push(root);
+        &mut **self.roots[index]
             .value
-            .try_borrow_mut()
-            .unwrap_or_else(|_| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .as_mut()
+            .expect("internal error: root node already borrowed")
     }
 
-    fn downcast_root<T>(value: &mut dyn Any) -> &mut T
-    where
-        T: Any,
-    {
-        value
-            .downcast_mut::<T>()
-            .expect("internal error: misconfigured root node")
+    fn retrieve_root<T>(&mut self, type_id: TypeId) -> &mut dyn Any {
+        &mut **self.roots[self.root_indexes[&type_id]]
+            .value
+            .as_mut()
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
     }
 }
 
+// If `App` was directly accessible during update, it would be possible to run `App::update`.
+// As this is not wanted, `App` is wrapped in `Context` to limit the allowed operations.
 /// The context accessible during node update.
 #[derive(Debug)]
 pub struct Context<'a> {
@@ -112,7 +120,11 @@ impl Context<'_> {
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn root<T>(&mut self) -> RefMut<'_, T>
+    ///
+    /// # Panics
+    ///
+    /// This will panic if root node `T` is currently updated.
+    pub fn root<T>(&mut self) -> &mut T
     where
         T: RootNode,
     {
@@ -120,10 +132,10 @@ impl Context<'_> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct RootNodeData {
-    value: Rc<RefCell<dyn Any>>,
-    update_fn: fn(Rc<RefCell<dyn Any>>, &mut Context<'_>),
+    value: Option<Box<dyn Any>>,
+    update_fn: fn(&mut dyn Any, &mut Context<'_>),
 }
 
 impl RootNodeData {
@@ -132,18 +144,17 @@ impl RootNodeData {
         T: RootNode,
     {
         Self {
-            value: Rc::new(RefCell::new(value)),
+            value: Some(Box::new(value)),
             update_fn: Self::update_root::<T>,
         }
     }
 
-    fn update_root<T>(value: Rc<RefCell<dyn Any>>, ctx: &mut Context<'_>)
+    fn update_root<T>(value: &mut dyn Any, ctx: &mut Context<'_>)
     where
         T: RootNode,
     {
         Node::update(
             value
-                .borrow_mut()
                 .downcast_mut::<T>()
                 .expect("internal error: misconfigured root node"),
             ctx,

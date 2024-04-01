@@ -1,8 +1,8 @@
 [package]
-name = "modor_math"
-description = "Math crate of Modor game engine"
+name = "modor_physics"
+description = "Physics crate of Modor game engine"
 readme = "./README.md"
-keywords = ["modor", "math", "vector"]
+keywords = ["modor", "physics", "collision", "game", "engine"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
 version.workspace = true
@@ -14,10 +14,11 @@ rust-version.workspace = true
 
 [dependencies]
 approx.workspace = true
-
-[dev-dependencies]
-modor_internal.workspace = true
+fxhash.workspace = true
+rapier2d.workspace = true
 modor.workspace = true
+modor_math.workspace = true
+modor_internal.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test.workspace = true

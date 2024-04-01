@@ -6,7 +6,20 @@ use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{DeriveInput, Index, Type};
 
-pub(crate) fn impl_block(input: &DeriveInput) -> syn::Result<TokenStream> {
+pub(crate) fn impl_block_without_visit(input: &DeriveInput) -> TokenStream {
+    let crate_ident = utils::crate_ident();
+    let ident = &input.ident;
+    let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
+    quote! {
+        #[automatically_derived]
+        impl #impl_generics ::#crate_ident::Visit for #ident #type_generics #where_clause {
+            #[inline]
+            fn visit(&mut self, ctx: &mut ::#crate_ident::Context<'_>) {}
+        }
+    }
+}
+
+pub(crate) fn impl_block_with_visit(input: &DeriveInput) -> syn::Result<TokenStream> {
     let crate_ident = utils::crate_ident();
     let ident = &input.ident;
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
@@ -17,6 +30,7 @@ pub(crate) fn impl_block(input: &DeriveInput) -> syn::Result<TokenStream> {
     Ok(quote! {
         #[automatically_derived]
         impl #impl_generics ::#crate_ident::Visit for #ident #type_generics #where_clause {
+            #[inline]
             fn visit(&mut self, ctx: &mut ::#crate_ident::Context<'_>) {
                 #visit_body
             }

@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 
+use instant::Instant;
 use modor::log::{info, Level};
 use modor::{App, Context, Node, RootNode, Visit};
-use std::time::Instant;
 
 fn main() {
     let start = Instant::now();
