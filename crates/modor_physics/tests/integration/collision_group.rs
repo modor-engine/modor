@@ -1,8 +1,8 @@
-use std::time::Duration;
 use modor::log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
 use modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta};
+use std::time::Duration;
 
 #[modor::test]
 fn recreate_group() {
