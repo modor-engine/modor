@@ -45,7 +45,6 @@ impl App {
     /// [`Node::update`] method is called for each registered root node.
     ///
     /// Root nodes are updated in the order in which they are created.
-    #[allow(clippy::needless_collect)]
     pub fn update(&mut self) {
         debug!("run update app...");
         for root_index in 0..self.roots.len() {
