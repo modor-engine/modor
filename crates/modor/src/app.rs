@@ -48,15 +48,15 @@ impl App {
     #[allow(clippy::needless_collect)]
     pub fn update(&mut self) {
         debug!("run update app...");
-        for type_id in self.root_indexes.keys().copied().collect::<Vec<_>>() {
-            let root = self.root_data(type_id);
+        for root_index in 0..self.roots.len() {
+            let root = &mut self.roots[root_index];
             let mut value = root
                 .value
                 .take()
                 .expect("internal error: root node already borrowed");
             let update_fn = root.update_fn;
             update_fn(&mut *value, &mut self.ctx());
-            self.root_data(type_id).value = Some(value);
+            self.roots[root_index].value = Some(value);
         }
         debug!("app updated");
     }
@@ -102,16 +102,10 @@ impl App {
     }
 
     fn retrieve_root<T>(&mut self, type_id: TypeId) -> &mut dyn Any {
-        &mut **self
-            .root_data(type_id)
+        &mut **self.roots[self.root_indexes[&type_id]]
             .value
             .as_mut()
             .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
-    }
-
-    fn root_data(&mut self, type_id: TypeId) -> &mut RootNodeData {
-        let index = self.root_indexes[&type_id];
-        &mut self.roots[index]
     }
 }
 
