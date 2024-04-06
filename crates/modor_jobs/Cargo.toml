@@ -25,8 +25,5 @@ reqwest.workspace = true
 wasm-bindgen-futures.workspace = true
 web-sys.workspace = true
 
-[dev-dependencies]
-relative-path.workspace = true
-
 [lints]
 workspace = true
