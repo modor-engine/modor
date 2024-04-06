@@ -1,0 +1,28 @@
+[package]
+name = "modor_input"
+description = "Input module of Modor game engine"
+readme = "../../README.md"
+keywords = ["modor", "input", "keyword", "mouse", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+fxhash.workspace = true
+modor.workspace = true
+modor_math.workspace = true
+
+[dev-dependencies]
+approx.workspace = true
+modor_internal.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
+
+[lints]
+workspace = true
