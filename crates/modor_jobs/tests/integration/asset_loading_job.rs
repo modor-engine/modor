@@ -36,6 +36,7 @@ fn load_missing_file() {
     assert_eq!(job.try_poll(), Ok(None));
 }
 
+#[allow(clippy::unused_async)]
 async fn file_size(bytes: Vec<u8>) -> usize {
     #[cfg(not(target_arch = "wasm32"))]
     async_std::task::sleep(Duration::from_millis(10)).await;

@@ -84,12 +84,9 @@ where
 
     #[allow(clippy::future_not_send)]
     async fn job_future(future: impl JobFuture<T>, sender: Sender<T>) {
-        let result = sender.send(future.await);
-        assert!(
-            result.is_ok(),
-            "job producing value of type `{}` dropped before future finishes",
-            any::type_name::<T>()
-        );
+        sender
+            .send(future.await)
+            .expect("job dropped before future finishes");
     }
 
     /// Try polling the job result.

@@ -18,6 +18,7 @@ fn run_failing_job() {
     assert_eq!(job.try_poll(), Ok(None));
 }
 
+#[allow(unused_variables, clippy::unused_async)]
 async fn file_size(path: &str) -> usize {
     #[cfg(not(target_arch = "wasm32"))]
     {
