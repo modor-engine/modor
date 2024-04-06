@@ -7,30 +7,7 @@
 //! modor_physics = "0.1"
 //! ```
 //!
-//! You can start to use this crate:
-//!
-//! ```rust
-//! # use modor::*;
-//! # use modor::log::*;
-//! # use modor_math::*;
-//! # use modor_physics::*;
-//! #
-//! let mut app = App::new::<Root>(Level::Info);
-//! // ...
-//!
-//! #[derive(Node, Visit)]
-//! struct Root {
-//!     body: Body2D,
-//! }
-//!
-//! impl RootNode for Root {
-//!     fn on_create(ctx: &mut Context<'_>) -> Self {
-//!         Self {
-//!             body: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
-//!         }
-//!     }
-//! }
-//! ```
+//! Now you can start using this crate, for example by creating a [`Body2D`] node.
 
 mod body;
 mod body_register;
