@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 /// A trait implemented for any type implementing [`Send`], or implemented for any type on Web
 /// platform.
-pub trait VariableSend: Send {}
+pub trait VariableSend {}
 
 impl<T> VariableSend for T {}
 

@@ -16,13 +16,11 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 /// # use modor::*;
 /// # use modor_jobs::*;
 /// #
-/// #[derive(Component)]
 /// struct AssetMetadata {
 ///     job: AssetLoadingJob<usize>,
 ///     size: Result<usize, AssetMetadataError>
 /// }
 ///
-/// #[systems]
 /// impl AssetMetadata {
 ///     fn new(path: impl AsRef<str>) -> Self {
 ///         Self {
@@ -35,7 +33,6 @@ pub const ASSET_FOLDER_NAME: &str = "assets";
 ///         self.size
 ///     }
 ///
-///     #[run]
 ///     fn poll(&mut self) {
 ///         match self.job.try_poll() {
 ///             Ok(Some(result)) => self.size = Ok(result),
@@ -116,8 +113,7 @@ pub enum AssetLoadingError {
     InvalidLocationHref(String),
     /// I/O error occurred while retrieving the resource.
     IoError(String),
-    /// App has not been correctly initialized (e.g. [`modor::modor_main`](modor::modor_main)
-    /// is not used).
+    /// App has not been correctly initialized (e.g. [`modor::main`] is not used).
     InvalidAppInit,
 }
 

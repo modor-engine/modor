@@ -17,13 +17,11 @@ use std::future::Future;
 /// # use modor::*;
 /// # use modor_jobs::*;
 /// #
-/// #[derive(Component)]
 /// struct FileReader {
 ///     job: Job<Vec<u8>>,
-///     bytes: Result<Vec<u8>, FileReaderError>
+///     bytes: Result<Vec<u8>, FileReaderError>,
 /// }
 ///
-/// #[systems]
 /// impl FileReader {
 ///     fn new(path: impl Into<PathBuf>) -> Self {
 ///         let path = path.into();
@@ -41,7 +39,6 @@ use std::future::Future;
 ///         self.bytes.as_ref().map(Vec::as_slice)
 ///     }
 ///
-///     #[run]
 ///     fn poll(&mut self) {
 ///         match self.job.try_poll() {
 ///             Ok(Some(result)) => self.bytes = Ok(result),
@@ -53,7 +50,7 @@ use std::future::Future;
 ///
 /// enum FileReaderError {
 ///     NotReadYet,
-///     IoError
+///     IoError,
 /// }
 /// ```
 #[derive(Debug)]
