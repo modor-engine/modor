@@ -103,6 +103,7 @@ fn access_all_globals() {
     assert_eq!(globals.get(1), Some(&"b"));
     assert_eq!(globals.get(2), None);
     assert_eq!(globals.iter().collect::<Vec<_>>(), vec![&"a", &"b"]);
+    assert_eq!(globals.into_iter().collect::<Vec<_>>(), vec![&"a", &"b"]);
     let enumerated_values = globals.iter_enumerated().collect::<Vec<_>>();
     assert_eq!(enumerated_values, vec![(0, &"a"), (1, &"b")]);
 }
@@ -121,6 +122,7 @@ fn access_all_globals_after_value_dropped() {
     assert_eq!(globals.get(1), Some(&"b"));
     assert_eq!(globals.get(2), None);
     assert_eq!(globals.iter().collect::<Vec<_>>(), vec![&"b"]);
+    assert_eq!(globals.into_iter().collect::<Vec<_>>(), vec![&"b"]);
     let enumerated_values = globals.iter_enumerated().collect::<Vec<_>>();
     assert_eq!(enumerated_values, vec![(1, &"b")]);
 }
