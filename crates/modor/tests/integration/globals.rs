@@ -10,11 +10,11 @@ fn create_glob() {
     let glob2 = Glob::new(&mut ctx, "b");
     assert_eq!(glob1.index(), 0);
     assert_eq!(glob2.index(), 1);
-    assert_eq!(glob1.get(&mut ctx), &"a");
-    assert_eq!(glob2.get(&mut ctx), &"b");
+    assert_eq!(glob1.get(&ctx), &"a");
+    assert_eq!(glob2.get(&ctx), &"b");
     *glob1.get_mut(&mut ctx) = "c";
-    assert_eq!(glob1.get(&mut ctx), &"c");
-    assert_eq!(glob2.get(&mut ctx), &"b");
+    assert_eq!(glob1.get(&ctx), &"c");
+    assert_eq!(glob2.get(&ctx), &"b");
 }
 
 #[modor::test]
@@ -27,11 +27,11 @@ fn create_glob_ref() {
     let glob2_ref = glob2.as_ref().clone();
     assert_eq!(glob1_ref.index(), 0);
     assert_eq!(glob2_ref.index(), 1);
-    assert_eq!(glob1_ref.get(&mut ctx), &"a");
-    assert_eq!(glob2_ref.get(&mut ctx), &"b");
+    assert_eq!(glob1_ref.get(&ctx), &"a");
+    assert_eq!(glob2_ref.get(&ctx), &"b");
     *glob1.get_mut(&mut ctx) = "c";
-    assert_eq!(glob1_ref.get(&mut ctx), &"c");
-    assert_eq!(glob2_ref.get(&mut ctx), &"b");
+    assert_eq!(glob1_ref.get(&ctx), &"c");
+    assert_eq!(glob2_ref.get(&ctx), &"b");
 }
 
 #[modor::test]
