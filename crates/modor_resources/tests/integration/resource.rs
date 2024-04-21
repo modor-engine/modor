@@ -2,6 +2,7 @@ use modor::log::Level;
 use modor::{App, Context, Glob, GlobRef, Node, RootNode, Visit};
 use modor_jobs::AssetLoadingError;
 use modor_resources::{Res, Resource, ResourceError, Source};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -59,7 +60,7 @@ fn load_resource_from_invalid_path() {
 }
 
 #[modor::test(cases(
-    async_ = "ContentSizeSource::AsyncStr(\"content\")",
+    async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"content\")))",
     sync = "ContentSizeSource::SyncStr(\"content\")"
 ))]
 fn load_valid_resource_from_source(source: ContentSizeSource) {
@@ -76,7 +77,7 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
 }
 
 #[modor::test(cases(
-    async_ = "ContentSizeSource::AsyncStr(\"\")",
+    async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"\")))",
     sync = "ContentSizeSource::SyncStr(\"\")"
 ))]
 fn load_invalid_resource_from_source(source: ContentSizeSource) {
@@ -99,7 +100,39 @@ fn reload_with_source() {
     assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
     assert_eq!(res(&mut app).err(), None);
     res(&mut app).reload_with_source(ContentSizeSource::SyncStr("other content"));
+    app.update();
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(13));
+    assert_eq!(res(&mut app).err(), None);
+}
+
+#[modor::test]
+fn reload_with_path() {
+    let mut app = App::new::<Root>(Level::Info);
+    let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
     wait_resource_loaded(&mut app);
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
+    assert_eq!(res(&mut app).err(), None);
+    res(&mut app).reload_with_path("not_empty.txt");
+    wait_resource_loaded(&mut app);
+    app.update();
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
+    assert_eq!(res(&mut app).err(), None);
+    wait_resource_reloaded(&mut app, 12);
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(12));
+    assert_eq!(res(&mut app).err(), None);
+}
+
+#[modor::test]
+fn reload_from_inside() {
+    let content = Arc::new(Mutex::new("content"));
+    let mut app = App::new::<Root>(Level::Info);
+    let glob = create_resource_from_source(&mut app, ContentSizeSource::AsyncStr(content.clone()));
+    wait_resource_loaded(&mut app);
+    *content.lock().unwrap() = "other content";
+    res(&mut app).should_be_reloaded = true;
+    app.update();
+    res(&mut app).should_be_reloaded = false;
+    wait_resource_reloaded(&mut app, 13);
     assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(13));
     assert_eq!(res(&mut app).err(), None);
 }
@@ -129,11 +162,27 @@ fn wait_resource_loaded(app: &mut App) {
     panic!("max retries reached");
 }
 
+fn wait_resource_reloaded(app: &mut App, target_size: usize) {
+    const MAX_RETRIES: u32 = 100;
+    for _ in 0..MAX_RETRIES {
+        app.update();
+        thread::sleep(Duration::from_millis(10));
+        let size = res(app)
+            .glob()
+            .clone()
+            .get(&app.ctx())
+            .as_ref()
+            .unwrap()
+            .size;
+        if target_size == size {
+            return;
+        }
+    }
+    panic!("max retries reached");
+}
+
 fn res(app: &mut App) -> &mut Res<ContentSize> {
-    app.root::<Root>()
-        .content_size
-        .as_mut()
-        .expect("missing resource")
+    app.root::<Root>().content_size.as_mut().unwrap()
 }
 
 #[derive(Default, RootNode, Node, Visit)]
@@ -168,11 +217,14 @@ impl Resource for ContentSize {
 
     fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
         thread::sleep(Duration::from_millis(10));
-        let (ContentSizeSource::AsyncStr(str) | ContentSizeSource::SyncStr(str)) = source;
-        if str.is_empty() {
+        let size = match source {
+            ContentSizeSource::AsyncStr(str) => str.lock().unwrap().len(),
+            ContentSizeSource::SyncStr(str) => str.len(),
+        };
+        if size == 0 {
             Err(ResourceError::Other("empty resource".into()))
         } else {
-            Ok(ContentSizeLoaded { size: str.len() })
+            Ok(ContentSizeLoaded { size })
         }
     }
 
@@ -191,7 +243,7 @@ impl Resource for ContentSize {
 #[non_exhaustive]
 #[derive(Clone, Debug)]
 enum ContentSizeSource {
-    AsyncStr(&'static str),
+    AsyncStr(Arc<Mutex<&'static str>>),
     SyncStr(&'static str),
 }
 
