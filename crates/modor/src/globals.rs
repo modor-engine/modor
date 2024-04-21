@@ -23,8 +23,9 @@ use std::sync::{Arc, Mutex};
 ///     glob
 /// }
 /// ```
-#[derive(Debug, Derivative)]
+#[derive(Derivative)]
 #[derivative(
+    Debug(bound = ""),
     Hash(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
@@ -98,8 +99,9 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 ///     ref_
 /// }
 /// ```
-#[derive(Debug, Derivative)]
+#[derive(Derivative)]
 #[derivative(
+    Debug(bound = ""),
     Clone(bound = ""),
     Hash(bound = ""),
     PartialEq(bound = ""),

@@ -32,8 +32,8 @@ async fn file_size(path: &str) -> usize {
 }
 
 fn retrieve_result(job: &mut Job<usize>) -> Result<Option<usize>, JobPanickedError> {
-    const MAX_RETIES: u32 = 100;
-    for _ in 0..MAX_RETIES {
+    const MAX_RETRIES: u32 = 100;
+    for _ in 0..MAX_RETRIES {
         thread::sleep(Duration::from_millis(10));
         let result = job.try_poll();
         if result != Ok(None) {

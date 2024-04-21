@@ -1,7 +1,8 @@
 modor_derive
-modor_internal
 modor
+modor_internal
 modor_math
 modor_physics
 modor_input
 modor_jobs
+modor_resources

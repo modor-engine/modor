@@ -44,8 +44,8 @@ async fn file_size(bytes: Vec<u8>) -> usize {
 }
 
 fn retrieve_result(job: &mut AssetLoadingJob<usize>) -> Result<Option<usize>, AssetLoadingError> {
-    const MAX_RETIES: u32 = 100;
-    for _ in 0..MAX_RETIES {
+    const MAX_RETRIES: u32 = 100;
+    for _ in 0..MAX_RETRIES {
         thread::sleep(Duration::from_millis(10));
         let result = job.try_poll();
         if result != Ok(None) {

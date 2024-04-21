@@ -1,0 +1,24 @@
+[package]
+name = "modor_resources"
+description = "Resources crate of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "resource", "load", "async", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+derivative.workspace = true
+modor.workspace = true
+modor_jobs.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
+
+[lints]
+workspace = true

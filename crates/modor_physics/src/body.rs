@@ -207,7 +207,7 @@ impl Body2D {
         }
     }
 
-    /// Returns reference to global data.
+    /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<Body2DGlob> {
         self.glob.as_ref()
     }
