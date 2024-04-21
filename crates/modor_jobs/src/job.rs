@@ -61,7 +61,7 @@ pub struct Job<T> {
 
 impl<T> Job<T>
 where
-    T: Any + VariableSend + Debug,
+    T: Any + VariableSend,
 {
     /// Creates a new job to run a `future`.
     ///
@@ -86,6 +86,7 @@ where
     async fn job_future(future: impl JobFuture<T>, sender: Sender<T>) {
         sender
             .send(future.await)
+            .ok()
             .expect("job dropped before future finishes");
     }
 

@@ -13,6 +13,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+derivative.workspace = true
 fxhash.workspace = true
 log.workspace = true
 modor_derive.workspace = true

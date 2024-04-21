@@ -1,16 +1,17 @@
-use crate::body_register::Body2DRegister;
-use crate::CollisionGroup;
-use approx::AbsDiffEq;
-use modor::{Context, NoVisit, Node};
-use modor_internal::index::Index;
+use crate::collisions::Collision2D;
+use crate::pipeline::Pipeline;
+use crate::user_data::ColliderUserData;
+use crate::CollisionGroupGlob;
+use modor::{Context, Glob, GlobRef, NoVisit, Node};
 use modor_math::Vec2;
-use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyType};
-use rapier2d::geometry::{ActiveCollisionTypes, Collider, ColliderBuilder, SharedShape};
+use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
+use rapier2d::geometry::{
+    ActiveCollisionTypes, Collider, ColliderBuilder, ColliderHandle, SharedShape,
+};
 use rapier2d::math::Rotation;
 use rapier2d::na::{Point2, Vector2};
 use rapier2d::pipeline::ActiveHooks;
-use rapier2d::prelude::{ContactManifold, InteractionGroups, RigidBodyBuilder};
-use std::sync::Arc;
+use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 
 /// A physical 2D body.
 ///
@@ -46,7 +47,7 @@ use std::sync::Arc;
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, group: &CollisionGroup) -> Self {
 ///         let mut body = Body2D::new(ctx, position, Vec2::ONE * 0.2);
 ///         body.rotation = FRAC_PI_2;
-///         body.collision_group = Some(group.clone());
+///         body.collision_group = Some(group.glob().clone());
 ///         body.shape = Shape2D::Circle;
 ///         Self { body }
 ///     }
@@ -142,60 +143,46 @@ pub struct Body2D {
     /// the [`position`](#structfield.position) or the [`rotation`](#structfield.rotation).
     ///
     /// Default value is `None` (no collision detection is performed).
-    pub collision_group: Option<CollisionGroup>,
+    pub collision_group: Option<GlobRef<CollisionGroupGlob>>,
     /// The shape of the body used to detect collisions.
     ///
     /// Default value is [`Shape2D::Rectangle`].
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
-    index: Arc<Index>,
-    old_position: Vec2,
-    old_size: Vec2,
-    old_rotation: f32,
-    old_velocity: Vec2,
-    old_angular_velocity: f32,
-    old_force: Vec2,
-    old_torque: f32,
-    old_mass: f32,
-    old_angular_inertia: f32,
-    old_shape: Shape2D,
+    glob: Glob<Body2DGlob>,
 }
 
 impl Node for Body2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        let glob = self.glob.get(ctx);
+        let changes = Body2DChanges::new(self, glob);
+        let rigid_body_handle = glob.rigid_body_handle;
+        let collider_handle = glob.collider_handle;
         let interaction_groups = self
             .collision_group
             .as_ref()
-            .map_or_else(InteractionGroups::none, |g| g.interaction_groups(ctx));
-        let pipeline = ctx.root::<Body2DRegister>();
-        let rigid_body = pipeline.rigid_body_mut(&self.index);
-        self.update_from_rigid_body(rigid_body);
-        self.update_rigid_body(rigid_body);
-        let collider = pipeline.collider_mut(&self.index);
-        self.update_collider(collider, interaction_groups);
-        pipeline.set_size(&self.index, self.size);
-        self.collisions = pipeline.collisions(&self.index);
-        self.reset_old();
+            .map_or_else(InteractionGroups::none, |g| g.get(ctx).interactions);
+        let pipeline = ctx.root::<Pipeline>();
+        let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
+        self.update_from_rigid_body(rigid_body, changes);
+        self.update_rigid_body(rigid_body, changes);
+        let collider = pipeline.collider_mut(collider_handle);
+        self.update_collider(collider, changes, interaction_groups);
+        self.collisions = pipeline.collisions(collider_handle).to_vec();
+        let glob = self.glob.get_mut(ctx);
+        self.update_glob(glob);
     }
 }
 
 impl Body2D {
-    /// Creates and register a new body.
+    /// Creates a new body.
     pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
-        let resource = ctx.root::<Body2DRegister>().register_body(
-            RigidBodyBuilder::new(RigidBodyType::Dynamic)
-                .can_sleep(false)
-                .translation(Vector2::new(position.x, position.y))
-                .build(),
-            ColliderBuilder::new(SharedShape::cuboid(size.x / 2., size.y / 2.))
-                .enabled(false)
-                .active_collision_types(ActiveCollisionTypes::all())
-                .active_hooks(active_hooks)
-                .mass(0.)
-                .build(),
-            size,
+        let (rigid_body_handle, collider_handle) = ctx.root::<Pipeline>().register_body(
+            Self::default_rigid_body(position),
+            Self::default_collider(size, active_hooks),
         );
+        let data = Body2DGlob::new(position, size, rigid_body_handle, collider_handle);
         Self {
             position,
             size,
@@ -213,23 +200,13 @@ impl Body2D {
             collision_group: None,
             shape: Shape2D::Rectangle,
             collisions: vec![],
-            index: Arc::new(resource),
-            old_position: position,
-            old_size: size,
-            old_rotation: 0.,
-            old_velocity: Vec2::ZERO,
-            old_angular_velocity: 0.,
-            old_force: Vec2::ZERO,
-            old_torque: 0.,
-            old_mass: 0.,
-            old_angular_inertia: 0.,
-            old_shape: Shape2D::Rectangle,
+            glob: Glob::new(ctx, data),
         }
     }
 
-    /// Returns the unique body index.
-    pub fn index(&self) -> Body2DIndex {
-        Body2DIndex(self.index.clone())
+    /// Returns reference to global data.
+    pub fn glob(&self) -> &GlobRef<Body2DGlob> {
+        self.glob.as_ref()
     }
 
     /// Returns the detected collisions.
@@ -238,39 +215,66 @@ impl Body2D {
     }
 
     /// Returns whether the body collides with a body inside `group`.
-    pub fn is_colliding_with(&self, group: &CollisionGroup) -> bool {
+    pub fn is_colliding_with(&self, group: &GlobRef<CollisionGroupGlob>) -> bool {
         self.collisions
             .iter()
             .any(|c| c.other_group_index == group.index())
     }
 
-    #[allow(clippy::float_cmp)]
-    fn update_from_rigid_body(&mut self, rigid_body: &RigidBody) {
-        if self.position == self.old_position {
+    fn default_collider(size: Vec2, active_hooks: ActiveHooks) -> Collider {
+        ColliderBuilder::new(SharedShape::cuboid(size.x / 2., size.y / 2.))
+            .enabled(false)
+            .active_collision_types(ActiveCollisionTypes::all())
+            .active_hooks(active_hooks)
+            .mass(0.)
+            .build()
+    }
+
+    fn default_rigid_body(position: Vec2) -> RigidBody {
+        RigidBodyBuilder::new(RigidBodyType::Dynamic)
+            .can_sleep(false)
+            .translation(Vector2::new(position.x, position.y))
+            .build()
+    }
+
+    fn update_glob(&self, glob: &mut Body2DGlob) {
+        glob.position = self.position;
+        glob.size = self.size;
+        glob.rotation = self.rotation;
+        glob.velocity = self.velocity;
+        glob.angular_velocity = self.angular_velocity;
+        glob.force = self.force;
+        glob.torque = self.torque;
+        glob.mass = self.mass;
+        glob.angular_inertia = self.angular_inertia;
+        glob.shape = self.shape;
+    }
+
+    fn update_from_rigid_body(&mut self, rigid_body: &RigidBody, changes: Body2DChanges) {
+        if !changes.is_position_changed {
             self.position.x = rigid_body.translation().x;
             self.position.y = rigid_body.translation().y;
         }
-        if self.rotation == self.old_rotation {
+        if !changes.is_rotation_changed {
             self.rotation = rigid_body.rotation().angle();
         }
-        if self.velocity == self.old_velocity {
+        if !changes.is_velocity_changed {
             self.velocity.x = rigid_body.linvel().x;
             self.velocity.y = rigid_body.linvel().y;
         }
-        if self.angular_velocity == self.old_angular_velocity {
+        if !changes.is_angular_velocity_changed {
             self.angular_velocity = rigid_body.angvel();
         }
-        if self.force == self.old_force {
+        if !changes.is_force_changed {
             self.force.x = rigid_body.user_force().x;
             self.force.y = rigid_body.user_force().y;
         }
-        if self.torque == self.old_torque {
+        if !changes.is_torque_changed {
             self.torque = rigid_body.user_torque();
         }
     }
 
-    #[allow(clippy::float_cmp)]
-    fn update_rigid_body(&mut self, rigid_body: &mut RigidBody) {
+    fn update_rigid_body(&mut self, rigid_body: &mut RigidBody, changes: Body2DChanges) {
         rigid_body.set_translation(Vector2::new(self.position.x, self.position.y), true);
         rigid_body.set_rotation(Rotation::new(self.rotation), true);
         rigid_body.set_linvel(Vector2::new(self.velocity.x, self.velocity.y), true);
@@ -279,7 +283,7 @@ impl Body2D {
         rigid_body.add_force(Vector2::new(self.force.x, self.force.y), true);
         rigid_body.reset_torques(true);
         rigid_body.add_torque(self.torque, true);
-        if self.mass != self.old_mass || self.angular_inertia != self.old_angular_inertia {
+        if changes.is_mass_changed || changes.is_angular_inertia_changed {
             let mass = MassProperties::new(Point2::new(0., 0.), self.mass, self.angular_inertia);
             rigid_body.set_additional_mass_properties(mass, true);
         }
@@ -289,47 +293,23 @@ impl Body2D {
         rigid_body.enable_ccd(self.is_ccd_enabled);
     }
 
-    fn update_collider(&mut self, collider: &mut Collider, interaction_groups: InteractionGroups) {
-        if self.size != self.old_size || self.shape != self.old_shape {
+    fn update_collider(
+        &mut self,
+        collider: &mut Collider,
+        changes: Body2DChanges,
+        interaction_groups: InteractionGroups,
+    ) {
+        if changes.is_size_changed || changes.is_shape_changed {
             collider.set_shape(match self.shape {
                 Shape2D::Rectangle => SharedShape::cuboid(self.size.x / 2., self.size.y / 2.),
                 Shape2D::Circle => SharedShape::ball(self.size.x.min(self.size.y) / 2.),
             });
         }
-        collider.user_data = self
-            .collision_group
-            .as_ref()
-            .map_or_else(|| 0, CollisionGroup::index) as u128;
+        let group_index = self.collision_group.as_ref().map_or(0, GlobRef::index);
+        collider.user_data = ColliderUserData::new(self.glob.index(), group_index).into();
         collider.set_enabled(self.collision_group.is_some());
         collider.set_collision_groups(interaction_groups);
         collider.set_mass(0.);
-    }
-
-    fn reset_old(&mut self) {
-        self.old_position = self.position;
-        self.old_size = self.size;
-        self.old_rotation = self.rotation;
-        self.old_velocity = self.velocity;
-        self.old_angular_velocity = self.angular_velocity;
-        self.old_force = self.force;
-        self.old_torque = self.torque;
-        self.old_mass = self.mass;
-        self.old_angular_inertia = self.angular_inertia;
-        self.old_shape = self.shape;
-    }
-}
-
-/// The unique index of a [`Body2D`].
-#[derive(Debug)]
-pub struct Body2DIndex(Arc<Index>);
-
-impl Body2DIndex {
-    /// Returns the index as a [`usize`].
-    ///
-    /// Note that in case the [`Body2D`] and all associated [`Body2DIndex`]s are dropped, this index
-    /// can be reused for a new body.
-    pub fn as_usize(&self) -> usize {
-        self.0.value()
     }
 }
 
@@ -349,76 +329,79 @@ pub enum Shape2D {
     Circle,
 }
 
-/// A detected collision.
-///
-/// # Examples
-///
-/// See [`Body2D`].
-#[derive(Clone, Debug)]
-#[non_exhaustive]
-pub struct Collision2D {
-    /// Index of the collided body.
-    pub other_index: usize,
-    /// Index of the collision group corresponding to the collided body.
-    pub other_group_index: usize,
-    /// Penetration of the body into the collided one in world units.
-    ///
-    /// Penetration vector starts at other body edge and ends at current body deepest point.
-    pub penetration: Vec2,
-    /// Position of the collision in world units.
-    ///
-    /// This position corresponds to the deepest point of the current body inside the other body.
-    /// If more than two points have the same depth, then the collision position is the average
-    /// of these points.
+/// The global data of a [`Body2D`].
+#[derive(Debug)]
+pub struct Body2DGlob {
+    /// Position of the body in world units.
     pub position: Vec2,
+    /// Size of the body in world units.
+    pub size: Vec2,
+    /// Rotation of the body in radians.
+    pub rotation: f32,
+    pub(crate) rigid_body_handle: RigidBodyHandle,
+    pub(crate) collider_handle: ColliderHandle,
+    velocity: Vec2,
+    angular_velocity: f32,
+    force: Vec2,
+    torque: f32,
+    mass: f32,
+    angular_inertia: f32,
+    shape: Shape2D,
 }
 
-impl Collision2D {
-    pub(crate) fn new(
-        is_collider2: bool,
-        other_index: usize,
-        other_group_index: usize,
-        collider: &Collider,
-        manifold: &ContactManifold,
+impl Body2DGlob {
+    fn new(
+        position: Vec2,
+        size: Vec2,
+        rigid_body_handle: RigidBodyHandle,
+        collider_handle: ColliderHandle,
     ) -> Self {
-        let max_distance = manifold.points.iter().map(|p| -p.dist).fold(0., f32::max);
         Self {
-            other_index,
-            other_group_index,
-            penetration: Self::penetration(is_collider2, manifold, max_distance),
-            position: Self::position(is_collider2, collider, manifold, max_distance),
+            position,
+            size,
+            rotation: 0.,
+            rigid_body_handle,
+            collider_handle,
+            velocity: Vec2::ZERO,
+            angular_velocity: 0.,
+            force: Vec2::ZERO,
+            torque: 0.,
+            mass: 0.,
+            angular_inertia: 0.,
+            shape: Shape2D::Rectangle,
         }
     }
+}
 
-    fn penetration(is_collider2: bool, manifold: &ContactManifold, max_distance: f32) -> Vec2 {
-        Vec2::new(manifold.data.normal.x, manifold.data.normal.y)
-            * max_distance
-            * if is_collider2 { -1. } else { 1. }
-    }
+#[allow(clippy::struct_field_names, clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Copy)]
+struct Body2DChanges {
+    is_position_changed: bool,
+    is_size_changed: bool,
+    is_rotation_changed: bool,
+    is_velocity_changed: bool,
+    is_angular_velocity_changed: bool,
+    is_force_changed: bool,
+    is_torque_changed: bool,
+    is_mass_changed: bool,
+    is_angular_inertia_changed: bool,
+    is_shape_changed: bool,
+}
 
-    #[allow(clippy::cast_precision_loss)]
-    fn position(
-        is_collider2: bool,
-        collider: &Collider,
-        manifold: &ContactManifold,
-        max_distance: f32,
-    ) -> Vec2 {
-        manifold
-            .points
-            .iter()
-            .filter(|d| d.dist.abs_diff_eq(&-max_distance, f32::EPSILON))
-            .map(|p| if is_collider2 { p.local_p2 } else { p.local_p1 })
-            .map(|p| Self::local_to_global_position(p, collider))
-            .sum::<Vec2>()
-            / manifold
-                .points
-                .iter()
-                .filter(|d| d.dist.abs_diff_eq(&-max_distance, 100. * f32::EPSILON))
-                .count() as f32
-    }
-
-    fn local_to_global_position(local_positions: Point2<f32>, collider: &Collider) -> Vec2 {
-        Vec2::new(local_positions.x, local_positions.y).with_rotation(collider.rotation().angle())
-            + Vec2::new(collider.translation().x, collider.translation().y)
+impl Body2DChanges {
+    #[allow(clippy::float_cmp)]
+    fn new(body: &Body2D, old_body: &Body2DGlob) -> Self {
+        Self {
+            is_position_changed: body.position != old_body.position,
+            is_size_changed: body.size != old_body.size,
+            is_rotation_changed: body.rotation != old_body.rotation,
+            is_velocity_changed: body.velocity != old_body.velocity,
+            is_angular_velocity_changed: body.angular_velocity != old_body.angular_velocity,
+            is_force_changed: body.force != old_body.force,
+            is_torque_changed: body.torque != old_body.torque,
+            is_mass_changed: body.mass != old_body.mass,
+            is_angular_inertia_changed: body.angular_inertia != old_body.angular_inertia,
+            is_shape_changed: body.shape != old_body.shape,
+        }
     }
 }

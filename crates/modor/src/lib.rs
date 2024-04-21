@@ -65,10 +65,12 @@ pub use log;
 pub use wasm_bindgen_test;
 
 mod app;
+mod globals;
 mod node;
 mod platform;
 
 pub use app::*;
+pub use globals::*;
 pub use node::*;
 #[allow(unused_imports, unreachable_pub)]
 pub use platform::*;

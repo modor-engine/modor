@@ -1,4 +1,4 @@
-//! Jobs module of Modor.
+//! Jobs crate of Modor.
 //!
 //! # Getting started
 //!

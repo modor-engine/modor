@@ -56,7 +56,7 @@ pub struct AssetLoadingJob<T> {
 
 impl<T> AssetLoadingJob<T>
 where
-    T: Any + VariableSend + Debug,
+    T: Any + VariableSend,
 {
     /// Creates a new job to retrieve asset located at `path`, and apply `f` on the bytes of the
     /// file.
