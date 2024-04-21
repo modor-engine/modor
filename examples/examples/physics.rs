@@ -26,7 +26,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().duration = Duration::from_secs(1);
+        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(1);
         Self {
             bodies: (0..10_000).map(|i| BodyWrapper::new(ctx, i)).collect(),
         }
@@ -45,9 +45,9 @@ impl BodyWrapper {
         body.velocity = Vec2::new(1., 2.);
         body.mass = 1.;
         body.collision_group = Some(if index % 2 == 0 {
-            ctx.root::<CollisionGroups>().group1.clone()
+            ctx.root::<CollisionGroups>().get(ctx).group1.glob().clone()
         } else {
-            ctx.root::<CollisionGroups>().group2.clone()
+            ctx.root::<CollisionGroups>().get(ctx).group2.glob().clone()
         });
         Self(body)
     }
@@ -63,7 +63,11 @@ impl RootNode for CollisionGroups {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         let group1 = CollisionGroup::new(ctx);
         let group2 = CollisionGroup::new(ctx);
-        group1.add_interaction(ctx, &group2, CollisionType::Impulse(Impulse::default()));
+        group1.add_interaction(
+            ctx,
+            group2.glob(),
+            CollisionType::Impulse(Impulse::default()),
+        );
         Self { group1, group2 }
     }
 }

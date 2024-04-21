@@ -37,12 +37,14 @@ struct InnerNode(#[modor(skip)] usize);
 impl Node for InnerNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         ctx.root::<Container>()
+            .get_mut(ctx)
             .0
             .push(format!("InnerNode({})::on_enter", self.0));
     }
 
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
         ctx.root::<Container>()
+            .get_mut(ctx)
             .0
             .push(format!("InnerNode({})::on_exit", self.0));
     }

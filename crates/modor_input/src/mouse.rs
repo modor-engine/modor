@@ -14,7 +14,7 @@ use std::ops::{AddAssign, Index, IndexMut};
 /// # use modor_input::*;
 /// #
 /// fn access_mouse(ctx: &mut Context<'_>) {
-///     let mouse = &ctx.root::<Inputs>().mouse;
+///     let mouse = &ctx.root::<Inputs>().get(ctx).mouse;
 ///     println!("Position: {:?}", mouse.position);
 ///     println!("Position delta: {:?}", mouse.delta);
 ///     println!("Left button pressed: {}", mouse[MouseButton::Left].is_pressed());
@@ -29,7 +29,7 @@ use std::ops::{AddAssign, Index, IndexMut};
 /// # use modor_input::*;
 /// #
 /// fn modify_mouse(ctx: &mut Context<'_>) {
-///     let mouse = &mut ctx.root::<Inputs>().mouse;
+///     let mouse = &mut ctx.root::<Inputs>().get_mut(ctx).mouse;
 ///     mouse.refresh();
 ///     mouse[MouseButton::Right].press();
 /// }

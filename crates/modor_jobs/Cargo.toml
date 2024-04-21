@@ -1,6 +1,6 @@
 [package]
 name = "modor_jobs"
-description = "Jobs module of Modor game engine"
+description = "Jobs crate of Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "job", "task", "async", "game"]
 categories = ["game-engines"]

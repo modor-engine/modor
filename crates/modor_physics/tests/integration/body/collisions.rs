@@ -17,8 +17,7 @@ fn colliding_bodies_without_collision_group() {
 #[modor::test]
 fn colliding_bodies_with_no_interaction() {
     let mut app = App::new::<Root>(Level::Info);
-    body1(&mut app).collision_group = Some(CollisionGroup::new(&mut app.ctx()));
-    body2(&mut app).collision_group = Some(CollisionGroup::new(&mut app.ctx()));
+    configure_colliding_groups(&mut app);
     app.update();
     app.update();
     assert!(body1(&mut app).collisions().is_empty());
@@ -28,7 +27,8 @@ fn colliding_bodies_with_no_interaction() {
 #[modor::test]
 fn colliding_bodies_with_sensor() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Sensor);
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Sensor);
     app.update();
     app.update();
     let group1 = body1(&mut app).collision_group.clone().unwrap();
@@ -56,7 +56,8 @@ fn colliding_bodies_with_sensor() {
 #[modor::test]
 fn colliding_bodies_with_impulse() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Impulse(Impulse::default()));
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::default()));
     body2(&mut app).mass = 1.;
     app.update();
     app.update();
@@ -88,7 +89,8 @@ fn colliding_bodies_with_impulse() {
 ))]
 fn set_friction(friction: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Impulse(Impulse::new(0., friction)));
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(0., friction)));
     configure_ground(&mut app);
     configure_rolling_ball(&mut app);
     app.update();
@@ -105,7 +107,8 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.root::<Delta>().duration = Duration::from_secs_f32(0.1);
     let impulse = Impulse::new(restitution, 0.5);
-    configure_colliding_groups(&mut app, CollisionType::Impulse(impulse));
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Impulse(impulse));
     configure_ground(&mut app);
     configure_falling_ball(&mut app);
     for _ in 0..11 {
@@ -123,7 +126,8 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
 fn set_dominance(dominance: i8, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.root::<Delta>().duration = Duration::from_secs_f32(0.1);
-    configure_colliding_groups(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
     configure_ground(&mut app);
     configure_falling_ball(&mut app);
     body2(&mut app).dominance = dominance;
@@ -140,7 +144,8 @@ fn set_dominance(dominance: i8, expected_position: Vec2) {
 ))]
 fn set_ccd(is_enabled: bool, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
     configure_ground(&mut app);
     configure_falling_ball(&mut app);
     body2(&mut app).is_ccd_enabled = is_enabled;
@@ -162,7 +167,8 @@ fn set_ccd(is_enabled: bool, expected_position: Vec2) {
 ))]
 fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Sensor);
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Sensor);
     body2(&mut app).position = position;
     body2(&mut app).size = size;
     body2(&mut app).shape = shape;
@@ -175,7 +181,8 @@ fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize)
 #[modor::test]
 fn update_size() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app, CollisionType::Sensor);
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Sensor);
     app.update();
     app.update();
     assert_eq!(body1(&mut app).collisions().len(), 1);
@@ -187,20 +194,24 @@ fn update_size() {
     assert_eq!(body2(&mut app).collisions().len(), 0);
 }
 
-fn body1(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body1
+#[modor::test]
+fn drop_body() {
+    let mut app = App::new::<Root>(Level::Info);
+    configure_colliding_groups(&mut app);
+    configure_collision_type(&mut app, CollisionType::Sensor);
+    app.update();
+    app.update();
+    assert_eq!(body1(&mut app).collisions().len(), 1);
+    let body = Body2D::new(&mut app.ctx(), Vec2::ZERO, Vec2::ONE);
+    *body2(&mut app) = body;
+    app.update();
+    app.update();
+    assert_eq!(body1(&mut app).collisions().len(), 0);
 }
 
-fn body2(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body2
-}
-
-fn configure_colliding_groups(app: &mut App, collision_type: CollisionType) {
-    let ground_group = CollisionGroup::new(&mut app.ctx());
-    let ball_group = CollisionGroup::new(&mut app.ctx());
-    ball_group.add_interaction(&mut app.ctx(), &ground_group, collision_type);
-    body1(app).collision_group = Some(ground_group);
-    body2(app).collision_group = Some(ball_group);
+fn configure_colliding_groups(app: &mut App) {
+    body1(app).collision_group = Some(group1(app).glob().clone());
+    body2(app).collision_group = Some(group2(app).glob().clone());
 }
 
 fn configure_ground(app: &mut App) {
@@ -224,18 +235,54 @@ fn configure_rolling_ball(app: &mut App) {
     body2(app).shape = Shape2D::Circle;
 }
 
-#[derive(Node, Visit)]
+fn group1(app: &mut App) -> &CollisionGroup {
+    &mut app.root::<Root>().group1
+}
+
+fn group2(app: &mut App) -> &CollisionGroup {
+    &mut app.root::<Root>().group2
+}
+
+fn body1(app: &mut App) -> &mut Body2D {
+    &mut app.root::<Root>().body1
+}
+
+fn body2(app: &mut App) -> &mut Body2D {
+    &mut app.root::<Root>().body2
+}
+
+fn configure_collision_type(app: &mut App, collision_type: CollisionType) {
+    app.root::<Root>().collision_type = Some(collision_type);
+}
+
+#[derive(Visit)]
 struct Root {
+    group1: CollisionGroup,
+    group2: CollisionGroup,
     body1: Body2D,
     body2: Body2D,
+    #[modor(skip)]
+    collision_type: Option<CollisionType>,
 }
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().duration = Duration::from_secs(2);
+        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(2);
         Self {
+            group1: CollisionGroup::new(ctx),
+            group2: CollisionGroup::new(ctx),
+            collision_type: None,
             body1: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
             body2: Body2D::new(ctx, Vec2::X, Vec2::new(2.5, 0.5)),
+        }
+    }
+}
+
+impl Node for Root {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        if let Some(collision_type) = self.collision_type {
+            self.group1
+                .add_interaction(ctx, self.group2.glob(), collision_type);
         }
     }
 }
