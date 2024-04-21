@@ -114,9 +114,9 @@ fn reload_with_path() {
     assert_eq!(res(&mut app).err(), None);
     res(&mut app).reload_with_path("not_empty.txt");
     wait_resource_loaded(&mut app);
-    app.update();
     assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
     assert_eq!(res(&mut app).err(), None);
+    app.update();
     wait_resource_reloaded(&mut app, 12);
     assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(12));
     assert_eq!(res(&mut app).err(), None);
