@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[modor::test]
+#[modor::test(disabled(wasm))]
 fn access_inner() {
     let mut app = App::new::<Root>(Level::Info);
     let mut res = Res::<ContentSize>::from_path(&mut app.ctx(), "not_empty.txt");
@@ -59,10 +59,13 @@ fn load_resource_from_invalid_path() {
     ));
 }
 
-#[modor::test(cases(
-    async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"content\")))",
-    sync = "ContentSizeSource::SyncStr(\"content\")"
-))]
+#[modor::test(
+    disabled(wasm),
+    cases(
+        async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"content\")))",
+        sync = "ContentSizeSource::SyncStr(\"content\")"
+    )
+)]
 fn load_valid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, source);
@@ -76,10 +79,13 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
     assert_eq!(res(&mut app).err(), None);
 }
 
-#[modor::test(cases(
-    async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"\")))",
-    sync = "ContentSizeSource::SyncStr(\"\")"
-))]
+#[modor::test(
+    disabled(wasm),
+    cases(
+        async_ = "ContentSizeSource::AsyncStr(Arc::new(Mutex::new(\"\")))",
+        sync = "ContentSizeSource::SyncStr(\"\")"
+    )
+)]
 fn load_invalid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, source);
@@ -92,7 +98,7 @@ fn load_invalid_resource_from_source(source: ContentSizeSource) {
     assert_eq!(res(&mut app).err(), Some(&error));
 }
 
-#[modor::test]
+#[modor::test(disabled(wasm))]
 fn load_resource_from_panicking_source() {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, ContentSizeSource::Panicking);
@@ -105,7 +111,7 @@ fn load_resource_from_panicking_source() {
     assert_eq!(res(&mut app).err(), Some(&error));
 }
 
-#[modor::test]
+#[modor::test(disabled(wasm))]
 fn reload_with_source() {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
