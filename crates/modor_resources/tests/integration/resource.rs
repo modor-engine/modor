@@ -118,7 +118,7 @@ fn reload_with_source() {
     assert_eq!(res(&mut app).err(), None);
 }
 
-#[modor::test]
+#[modor::test(disabled(wasm))]
 fn reload_with_path() {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
@@ -135,7 +135,7 @@ fn reload_with_path() {
     assert_eq!(res(&mut app).err(), None);
 }
 
-#[modor::test]
+#[modor::test(disabled(wasm))]
 fn reload_from_inside() {
     let content = Arc::new(Mutex::new("content"));
     let mut app = App::new::<Root>(Level::Info);
