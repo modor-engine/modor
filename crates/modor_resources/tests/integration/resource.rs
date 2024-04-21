@@ -93,6 +93,19 @@ fn load_invalid_resource_from_source(source: ContentSizeSource) {
 }
 
 #[modor::test]
+fn load_resource_from_panicking_source() {
+    let mut app = App::new::<Root>(Level::Info);
+    let glob = create_resource_from_source(&mut app, ContentSizeSource::Panicking);
+    let error = ResourceError::Other("job has panicked".into());
+    wait_resource_loaded(&mut app);
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
+    assert_eq!(res(&mut app).err(), Some(&error));
+    app.update();
+    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
+    assert_eq!(res(&mut app).err(), Some(&error));
+}
+
+#[modor::test]
 fn reload_with_source() {
     let mut app = App::new::<Root>(Level::Info);
     let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
@@ -220,6 +233,7 @@ impl Resource for ContentSize {
         let size = match source {
             ContentSizeSource::AsyncStr(str) => str.lock().unwrap().len(),
             ContentSizeSource::SyncStr(str) => str.len(),
+            ContentSizeSource::Panicking => panic!(),
         };
         if size == 0 {
             Err(ResourceError::Other("empty resource".into()))
@@ -245,12 +259,13 @@ impl Resource for ContentSize {
 enum ContentSizeSource {
     AsyncStr(Arc<Mutex<&'static str>>),
     SyncStr(&'static str),
+    Panicking,
 }
 
 impl Source for ContentSizeSource {
     fn is_async(&self) -> bool {
         match self {
-            Self::AsyncStr(_) => true,
+            Self::AsyncStr(_) | Self::Panicking => true,
             Self::SyncStr(_) => false,
         }
     }
