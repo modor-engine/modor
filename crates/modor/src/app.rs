@@ -1,8 +1,15 @@
+#![allow(
+    clippy::non_canonical_clone_impl,
+    clippy::non_canonical_partial_ord_impl
+)] // warnings caused by Derivative
+
 use crate::{platform, Node, RootNode};
+use derivative::Derivative;
 use fxhash::FxHashMap;
 use log::{debug, Level};
 use std::any;
 use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 
 /// The entrypoint of the engine.
 ///
@@ -74,17 +81,23 @@ impl App {
     where
         T: RootNode,
     {
-        let type_id = TypeId::of::<T>();
-        let root = if self.root_indexes.contains_key(&type_id) {
-            self.retrieve_root::<T>(type_id)
-        } else {
-            self.create_root::<T>(type_id)
-        };
-        root.downcast_mut::<T>()
-            .expect("internal error: misconfigured root node")
+        let root_index = self.root_index_or_create::<T>();
+        self.root_mut(root_index)
     }
 
-    fn create_root<T>(&mut self, type_id: TypeId) -> &mut dyn Any
+    fn root_index_or_create<T>(&mut self) -> usize
+    where
+        T: RootNode,
+    {
+        let type_id = TypeId::of::<T>();
+        if self.root_indexes.contains_key(&type_id) {
+            self.root_indexes[&type_id]
+        } else {
+            self.create_root::<T>(type_id)
+        }
+    }
+
+    fn create_root<T>(&mut self, type_id: TypeId) -> usize
     where
         T: RootNode,
     {
@@ -94,17 +107,19 @@ impl App {
         let index = self.roots.len();
         self.root_indexes.insert(type_id, index);
         self.roots.push(root);
-        &mut **self.roots[index]
+        index
+    }
+
+    fn root_mut<T>(&mut self, root_index: usize) -> &mut T
+    where
+        T: RootNode,
+    {
+        self.roots[root_index]
             .value
             .as_mut()
             .expect("internal error: root node already borrowed")
-    }
-
-    fn retrieve_root<T>(&mut self, type_id: TypeId) -> &mut dyn Any {
-        &mut **self.roots[self.root_indexes[&type_id]]
-            .value
-            .as_mut()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .downcast_mut::<T>()
+            .expect("internal error: misconfigured root node")
     }
 }
 
@@ -124,11 +139,51 @@ impl Context<'_> {
     /// # Panics
     ///
     /// This will panic if root node `T` is currently updated.
-    pub fn root<T>(&mut self) -> &mut T
+    pub fn root<T>(&mut self) -> RootNodeHandle<T>
     where
         T: RootNode,
     {
-        self.app.root()
+        RootNodeHandle {
+            index: self.app.root_index_or_create::<T>(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+/// A handle to access a [`RootNode`].
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Clone(bound = ""),
+    Copy(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = ""),
+    Hash(bound = "")
+)]
+pub struct RootNodeHandle<T> {
+    index: usize,
+    phantom: PhantomData<fn(T)>,
+}
+
+impl<T> RootNodeHandle<T>
+where
+    T: RootNode,
+{
+    /// Returns an immutable reference to the root node.
+    pub fn get<'a>(self, ctx: &'a Context<'_>) -> &'a T {
+        ctx.app.roots[self.index]
+            .value
+            .as_ref()
+            .expect("internal error: root node already borrowed")
+            .downcast_ref::<T>()
+            .expect("internal error: misconfigured root node")
+    }
+
+    /// Returns an immutable reference to the root node.
+    pub fn get_mut<'a>(self, ctx: &'a mut Context<'_>) -> &'a mut T {
+        ctx.app.root_mut(self.index)
     }
 }
 

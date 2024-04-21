@@ -87,12 +87,12 @@ pub use platform::*;
 /// #
 /// #[modor::main]
 /// fn my_main() {
-///     let mut app = App::new::<RootNode>(Level::Info);
+///     let mut app = App::new::<Root>(Level::Info);
 ///     app.update();
 /// }
 ///
 /// #[derive(Default, RootNode, Node, Visit)]
-/// struct RootNode;
+/// struct Root;
 /// ```
 pub use modor_derive::main;
 

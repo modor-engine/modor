@@ -4,7 +4,7 @@ use modor_derive::{Node, RootNode, Visit};
 
 #[modor::test]
 fn create_glob() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let glob2 = Glob::new(&mut ctx, "b");
@@ -19,7 +19,7 @@ fn create_glob() {
 
 #[modor::test]
 fn create_glob_ref() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let glob2 = Glob::new(&mut ctx, "b");
@@ -36,7 +36,7 @@ fn create_glob_ref() {
 
 #[modor::test]
 fn recreate_glob_without_ref_before_update() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -49,7 +49,7 @@ fn recreate_glob_without_ref_before_update() {
 
 #[modor::test]
 fn recreate_glob_without_ref_after_update() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -64,7 +64,7 @@ fn recreate_glob_without_ref_after_update() {
 
 #[modor::test]
 fn recreate_glob_with_not_dropped_ref_after_update() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -78,7 +78,7 @@ fn recreate_glob_with_not_dropped_ref_after_update() {
 
 #[modor::test]
 fn recreate_glob_with_dropped_ref_after_update() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -93,7 +93,7 @@ fn recreate_glob_with_dropped_ref_after_update() {
 
 #[modor::test]
 fn access_all_globals() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let _glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -110,7 +110,7 @@ fn access_all_globals() {
 
 #[modor::test]
 fn access_all_globals_after_value_dropped() {
-    let mut app = App::new::<RootNode>(Level::Info);
+    let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
     let glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
@@ -131,4 +131,4 @@ fn access_all_globals_after_value_dropped() {
 fn access_glob() {}
 
 #[derive(Default, RootNode, Node, Visit)]
-struct RootNode;
+struct Root;

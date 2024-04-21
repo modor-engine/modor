@@ -31,7 +31,7 @@ pub(crate) struct Pipeline {
 
 impl Node for Pipeline {
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        for (_, body) in ctx.root::<Globals<Body2DGlob>>().deleted_items() {
+        for (_, body) in ctx.root::<Globals<Body2DGlob>>().get(ctx).deleted_items() {
             self.rigid_bodies.remove(
                 body.rigid_body_handle,
                 &mut self.island_manager,
@@ -42,7 +42,7 @@ impl Node for Pipeline {
             );
             self.collisions.remove(&body.collider_handle);
         }
-        self.integration_parameters.dt = ctx.root::<Delta>().duration.as_secs_f32();
+        self.integration_parameters.dt = ctx.root::<Delta>().get(ctx).duration.as_secs_f32();
         self.physics_pipeline.step(
             &Vector2::zeros(),
             &self.integration_parameters,
@@ -55,7 +55,7 @@ impl Node for Pipeline {
             &mut self.multibody_joints,
             &mut self.ccd_solver,
             None,
-            ctx.root::<PhysicsHooks>(),
+            ctx.root::<PhysicsHooks>().get(ctx),
             &(),
         );
         self.reset_collisions();

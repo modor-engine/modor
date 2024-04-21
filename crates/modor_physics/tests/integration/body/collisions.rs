@@ -267,7 +267,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().duration = Duration::from_secs(2);
+        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(2);
         Self {
             group1: CollisionGroup::new(ctx),
             group2: CollisionGroup::new(ctx),

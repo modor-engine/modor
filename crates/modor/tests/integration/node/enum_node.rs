@@ -41,11 +41,17 @@ enum TestNode {
 
 impl Node for TestNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>().0.push("TestNode::on_enter");
+        ctx.root::<Container>()
+            .get_mut(ctx)
+            .0
+            .push("TestNode::on_enter");
     }
 
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>().0.push("TestNode::on_exit");
+        ctx.root::<Container>()
+            .get_mut(ctx)
+            .0
+            .push("TestNode::on_exit");
     }
 }
 
@@ -54,10 +60,16 @@ struct InnerNode;
 
 impl Node for InnerNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>().0.push("InnerNode::on_enter");
+        ctx.root::<Container>()
+            .get_mut(ctx)
+            .0
+            .push("InnerNode::on_enter");
     }
 
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>().0.push("InnerNode::on_exit");
+        ctx.root::<Container>()
+            .get_mut(ctx)
+            .0
+            .push("InnerNode::on_exit");
     }
 }

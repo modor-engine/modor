@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{Context, Glob, GlobRef, NoVisit, Node};
+use modor::{Context, Glob, GlobRef, NoVisit, Node, RootNodeHandle};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -36,7 +36,7 @@ use rapier2d::prelude::InteractionGroups;
 ///
 /// fn create_wall_body(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Body2D {
 ///     let mut body = Body2D::new(ctx, position, size);
-///     let groups = ctx.root::<CollisionGroups>();
+///     let groups = ctx.root::<CollisionGroups>().get(ctx);
 ///     body.collision_group = Some(groups.wall.glob().clone());
 ///     body
 /// }
@@ -44,11 +44,15 @@ use rapier2d::prelude::InteractionGroups;
 #[derive(Debug, NoVisit)]
 pub struct CollisionGroup {
     pub(crate) glob: Glob<CollisionGroupGlob>,
+    physics_hooks_handle: RootNodeHandle<PhysicsHooks>,
 }
 
 impl Node for CollisionGroup {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let interactions = ctx.root::<PhysicsHooks>().interactions(self.glob.index());
+        let interactions = self
+            .physics_hooks_handle
+            .get_mut(ctx)
+            .interactions(self.glob.index());
         self.glob.get_mut(ctx).interactions = interactions;
     }
 }
@@ -58,10 +62,11 @@ impl CollisionGroup {
     pub fn new(ctx: &mut Context<'_>) -> Self {
         Self {
             glob: Glob::new(ctx, CollisionGroupGlob::default()),
+            physics_hooks_handle: ctx.root::<PhysicsHooks>(),
         }
     }
 
-    /// Returns reference to global data.
+    /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<CollisionGroupGlob> {
         self.glob.as_ref()
     }
@@ -76,8 +81,11 @@ impl CollisionGroup {
         other: &GlobRef<CollisionGroupGlob>,
         type_: CollisionType,
     ) {
-        ctx.root::<PhysicsHooks>()
-            .add_interaction(self.glob.index(), other.index(), type_);
+        self.physics_hooks_handle.get_mut(ctx).add_interaction(
+            self.glob.index(),
+            other.index(),
+            type_,
+        );
     }
 }
 

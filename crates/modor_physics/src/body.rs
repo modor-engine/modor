@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{Context, Glob, GlobRef, NoVisit, Node};
+use modor::{Context, Glob, GlobRef, NoVisit, Node, RootNodeHandle};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -33,7 +33,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Node for Character {
 ///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         self.body.velocity = ctx.root::<CharacterDirection>().0 * 0.5;
+///         self.body.velocity = ctx.root::<CharacterDirection>().get(ctx).0 * 0.5;
 ///     }
 ///
 ///     fn on_exit(&mut self, ctx: &mut Context<'_>) {
@@ -150,6 +150,7 @@ pub struct Body2D {
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
+    pipeline_handle: RootNodeHandle<Pipeline>,
 }
 
 impl Node for Body2D {
@@ -162,7 +163,7 @@ impl Node for Body2D {
             .collision_group
             .as_ref()
             .map_or_else(InteractionGroups::none, |g| g.get(ctx).interactions);
-        let pipeline = ctx.root::<Pipeline>();
+        let pipeline = self.pipeline_handle.get_mut(ctx);
         let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
         self.update_from_rigid_body(rigid_body, changes);
         self.update_rigid_body(rigid_body, changes);
@@ -178,7 +179,8 @@ impl Body2D {
     /// Creates a new body.
     pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
-        let (rigid_body_handle, collider_handle) = ctx.root::<Pipeline>().register_body(
+        let pipeline_handle = ctx.root::<Pipeline>();
+        let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(ctx).register_body(
             Self::default_rigid_body(position),
             Self::default_collider(size, active_hooks),
         );
@@ -201,6 +203,7 @@ impl Body2D {
             shape: Shape2D::Rectangle,
             collisions: vec![],
             glob: Glob::new(ctx, data),
+            pipeline_handle,
         }
     }
 

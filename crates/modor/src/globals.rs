@@ -1,6 +1,6 @@
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
-use crate::{Context, Node, RootNode, Visit};
+use crate::{Context, Node, RootNode, RootNodeHandle, Visit};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -9,9 +9,6 @@ use std::mem;
 use std::slice::Iter;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-
-// TODO: add not mutable App::root + use &Context instead of &mut Context when possible
-//     - We can even return RootNodeHandle from existing App::root and then access mutably/immutably
 
 /// A globally shared value of type `T`.
 ///
@@ -45,9 +42,11 @@ where
 {
     /// Creates a new shared `value`.
     pub fn new(ctx: &mut Context<'_>, value: T) -> Self {
+        let globals = ctx.root::<Globals<T>>();
         Self {
             ref_: GlobRef {
-                index: ctx.root::<Globals<T>>().register(value).into(),
+                index: globals.get_mut(ctx).register(value).into(),
+                globals,
                 phantom: PhantomData,
             },
             phantom: PhantomData,
@@ -63,14 +62,14 @@ where
         self.as_ref().index()
     }
 
-    /// Returns immutable reference to the shared value.
-    pub fn get<'a>(&self, ctx: &'a mut Context<'_>) -> &'a T {
-        &ctx.root::<Globals<T>>()[self.index()]
+    /// Returns an immutable reference to the shared value.
+    pub fn get<'a>(&self, ctx: &'a Context<'_>) -> &'a T {
+        &self.ref_.globals.get(ctx)[self.index()]
     }
 
-    /// Returns mutable reference to the shared value.
+    /// Returns a mutable reference to the shared value.
     pub fn get_mut<'a>(&self, ctx: &'a mut Context<'_>) -> &'a mut T {
-        ctx.root::<Globals<T>>().items[self.index()]
+        self.ref_.globals.get_mut(ctx).items[self.index()]
             .as_mut()
             .expect("internal error: invalid index")
     }
@@ -110,6 +109,7 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 )]
 pub struct GlobRef<T> {
     index: Arc<Index>,
+    globals: RootNodeHandle<Globals<T>>,
     phantom: PhantomData<fn(T)>,
 }
 
@@ -126,9 +126,9 @@ where
         self.index.index
     }
 
-    /// Returns immutable reference to the shared value.
-    pub fn get<'a>(&self, ctx: &'a mut Context<'_>) -> &'a T {
-        &ctx.root::<Globals<T>>()[self.index.index]
+    /// Returns an immutable reference to the shared value.
+    pub fn get<'a>(&self, ctx: &'a Context<'_>) -> &'a T {
+        &self.globals.get(ctx)[self.index.index]
     }
 }
 
@@ -140,7 +140,7 @@ where
 /// # use modor::*;
 /// #
 /// fn access_glob(ctx: &mut Context<'_>, index: usize) -> &'static str {
-///     ctx.root::<Globals<&'static str>>()[index]
+///     ctx.root::<Globals<&'static str>>().get(ctx)[index]
 /// }
 /// ```
 #[derive(Debug)]
@@ -192,12 +192,12 @@ impl<T> Globals<T> {
         self.items.get(index).and_then(|item| item.as_ref())
     }
 
-    /// Returns iterator on all values.
+    /// Returns an iterator on all values.
     pub fn iter(&self) -> Flatten<Iter<'_, Option<T>>> {
         self.items.iter().flatten()
     }
 
-    /// Returns iterator on all values with their index.
+    /// Returns an iterator on all values with their index.
     pub fn iter_enumerated(&self) -> impl Iterator<Item = (usize, &T)> {
         self.items
             .iter()
