@@ -44,13 +44,13 @@ use rapier2d::prelude::InteractionGroups;
 #[derive(Debug, NoVisit)]
 pub struct CollisionGroup {
     pub(crate) glob: Glob<CollisionGroupGlob>,
-    physics_hooks_handle: RootNodeHandle<PhysicsHooks>,
+    physics_hooks: RootNodeHandle<PhysicsHooks>,
 }
 
 impl Node for CollisionGroup {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let interactions = self
-            .physics_hooks_handle
+            .physics_hooks
             .get_mut(ctx)
             .interactions(self.glob.index());
         self.glob.get_mut(ctx).interactions = interactions;
@@ -62,7 +62,7 @@ impl CollisionGroup {
     pub fn new(ctx: &mut Context<'_>) -> Self {
         Self {
             glob: Glob::new(ctx, CollisionGroupGlob::default()),
-            physics_hooks_handle: ctx.root::<PhysicsHooks>(),
+            physics_hooks: ctx.root::<PhysicsHooks>(),
         }
     }
 
@@ -81,11 +81,9 @@ impl CollisionGroup {
         other: &GlobRef<CollisionGroupGlob>,
         type_: CollisionType,
     ) {
-        self.physics_hooks_handle.get_mut(ctx).add_interaction(
-            self.glob.index(),
-            other.index(),
-            type_,
-        );
+        self.physics_hooks
+            .get_mut(ctx)
+            .add_interaction(self.glob.index(), other.index(), type_);
     }
 }
 

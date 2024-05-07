@@ -37,13 +37,13 @@ impl App {
         T: RootNode,
     {
         platform::init_logging(log_level);
-        debug!("initialize app...");
+        debug!("Initialize app...");
         let mut app = Self {
             root_indexes: FxHashMap::default(),
             roots: vec![],
         };
         app.root::<T>();
-        debug!("app initialized");
+        debug!("App initialized");
         app
     }
 
@@ -53,7 +53,7 @@ impl App {
     ///
     /// Root nodes are updated in the order in which they are created.
     pub fn update(&mut self) {
-        debug!("run update app...");
+        debug!("Run update app...");
         for root_index in 0..self.roots.len() {
             let root = &mut self.roots[root_index];
             let mut value = root
@@ -64,7 +64,7 @@ impl App {
             update_fn(&mut *value, &mut self.ctx());
             self.roots[root_index].value = Some(value);
         }
-        debug!("app updated");
+        debug!("App updated");
     }
 
     /// Returns an update context.
@@ -101,9 +101,9 @@ impl App {
     where
         T: RootNode,
     {
-        debug!("create root node `{}`...", any::type_name::<T>());
+        debug!("Create root node `{}`...", any::type_name::<T>());
         let root = RootNodeData::new(T::on_create(&mut self.ctx()));
-        debug!("root node `{}` created", any::type_name::<T>());
+        debug!("Root node `{}` created", any::type_name::<T>());
         let index = self.roots.len();
         self.root_indexes.insert(type_id, index);
         self.roots.push(root);
@@ -117,7 +117,7 @@ impl App {
         self.roots[root_index]
             .value
             .as_mut()
-            .expect("internal error: root node already borrowed")
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
             .downcast_mut::<T>()
             .expect("internal error: misconfigured root node")
     }
@@ -176,7 +176,7 @@ where
         ctx.app.roots[self.index]
             .value
             .as_ref()
-            .expect("internal error: root node already borrowed")
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
             .downcast_ref::<T>()
             .expect("internal error: misconfigured root node")
     }

@@ -150,7 +150,7 @@ pub struct Body2D {
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
-    pipeline_handle: RootNodeHandle<Pipeline>,
+    pipeline: RootNodeHandle<Pipeline>,
 }
 
 impl Node for Body2D {
@@ -163,7 +163,7 @@ impl Node for Body2D {
             .collision_group
             .as_ref()
             .map_or_else(InteractionGroups::none, |g| g.get(ctx).interactions);
-        let pipeline = self.pipeline_handle.get_mut(ctx);
+        let pipeline = self.pipeline.get_mut(ctx);
         let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
         self.update_from_rigid_body(rigid_body, changes);
         self.update_rigid_body(rigid_body, changes);
@@ -203,7 +203,7 @@ impl Body2D {
             shape: Shape2D::Rectangle,
             collisions: vec![],
             glob: Glob::new(ctx, data),
-            pipeline_handle,
+            pipeline: pipeline_handle,
         }
     }
 

@@ -282,7 +282,7 @@ impl Drop for Index {
     fn drop(&mut self) {
         match self.pool.deleted_indexes.lock() {
             Ok(mut indexes) => indexes.push(self.index),
-            Err(err) => error!("error: {err}"), // no-coverage (difficult to test poisoning)
+            Err(err) => error!("Error: {err}"), // no-coverage (difficult to test poisoning)
         }
     }
 }

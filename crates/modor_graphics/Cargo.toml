@@ -1,0 +1,54 @@
+[package]
+name = "modor_graphics"
+description = "Graphics module of Modor game engine"
+readme = "./README.md"
+keywords = ["modor", "graphics", "display", "rendering", "game"]
+categories = ["game-engines"]
+exclude = [".github", "README.md", "assets"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bytemuck.workspace = true
+derivative.workspace = true 
+fxhash.workspace = true 
+futures.workspace = true
+gilrs.workspace = true
+image.workspace = true
+instant.workspace = true
+log.workspace = true
+regex.workspace = true
+spin_sleep.workspace = true
+modor.workspace = true
+modor_input.workspace = true
+modor_internal.workspace = true
+modor_physics.workspace = true
+modor_resources.workspace = true
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+winit = { workspace = true, features = ["rwh_05"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+winit = { workspace = true, features = ["android-native-activity", "rwh_05"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+instant.workspace = true
+wgpu.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+instant = { workspace = true, features = ["wasm-bindgen"] }
+web-sys.workspace = true
+wgpu = { workspace = true, features = ["webgl"] }
+
+[dev-dependencies]
+approx.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
+
+[lints]
+workspace = true

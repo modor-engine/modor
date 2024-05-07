@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{Context, Glob, GlobRef, NoVisit, Node};
+use modor::{Context, NoVisit, Node};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -18,20 +18,17 @@ use std::{any, fmt};
 ///
 /// #[derive(Default)]
 /// struct ContentSize {
-///     unit: ContentSizeUnit,
+///     size: Option<usize>,
 /// }
 ///
 /// impl Resource for ContentSize {
 ///     type Source = ContentSizeSource;
 ///     type Loaded = ContentSizeLoaded;
-///     type Glob = ContentSizeGlob;
 ///
-///     fn should_be_reloaded(
-///         &self,
-///         glob: &Glob<Option<Self::Glob>>,
-///         ctx: &mut Context<'_>
-///     ) -> bool {
-///         false
+///     fn create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             size: None,
+///         }
 ///     }
 ///
 ///     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -51,27 +48,14 @@ use std::{any, fmt};
 ///
 ///     fn update(
 ///         &mut self,
-///         glob: &Glob<Option<Self::Glob>>,
 ///         ctx: &mut Context<'_>,
-///         loaded: Option<Self::Loaded>
+///         loaded: Option<Self::Loaded>,
+///         _label: &str,
 ///     ) {
 ///         if let Some(loaded) = loaded {
-///             *glob.get_mut(ctx) = Some(ContentSizeGlob {
-///                 size: match self.unit {
-///                     ContentSizeUnit::Bytes => loaded.size_in_bytes,
-///                     ContentSizeUnit::Bits => loaded.size_in_bytes * 8,
-///                 },
-///                 unit: self.unit,
-///             });
+///             self.size = Some(loaded.size_in_bytes);
 ///         }
 ///     }
-/// }
-///
-/// #[derive(Default, Debug, Clone, Copy)]
-/// enum ContentSizeUnit {
-///     #[default]
-///     Bytes,
-///     Bits,
 /// }
 ///
 /// #[non_exhaustive]
@@ -91,11 +75,6 @@ use std::{any, fmt};
 ///     size_in_bytes: usize,
 /// }
 ///
-/// struct ContentSizeGlob {
-///     size: usize,
-///     unit: ContentSizeUnit,
-/// }
-///
 /// // Usage
 ///
 /// #[derive(Visit)]
@@ -106,7 +85,7 @@ use std::{any, fmt};
 /// impl Content {
 ///     fn new(ctx: &mut Context) -> Self {
 ///         Self {
-///             size: Res::from_path(ctx, "path/to/content"),
+///             size: Res::from_path(ctx, "size", "path/to/content"),
 ///         }
 ///     }
 /// }
@@ -119,10 +98,11 @@ use std::{any, fmt};
 ///     }
 /// }
 /// ```
-#[derive(Debug, NoVisit)]
+#[derive(NoVisit, Derivative)]
+#[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
+    label: String,
     inner: T,
-    glob: Glob<Option<T::Glob>>,
     location: ResourceLocation<T>,
     loading: Option<Loading<T>>,
     err: Option<ResourceError>,
@@ -153,9 +133,6 @@ where
     T: Resource,
 {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        if self.inner.should_be_reloaded(&self.glob, ctx) {
-            self.reload();
-        }
         let mut latest_loaded = None;
         match self.loading.take() {
             Some(Loading::Path(mut job)) => match job.try_poll() {
@@ -173,7 +150,7 @@ where
             Some(Loading::Sync(loaded)) => latest_loaded = Some(self.success(loaded)),
             None => (),
         }
-        self.inner.update(&self.glob, ctx, latest_loaded);
+        self.inner.update(ctx, latest_loaded, &self.label);
     }
 }
 
@@ -185,6 +162,8 @@ where
     ///
     /// Resource loading is asynchronous.
     ///
+    /// The `label` is used to identity the resource in logs.
+    ///
     /// # Platform-specific
     ///
     /// - Web: HTTP GET call is performed to retrieve the file from URL
@@ -195,10 +174,14 @@ where
     /// application is run using a `cargo` command), then the file is retrieved from path
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
-    pub fn from_path(ctx: &mut Context<'_>, path: impl Into<String>) -> Self {
+    pub fn from_path(
+        ctx: &mut Context<'_>,
+        label: impl Into<String>,
+        path: impl Into<String>,
+    ) -> Self {
         let mut res = Self {
-            inner: T::default(),
-            glob: Glob::new(ctx, None),
+            label: label.into(),
+            inner: T::create(ctx),
             location: ResourceLocation::Path(path.into()),
             loading: None,
             err: None,
@@ -211,21 +194,18 @@ where
     ///
     /// Resource loading is asynchronous if [`T::Source::is_async()`](Source::is_async())
     /// returns `true`.
-    pub fn from_source(ctx: &mut Context<'_>, source: T::Source) -> Self {
+    ///
+    /// The `label` is used to identity the resource in logs.
+    pub fn from_source(ctx: &mut Context<'_>, label: impl Into<String>, source: T::Source) -> Self {
         let mut res = Self {
-            inner: T::default(),
-            glob: Glob::new(ctx, None),
+            label: label.into(),
+            inner: T::create(ctx),
             location: ResourceLocation::Source(source),
             loading: None,
             err: None,
         };
         res.reload();
         res
-    }
-
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Option<T::Glob>> {
-        self.glob.as_ref()
     }
 
     /// Returns the error in case the loading has failed.
@@ -293,18 +273,11 @@ where
     }
 
     fn fail(&mut self, err: ResourceError) {
-        match &self.location {
-            ResourceLocation::Path(path) => error!(
-                "failed to load `{}` resource with path `{}`: {err}",
-                any::type_name::<T>(),
-                path
-            ),
-            ResourceLocation::Source(source) => error!(
-                "failed to load `{}` resource with source `{:?}`: {err}",
-                any::type_name::<T>(),
-                source
-            ),
-        }
+        error!(
+            "Failed to load `{}` resource of type `{}`: {err}",
+            self.label,
+            any::type_name::<T>(),
+        );
         self.err = Some(err);
     }
 }
@@ -314,16 +287,14 @@ where
 /// # Examples
 ///
 /// See [`Res`].
-pub trait Resource: Default {
+pub trait Resource {
     /// The custom source type.
     type Source: Source;
     /// The loaded resource type.
     type Loaded: Send + 'static;
-    /// The global data of the resource.
-    type Glob: 'static;
 
-    /// Returns whether the resource should be reloaded.
-    fn should_be_reloaded(&self, glob: &Glob<Option<Self::Glob>>, ctx: &mut Context<'_>) -> bool;
+    /// Creates a new resource.
+    fn create(ctx: &mut Context<'_>) -> Self;
 
     /// Loads the resource from file bytes.
     ///
@@ -344,16 +315,13 @@ pub trait Resource: Default {
     /// Updates the resource during node update.
     ///
     /// In case resource loaded has just finished, `loaded` is `Some`.
-    fn update(
-        &mut self,
-        glob: &Glob<Option<Self::Glob>>,
-        ctx: &mut Context<'_>,
-        loaded: Option<Self::Loaded>,
-    );
+    ///
+    /// `label` can be used for logging.
+    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str);
 }
 
 /// A trait for defining a source used to load a [`Resource`].
-pub trait Source: Debug + Clone + Send + 'static {
+pub trait Source: Clone + Send + 'static {
     /// Returns whether the resource is loaded asynchronously.
     fn is_async(&self) -> bool;
 }
