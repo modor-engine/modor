@@ -19,12 +19,14 @@ struct Root(Const<InnerNode>);
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        Self(InnerNode.into_const(ctx))
+        let constant = InnerNode(42).into_const(ctx);
+        assert_eq!(constant.0, 42);
+        Self(constant)
     }
 }
 
 #[derive(Visit)]
-struct InnerNode;
+struct InnerNode(u32);
 
 impl Node for InnerNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
