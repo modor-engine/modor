@@ -76,6 +76,18 @@ impl Visit for Box<dyn Node> {
     }
 }
 
+impl<T> Node for Box<T> where T: Node {}
+
+impl<T> Visit for Box<T>
+where
+    T: Node,
+{
+    #[inline]
+    fn visit(&mut self, ctx: &mut Context<'_>) {
+        self.deref_mut().update(ctx);
+    }
+}
+
 impl<T> Node for Option<T> where T: Node {}
 
 impl<T> Visit for Option<T>

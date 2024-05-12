@@ -13,7 +13,7 @@ fn update_node() {
 struct Container(#[modor(skip)] Vec<&'static str>);
 
 #[derive(Node, Visit)]
-struct Root(Box<InnerNode>);
+struct Root(Box<dyn Node>);
 
 impl RootNode for Root {
     fn on_create(_ctx: &mut Context<'_>) -> Self {
