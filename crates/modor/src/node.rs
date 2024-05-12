@@ -1,6 +1,6 @@
 use crate::Context;
 use std::collections::HashMap;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 
 /// A trait for defining a root node accessible from anywhere during update.
 ///
@@ -53,6 +53,18 @@ pub trait Node: Visit {
         self.visit(ctx);
         self.on_exit(ctx);
     }
+
+    /// Converts the node into a [`Const<Self>`].
+    ///
+    /// This method runs [`Node::update`] before making the conversion.
+    #[inline]
+    fn into_const(mut self, ctx: &mut Context<'_>) -> Const<Self>
+    where
+        Self: Sized,
+    {
+        self.update(ctx);
+        Const { inner: self }
+    }
 }
 
 /// A trait for defining the visit of inner nodes.
@@ -70,6 +82,18 @@ pub trait Visit {
 impl Node for Box<dyn Node> {}
 
 impl Visit for Box<dyn Node> {
+    #[inline]
+    fn visit(&mut self, ctx: &mut Context<'_>) {
+        self.deref_mut().update(ctx);
+    }
+}
+
+impl<T> Node for Box<T> where T: Node {}
+
+impl<T> Visit for Box<T>
+where
+    T: Node,
+{
     #[inline]
     fn visit(&mut self, ctx: &mut Context<'_>) {
         self.deref_mut().update(ctx);
@@ -114,5 +138,44 @@ where
         for node in self.values_mut() {
             node.update(ctx);
         }
+    }
+}
+
+/// A wrapper on a constant node.
+///
+/// This type is mainly used for optimization purpose for cases where the [`Node::update`] has no
+/// effect because the node is never mutated.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct Root {
+///     constant: Const<Value>,
+/// }
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             constant: Value(42).into_const(ctx),
+///         }
+///     }
+/// }
+///
+/// #[derive(Node, Visit)]
+/// struct Value(u32);
+/// ```
+#[derive(Debug)]
+pub struct Const<T> {
+    inner: T,
+}
+
+impl<T> Deref for Const<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }

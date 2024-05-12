@@ -18,7 +18,7 @@ fn update_node_without_inner_node() {
 }
 
 #[derive(Default, RootNode, Node, Visit)]
-struct Container(#[modor(skip)] Vec<&'static str>);
+struct Container(Vec<&'static str>);
 
 #[derive(Node, Visit)]
 struct Root<const IS_SOME: bool>(Option<InnerNode>);

@@ -1,11 +1,11 @@
 use crate::user_data::ColliderUserData;
 use crate::{CollisionGroupGlob, CollisionType};
 use fxhash::FxHashMap;
-use modor::{Context, Globals, NoVisit, Node, RootNode};
+use modor::{Context, Globals, Node, RootNode, Visit};
 use rapier2d::geometry::{Group, InteractionGroups, SolverFlags};
 use rapier2d::pipeline::{ContactModificationContext, PairFilterContext};
 
-#[derive(Debug, Default, RootNode, NoVisit)]
+#[derive(Debug, Default, RootNode, Visit)]
 pub(crate) struct PhysicsHooks {
     collision_types: FxHashMap<(usize, usize), CollisionType>,
 }

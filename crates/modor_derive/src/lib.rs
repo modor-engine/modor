@@ -50,10 +50,3 @@ pub fn visit_derive(item: TokenStream) -> TokenStream {
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
 }
-
-#[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(NoVisit)]
-pub fn no_visit_derive(item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-    visit::impl_block_without_visit(&input).into()
-}

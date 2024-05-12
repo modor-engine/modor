@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{Context, Glob, GlobRef, NoVisit, Node, RootNodeHandle};
+use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -41,7 +41,7 @@ use rapier2d::prelude::InteractionGroups;
 ///     body
 /// }
 /// ```
-#[derive(Debug, NoVisit)]
+#[derive(Debug, Visit)]
 pub struct CollisionGroup {
     pub(crate) glob: Glob<CollisionGroupGlob>,
     physics_hooks: RootNodeHandle<PhysicsHooks>,

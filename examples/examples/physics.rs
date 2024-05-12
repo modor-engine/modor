@@ -2,7 +2,7 @@
 
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, Context, NoVisit, Node, RootNode, Visit};
+use modor::{App, Context, Node, RootNode, Visit};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta, Impulse};
 use std::time::Duration;
@@ -53,7 +53,7 @@ impl BodyWrapper {
     }
 }
 
-#[derive(Node, NoVisit)]
+#[derive(Node, Visit)]
 struct CollisionGroups {
     group1: CollisionGroup,
     group2: CollisionGroup,

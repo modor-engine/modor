@@ -3,7 +3,7 @@ use crate::physics_hooks::PhysicsHooks;
 use crate::user_data::ColliderUserData;
 use crate::{Body2DGlob, Delta};
 use fxhash::FxHashMap;
-use modor::{Context, Globals, NoVisit, Node, RootNode};
+use modor::{Context, Globals, Node, RootNode, Visit};
 use rapier2d::dynamics::{
     CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
     RigidBodyHandle, RigidBodySet,
@@ -13,7 +13,7 @@ use rapier2d::na::Vector2;
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::RigidBody;
 
-#[derive(Default, RootNode, NoVisit)]
+#[derive(Default, RootNode, Visit)]
 pub(crate) struct Pipeline {
     rigid_bodies: RigidBodySet,
     colliders: ColliderSet,

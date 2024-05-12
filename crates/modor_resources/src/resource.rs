@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{Context, NoVisit, Node};
+use modor::{Context, Visit, Node};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -98,7 +98,7 @@ use std::{any, fmt};
 ///     }
 /// }
 /// ```
-#[derive(NoVisit, Derivative)]
+#[derive(Visit, Derivative)]
 #[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
     label: String,
@@ -351,7 +351,7 @@ enum ResourceLocation<T: Resource> {
     Source(T::Source),
 }
 
-#[derive(NoVisit, Derivative)]
+#[derive(Visit, Derivative)]
 #[derivative(Debug)]
 enum Loading<T: Resource> {
     Path(#[derivative(Debug = "ignore")] AssetLoadingJob<Result<T::Loaded, ResourceError>>),

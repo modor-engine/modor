@@ -47,7 +47,6 @@
 //!
 //! #[derive(Default, Visit)]
 //! struct Counter {
-//!     #[modor(skip)] // u32 does not implement `Node` trait, so it cannot be visited
 //!     value: u32,
 //! }
 //!
@@ -66,6 +65,8 @@ pub use wasm_bindgen_test;
 
 mod app;
 mod globals;
+#[doc(hidden)]
+pub mod macro_utils;
 mod node;
 mod platform;
 
@@ -136,6 +137,8 @@ pub use modor_derive::test;
 ///
 /// The type must implement [`Default`] trait.
 ///
+/// Both structs and enums are supported.
+///
 /// # Examples
 ///
 /// ```rust
@@ -143,7 +146,6 @@ pub use modor_derive::test;
 /// #
 /// #[derive(Default, RootNode, Node, Visit)]
 /// struct Root {
-///     #[modor(skip)]
 ///     value: u32,
 /// }
 /// ```
@@ -151,33 +153,16 @@ pub use modor_derive::RootNode;
 
 /// Implements [`Node`].
 ///
+/// Both structs and enums are supported.
+///
 /// # Examples
 ///
 /// See [`RootNode`](macro@crate::RootNode).
 pub use modor_derive::Node;
 
-/// Implements [`Visit`] in case there is no inner node.
+/// Implements [`Visit`] so that inner fields implementing [`Node`] are visited.
 ///
-/// This macro can be used instead of [`Visit`](macro@crate::Visit) when there is no inner node.
-/// This avoids unnecessary usage of `#[modor(skip)]` in case all fields should be skipped.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Default, RootNode, Node, NoVisit)]
-/// struct Root {
-///     value: u32,
-/// }
-/// ```
-pub use modor_derive::NoVisit;
-
-/// Implements [`Visit`] so that inner node are visited.
-///
-/// `#[modor(skip)]` can be added on a field to skip its automatic update, for example because:
-/// - the field type doesn't implement [`Node`].
-/// - the field is a node but shouldn't be updated for performance reasons.
+/// Both structs and enums are supported.
 ///
 /// # Examples
 ///
