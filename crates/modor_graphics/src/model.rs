@@ -77,6 +77,7 @@ where
         self.glob.as_ref()
     }
 
+    // TODO: use GlobRef wrapper instead (same for shaders ?)
     pub fn set_material(&mut self, material: &Mat<T>) {
         self.material = material.glob().clone();
     }
@@ -235,7 +236,7 @@ impl InstanceGroup2D {
 #[derive(Debug)]
 pub(crate) struct InstanceGroupBuffer {
     pub(crate) buffer: Option<Buffer<u8>>,
-    pub(crate)  data: Vec<u8>,
+    pub(crate) data: Vec<u8>,
     item_size: usize,
     is_updated: bool,
 }

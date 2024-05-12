@@ -11,6 +11,10 @@
 
 #![allow(missing_docs, clippy::missing_errors_doc)] // TODO: remove
 
+// TODO: is it necessary to recreate all resources when surface is recreated on Android ?
+//   - If yes: put all WGPU resources at one place to handle cases where Instance is destroyed
+//   - If no: drop the gpu_version checks
+
 mod buffer;
 mod camera;
 mod color;
