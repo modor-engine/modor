@@ -1,9 +1,11 @@
 use log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Const, Context, Node, RootNode, Visit};
 
 #[modor::test]
 fn update_node() {
     let mut app = App::new::<Root>(Level::Info);
+    app.update();
+    app.update();
     app.update();
     let container = app.root::<Container>();
     assert_eq!(container.0, ["InnerNode::on_enter", "InnerNode::on_exit"]);
@@ -13,11 +15,11 @@ fn update_node() {
 struct Container(Vec<&'static str>);
 
 #[derive(Node, Visit)]
-struct Root(Box<InnerNode>);
+struct Root(Const<InnerNode>);
 
 impl RootNode for Root {
-    fn on_create(_ctx: &mut Context<'_>) -> Self {
-        Self(Box::new(InnerNode))
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self(InnerNode.into_const(ctx))
     }
 }
 

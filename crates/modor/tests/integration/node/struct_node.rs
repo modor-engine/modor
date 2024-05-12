@@ -18,7 +18,7 @@ fn update_node() {
 }
 
 #[derive(Default, RootNode, Node, Visit)]
-struct Container(#[modor(skip)] Vec<&'static str>);
+struct Container(Vec<&'static str>);
 
 #[derive(Node, Visit)]
 struct Root(TestNode);
@@ -35,7 +35,6 @@ impl RootNode for Root {
 #[derive(Visit)]
 struct TestNode {
     node: InnerNode,
-    #[modor(skip)]
     _not_node: usize,
 }
 

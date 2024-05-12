@@ -31,7 +31,6 @@ impl RootNode for Root {
 
 #[derive(Default, Visit)]
 struct Number {
-    #[modor(skip)]
     value: u128,
     inner: InnerValue,
 }
@@ -44,7 +43,6 @@ impl Node for Number {
 
 #[derive(Default, Visit)]
 struct InnerValue {
-    #[modor(skip)]
     value: u128,
 }
 

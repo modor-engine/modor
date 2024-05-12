@@ -1,4 +1,5 @@
 pub mod box_node;
+pub mod const_node;
 pub mod enum_node;
 pub mod hashmap_node;
 pub mod option_node;
