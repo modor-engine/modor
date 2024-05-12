@@ -1,10 +1,10 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuHandle, GpuState};
 use crate::vertex_buffer::VertexBuffer;
-use modor::{Context, Glob, GlobRef, NoVisit, Node};
+use modor::{Context, Glob, GlobRef, Node, Visit};
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
-#[derive(NoVisit, Debug)]
+#[derive(Visit, Debug)]
 pub(crate) struct Mesh {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,

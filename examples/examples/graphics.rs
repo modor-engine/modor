@@ -14,7 +14,6 @@ fn main() {
 #[derive(Visit)]
 struct Root {
     smiley: Vec<Smiley>,
-    #[modor(skip)]
     last_frame_instant: Instant,
 }
 

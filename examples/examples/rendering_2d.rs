@@ -2,7 +2,7 @@
 
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Const, Context, Node, RootNode, Visit};
 use modor_graphics::{Color, DefaultMaterial2D, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use rand::Rng;
@@ -29,7 +29,6 @@ fn main() {
 #[derive(Visit)]
 struct Root {
     sprites: Vec<Sprite>,
-    #[modor(skip)]
     last_frame_instant: Instant,
 }
 
@@ -80,9 +79,7 @@ impl RootNode for Resources {
 #[derive(Visit)]
 struct Sprite {
     model: Model2D<DefaultMaterial2D>,
-    #[modor(skip)]
     next_update: Instant,
-    #[modor(skip)]
     velocity: Vec2,
 }
 

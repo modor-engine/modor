@@ -1,6 +1,6 @@
 use crate::platform;
 use futures::executor;
-use modor::{Context, NoVisit, Node, RootNode};
+use modor::{Context, Node, RootNode, Visit};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
@@ -8,7 +8,7 @@ use wgpu::{
     Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, ShaderStages, Surface,
 };
 
-#[derive(Default, Debug, RootNode, NoVisit)]
+#[derive(Default, Debug, RootNode, Visit)]
 pub(crate) struct GpuManager {
     pub(crate) is_window_target: bool,
     pub(crate) current_version: u64,

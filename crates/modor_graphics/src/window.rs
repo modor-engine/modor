@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuHandle};
 use crate::size::NonZeroSize;
 use crate::{platform, Size, Target};
-use modor::{Context, NoVisit, Node, RootNode};
+use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{Instance, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor};
@@ -9,7 +9,7 @@ use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window as WindowHandle, WindowBuilder};
 
-#[derive(NoVisit)]
+#[derive(Visit)]
 pub struct Window {
     /// Title of the window.
     ///

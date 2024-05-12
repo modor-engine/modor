@@ -2,13 +2,13 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuHandle, GpuManager, GpuState};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{Context, Glob, GlobRef, NoVisit, Node};
+use modor::{Context, Glob, GlobRef, Node, Visit};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use wgpu::{BindGroup, BufferUsages};
 
-#[derive(Debug, NoVisit)]
+#[derive(Debug, Visit)]
 pub struct Camera2D {
     pub position: Vec2,
     pub size: Vec2,

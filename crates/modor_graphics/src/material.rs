@@ -5,7 +5,7 @@ use crate::model::Model2DGlob;
 use crate::texture::TextureProperties;
 use crate::{Color, Shader, ShaderGlob, ShaderSource, Size, Texture, TextureGlob, TextureSource};
 use bytemuck::Pod;
-use modor::{Context, Glob, GlobRef, NoVisit, Node, RootNode, RootNodeHandle, Visit};
+use modor::{Context, Glob, GlobRef, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::Vec2;
 use modor_resources::Res;
 use std::marker::PhantomData;
@@ -16,7 +16,7 @@ use wgpu::{
     TextureView,
 };
 
-#[derive(Debug, NoVisit)]
+#[derive(Debug, Visit)]
 pub struct Mat<T> {
     data: T,
     label: String,

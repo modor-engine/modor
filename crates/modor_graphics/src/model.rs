@@ -5,14 +5,14 @@ use crate::vertex_buffer::VertexBuffer;
 use crate::{Camera2DGlob, GraphicsResources, Mat, Material, MaterialGlob};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{Context, Glob, GlobRef, Globals, NoVisit, Node, RootNode, RootNodeHandle};
+use modor::{Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::mem;
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
-#[derive(Derivative, NoVisit)]
+#[derive(Derivative, Visit)]
 #[derivative(Debug(bound = ""))]
 pub struct Model2D<T> {
     pub position: Vec2,
@@ -112,7 +112,7 @@ impl InstanceGroup2DKey {
     }
 }
 
-#[derive(Default, RootNode, NoVisit)]
+#[derive(Default, RootNode, Visit)]
 pub struct InstanceGroups2D {
     pub(crate) groups: FxHashMap<InstanceGroup2DKey, InstanceGroup2D>,
     gpu: GpuHandle,
