@@ -261,7 +261,6 @@ struct Root {
     group2: CollisionGroup,
     body1: Body2D,
     body2: Body2D,
-    #[modor(skip)]
     collision_type: Option<CollisionType>,
 }
 

@@ -16,7 +16,7 @@ fn update_node() {
 }
 
 #[derive(Default, RootNode, Node, Visit)]
-struct Container(#[modor(skip)] Vec<String>);
+struct Container(Vec<String>);
 
 #[derive(Node, Visit)]
 struct Root(HashMap<usize, InnerNode>);
@@ -32,7 +32,7 @@ impl RootNode for Root {
 }
 
 #[derive(Visit)]
-struct InnerNode(#[modor(skip)] usize);
+struct InnerNode(usize);
 
 impl Node for InnerNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {

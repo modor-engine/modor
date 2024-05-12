@@ -18,7 +18,7 @@ fn update_node() {
 }
 
 #[derive(Default, RootNode, Node, Visit)]
-struct Container(#[modor(skip)] Vec<&'static str>);
+struct Container(Vec<&'static str>);
 
 #[derive(Node, Visit)]
 struct Root(TestNode);
@@ -31,7 +31,7 @@ impl RootNode for Root {
 
 #[allow(unused_tuple_struct_fields)]
 #[derive(Visit)]
-struct TestNode(InnerNode, #[modor(skip)] usize);
+struct TestNode(InnerNode, usize);
 
 impl Node for TestNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {

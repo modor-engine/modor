@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{Context, Glob, GlobRef, NoVisit, Node, RootNodeHandle};
+use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -23,7 +23,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// # use modor_math::*;
 /// # use modor_physics::*;
 /// #
-/// #[derive(Default, RootNode, Node, NoVisit)]
+/// #[derive(Default, RootNode, Node, Visit)]
 /// struct CharacterDirection(Vec2);
 ///
 /// #[derive(Visit)]
@@ -53,7 +53,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///     }
 /// }
 /// ```
-#[derive(Debug, NoVisit)]
+#[derive(Debug, Visit)]
 pub struct Body2D {
     /// Position of the body in world units.
     pub position: Vec2,

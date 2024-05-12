@@ -1,6 +1,6 @@
 use log::Level;
 use modor::App;
-use modor_derive::{NoVisit, Node, RootNode};
+use modor_derive::{Node, RootNode, Visit};
 
 #[modor::test]
 fn create_node_handle() {
@@ -11,7 +11,7 @@ fn create_node_handle() {
     assert_eq!(handle.get_mut(&mut ctx).value, 0);
 }
 
-#[derive(Default, RootNode, Node, NoVisit)]
+#[derive(Default, RootNode, Node, Visit)]
 struct Root {
     value: usize,
 }
