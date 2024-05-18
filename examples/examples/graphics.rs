@@ -2,13 +2,13 @@
 
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_resources::Res;
 use modor_graphics::{Color, DefaultMaterial2D, Mat, Model2D, Texture, Window};
 use modor_physics::modor_math::Vec2;
 
 fn main() {
-    modor_graphics::run(App::new::<Root>(Level::Info));
+    modor_graphics::run::<Root>(Level::Info);
 }
 
 #[derive(Visit)]

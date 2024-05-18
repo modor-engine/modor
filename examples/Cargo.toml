@@ -30,3 +30,8 @@ assets = "assets"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31
+
+[[example]]
+name = "rendering_2d_android"
+path = "examples/android/rendering_2d.rs"
+crate-type = ["cdylib"]

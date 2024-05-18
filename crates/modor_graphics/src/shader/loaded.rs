@@ -10,6 +10,13 @@ pub struct ShaderLoaded {
     pub(crate) instance_vertex_attributes: Vec<VertexAttribute>,
 }
 
+impl Default for ShaderLoaded {
+    fn default() -> Self {
+        Self::new(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/empty.wgsl")).into())
+            .expect("internal error: cannot load empty shader")
+    }
+}
+
 impl ShaderLoaded {
     pub(crate) fn new(code: String) -> Result<Self, ResourceError> {
         Ok(Self {

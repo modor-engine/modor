@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::{
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, BufferSlice,
-    BufferUsages, Id,
+    BufferUsages,
 };
 
 #[derive(Debug)]
@@ -43,10 +43,6 @@ where
 
     pub(crate) fn slice(&self) -> BufferSlice<'_> {
         self.inner.slice(..)
-    }
-
-    pub(crate) fn id(&self) -> Id<wgpu::Buffer> {
-        self.inner.global_id()
     }
 
     pub(crate) fn update(&mut self, gpu: &Gpu, data: &[T]) {

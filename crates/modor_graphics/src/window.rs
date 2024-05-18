@@ -1,13 +1,10 @@
 use crate::gpu::{Gpu, GpuHandle};
 use crate::size::NonZeroSize;
-use crate::{platform, Size, Target};
+use crate::{Size, Target};
 use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{Instance, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor};
-use winit::dpi::PhysicalSize;
-use winit::event_loop::EventLoop;
-use winit::window::{Window as WindowHandle, WindowBuilder};
 
 #[derive(Visit)]
 pub struct Window {
@@ -20,7 +17,7 @@ pub struct Window {
     /// Default is `true`.
     pub is_cursor_visible: bool,
     pub target: Target,
-    handle: Option<Arc<WindowHandle>>,
+    handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,
     gpu: GpuHandle,
     old_state: OldWindowState,
@@ -51,44 +48,45 @@ impl Node for Window {
 }
 
 impl Window {
-    const DEFAULT_SIZE: Size = Size::new(800, 600);
+    pub(crate) const DEFAULT_SIZE: Size = Size::new(800, 600);
 
     /// Returns the size of the window, which is also the size of the surface where the rendering
     /// is performed.
     ///
     /// Default size is 800x600.
     ///
+    /// If the app is not run with [`run`](crate::run), `None` is returned.
+    ///
     /// # Platform-specific
     ///
     /// - Android: default size is the size of the screen.
     /// - Other: default size is 800x600.
-    pub fn size(&self) -> Size {
-        self.handle().inner_size().into()
+    pub fn size(&self) -> Option<Size> {
+        self.handle
+            .as_ref()
+            .map(|handle| handle.inner_size().into())
     }
 
-    pub(crate) fn init(&mut self, event_loop: &EventLoop<()>) {
-        let size = Self::DEFAULT_SIZE;
-        let handle = WindowBuilder::new()
-            .with_inner_size(PhysicalSize::new(size.width, size.height))
-            .with_title(&self.title)
-            .build(event_loop)
-            .expect("internal error: cannot create main window");
-        handle.set_cursor_visible(self.is_cursor_visible);
-        platform::init_canvas(&handle);
-        self.handle = Some(Arc::new(handle));
+    pub(crate) fn prepare_rendering(&self) {
+        if let Some(handle) = &self.handle {
+            handle.request_redraw();
+        }
     }
 
-    pub(crate) fn prepare_rendering(&mut self) {
-        self.handle().request_redraw();
-    }
-
-    pub(crate) fn create_surface(&self, instance: &Instance) -> Surface<'static> {
+    pub(crate) fn create_surface(
+        &mut self,
+        instance: &Instance,
+        handle: Option<winit::window::Window>,
+    ) -> Surface<'static> {
+        let handle = if let Some(handle) = handle {
+            self.handle.insert(handle.into())
+        } else {
+            self.handle
+                .as_ref()
+                .expect("internal error: not configured window")
+        };
         instance
-            .create_surface(
-                self.handle
-                    .clone()
-                    .expect("internal error: not configured window"),
-            )
+            .create_surface(handle.clone())
             .expect("cannot create surface")
     }
 
@@ -105,30 +103,30 @@ impl Window {
         }
     }
 
-    fn handle(&self) -> &WindowHandle {
-        self.handle.as_ref().expect("modor_graphics::run not used")
-    }
-
     fn update_properties(&mut self) {
-        if self.title != self.old_state.title {
-            self.handle().set_title(&self.title);
-            self.old_state.title = self.title.clone();
-        }
-        if self.is_cursor_visible != self.old_state.is_cursor_visible {
-            self.handle().set_cursor_visible(self.is_cursor_visible);
-            self.old_state.is_cursor_visible = self.is_cursor_visible;
+        if let Some(handle) = &self.handle {
+            if self.title != self.old_state.title {
+                handle.set_title(&self.title);
+                self.old_state.title = self.title.clone();
+            }
+            if self.is_cursor_visible != self.old_state.is_cursor_visible {
+                handle.set_cursor_visible(self.is_cursor_visible);
+                self.old_state.is_cursor_visible = self.is_cursor_visible;
+            }
         }
     }
 
     fn update_surface(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
-        let size = self.size().into();
-        if let Some(surface) = self.surface.take_new_surface() {
+        let size = self.size();
+        if let Some(surface) = self.surface.take_new() {
+            let size = size.expect("internal error: not configured window").into();
             let surface = WindowSurface::new(gpu, surface, size);
             let texture_format = surface.surface_config.format;
             self.surface = WindowSurfaceState::Loaded(surface);
             self.target.init(ctx, gpu, size, texture_format);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
+            let size = size.expect("internal error: not configured window").into();
             surface.update(gpu, size);
             self.target
                 .update(ctx, gpu, size, surface.surface_config.format);
@@ -158,7 +156,7 @@ enum WindowSurfaceState {
 }
 
 impl WindowSurfaceState {
-    fn take_new_surface(&mut self) -> Option<Surface<'static>> {
+    fn take_new(&mut self) -> Option<Surface<'static>> {
         match mem::replace(self, Self::None) {
             Self::Loading(surface) => Some(surface),
             other @ (Self::None | Self::Loaded(_)) => {

@@ -1,4 +1,4 @@
-use crate::gpu::{Gpu, GpuHandle, GpuResourceAction};
+use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
 use crate::Size;
@@ -12,6 +12,7 @@ use wgpu::{
 };
 
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Texture {
     /// Whether the texture is smooth.
     ///
@@ -27,9 +28,10 @@ pub struct Texture {
     ///
     /// Default is `false`.
     pub is_repeated: bool,
-    loaded: Option<TextureLoaded>,
-    glob: Glob<Option<TextureGlob>>,
-    gpu: GpuHandle,
+    loaded: TextureLoaded,
+    glob: Glob<TextureGlob>,
+    old_is_smooth: bool,
+    old_is_repeated: bool,
 }
 
 impl Resource for Texture {
@@ -37,47 +39,55 @@ impl Resource for Texture {
     type Loaded = TextureLoaded;
 
     fn create(ctx: &mut Context<'_>) -> Self {
+        let loaded = TextureLoaded::default();
+        let glob = TextureGlob::new(
+            ctx,
+            &loaded,
+            Self::DEFAULT_IS_REPEATED,
+            Self::DEFAULT_IS_SMOOTH,
+            "default(modor_graphics)",
+        );
         Self {
-            is_smooth: true,
-            is_repeated: false,
-            loaded: None,
-            glob: Glob::new(ctx, None),
-            gpu: GpuHandle::default(),
+            is_smooth: Self::DEFAULT_IS_SMOOTH,
+            is_repeated: Self::DEFAULT_IS_REPEATED,
+            loaded,
+            glob: Glob::new(ctx, glob),
+            old_is_smooth: Self::DEFAULT_IS_SMOOTH,
+            old_is_repeated: Self::DEFAULT_IS_REPEATED,
         }
     }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
-        Self::load_from_file(&file_bytes).map(|image| TextureLoaded { image })
+        Self::load_from_file(&file_bytes).map(Into::into)
     }
 
     fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
-        Ok(TextureLoaded {
-            image: match source {
-                TextureSource::Size(size) => Self::load_from_size(*size, None)?,
-                TextureSource::Buffer(size, buffer) => Self::load_from_size(*size, Some(buffer))?,
-                TextureSource::Bytes(bytes) => Self::load_from_file(bytes)?,
-            },
-        })
+        Ok(TextureLoaded::from(match source {
+            TextureSource::Size(size) => Self::load_from_size(*size, None)?,
+            TextureSource::Buffer(size, buffer) => Self::load_from_size(*size, Some(buffer))?,
+            TextureSource::Bytes(bytes) => Self::load_from_file(bytes)?,
+        }))
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
-        let is_loaded = loaded.is_some();
         if let Some(loaded) = loaded {
-            self.loaded = Some(loaded);
-        }
-        match self.gpu.action(ctx, is_loaded) {
-            GpuResourceAction::Delete => *self.glob.get_mut(ctx) = None,
-            GpuResourceAction::Create(gpu) => self.create_glob(ctx, &gpu, label),
-            GpuResourceAction::Update(gpu) => self.update_glob(ctx, &gpu, label),
+            self.loaded = loaded;
+            self.init_glob(ctx, label);
+        } else if self.old_is_smooth != self.is_smooth || self.old_is_repeated != self.is_repeated {
+            self.update_glob(ctx, label);
+            self.old_is_smooth = self.is_smooth;
+            self.old_is_repeated = self.is_repeated;
         }
     }
 }
 
 impl Texture {
     pub(crate) const DEFAULT_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
+    pub(crate) const DEFAULT_IS_SMOOTH: bool = true;
+    pub(crate) const DEFAULT_IS_REPEATED: bool = false;
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Option<TextureGlob>> {
+    pub fn glob(&self) -> &GlobRef<TextureGlob> {
         self.glob.as_ref()
     }
 
@@ -92,7 +102,7 @@ impl Texture {
         let buffer = if let Some(buffer) = buffer {
             buffer.to_vec()
         } else {
-            vec![255; (size.width * size.height * 4) as usize]
+            vec![255; (size.width * size.height * 4) as usize] // faster than RgbaImage::from_pixel
         };
         let buffer_len = buffer.len();
         RgbaImage::from_raw(size.width, size.height, buffer).ok_or_else(|| {
@@ -102,22 +112,16 @@ impl Texture {
         })
     }
 
-    fn create_glob(&self, ctx: &mut Context<'_>, gpu: &Gpu, label: &str) {
-        if let Some(loaded) = &self.loaded {
-            *self.glob.get_mut(ctx) = Some(TextureGlob::new(
-                gpu,
-                loaded,
-                self.is_repeated,
-                self.is_smooth,
-                label,
-            ));
-        }
+    fn init_glob(&mut self, ctx: &mut Context<'_>, label: &str) {
+        *self.glob.get_mut(ctx) =
+            TextureGlob::new(ctx, &self.loaded, self.is_repeated, self.is_smooth, label);
     }
 
-    fn update_glob(&self, ctx: &mut Context<'_>, gpu: &Gpu, label: &str) {
-        if let Some(glob) = self.glob.get_mut(ctx) {
-            glob.update(gpu, self.is_repeated, self.is_smooth, label);
-        }
+    fn update_glob(&mut self, ctx: &mut Context<'_>, label: &str) {
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        self.glob
+            .get_mut(ctx)
+            .update_sampler(&gpu, self.is_repeated, self.is_smooth, label);
     }
 }
 
@@ -154,53 +158,36 @@ impl Source for TextureSource {
 
 pub struct TextureGlob {
     pub size: Size,
-    is_transparent: bool,
+    pub(crate) is_transparent: bool,
+    pub(crate) view: TextureView,
+    pub(crate) sampler: Sampler,
     texture: wgpu::Texture,
-    view: TextureView,
-    sampler: Sampler,
-    is_repeated: bool,
-    is_smooth: bool,
-    gpu_version: u64,
 }
 
 impl TextureGlob {
     fn new(
-        gpu: &Gpu,
+        ctx: &mut Context<'_>,
         loaded: &TextureLoaded,
         is_repeated: bool,
         is_smooth: bool,
         label: &str,
     ) -> Self {
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
         let texture = Self::create_texture(gpu, loaded, label);
         Self::write_texture(gpu, loaded, &texture);
         let view = texture.create_view(&TextureViewDescriptor::default());
         let sampler = Self::create_sampler(gpu, is_repeated, is_smooth, label);
         Self {
             size: Size::new(loaded.image.width(), loaded.image.height()),
-            is_transparent: loaded.is_transparent(),
+            is_transparent: loaded.is_transparent,
             texture,
             view,
             sampler,
-            is_repeated,
-            is_smooth,
-            gpu_version: gpu.version,
         }
     }
 
-    pub(crate) fn properties(&self, gpu_version: u64) -> Option<TextureProperties<'_>> {
-        (self.gpu_version == gpu_version).then_some(TextureProperties {
-            is_transparent: self.is_transparent,
-            view: &self.view,
-            sampler: &self.sampler,
-        })
-    }
-
-    fn update(&mut self, gpu: &Gpu, is_repeated: bool, is_smooth: bool, label: &str) {
-        if self.is_repeated != is_repeated || self.is_smooth != is_smooth {
-            self.sampler = Self::create_sampler(gpu, is_repeated, is_smooth, label);
-            self.is_repeated = is_repeated;
-            self.is_smooth = is_smooth;
-        }
+    fn update_sampler(&mut self, gpu: &Gpu, is_repeated: bool, is_smooth: bool, label: &str) {
+        self.sampler = Self::create_sampler(gpu, is_repeated, is_smooth, label);
     }
 
     fn create_texture(gpu: &Gpu, loaded: &TextureLoaded, label: &str) -> wgpu::Texture {
@@ -272,24 +259,30 @@ impl TextureGlob {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct TextureProperties<'a> {
-    pub(crate) is_transparent: bool,
-    pub(crate) view: &'a TextureView,
-    pub(crate) sampler: &'a Sampler,
-}
-
 mod internal {
-    use image::RgbaImage;
+    use image::{Rgba, RgbaImage};
 
     #[derive(Debug)]
     pub struct TextureLoaded {
         pub(super) image: RgbaImage,
+        pub(super) is_transparent: bool,
     }
 
-    impl TextureLoaded {
-        pub(super) fn is_transparent(&self) -> bool {
-            self.image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255)
+    impl Default for TextureLoaded {
+        fn default() -> Self {
+            Self {
+                image: RgbaImage::from_pixel(1, 1, Rgba::<u8>::from([255, 255, 255, 255])),
+                is_transparent: false,
+            }
+        }
+    }
+
+    impl From<RgbaImage> for TextureLoaded {
+        fn from(image: RgbaImage) -> Self {
+            Self {
+                is_transparent: image.pixels().any(|p| p.0[3] > 0 && p.0[3] < 255),
+                image,
+            }
         }
     }
 }

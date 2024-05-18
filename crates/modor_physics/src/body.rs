@@ -132,7 +132,7 @@ pub struct Body2D {
     /// Note that CCD require additional computation, so it is recommended to enable it only for
     /// bodies that are expected to move fast.
     ///
-    /// Has no effect if [`collision_group`](#structfield.collision_group) is [`None`].
+    /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
     /// Default value is `false`.
     pub is_ccd_enabled: bool,

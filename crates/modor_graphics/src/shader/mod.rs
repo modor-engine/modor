@@ -1,4 +1,4 @@
-use crate::gpu::{Gpu, GpuHandle, GpuResourceAction};
+use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::Vertex;
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
@@ -11,6 +11,7 @@ use modor::{Context, Glob, GlobRef};
 use modor_resources::{Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::mem;
+use std::sync::Arc;
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
     BufferAddress, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction,
@@ -25,10 +26,10 @@ use wgpu::{
 #[derivative(Debug(bound = ""))]
 pub struct Shader<T> {
     pub is_alpha_replaced: bool,
-    loaded: Option<ShaderLoaded>,
-    glob: Glob<Option<ShaderGlob>>,
-    gpu: GpuHandle,
+    loaded: ShaderLoaded,
+    glob: Glob<ShaderGlob>,
     is_invalid: bool,
+    old_is_alpha_replaced: bool,
     phantom_data: PhantomData<T>,
 }
 
@@ -40,12 +41,20 @@ where
     type Loaded = ShaderLoaded;
 
     fn create(ctx: &mut Context<'_>) -> Self {
+        let loaded = ShaderLoaded::default();
+        let glob = ShaderGlob::new::<T>(
+            ctx,
+            &loaded,
+            Self::DEFAULT_IS_ALPHA_REPLACED,
+            "empty(modor_graphics)",
+        )
+        .expect("internal error: cannot load empty shader");
         Self {
-            is_alpha_replaced: false,
-            loaded: None,
-            glob: Glob::new(ctx, None),
-            gpu: GpuHandle::default(),
+            is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
+            glob: Glob::new(ctx, glob),
+            loaded,
             is_invalid: false,
+            old_is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
             phantom_data: PhantomData,
         }
     }
@@ -63,14 +72,11 @@ where
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
-        let is_loaded = loaded.is_some();
         if let Some(loaded) = loaded {
-            self.loaded = Some(loaded);
-        }
-        match self.gpu.action(ctx, is_loaded) {
-            GpuResourceAction::Delete => *self.glob.get_mut(ctx) = None,
-            GpuResourceAction::Create(gpu) => self.create_glob(ctx, &gpu, label),
-            GpuResourceAction::Update(gpu) => self.update_glob(ctx, &gpu, label),
+            self.loaded = loaded;
+            self.update(ctx, label);
+        } else if self.is_alpha_replaced != self.old_is_alpha_replaced {
+            self.update(ctx, label);
         }
     }
 }
@@ -79,8 +85,10 @@ impl<T> Shader<T>
 where
     T: 'static + Material,
 {
+    const DEFAULT_IS_ALPHA_REPLACED: bool = false;
+
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Option<ShaderGlob>> {
+    pub fn glob(&self) -> &GlobRef<ShaderGlob> {
         self.glob.as_ref()
     }
 
@@ -88,34 +96,18 @@ where
         self.is_invalid
     }
 
-    fn create_glob(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, label: &str) {
-        if let Some(loaded) = &self.loaded {
-            *self.glob.get_mut(ctx) = Some(ShaderGlob::new(gpu, loaded, label));
-            self.is_invalid = false;
-        }
-        self.update_glob(ctx, gpu, label);
-    }
-
-    fn update_glob(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, label: &str) {
-        if self.is_invalid {
-            return;
-        }
-        let texture_formats = Self::texture_formats(ctx);
-        if let (Some(glob), Some(loaded)) = (self.glob.get_mut(ctx), &self.loaded) {
-            if glob
-                .update::<T>(gpu, loaded, &texture_formats, self.is_alpha_replaced, label)
-                .is_err()
-            {
+    fn update(&mut self, ctx: &mut Context<'_>, label: &str) {
+        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, label) {
+            Ok(glob) => {
+                *self.glob.get_mut(ctx) = glob;
+                self.is_invalid = false;
+            }
+            Err(err) => {
                 self.is_invalid = true;
-                error!("Loading of shader '{label}' has failed");
+                error!("Loading of shader '{label}' has failed: {err}");
             }
         }
-    }
-
-    pub fn texture_formats(ctx: &mut Context<'_>) -> Vec<TextureFormat> {
-        let mut formats = vec![Texture::DEFAULT_FORMAT];
-        formats.extend(ctx.root::<Window>().get(ctx).texture_format());
-        formats
+        self.old_is_alpha_replaced = self.is_alpha_replaced;
     }
 }
 
@@ -133,9 +125,8 @@ impl Source for ShaderSource {
 #[derive(Debug)]
 pub struct ShaderGlob {
     pub(crate) material_bind_group_layout: BindGroupLayout,
-    pipelines: FxHashMap<TextureFormat, RenderPipeline>,
-    gpu_version: u64,
-    is_alpha_replaced: bool,
+    pub(crate) texture_count: u32,
+    pub(crate) pipelines: FxHashMap<TextureFormat, RenderPipeline>,
 }
 
 impl ShaderGlob {
@@ -150,59 +141,56 @@ impl ShaderGlob {
         >>::LAYOUT,
     ];
 
-    pub(crate) fn pipeline(
-        &self,
-        gpu_version: u64,
-        texture_format: TextureFormat,
-    ) -> Option<&RenderPipeline> {
-        (gpu_version == self.gpu_version)
-            .then(|| self.pipelines.get(&texture_format))
-            .flatten()
-    }
-
-    fn new(gpu: &Gpu, loaded: &ShaderLoaded, label: &str) -> Self {
-        Self {
-            material_bind_group_layout: gpu.device.create_bind_group_layout(
-                &BindGroupLayoutDescriptor {
-                    entries: &Self::bind_group_layout_entries(loaded),
-                    label: Some(&format!("modor_bind_group_layout_texture:{label}")),
-                },
-            ),
-            pipelines: FxHashMap::default(),
-            gpu_version: gpu.version,
-            is_alpha_replaced: false,
-        }
-    }
-
-    fn update<T>(
-        &mut self,
-        gpu: &Gpu,
+    fn new<T>(
+        ctx: &mut Context<'_>,
         loaded: &ShaderLoaded,
-        texture_formats: &[TextureFormat],
         is_alpha_replaced: bool,
         label: &str,
-    ) -> Result<(), wgpu::Error>
+    ) -> Result<Self, wgpu::Error>
     where
         T: 'static + Material,
     {
-        let has_changed_property = self.is_alpha_replaced != is_alpha_replaced;
-        for &texture_format in texture_formats {
-            if has_changed_property || !self.pipelines.contains_key(&texture_format) {
-                self.pipelines.insert(
-                    texture_format,
-                    Self::create_pipeline::<T>(
-                        gpu,
-                        loaded,
+        let texture_formats = Self::texture_formats(ctx);
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
+        let material_bind_group_layout = Self::material_bind_group_layout(gpu, loaded, label);
+        Ok(Self {
+            texture_count: loaded.texture_count,
+            pipelines: texture_formats
+                .into_iter()
+                .map(|texture_format| {
+                    Ok((
                         texture_format,
-                        is_alpha_replaced,
-                        &self.material_bind_group_layout,
-                        label,
-                    )?,
-                );
-            }
-        }
-        self.is_alpha_replaced = is_alpha_replaced;
-        Ok(())
+                        Self::pipeline::<T>(
+                            gpu,
+                            loaded,
+                            texture_format,
+                            is_alpha_replaced,
+                            &material_bind_group_layout,
+                            label,
+                        )?,
+                    ))
+                })
+                .collect::<Result<FxHashMap<_, _>, _>>()?,
+            material_bind_group_layout,
+        })
+    }
+
+    pub fn texture_formats(ctx: &mut Context<'_>) -> Vec<TextureFormat> {
+        let mut formats = vec![Texture::DEFAULT_FORMAT];
+        formats.extend(ctx.root::<Window>().get(ctx).texture_format());
+        formats
+    }
+
+    fn material_bind_group_layout(
+        gpu: &Arc<Gpu>,
+        loaded: &ShaderLoaded,
+        label: &str,
+    ) -> BindGroupLayout {
+        gpu.device
+            .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                entries: &Self::bind_group_layout_entries(loaded),
+                label: Some(&format!("modor_bind_group_layout_texture:{label}")),
+            })
     }
 
     fn bind_group_layout_entries(loaded: &ShaderLoaded) -> Vec<BindGroupLayoutEntry> {
@@ -239,7 +227,7 @@ impl ShaderGlob {
         entries
     }
 
-    fn create_pipeline<T>(
+    fn pipeline<T>(
         gpu: &Gpu,
         loaded: &ShaderLoaded,
         texture_format: TextureFormat,

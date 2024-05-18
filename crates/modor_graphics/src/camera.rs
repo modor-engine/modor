@@ -1,11 +1,10 @@
 use crate::buffer::{Buffer, BufferBindGroup};
-use crate::gpu::{Gpu, GpuHandle, GpuManager, GpuState};
+use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
 use modor::{Context, Glob, GlobRef, Node, Visit};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
-use std::sync::Arc;
 use wgpu::{BindGroup, BufferUsages};
 
 #[derive(Debug, Visit)]
@@ -16,20 +15,17 @@ pub struct Camera2D {
     pub targets: Vec<GlobRef<TargetGlob>>,
     glob: Glob<Camera2DGlob>,
     label: String,
-    gpu: GpuHandle,
 }
 
 impl Node for Camera2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let target_sizes = self.target_sizes(ctx);
-        let gpu = self.gpu.get(ctx);
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
         let glob = self.glob.get_mut(ctx);
-        let Some(gpu) = self.retrieve_gpu(gpu, glob) else {
-            return;
-        };
-        for (target, target_size) in self.targets.iter().zip(target_sizes) {
+        glob.remove_old_targets(&self.targets);
+        for (target_index, target_size) in target_sizes {
             let transform = self.gpu_transform(target_size.into());
-            glob.update_target(&gpu, target.index(), transform, &self.label);
+            glob.update_target(&gpu, target_index, transform, &self.label);
         }
     }
 }
@@ -40,19 +36,16 @@ impl Camera2D {
         label: impl Into<String>,
         targets: Vec<GlobRef<TargetGlob>>,
     ) -> Self {
-        let gpu_version = ctx.root::<GpuManager>().get(ctx).current_version;
         Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
             targets,
-            glob: Glob::new(ctx, Camera2DGlob::new(gpu_version)),
+            glob: Glob::new(ctx, Camera2DGlob::default()),
             label: label.into(),
-            gpu: GpuHandle::default(),
         }
     }
 
-    // TODO: Option<Camera2DGlob> ?
     /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<Camera2DGlob> {
         self.glob.as_ref()
@@ -91,54 +84,24 @@ impl Camera2D {
             * Mat4::from_position(self.position.with_z(0.))
     }
 
-    fn target_sizes(&self, ctx: &Context<'_>) -> Vec<Size> {
+    fn target_sizes(&self, ctx: &Context<'_>) -> Vec<(usize, Size)> {
         self.targets
             .iter()
-            .map(|target| target.get(ctx).size)
+            .map(|target| (target.index(), target.get(ctx).size))
             .collect()
-    }
-
-    fn retrieve_gpu(&mut self, gpu: GpuState, glob: &mut Camera2DGlob) -> Option<Arc<Gpu>> {
-        match gpu {
-            GpuState::None => {
-                *glob = Camera2DGlob::new(0);
-                None
-            }
-            GpuState::New(gpu) => {
-                *glob = Camera2DGlob::new(gpu.version);
-                Some(gpu)
-            }
-            GpuState::Same(gpu) => {
-                glob.remove_old_targets(&self.targets);
-                Some(gpu)
-            }
-        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Camera2DGlob {
     target_uniforms: FxHashMap<usize, CameraUniform>,
-    gpu_version: u64,
 }
 
 impl Camera2DGlob {
-    pub(crate) fn bind_group(
-        &self,
-        target: &GlobRef<TargetGlob>,
-        gpu_version: u64,
-    ) -> Option<&BindGroup> {
-        (self.gpu_version == gpu_version)
-            .then(|| self.target_uniforms.get(&target.index()))
-            .flatten()
+    pub(crate) fn bind_group(&self, target: &GlobRef<TargetGlob>) -> Option<&BindGroup> {
+        self.target_uniforms
+            .get(&target.index())
             .map(|uniform| &uniform.bind_group.inner)
-    }
-
-    fn new(gpu_version: u64) -> Self {
-        Self {
-            target_uniforms: FxHashMap::default(),
-            gpu_version,
-        }
     }
 
     fn remove_old_targets(&mut self, targets: &[GlobRef<TargetGlob>]) {

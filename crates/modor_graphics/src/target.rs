@@ -28,7 +28,6 @@ pub struct Target {
     cameras: RootNodeHandle<Globals<Camera2DGlob>>,
     materials: RootNodeHandle<Globals<Option<MaterialGlob>>>,
     meshes: RootNodeHandle<Globals<Option<MeshGlob>>>,
-    shaders: RootNodeHandle<Globals<Option<ShaderGlob>>>,
 }
 
 impl Target {
@@ -47,7 +46,6 @@ impl Target {
             cameras: ctx.root(),
             materials: ctx.root(),
             meshes: ctx.root(),
-            shaders: ctx.root(),
         }
     }
 
@@ -200,25 +198,24 @@ impl Target {
         groups: &'a InstanceGroups2D,
         loaded: &LoadedTarget,
     ) -> Option<()> {
+        let material = self.materials.get(ctx).get(group.material)?.as_ref()?;
+        let shader = material.shader.get(ctx);
+        if material.binding_ids.bind_group_layout != shader.material_bind_group_layout.global_id() {
+            return None;
+        }
         let camera = self.cameras.get(ctx).get(group.camera)?;
         let mesh = self.meshes.get(ctx).get(group.mesh)?.as_ref()?;
-        let material = self.materials.get(ctx).get(group.material)?.as_ref()?;
-        let shader = material.shader.get(ctx).as_ref()?;
         let group = &groups.groups[&group];
         let main_buffer = group.buffers[&TypeId::of::<Instance>()].buffer.as_ref()?;
         // TODO: necessary check ?
         if group.model_indexes.len() > 0 {
-            pass.set_pipeline(shader.pipeline(gpu.version, loaded.texture_format)?);
+            pass.set_pipeline(shader.pipelines.get(&loaded.texture_format)?);
             pass.set_bind_group(
                 ShaderGlob::CAMERA_GROUP,
-                camera.bind_group(self.glob(), gpu.version)?,
+                camera.bind_group(self.glob())?,
                 &[],
             );
-            pass.set_bind_group(
-                ShaderGlob::MATERIAL_GROUP,
-                material.bind_group(gpu.version)?,
-                &[],
-            );
+            pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
             pass.set_index_buffer(mesh.indices(gpu)?.slice(), IndexFormat::Uint16);
             pass.set_vertex_buffer(0, mesh.vertices(gpu)?.slice());
             pass.set_vertex_buffer(1, main_buffer.slice());

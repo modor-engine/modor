@@ -8,25 +8,41 @@ use wgpu::{
     Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, ShaderStages, Surface,
 };
 
-#[derive(Default, Debug, RootNode, Visit)]
+#[derive(Debug, Visit, Node)]
 pub(crate) struct GpuManager {
-    pub(crate) is_window_target: bool,
     pub(crate) current_version: u64,
+    pub(crate) instance: Arc<Instance>,
     details: Option<Arc<Gpu>>,
 }
 
-impl Node for GpuManager {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
-        if !self.is_window_target && self.details.is_none() {
-            self.init(&instance(), None);
+impl RootNode for GpuManager {
+    fn on_create(_ctx: &mut Context<'_>) -> Self {
+        Self {
+            current_version: 1,
+            instance: Self::create_instance().into(),
+            details: None,
         }
     }
 }
 
 impl GpuManager {
-    pub(crate) fn init(&mut self, instance: &Instance, surface: Option<&Surface<'_>>) {
-        self.current_version += 1;
-        self.details = Some(Gpu::new(instance, surface, self.current_version).into());
+    // TODO: is Arc<> still necessary ?
+    pub(crate) fn get(&mut self) -> &Arc<Gpu> {
+        self.details
+            .get_or_insert_with(|| Gpu::new(&self.instance, None, self.current_version).into())
+    }
+
+    pub(crate) fn configure_window(&mut self, surface: &Surface<'_>) {
+        self.details = Some(Gpu::new(&self.instance, Some(surface), self.current_version).into());
+    }
+
+    fn create_instance() -> Instance {
+        Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all),
+            flags: InstanceFlags::default(),
+            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+            gles_minor_version: Gles3MinorVersion::Automatic,
+        })
     }
 }
 
@@ -85,15 +101,6 @@ impl Gpu {
     }
 }
 
-pub(crate) fn instance() -> Instance {
-    Instance::new(wgpu::InstanceDescriptor {
-        backends: wgpu::util::backend_bits_from_env().unwrap_or_else(Backends::all),
-        flags: InstanceFlags::default(),
-        dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
-        gles_minor_version: Gles3MinorVersion::Automatic,
-    })
-}
-
 #[derive(Debug, Default)]
 pub(crate) struct GpuHandle {
     version: u64,
@@ -101,18 +108,19 @@ pub(crate) struct GpuHandle {
 
 impl GpuHandle {
     pub(crate) fn get(&mut self, ctx: &mut Context<'_>) -> GpuState {
-        ctx.root::<GpuManager>()
-            .get(ctx)
+        let manager = ctx.root::<GpuManager>().get_mut(ctx);
+        let gpu = manager
             .details
-            .clone()
-            .map_or(GpuState::None, |gpu| {
-                if gpu.version == self.version {
-                    GpuState::Same(gpu)
-                } else {
-                    self.version = gpu.version;
-                    GpuState::New(gpu)
-                }
+            .get_or_insert_with(|| {
+                Gpu::new(&manager.instance, None, manager.current_version).into()
             })
+            .clone();
+        if gpu.version == self.version {
+            GpuState::Same(gpu)
+        } else {
+            self.version = gpu.version;
+            GpuState::New(gpu)
+        }
     }
 
     pub(crate) fn action(&mut self, ctx: &mut Context<'_>, is_loaded: bool) -> GpuResourceAction {

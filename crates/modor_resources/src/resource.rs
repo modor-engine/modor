@@ -154,6 +154,7 @@ where
     }
 }
 
+// TODO: add loaded_version() method to easilyl identify when the new loading is done
 impl<T> Res<T>
 where
     T: Resource,

@@ -43,6 +43,7 @@ impl<T> Model2D<T>
 where
     T: Material,
 {
+    // TODO: should we remove position/size from constructor ? (same for Body2D ?)
     pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
         let resources = ctx.root::<GraphicsResources>().get(ctx);
         let camera = resources.window_camera.glob().clone();
