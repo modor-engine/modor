@@ -92,8 +92,8 @@ use std::{any, fmt};
 ///
 /// impl Node for Content {
 ///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         if let Some(size) = self.size.glob().get(ctx) {
-///             println!("Content size: {} {:?}", size.size, size.unit);
+///         if let Some(size) = self.size.size {
+///             println!("Content size: {}", size);
 ///         }
 ///     }
 /// }

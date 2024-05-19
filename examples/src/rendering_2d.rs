@@ -99,8 +99,9 @@ impl Node for Sprite {
 impl Sprite {
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-        let mut model = Model2D::new(ctx, position, Vec2::ONE * 0.01);
+        let mut model = Model2D::new(ctx);
+        model.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
+        model.size = Vec2::ONE * 0.01;
         model.z_index = rng.gen_range(i16::MIN..i16::MAX);
         model.material = ctx.root::<Resources>().get(ctx).materials[index % COLORS.len()].glob();
         Self {

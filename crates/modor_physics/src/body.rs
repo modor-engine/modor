@@ -45,7 +45,9 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Character {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, group: &CollisionGroup) -> Self {
-///         let mut body = Body2D::new(ctx, position, Vec2::ONE * 0.2);
+///         let mut body = Body2D::new(ctx);
+///         body.position = position;
+///         body.size = Vec2::ONE * 0.2;
 ///         body.rotation = FRAC_PI_2;
 ///         body.collision_group = Some(group.glob().clone());
 ///         body.shape = Shape2D::Circle;
@@ -176,18 +178,26 @@ impl Node for Body2D {
 }
 
 impl Body2D {
+    const DEFAULT_POSITION: Vec2 = Vec2::ZERO;
+    const DEFAULT_SIZE: Vec2 = Vec2::ONE;
+
     /// Creates a new body.
-    pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
+    pub fn new(ctx: &mut Context<'_>) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
         let pipeline_handle = ctx.root::<Pipeline>();
         let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(ctx).register_body(
-            Self::default_rigid_body(position),
-            Self::default_collider(size, active_hooks),
+            Self::default_rigid_body(Self::DEFAULT_POSITION),
+            Self::default_collider(Self::DEFAULT_SIZE, active_hooks),
         );
-        let data = Body2DGlob::new(position, size, rigid_body_handle, collider_handle);
+        let data = Body2DGlob::new(
+            Self::DEFAULT_POSITION,
+            Self::DEFAULT_SIZE,
+            rigid_body_handle,
+            collider_handle,
+        );
         Self {
-            position,
-            size,
+            position: Self::DEFAULT_POSITION,
+            size: Self::DEFAULT_SIZE,
             rotation: 0.,
             velocity: Vec2::ZERO,
             angular_velocity: 0.,

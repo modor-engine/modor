@@ -146,7 +146,7 @@ impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(2);
         Self {
-            body: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
+            body: Body2D::new(ctx),
         }
     }
 }

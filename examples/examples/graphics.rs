@@ -5,7 +5,6 @@ use modor::log::{info, Level};
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_resources::Res;
 use modor_graphics::{Color, DefaultMaterial2D, Mat, Model2D, Texture, Window};
-use modor_physics::modor_math::Vec2;
 
 fn main() {
     modor_graphics::run::<Root>(Level::Info);
@@ -64,7 +63,7 @@ impl Smiley {
         let texture = ctx.root::<Resources>().get(ctx).texture.glob().clone();
         let mut material = Mat::new(ctx, "smiley", DefaultMaterial2D::default());
         material.texture = Some(texture);
-        let mut model = Model2D::new(ctx, Vec2::ZERO, Vec2::ONE);
+        let mut model = Model2D::new(ctx);
         model.material = material.glob();
         Self { material, model }
     }

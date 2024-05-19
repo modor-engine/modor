@@ -35,7 +35,7 @@ struct Root {
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         Self {
-            body: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
+            body: Body2D::new(ctx),
         }
     }
 }

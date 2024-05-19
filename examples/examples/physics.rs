@@ -39,7 +39,7 @@ struct BodyWrapper(Body2D);
 impl BodyWrapper {
     #[allow(clippy::cast_precision_loss)]
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
-        let mut body = Body2D::new(ctx, Vec2::ZERO, Vec2::ONE);
+        let mut body = Body2D::new(ctx);
         body.position = Vec2::new(index as f32 * 0.5, index as f32 * 0.5) * 0.5;
         body.size = Vec2::ONE * 0.1;
         body.velocity = Vec2::new(1., 2.);

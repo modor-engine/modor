@@ -1,6 +1,5 @@
 use modor::log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
-use modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
@@ -45,9 +44,9 @@ impl RootNode for Root {
         let group1 = CollisionGroup::new(ctx);
         let group2 = CollisionGroup::new(ctx);
         group1.add_interaction(ctx, group2.glob(), CollisionType::Sensor);
-        let mut body1 = Body2D::new(ctx, Vec2::ZERO, Vec2::ONE);
+        let mut body1 = Body2D::new(ctx);
         body1.collision_group = Some(group1.glob().clone());
-        let mut body2 = Body2D::new(ctx, Vec2::ZERO, Vec2::ONE);
+        let mut body2 = Body2D::new(ctx);
         body2.collision_group = Some(group2.glob().clone());
         Self {
             group1,
