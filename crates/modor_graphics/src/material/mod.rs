@@ -1,14 +1,11 @@
-#![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
-
 use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
-use crate::{Shader, ShaderGlob, Size, TextureGlob, TextureSource};
+use crate::{GraphicsResources, ShaderGlob, ShaderGlobRef, TextureGlob};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{Context, Glob, GlobRef, Node, RootNode, RootNodeHandle, Visit};
-use modor_resources::Res;
+use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -17,7 +14,7 @@ use wgpu::{
 };
 
 #[derive(Debug, Visit)]
-pub struct Mat<T> {
+pub struct Mat<T: Node> {
     data: T,
     label: String,
     glob: Glob<MaterialGlob>,
@@ -25,7 +22,10 @@ pub struct Mat<T> {
     phantom_data: PhantomData<T>,
 }
 
-impl<T> Deref for Mat<T> {
+impl<T> Deref for Mat<T>
+where
+    T: Node,
+{
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -33,7 +33,10 @@ impl<T> Deref for Mat<T> {
     }
 }
 
-impl<T> DerefMut for Mat<T> {
+impl<T> DerefMut for Mat<T>
+where
+    T: Node,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
@@ -43,7 +46,7 @@ impl<T> Node for Mat<T>
 where
     T: Material,
 {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_exit(&mut self, ctx: &mut Context<'_>) {
         mem::swap(self.glob.get_mut(ctx), &mut self.updated_glob);
         self.updated_glob.update(ctx, &self.data, &self.label);
         mem::swap(self.glob.get_mut(ctx), &mut self.updated_glob);
@@ -115,8 +118,8 @@ impl MaterialGlob {
         T: Material,
     {
         let gpu = ctx.get_mut::<GpuManager>().get().clone();
-        let shader = material.shader(ctx).glob().clone();
-        let textures = material.textures(ctx);
+        let shader = material.shader().deref().clone();
+        let textures = material.textures();
         let resources = ctx.handle();
         let white_texture = Self::white_texture(ctx, resources);
         let texture_refs = Self::textures(ctx, &textures);
@@ -142,8 +145,8 @@ impl MaterialGlob {
 
     fn update(&mut self, ctx: &mut Context<'_>, material: &impl Material, label: &str) {
         let gpu = ctx.get_mut::<GpuManager>().get().clone();
-        self.shader = material.shader(ctx).glob().clone();
-        self.textures = material.textures(ctx);
+        self.shader = material.shader().deref().clone();
+        self.textures = material.textures();
         self.buffer.update(&gpu, material);
         let resources = ctx.handle();
         let white_texture = Self::white_texture(ctx, resources);
@@ -174,7 +177,7 @@ impl MaterialGlob {
 
     fn white_texture<'a>(
         ctx: &'a Context<'_>,
-        handle: RootNodeHandle<MaterialResources>,
+        handle: RootNodeHandle<GraphicsResources>,
     ) -> &'a TextureGlob {
         handle.get(ctx).white_texture.glob().get(ctx)
     }
@@ -293,32 +296,13 @@ impl BindingGlobalIds {
     }
 }
 
-#[derive(Debug, Node, Visit)]
-struct MaterialResources {
-    white_texture: Res<crate::Texture>,
-}
-
-impl RootNode for MaterialResources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        Self {
-            white_texture: Res::from_source(
-                ctx,
-                "white(modor_graphics)",
-                TextureSource::Size(Size::ONE),
-            ),
-        }
-    }
-}
-
-pub trait Material: Sized + 'static {
+pub trait Material: Sized + Node + 'static {
     type Data: Pod;
     type InstanceData: Pod;
 
-    // TODO: remove ctx parameter
-    fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>>;
+    fn shader(&self) -> ShaderGlobRef<Self>;
 
-    // TODO: remove ctx parameter
-    fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>>;
+    fn textures(&self) -> Vec<GlobRef<TextureGlob>>;
 
     fn is_transparent(&self) -> bool;
 

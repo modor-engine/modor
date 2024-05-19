@@ -2,7 +2,10 @@ use modor::log::Level;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::Res;
-use modor_graphics::{bytemuck, Mat, Material, Model2D, Model2DGlob, Shader, Texture, TextureGlob};
+use modor_graphics::{
+    bytemuck, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, Shader, ShaderGlobRef, Texture,
+    TextureGlob,
+};
 use std::collections::HashMap;
 
 pub fn main() {
@@ -11,18 +14,27 @@ pub fn main() {
 
 #[derive(Node, Visit)]
 struct Root {
+    texture: Res<Texture>,
+    shader: Res<Shader<BlurMaterial>>,
+    material: Mat<BlurMaterial>,
     sprites: Vec<Sprite>,
 }
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
+        let texture = Res::<Texture>::from_path(ctx, "smiley", "smiley.png");
+        let shader = Res::<Shader<_>>::from_path(ctx, "blur", "blur.wgsl");
+        let material = Mat::new(ctx, "blur-default", BlurMaterial::new(&texture, &shader));
         Self {
             sprites: vec![
-                Sprite::new(ctx, Vec2::new(-0.25, 0.25), 0),
-                Sprite::new(ctx, Vec2::new(0.25, 0.25), 3),
-                Sprite::new(ctx, Vec2::new(-0.25, -0.25), 6),
-                Sprite::new(ctx, Vec2::new(0.25, -0.25), 9),
+                Sprite::new(ctx, Vec2::new(-0.25, 0.25), 0, material.glob()),
+                Sprite::new(ctx, Vec2::new(0.25, 0.25), 3, material.glob()),
+                Sprite::new(ctx, Vec2::new(-0.25, -0.25), 6, material.glob()),
+                Sprite::new(ctx, Vec2::new(0.25, -0.25), 9, material.glob()),
             ],
+            texture,
+            shader,
+            material,
         }
     }
 }
@@ -33,8 +45,12 @@ struct Sprite {
 }
 
 impl Sprite {
-    fn new(ctx: &mut Context<'_>, position: Vec2, sample_count: u32) -> Self {
-        let material = ctx.get_mut::<Materials>().blur_material.glob();
+    fn new(
+        ctx: &mut Context<'_>,
+        position: Vec2,
+        sample_count: u32,
+        material: MaterialGlobRef<BlurMaterial>,
+    ) -> Self {
         let mut model = Model2D::new(ctx, material);
         model.position = position;
         model.size = Vec2::ONE * 0.4;
@@ -51,47 +67,22 @@ struct SpriteProperties {
 }
 
 #[derive(Node, Visit)]
-struct Resources {
-    blur_shader: Res<Shader<BlurMaterial>>,
-    texture: Res<Texture>,
-}
-
-impl RootNode for Resources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        Self {
-            blur_shader: Res::from_path(ctx, "blur", "blur.wgsl"),
-            texture: Res::<Texture>::from_path(ctx, "smiley", "smiley.png"),
-        }
-    }
-}
-
-#[derive(Node, Visit)]
-struct Materials {
-    blur_material: Mat<BlurMaterial>,
-}
-
-impl RootNode for Materials {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        Self {
-            blur_material: Mat::new(ctx, "blur-default", BlurMaterial { blur_factor: 0.005 }),
-        }
-    }
-}
-
 struct BlurMaterial {
     blur_factor: f32,
+    texture: GlobRef<TextureGlob>,
+    shader: ShaderGlobRef<Self>,
 }
 
 impl Material for BlurMaterial {
     type Data = BlurMaterialData;
     type InstanceData = BlurInstanceData;
 
-    fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>> {
-        &ctx.get_mut::<Resources>().blur_shader
+    fn shader(&self) -> ShaderGlobRef<Self> {
+        self.shader.clone()
     }
 
-    fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>> {
-        vec![ctx.get_mut::<Resources>().texture.glob().clone()]
+    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+        vec![self.texture.clone()]
     }
 
     fn is_transparent(&self) -> bool {
@@ -110,6 +101,16 @@ impl Material for BlurMaterial {
         let sample_counts = &ctx.get_mut::<SpriteProperties>().sample_counts;
         BlurInstanceData {
             sample_count: sample_counts.get(&model.index()).copied().unwrap_or(0),
+        }
+    }
+}
+
+impl BlurMaterial {
+    fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
+        Self {
+            blur_factor: 0.005,
+            texture: texture.glob().clone(),
+            shader: shader.glob(),
         }
     }
 }

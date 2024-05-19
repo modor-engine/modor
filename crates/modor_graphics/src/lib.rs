@@ -9,6 +9,7 @@
 //!
 //! TODO: finish
 
+#![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 #![allow(missing_docs, clippy::missing_errors_doc)] // TODO: remove
 
 mod buffer;

@@ -11,6 +11,7 @@ use modor::{Context, Glob, GlobRef};
 use modor_resources::{Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::mem;
+use std::ops::Deref;
 use std::sync::Arc;
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
@@ -88,8 +89,11 @@ where
     const DEFAULT_IS_ALPHA_REPLACED: bool = false;
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<ShaderGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> ShaderGlobRef<T> {
+        ShaderGlobRef {
+            inner: self.glob.as_ref().clone(),
+            phantom: PhantomData,
+        }
     }
 
     pub fn is_invalid(&self) -> bool {
@@ -108,6 +112,29 @@ where
             }
         }
         self.old_is_alpha_replaced = self.is_alpha_replaced;
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Clone(bound = ""),
+    Hash(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = "")
+)]
+pub struct ShaderGlobRef<T> {
+    inner: GlobRef<ShaderGlob>,
+    phantom: PhantomData<fn(T)>,
+}
+
+impl<T> Deref for ShaderGlobRef<T> {
+    type Target = GlobRef<ShaderGlob>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 

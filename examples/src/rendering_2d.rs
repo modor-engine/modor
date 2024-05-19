@@ -66,7 +66,8 @@ impl RootNode for Resources {
             materials: COLORS
                 .iter()
                 .map(|&color| {
-                    let mut material = Mat::new(ctx, "color", DefaultMaterial2D::default());
+                    let data = DefaultMaterial2D::new(ctx);
+                    let mut material = Mat::new(ctx, "color", data);
                     material.color = color;
                     material.is_ellipse = true;
                     material

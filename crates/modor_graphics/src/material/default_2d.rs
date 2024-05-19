@@ -1,6 +1,5 @@
-use crate::material::MaterialResources;
 use crate::{
-    Color, GraphicsResources, Material, MaterialGlobRef, Model2DGlob, Shader, ShaderSource,
+    Color, GraphicsResources, Material, Model2DGlob, Shader, ShaderGlobRef, ShaderSource,
     TextureGlob,
 };
 use internal::DefaultMaterial2DData;
@@ -8,47 +7,31 @@ use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
 use modor_resources::Res;
 
-#[derive(Debug)]
+#[derive(Debug, Node, Visit)]
 pub struct DefaultMaterial2D {
     pub color: Color,
-    pub texture: Option<GlobRef<TextureGlob>>,
+    pub texture: GlobRef<TextureGlob>,
     pub texture_position: Vec2,
     pub texture_size: Vec2,
     pub is_ellipse: bool,
-}
-
-impl Default for DefaultMaterial2D {
-    fn default() -> Self {
-        Self {
-            color: Color::WHITE,
-            texture: None,
-            texture_position: Vec2::ZERO,
-            texture_size: Vec2::ONE,
-            is_ellipse: false,
-        }
-    }
+    default_shader: ShaderGlobRef<Self>,
+    ellipse_shader: ShaderGlobRef<Self>,
 }
 
 impl Material for DefaultMaterial2D {
     type Data = DefaultMaterial2DData;
     type InstanceData = ();
 
-    fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>> {
-        let resources = ctx.get_mut::<DefaultMaterial2DResources>();
+    fn shader(&self) -> ShaderGlobRef<Self> {
         if self.is_ellipse {
-            &resources.ellipse_shader
+            self.default_shader.clone()
         } else {
-            &resources.default_shader
+            self.ellipse_shader.clone()
         }
     }
 
-    fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>> {
-        vec![self.texture.clone().unwrap_or_else(|| {
-            ctx.get_mut::<MaterialResources>()
-                .white_texture
-                .glob()
-                .clone()
-        })]
+    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+        vec![self.texture.clone()]
     }
 
     fn is_transparent(&self) -> bool {
@@ -64,6 +47,21 @@ impl Material for DefaultMaterial2D {
     }
 
     fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+}
+
+impl DefaultMaterial2D {
+    pub fn new(ctx: &mut Context<'_>) -> Self {
+        let resources = ctx.get_mut::<GraphicsResources>();
+        Self {
+            color: Color::WHITE,
+            texture: resources.white_texture.glob().clone(),
+            texture_position: Vec2::ZERO,
+            texture_size: Vec2::ONE,
+            is_ellipse: false,
+            default_shader: resources.default_shader.glob(),
+            ellipse_shader: resources.ellipse_shader.glob(),
+        }
+    }
 }
 
 #[derive(Debug, Node, Visit)]
