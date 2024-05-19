@@ -43,9 +43,9 @@ impl Target {
             is_error_logged: false,
             label,
             glob: Glob::new(ctx, TargetGlob { size: Size::ZERO }),
-            cameras: ctx.root(),
-            materials: ctx.root(),
-            meshes: ctx.root(),
+            cameras: ctx.handle(),
+            materials: ctx.handle(),
+            meshes: ctx.handle(),
         }
     }
 
@@ -95,7 +95,7 @@ impl Target {
             .expect("internal error: target not loaded");
         let mut encoder = Self::create_encoder(gpu);
         let mut pass = Self::create_pass(self.background_color, &mut encoder, &view, loaded);
-        let groups = ctx.root::<InstanceGroups2D>().get(ctx);
+        let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
         self.render_instance_groups(ctx, loaded, groups, &mut pass);
         let result = validation::validate_wgpu(gpu, || drop(pass));
         let is_err = result.is_err();

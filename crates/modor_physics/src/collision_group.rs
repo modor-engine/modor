@@ -38,8 +38,7 @@ use rapier2d::prelude::InteractionGroups;
 ///     let mut body = Body2D::new(ctx);
 ///     body.position = position;
 ///     body.size = size;
-///     let groups = ctx.root::<CollisionGroups>().get(ctx);
-///     body.collision_group = Some(groups.wall.glob().clone());
+///     body.collision_group = Some(ctx.get_mut::<CollisionGroups>().wall.glob().clone());
 ///     body
 /// }
 /// ```
@@ -64,7 +63,7 @@ impl CollisionGroup {
     pub fn new(ctx: &mut Context<'_>) -> Self {
         Self {
             glob: Glob::new(ctx, CollisionGroupGlob::default()),
-            physics_hooks: ctx.root::<PhysicsHooks>(),
+            physics_hooks: ctx.handle::<PhysicsHooks>(),
         }
     }
 

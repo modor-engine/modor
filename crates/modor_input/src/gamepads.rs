@@ -21,7 +21,7 @@ pub type GamepadStickDirection = Vec2;
 /// # use modor_input::*;
 /// #
 /// fn access_gamepads(ctx: &mut Context<'_>) {
-///     let gamepads = &ctx.root::<Inputs>().get(ctx).gamepads;
+///     let gamepads = &ctx.get_mut::<Inputs>().gamepads;
 ///     println!("Left stick direction of gamepad 0: {:?}", gamepads[0][GamepadStick::LeftStick]);
 ///     for gamepad_id in gamepads.iter() {
 ///         let gamepad = &gamepads[gamepad_id];
@@ -39,7 +39,7 @@ pub type GamepadStickDirection = Vec2;
 /// # use modor_input::*;
 /// #
 /// fn modify_gamepads(ctx: &mut Context<'_>) {
-///     let gamepads = &mut ctx.root::<Inputs>().get_mut(ctx).gamepads;
+///     let gamepads = &mut ctx.get_mut::<Inputs>().gamepads;
 ///     gamepads.refresh();
 ///     let gamepad_id = 0;
 ///     gamepads[gamepad_id][GamepadButton::Start].state.press();

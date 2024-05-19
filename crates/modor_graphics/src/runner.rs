@@ -48,7 +48,7 @@ where
             Event::Resumed => self.init_surface(),
             Event::AboutToWait => {
                 if let Some(app) = &mut self.app {
-                    app.root::<Window>().prepare_rendering();
+                    app.get_mut::<Window>().prepare_rendering();
                 }
             }
             Event::WindowEvent { event, .. } => match event {
@@ -79,16 +79,18 @@ where
             let app = self
                 .app
                 .get_or_insert_with(|| App::new::<RunnerRoot>(self.level));
-            let instance = app.root::<GpuManager>().instance.clone();
-            let surface = app.root::<Window>().create_surface(&instance, Some(window));
-            app.root::<GpuManager>().configure_window(&surface);
-            app.root::<Window>().set_surface(surface);
-            app.root::<T>();
+            let instance = app.get_mut::<GpuManager>().instance.clone();
+            let surface = app
+                .get_mut::<Window>()
+                .create_surface(&instance, Some(window));
+            app.get_mut::<GpuManager>().configure_window(&surface);
+            app.get_mut::<Window>().set_surface(surface);
+            app.get_mut::<T>();
         } else {
             let app = self.app.as_mut().expect("internal error: not created app");
-            let instance = app.root::<GpuManager>().instance.clone();
-            let surface = app.root::<Window>().create_surface(&instance, None);
-            app.root::<Window>().set_surface(surface);
+            let instance = app.get_mut::<GpuManager>().instance.clone();
+            let surface = app.get_mut::<Window>().create_surface(&instance, None);
+            app.get_mut::<Window>().set_surface(surface);
         }
     }
 }

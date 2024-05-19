@@ -34,7 +34,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Window>().get_mut(ctx).title = "Rendering 2D".into();
+        ctx.get_mut::<Window>().title = "Rendering 2D".into();
         Self {
             sprites: (0..SPRITE_COUNT)
                 .map(|index| Sprite::new(ctx, index))
@@ -103,7 +103,7 @@ impl Sprite {
         model.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
         model.size = Vec2::ONE * 0.01;
         model.z_index = rng.gen_range(i16::MIN..i16::MAX);
-        model.material = ctx.root::<Resources>().get(ctx).materials[index % COLORS.len()].glob();
+        model.material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
         Self {
             model,
             next_update: Instant::now(),

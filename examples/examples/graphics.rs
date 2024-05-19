@@ -18,7 +18,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let window = ctx.root::<Window>().get_mut(ctx);
+        let window = ctx.get_mut::<Window>();
         window.title = "Example".into();
         window.target.background_color = Color::GRAY;
         Self {
@@ -60,7 +60,7 @@ struct Smiley {
 
 impl Smiley {
     fn new(ctx: &mut Context<'_>) -> Self {
-        let texture = ctx.root::<Resources>().get(ctx).texture.glob().clone();
+        let texture = ctx.get_mut::<Resources>().texture.glob().clone();
         let mut material = Mat::new(ctx, "smiley", DefaultMaterial2D::default());
         material.texture = Some(texture);
         let mut model = Model2D::new(ctx);

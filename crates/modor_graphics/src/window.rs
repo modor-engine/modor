@@ -112,7 +112,7 @@ impl Window {
     }
 
     fn update_surface(&mut self, ctx: &mut Context<'_>) {
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get().clone();
         let size = self.size();
         if let Some(surface) = self.surface.take_new() {
             let size = size.expect("internal error: not configured window").into();

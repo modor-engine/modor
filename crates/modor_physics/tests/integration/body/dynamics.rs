@@ -134,7 +134,7 @@ fn update_rotation() {
 }
 
 fn body(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body
+    &mut app.get_mut::<Root>().body
 }
 
 #[derive(Node, Visit)]
@@ -144,7 +144,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(2);
+        ctx.get_mut::<Delta>().duration = Duration::from_secs(2);
         Self {
             body: Body2D::new(ctx),
         }

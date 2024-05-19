@@ -118,7 +118,7 @@ impl Texture {
     }
 
     fn update_glob(&mut self, ctx: &mut Context<'_>, label: &str) {
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get().clone();
         self.glob
             .get_mut(ctx)
             .update_sampler(&gpu, self.is_repeated, self.is_smooth, label);
@@ -172,7 +172,7 @@ impl TextureGlob {
         is_smooth: bool,
         label: &str,
     ) -> Self {
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
+        let gpu = ctx.get_mut::<GpuManager>().get();
         let texture = Self::create_texture(gpu, loaded, label);
         Self::write_texture(gpu, loaded, &texture);
         let view = texture.create_view(&TextureViewDescriptor::default());

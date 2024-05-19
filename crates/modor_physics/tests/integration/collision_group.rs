@@ -24,11 +24,11 @@ fn create_group2_with_no_interaction(app: &mut App) {
 }
 
 fn body2(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body2
+    &mut app.get_mut::<Root>().body2
 }
 
 fn group2(app: &mut App) -> &mut Option<CollisionGroup> {
-    &mut app.root::<Root>().group2
+    &mut app.get_mut::<Root>().group2
 }
 
 #[derive(Node, Visit)]

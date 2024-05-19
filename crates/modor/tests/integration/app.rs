@@ -6,7 +6,7 @@ use modor_derive::{Node, RootNode, Visit};
 fn create_node_handle() {
     let mut app = App::new::<Root>(Level::Info);
     let mut ctx = app.ctx();
-    let handle = ctx.root::<Root>();
+    let handle = ctx.handle::<Root>();
     assert_eq!(handle.get(&ctx).value, 0);
     assert_eq!(handle.get_mut(&mut ctx).value, 0);
 }

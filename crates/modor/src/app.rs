@@ -42,7 +42,7 @@ impl App {
             root_indexes: FxHashMap::default(),
             roots: vec![],
         };
-        app.root::<T>();
+        app.get_mut::<T>();
         debug!("App initialized");
         app
     }
@@ -74,11 +74,10 @@ impl App {
         Context { app: self }
     }
 
-    // TODO: allow direct get/get_mut
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn root<T>(&mut self) -> &mut T
+    pub fn get_mut<T>(&mut self) -> &mut T
     where
         T: RootNode,
     {
@@ -133,14 +132,14 @@ pub struct Context<'a> {
 }
 
 impl Context<'_> {
-    /// Returns a mutable reference to a root node.
+    /// Returns a handle to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
     ///
     /// # Panics
     ///
     /// This will panic if root node `T` is currently updated.
-    pub fn root<T>(&mut self) -> RootNodeHandle<T>
+    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
     where
         T: RootNode,
     {
@@ -148,6 +147,20 @@ impl Context<'_> {
             index: self.app.root_index_or_create::<T>(),
             phantom: PhantomData,
         }
+    }
+
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if root node `T` is currently updated.
+    pub fn get_mut<T>(&mut self) -> &mut T
+    where
+        T: RootNode,
+    {
+        self.handle::<T>().get_mut(self)
     }
 }
 

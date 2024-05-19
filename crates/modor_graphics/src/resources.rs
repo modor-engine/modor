@@ -13,7 +13,7 @@ pub struct GraphicsResources {
 
 impl RootNode for GraphicsResources {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let window_target = ctx.root::<Window>().get(ctx).target.glob().clone();
+        let window_target = ctx.get_mut::<Window>().target.glob().clone();
         Self {
             window_camera: Camera2D::new(ctx, "window(modor_graphics)", vec![window_target]),
             white_material: Mat::new(ctx, "white(modor_graphics)", DefaultMaterial2D::default()),

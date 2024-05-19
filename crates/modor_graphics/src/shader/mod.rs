@@ -151,7 +151,7 @@ impl ShaderGlob {
         T: 'static + Material,
     {
         let texture_formats = Self::texture_formats(ctx);
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
+        let gpu = ctx.get_mut::<GpuManager>().get();
         let material_bind_group_layout =
             Self::create_material_bind_group_layout(gpu, loaded, label);
         Ok(Self {
@@ -178,7 +178,7 @@ impl ShaderGlob {
 
     pub fn texture_formats(ctx: &mut Context<'_>) -> Vec<TextureFormat> {
         let mut formats = vec![Texture::DEFAULT_FORMAT];
-        formats.extend(ctx.root::<Window>().get(ctx).texture_format());
+        formats.extend(ctx.get_mut::<Window>().texture_format());
         formats
     }
 

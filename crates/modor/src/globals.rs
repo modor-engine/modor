@@ -43,7 +43,7 @@ where
 {
     /// Creates a new shared `value`.
     pub fn new(ctx: &mut Context<'_>, value: T) -> Self {
-        let globals = ctx.root::<Globals<T>>();
+        let globals = ctx.handle::<Globals<T>>();
         Self {
             ref_: GlobRef {
                 index: globals.get_mut(ctx).register(value).into(),
@@ -142,7 +142,7 @@ where
 /// # use modor::*;
 /// #
 /// fn access_glob(ctx: &mut Context<'_>, index: usize) -> &'static str {
-///     ctx.root::<Globals<&'static str>>().get(ctx)[index]
+///     ctx.get_mut::<Globals<&'static str>>()[index]
 /// }
 /// ```
 #[derive(Debug)]

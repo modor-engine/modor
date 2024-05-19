@@ -115,10 +115,10 @@ impl MaterialGlob {
     where
         T: Material,
     {
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get().clone();
         let shader = material.shader(ctx).glob().clone();
         let textures = material.textures(ctx);
-        let resources = ctx.root();
+        let resources = ctx.handle();
         let white_texture = Self::white_texture(ctx, resources);
         let texture_refs = Self::textures(ctx, &textures);
         let buffer = MaterialBuffer::new(&gpu, material, label);
@@ -143,11 +143,11 @@ impl MaterialGlob {
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, material: &impl Material, label: &str) {
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get().clone();
         self.shader = material.shader(ctx).glob().clone();
         self.textures = material.textures(ctx);
         self.buffer.update(&gpu, material);
-        let resources = ctx.root();
+        let resources = ctx.handle();
         let white_texture = Self::white_texture(ctx, resources);
         let textures = Self::textures(ctx, &self.textures);
         self.is_transparent =

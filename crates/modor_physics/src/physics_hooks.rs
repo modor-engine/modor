@@ -12,11 +12,7 @@ pub(crate) struct PhysicsHooks {
 
 impl Node for PhysicsHooks {
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        for &(index, _) in ctx
-            .root::<Globals<CollisionGroupGlob>>()
-            .get(ctx)
-            .deleted_items()
-        {
+        for &(index, _) in ctx.get_mut::<Globals<CollisionGroupGlob>>().deleted_items() {
             self.collision_types
                 .retain(|&(index1, index2), _| index != index1 && index != index2);
         }

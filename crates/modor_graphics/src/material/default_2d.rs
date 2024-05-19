@@ -1,5 +1,8 @@
 use crate::material::MaterialResources;
-use crate::{Color, GraphicsResources, Material, MaterialGlobRef, Model2DGlob, Shader, ShaderSource, TextureGlob};
+use crate::{
+    Color, GraphicsResources, Material, MaterialGlobRef, Model2DGlob, Shader, ShaderSource,
+    TextureGlob,
+};
 use internal::DefaultMaterial2DData;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
@@ -31,14 +34,11 @@ impl Material for DefaultMaterial2D {
     type InstanceData = ();
 
     fn default_glob(ctx: &mut Context<'_>) -> MaterialGlobRef<Self> {
-        ctx.root::<GraphicsResources>()
-            .get(ctx)
-            .white_material
-            .glob()
+        ctx.get_mut::<GraphicsResources>().white_material.glob()
     }
 
     fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>> {
-        let resources = ctx.root::<DefaultMaterial2DResources>().get(ctx);
+        let resources = ctx.get_mut::<DefaultMaterial2DResources>();
         if self.is_ellipse {
             &resources.ellipse_shader
         } else {
@@ -47,11 +47,12 @@ impl Material for DefaultMaterial2D {
     }
 
     fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>> {
-        let resources = ctx.root::<MaterialResources>().get(ctx);
-        vec![self
-            .texture
-            .clone()
-            .unwrap_or_else(|| resources.white_texture.glob().clone())]
+        vec![self.texture.clone().unwrap_or_else(|| {
+            ctx.get_mut::<MaterialResources>()
+                .white_texture
+                .glob()
+                .clone()
+        })]
     }
 
     fn is_transparent(&self) -> bool {

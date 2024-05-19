@@ -42,7 +42,7 @@ where
     T: Material,
 {
     pub fn new(ctx: &mut Context<'_>) -> Self {
-        let resources = ctx.root::<GraphicsResources>().get(ctx);
+        let resources = ctx.get_mut::<GraphicsResources>();
         let camera = resources.window_camera.glob().clone();
         let mesh = resources.rectangle_mesh.glob().clone();
         let model = Self {
@@ -54,7 +54,7 @@ where
             camera,
             material: T::default_glob(ctx),
             mesh,
-            groups: ctx.root::<InstanceGroups2D>(),
+            groups: ctx.handle::<InstanceGroups2D>(),
             phantom: PhantomData,
         };
         let data = T::instance_data(ctx, model.glob());
@@ -97,13 +97,13 @@ pub struct InstanceGroups2D {
 
 impl Node for InstanceGroups2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        for (model_index, _) in ctx.root::<Globals<Model2DGlob>>().get(ctx).deleted_items() {
+        for (model_index, _) in ctx.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]
                 .take()
                 .expect("internal error: missing model groups");
             self.group_mut(group).delete_model(*model_index);
         }
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
+        let gpu = ctx.get_mut::<GpuManager>().get();
         for buffer in self.groups.values_mut() {
             buffer.update(gpu);
         }

@@ -20,7 +20,7 @@ pub struct Camera2D {
 impl Node for Camera2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let target_sizes = self.target_sizes(ctx);
-        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get().clone();
         let glob = self.glob.get_mut(ctx);
         glob.remove_old_targets(&self.targets);
         for (target_index, target_size) in target_sizes {

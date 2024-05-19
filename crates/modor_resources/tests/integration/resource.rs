@@ -142,11 +142,11 @@ fn reload_with_path() {
 }
 
 fn create_resource_from_path(app: &mut App, path: &str) {
-    app.root::<Root>().content_size = Some(Res::from_path(&mut app.ctx(), "res", path));
+    app.get_mut::<Root>().content_size = Some(Res::from_path(&mut app.ctx(), "res", path));
 }
 
 fn create_resource_from_source(app: &mut App, source: ContentSizeSource) {
-    app.root::<Root>().content_size = Some(Res::from_source(&mut app.ctx(), "res", source));
+    app.get_mut::<Root>().content_size = Some(Res::from_source(&mut app.ctx(), "res", source));
 }
 
 fn wait_resource_loaded(app: &mut App) {
@@ -174,7 +174,7 @@ fn wait_resource_reloaded(app: &mut App, target_size: usize) {
 }
 
 fn res(app: &mut App) -> &mut Res<ContentSize> {
-    app.root::<Root>().content_size.as_mut().unwrap()
+    app.get_mut::<Root>().content_size.as_mut().unwrap()
 }
 
 #[derive(Default, RootNode, Node, Visit)]

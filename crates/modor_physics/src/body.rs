@@ -33,7 +33,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Node for Character {
 ///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         self.body.velocity = ctx.root::<CharacterDirection>().get(ctx).0 * 0.5;
+///         self.body.velocity = ctx.get_mut::<CharacterDirection>().0 * 0.5;
 ///     }
 ///
 ///     fn on_exit(&mut self, ctx: &mut Context<'_>) {
@@ -184,7 +184,7 @@ impl Body2D {
     /// Creates a new body.
     pub fn new(ctx: &mut Context<'_>) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
-        let pipeline_handle = ctx.root::<Pipeline>();
+        let pipeline_handle = ctx.handle::<Pipeline>();
         let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(ctx).register_body(
             Self::default_rigid_body(Self::DEFAULT_POSITION),
             Self::default_collider(Self::DEFAULT_SIZE, active_hooks),
