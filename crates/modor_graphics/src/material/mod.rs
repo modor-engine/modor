@@ -102,7 +102,6 @@ impl<T> Deref for MaterialGlobRef<T> {
 #[derive(Debug)]
 pub struct MaterialGlob {
     pub(crate) is_transparent: bool,
-    pub(crate) has_instance_data: bool,
     pub(crate) bind_group: BufferBindGroup,
     pub(crate) binding_ids: BindingGlobalIds,
     pub(crate) shader: GlobRef<ShaderGlob>,
@@ -126,7 +125,6 @@ impl MaterialGlob {
         Self {
             is_transparent: material.is_transparent()
                 || texture_refs.iter().any(|texture| texture.is_transparent),
-            has_instance_data: mem::size_of::<T::InstanceData>() > 0,
             bind_group: Self::create_bind_group(
                 &gpu,
                 &buffer,
@@ -316,11 +314,10 @@ pub trait Material: Sized + 'static {
     type Data: Pod;
     type InstanceData: Pod;
 
-    fn default_glob(ctx: &mut Context<'_>) -> MaterialGlobRef<Self>;
-
-    // TODO: add in doc that the shader shouldn't be in the same root node as the material
+    // TODO: remove ctx parameter
     fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>>;
 
+    // TODO: remove ctx parameter
     fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>>;
 
     fn is_transparent(&self) -> bool;

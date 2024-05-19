@@ -63,8 +63,7 @@ impl Smiley {
         let texture = ctx.get_mut::<Resources>().texture.glob().clone();
         let mut material = Mat::new(ctx, "smiley", DefaultMaterial2D::default());
         material.texture = Some(texture);
-        let mut model = Model2D::new(ctx);
-        model.material = material.glob();
+        let model = Model2D::new(ctx, material.glob());
         Self { material, model }
     }
 }

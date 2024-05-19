@@ -33,10 +33,6 @@ impl Material for DefaultMaterial2D {
     type Data = DefaultMaterial2DData;
     type InstanceData = ();
 
-    fn default_glob(ctx: &mut Context<'_>) -> MaterialGlobRef<Self> {
-        ctx.get_mut::<GraphicsResources>().white_material.glob()
-    }
-
     fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>> {
         let resources = ctx.get_mut::<DefaultMaterial2DResources>();
         if self.is_ellipse {

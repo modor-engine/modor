@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+bytemuck.workspace = true
 rand.workspace = true
 modor.workspace = true
 modor_physics.workspace = true
@@ -30,6 +31,11 @@ assets = "assets"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31
+
+[[example]]
+name = "custom_shader_android"
+path = "examples/android/custom_shader.rs"
+crate-type = ["cdylib"]
 
 [[example]]
 name = "rendering_2d_android"

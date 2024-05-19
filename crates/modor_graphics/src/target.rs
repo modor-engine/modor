@@ -1,6 +1,5 @@
 use crate::gpu::Gpu;
 use crate::mesh::MeshGlob;
-use crate::model::Instance;
 use crate::size::NonZeroSize;
 use crate::{
     validation, Camera2DGlob, Color, InstanceGroup2DKey, InstanceGroups2D, MaterialGlob,
@@ -8,7 +7,6 @@ use crate::{
 };
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
-use std::any::TypeId;
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -16,6 +14,7 @@ use wgpu::{
     TextureViewDescriptor,
 };
 
+#[derive(Debug)]
 pub struct Target {
     /// Background color of the rendering.
     ///
@@ -236,6 +235,7 @@ impl Target {
         })
     }
 
+    #[allow(clippy::cast_possible_truncation, clippy::range_plus_one)]
     fn render_group<'a>(
         &self,
         ctx: &'a Context<'_>,
@@ -253,7 +253,7 @@ impl Target {
         let camera = self.cameras.get(ctx).get(group.camera)?;
         let mesh = self.meshes.get(ctx).get(group.mesh)?;
         let group = &groups.groups[&group];
-        let main_buffer = group.buffers[&TypeId::of::<Instance>()].buffer.as_ref()?;
+        let primary_buffer = group.primary_buffer()?;
         pass.set_pipeline(shader.pipelines.get(&loaded.texture_format)?);
         pass.set_bind_group(
             ShaderGlob::CAMERA_GROUP,
@@ -263,9 +263,9 @@ impl Target {
         pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
         pass.set_index_buffer(mesh.index_buffer.slice(), IndexFormat::Uint16);
         pass.set_vertex_buffer(0, mesh.vertex_buffer.slice());
-        pass.set_vertex_buffer(1, main_buffer.slice());
-        if material.has_instance_data {
-            // TODO: support secondary instances
+        pass.set_vertex_buffer(1, primary_buffer.slice());
+        if let Some(buffer) = group.secondary_buffer() {
+            pass.set_vertex_buffer(2, buffer.slice());
         }
         pass.draw_indexed(
             0..(mesh.index_count as u32),
@@ -289,6 +289,7 @@ impl Target {
     }
 }
 
+#[derive(Debug)]
 struct LoadedTarget {
     size: NonZeroSize,
     texture_format: TextureFormat,
@@ -297,6 +298,7 @@ struct LoadedTarget {
 }
 
 #[non_exhaustive]
+#[derive(Debug)]
 pub struct TargetGlob {
     pub size: Size,
 }

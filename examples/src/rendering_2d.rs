@@ -8,7 +8,7 @@ use modor_physics::modor_math::Vec2;
 use rand::Rng;
 use std::time::Duration;
 
-const SPRITE_COUNT: usize = 200_000 / 1000;
+const SPRITE_COUNT: usize = 200_000;
 const COLORS: [Color; 10] = [
     Color::RED,
     Color::GREEN,
@@ -99,11 +99,11 @@ impl Node for Sprite {
 impl Sprite {
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let mut model = Model2D::new(ctx);
+        let material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
+        let mut model = Model2D::new(ctx, material);
         model.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
         model.size = Vec2::ONE * 0.01;
         model.z_index = rng.gen_range(i16::MIN..i16::MAX);
-        model.material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
         Self {
             model,
             next_update: Instant::now(),

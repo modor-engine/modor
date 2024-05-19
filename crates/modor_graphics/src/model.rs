@@ -41,7 +41,7 @@ impl<T> Model2D<T>
 where
     T: Material,
 {
-    pub fn new(ctx: &mut Context<'_>) -> Self {
+    pub fn new(ctx: &mut Context<'_>, material: MaterialGlobRef<T>) -> Self {
         let resources = ctx.get_mut::<GraphicsResources>();
         let camera = resources.window_camera.glob().clone();
         let mesh = resources.rectangle_mesh.glob().clone();
@@ -52,7 +52,7 @@ where
             z_index: 0,
             glob: Glob::new(ctx, Model2DGlob),
             camera,
-            material: T::default_glob(ctx),
+            material,
             mesh,
             groups: ctx.handle::<InstanceGroups2D>(),
             phantom: PhantomData,
@@ -151,14 +151,23 @@ impl InstanceGroups2D {
 
 #[derive(Default, Debug)]
 pub(crate) struct InstanceGroup2D {
-    // TODO: avoid HashMap
     pub(crate) buffers: FxHashMap<TypeId, InstanceGroupBuffer>,
     pub(crate) model_indexes: Vec<usize>,
     pub(crate) z_indexes: Vec<f32>,
     model_positions: FxHashMap<usize, usize>,
+    secondary_type: Option<TypeId>,
 }
 
 impl InstanceGroup2D {
+    pub(crate) fn primary_buffer(&self) -> Option<&Buffer<u8>> {
+        self.buffers[&TypeId::of::<Instance>()].buffer.as_ref()
+    }
+
+    pub(crate) fn secondary_buffer(&self) -> Option<&Buffer<u8>> {
+        self.secondary_type
+            .and_then(|type_id| self.buffers[&type_id].buffer.as_ref())
+    }
+
     fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
     where
         T: Material,
@@ -172,7 +181,9 @@ impl InstanceGroup2D {
         self.buffer_mut::<Instance>()
             .push(bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T>().push(bytemuck::cast_slice(&[data]));
+            self.buffer_mut::<T::InstanceData>()
+                .push(bytemuck::cast_slice(&[data]));
+            self.secondary_type = Some(TypeId::of::<T::InstanceData>());
         }
     }
 
@@ -186,7 +197,7 @@ impl InstanceGroup2D {
         self.buffer_mut::<Instance>()
             .replace(position, bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T>()
+            self.buffer_mut::<T::InstanceData>()
                 .replace(position, bytemuck::cast_slice(&[data]));
         }
     }

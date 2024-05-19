@@ -139,7 +139,7 @@ struct OldWindowState {
 impl Default for OldWindowState {
     fn default() -> Self {
         Self {
-            title: String::new(),
+            title: "winit window".into(),
             is_cursor_visible: true,
         }
     }
