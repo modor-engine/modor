@@ -102,7 +102,7 @@ impl Sprite {
         let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
         let mut model = Model2D::new(ctx, position, Vec2::ONE * 0.01);
         model.z_index = rng.gen_range(i16::MIN..i16::MAX);
-        model.set_material(&ctx.root::<Resources>().get(ctx).materials[index % COLORS.len()]);
+        model.material = ctx.root::<Resources>().get(ctx).materials[index % COLORS.len()].glob();
         Self {
             model,
             next_update: Instant::now(),

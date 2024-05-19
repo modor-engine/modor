@@ -1,5 +1,5 @@
 use crate::material::MaterialResources;
-use crate::{Color, Material, Model2DGlob, Shader, ShaderSource, TextureGlob};
+use crate::{Color, GraphicsResources, Material, MaterialGlobRef, Model2DGlob, Shader, ShaderSource, TextureGlob};
 use internal::DefaultMaterial2DData;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
@@ -29,6 +29,13 @@ impl Default for DefaultMaterial2D {
 impl Material for DefaultMaterial2D {
     type Data = DefaultMaterial2DData;
     type InstanceData = ();
+
+    fn default_glob(ctx: &mut Context<'_>) -> MaterialGlobRef<Self> {
+        ctx.root::<GraphicsResources>()
+            .get(ctx)
+            .white_material
+            .glob()
+    }
 
     fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>> {
         let resources = ctx.root::<DefaultMaterial2DResources>().get(ctx);

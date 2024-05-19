@@ -2,7 +2,7 @@ use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::MeshGlob;
 use crate::vertex_buffer::VertexBuffer;
-use crate::{Camera2DGlob, GraphicsResources, Mat, Material, MaterialGlob};
+use crate::{Camera2DGlob, GraphicsResources, Material, MaterialGlobRef};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use modor::{Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
@@ -20,7 +20,7 @@ pub struct Model2D<T> {
     pub rotation: f32,
     pub z_index: i16,
     pub camera: GlobRef<Camera2DGlob>,
-    material: GlobRef<MaterialGlob>,
+    pub material: MaterialGlobRef<T>,
     mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,
     groups: RootNodeHandle<InstanceGroups2D>,
@@ -45,7 +45,6 @@ where
     pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
         let resources = ctx.root::<GraphicsResources>().get(ctx);
         let camera = resources.window_camera.glob().clone();
-        let material = resources.white_material.glob().clone();
         let mesh = resources.rectangle_mesh.glob().clone();
         let model = Self {
             position,
@@ -54,7 +53,7 @@ where
             z_index: 0,
             glob: Glob::new(ctx, Model2DGlob),
             camera,
-            material,
+            material: T::default_glob(ctx),
             mesh,
             groups: ctx.root::<InstanceGroups2D>(),
             phantom: PhantomData,
@@ -67,11 +66,6 @@ where
     /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<Model2DGlob> {
         self.glob.as_ref()
-    }
-
-    // TODO: use GlobRef wrapper instead (same for shaders ?)
-    pub fn set_material(&mut self, material: &Mat<T>) {
-        self.material = material.glob().clone();
     }
 }
 

@@ -65,7 +65,7 @@ impl Smiley {
         let mut material = Mat::new(ctx, "smiley", DefaultMaterial2D::default());
         material.texture = Some(texture);
         let mut model = Model2D::new(ctx, Vec2::ZERO, Vec2::ONE);
-        model.set_material(&material);
+        model.material = material.glob();
         Self { material, model }
     }
 }

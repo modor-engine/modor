@@ -1,8 +1,11 @@
+#![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
+
 use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
 use crate::{Shader, ShaderGlob, Size, TextureGlob, TextureSource};
 use bytemuck::Pod;
+use derivative::Derivative;
 use log::error;
 use modor::{Context, Glob, GlobRef, Node, RootNode, RootNodeHandle, Visit};
 use modor_resources::Res;
@@ -65,8 +68,34 @@ where
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<MaterialGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> MaterialGlobRef<T> {
+        MaterialGlobRef {
+            inner: self.glob.as_ref().clone(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Clone(bound = ""),
+    Hash(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = "")
+)]
+pub struct MaterialGlobRef<T> {
+    inner: GlobRef<MaterialGlob>,
+    phantom: PhantomData<fn(T)>,
+}
+
+impl<T> Deref for MaterialGlobRef<T> {
+    type Target = GlobRef<MaterialGlob>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 
@@ -287,6 +316,9 @@ pub trait Material: Sized + 'static {
     type Data: Pod;
     type InstanceData: Pod;
 
+    fn default_glob(ctx: &mut Context<'_>) -> MaterialGlobRef<Self>;
+
+    // TODO: add in doc that the shader shouldn't be in the same root node as the material
     fn shader<'a>(&self, ctx: &'a mut Context<'_>) -> &'a Res<Shader<Self>>;
 
     fn textures(&self, ctx: &mut Context<'_>) -> Vec<GlobRef<TextureGlob>>;

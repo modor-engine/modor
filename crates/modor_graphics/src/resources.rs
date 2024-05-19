@@ -1,7 +1,7 @@
+use crate::material::default_2d::DefaultMaterial2D;
 use crate::mesh::Mesh;
 use crate::{Camera2D, Mat, Window};
 use modor::{Context, Node, RootNode, Visit};
-use crate::material::default_2d::DefaultMaterial2D;
 
 #[non_exhaustive]
 #[derive(Debug, Node, Visit)]

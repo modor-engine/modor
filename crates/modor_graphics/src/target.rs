@@ -227,7 +227,11 @@ impl Target {
         if material.has_instance_data {
             // TODO: support secondary instances
         }
-        pass.draw_indexed(0..(mesh.index_count as u32), 0, 0..(0 as u32));
+        pass.draw_indexed(
+            0..(mesh.index_count as u32),
+            0,
+            0..(group.model_indexes.len() as u32),
+        );
         Some(())
     }
 
