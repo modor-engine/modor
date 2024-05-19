@@ -26,8 +26,8 @@ pub struct Target {
     label: String,
     glob: Glob<TargetGlob>,
     cameras: RootNodeHandle<Globals<Camera2DGlob>>,
-    materials: RootNodeHandle<Globals<Option<MaterialGlob>>>,
-    meshes: RootNodeHandle<Globals<Option<MeshGlob>>>,
+    materials: RootNodeHandle<Globals<MaterialGlob>>,
+    meshes: RootNodeHandle<Globals<MeshGlob>>,
 }
 
 impl Target {
@@ -95,14 +95,8 @@ impl Target {
             .expect("internal error: target not loaded");
         let mut encoder = Self::create_encoder(gpu);
         let mut pass = Self::create_pass(self.background_color, &mut encoder, &view, loaded);
-
         let groups = ctx.root::<InstanceGroups2D>().get(ctx);
-        let mut sorted_groups: Vec<_> = groups.group_iter().collect();
-        sorted_groups.sort_unstable();
-        for group in sorted_groups {
-            self.render_group(ctx, gpu, &mut pass, group, groups, loaded);
-        }
-
+        self.render_instance_groups(ctx, loaded, groups, &mut pass);
         let result = validation::validate_wgpu(gpu, || drop(pass));
         let is_err = result.is_err();
         if !is_err {
@@ -110,6 +104,20 @@ impl Target {
         }
         trace!("Target '{}' rendered (error: {})", self.label, is_err);
         self.log_error(result);
+    }
+
+    fn render_instance_groups<'a>(
+        &self,
+        ctx: &'a Context<'_>,
+        loaded: &LoadedTarget,
+        groups: &'a InstanceGroups2D,
+        pass: &mut RenderPass<'a>,
+    ) {
+        let mut sorted_groups: Vec<_> = groups.group_iter().collect();
+        sorted_groups.sort_unstable();
+        for group in sorted_groups {
+            self.render_group(ctx, pass, group, groups, loaded);
+        }
     }
 
     fn create_color_buffer_view(
@@ -192,49 +200,40 @@ impl Target {
     fn render_group<'a>(
         &self,
         ctx: &'a Context<'_>,
-        gpu: &Gpu,
         pass: &mut RenderPass<'a>,
         group: InstanceGroup2DKey,
         groups: &'a InstanceGroups2D,
         loaded: &LoadedTarget,
     ) -> Option<()> {
-        let material = self.materials.get(ctx).get(group.material)?.as_ref()?;
+        let material = self.materials.get(ctx).get(group.material)?;
         let shader = material.shader.get(ctx);
         if material.binding_ids.bind_group_layout != shader.material_bind_group_layout.global_id() {
             return None;
         }
         let camera = self.cameras.get(ctx).get(group.camera)?;
-        let mesh = self.meshes.get(ctx).get(group.mesh)?.as_ref()?;
+        let mesh = self.meshes.get(ctx).get(group.mesh)?;
         let group = &groups.groups[&group];
         let main_buffer = group.buffers[&TypeId::of::<Instance>()].buffer.as_ref()?;
-        // TODO: necessary check ?
-        if group.model_indexes.len() > 0 {
-            pass.set_pipeline(shader.pipelines.get(&loaded.texture_format)?);
-            pass.set_bind_group(
-                ShaderGlob::CAMERA_GROUP,
-                camera.bind_group(self.glob())?,
-                &[],
-            );
-            pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
-            pass.set_index_buffer(mesh.indices(gpu)?.slice(), IndexFormat::Uint16);
-            pass.set_vertex_buffer(0, mesh.vertices(gpu)?.slice());
-            pass.set_vertex_buffer(1, main_buffer.slice());
-            if material.has_instance_data {
-                // TODO: support secondary instances
-            }
-            pass.draw_indexed(
-                0..(mesh.index_count as u32),
-                0,
-                0..(group.model_indexes.len() as u32),
-            );
+        pass.set_pipeline(shader.pipelines.get(&loaded.texture_format)?);
+        pass.set_bind_group(
+            ShaderGlob::CAMERA_GROUP,
+            camera.bind_group(self.glob())?,
+            &[],
+        );
+        pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
+        pass.set_index_buffer(mesh.index_buffer.slice(), IndexFormat::Uint16);
+        pass.set_vertex_buffer(0, mesh.vertex_buffer.slice());
+        pass.set_vertex_buffer(1, main_buffer.slice());
+        if material.has_instance_data {
+            // TODO: support secondary instances
         }
+        pass.draw_indexed(0..(mesh.index_count as u32), 0, 0..(0 as u32));
         Some(())
     }
 
     fn log_error(&mut self, result: Result<(), wgpu::Error>) {
         if !self.is_error_logged {
             if let Err(error) = result {
-                // TODO: necessary to log the error itself ?
                 error!("Error during rendering in target '{}': {error}", self.label);
                 self.is_error_logged = true;
             }

@@ -10,7 +10,6 @@ use wgpu::{
 
 #[derive(Debug, Visit, Node)]
 pub(crate) struct GpuManager {
-    pub(crate) current_version: u64,
     pub(crate) instance: Arc<Instance>,
     details: Option<Arc<Gpu>>,
 }
@@ -18,7 +17,6 @@ pub(crate) struct GpuManager {
 impl RootNode for GpuManager {
     fn on_create(_ctx: &mut Context<'_>) -> Self {
         Self {
-            current_version: 1,
             instance: Self::create_instance().into(),
             details: None,
         }
@@ -26,14 +24,13 @@ impl RootNode for GpuManager {
 }
 
 impl GpuManager {
-    // TODO: is Arc<> still necessary ?
     pub(crate) fn get(&mut self) -> &Arc<Gpu> {
         self.details
-            .get_or_insert_with(|| Gpu::new(&self.instance, None, self.current_version).into())
+            .get_or_insert_with(|| Gpu::new(&self.instance, None).into())
     }
 
     pub(crate) fn configure_window(&mut self, surface: &Surface<'_>) {
-        self.details = Some(Gpu::new(&self.instance, Some(surface), self.current_version).into());
+        self.details = Some(Gpu::new(&self.instance, Some(surface)).into());
     }
 
     fn create_instance() -> Instance {
@@ -52,11 +49,10 @@ pub(crate) struct Gpu {
     pub(crate) device: Device,
     pub(crate) queue: Queue,
     pub(crate) camera_bind_group_layout: BindGroupLayout,
-    pub(crate) version: u64,
 }
 
 impl Gpu {
-    fn new(instance: &Instance, surface: Option<&Surface<'_>>, version: u64) -> Self {
+    fn new(instance: &Instance, surface: Option<&Surface<'_>>) -> Self {
         let adapter_request = RequestAdapterOptions {
             power_preference: PowerPreference::default(),
             force_fallback_adapter: false,
@@ -70,7 +66,6 @@ impl Gpu {
             adapter,
             device,
             queue,
-            version,
         }
     }
 
@@ -99,58 +94,4 @@ impl Gpu {
             label: Some("modor_bind_group_layout_camera"),
         })
     }
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct GpuHandle {
-    version: u64,
-}
-
-impl GpuHandle {
-    pub(crate) fn get(&mut self, ctx: &mut Context<'_>) -> GpuState {
-        let manager = ctx.root::<GpuManager>().get_mut(ctx);
-        let gpu = manager
-            .details
-            .get_or_insert_with(|| {
-                Gpu::new(&manager.instance, None, manager.current_version).into()
-            })
-            .clone();
-        if gpu.version == self.version {
-            GpuState::Same(gpu)
-        } else {
-            self.version = gpu.version;
-            GpuState::New(gpu)
-        }
-    }
-
-    pub(crate) fn action(&mut self, ctx: &mut Context<'_>, is_loaded: bool) -> GpuResourceAction {
-        match (self.get(ctx), is_loaded) {
-            (GpuState::None, _) => GpuResourceAction::Delete,
-            (GpuState::New(gpu) | GpuState::Same(gpu), true) | (GpuState::New(gpu), false) => {
-                GpuResourceAction::Create(gpu)
-            }
-            (GpuState::Same(gpu), false) => GpuResourceAction::Update(gpu),
-        }
-    }
-}
-
-pub(crate) enum GpuState {
-    None,
-    New(Arc<Gpu>),
-    Same(Arc<Gpu>),
-}
-
-impl GpuState {
-    pub(crate) fn take(self) -> Option<Arc<Gpu>> {
-        match self {
-            Self::None => None,
-            Self::New(gpu) | Self::Same(gpu) => Some(gpu),
-        }
-    }
-}
-
-pub(crate) enum GpuResourceAction {
-    Delete,
-    Create(Arc<Gpu>),
-    Update(Arc<Gpu>),
 }

@@ -1,5 +1,5 @@
 use crate::buffer::Buffer;
-use crate::gpu::{Gpu, GpuHandle};
+use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::MeshGlob;
 use crate::vertex_buffer::VertexBuffer;
 use crate::{Camera2DGlob, GraphicsResources, Mat, Material, MaterialGlob};
@@ -20,8 +20,8 @@ pub struct Model2D<T> {
     pub rotation: f32,
     pub z_index: i16,
     pub camera: GlobRef<Camera2DGlob>,
-    material: GlobRef<Option<MaterialGlob>>,
-    mesh: GlobRef<Option<MeshGlob>>,
+    material: GlobRef<MaterialGlob>,
+    mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,
     groups: RootNodeHandle<InstanceGroups2D>,
     phantom: PhantomData<fn(T)>,
@@ -32,10 +32,8 @@ where
     T: Material,
 {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let group = InstanceGroup2DKey::new(self);
-        let old_group = mem::replace(&mut self.glob.get_mut(ctx).group, group);
         let data = T::instance_data(ctx, self.glob());
-        self.groups.get_mut(ctx).update_model(self, data, old_group);
+        self.groups.get_mut(ctx).update_model(self, data);
     }
 }
 
@@ -54,14 +52,7 @@ where
             size,
             rotation: 0.,
             z_index: 0,
-            glob: Glob::new(
-                ctx,
-                Model2DGlob::new(InstanceGroup2DKey {
-                    mesh: mesh.index(),
-                    camera: camera.index(),
-                    material: material.index(),
-                }),
-            ),
+            glob: Glob::new(ctx, Model2DGlob),
             camera,
             material,
             mesh,
@@ -86,15 +77,7 @@ where
 
 #[non_exhaustive]
 #[derive(Debug)]
-pub struct Model2DGlob {
-    group: InstanceGroup2DKey,
-}
-
-impl Model2DGlob {
-    fn new(group: InstanceGroup2DKey) -> Self {
-        Self { group }
-    }
-}
+pub struct Model2DGlob;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InstanceGroup2DKey {
@@ -116,18 +99,20 @@ impl InstanceGroup2DKey {
 #[derive(Default, RootNode, Visit)]
 pub struct InstanceGroups2D {
     pub(crate) groups: FxHashMap<InstanceGroup2DKey, InstanceGroup2D>,
-    gpu: GpuHandle,
+    model_groups: Vec<Option<InstanceGroup2DKey>>,
 }
 
 impl Node for InstanceGroups2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        for (model_index, model) in ctx.root::<Globals<Model2DGlob>>().get(ctx).deleted_items() {
-            self.group_mut(model.group).delete_model(*model_index);
+        for (model_index, _) in ctx.root::<Globals<Model2DGlob>>().get(ctx).deleted_items() {
+            let group = self.model_groups[*model_index]
+                .take()
+                .expect("internal error: missing model groups");
+            self.group_mut(group).delete_model(*model_index);
         }
-        // TODO: take into account full WGPU reset ?
-        let gpu = self.gpu.get(ctx).take();
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
         for buffer in self.groups.values_mut() {
-            buffer.update(gpu.as_deref());
+            buffer.update(gpu);
         }
         self.groups.retain(|_, group| !group.buffers.is_empty());
     }
@@ -144,22 +129,25 @@ impl InstanceGroups2D {
     {
         let group = InstanceGroup2DKey::new(model);
         self.group_mut(group).register_model(model, data);
+        let model_index = model.glob.index();
+        (self.model_groups.len()..=model_index).for_each(|_| self.model_groups.push(None));
+        self.model_groups[model_index] = Some(group);
     }
 
-    fn update_model<T>(
-        &mut self,
-        model: &Model2D<T>,
-        data: T::InstanceData,
-        old_group: InstanceGroup2DKey,
-    ) where
+    fn update_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
+    where
         T: Material,
     {
+        let model_index = model.glob.index();
+        let old_group =
+            self.model_groups[model_index].expect("internal error: missing model groups");
         let group = InstanceGroup2DKey::new(model);
         if group == old_group {
             self.group_mut(group).update_model(model, data);
         } else {
             self.group_mut(old_group).delete_model(model.glob().index());
             self.group_mut(group).register_model(model, data);
+            self.model_groups[model_index] = Some(group);
         }
     }
 
@@ -218,7 +206,7 @@ impl InstanceGroup2D {
         }
     }
 
-    fn update(&mut self, gpu: Option<&Gpu>) {
+    fn update(&mut self, gpu: &Gpu) {
         for buffer in self.buffers.values_mut() {
             buffer.update(gpu);
         }
@@ -258,10 +246,11 @@ impl InstanceGroupBuffer {
     }
 
     fn replace(&mut self, position: usize, item: &[u8]) {
-        let range = (position * self.item_size)..((position + 1) * self.item_size);
-        let old_item = &self.data[range.clone()];
-        if old_item != item {
-            self.data.splice(range, item.iter().copied());
+        let buffer_range = (position * self.item_size)..((position + 1) * self.item_size);
+        if &self.data[buffer_range.clone()] != item {
+            for (item_byte, buffer_byte) in buffer_range.enumerate() {
+                self.data[buffer_byte] = item[item_byte];
+            }
             self.is_updated = true;
         }
     }
@@ -272,24 +261,20 @@ impl InstanceGroupBuffer {
         }
     }
 
-    fn update(&mut self, gpu: Option<&Gpu>) {
-        if let Some(gpu) = gpu {
-            if let Some(buffer) = &mut self.buffer {
-                if self.is_updated {
-                    buffer.update(gpu, &self.data);
-                }
-            } else {
-                self.buffer = Some(Buffer::new(
-                    gpu,
-                    &self.data,
-                    BufferUsages::VERTEX | BufferUsages::COPY_DST,
-                    "instance_group",
-                ));
-            }
-        } else {
-            self.buffer = None;
+    fn update(&mut self, gpu: &Gpu) {
+        if self.is_updated {
+            self.buffer
+                .get_or_insert_with(|| {
+                    Buffer::new(
+                        gpu,
+                        &self.data,
+                        BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                        "instance_group",
+                    )
+                })
+                .update(gpu, &self.data);
+            self.is_updated = false;
         }
-        self.is_updated = false;
     }
 }
 

@@ -1,38 +1,31 @@
 use crate::buffer::Buffer;
-use crate::gpu::{Gpu, GpuHandle, GpuState};
+use crate::gpu::{Gpu, GpuManager};
 use crate::vertex_buffer::VertexBuffer;
 use modor::{Context, Glob, GlobRef, Node, Visit};
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
-#[derive(Visit, Debug)]
+#[derive(Debug, Visit, Node)]
 pub(crate) struct Mesh {
-    vertices: Vec<Vertex>,
-    indices: Vec<u16>,
     label: String,
-    glob: Glob<Option<MeshGlob>>,
-    gpu: GpuHandle,
-}
-
-impl Node for Mesh {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        match self.gpu.get(ctx) {
-            GpuState::None => {
-                *self.glob.get_mut(ctx) = None;
-            }
-            GpuState::New(gpu) => {
-                *self.glob.get_mut(ctx) = Some(MeshGlob::new(
-                    &gpu,
-                    &self.vertices,
-                    &self.indices,
-                    &self.label,
-                ));
-            }
-            GpuState::Same(_) => (),
-        };
-    }
+    glob: Glob<MeshGlob>,
 }
 
 impl Mesh {
+    fn new(
+        ctx: &mut Context<'_>,
+        vertices: Vec<Vertex>,
+        indices: Vec<u16>,
+        label: impl Into<String>,
+    ) -> Self {
+        let label = label.into();
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
+        let glob = MeshGlob::new(gpu, &vertices, &indices, &label);
+        Self {
+            label,
+            glob: Glob::new(ctx, glob),
+        }
+    }
+
     pub(crate) fn rectangle(ctx: &mut Context<'_>) -> Self {
         Self::new(
             ctx,
@@ -59,43 +52,19 @@ impl Mesh {
         )
     }
 
-    pub(crate) fn glob(&self) -> &GlobRef<Option<MeshGlob>> {
+    pub(crate) fn glob(&self) -> &GlobRef<MeshGlob> {
         self.glob.as_ref()
-    }
-
-    fn new(
-        ctx: &mut Context<'_>,
-        vertices: Vec<Vertex>,
-        indices: Vec<u16>,
-        label: impl Into<String>,
-    ) -> Self {
-        Self {
-            vertices,
-            indices,
-            label: label.into(),
-            glob: Glob::new(ctx, None),
-            gpu: GpuHandle::default(),
-        }
     }
 }
 
 #[derive(Debug)]
 pub(crate) struct MeshGlob {
     pub(crate) index_count: usize,
-    vertex_buffer: Buffer<Vertex>,
-    index_buffer: Buffer<u16>,
-    gpu_version: u64,
+    pub(crate) vertex_buffer: Buffer<Vertex>,
+    pub(crate) index_buffer: Buffer<u16>,
 }
 
 impl MeshGlob {
-    pub(crate) fn vertices(&self, gpu: &Gpu) -> Option<&Buffer<Vertex>> {
-        (gpu.version == self.gpu_version).then_some(&self.vertex_buffer)
-    }
-
-    pub(crate) fn indices(&self, gpu: &Gpu) -> Option<&Buffer<u16>> {
-        (gpu.version == self.gpu_version).then_some(&self.index_buffer)
-    }
-
     fn new(gpu: &Gpu, vertices: &[Vertex], indices: &[u16], label: &str) -> Self {
         Self {
             index_count: indices.len(),
@@ -111,7 +80,6 @@ impl MeshGlob {
                 BufferUsages::INDEX,
                 format!("mesh_indices:{label}"),
             ),
-            gpu_version: gpu.version,
         }
     }
 }

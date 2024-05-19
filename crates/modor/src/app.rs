@@ -74,6 +74,7 @@ impl App {
         Context { app: self }
     }
 
+    // TODO: allow direct get/get_mut
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.

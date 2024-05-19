@@ -8,7 +8,7 @@ use modor_physics::modor_math::Vec2;
 use rand::Rng;
 use std::time::Duration;
 
-const SPRITE_COUNT: usize = 50_000;
+const SPRITE_COUNT: usize = 200_000;
 const COLORS: [Color; 10] = [
     Color::RED,
     Color::GREEN,
@@ -24,10 +24,6 @@ const COLORS: [Color; 10] = [
 
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
-    // let mut app = App::new::<Root>(Level::Info);
-    // loop {
-    //     app.update();
-    // }
 }
 
 #[derive(Visit)]
@@ -94,7 +90,7 @@ impl Node for Sprite {
             self.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
                 .with_magnitude(0.001)
                 .unwrap_or(Vec2::ZERO);
-            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(100..200));
+            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(1000..2000));
         }
         self.model.position += self.velocity;
     }

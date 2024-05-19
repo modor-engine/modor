@@ -152,7 +152,8 @@ impl ShaderGlob {
     {
         let texture_formats = Self::texture_formats(ctx);
         let gpu = ctx.root::<GpuManager>().get_mut(ctx).get();
-        let material_bind_group_layout = Self::material_bind_group_layout(gpu, loaded, label);
+        let material_bind_group_layout =
+            Self::create_material_bind_group_layout(gpu, loaded, label);
         Ok(Self {
             texture_count: loaded.texture_count,
             pipelines: texture_formats
@@ -160,7 +161,7 @@ impl ShaderGlob {
                 .map(|texture_format| {
                     Ok((
                         texture_format,
-                        Self::pipeline::<T>(
+                        Self::create_pipeline::<T>(
                             gpu,
                             loaded,
                             texture_format,
@@ -181,19 +182,19 @@ impl ShaderGlob {
         formats
     }
 
-    fn material_bind_group_layout(
+    fn create_material_bind_group_layout(
         gpu: &Arc<Gpu>,
         loaded: &ShaderLoaded,
         label: &str,
     ) -> BindGroupLayout {
         gpu.device
             .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                entries: &Self::bind_group_layout_entries(loaded),
+                entries: &Self::create_bind_group_layout_entries(loaded),
                 label: Some(&format!("modor_bind_group_layout_texture:{label}")),
             })
     }
 
-    fn bind_group_layout_entries(loaded: &ShaderLoaded) -> Vec<BindGroupLayoutEntry> {
+    fn create_bind_group_layout_entries(loaded: &ShaderLoaded) -> Vec<BindGroupLayoutEntry> {
         let mut entries = vec![BindGroupLayoutEntry {
             binding: 0,
             visibility: ShaderStages::VERTEX_FRAGMENT,
@@ -227,7 +228,7 @@ impl ShaderGlob {
         entries
     }
 
-    fn pipeline<T>(
+    fn create_pipeline<T>(
         gpu: &Gpu,
         loaded: &ShaderLoaded,
         texture_format: TextureFormat,

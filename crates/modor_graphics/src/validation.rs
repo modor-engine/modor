@@ -7,5 +7,3 @@ pub(crate) fn validate_wgpu<T>(gpu: &Gpu, f: impl FnOnce() -> T) -> Result<T, wg
     let value = f();
     executor::block_on(gpu.device.pop_error_scope()).map_or(Ok(value), |e| Err(e))
 }
-
-// TODO: better handle logging everywhere

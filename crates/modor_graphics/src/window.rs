@@ -1,4 +1,4 @@
-use crate::gpu::{Gpu, GpuHandle};
+use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::{Size, Target};
 use modor::{Context, Node, RootNode, Visit};
@@ -19,7 +19,6 @@ pub struct Window {
     pub target: Target,
     handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,
-    gpu: GpuHandle,
     old_state: OldWindowState,
 }
 
@@ -31,7 +30,6 @@ impl RootNode for Window {
             target: Target::new(ctx, "window(modor_graphics)".into()),
             handle: None,
             surface: WindowSurfaceState::None,
-            gpu: GpuHandle::default(),
             old_state: OldWindowState::default(),
         }
     }
@@ -40,10 +38,7 @@ impl RootNode for Window {
 impl Node for Window {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         self.update_properties();
-        let Some(gpu) = self.gpu.get(ctx).take() else {
-            return;
-        };
-        self.update_surface(ctx, &gpu);
+        self.update_surface(ctx);
     }
 }
 
@@ -116,21 +111,22 @@ impl Window {
         }
     }
 
-    fn update_surface(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
+    fn update_surface(&mut self, ctx: &mut Context<'_>) {
+        let gpu = ctx.root::<GpuManager>().get_mut(ctx).get().clone();
         let size = self.size();
         if let Some(surface) = self.surface.take_new() {
             let size = size.expect("internal error: not configured window").into();
-            let surface = WindowSurface::new(gpu, surface, size);
+            let surface = WindowSurface::new(&gpu, surface, size);
             let texture_format = surface.surface_config.format;
             self.surface = WindowSurfaceState::Loaded(surface);
-            self.target.init(ctx, gpu, size, texture_format);
+            self.target.init(ctx, &gpu, size, texture_format);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
             let size = size.expect("internal error: not configured window").into();
-            surface.update(gpu, size);
+            surface.update(&gpu, size);
             self.target
-                .update(ctx, gpu, size, surface.surface_config.format);
-            surface.render(ctx, gpu, &mut self.target);
+                .update(ctx, &gpu, size, surface.surface_config.format);
+            surface.render(ctx, &gpu, &mut self.target);
         }
     }
 }
