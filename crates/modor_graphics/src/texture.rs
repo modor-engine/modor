@@ -11,6 +11,8 @@ use wgpu::{
     TextureUsages, TextureView, TextureViewDescriptor,
 };
 
+// TODO: add buffer access + render target
+
 #[derive(Debug)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Texture {

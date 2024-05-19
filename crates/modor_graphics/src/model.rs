@@ -151,8 +151,10 @@ impl InstanceGroups2D {
 
 #[derive(Default, Debug)]
 pub(crate) struct InstanceGroup2D {
+    // TODO: avoid HashMap
     pub(crate) buffers: FxHashMap<TypeId, InstanceGroupBuffer>,
     pub(crate) model_indexes: Vec<usize>,
+    pub(crate) z_indexes: Vec<f32>,
     model_positions: FxHashMap<usize, usize>,
 }
 
@@ -165,8 +167,10 @@ impl InstanceGroup2D {
         self.model_positions
             .insert(model_index, self.model_indexes.len());
         self.model_indexes.push(model_index);
+        let instance = Instance::new(model);
+        self.z_indexes.push(instance.z());
         self.buffer_mut::<Instance>()
-            .push(bytemuck::cast_slice(&[Instance::new(model)]));
+            .push(bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
             self.buffer_mut::<T>().push(bytemuck::cast_slice(&[data]));
         }
@@ -177,8 +181,10 @@ impl InstanceGroup2D {
         T: Material,
     {
         let position = self.model_positions[&model.glob().index()];
+        let instance = Instance::new(model);
+        self.z_indexes[position] = instance.z();
         self.buffer_mut::<Instance>()
-            .replace(position, bytemuck::cast_slice(&[Instance::new(model)]));
+            .replace(position, bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
             self.buffer_mut::<T>()
                 .replace(position, bytemuck::cast_slice(&[data]));
@@ -191,6 +197,7 @@ impl InstanceGroup2D {
             .remove(&model_index)
             .expect("internal error: missing model");
         self.model_indexes.swap_remove(position);
+        self.z_indexes.swap_remove(position);
         if let Some(&moved_model_index) = self.model_indexes.get(position) {
             self.model_positions.insert(moved_model_index, position);
         }

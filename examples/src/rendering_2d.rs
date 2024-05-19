@@ -8,7 +8,7 @@ use modor_physics::modor_math::Vec2;
 use rand::Rng;
 use std::time::Duration;
 
-const SPRITE_COUNT: usize = 200_000;
+const SPRITE_COUNT: usize = 200_000 / 1000;
 const COLORS: [Color; 10] = [
     Color::RED,
     Color::GREEN,

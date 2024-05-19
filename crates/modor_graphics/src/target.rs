@@ -96,7 +96,8 @@ impl Target {
         let mut encoder = Self::create_encoder(gpu);
         let mut pass = Self::create_pass(self.background_color, &mut encoder, &view, loaded);
         let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
-        self.render_instance_groups(ctx, loaded, groups, &mut pass);
+        self.render_opaque_groups(ctx, loaded, groups, &mut pass);
+        self.render_transparent_groups(ctx, loaded, groups, &mut pass);
         let result = validation::validate_wgpu(gpu, || drop(pass));
         let is_err = result.is_err();
         if !is_err {
@@ -104,20 +105,6 @@ impl Target {
         }
         trace!("Target '{}' rendered (error: {})", self.label, is_err);
         self.log_error(result);
-    }
-
-    fn render_instance_groups<'a>(
-        &self,
-        ctx: &'a Context<'_>,
-        loaded: &LoadedTarget,
-        groups: &'a InstanceGroups2D,
-        pass: &mut RenderPass<'a>,
-    ) {
-        let mut sorted_groups: Vec<_> = groups.group_iter().collect();
-        sorted_groups.sort_unstable();
-        for group in sorted_groups {
-            self.render_group(ctx, pass, group, groups, loaded);
-        }
     }
 
     fn create_color_buffer_view(
@@ -196,12 +183,65 @@ impl Target {
         })
     }
 
-    // TODO: support transparency
+    fn render_opaque_groups<'a>(
+        &self,
+        ctx: &'a Context<'_>,
+        loaded: &LoadedTarget,
+        groups: &'a InstanceGroups2D,
+        pass: &mut RenderPass<'a>,
+    ) {
+        let mut sorted_groups: Vec<_> = self.group_iter(ctx, groups, false).collect();
+        sorted_groups.sort_unstable();
+        for group in sorted_groups {
+            self.render_group(ctx, pass, group, None, groups, loaded);
+        }
+    }
+
+    fn render_transparent_groups<'a>(
+        &self,
+        ctx: &'a Context<'_>,
+        loaded: &LoadedTarget,
+        groups: &'a InstanceGroups2D,
+        pass: &mut RenderPass<'a>,
+    ) {
+        let mut sorted_instances: Vec<_> = self
+            .group_iter(ctx, groups, true)
+            .flat_map(|group| {
+                groups.groups[&group]
+                    .z_indexes
+                    .iter()
+                    .enumerate()
+                    .map(move |(instance_index, z)| (group, instance_index, z))
+            })
+            .collect();
+        sorted_instances.sort_unstable_by(|(group1, _, z1), (group2, _, z2)| {
+            z1.total_cmp(z2).then(group1.cmp(group2))
+        });
+        for (group, instance_index, _) in sorted_instances {
+            self.render_group(ctx, pass, group, Some(instance_index), groups, loaded);
+        }
+    }
+
+    fn group_iter<'a>(
+        &'a self,
+        ctx: &'a Context<'_>,
+        groups: &'a InstanceGroups2D,
+        is_transparent: bool,
+    ) -> impl Iterator<Item = InstanceGroup2DKey> + 'a {
+        groups.group_iter().filter(move |group| {
+            self.materials
+                .get(ctx)
+                .get(group.material)
+                .map_or(false, |material| material.is_transparent == is_transparent)
+        })
+    }
+
     fn render_group<'a>(
         &self,
         ctx: &'a Context<'_>,
         pass: &mut RenderPass<'a>,
         group: InstanceGroup2DKey,
+        instance_index: Option<usize>,
         groups: &'a InstanceGroups2D,
         loaded: &LoadedTarget,
     ) -> Option<()> {
@@ -230,7 +270,11 @@ impl Target {
         pass.draw_indexed(
             0..(mesh.index_count as u32),
             0,
-            0..(group.model_indexes.len() as u32),
+            if let Some(index) = instance_index {
+                index as u32..index as u32 + 1
+            } else {
+                0..group.model_indexes.len() as u32
+            },
         );
         Some(())
     }
