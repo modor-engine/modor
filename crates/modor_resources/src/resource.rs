@@ -92,7 +92,7 @@ use std::{any, fmt};
 ///
 /// impl Node for Content {
 ///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         if let Some(size) = self.size.size {
+///         if let (Some(size), ResourceState::Loaded) = (self.size.size, self.size.state()) {
 ///             println!("Content size: {}", size);
 ///         }
 ///     }
@@ -105,7 +105,8 @@ pub struct Res<T: Resource> {
     inner: T,
     location: ResourceLocation<T>,
     loading: Option<Loading<T>>,
-    err: Option<ResourceError>,
+    version: u64,
+    state: ResourceState,
 }
 
 impl<T> Deref for Res<T>
@@ -154,7 +155,6 @@ where
     }
 }
 
-// TODO: add loaded_version() method to easily identify when the new loading is done
 impl<T> Res<T>
 where
     T: Resource,
@@ -185,7 +185,8 @@ where
             inner: T::create(ctx),
             location: ResourceLocation::Path(path.into()),
             loading: None,
-            err: None,
+            version: 0,
+            state: ResourceState::Loading,
         };
         res.reload();
         res
@@ -203,15 +204,16 @@ where
             inner: T::create(ctx),
             location: ResourceLocation::Source(source),
             loading: None,
-            err: None,
+            version: 0,
+            state: ResourceState::Loading,
         };
         res.reload();
         res
     }
 
-    /// Returns the error in case the loading has failed.
-    pub fn err(&self) -> Option<&ResourceError> {
-        self.err.as_ref()
+    /// Returns the state of the resource.
+    pub fn state(&self) -> &ResourceState {
+        &self.state
     }
 
     /// Starts resource reloading.
@@ -219,6 +221,7 @@ where
     /// During reloading and in case the reloading fails, the previously loaded resource is
     /// still used.
     pub fn reload(&mut self) {
+        self.state = ResourceState::Loading;
         match &self.location {
             ResourceLocation::Path(path) => {
                 self.loading = Some(Loading::Path(AssetLoadingJob::new(path, |t| async {
@@ -269,7 +272,7 @@ where
     }
 
     fn success(&mut self, loaded: T::Loaded) -> T::Loaded {
-        self.err = None;
+        self.state = ResourceState::Loaded;
         loaded
     }
 
@@ -279,7 +282,32 @@ where
             self.label,
             any::type_name::<T>(),
         );
-        self.err = Some(err);
+        self.state = ResourceState::Error(err);
+    }
+}
+
+/// The state of a [`Res`].
+///
+/// # Examples
+///
+/// See [`Res`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResourceState {
+    /// The resource is loading.
+    Loading,
+    /// The resource is loaded.
+    Loaded,
+    /// The resource loading has failed.
+    Error(ResourceError),
+}
+
+impl ResourceState {
+    /// Returns the error in case of failed loading.
+    pub fn error(&self) -> Option<&ResourceError> {
+        match self {
+            Self::Loading | Self::Loaded => None,
+            Self::Error(err) => Some(err),
+        }
     }
 }
 

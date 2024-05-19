@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{Res, Resource, ResourceError, Source};
+use modor_resources::{Res, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -19,26 +19,26 @@ fn load_valid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
     create_resource_from_path(&mut app, "not_empty.txt");
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     app.update();
     assert_eq!(res(&mut app).size, Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(disabled(wasm))]
 fn load_invalid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
     create_resource_from_path(&mut app, "empty.txt");
-    let error = ResourceError::Other("empty resource".into());
+    let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
@@ -48,13 +48,13 @@ fn load_resource_from_invalid_path() {
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, None);
     assert!(matches!(
-        res(&mut app).err(),
+        res(&mut app).state().error(),
         Some(ResourceError::Loading(AssetLoadingError::IoError(_)))
     ));
     app.update();
     assert_eq!(res(&mut app).size, None);
     assert!(matches!(
-        res(&mut app).err(),
+        res(&mut app).state().error(),
         Some(ResourceError::Loading(AssetLoadingError::IoError(_)))
     ));
 }
@@ -70,13 +70,13 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     create_resource_from_source(&mut app, source);
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     app.update();
     assert_eq!(res(&mut app).size, Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(
@@ -89,26 +89,26 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
 fn load_invalid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     create_resource_from_source(&mut app, source);
-    let error = ResourceError::Other("empty resource".into());
+    let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
 fn load_resource_from_panicking_source() {
     let mut app = App::new::<Root>(Level::Info);
     create_resource_from_source(&mut app, ContentSizeSource::Panicking);
-    let error = ResourceError::Other("job has panicked".into());
+    let error = ResourceState::Error(ResourceError::Other("job has panicked".into()));
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
     assert_eq!(res(&mut app).size, None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
@@ -117,11 +117,11 @@ fn reload_with_source() {
     create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     res(&mut app).reload_with_source(ContentSizeSource::SyncStr("other content"));
     app.update();
     assert_eq!(res(&mut app).size, Some(13));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(disabled(wasm))]
@@ -130,15 +130,13 @@ fn reload_with_path() {
     create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
     wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     res(&mut app).reload_with_path("not_empty.txt");
-    wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(7));
-    assert_eq!(res(&mut app).err(), None);
-    app.update();
-    wait_resource_reloaded(&mut app, 12);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
+    wait_resource_loaded(&mut app);
     assert_eq!(res(&mut app).size, Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 fn create_resource_from_path(app: &mut App, path: &str) {
@@ -154,19 +152,7 @@ fn wait_resource_loaded(app: &mut App) {
     for _ in 0..MAX_RETRIES {
         app.update();
         thread::sleep(Duration::from_millis(10));
-        if res(app).err().is_some() || res(app).size.is_some() {
-            return;
-        }
-    }
-    panic!("max retries reached");
-}
-
-fn wait_resource_reloaded(app: &mut App, target_size: usize) {
-    const MAX_RETRIES: u32 = 100;
-    for _ in 0..MAX_RETRIES {
-        app.update();
-        thread::sleep(Duration::from_millis(10));
-        if target_size == res(app).size.unwrap() {
+        if res(app).state() != &ResourceState::Loading {
             return;
         }
     }
