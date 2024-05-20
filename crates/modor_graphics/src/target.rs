@@ -1,9 +1,9 @@
 use crate::gpu::Gpu;
 use crate::mesh::MeshGlob;
+use crate::shader::glob::ShaderGlob;
 use crate::size::NonZeroSize;
 use crate::{
-    validation, Camera2DGlob, Color, InstanceGroup2DKey, InstanceGroups2D, MaterialGlob,
-    ShaderGlob, Size,
+    validation, Camera2DGlob, Color, InstanceGroup2DKey, InstanceGroups2D, MaterialGlob, Size,
 };
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
@@ -48,11 +48,11 @@ impl Target {
         }
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub(crate) fn disable(&mut self) {
         self.loaded = None;
     }
 
-    pub(crate) fn init(
+    pub(crate) fn enable(
         &mut self,
         ctx: &mut Context<'_>,
         gpu: &Gpu,
@@ -228,10 +228,15 @@ impl Target {
         is_transparent: bool,
     ) -> impl Iterator<Item = InstanceGroup2DKey> + 'a {
         groups.group_iter().filter(move |group| {
-            self.materials
+            self.cameras
                 .get(ctx)
-                .get(group.material)
-                .map_or(false, |material| material.is_transparent == is_transparent)
+                .get(group.camera)
+                .map_or(false, |camera| camera.targets.contains(self.glob()))
+                && self
+                    .materials
+                    .get(ctx)
+                    .get(group.material)
+                    .map_or(false, |material| material.is_transparent == is_transparent)
         })
     }
 

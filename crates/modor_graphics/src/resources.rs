@@ -1,14 +1,11 @@
 use crate::mesh::Mesh;
-use crate::{
-    Camera2D, DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource, Window,
-};
+use crate::{DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource};
 use modor::{Context, Node, RootNode, Visit};
 use modor_resources::Res;
 
 #[non_exhaustive]
 #[derive(Debug, Node, Visit)]
-pub struct GraphicsResources {
-    pub window_camera: Camera2D,
+pub(crate) struct GraphicsResources {
     pub(crate) rectangle_mesh: Mesh,
     pub(crate) default_shader: Res<Shader<DefaultMaterial2D>>,
     pub(crate) ellipse_shader: Res<Shader<DefaultMaterial2D>>,
@@ -17,9 +14,7 @@ pub struct GraphicsResources {
 
 impl RootNode for GraphicsResources {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let window_target = ctx.get_mut::<Window>().target.glob().clone();
         Self {
-            window_camera: Camera2D::new(ctx, "window(modor_graphics)", vec![window_target]),
             rectangle_mesh: Mesh::rectangle(ctx),
             default_shader: Res::from_source(
                 ctx,

@@ -1,8 +1,9 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::MeshGlob;
+use crate::resources::GraphicsResources;
 use crate::vertex_buffer::VertexBuffer;
-use crate::{Camera2DGlob, GraphicsResources, Material, MaterialGlobRef};
+use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use modor::{Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
@@ -42,9 +43,12 @@ where
     T: Material,
 {
     pub fn new(ctx: &mut Context<'_>, material: MaterialGlobRef<T>) -> Self {
-        let resources = ctx.get_mut::<GraphicsResources>();
-        let camera = resources.window_camera.glob().clone();
-        let mesh = resources.rectangle_mesh.glob().clone();
+        let camera = ctx.get_mut::<Window>().camera.glob().clone();
+        let mesh = ctx
+            .get_mut::<GraphicsResources>()
+            .rectangle_mesh
+            .glob()
+            .clone();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
@@ -103,7 +107,7 @@ impl Node for InstanceGroups2D {
                 .expect("internal error: missing model groups");
             self.group_mut(group).delete_model(*model_index);
         }
-        let gpu = ctx.get_mut::<GpuManager>().get();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
         for buffer in self.groups.values_mut() {
             buffer.update(gpu);
         }

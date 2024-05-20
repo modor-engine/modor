@@ -18,7 +18,7 @@ impl Mesh {
         label: impl Into<String>,
     ) -> Self {
         let label = label.into();
-        let gpu = ctx.get_mut::<GpuManager>().get();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
         let glob = MeshGlob::new(gpu, &vertices, &indices, &label);
         Self {
             label,

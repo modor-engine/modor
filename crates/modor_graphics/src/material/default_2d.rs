@@ -1,7 +1,6 @@
-use crate::{
-    Color, GraphicsResources, Material, Model2DGlob, Shader, ShaderGlobRef, ShaderSource,
-    TextureGlob,
-};
+use crate::resources::GraphicsResources;
+use crate::texture::glob::TextureGlob;
+use crate::{Color, Material, Model2DGlob, Shader, ShaderGlobRef, ShaderSource};
 use internal::DefaultMaterial2DData;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
@@ -24,9 +23,9 @@ impl Material for DefaultMaterial2D {
 
     fn shader(&self) -> ShaderGlobRef<Self> {
         if self.is_ellipse {
-            self.default_shader.clone()
-        } else {
             self.ellipse_shader.clone()
+        } else {
+            self.default_shader.clone()
         }
     }
 

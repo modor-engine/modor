@@ -25,7 +25,7 @@ use std::{any, fmt};
 ///     type Source = ContentSizeSource;
 ///     type Loaded = ContentSizeLoaded;
 ///
-///     fn create(ctx: &mut Context<'_>) -> Self {
+///     fn create(ctx: &mut Context<'_>, _label: &str) -> Self {
 ///         Self {
 ///             size: None,
 ///         }
@@ -101,8 +101,8 @@ use std::{any, fmt};
 #[derive(Visit, Derivative)]
 #[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
-    label: String,
     inner: T,
+    label: String,
     location: ResourceLocation<T>,
     loading: Option<Loading<T>>,
     version: u64,
@@ -180,9 +180,10 @@ where
         label: impl Into<String>,
         path: impl Into<String>,
     ) -> Self {
+        let label = label.into();
         let mut res = Self {
-            label: label.into(),
-            inner: T::create(ctx),
+            inner: T::create(ctx, &label),
+            label,
             location: ResourceLocation::Path(path.into()),
             loading: None,
             version: 0,
@@ -199,9 +200,10 @@ where
     ///
     /// The `label` is used to identity the resource in logs.
     pub fn from_source(ctx: &mut Context<'_>, label: impl Into<String>, source: T::Source) -> Self {
+        let label = label.into();
         let mut res = Self {
-            label: label.into(),
-            inner: T::create(ctx),
+            inner: T::create(ctx, &label),
+            label,
             location: ResourceLocation::Source(source),
             loading: None,
             version: 0,
@@ -323,7 +325,7 @@ pub trait Resource {
     type Loaded: Send + 'static;
 
     /// Creates a new resource.
-    fn create(ctx: &mut Context<'_>) -> Self;
+    fn create(ctx: &mut Context<'_>, label: &str) -> Self;
 
     /// Loads the resource from file bytes.
     ///

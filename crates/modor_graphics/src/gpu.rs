@@ -24,9 +24,13 @@ impl RootNode for GpuManager {
 }
 
 impl GpuManager {
-    pub(crate) fn get(&mut self) -> &Arc<Gpu> {
+    pub(crate) fn get_or_init(&mut self) -> &Arc<Gpu> {
         self.details
             .get_or_insert_with(|| Gpu::new(&self.instance, None).into())
+    }
+
+    pub(crate) fn get(&self) -> Option<&Arc<Gpu>> {
+        self.details.as_ref()
     }
 
     pub(crate) fn configure_window(&mut self, surface: &Surface<'_>) {

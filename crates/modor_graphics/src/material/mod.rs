@@ -1,7 +1,10 @@
 use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
-use crate::{GraphicsResources, ShaderGlob, ShaderGlobRef, TextureGlob};
+use crate::resources::GraphicsResources;
+use crate::shader::glob::ShaderGlob;
+use crate::texture::glob::TextureGlob;
+use crate::ShaderGlobRef;
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
@@ -117,7 +120,7 @@ impl MaterialGlob {
     where
         T: Material,
     {
-        let gpu = ctx.get_mut::<GpuManager>().get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let shader = material.shader().deref().clone();
         let textures = material.textures();
         let resources = ctx.handle();
@@ -144,7 +147,7 @@ impl MaterialGlob {
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, material: &impl Material, label: &str) {
-        let gpu = ctx.get_mut::<GpuManager>().get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         self.shader = material.shader().deref().clone();
         self.textures = material.textures();
         self.buffer.update(&gpu, material);

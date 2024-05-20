@@ -1,6 +1,6 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
-use crate::{Size, Target};
+use crate::{Camera2D, Size, Target};
 use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
@@ -17,6 +17,7 @@ pub struct Window {
     /// Default is `true`.
     pub is_cursor_visible: bool,
     pub target: Target,
+    pub camera: Camera2D,
     handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,
     old_state: OldWindowState,
@@ -24,10 +25,13 @@ pub struct Window {
 
 impl RootNode for Window {
     fn on_create(ctx: &mut Context<'_>) -> Self {
+        let target = Target::new(ctx, "window(modor_graphics)".into());
+        let camera = Camera2D::new(ctx, "window(modor_graphics)", vec![target.glob().clone()]);
         Self {
             title: String::new(),
             is_cursor_visible: true,
-            target: Target::new(ctx, "window(modor_graphics)".into()),
+            target,
+            camera,
             handle: None,
             surface: WindowSurfaceState::None,
             old_state: OldWindowState::default(),
@@ -87,7 +91,6 @@ impl Window {
 
     pub(crate) fn set_surface(&mut self, surface: Surface<'static>) {
         self.surface = WindowSurfaceState::Loading(surface);
-        self.target.reset();
     }
 
     pub(crate) fn texture_format(&self) -> Option<TextureFormat> {
@@ -112,14 +115,14 @@ impl Window {
     }
 
     fn update_surface(&mut self, ctx: &mut Context<'_>) {
-        let gpu = ctx.get_mut::<GpuManager>().get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let size = self.size();
         if let Some(surface) = self.surface.take_new() {
             let size = size.expect("internal error: not configured window").into();
             let surface = WindowSurface::new(&gpu, surface, size);
             let texture_format = surface.surface_config.format;
             self.surface = WindowSurfaceState::Loaded(surface);
-            self.target.init(ctx, &gpu, size, texture_format);
+            self.target.enable(ctx, &gpu, size, texture_format);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
             let size = size.expect("internal error: not configured window").into();

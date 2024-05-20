@@ -20,9 +20,9 @@ pub struct Camera2D {
 impl Node for Camera2D {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let target_sizes = self.target_sizes(ctx);
-        let gpu = ctx.get_mut::<GpuManager>().get().clone();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let glob = self.glob.get_mut(ctx);
-        glob.remove_old_targets(&self.targets);
+        glob.register_targets(&self.targets);
         for (target_index, target_size) in target_sizes {
             let transform = self.gpu_transform(target_size.into());
             glob.update_target(&gpu, target_index, transform, &self.label);
@@ -94,6 +94,7 @@ impl Camera2D {
 
 #[derive(Debug, Default)]
 pub struct Camera2DGlob {
+    pub(crate) targets: Vec<GlobRef<TargetGlob>>,
     target_uniforms: FxHashMap<usize, CameraUniform>,
 }
 
@@ -104,10 +105,11 @@ impl Camera2DGlob {
             .map(|uniform| &uniform.bind_group.inner)
     }
 
-    fn remove_old_targets(&mut self, targets: &[GlobRef<TargetGlob>]) {
+    fn register_targets(&mut self, targets: &[GlobRef<TargetGlob>]) {
         let target_indexes: Vec<_> = targets.iter().map(GlobRef::index).collect();
         self.target_uniforms
             .retain(|target_index, _| target_indexes.contains(target_index));
+        self.targets = targets.into();
     }
 
     fn update_target(&mut self, gpu: &Gpu, target_index: usize, transform: Mat4, label: &str) {

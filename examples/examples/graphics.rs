@@ -61,8 +61,9 @@ struct Smiley {
 impl Smiley {
     fn new(ctx: &mut Context<'_>) -> Self {
         let texture = ctx.get_mut::<Resources>().texture.glob().clone();
-        let mut material = Mat::new(ctx, "smiley", DefaultMaterial2D::default());
-        material.texture = Some(texture);
+        let material_data = DefaultMaterial2D::new(ctx);
+        let mut material = Mat::new(ctx, "smiley", material_data);
+        material.texture = texture;
         let model = Model2D::new(ctx, material.glob());
         Self { material, model }
     }

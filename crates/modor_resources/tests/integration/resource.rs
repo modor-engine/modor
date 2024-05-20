@@ -177,7 +177,7 @@ impl Resource for ContentSize {
     type Source = ContentSizeSource;
     type Loaded = ContentSizeLoaded;
 
-    fn create(_ctx: &mut Context<'_>) -> Self {
+    fn create(_ctx: &mut Context<'_>, _label: &str) -> Self {
         Self { size: None }
     }
 
