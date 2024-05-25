@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use instant::Instant;
 use modor::log::{info, Level};
 use modor::{Context, Node, RootNode, Visit};

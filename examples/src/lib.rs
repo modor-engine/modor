@@ -5,8 +5,7 @@
     clippy::cast_precision_loss
 )]
 
-// TODO: correctly structure all examples
-
 pub mod custom_shader;
 pub mod rendering_2d;
+pub mod texture_2d;
 pub mod texture_target;

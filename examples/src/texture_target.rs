@@ -7,8 +7,6 @@ use modor_graphics::{
 use modor_physics::modor_math::Vec2;
 use std::f32::consts::FRAC_PI_8;
 
-// TODO: add example for texture buffer (e.g. a color picker on a texture)
-
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
