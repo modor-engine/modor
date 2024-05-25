@@ -18,6 +18,7 @@ use wgpu::{
     VertexState, VertexStepMode,
 };
 
+/// The global data of a [`Shader`](crate::Shader).
 #[derive(Debug)]
 pub struct ShaderGlob {
     pub(crate) material_bind_group_layout: BindGroupLayout,

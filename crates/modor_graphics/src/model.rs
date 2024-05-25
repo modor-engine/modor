@@ -13,14 +13,60 @@ use std::marker::PhantomData;
 use std::mem;
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
+/// The instance of a rendered object.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_physics::modor_math::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct Circle {
+///     material: Mat<DefaultMaterial2D>,
+///     model: Model2D<DefaultMaterial2D>,
+/// }
+///
+/// impl Circle {
+///     fn new(ctx: &mut Context<'_>, position: Vec2, radius: f32, color: Color) -> Self {
+///         let mut material_data = DefaultMaterial2D::new(ctx);
+///         material_data.color = color;
+///         material_data.is_ellipse = true;
+///         let material = Mat::new(ctx, "circle", material_data);
+///         let mut model = Model2D::new(ctx, material.glob());
+///         model.position = position;
+///         model.size = Vec2::ONE * radius * 2.;
+///         Self { material, model }
+///     }
+/// }
+/// ```
 #[derive(Derivative, Visit)]
 #[derivative(Debug(bound = ""))]
 pub struct Model2D<T> {
+    /// The position of the model is world units.
+    ///
+    /// Default is [`Vec2::ZERO`].
     pub position: Vec2,
+    /// The size of the model is world units.
+    ///
+    /// Default is [`Vec2::ONE`].
     pub size: Vec2,
+    /// The rotation of the model in radians.
+    ///
+    /// Default is `0.0`.
     pub rotation: f32,
+    /// The Z-index of the model.
+    ///
+    /// [`i16::MIN`] is the farthest from the camera, and [`i16::MAX`] the closest to the camera.
+    ///
+    /// Default is `0`.
     pub z_index: i16,
+    /// The camera on which the model is rendered.
+    ///
+    /// Default is the default camera of the [`Window`].
     pub camera: GlobRef<Camera2DGlob>,
+    /// The material used to render the model.
     pub material: MaterialGlobRef<T>,
     mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,
@@ -42,6 +88,7 @@ impl<T> Model2D<T>
 where
     T: Material,
 {
+    /// Creates a new model.
     pub fn new(ctx: &mut Context<'_>, material: MaterialGlobRef<T>) -> Self {
         let camera = ctx.get_mut::<Window>().camera.glob().clone();
         let mesh = ctx
@@ -72,18 +119,24 @@ where
     }
 }
 
+/// The global data of a [`Model2D`].
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct Model2DGlob;
 
+/// The properties of an instance group.
+///
+/// An instance group contains all models that are rendered with the same material, camera and mesh.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct InstanceGroup2DKey {
-    pub mesh: usize,
-    pub camera: usize,
+pub struct InstanceGroup2DProperties {
+    /// The index of the [`Mat`](crate::Mat) global data.
     pub material: usize,
+    /// The index of the [`Camera2D`](crate::Camera2D) global data.
+    pub camera: usize,
+    pub(crate) mesh: usize,
 }
 
-impl InstanceGroup2DKey {
+impl InstanceGroup2DProperties {
     fn new<T>(model: &Model2D<T>) -> Self {
         Self {
             mesh: model.mesh.index(),
@@ -93,10 +146,11 @@ impl InstanceGroup2DKey {
     }
 }
 
+/// The information about instance groups managed by the graphics crate.
 #[derive(Default, RootNode, Visit)]
 pub struct InstanceGroups2D {
-    pub(crate) groups: FxHashMap<InstanceGroup2DKey, InstanceGroup2D>,
-    model_groups: Vec<Option<InstanceGroup2DKey>>,
+    pub(crate) groups: FxHashMap<InstanceGroup2DProperties, InstanceGroup2D>,
+    model_groups: Vec<Option<InstanceGroup2DProperties>>,
 }
 
 impl Node for InstanceGroups2D {
@@ -116,7 +170,8 @@ impl Node for InstanceGroups2D {
 }
 
 impl InstanceGroups2D {
-    pub fn group_iter(&self) -> impl Iterator<Item = InstanceGroup2DKey> + '_ {
+    /// Returns an iterator on all existing instance groups.
+    pub fn group_iter(&self) -> impl Iterator<Item = InstanceGroup2DProperties> + '_ {
         self.groups.keys().copied()
     }
 
@@ -124,7 +179,7 @@ impl InstanceGroups2D {
     where
         T: Material,
     {
-        let group = InstanceGroup2DKey::new(model);
+        let group = InstanceGroup2DProperties::new(model);
         self.group_mut(group).register_model(model, data);
         let model_index = model.glob.index();
         (self.model_groups.len()..=model_index).for_each(|_| self.model_groups.push(None));
@@ -138,7 +193,7 @@ impl InstanceGroups2D {
         let model_index = model.glob.index();
         let old_group =
             self.model_groups[model_index].expect("internal error: missing model groups");
-        let group = InstanceGroup2DKey::new(model);
+        let group = InstanceGroup2DProperties::new(model);
         if group == old_group {
             self.group_mut(group).update_model(model, data);
         } else {
@@ -148,7 +203,7 @@ impl InstanceGroups2D {
         }
     }
 
-    fn group_mut(&mut self, group: InstanceGroup2DKey) -> &mut InstanceGroup2D {
+    fn group_mut(&mut self, group: InstanceGroup2DProperties) -> &mut InstanceGroup2D {
         self.groups.entry(group).or_default()
     }
 }

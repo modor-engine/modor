@@ -7,10 +7,12 @@
 //! modor_graphics = "0.1"
 //! ```
 //!
-//! TODO: finish
+//! Now you can start using this crate, for example by creating [`Model2D`] to render.
 
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
-#![allow(missing_docs, clippy::missing_errors_doc)] // TODO: remove
+
+// TODO: add test utils to check easily buffer content
+// TODO: add tests
 
 mod buffer;
 mod camera;

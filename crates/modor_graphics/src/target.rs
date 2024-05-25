@@ -3,7 +3,8 @@ use crate::mesh::MeshGlob;
 use crate::shader::glob::ShaderGlob;
 use crate::size::NonZeroSize;
 use crate::{
-    validation, Camera2DGlob, Color, InstanceGroup2DKey, InstanceGroups2D, MaterialGlob, Size,
+    validation, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D, MaterialGlob,
+    Size,
 };
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
@@ -14,6 +15,27 @@ use wgpu::{
     TextureViewDescriptor,
 };
 
+/// The target for a rendering.
+///
+/// The models can be rendered either in the [`Window`](crate::Window) target,
+/// or in a created [`Texture`](crate::Texture) target.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct Root;
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         ctx.get_mut::<Window>().target.background_color = Color::RED;
+///         Self
+///     }
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Target {
     /// Background color of the rendering.
@@ -226,7 +248,7 @@ impl Target {
         ctx: &'a Context<'_>,
         groups: &'a InstanceGroups2D,
         is_transparent: bool,
-    ) -> impl Iterator<Item = InstanceGroup2DKey> + 'a {
+    ) -> impl Iterator<Item = InstanceGroup2DProperties> + 'a {
         groups.group_iter().filter(move |group| {
             self.cameras
                 .get(ctx)
@@ -245,7 +267,7 @@ impl Target {
         &self,
         ctx: &'a Context<'_>,
         pass: &mut RenderPass<'a>,
-        group: InstanceGroup2DKey,
+        group: InstanceGroup2DProperties,
         instance_index: Option<usize>,
         groups: &'a InstanceGroups2D,
         loaded: &LoadedTarget,
@@ -302,8 +324,10 @@ struct LoadedTarget {
     depth_buffer_view: TextureView,
 }
 
+/// The global data of a [`Target`].
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct TargetGlob {
+    /// Size of the target in pixels.
     pub size: Size,
 }

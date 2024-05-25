@@ -8,9 +8,47 @@ use modor_resources::{Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::ops::Deref;
 
+/// A shader that defines a rendering logic.
+///
+/// # Supported languages
+///
+/// This component only supports code in [WGSL](https://www.w3.org/TR/WGSL/) format.
+///
+/// # Input locations
+///
+/// The code can include the following locations:
+/// - location `0`: vertex position.
+/// - location `1`: texture position for the vertex.
+/// - location `2`: column 1 of the instance transform matrix.
+/// - location `3`: column 2 of the instance transform matrix.
+/// - location `4`: column 3 of the instance transform matrix.
+/// - location `5`: column 4 of the instance transform matrix.
+/// - location `6` or more: material data per instance. These locations must be defined
+///     in a struct named `MaterialInstance` which corresponds to
+///     [`T::InstanceData`](Material::InstanceData) on Rust side.
+///
+/// # Bindings
+///
+/// The code can include the following bindings:
+/// - group `0`
+///     - binding `0`: camera data
+/// - group `1`
+///     - binding `0`: material data (`Material` struct corresponds to
+///         [`T::Data`](Material::Data) on Rust side)
+///     - binding `(i * 2)`: `texture_2d<f32>` value corresponding to texture `i`
+///     - binding `(i * 2 + 1)`: `sampler` value corresponding to texture `i`
+///
+/// # Examples
+///
+/// See [`Material`].
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Shader<T> {
+    /// Controls how alpha channel should be treated:
+    /// - `false`: apply standard alpha blending with non-premultiplied alpha.
+    ///     It means models rendered behind a transparent model might be visible.
+    /// - `true`: don't apply any color blending, just overwrites the output color.
+    ///     It means models rendered behind a transparent model will never be visible.
     pub is_alpha_replaced: bool,
     loaded: ShaderLoaded,
     glob: Glob<ShaderGlob>,
@@ -76,6 +114,7 @@ where
         }
     }
 
+    /// Whether an error occurred during parsing of the shader code.
     pub fn is_invalid(&self) -> bool {
         self.is_invalid
     }
@@ -95,6 +134,7 @@ where
     }
 }
 
+/// The global data of a [`Shader`] with material data of type `T`.
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = ""),
@@ -118,8 +158,15 @@ impl<T> Deref for ShaderGlobRef<T> {
     }
 }
 
+/// The source of a [`Shader`].
+///
+/// # Examples
+///
+/// See [`Shader`].
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum ShaderSource {
+    /// Shader code as a string.
     String(String),
 }
 

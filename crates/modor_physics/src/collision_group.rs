@@ -132,14 +132,14 @@ pub struct Impulse {
     /// A coefficient of `1.0` means that the exit velocity magnitude is the same as the initial
     /// velocity along the contact normal.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub restitution: f32,
     /// Friction coefficient of the collision.
     ///
     /// A coefficient of `0.0` means there is no friction (i.e. objects slide completely over each
     /// other).
     ///
-    /// Default value is `0.5`.
+    /// Default is `0.5`.
     pub friction: f32,
 }
 

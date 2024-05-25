@@ -116,6 +116,7 @@ pub enum MouseButton {
 ///
 /// See [`Mouse`].
 #[derive(Clone, Copy, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum MouseScrollDelta {
     /// Scroll delta in pixels.
     Pixels(Vec2),

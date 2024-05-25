@@ -16,6 +16,11 @@ use wgpu::{
     BindGroupEntry, BindGroupLayout, BindingResource, BufferUsages, Id, Sampler, TextureView,
 };
 
+/// A material that defines the aspect of a rendered model.
+///
+/// # Examples
+///
+/// See [`Model2D`](crate::Model2D).
 #[derive(Debug, Visit)]
 pub struct Mat<T: Node> {
     data: T,
@@ -60,6 +65,9 @@ impl<T> Mat<T>
 where
     T: Material,
 {
+    /// Creates a new material.
+    ///
+    /// The `label` is used to identity the material in logs.
     pub fn new(ctx: &mut Context<'_>, label: impl Into<String>, data: T) -> Self {
         let label = label.into();
         let glob = MaterialGlob::new(ctx, &data, &label);
@@ -82,6 +90,7 @@ where
     }
 }
 
+/// The global data of a [`Mat`] with data of type `T`.
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = ""),
@@ -105,6 +114,7 @@ impl<T> Deref for MaterialGlobRef<T> {
     }
 }
 
+/// The global data of a [`Mat`].
 #[derive(Debug)]
 pub struct MaterialGlob {
     pub(crate) is_transparent: bool,
@@ -299,18 +309,49 @@ impl BindingGlobalIds {
     }
 }
 
+/// A trait for defining [`Mat`] data.
+///
+/// # Examples
+///
+/// See code of `custom_shader` example.
 pub trait Material: Sized + Node + 'static {
+    /// Raw material data type.
     type Data: Pod;
+    /// Raw instance data type.
+    ///
+    /// Each rendered model has its own instance data.
+    ///
+    /// In case this type has a size of zero with [`mem::size_of`](mem::size_of()),
+    /// then no instance data are sent to the shader.
     type InstanceData: Pod;
 
+    /// Returns the shader used to make the rendering.
     fn shader(&self) -> ShaderGlobRef<Self>;
 
+    /// Returns the textures sent to the shader.
     fn textures(&self) -> Vec<GlobRef<TextureGlob>>;
 
+    /// Returns whether the rendered models can be transparent.
+    ///
+    /// In case `true` is returned, the models will be rendered in Z-index order.
+    /// This is less efficient than for opaque models, but this limits the risk of having
+    /// rendering artifacts caused by transparency.
+    ///
+    /// Note that transparency is automatically detected for textures returned by
+    /// [`Material::textures`].
+    /// It means that if [`Material::is_transparent`]
+    /// returns `false` but one of the textures contains transparent pixels, then the models
+    /// are considered as transparent.
     fn is_transparent(&self) -> bool;
 
+    /// Returns the raw material data sent to the shader.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: data size in bytes should be a multiple of 16.
     fn data(&self) -> Self::Data;
 
+    /// Returns the instance data of a given `model`.
     fn instance_data(ctx: &mut Context<'_>, model: &GlobRef<Model2DGlob>) -> Self::InstanceData;
 }
 

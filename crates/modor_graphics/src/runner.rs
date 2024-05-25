@@ -8,6 +8,37 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
 
+/// Runs the application with a window.
+///
+/// This function also has the following effects:
+/// - Inputs of the [`modor_input`] crate are updated based on window events.
+/// - [`Delta`](modor_physics::Delta) is updated based on execution time of the last frame.
+///
+/// If [`App::update`](App::update) is manually used instead of this function, then no window is
+/// created.
+///
+/// # Platform-specific
+///
+/// - Web: a canvas with id `modor` is automatically added to the HTML body.
+/// - Android: gamepad inputs are not supported.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_resources::*;
+/// # use log::Level;
+/// #
+/// # fn no_run() {
+/// fn main() {
+///     modor_graphics::run::<Root>(Level::Info);
+/// }
+///
+/// #[derive(Default, RootNode, Node, Visit)]
+/// struct Root;
+/// # }
+/// ```
 pub fn run<T>(level: Level)
 where
     T: RootNode,

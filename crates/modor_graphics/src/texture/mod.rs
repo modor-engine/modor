@@ -8,6 +8,47 @@ use modor::{Context, Glob, GlobRef};
 use modor_resources::{Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
+/// A texture that can be attached to a [material](crate::Mat).
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::modor_resources::*;
+/// # use modor_physics::modor_math::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct TexturedRectangle {
+///     material: Mat<DefaultMaterial2D>,
+///     model: Model2D<DefaultMaterial2D>,
+/// }
+///
+/// impl TexturedRectangle {
+///     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
+///         let mut material_data = DefaultMaterial2D::new(ctx);
+///         material_data.texture = ctx.get_mut::<Resources>().texture.glob().clone();
+///         let material = Mat::new(ctx, "rectangle", material_data);
+///         let mut model = Model2D::new(ctx, material.glob());
+///         model.position = position;
+///         model.size = size;
+///         Self { material, model }
+///     }
+/// }
+///
+/// #[derive(Node, Visit)]
+/// struct Resources {
+///     texture: Res<Texture>,
+/// }
+///
+/// impl RootNode for Resources {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             texture: Res::from_path(ctx, "rectangle", "my-texture.png"),
+///         }
+///     }
+/// }
+/// ```
 #[derive(Debug)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Texture {
@@ -25,8 +66,20 @@ pub struct Texture {
     ///
     /// Default is `false`.
     pub is_repeated: bool,
+    /// Whether the texture buffer is enabled.
+    ///
+    /// The buffer can be used to retrieve pixels of the texture stored on GPU side.
+    /// It is accessible with the [`TextureGlob`].
+    ///
+    /// Default is `false`.
     pub is_buffer_enabled: bool,
+    /// Whether the texture is a rendering [`target`](#structfield.target).
+    ///
+    /// Default is `false`.
     pub is_target_enabled: bool,
+    /// The render target of the texture.
+    ///
+    /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
     pub target: Target,
     loaded: TextureLoaded,
     glob: Glob<TextureGlob>,
@@ -150,13 +203,13 @@ impl Texture {
     }
 }
 
-/// The source of a [`Res`](modor_resources::Res)`<`[`Texture`]`>`.
+/// The source of a [`Texture`].
 ///
 /// # Examples
 ///
 /// See [`Texture`].
-#[non_exhaustive]
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum TextureSource {
     /// White texture created synchronously with a given size.
     ///

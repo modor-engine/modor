@@ -6,12 +6,43 @@ use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
 use modor_resources::Res;
 
+/// The default material for 2D rendering.
+///
+/// # Examples
+///
+/// See [`Model2D`](crate::Model2D).
 #[derive(Debug, Node, Visit)]
 pub struct DefaultMaterial2D {
+    /// Color of the rendered instance.
+    ///
+    /// This color is multiplied to the [`texture`](#structfield.texture) pixel colors.
+    ///
+    /// Default is [`Color::WHITE`].
     pub color: Color,
+    /// The texture used to render the models.
+    ///
+    /// If the texture is not loaded, then the instances attached to the material are not rendered.
+    ///
+    /// Default is a white texture.
     pub texture: GlobRef<TextureGlob>,
+    /// Top-left position of the extracted texture section.
+    ///
+    /// [`Vec2::ZERO`] corresponds to top-left corner, and [`Vec2::ONE`] corresponds to bottom-right
+    /// corner of the texture.
+    ///
+    /// Default is [`Vec2::ZERO`].
     pub texture_position: Vec2,
+    /// Size of the extracted texture section.
+    ///
+    /// [`Vec2::ONE`] corresponds to the entire texture.
+    ///
+    /// Default is [`Vec2::ONE`].
     pub texture_size: Vec2,
+    /// Whether the instance is rendered as an ellipse.
+    ///
+    /// If `false`, then the instance is displayed as a rectangle.
+    ///
+    /// Default is `false`.
     pub is_ellipse: bool,
     default_shader: ShaderGlobRef<Self>,
     ellipse_shader: ShaderGlobRef<Self>,
@@ -49,6 +80,7 @@ impl Material for DefaultMaterial2D {
 }
 
 impl DefaultMaterial2D {
+    /// Creates a new material.
     pub fn new(ctx: &mut Context<'_>) -> Self {
         let resources = ctx.get_mut::<GraphicsResources>();
         Self {
@@ -90,7 +122,7 @@ impl RootNode for DefaultMaterial2DResources {
     }
 }
 
-pub mod internal {
+pub(super) mod internal {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
     pub struct DefaultMaterial2DData {

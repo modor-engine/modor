@@ -58,22 +58,26 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 #[derive(Debug, Visit)]
 pub struct Body2D {
     /// Position of the body in world units.
+    ///
+    /// Default is [`Vec2::ZERO`].
     pub position: Vec2,
     /// Size of the body in world units.
+    ///
+    /// Default is [`Vec2::ONE`].
     pub size: Vec2,
     /// Rotation of the body in radians.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub rotation: f32,
     /// Linear velocity of the body in world units per second.
     ///
-    /// Default value is `Vec2::ZERO`.
+    /// Default is `Vec2::ZERO`.
     pub velocity: Vec2,
     /// Angular velocity of the body in radians per second.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_velocity: f32,
     /// Force applied on the body.
     ///
@@ -81,39 +85,39 @@ pub struct Body2D {
     ///
     /// The acceleration of the body corresponds to the force of the body divided by its mass.
     ///
-    /// Default value is [`Vec2::ZERO`].
+    /// Default is [`Vec2::ZERO`].
     pub force: Vec2,
     /// Torque applied on the body.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub torque: f32,
     /// Mass of the body.
     ///
     /// A mass of zero is considered as infinite. In this case, force will not have any effect
     /// (even in case of collisions).
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub mass: f32,
     /// Angular inertia of the body.
     ///
     /// An angular inertia of zero is considered as infinite. In this case, torque will not have
     /// any effect (even in case of collisions).
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_inertia: f32,
     /// Linear damping of the body.
     ///
     /// This coefficient is used to automatically slow down the translation of the body.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub damping: f32,
     /// Angular damping of the body.
     ///
     /// This coefficient is used to automatically slow down the rotation of the body.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_damping: f32,
     /// Dominance of the body.
     ///
@@ -122,7 +126,7 @@ pub struct Body2D {
     ///
     /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
-    /// Default value is `0`.
+    /// Default is `0`.
     pub dominance: i8,
     /// Whether Continuous Collision Detection is enabled for the body.
     ///
@@ -136,7 +140,7 @@ pub struct Body2D {
     ///
     /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
-    /// Default value is `false`.
+    /// Default is `false`.
     pub is_ccd_enabled: bool,
     /// Collision group of the collider.
     ///
@@ -144,11 +148,11 @@ pub struct Body2D {
     /// changed. However, it is ensured the collision is detected when updating
     /// the [`position`](#structfield.position) or the [`rotation`](#structfield.rotation).
     ///
-    /// Default value is `None` (no collision detection is performed).
+    /// Default is `None` (no collision detection is performed).
     pub collision_group: Option<GlobRef<CollisionGroupGlob>>,
     /// The shape of the body used to detect collisions.
     ///
-    /// Default value is [`Shape2D::Rectangle`].
+    /// Default is [`Shape2D::Rectangle`].
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
@@ -332,6 +336,7 @@ impl Body2D {
 ///
 /// See [`Body2D`].
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Shape2D {
     /// Rectangle shape.
     #[default]

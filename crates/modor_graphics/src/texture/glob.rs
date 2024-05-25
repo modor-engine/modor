@@ -11,7 +11,9 @@ use wgpu::{
     TextureUsages, TextureView, TextureViewDescriptor,
 };
 
+/// The global data of a [`Texture`](Texture).
 pub struct TextureGlob {
+    /// The size of the texture in pixels.
     pub size: Size,
     pub(crate) is_transparent: bool,
     pub(crate) view: TextureView,
@@ -27,6 +29,15 @@ pub struct TextureGlob {
 impl TextureGlob {
     const COMPONENT_COUNT_PER_PIXEL: u32 = 4;
 
+    /// Retrieves the texture buffer from the GPU.
+    ///
+    /// Each item is the component value of a pixel, and each pixel has 4 components (RGBA format).
+    ///
+    /// The returned buffer contains data only if:
+    /// - The [`Texture`] buffer is enabled.
+    /// - The [`Texture`] buffer has been updated.
+    ///
+    /// Note that retrieving data from the GPU may have a significant impact on performance.
     pub fn buffer(&self, ctx: &Context<'_>) -> Vec<u8> {
         let gpu = self
             .gpu_manager
@@ -44,6 +55,14 @@ impl TextureGlob {
         }
     }
 
+    /// Retrieves a pixel color from the GPU.
+    ///
+    /// The color is returned only if:
+    /// - The [`Texture`] buffer is enabled.
+    /// - The [`Texture`] buffer has been updated.
+    /// - The pixel coordinates (`x`, `y`) are not out of bound.
+    ///
+    /// Note that retrieving data from the GPU may have a significant impact on performance.
     pub fn color(&self, ctx: &Context<'_>, x: u32, y: u32) -> Option<Color> {
         let gpu = self
             .gpu_manager

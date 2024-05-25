@@ -7,11 +7,69 @@ use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
 
+/// A camera used for 2D rendering.
+///
+/// By default, camera displays a world zone centered in position [`Vec2::ZERO`] and with size
+/// [`Vec2::ONE`]. If the render target width is different from its height, more parts of the world
+/// might be rendered, but the focused zone is always entirely displayed.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::modor_resources::*;
+/// # use modor_physics::modor_math::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct Object {
+///     material: Mat<DefaultMaterial2D>,
+///     model: Model2D<DefaultMaterial2D>,
+/// }
+///
+/// impl Object {
+///     fn new(ctx: &mut Context<'_>) -> Self {
+///         let mut material_data = DefaultMaterial2D::new(ctx);
+///         let material = Mat::new(ctx, "object", material_data);
+///         let mut model = Model2D::new(ctx, material.glob());
+///         model.camera = ctx.get_mut::<MovingCamera>().camera.glob().clone();
+///         model.size = Vec2::ONE * 0.2;
+///         Self { material, model }
+///     }
+/// }
+///
+/// #[derive(Visit)]
+/// struct MovingCamera {
+///     camera: Camera2D
+/// }
+///
+/// impl Node for MovingCamera {
+///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+///         self.camera.position += Vec2::new(0.1, 0.2);
+///     }
+/// }
+///
+/// impl RootNode for MovingCamera {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         let target = ctx.get_mut::<Window>().target.glob().clone();
+///         let mut camera = Camera2D::new(ctx, "moving", vec![target]);
+///         camera.size = Vec2::ONE * 0.5; // zoom x2
+///         Self { camera }
+///     }
+/// }
+/// ```
 #[derive(Debug, Visit)]
 pub struct Camera2D {
+    /// Position of the rendered zone center in world units.
     pub position: Vec2,
+    /// Size of the rendered zone in world units.
     pub size: Vec2,
+    /// Rotation in radians of the camera around its [`position`](#structfield.position).
     pub rotation: f32,
+    /// The render targets where the camera should be used.
+    ///
+    /// If a camera is linked to a target, then all models linked to the camera are rendered in the
+    /// target.
     pub targets: Vec<GlobRef<TargetGlob>>,
     glob: Glob<Camera2DGlob>,
     label: String,
@@ -31,6 +89,9 @@ impl Node for Camera2D {
 }
 
 impl Camera2D {
+    /// Creates a new camera.
+    ///
+    /// The `label` is used to identity the camera in logs.
     pub fn new(
         ctx: &mut Context<'_>,
         label: impl Into<String>,
@@ -53,9 +114,9 @@ impl Camera2D {
 
     /// Converts a `target_position` for a target surface of size `target_size` into world position.
     ///
-    /// `target_position` with a value of [`Vec2::ZERO`] corresponds to top-left corner of the
-    /// surface, and a value of [`Window::size()`](crate::Window::size) corresponds to the
-    /// bottom-right corner.
+    /// `target_size` and `target_position` are expressed in pixels.
+    /// `target_position` with a value of [`Vec2::ZERO`] corresponds to the top-left
+    /// corner of the surface.
     pub fn world_position(&self, target_size: Size, target_position: Vec2) -> Vec2 {
         let target_size = target_size.into();
         self.world_transform(target_size)
@@ -92,6 +153,7 @@ impl Camera2D {
     }
 }
 
+/// The global data of a [`Camera2D`].
 #[derive(Debug, Default)]
 pub struct Camera2DGlob {
     pub(crate) targets: Vec<GlobRef<TargetGlob>>,

@@ -11,6 +11,6 @@ use std::time::Duration;
 pub struct Delta {
     /// Duration of the last update.
     ///
-    /// Default value is [`Duration::ZERO`].
+    /// Default is [`Duration::ZERO`].
     pub duration: Duration,
 }
