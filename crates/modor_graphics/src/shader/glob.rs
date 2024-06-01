@@ -2,7 +2,7 @@ use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::Vertex;
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
-use crate::vertex_buffer::VertexBuffer;
+use crate::mesh::VertexBuffer;
 use crate::{validation, Material, Texture, Window};
 use fxhash::FxHashMap;
 use modor::Context;

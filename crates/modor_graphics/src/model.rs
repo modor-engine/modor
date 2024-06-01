@@ -2,7 +2,7 @@ use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::MeshGlob;
 use crate::resources::GraphicsResources;
-use crate::vertex_buffer::VertexBuffer;
+use crate::mesh::VertexBuffer;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;

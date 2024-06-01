@@ -114,7 +114,7 @@ impl Target {
             .loaded
             .as_ref()
             .expect("internal error: target not loaded");
-        let mut encoder = Self::create_encoder(gpu);
+        let mut encoder = Self::create_encoder(gpu, &self.label);
         let mut pass = Self::create_pass(self.background_color, &mut encoder, &view, loaded);
         let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
         self.render_opaque_groups(ctx, loaded, groups, &mut pass);
@@ -168,9 +168,10 @@ impl Target {
         texture.create_view(&TextureViewDescriptor::default())
     }
 
-    fn create_encoder(gpu: &Gpu) -> CommandEncoder {
+    fn create_encoder(gpu: &Gpu, label: &str) -> CommandEncoder {
+        let label = format!("modor_render_encoder:{label}");
         let descriptor = CommandEncoderDescriptor {
-            label: Some("modor_render_encoder"),
+            label: Some(&label),
         };
         gpu.device.create_command_encoder(&descriptor)
     }

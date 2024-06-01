@@ -8,6 +8,8 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
 
+// coverage: off (runner cannot be tested)
+
 /// Runs the application with a window.
 ///
 /// This function also has the following effects:

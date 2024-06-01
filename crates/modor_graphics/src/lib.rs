@@ -11,9 +11,6 @@
 
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
-// TODO: add test utils to check easily buffer content
-// TODO: add tests
-
 mod buffer;
 mod camera;
 mod color;
@@ -27,9 +24,9 @@ mod runner;
 mod shader;
 mod size;
 mod target;
+pub mod testing;
 mod texture;
 mod validation;
-mod vertex_buffer;
 mod window;
 
 pub use camera::*;

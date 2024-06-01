@@ -224,6 +224,7 @@ where
     /// still used.
     pub fn reload(&mut self) {
         self.state = ResourceState::Loading;
+        self.loading = None;
         match &self.location {
             ResourceLocation::Path(path) => {
                 self.loading = Some(Loading::Path(AssetLoadingJob::new(path, |t| async {

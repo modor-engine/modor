@@ -1,8 +1,11 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
-use crate::vertex_buffer::VertexBuffer;
 use modor::{Context, Glob, GlobRef, Node, Visit};
-use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
+use std::mem;
+use wgpu::{
+    vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
+    VertexStepMode,
+};
 
 #[derive(Debug, Visit, Node)]
 pub(crate) struct Mesh {
@@ -82,6 +85,16 @@ impl MeshGlob {
             ),
         }
     }
+}
+
+pub(crate) trait VertexBuffer<const L: u32>: Sized {
+    const ATTRIBUTES: &'static [VertexAttribute];
+    const STEP_MODE: VertexStepMode;
+    const LAYOUT: VertexBufferLayout<'static> = VertexBufferLayout {
+        array_stride: mem::size_of::<Self>() as BufferAddress,
+        step_mode: Self::STEP_MODE,
+        attributes: <Self as VertexBuffer<L>>::ATTRIBUTES,
+    };
 }
 
 #[repr(C)]

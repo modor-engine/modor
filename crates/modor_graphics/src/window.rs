@@ -6,6 +6,8 @@ use std::mem;
 use std::sync::Arc;
 use wgpu::{Instance, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor};
 
+// coverage: off (window cannot be tested)
+
 /// The main window where rendering is performed.
 #[derive(Visit)]
 pub struct Window {
@@ -17,9 +19,9 @@ pub struct Window {
     ///
     /// Default is `true`.
     pub is_cursor_visible: bool,
-    /// The render target of the window.
+    /// Render target of the window.
     pub target: Target,
-    /// The default camera of the window.
+    /// Default camera of the window.
     pub camera: Camera2D,
     handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,

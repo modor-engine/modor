@@ -1,10 +1,10 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
-use crate::{Size, Target};
+use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{Context, Glob, GlobRef};
+use modor::{Context, Glob, GlobRef, Node};
 use modor_resources::{Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
@@ -77,10 +77,14 @@ pub struct Texture {
     ///
     /// Default is `false`.
     pub is_target_enabled: bool,
-    /// The render target of the texture.
+    /// Render target of the texture.
     ///
     /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
     pub target: Target,
+    /// Default camera of the texture target.
+    ///
+    /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
+    pub camera: Camera2D,
     loaded: TextureLoaded,
     glob: Glob<TextureGlob>,
 }
@@ -99,12 +103,15 @@ impl Resource for Texture {
             Self::DEFAULT_IS_BUFFER_ENABLED,
             label,
         );
+        let target = Target::new(ctx, label.into());
+        let camera = Camera2D::new(ctx, label, vec![target.glob().clone()]);
         Self {
             is_smooth: Self::DEFAULT_IS_SMOOTH,
             is_repeated: Self::DEFAULT_IS_REPEATED,
             is_buffer_enabled: Self::DEFAULT_IS_BUFFER_ENABLED,
             is_target_enabled: false,
-            target: Target::new(ctx, label.into()),
+            target,
+            camera,
             loaded,
             glob: Glob::new(ctx, glob),
         }
@@ -123,6 +130,7 @@ impl Resource for Texture {
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
+        self.camera.update(ctx);
         let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         if let Some(loaded) = loaded {
             self.loaded = loaded;
