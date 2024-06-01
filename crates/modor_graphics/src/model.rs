@@ -1,8 +1,8 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::MeshGlob;
-use crate::resources::GraphicsResources;
 use crate::mesh::VertexBuffer;
+use crate::resources::GraphicsResources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
