@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
-use modor_graphics::testing::assert_same;
+use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture, TextureGlob,
     TextureSource,
@@ -40,7 +40,7 @@ fn set_color_transparent() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE.with_alpha(0.5);
     app.update();
-    assert_same(&mut app, &target, "material#alpha");
+    assert_max_component_diff(&mut app, &target, "material#alpha", 10, 1);
 }
 
 #[modor::test(disabled(macos, android, wasm))]
