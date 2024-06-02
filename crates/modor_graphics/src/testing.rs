@@ -7,7 +7,7 @@ use modor::{App, GlobRef};
 use std::path::PathBuf;
 use std::{env, fs};
 
-/// Asserts a [`Texture`](Texture) buffer is the same as the expected texture.
+/// Asserts a [`Texture`](crate::Texture) buffer is the same as the expected texture.
 ///
 /// If the expected texture is not yet generated, it is saved in
 /// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
@@ -24,8 +24,8 @@ use std::{env, fs};
 ///
 /// This will panic if:
 /// - the expected and actual textures are different.
-/// - the [`Texture`](Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](Texture) doesn't match the
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
@@ -62,7 +62,7 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
     assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
 }
 
-/// Asserts a [`Texture`](Texture) buffer is similar to the expected texture
+/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
 /// at component level.
 ///
 /// If the expected texture is not yet generated, it is saved in
@@ -83,8 +83,8 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
 ///
 /// This will panic if:
 /// - the expected and actual textures are not similar.
-/// - the [`Texture`](Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](Texture) doesn't match the
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
@@ -132,7 +132,7 @@ pub fn assert_max_component_diff(
     );
 }
 
-/// Asserts a [`Texture`](Texture) buffer is similar to the expected texture
+/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
 /// at pixel level.
 ///
 /// If the expected texture is not yet generated, it is saved in
@@ -150,8 +150,8 @@ pub fn assert_max_component_diff(
 ///
 /// This will panic if:
 /// - the expected and actual textures are not similar.
-/// - the [`Texture`](Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](Texture) doesn't match the
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///

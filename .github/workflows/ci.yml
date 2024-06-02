@@ -75,12 +75,10 @@ jobs:
           - name: Windows
             os: windows-2022
             target: x86_64-pc-windows-msvc
-            wgpu_backend: dx12
           - name: Linux
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             command_prefix: xvfb-run --server-args="-screen 0 1920x1080x24"
-            wgpu_backend: vulkan
           - name: macOS
             os: macos-13
             target: x86_64-apple-darwin
@@ -119,8 +117,6 @@ jobs:
       - name: Test other
         run: ${{ matrix.command_prefix }} cargo test --no-fail-fast
         if: matrix.target != 'wasm32-unknown-unknown'
-#        env:
-#          WGPU_BACKEND: ${{ matrix.wgpu_backend }}
 
   coverage:
     runs-on: ubuntu-22.04
@@ -152,7 +148,6 @@ jobs:
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
           LLVM_PROFILE_FILE: "%m.profraw"
-#          WGPU_BACKEND: vulkan
       - name: Generate HTML coverage report
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
         run: bash -x .github/workflows/scripts/generate_coverage.sh html ./coverage/
@@ -201,7 +196,7 @@ jobs:
       - name: Install Linux general dependencies
         run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Generate documentation
-        run: cargo doc
+        run: cargo doc --no-deps
         env:
           RUSTDOCFLAGS: -Dwarnings
 
