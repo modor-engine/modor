@@ -119,8 +119,8 @@ jobs:
       - name: Test other
         run: ${{ matrix.command_prefix }} cargo test --no-fail-fast
         if: matrix.target != 'wasm32-unknown-unknown'
-        env:
-          WGPU_BACKEND: ${{ matrix.wgpu_backend }}
+#        env:
+#          WGPU_BACKEND: ${{ matrix.wgpu_backend }}
 
   coverage:
     runs-on: ubuntu-22.04
@@ -152,7 +152,7 @@ jobs:
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
           LLVM_PROFILE_FILE: "%m.profraw"
-          WGPU_BACKEND: vulkan
+#          WGPU_BACKEND: vulkan
       - name: Generate HTML coverage report
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
         run: bash -x .github/workflows/scripts/generate_coverage.sh html ./coverage/
