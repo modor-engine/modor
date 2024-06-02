@@ -108,6 +108,9 @@ jobs:
       - name: Install Linux graphics dependencies
         run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
         if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install Windows graphics dependencies
+        run: bash -x .github/workflows/scripts/install_graphic_dependencies_windows.sh
+        if: matrix.target == 'x86_64-pc-windows-msvc'
       - name: Install wasm-pack
         run: cargo install wasm-pack --debug
         if: matrix.target == 'wasm32-unknown-unknown'

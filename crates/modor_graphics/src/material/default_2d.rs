@@ -1,10 +1,9 @@
 use crate::resources::GraphicsResources;
 use crate::texture::glob::TextureGlob;
-use crate::{Color, Material, Model2DGlob, Shader, ShaderGlobRef, ShaderSource};
+use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
 use internal::DefaultMaterial2DData;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_input::modor_math::Vec2;
-use modor_resources::Res;
 
 /// The default material for 2D rendering.
 ///
@@ -91,33 +90,6 @@ impl DefaultMaterial2D {
             is_ellipse: false,
             default_shader: resources.default_shader.glob(),
             ellipse_shader: resources.ellipse_shader.glob(),
-        }
-    }
-}
-
-#[derive(Debug, Node, Visit)]
-struct DefaultMaterial2DResources {
-    default_shader: Res<Shader<DefaultMaterial2D>>,
-    ellipse_shader: Res<Shader<DefaultMaterial2D>>,
-}
-
-impl RootNode for DefaultMaterial2DResources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        Self {
-            default_shader: Res::from_source(
-                ctx,
-                "default(modor_graphics)",
-                ShaderSource::String(
-                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")).into(),
-                ),
-            ),
-            ellipse_shader: Res::from_source(
-                ctx,
-                "ellipse(modor_graphics)",
-                ShaderSource::String(
-                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")).into(),
-                ),
-            ),
         }
     }
 }

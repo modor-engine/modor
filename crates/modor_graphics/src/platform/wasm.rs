@@ -1,4 +1,4 @@
-use winit::platform::android::EventLoopExtWebSys;
+use winit::platform::web::EventLoopExtWebSys;
 
 pub(crate) const CANVAS_ID: &str = "modor";
 

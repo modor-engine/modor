@@ -1,3 +1,6 @@
+#!/bin/bash
+set -xeu
+
 VULKAN_SDK_VERSION="1.3.268"
 sudo apt-get update -y -qq
 wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
