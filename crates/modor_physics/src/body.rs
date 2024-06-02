@@ -33,7 +33,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Node for Character {
 ///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         self.body.velocity = ctx.root::<CharacterDirection>().get(ctx).0 * 0.5;
+///         self.body.velocity = ctx.get_mut::<CharacterDirection>().0 * 0.5;
 ///     }
 ///
 ///     fn on_exit(&mut self, ctx: &mut Context<'_>) {
@@ -45,7 +45,9 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Character {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, group: &CollisionGroup) -> Self {
-///         let mut body = Body2D::new(ctx, position, Vec2::ONE * 0.2);
+///         let mut body = Body2D::new(ctx);
+///         body.position = position;
+///         body.size = Vec2::ONE * 0.2;
 ///         body.rotation = FRAC_PI_2;
 ///         body.collision_group = Some(group.glob().clone());
 ///         body.shape = Shape2D::Circle;
@@ -56,22 +58,26 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 #[derive(Debug, Visit)]
 pub struct Body2D {
     /// Position of the body in world units.
+    ///
+    /// Default is [`Vec2::ZERO`].
     pub position: Vec2,
     /// Size of the body in world units.
+    ///
+    /// Default is [`Vec2::ONE`].
     pub size: Vec2,
     /// Rotation of the body in radians.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub rotation: f32,
     /// Linear velocity of the body in world units per second.
     ///
-    /// Default value is `Vec2::ZERO`.
+    /// Default is `Vec2::ZERO`.
     pub velocity: Vec2,
     /// Angular velocity of the body in radians per second.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_velocity: f32,
     /// Force applied on the body.
     ///
@@ -79,39 +85,39 @@ pub struct Body2D {
     ///
     /// The acceleration of the body corresponds to the force of the body divided by its mass.
     ///
-    /// Default value is [`Vec2::ZERO`].
+    /// Default is [`Vec2::ZERO`].
     pub force: Vec2,
     /// Torque applied on the body.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub torque: f32,
     /// Mass of the body.
     ///
     /// A mass of zero is considered as infinite. In this case, force will not have any effect
     /// (even in case of collisions).
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub mass: f32,
     /// Angular inertia of the body.
     ///
     /// An angular inertia of zero is considered as infinite. In this case, torque will not have
     /// any effect (even in case of collisions).
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_inertia: f32,
     /// Linear damping of the body.
     ///
     /// This coefficient is used to automatically slow down the translation of the body.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub damping: f32,
     /// Angular damping of the body.
     ///
     /// This coefficient is used to automatically slow down the rotation of the body.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub angular_damping: f32,
     /// Dominance of the body.
     ///
@@ -120,7 +126,7 @@ pub struct Body2D {
     ///
     /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
-    /// Default value is `0`.
+    /// Default is `0`.
     pub dominance: i8,
     /// Whether Continuous Collision Detection is enabled for the body.
     ///
@@ -132,9 +138,9 @@ pub struct Body2D {
     /// Note that CCD require additional computation, so it is recommended to enable it only for
     /// bodies that are expected to move fast.
     ///
-    /// Has no effect if [`collision_group`](#structfield.collision_group) is [`None`].
+    /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
-    /// Default value is `false`.
+    /// Default is `false`.
     pub is_ccd_enabled: bool,
     /// Collision group of the collider.
     ///
@@ -142,15 +148,15 @@ pub struct Body2D {
     /// changed. However, it is ensured the collision is detected when updating
     /// the [`position`](#structfield.position) or the [`rotation`](#structfield.rotation).
     ///
-    /// Default value is `None` (no collision detection is performed).
+    /// Default is `None` (no collision detection is performed).
     pub collision_group: Option<GlobRef<CollisionGroupGlob>>,
     /// The shape of the body used to detect collisions.
     ///
-    /// Default value is [`Shape2D::Rectangle`].
+    /// Default is [`Shape2D::Rectangle`].
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
-    pipeline_handle: RootNodeHandle<Pipeline>,
+    pipeline: RootNodeHandle<Pipeline>,
 }
 
 impl Node for Body2D {
@@ -163,7 +169,7 @@ impl Node for Body2D {
             .collision_group
             .as_ref()
             .map_or_else(InteractionGroups::none, |g| g.get(ctx).interactions);
-        let pipeline = self.pipeline_handle.get_mut(ctx);
+        let pipeline = self.pipeline.get_mut(ctx);
         let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
         self.update_from_rigid_body(rigid_body, changes);
         self.update_rigid_body(rigid_body, changes);
@@ -176,18 +182,26 @@ impl Node for Body2D {
 }
 
 impl Body2D {
+    const DEFAULT_POSITION: Vec2 = Vec2::ZERO;
+    const DEFAULT_SIZE: Vec2 = Vec2::ONE;
+
     /// Creates a new body.
-    pub fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
+    pub fn new(ctx: &mut Context<'_>) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
-        let pipeline_handle = ctx.root::<Pipeline>();
+        let pipeline_handle = ctx.handle::<Pipeline>();
         let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(ctx).register_body(
-            Self::default_rigid_body(position),
-            Self::default_collider(size, active_hooks),
+            Self::default_rigid_body(Self::DEFAULT_POSITION),
+            Self::default_collider(Self::DEFAULT_SIZE, active_hooks),
         );
-        let data = Body2DGlob::new(position, size, rigid_body_handle, collider_handle);
+        let data = Body2DGlob::new(
+            Self::DEFAULT_POSITION,
+            Self::DEFAULT_SIZE,
+            rigid_body_handle,
+            collider_handle,
+        );
         Self {
-            position,
-            size,
+            position: Self::DEFAULT_POSITION,
+            size: Self::DEFAULT_SIZE,
             rotation: 0.,
             velocity: Vec2::ZERO,
             angular_velocity: 0.,
@@ -203,7 +217,7 @@ impl Body2D {
             shape: Shape2D::Rectangle,
             collisions: vec![],
             glob: Glob::new(ctx, data),
-            pipeline_handle,
+            pipeline: pipeline_handle,
         }
     }
 
@@ -322,6 +336,7 @@ impl Body2D {
 ///
 /// See [`Body2D`].
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Shape2D {
     /// Rectangle shape.
     #[default]

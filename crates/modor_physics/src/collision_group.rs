@@ -35,22 +35,23 @@ use rapier2d::prelude::InteractionGroups;
 /// }
 ///
 /// fn create_wall_body(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Body2D {
-///     let mut body = Body2D::new(ctx, position, size);
-///     let groups = ctx.root::<CollisionGroups>().get(ctx);
-///     body.collision_group = Some(groups.wall.glob().clone());
+///     let mut body = Body2D::new(ctx);
+///     body.position = position;
+///     body.size = size;
+///     body.collision_group = Some(ctx.get_mut::<CollisionGroups>().wall.glob().clone());
 ///     body
 /// }
 /// ```
 #[derive(Debug, Visit)]
 pub struct CollisionGroup {
     pub(crate) glob: Glob<CollisionGroupGlob>,
-    physics_hooks_handle: RootNodeHandle<PhysicsHooks>,
+    physics_hooks: RootNodeHandle<PhysicsHooks>,
 }
 
 impl Node for CollisionGroup {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let interactions = self
-            .physics_hooks_handle
+            .physics_hooks
             .get_mut(ctx)
             .interactions(self.glob.index());
         self.glob.get_mut(ctx).interactions = interactions;
@@ -62,7 +63,7 @@ impl CollisionGroup {
     pub fn new(ctx: &mut Context<'_>) -> Self {
         Self {
             glob: Glob::new(ctx, CollisionGroupGlob::default()),
-            physics_hooks_handle: ctx.root::<PhysicsHooks>(),
+            physics_hooks: ctx.handle::<PhysicsHooks>(),
         }
     }
 
@@ -81,11 +82,9 @@ impl CollisionGroup {
         other: &GlobRef<CollisionGroupGlob>,
         type_: CollisionType,
     ) {
-        self.physics_hooks_handle.get_mut(ctx).add_interaction(
-            self.glob.index(),
-            other.index(),
-            type_,
-        );
+        self.physics_hooks
+            .get_mut(ctx)
+            .add_interaction(self.glob.index(), other.index(), type_);
     }
 }
 
@@ -133,14 +132,14 @@ pub struct Impulse {
     /// A coefficient of `1.0` means that the exit velocity magnitude is the same as the initial
     /// velocity along the contact normal.
     ///
-    /// Default value is `0.0`.
+    /// Default is `0.0`.
     pub restitution: f32,
     /// Friction coefficient of the collision.
     ///
     /// A coefficient of `0.0` means there is no friction (i.e. objects slide completely over each
     /// other).
     ///
-    /// Default value is `0.5`.
+    /// Default is `0.5`.
     pub friction: f32,
 }
 

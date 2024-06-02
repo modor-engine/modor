@@ -26,7 +26,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(1);
+        ctx.get_mut::<Delta>().duration = Duration::from_secs(1);
         Self {
             bodies: (0..10_000).map(|i| BodyWrapper::new(ctx, i)).collect(),
         }
@@ -39,15 +39,15 @@ struct BodyWrapper(Body2D);
 impl BodyWrapper {
     #[allow(clippy::cast_precision_loss)]
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
-        let mut body = Body2D::new(ctx, Vec2::ZERO, Vec2::ONE);
+        let mut body = Body2D::new(ctx);
         body.position = Vec2::new(index as f32 * 0.5, index as f32 * 0.5) * 0.5;
         body.size = Vec2::ONE * 0.1;
         body.velocity = Vec2::new(1., 2.);
         body.mass = 1.;
         body.collision_group = Some(if index % 2 == 0 {
-            ctx.root::<CollisionGroups>().get(ctx).group1.glob().clone()
+            ctx.get_mut::<CollisionGroups>().group1.glob().clone()
         } else {
-            ctx.root::<CollisionGroups>().get(ctx).group2.glob().clone()
+            ctx.get_mut::<CollisionGroups>().group2.glob().clone()
         });
         Self(body)
     }

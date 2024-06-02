@@ -97,7 +97,7 @@ fn access_all_globals() {
     let mut ctx = app.ctx();
     let _glob1 = Glob::new(&mut ctx, "a");
     let _glob2 = Glob::new(&mut ctx, "b");
-    let globals = app.root::<Globals<&str>>();
+    let globals = app.get_mut::<Globals<&str>>();
     assert!(globals.deleted_items().is_empty());
     assert_eq!(globals.get(0), Some(&"a"));
     assert_eq!(globals.get(1), Some(&"b"));
@@ -116,7 +116,7 @@ fn access_all_globals_after_value_dropped() {
     let _glob2 = Glob::new(&mut ctx, "b");
     drop(glob1);
     app.update();
-    let globals = app.root::<Globals<&str>>();
+    let globals = app.get_mut::<Globals<&str>>();
     assert_eq!(globals.deleted_items(), [(0, "a")]);
     assert_eq!(globals.get(0), None);
     assert_eq!(globals.get(1), Some(&"b"));

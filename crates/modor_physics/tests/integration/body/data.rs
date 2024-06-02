@@ -9,7 +9,7 @@ use std::f32::consts::FRAC_PI_2;
 fn retrieve_data() {
     let mut app = App::new::<Root>(Level::Info);
     let body_index = body(&mut app).glob().index();
-    let data = &app.root::<Globals<Body2DGlob>>()[body_index];
+    let data = &app.get_mut::<Globals<Body2DGlob>>()[body_index];
     assert_approx_eq!(data.position, Vec2::ZERO);
     assert_approx_eq!(data.size, Vec2::ONE);
     assert_approx_eq!(data.rotation, 0.);
@@ -17,14 +17,14 @@ fn retrieve_data() {
     body(&mut app).size = Vec2::new(3., 4.);
     body(&mut app).rotation = FRAC_PI_2;
     app.update();
-    let data = &app.root::<Globals<Body2DGlob>>()[body_index];
+    let data = &app.get_mut::<Globals<Body2DGlob>>()[body_index];
     assert_approx_eq!(data.position, Vec2::new(1., 2.));
     assert_approx_eq!(data.size, Vec2::new(3., 4.));
     assert_approx_eq!(data.rotation, FRAC_PI_2);
 }
 
 fn body(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body
+    &mut app.get_mut::<Root>().body
 }
 
 #[derive(Node, Visit)]
@@ -35,7 +35,7 @@ struct Root {
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         Self {
-            body: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
+            body: Body2D::new(ctx),
         }
     }
 }

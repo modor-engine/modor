@@ -15,6 +15,7 @@ approx = "0.5"
 android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
 async-std = "1.12"
+bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.3"
 console_error_panic_hook = "0.1"
 console_log = "1.0"
@@ -23,27 +24,36 @@ derivative = "2.2"
 fs_extra = "1.2"
 futures = "0.3"
 fxhash = "0.2"
+getrandom = { version = "*", features = ["js"] } # To fix this issue: https://github.com/rust-random/getrandom/issues/208
+gilrs = "0.10"
+image = "0.25"
 instant = "0.1"
 log = "0.4"
 pico-args = "0.5"
 pretty_env_logger = "0.5"
 proc-macro-crate = "3.0"
 proc-macro2 = "1.0"
+rand = "0.8"
 rapier2d = "0.18"
+regex = "1.10"
 reqwest = "0.12"
 quote = "1.0"
+spin_sleep = "1.2"
 syn = { version = "2.0", features = ["full"] }
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
-
+wgpu = "0.19"
+winit = "0.29"
 modor = { version = "0.1.0", path = "crates/modor" }
 modor_derive = { version = "0.1.0", path = "crates/modor_derive" }
+modor_graphics = { version = "0.1.0", path = "crates/modor_graphics" }
 modor_input = { version = "0.1.0", path = "crates/modor_input" }
 modor_internal = { version = "0.1.0", path = "crates/modor_internal" }
 modor_jobs = { version = "0.1.0", path = "crates/modor_jobs" }
 modor_math = { version = "0.1.0", path = "crates/modor_math" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
+modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

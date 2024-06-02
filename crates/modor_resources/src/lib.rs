@@ -10,6 +10,7 @@
 //! Now you can start using this crate, for example by defining a [`Resource`].
 
 mod resource;
+pub mod testing;
 
 pub use resource::*;
 

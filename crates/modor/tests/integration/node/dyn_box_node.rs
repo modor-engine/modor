@@ -5,7 +5,7 @@ use modor::{App, Context, Node, RootNode, Visit};
 fn update_node() {
     let mut app = App::new::<Root>(Level::Info);
     app.update();
-    let container = app.root::<Container>();
+    let container = app.get_mut::<Container>();
     assert_eq!(container.0, ["InnerNode::on_enter", "InnerNode::on_exit"]);
 }
 
@@ -26,16 +26,10 @@ struct InnerNode;
 
 impl Node for InnerNode {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>()
-            .get_mut(ctx)
-            .0
-            .push("InnerNode::on_enter");
+        ctx.get_mut::<Container>().0.push("InnerNode::on_enter");
     }
 
     fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.root::<Container>()
-            .get_mut(ctx)
-            .0
-            .push("InnerNode::on_exit");
+        ctx.get_mut::<Container>().0.push("InnerNode::on_exit");
     }
 }

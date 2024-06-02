@@ -67,7 +67,7 @@ fn colliding_bodies_with_impulse() {
     assert_approx_eq!(body.position, Vec2::ZERO);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.5);
-    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.053_567);
+    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.074_572);
     assert_eq!(body.collisions()[0].other_index, 1);
     assert_eq!(body.collisions()[0].other_group_index, group2.index());
     assert!(body.is_colliding_with(&group2));
@@ -75,8 +75,8 @@ fn colliding_bodies_with_impulse() {
     let body = body2(&mut app);
     assert!(body.position.x > 1.1);
     assert_eq!(body.collisions().len(), 1);
-    assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.446_432);
-    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.053_567);
+    assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.425_427);
+    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.074_572);
     assert_eq!(body.collisions()[0].other_index, 0);
     assert_eq!(body.collisions()[0].other_group_index, group1.index());
     assert!(body.is_colliding_with(&group1));
@@ -105,7 +105,7 @@ fn set_friction(friction: f32, expected_position: Vec2) {
 ))]
 fn set_restitution(restitution: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    app.root::<Delta>().duration = Duration::from_secs_f32(0.1);
+    app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
     let impulse = Impulse::new(restitution, 0.5);
     configure_colliding_groups(&mut app);
     configure_collision_type(&mut app, CollisionType::Impulse(impulse));
@@ -125,7 +125,7 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
 ))]
 fn set_dominance(dominance: i8, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    app.root::<Delta>().duration = Duration::from_secs_f32(0.1);
+    app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
     configure_colliding_groups(&mut app);
     configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
     configure_ground(&mut app);
@@ -202,8 +202,7 @@ fn drop_body() {
     app.update();
     app.update();
     assert_eq!(body1(&mut app).collisions().len(), 1);
-    let body = Body2D::new(&mut app.ctx(), Vec2::ZERO, Vec2::ONE);
-    *body2(&mut app) = body;
+    *body2(&mut app) = Body2D::new(&mut app.ctx());
     app.update();
     app.update();
     assert_eq!(body1(&mut app).collisions().len(), 0);
@@ -236,23 +235,23 @@ fn configure_rolling_ball(app: &mut App) {
 }
 
 fn group1(app: &mut App) -> &CollisionGroup {
-    &mut app.root::<Root>().group1
+    &mut app.get_mut::<Root>().group1
 }
 
 fn group2(app: &mut App) -> &CollisionGroup {
-    &mut app.root::<Root>().group2
+    &mut app.get_mut::<Root>().group2
 }
 
 fn body1(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body1
+    &mut app.get_mut::<Root>().body1
 }
 
 fn body2(app: &mut App) -> &mut Body2D {
-    &mut app.root::<Root>().body2
+    &mut app.get_mut::<Root>().body2
 }
 
 fn configure_collision_type(app: &mut App, collision_type: CollisionType) {
-    app.root::<Root>().collision_type = Some(collision_type);
+    app.get_mut::<Root>().collision_type = Some(collision_type);
 }
 
 #[derive(Visit)]
@@ -266,13 +265,18 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.root::<Delta>().get_mut(ctx).duration = Duration::from_secs(2);
+        ctx.get_mut::<Delta>().duration = Duration::from_secs(2);
+        let body1 = Body2D::new(ctx);
+        let mut body2 = Body2D::new(ctx);
+        body2.position = Vec2::X;
+        body2.size = Vec2::new(2.5, 0.5);
+        body2.update(ctx);
         Self {
             group1: CollisionGroup::new(ctx),
             group2: CollisionGroup::new(ctx),
             collision_type: None,
-            body1: Body2D::new(ctx, Vec2::ZERO, Vec2::ONE),
-            body2: Body2D::new(ctx, Vec2::X, Vec2::new(2.5, 0.5)),
+            body1,
+            body2,
         }
     }
 }

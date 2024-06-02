@@ -164,6 +164,9 @@ pub use modor_derive::Node;
 ///
 /// Both structs and enums are supported.
 ///
+/// Note that generic fields are not dynamically visited. In case a generic field should be visited,
+/// an explicit [`Node`] trait bound is necessary.
+///
 /// # Examples
 ///
 /// See [`modor`](crate).

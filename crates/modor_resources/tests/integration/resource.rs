@@ -1,7 +1,7 @@
 use modor::log::Level;
-use modor::{App, Context, Glob, GlobRef, Node, RootNode, Visit};
+use modor::{App, Context, Node, RootNode, Visit};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{Res, Resource, ResourceError, Source};
+use modor_resources::{Res, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -9,52 +9,52 @@ use std::time::Duration;
 #[modor::test(disabled(wasm))]
 fn access_inner() {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Res::<ContentSize>::from_path(&mut app.ctx(), "not_empty.txt");
-    res.should_be_reloaded = true;
-    assert!(res.should_be_reloaded);
+    let mut res = Res::<ContentSize>::from_path(&mut app.ctx(), "res", "not_empty.txt");
+    res.size = Some(1);
+    assert_eq!(res.size, Some(1));
 }
 
 #[modor::test(disabled(wasm))]
 fn load_valid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_path(&mut app, "not_empty.txt");
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), None);
+    create_resource_from_path(&mut app, "not_empty.txt");
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(12));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(12));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(disabled(wasm))]
 fn load_invalid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_path(&mut app, "empty.txt");
-    let error = ResourceError::Other("empty resource".into());
+    create_resource_from_path(&mut app, "empty.txt");
+    let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
 fn load_resource_from_invalid_path() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_path(&mut app, "missing.txt");
+    create_resource_from_path(&mut app, "missing.txt");
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
+    assert_eq!(res(&mut app).size, None);
     assert!(matches!(
-        res(&mut app).err(),
+        res(&mut app).state().error(),
         Some(ResourceError::Loading(AssetLoadingError::IoError(_)))
     ));
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
+    assert_eq!(res(&mut app).size, None);
     assert!(matches!(
-        res(&mut app).err(),
+        res(&mut app).state().error(),
         Some(ResourceError::Loading(AssetLoadingError::IoError(_)))
     ));
 }
@@ -68,15 +68,15 @@ fn load_resource_from_invalid_path() {
 )]
 fn load_valid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, source);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), None);
+    create_resource_from_source(&mut app, source);
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(7));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(7));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(
@@ -88,85 +88,63 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
 )]
 fn load_invalid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, source);
-    let error = ResourceError::Other("empty resource".into());
+    create_resource_from_source(&mut app, source);
+    let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
 fn load_resource_from_panicking_source() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, ContentSizeSource::Panicking);
-    let error = ResourceError::Other("job has panicked".into());
+    create_resource_from_source(&mut app, ContentSizeSource::Panicking);
+    let error = ResourceState::Error(ResourceError::Other("job has panicked".into()));
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), None);
-    assert_eq!(res(&mut app).err(), Some(&error));
+    assert_eq!(res(&mut app).size, None);
+    assert_eq!(res(&mut app).state(), &error);
 }
 
 #[modor::test(disabled(wasm))]
 fn reload_with_source() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
+    create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(7));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     res(&mut app).reload_with_source(ContentSizeSource::SyncStr("other content"));
     app.update();
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(13));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(13));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
 #[modor::test(disabled(wasm))]
 fn reload_with_path() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
+    create_resource_from_source(&mut app, ContentSizeSource::SyncStr("content"));
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(7));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
     res(&mut app).reload_with_path("not_empty.txt");
+    assert_eq!(res(&mut app).size, Some(7));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loading);
     wait_resource_loaded(&mut app);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(7));
-    assert_eq!(res(&mut app).err(), None);
-    app.update();
-    wait_resource_reloaded(&mut app, 12);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(12));
-    assert_eq!(res(&mut app).err(), None);
+    assert_eq!(res(&mut app).size, Some(12));
+    assert_eq!(res(&mut app).state(), &ResourceState::Loaded);
 }
 
-#[modor::test(disabled(wasm))]
-fn reload_from_inside() {
-    let content = Arc::new(Mutex::new("content"));
-    let mut app = App::new::<Root>(Level::Info);
-    let glob = create_resource_from_source(&mut app, ContentSizeSource::AsyncStr(content.clone()));
-    wait_resource_loaded(&mut app);
-    *content.lock().unwrap() = "other content";
-    res(&mut app).should_be_reloaded = true;
-    app.update();
-    res(&mut app).should_be_reloaded = false;
-    wait_resource_reloaded(&mut app, 13);
-    assert_eq!(glob.get(&app.ctx()).as_ref().map(|g| g.size), Some(13));
-    assert_eq!(res(&mut app).err(), None);
+fn create_resource_from_path(app: &mut App, path: &str) {
+    app.get_mut::<Root>().content_size = Some(Res::from_path(&mut app.ctx(), "res", path));
 }
 
-fn create_resource_from_path(app: &mut App, path: &str) -> GlobRef<Option<ContentSizeGlob>> {
-    app.root::<Root>().content_size = Some(Res::from_path(&mut app.ctx(), path));
-    res(app).glob().clone()
-}
-
-fn create_resource_from_source(
-    app: &mut App,
-    source: ContentSizeSource,
-) -> GlobRef<Option<ContentSizeGlob>> {
-    app.root::<Root>().content_size = Some(Res::from_source(&mut app.ctx(), source));
-    res(app).glob().clone()
+fn create_resource_from_source(app: &mut App, source: ContentSizeSource) {
+    app.get_mut::<Root>().content_size = Some(Res::from_source(&mut app.ctx(), "res", source));
 }
 
 fn wait_resource_loaded(app: &mut App) {
@@ -174,26 +152,7 @@ fn wait_resource_loaded(app: &mut App) {
     for _ in 0..MAX_RETRIES {
         app.update();
         thread::sleep(Duration::from_millis(10));
-        if res(app).err().is_some() || res(app).glob().clone().get(&app.ctx()).is_some() {
-            return;
-        }
-    }
-    panic!("max retries reached");
-}
-
-fn wait_resource_reloaded(app: &mut App, target_size: usize) {
-    const MAX_RETRIES: u32 = 100;
-    for _ in 0..MAX_RETRIES {
-        app.update();
-        thread::sleep(Duration::from_millis(10));
-        let size = res(app)
-            .glob()
-            .clone()
-            .get(&app.ctx())
-            .as_ref()
-            .unwrap()
-            .size;
-        if target_size == size {
+        if res(app).state() != &ResourceState::Loading {
             return;
         }
     }
@@ -201,7 +160,7 @@ fn wait_resource_reloaded(app: &mut App, target_size: usize) {
 }
 
 fn res(app: &mut App) -> &mut Res<ContentSize> {
-    app.root::<Root>().content_size.as_mut().unwrap()
+    app.get_mut::<Root>().content_size.as_mut().unwrap()
 }
 
 #[derive(Default, RootNode, Node, Visit)]
@@ -211,16 +170,15 @@ struct Root {
 
 #[derive(Default)]
 struct ContentSize {
-    should_be_reloaded: bool,
+    size: Option<usize>,
 }
 
 impl Resource for ContentSize {
     type Source = ContentSizeSource;
     type Loaded = ContentSizeLoaded;
-    type Glob = ContentSizeGlob;
 
-    fn should_be_reloaded(&self, _glob: &Glob<Option<Self::Glob>>, _ctx: &mut Context<'_>) -> bool {
-        self.should_be_reloaded
+    fn create(_ctx: &mut Context<'_>, _label: &str) -> Self {
+        Self { size: None }
     }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -248,14 +206,9 @@ impl Resource for ContentSize {
         }
     }
 
-    fn update(
-        &mut self,
-        glob: &Glob<Option<Self::Glob>>,
-        ctx: &mut Context<'_>,
-        loaded: Option<Self::Loaded>,
-    ) {
+    fn update(&mut self, _ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, _label: &str) {
         if let Some(loaded) = loaded {
-            *glob.get_mut(ctx) = Some(ContentSizeGlob { size: loaded.size });
+            self.size = Some(loaded.size);
         }
     }
 }
@@ -278,9 +231,5 @@ impl Source for ContentSizeSource {
 }
 
 struct ContentSizeLoaded {
-    size: usize,
-}
-
-struct ContentSizeGlob {
     size: usize,
 }
