@@ -10,7 +10,6 @@ curl.exe -L --retry 5 https://github.com/microsoft/DirectXShaderCompiler/release
 7z.exe e dxc.zip -odxc bin/x64/{dxc.exe,dxcompiler.dll,dxil.dll}
 cygpath --windows "$PWD/dxc" >> "$GITHUB_PATH" # We need to use cygpath to convert PWD to a windows path as we're using bash.
 
-dxc --version # Make sure dxc is in path.
 curl.exe -L --retry 5 https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/$WARP_VERSION -o warp.zip
 7z.exe e warp.zip -owarp build/native/amd64/d3d10warp.dll
 curl.exe -L --retry 5 https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z -o mesa.7z
