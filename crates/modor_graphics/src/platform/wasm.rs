@@ -13,10 +13,10 @@ pub(crate) fn init_canvas(handle: &winit::window::Window) {
     }
 }
 
-pub(crate) fn run_event_loop(
-    event_loop: winit::event_loop::EventLoop<()>,
-    event_handler: impl FnMut(winit::event::Event<()>, &winit::event_loop::EventLoopWindowTarget<()>),
-) {
+pub(crate) fn run_event_loop<F>(event_loop: winit::event_loop::EventLoop<()>, event_handler: F)
+where
+    F: FnMut(winit::event::Event<()>, &winit::event_loop::EventLoopWindowTarget<()>) + 'static,
+{
     event_loop.spawn(event_handler);
 }
 
