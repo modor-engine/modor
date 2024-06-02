@@ -2,7 +2,7 @@ use crate::resources::GraphicsResources;
 use crate::texture::glob::TextureGlob;
 use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
 use internal::DefaultMaterial2DData;
-use modor::{Context, GlobRef, Node, RootNode, Visit};
+use modor::{Context, GlobRef, Node, Visit};
 use modor_input::modor_math::Vec2;
 
 /// The default material for 2D rendering.
