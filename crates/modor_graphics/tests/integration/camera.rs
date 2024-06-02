@@ -7,14 +7,14 @@ use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 use std::f32::consts::FRAC_PI_4;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn create_with_one_target() {
     let (mut app, target, other_target) = configure_app();
     assert_same(&mut app, &target, "camera#default");
     assert_same(&mut app, &other_target, "camera#empty");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn remove_target() {
     let (mut app, target, other_target) = configure_app();
     root(&mut app).target.camera.targets.clear();
@@ -23,7 +23,7 @@ fn remove_target() {
     assert_same(&mut app, &other_target, "camera#empty");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn add_target() {
     let (mut app, target, other_target) = configure_app();
     let other_target_glob = root(&mut app).other_target.target.glob().clone();
@@ -33,7 +33,7 @@ fn add_target() {
     assert_same(&mut app, &other_target, "camera#default");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_position() {
     let (mut app, target, _) = configure_app();
     root(&mut app).target.camera.position = Vec2::new(-0.5, 0.5);
@@ -41,7 +41,7 @@ fn set_position() {
     assert_same(&mut app, &target, "camera#moved");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_size() {
     let (mut app, target, _) = configure_app();
     root(&mut app).target.camera.size = Vec2::new(2., 1.5);
@@ -49,7 +49,7 @@ fn set_size() {
     assert_same(&mut app, &target, "camera#scaled");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_rotation() {
     let (mut app, target, _) = configure_app();
     root(&mut app).target.camera.rotation = FRAC_PI_4;

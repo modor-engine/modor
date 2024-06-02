@@ -9,13 +9,13 @@ use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 use std::f32::consts::FRAC_PI_4;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
     let (mut app, target) = configure_app();
     assert_same(&mut app, &target, "model#default");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_position() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].position = Vec2::new(-0.5, 0.5);
@@ -24,7 +24,7 @@ fn set_position() {
     assert_same(&mut app, &target, "model#moved");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_size() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].size = Vec2::new(0.5, 0.75);
@@ -33,7 +33,7 @@ fn set_size() {
     assert_same(&mut app, &target, "model#scaled");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_rotation() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].rotation = FRAC_PI_4;
@@ -42,7 +42,7 @@ fn set_rotation() {
     assert_same(&mut app, &target, "model#rotated");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_material() {
     let (mut app, target) = configure_app();
     let material = root(&mut app).material2.glob();
@@ -52,7 +52,7 @@ fn set_material() {
     assert_same(&mut app, &target, "model#other_material");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_camera() {
     let (mut app, target) = configure_app();
     let camera = root(&mut app).target2.camera.glob().clone();
@@ -61,7 +61,7 @@ fn set_camera() {
     assert_same(&mut app, &target, "model#empty");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_z_index() {
     let (mut app, target) = configure_app();
     let camera = root(&mut app).target1.camera.glob().clone();

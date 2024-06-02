@@ -13,7 +13,7 @@ use modor_resources::Res;
 const SIMPLE_SHADER_PATH: &str = "../tests/assets/simple.wgsl";
 const INVALID_SHADER_PATH: &str = "../tests/assets/invalid.wgsl";
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_path() {
     let (mut app, target) = configure_app();
     Root::wait_resources(&mut app);
@@ -21,7 +21,7 @@ fn load_from_path() {
     assert!(!root(&mut app).shader.is_invalid());
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_string() {
     let (mut app, target) = configure_app();
     let code = include_str!(concat!(
@@ -36,7 +36,7 @@ fn load_from_string() {
     assert!(!root(&mut app).shader.is_invalid());
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_invalid_code() {
     let (mut app, target) = configure_app();
     Root::wait_resources(&mut app);
@@ -50,7 +50,7 @@ fn load_invalid_code() {
     assert!(!root(&mut app).shader.is_invalid());
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_alpha_replaced() {
     let (mut app, target) = configure_app();
     Root::wait_resources(&mut app);

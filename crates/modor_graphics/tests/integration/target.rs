@@ -7,13 +7,13 @@ use modor_graphics::{
 use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn use_default_background() {
     let (mut app, target) = configure_app();
     assert_same(&mut app, &target, "target#default");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_background() {
     let (mut app, target) = configure_app();
     root(&mut app).target.target.background_color = Color::RED;

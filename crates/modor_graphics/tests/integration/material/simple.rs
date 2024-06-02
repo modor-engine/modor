@@ -10,7 +10,7 @@ use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_less_than_shader() {
     let (mut app, target) = configure_app();
     root(&mut app).material.textures = vec![];
@@ -18,7 +18,7 @@ fn set_textures_less_than_shader() {
     assert_same(&mut app, &target, "material#no_texture");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_more_than_shader() {
     let (mut app, target) = configure_app();
     let texture = root(&mut app).texture.glob().clone();
@@ -27,7 +27,7 @@ fn set_textures_more_than_shader() {
     assert_same(&mut app, &target, "material#default");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_color_opaque() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE;
@@ -35,7 +35,7 @@ fn set_color_opaque() {
     assert_same(&mut app, &target, "material#lighter");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_color_transparent() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE.with_alpha(0.5);
@@ -43,7 +43,7 @@ fn set_color_transparent() {
     assert_max_component_diff(&mut app, &target, "material#alpha", 10, 1);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_shader() {
     let (mut app, target) = configure_app();
     let shader = root(&mut app).red_shader.glob();

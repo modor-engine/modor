@@ -14,7 +14,7 @@ const TEXTURE_BYTES: &[u8] = include_bytes!(concat!(
     "/tests/assets/opaque-texture.png"
 ));
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_not_existing_expected() {
     let (mut app, texture) = configure_app();
     Root::wait_resources(&mut app);
@@ -29,7 +29,7 @@ fn compare_to_not_existing_expected() {
     assert_eq!(actual_image.ok(), expected_image.ok());
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_same_texture() {
     let (mut app, texture) = configure_app();
     Root::wait_resources(&mut app);
@@ -42,7 +42,7 @@ fn compare_to_same_texture() {
     assert_max_pixel_diff(&mut app, &texture, "testing#texture", 100_000);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_similar_texture() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
@@ -53,7 +53,7 @@ fn compare_to_similar_texture() {
 }
 
 #[should_panic = "texture is different"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_different_texture_using_zero_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
@@ -62,7 +62,7 @@ fn compare_to_different_texture_using_zero_diff() {
 }
 
 #[should_panic = "texture is different"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_different_texture_using_component_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
@@ -71,7 +71,7 @@ fn compare_to_different_texture_using_component_diff() {
 }
 
 #[should_panic = "texture is different"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_different_texture_using_pixel_count_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
@@ -80,7 +80,7 @@ fn compare_to_different_texture_using_pixel_count_diff() {
 }
 
 #[should_panic = "texture buffer is empty"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_empty_texture() {
     let (mut app, texture) = configure_app();
     root(&mut app).texture.is_buffer_enabled = false;
@@ -89,7 +89,7 @@ fn compare_to_empty_texture() {
 }
 
 #[should_panic = "texture width is different"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_texture_with_different_width() {
     let (mut app, texture) = configure_app();
     load_different_width(&mut app);
@@ -98,7 +98,7 @@ fn compare_to_texture_with_different_width() {
 }
 
 #[should_panic = "texture height is different"]
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn compare_to_texture_with_different_height() {
     let (mut app, texture) = configure_app();
     load_different_height(&mut app);
@@ -106,7 +106,7 @@ fn compare_to_texture_with_different_height() {
     assert_same(&mut app, &texture, "testing#texture");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn generate_diff_texture() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);

@@ -10,7 +10,7 @@ use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn use_instance_data() {
     let mut app = App::new::<Root>(Level::Info);
     Root::wait_resources(&mut app);

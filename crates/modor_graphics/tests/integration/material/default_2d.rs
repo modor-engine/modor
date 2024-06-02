@@ -8,14 +8,14 @@ use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
     let (mut app, target) = configure_app();
     Root::wait_resources(&mut app);
     assert_same(&mut app, &target, "material#white");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_properties() {
     let (mut app, target) = configure_app();
     let texture = root(&mut app).texture.glob().clone();

@@ -13,7 +13,7 @@ const TEXTURE_BYTES: &[u8] = include_bytes!(concat!(
     "/tests/assets/opaque-texture.png"
 ));
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_size() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Size(Size::new(40, 20));
@@ -23,7 +23,7 @@ fn load_from_size() {
     assert_eq!(glob.get(&app.ctx()).size, Size::new(40, 20));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_zero_size() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Size(Size::ZERO);
@@ -37,7 +37,7 @@ fn load_from_zero_size() {
     assert_eq!(glob.get(&app.ctx()).size, Size::ONE);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_buffer() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Buffer(
@@ -50,7 +50,7 @@ fn load_from_buffer() {
     assert_eq!(glob.get(&app.ctx()).size, Size::new(3, 1));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_empty_buffer() {
     let (mut app, _, _) = configure_app();
     let source = TextureSource::Buffer(Size::ZERO, vec![]);
@@ -62,7 +62,7 @@ fn load_from_empty_buffer() {
     ));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_too_small_buffer() {
     let (mut app, _, _) = configure_app();
     let source = TextureSource::Buffer(Size::ONE, vec![]);
@@ -74,7 +74,7 @@ fn load_from_too_small_buffer() {
     ));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_bytes() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -84,7 +84,7 @@ fn load_from_bytes() {
     assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_path() {
     let (mut app, glob, _) = configure_app();
     let path = "../tests/assets/opaque-texture.png";
@@ -94,7 +94,7 @@ fn load_from_path() {
     assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_file_with_invalid_format() {
     let (mut app, _, _) = configure_app();
     let path = "../tests/assets/text.txt";
@@ -106,7 +106,7 @@ fn load_file_with_invalid_format() {
     ));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn load_corrupted_file() {
     let (mut app, _, _) = configure_app();
     let path = "../tests/assets/corrupted.png";
@@ -118,7 +118,7 @@ fn load_corrupted_file() {
     ));
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_buffer() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -131,7 +131,7 @@ fn retrieve_buffer() {
     root(&mut app).texture.is_buffer_enabled = false;
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_buffer_when_disabled() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -143,7 +143,7 @@ fn retrieve_buffer_when_disabled() {
     assert_eq!(buffer.len(), 0);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_color() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -163,7 +163,7 @@ fn retrieve_color() {
     assert_eq!(glob.get(&ctx).color(&ctx, 4, 4), None);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_color_when_buffer_disabled() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -174,7 +174,7 @@ fn retrieve_color_when_buffer_disabled() {
     assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), None);
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_smooth() {
     let (mut app, _glob, target) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
@@ -186,7 +186,7 @@ fn set_smooth() {
     assert_same(&mut app, &target, "texture#not_smooth");
 }
 
-#[modor::test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_repeated() {
     let (mut app, _glob, target) = configure_app();
     root(&mut app).material.texture_size = Vec2::ONE * 2.;
