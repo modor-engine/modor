@@ -29,6 +29,7 @@ pub(crate) fn update_canvas_cursor(handle: &winit::window::Window, is_cursor_sho
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub(crate) fn surface_size(
     handle: &winit::window::Window,
     size: winit::dpi::PhysicalSize<u32>,
