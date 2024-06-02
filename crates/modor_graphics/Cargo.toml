@@ -14,9 +14,10 @@ rust-version.workspace = true
 
 [dependencies]
 bytemuck.workspace = true
-derivative.workspace = true 
-fxhash.workspace = true 
+derivative.workspace = true
+fxhash.workspace = true
 futures.workspace = true
+getrandom.workspace = true
 gilrs.workspace = true
 image.workspace = true
 instant.workspace = true

@@ -1,6 +1,9 @@
 #!/bin/bash
 set -xeu
 
+DXC_RELEASE="v1.7.2308"
+DXC_FILENAME="23.3.1"
+WARP_VERSION="1.0.8"
 MESA_VERSION="23.3.1"
 
 curl.exe -L --retry 5 https://github.com/microsoft/DirectXShaderCompiler/releases/download/$DXC_RELEASE/$DXC_FILENAME -o dxc.zip
