@@ -288,6 +288,7 @@ impl Target {
         Some(())
     }
 
+    // coverage: off (difficult to test)
     fn log_error(&mut self, result: Result<(), wgpu::Error>) {
         if !self.is_error_logged {
             if let Err(error) = result {
@@ -296,6 +297,7 @@ impl Target {
             }
         }
     }
+    // coverage: on
 }
 
 #[derive(Debug)]
