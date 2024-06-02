@@ -90,6 +90,7 @@ impl Target {
     }
 
     pub(crate) fn render(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, view: TextureView) {
+        ctx.get_mut::<InstanceGroups2D>().sync(gpu);
         let loaded = self
             .loaded
             .as_ref()

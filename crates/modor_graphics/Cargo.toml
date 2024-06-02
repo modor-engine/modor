@@ -43,7 +43,7 @@ wgpu.workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 instant = { workspace = true, features = ["wasm-bindgen"] }
 web-sys.workspace = true
-wgpu = { workspace = true, features = ["webgl"] }
+wgpu = { version = "0.19", default-features = false, features = ["webgl", "wgsl"] }
 
 [dev-dependencies]
 approx.workspace = true

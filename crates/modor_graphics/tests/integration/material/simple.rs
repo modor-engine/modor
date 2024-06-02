@@ -111,7 +111,6 @@ impl Root {
         wait_resource(app, |r: &Self| &r.texture);
         wait_resource(app, |r: &Self| &r.shader);
         wait_resource(app, |r: &Self| &r.red_shader);
-        app.update();
     }
 }
 

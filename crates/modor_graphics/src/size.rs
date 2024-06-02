@@ -30,7 +30,6 @@ impl From<Size> for Vec2 {
     }
 }
 
-// TODO: is it still useful ?
 // This type is useful to avoid `Surface` panic because of width or height = 0
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct NonZeroSize {

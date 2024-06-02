@@ -20,7 +20,6 @@ fn delete_model() {
     let (mut app, target) = configure_app();
     root(&mut app).models.clear();
     app.update();
-    app.update();
     assert_same(&mut app, &target, "model#empty");
 }
 
@@ -28,7 +27,6 @@ fn delete_model() {
 fn set_position() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].position = Vec2::new(-0.5, 0.5);
-    app.update();
     app.update();
     assert_same(&mut app, &target, "model#moved");
 }
@@ -38,7 +36,6 @@ fn set_size() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].size = Vec2::new(0.5, 0.75);
     app.update();
-    app.update();
     assert_same(&mut app, &target, "model#scaled");
 }
 
@@ -46,7 +43,6 @@ fn set_size() {
 fn set_rotation() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].rotation = FRAC_PI_4;
-    app.update();
     app.update();
     assert_same(&mut app, &target, "model#rotated");
 }
@@ -56,7 +52,6 @@ fn set_material() {
     let (mut app, target) = configure_app();
     let material = root(&mut app).material2.glob();
     root(&mut app).models[0].material = material;
-    app.update(); // TODO: remove delay in all tests (sync all buffers at each target update)
     app.update();
     assert_same(&mut app, &target, "model#other_material");
 }

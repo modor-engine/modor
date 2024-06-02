@@ -20,6 +20,28 @@ where
     event_loop.spawn(event_handler);
 }
 
+pub(crate) fn update_canvas_cursor(handle: &winit::window::Window, is_cursor_show: bool) {
+    if let Some(canvas) = handle.canvas() {
+        canvas
+            .style()
+            .set_property("cursor", if is_cursor_show { "auto" } else { "none" })
+            .expect("cannot update canvas cursor property");
+    }
+}
+
+pub(crate) fn surface_size(
+    handle: &winit::window::Window,
+    size: winit::dpi::PhysicalSize<u32>,
+) -> winit::dpi::PhysicalSize<u32> {
+    // If the size is not divided by the scale factor, then in case zoom is greater than 100%,
+    // the canvas is recursively resized until reaching the maximum allowed size.
+    let scale_factor = handle.scale_factor();
+    winit::dpi::PhysicalSize::new(
+        (f64::from(size.width) / scale_factor).round() as u32,
+        (f64::from(size.height) / scale_factor).round() as u32,
+    )
+}
+
 pub(crate) fn gpu_limits() -> wgpu::Limits {
     wgpu::Limits::downlevel_webgl2_defaults()
 }

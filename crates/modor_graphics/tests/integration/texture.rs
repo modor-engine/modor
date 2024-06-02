@@ -246,6 +246,5 @@ impl Root {
     fn wait_resources(app: &mut App) {
         wait_resource(app, |r: &Self| &r.texture);
         wait_resource(app, |r: &Self| &r.target);
-        app.update();
     }
 }

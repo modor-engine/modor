@@ -101,6 +101,5 @@ impl Root {
     fn wait_resources(app: &mut App) {
         wait_resource(app, |r: &Self| &r.target);
         wait_resource(app, |r: &Self| &r.other_target);
-        app.update();
     }
 }

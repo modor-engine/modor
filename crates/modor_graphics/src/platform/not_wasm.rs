@@ -13,6 +13,17 @@ where
         .expect("graphics event loop failed");
 }
 
+pub(crate) fn update_canvas_cursor(_handle: &winit::window::Window, _is_cursor_show: bool) {
+    // does nothing
+}
+
+pub(crate) fn surface_size(
+    _handle: &winit::window::Window,
+    size: winit::dpi::PhysicalSize<u32>,
+) -> winit::dpi::PhysicalSize<u32> {
+    size
+}
+
 // coverage: on
 
 pub(crate) fn gpu_limits() -> wgpu::Limits {

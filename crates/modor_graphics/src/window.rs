@@ -1,10 +1,11 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
-use crate::{Camera2D, Size, Target};
+use crate::{platform, Camera2D, Size, Target};
 use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{Instance, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor};
+use winit::dpi::PhysicalSize;
 
 // coverage: off (window cannot be tested)
 
@@ -23,6 +24,7 @@ pub struct Window {
     pub target: Target,
     /// Default camera of the window.
     pub camera: Camera2D,
+    pub(crate) size: Size,
     handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,
     old_state: OldWindowState,
@@ -37,6 +39,7 @@ impl RootNode for Window {
             is_cursor_visible: true,
             target,
             camera,
+            size: Self::DEFAULT_SIZE,
             handle: None,
             surface: WindowSurfaceState::None,
             old_state: OldWindowState::default(),
@@ -57,18 +60,14 @@ impl Window {
     /// Returns the size of the window, which is also the size of the surface where the rendering
     /// is performed.
     ///
-    /// Default size is 800x600.
-    ///
-    /// If the app is not run with [`run`](crate::run), `None` is returned.
+    /// If the app is not run with [`run`](crate::run), default size is returned.
     ///
     /// # Platform-specific
     ///
     /// - Android: default size is the size of the screen.
     /// - Other: default size is 800x600.
-    pub fn size(&self) -> Option<Size> {
-        self.handle
-            .as_ref()
-            .map(|handle| Size::new(handle.inner_size().width, handle.inner_size().height))
+    pub fn size(&self) -> Size {
+        self.size
     }
 
     pub(crate) fn prepare_rendering(&self) {
@@ -114,6 +113,7 @@ impl Window {
             }
             if self.is_cursor_visible != self.old_state.is_cursor_visible {
                 handle.set_cursor_visible(self.is_cursor_visible);
+                platform::update_canvas_cursor(handle, self.is_cursor_visible);
                 self.old_state.is_cursor_visible = self.is_cursor_visible;
             }
         }
@@ -121,16 +121,16 @@ impl Window {
 
     fn update_surface(&mut self, ctx: &mut Context<'_>) {
         let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
-        let size = self.size();
+        let size = self.surface_size();
         if let Some(surface) = self.surface.take_new() {
-            let size = size.expect("internal error: not configured window").into();
+            let size = size.expect("internal error: not configured window");
             let surface = WindowSurface::new(&gpu, surface, size);
             let texture_format = surface.surface_config.format;
             self.surface = WindowSurfaceState::Loaded(surface);
             self.target.enable(ctx, &gpu, size, texture_format);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
-            let size = size.expect("internal error: not configured window").into();
+            let size = size.expect("internal error: not configured window");
             surface.update(&gpu, size);
             if size != self.old_state.size {
                 let texture_format = surface.surface_config.format;
@@ -140,6 +140,13 @@ impl Window {
             }
             surface.render(ctx, &gpu, &mut self.target);
         }
+    }
+
+    fn surface_size(&self) -> Option<NonZeroSize> {
+        let handle = self.handle.as_ref()?;
+        let size = PhysicalSize::new(self.size.width, self.size.height);
+        let surface_size = platform::surface_size(handle, size);
+        Some(Size::new(surface_size.width, surface_size.height).into())
     }
 }
 

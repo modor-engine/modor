@@ -1,5 +1,5 @@
 use crate::gpu::GpuManager;
-use crate::{platform, Window};
+use crate::{platform, Size, Window};
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
 use std::marker::PhantomData;
@@ -91,6 +91,11 @@ where
                     }
                 }
                 WindowEvent::CloseRequested => event_loop.exit(),
+                WindowEvent::Resized(size) => {
+                    if let Some(app) = &mut self.app {
+                        app.get_mut::<Window>().size = Size::new(size.width, size.height);
+                    }
+                }
                 _ => (),
             },
             _ => (),

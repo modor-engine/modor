@@ -72,7 +72,6 @@ impl Root {
         wait_resource(app, |r: &Self| &r.target);
         wait_resource(app, |r: &Self| &r.texture);
         wait_resource(app, |r: &Self| &r.shader);
-        app.update();
     }
 }
 

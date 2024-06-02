@@ -50,7 +50,7 @@ use std::{env, fs};
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture = 
+///         let mut texture =
 ///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
 ///         texture.is_buffer_enabled = true;
 ///         Self { texture }
@@ -109,7 +109,7 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture = 
+///         let mut texture =
 ///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
 ///         texture.is_buffer_enabled = true;
 ///         Self { texture }
@@ -176,7 +176,7 @@ pub fn assert_max_component_diff(
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture = 
+///         let mut texture =
 ///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
 ///         texture.is_buffer_enabled = true;
 ///         Self { texture }

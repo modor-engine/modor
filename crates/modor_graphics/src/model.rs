@@ -1,5 +1,5 @@
 use crate::buffer::Buffer;
-use crate::gpu::{Gpu, GpuManager};
+use crate::gpu::Gpu;
 use crate::mesh::MeshGlob;
 use crate::mesh::VertexBuffer;
 use crate::resources::GraphicsResources;
@@ -161,10 +161,6 @@ impl Node for InstanceGroups2D {
                 .expect("internal error: missing model groups");
             self.group_mut(group).delete_model(*model_index);
         }
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
-        for buffer in self.groups.values_mut() {
-            buffer.update(gpu);
-        }
         self.groups.retain(|_, group| !group.buffers.is_empty());
     }
 }
@@ -173,6 +169,12 @@ impl InstanceGroups2D {
     /// Returns an iterator on all existing instance groups.
     pub fn group_iter(&self) -> impl Iterator<Item = InstanceGroup2DProperties> + '_ {
         self.groups.keys().copied()
+    }
+
+    pub(crate) fn sync(&mut self, gpu: &Gpu) {
+        for group in self.groups.values_mut() {
+            group.sync(gpu);
+        }
     }
 
     fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
@@ -276,9 +278,9 @@ impl InstanceGroup2D {
         }
     }
 
-    fn update(&mut self, gpu: &Gpu) {
+    fn sync(&mut self, gpu: &Gpu) {
         for buffer in self.buffers.values_mut() {
-            buffer.update(gpu);
+            buffer.sync(gpu);
         }
     }
 
@@ -331,7 +333,7 @@ impl InstanceGroupBuffer {
         }
     }
 
-    fn update(&mut self, gpu: &Gpu) {
+    fn sync(&mut self, gpu: &Gpu) {
         if self.is_updated {
             self.buffer
                 .get_or_insert_with(|| {
