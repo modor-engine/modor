@@ -18,3 +18,4 @@ curl.exe -L --retry 5 https://github.com/pal1000/mesa-dist-win/releases/download
 # We need to use cygpath to convert PWD to a windows path as we're using bash.
 echo "VK_DRIVER_FILES=`cygpath --windows $PWD/mesa/lvp_icd.x86_64.json`" >> "$GITHUB_ENV"
 echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
+echo "WGPU_DX12_COMPILER=dxc" >> "$GITHUB_ENV"
