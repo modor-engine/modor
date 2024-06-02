@@ -16,6 +16,15 @@ fn create_default() {
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
+fn delete_model() {
+    let (mut app, target) = configure_app();
+    root(&mut app).models.clear();
+    app.update();
+    app.update();
+    assert_same(&mut app, &target, "model#empty");
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_position() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].position = Vec2::new(-0.5, 0.5);

@@ -14,6 +14,15 @@ fn use_default_background() {
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
+fn set_size() {
+    let (mut app, target) = configure_app();
+    let source = TextureSource::Size(Size::new(20, 30));
+    root(&mut app).target.reload_with_source(source);
+    app.update();
+    assert_same(&mut app, &target, "target#resized");
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn set_background() {
     let (mut app, target) = configure_app();
     root(&mut app).target.target.background_color = Color::RED;

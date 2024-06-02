@@ -130,7 +130,6 @@ impl Resource for Texture {
     }
 
     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
-        self.camera.update(ctx);
         let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         if let Some(loaded) = loaded {
             self.loaded = loaded;
@@ -152,8 +151,9 @@ impl Resource for Texture {
             self.is_buffer_enabled,
             label,
         );
-        let size = Size::new(self.loaded.image.width(), self.loaded.image.height()).into();
-        self.update_target(ctx, &gpu, size);
+        self.update_target();
+        self.camera.update(ctx);
+        self.render_target(ctx, &gpu);
         self.glob.get_mut(ctx).update_buffer(&gpu);
     }
 }
@@ -196,17 +196,20 @@ impl Texture {
         }
     }
 
-    fn update_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, size: NonZeroSize) {
+    fn update_target(&mut self) {
+        if !self.is_target_enabled {
+            self.target.disable();
+        }
+    }
+
+    fn render_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
         if self.is_target_enabled {
-            self.target.update(ctx, gpu, size, Self::DEFAULT_FORMAT);
             let view = self
                 .glob
                 .get_mut(ctx)
                 .texture
                 .create_view(&TextureViewDescriptor::default());
             self.target.render(ctx, gpu, view);
-        } else {
-            self.target.disable();
         }
     }
 }

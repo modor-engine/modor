@@ -128,12 +128,12 @@ fn retrieve_buffer() {
     let buffer = glob.get(&ctx).buffer(&ctx);
     assert_eq!(buffer.len(), 4 * 4 * 4);
     assert_eq!(buffer[0..4], [255, 0, 0, 255]);
-    root(&mut app).texture.is_buffer_enabled = false;
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_buffer_when_disabled() {
     let (mut app, glob, _) = configure_app();
+    Root::wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     root(&mut app).texture.is_buffer_enabled = false;
@@ -166,6 +166,7 @@ fn retrieve_color() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_color_when_buffer_disabled() {
     let (mut app, glob, _) = configure_app();
+    Root::wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     root(&mut app).texture.is_buffer_enabled = false;

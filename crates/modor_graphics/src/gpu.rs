@@ -33,9 +33,11 @@ impl GpuManager {
         self.details.as_ref()
     }
 
+    // coverage: off (window cannot be tested)
     pub(crate) fn configure_window(&mut self, surface: &Surface<'_>) {
         self.details = Some(Gpu::new(&self.instance, Some(surface)).into());
     }
+    // coverage: on
 
     fn create_instance() -> Instance {
         Instance::new(wgpu::InstanceDescriptor {

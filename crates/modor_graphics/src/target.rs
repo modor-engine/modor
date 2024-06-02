@@ -83,30 +83,10 @@ impl Target {
     ) {
         self.glob.get_mut(ctx).size = size.into();
         self.loaded = Some(LoadedTarget {
-            size,
             texture_format,
             color_buffer_view: Self::create_color_buffer_view(gpu, size, texture_format),
             depth_buffer_view: Self::create_depth_buffer_view(gpu, size),
         });
-    }
-
-    pub(crate) fn update(
-        &mut self,
-        ctx: &mut Context<'_>,
-        gpu: &Gpu,
-        size: NonZeroSize,
-        texture_format: TextureFormat,
-    ) {
-        if let Some(loaded) = &mut self.loaded {
-            if size != loaded.size {
-                self.glob.get_mut(ctx).size = size.into();
-                loaded.size = size;
-                loaded.texture_format = texture_format;
-                loaded.color_buffer_view =
-                    Self::create_color_buffer_view(gpu, size, texture_format);
-                loaded.depth_buffer_view = Self::create_depth_buffer_view(gpu, size);
-            }
-        }
     }
 
     pub(crate) fn render(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, view: TextureView) {
@@ -319,8 +299,8 @@ impl Target {
 
 #[derive(Debug)]
 struct LoadedTarget {
-    size: NonZeroSize,
     texture_format: TextureFormat,
+    #[allow(dead_code)] // will be used when supporting antialiasing
     color_buffer_view: TextureView,
     depth_buffer_view: TextureView,
 }

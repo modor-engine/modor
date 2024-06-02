@@ -68,7 +68,7 @@ impl Window {
     pub fn size(&self) -> Option<Size> {
         self.handle
             .as_ref()
-            .map(|handle| handle.inner_size().into())
+            .map(|handle| Size::new(handle.inner_size().width, handle.inner_size().height))
     }
 
     pub(crate) fn prepare_rendering(&self) {
@@ -132,8 +132,12 @@ impl Window {
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
             let size = size.expect("internal error: not configured window").into();
             surface.update(&gpu, size);
-            self.target
-                .update(ctx, &gpu, size, surface.surface_config.format);
+            if size != self.old_state.size {
+                let texture_format = surface.surface_config.format;
+                self.target.enable(ctx, &gpu, size, texture_format);
+                self.old_state.size = size;
+                self.camera.update(ctx); // force camera update to avoid distortion
+            }
             surface.render(ctx, &gpu, &mut self.target);
         }
     }
@@ -142,6 +146,7 @@ impl Window {
 struct OldWindowState {
     title: String,
     is_cursor_visible: bool,
+    size: NonZeroSize,
 }
 
 impl Default for OldWindowState {
@@ -149,6 +154,7 @@ impl Default for OldWindowState {
         Self {
             title: "winit window".into(),
             is_cursor_visible: true,
+            size: Window::DEFAULT_SIZE.into(),
         }
     }
 }

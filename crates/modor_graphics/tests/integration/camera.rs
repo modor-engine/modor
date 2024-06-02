@@ -1,8 +1,11 @@
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
-use modor_graphics::{DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource};
+use modor_graphics::{
+    Camera2D, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+};
 use modor_input::modor_math::Vec2;
+use modor_internal::assert_approx_eq;
 use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 use std::f32::consts::FRAC_PI_4;
@@ -17,7 +20,7 @@ fn create_with_one_target() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn remove_target() {
     let (mut app, target, other_target) = configure_app();
-    root(&mut app).target.camera.targets.clear();
+    camera(&mut app).targets.clear();
     app.update();
     assert_same(&mut app, &target, "camera#empty");
     assert_same(&mut app, &other_target, "camera#empty");
@@ -27,34 +30,24 @@ fn remove_target() {
 fn add_target() {
     let (mut app, target, other_target) = configure_app();
     let other_target_glob = root(&mut app).other_target.target.glob().clone();
-    root(&mut app).target.camera.targets.push(other_target_glob);
+    camera(&mut app).targets.push(other_target_glob);
     app.update();
     assert_same(&mut app, &target, "camera#default");
     assert_same(&mut app, &other_target, "camera#default");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
-fn set_position() {
+fn set_position_size_rotation() {
     let (mut app, target, _) = configure_app();
-    root(&mut app).target.camera.position = Vec2::new(-0.5, 0.5);
+    let position = Vec2::new(-0.5, 0.5);
+    let size = Vec2::new(2., 1.5);
+    camera(&mut app).position = position;
+    camera(&mut app).size = size;
+    camera(&mut app).rotation = FRAC_PI_4;
     app.update();
-    assert_same(&mut app, &target, "camera#moved");
-}
-
-#[modor::test(disabled(windows, macos, android, wasm))]
-fn set_size() {
-    let (mut app, target, _) = configure_app();
-    root(&mut app).target.camera.size = Vec2::new(2., 1.5);
-    app.update();
-    assert_same(&mut app, &target, "camera#scaled");
-}
-
-#[modor::test(disabled(windows, macos, android, wasm))]
-fn set_rotation() {
-    let (mut app, target, _) = configure_app();
-    root(&mut app).target.camera.rotation = FRAC_PI_4;
-    app.update();
-    assert_same(&mut app, &target, "camera#rotated");
+    assert_same(&mut app, &target, "camera#transformed");
+    let world_position = camera(&mut app).world_position(Size::new(800, 600), Vec2::new(0., 600.));
+    assert_approx_eq!(world_position, Vec2::new(-1.973_139, 0.912_478));
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
@@ -63,6 +56,10 @@ fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
     let target = root(&mut app).target.glob().clone();
     let other_target = root(&mut app).other_target.glob().clone();
     (app, target, other_target)
+}
+
+fn camera(app: &mut App) -> &mut Camera2D {
+    &mut root(app).target.camera
 }
 
 fn root(app: &mut App) -> &mut Root {

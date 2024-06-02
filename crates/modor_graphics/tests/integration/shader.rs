@@ -56,6 +56,8 @@ fn set_alpha_replaced() {
     Root::wait_resources(&mut app);
     root(&mut app).shader.is_alpha_replaced = true;
     app.update();
+    assert_same(&mut app, &target, "shader#empty"); // because shader updated after material
+    app.update();
     assert_same(&mut app, &target, "shader#not_replaced_alpha");
 }
 
@@ -71,8 +73,8 @@ fn root(app: &mut App) -> &mut Root {
 
 #[derive(Node, Visit)]
 struct Root {
-    shader: Res<Shader<TestMaterial>>,
     material: Mat<TestMaterial>,
+    shader: Res<Shader<TestMaterial>>,
     model1: Model2D<TestMaterial>,
     model2: Model2D<TestMaterial>,
     target: Res<Texture>,
@@ -100,8 +102,8 @@ impl RootNode for Root {
         model2.camera = target.camera.glob().clone();
         model2.z_index = -1;
         Self {
-            shader,
             material,
+            shader,
             model1,
             model2,
             target,

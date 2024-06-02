@@ -13,6 +13,17 @@ use modor_resources::testing::wait_resource;
 use modor_resources::Res;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
+fn deref() {
+    let mut app = App::new::<Root>(Level::Info);
+    let shader = Res::<Shader<_>>::from_path(&mut app.ctx(), "main", "../tests/assets/red.wgsl");
+    let material_data = TestMaterial {
+        shader: shader.glob(),
+    };
+    let material = Mat::new(&mut app.ctx(), "main", material_data);
+    assert_eq!(material.shader, shader.glob());
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn use_material_empty_struct() {
     let mut app = App::new::<Root>(Level::Info);
     Root::wait_resources(&mut app);

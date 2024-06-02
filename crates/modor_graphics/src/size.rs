@@ -1,6 +1,5 @@
 use modor_physics::modor_math::Vec2;
 use std::num::NonZeroU32;
-use winit::dpi::PhysicalSize;
 
 /// A size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,12 +30,6 @@ impl From<Size> for Vec2 {
     }
 }
 
-impl From<PhysicalSize<u32>> for Size {
-    fn from(value: PhysicalSize<u32>) -> Self {
-        Self::new(value.width, value.height)
-    }
-}
-
 // TODO: is it still useful ?
 // This type is useful to avoid `Surface` panic because of width or height = 0
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -60,12 +53,5 @@ impl From<NonZeroSize> for Size {
             width: size.width.into(),
             height: size.height.into(),
         }
-    }
-}
-
-impl From<NonZeroSize> for Vec2 {
-    #[allow(clippy::cast_precision_loss)]
-    fn from(size: NonZeroSize) -> Self {
-        Self::new(u32::from(size.width) as f32, u32::from(size.height) as f32)
     }
 }
