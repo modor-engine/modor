@@ -11,6 +11,8 @@
 
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
+// TODO: test examples on Windows, WASM and Android
+
 mod buffer;
 mod camera;
 mod color;

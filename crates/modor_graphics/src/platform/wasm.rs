@@ -1,4 +1,4 @@
-use winit::platform::web::EventLoopExtWebSys;
+use winit::platform::web::{EventLoopExtWebSys, WindowExtWebSys};
 
 pub(crate) const CANVAS_ID: &str = "modor";
 
