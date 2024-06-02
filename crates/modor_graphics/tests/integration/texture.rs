@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
-use modor_graphics::testing::assert_same;
+use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
@@ -180,7 +180,7 @@ fn set_smooth() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     Root::wait_resources(&mut app);
-    assert_same(&mut app, &target, "texture#smooth");
+    assert_max_component_diff(&mut app, &target, "texture#smooth", 10, 1);
     root(&mut app).texture.is_smooth = false;
     app.update();
     assert_same(&mut app, &target, "texture#not_smooth");

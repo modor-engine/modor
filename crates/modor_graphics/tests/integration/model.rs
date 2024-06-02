@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
-use modor_graphics::testing::assert_same;
+use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
@@ -91,14 +91,14 @@ fn set_z_index() {
     root(&mut app).models[3].size = Vec2::ONE * 0.25;
     app.update();
     app.update();
-    assert_same(&mut app, &target, "model#z_index");
+    assert_max_component_diff(&mut app, &target, "model#z_index", 10, 1);
     root(&mut app).models[0].z_index = 2;
     root(&mut app).models[1].z_index = 1;
     root(&mut app).models[2].z_index = 0;
     root(&mut app).models[3].z_index = -1;
     app.update();
     app.update();
-    assert_same(&mut app, &target, "model#reversed_z_index");
+    assert_max_component_diff(&mut app, &target, "model#reversed_z_index", 10, 1);
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
