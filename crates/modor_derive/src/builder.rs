@@ -18,12 +18,10 @@ pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream
         )
     })?;
     Ok(quote! {
-        // coverage: off
         #[automatically_derived]
         impl #impl_generics #ident #type_generics #where_clause {
             #(#builder_fns)*
         }
-        // coverage: on
     })
 }
 
@@ -75,13 +73,11 @@ struct BuilderStruct {
 #[derive(Debug, FromField)]
 #[darling(attributes(builder))]
 struct BuilderField {
-    // coverage: off (false positive)
     ident: Option<Ident>,
     ty: Type,
     vis: Visibility,
     #[darling(default)]
     form: Option<BuilderForm>,
-    // coverage: on
 }
 
 #[derive(Debug, PartialEq, Eq, FromMeta)]

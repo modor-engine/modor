@@ -183,12 +183,10 @@ fn platform_as_str(platform: &Path) -> String {
 
 #[derive(FromMeta)]
 struct TestArgs {
-    // coverage: off (false positive)
     #[darling(default)]
     disabled: PathList,
     #[darling(default)]
     cases: TestCases,
-    // coverage: on
 }
 
 #[derive(Default, FromMeta)]
