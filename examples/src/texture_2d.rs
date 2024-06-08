@@ -1,8 +1,8 @@
 use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::Res;
-use modor_graphics::{Color, DefaultMaterial2D, Mat, Model2D, Texture};
+use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Texture};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 pub fn main() {
@@ -50,8 +50,8 @@ struct Resources {
 impl RootNode for Resources {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         Self {
-            background_texture: Res::from_path(ctx, "background", "background.png"),
-            smiley_texture: Res::from_path(ctx, "smiley", "smiley.png"),
+            background_texture: Texture::new(ctx, "background").load_from_path("background.png"),
+            smiley_texture: Texture::new(ctx, "smiley").load_from_path("smiley.png"),
         }
     }
 }
@@ -64,9 +64,9 @@ struct Background {
 
 impl Background {
     fn new(ctx: &mut Context<'_>) -> Self {
-        let mut material_data = DefaultMaterial2D::new(ctx);
-        material_data.texture = ctx.get_mut::<Resources>().background_texture.glob().clone();
-        let material = Mat::new(ctx, "background", material_data);
+        let material = DefaultMaterial2D::new(ctx)
+            .with_texture(ctx.get_mut::<Resources>().background_texture.glob().clone())
+            .into_mat(ctx, "background");
         let model = Model2D::new(ctx, material.glob());
         Self { material, model }
     }
@@ -112,14 +112,14 @@ impl Smiley {
         velocity: Vec2,
         angular_velocity: f32,
     ) -> Self {
-        let mut material_data = DefaultMaterial2D::new(ctx);
-        material_data.texture = ctx.get_mut::<Resources>().smiley_texture.glob().clone();
-        material_data.color = color;
-        let material = Mat::new(ctx, "smiley", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.position = position;
-        model.size *= 0.2;
-        model.z_index = z_index;
+        let material = DefaultMaterial2D::new(ctx)
+            .with_color(color)
+            .with_texture(ctx.get_mut::<Resources>().smiley_texture.glob().clone())
+            .into_mat(ctx, "smiley");
+        let model = Model2D::new(ctx, material.glob())
+            .with_position(position)
+            .with_size(Vec2::ONE * 0.2)
+            .with_z_index(z_index);
         Self {
             material,
             model,

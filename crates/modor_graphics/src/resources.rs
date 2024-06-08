@@ -1,7 +1,7 @@
 use crate::mesh::Mesh;
 use crate::{DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource};
 use modor::{Context, Node, RootNode, Visit};
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 
 #[non_exhaustive]
 #[derive(Debug, Node, Visit)]
@@ -16,25 +16,18 @@ impl RootNode for GraphicsResources {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         Self {
             rectangle_mesh: Mesh::rectangle(ctx),
-            default_shader: Res::from_source(
-                ctx,
-                "default(modor_graphics)",
+            default_shader: Shader::new(ctx, "default(modor_graphics)").load_from_source(
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")).into(),
                 ),
             ),
-            ellipse_shader: Res::from_source(
-                ctx,
-                "ellipse(modor_graphics)",
+            ellipse_shader: Shader::new(ctx, "ellipse(modor_graphics)").load_from_source(
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")).into(),
                 ),
             ),
-            white_texture: Res::from_source(
-                ctx,
-                "white(modor_graphics)",
-                TextureSource::Size(Size::ONE),
-            ),
+            white_texture: Texture::new(ctx, "white(modor_graphics)")
+                .load_from_source(TextureSource::Size(Size::ONE)),
         }
     }
 }

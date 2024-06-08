@@ -6,7 +6,7 @@ use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{DeriveInput, Index, Type};
 
-pub(crate) fn impl_block_with_visit(input: &DeriveInput) -> syn::Result<TokenStream> {
+pub(crate) fn impl_block(input: &DeriveInput) -> syn::Result<TokenStream> {
     let crate_ident = utils::crate_ident();
     let ident = &input.ident;
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
@@ -101,19 +101,19 @@ fn struct_visit_body(crate_ident: &Ident, fields: Fields<VisitField>) -> TokenSt
         .collect()
 }
 
-#[derive(FromDeriveInput)]
+#[derive(Debug, FromDeriveInput)]
 struct VisitStruct {
     data: Data<VisitVariant, VisitField>,
 }
 
-#[derive(FromVariant)]
+#[derive(Debug, FromVariant)]
 #[darling(attributes(modor))]
 struct VisitVariant {
     ident: Ident,
     fields: Fields<VisitField>,
 }
 
-#[derive(FromField)]
+#[derive(Debug, FromField)]
 #[darling(attributes(modor))]
 struct VisitField {
     ident: Option<Ident>,

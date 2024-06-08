@@ -171,3 +171,58 @@ pub use modor_derive::Node;
 ///
 /// See [`modor`](crate).
 pub use modor_derive::Visit;
+
+/// Generates builder methods for a `struct` with named fields.
+///
+/// The following attributes can be applied on the `struct` fields:
+/// - `#[builder(form(value))]`: generates a builder method that replaces the value.
+/// - `#[builder(form(closure))]`: generates a builder method that modifies the value.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Default, Builder)]
+/// pub struct BuiltStruct {
+///     #[builder(form(value))]
+///     pub value1: u32,
+///     #[builder(form(closure))]
+///     value2: Vec<i64>,
+///     value3: u8,
+/// }
+///
+/// let value = BuiltStruct::default()
+///     .with_value1(10)
+///     .with_value2(|v| v.push(20));
+/// assert_eq!(value.value1, 10);
+/// assert_eq!(value.value2, [20]);
+/// ```
+///
+/// The above `struct` is expended to:
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(Default)]
+/// pub struct BuiltStruct {
+///     value1: u32,
+///     value2: Vec<i64>,
+///     value3: u8,
+/// }
+///
+/// impl BuiltStruct {
+///     /// Returns `self` with a different [`value1`](#structfield.value1).
+///     pub fn with_value1(mut self, value1: u32) -> Self {
+///         self.value1 = value1;
+///         self
+///     }
+///     
+///     /// Returns `self` with a different [`value2`](#structfield.value2).
+///     fn with_value2(mut self, f: impl FnOnce(&mut Vec<i64>)) -> Self {
+///         f(&mut self.value2);
+///         self
+///     }
+/// }
+/// ```
+pub use modor_derive::Builder;

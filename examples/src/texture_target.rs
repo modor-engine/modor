@@ -1,11 +1,10 @@
 use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
-    Camera2D, Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureSource, Window,
+    Camera2D, Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource, Window,
 };
 use modor_physics::modor_math::Vec2;
-use std::f32::consts::FRAC_PI_8;
 
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
@@ -35,9 +34,9 @@ struct TargetRectangle {
 
 impl TargetRectangle {
     fn new(ctx: &mut Context<'_>) -> Self {
-        let mut material_data = DefaultMaterial2D::new(ctx);
-        material_data.texture = ctx.get_mut::<TextureTarget>().texture.glob().clone();
-        let material = Mat::new(ctx, "inner-rectangle", material_data);
+        let material = DefaultMaterial2D::new(ctx)
+            .with_texture(ctx.get_mut::<TextureTarget>().texture.glob().clone())
+            .into_mat(ctx, "inner-rectangle");
         let model = Model2D::new(ctx, material.glob());
         Self { material, model }
     }
@@ -51,13 +50,12 @@ struct InnerRectangle {
 
 impl InnerRectangle {
     fn new(ctx: &mut Context<'_>) -> Self {
-        let mut material_data = DefaultMaterial2D::new(ctx);
-        material_data.color = Color::RED;
-        let material = Mat::new(ctx, "inner-rectangle", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.size = Vec2::ONE * 0.2;
-        model.rotation = FRAC_PI_8;
-        model.camera = ctx.get_mut::<TextureTarget>().camera.glob().clone();
+        let material = DefaultMaterial2D::new(ctx)
+            .with_color(Color::RED)
+            .into_mat(ctx, "inner-rectangle");
+        let model = Model2D::new(ctx, material.glob())
+            .with_size(Vec2::ONE * 0.2)
+            .with_camera(ctx.get_mut::<TextureTarget>().camera.glob().clone());
         Self { material, model }
     }
 }
@@ -76,12 +74,9 @@ struct TextureTarget {
 
 impl RootNode for TextureTarget {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut texture = Res::<Texture>::from_source(
-            ctx,
-            "texture-target",
-            TextureSource::Size(Size::new(300, 300)),
-        );
-        texture.is_target_enabled = true;
+        let texture = Texture::new(ctx, "texture-target")
+            .with_is_target_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(300, 300)));
         let camera = Camera2D::new(ctx, "texture-target", vec![texture.target.glob().clone()]);
         Self { texture, camera }
     }

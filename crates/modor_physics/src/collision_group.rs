@@ -35,11 +35,10 @@ use rapier2d::prelude::InteractionGroups;
 /// }
 ///
 /// fn create_wall_body(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Body2D {
-///     let mut body = Body2D::new(ctx);
-///     body.position = position;
-///     body.size = size;
-///     body.collision_group = Some(ctx.get_mut::<CollisionGroups>().wall.glob().clone());
-///     body
+///     Body2D::new(ctx)
+///         .with_position(position)
+///         .with_size(size)
+///         .with_collision_group(Some(ctx.get_mut::<CollisionGroups>().wall.glob().clone()))
 /// }
 /// ```
 #[derive(Debug, Visit)]

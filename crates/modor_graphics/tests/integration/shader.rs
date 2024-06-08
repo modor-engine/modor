@@ -3,12 +3,12 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Color, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size, Texture,
-    TextureGlob, TextureSource,
+    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size,
+    Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 
 const SIMPLE_SHADER_PATH: &str = "../tests/assets/simple.wgsl";
 const INVALID_SHADER_PATH: &str = "../tests/assets/invalid.wgsl";
@@ -82,25 +82,21 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "main", TextureSource::Size(Size::new(30, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let shader = Res::<Shader<_>>::from_path(ctx, "main", SIMPLE_SHADER_PATH);
-        let material_data = TestMaterial {
-            color: Color::RED.with_alpha(0.25),
-            shader: shader.glob(),
-        };
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model1 = Model2D::new(ctx, material.glob());
-        model1.position = Vec2::ZERO;
-        model1.size = Vec2::ONE * 0.5;
-        model1.camera = target.camera.glob().clone();
-        let mut model2 = Model2D::new(ctx, material.glob());
-        model1.position = Vec2::ONE * 0.25;
-        model2.size = Vec2::ONE * 0.5;
-        model2.camera = target.camera.glob().clone();
-        model2.z_index = -1;
+        let target = Texture::new(ctx, "main")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let shader = Shader::new(ctx, "main").load_from_path(SIMPLE_SHADER_PATH);
+        let material = TestMaterial::new(&shader).into_mat(ctx, "main");
+        let model1 = Model2D::new(ctx, material.glob())
+            .with_position(Vec2::ZERO)
+            .with_size(Vec2::ONE * 0.5)
+            .with_camera(target.camera.glob().clone());
+        let model2 = Model2D::new(ctx, material.glob())
+            .with_position(Vec2::ONE * 0.25)
+            .with_size(Vec2::ONE * 0.5)
+            .with_camera(target.camera.glob().clone())
+            .with_z_index(-1);
         Self {
             material,
             shader,
@@ -119,7 +115,6 @@ impl Root {
     }
 }
 
-#[derive(Node, Visit)]
 struct TestMaterial {
     color: Color,
     shader: ShaderGlobRef<Self>,
@@ -148,6 +143,15 @@ impl Material for TestMaterial {
     }
 
     fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+}
+
+impl TestMaterial {
+    fn new(shader: &Res<Shader<Self>>) -> Self {
+        Self {
+            color: Color::RED.with_alpha(0.25),
+            shader: shader.glob(),
+        }
+    }
 }
 
 #[repr(C)]

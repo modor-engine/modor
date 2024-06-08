@@ -2,11 +2,11 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
@@ -48,18 +48,17 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "target", TextureSource::Size(Size::new(30, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let mut texture =
-            Res::<Texture>::from_path(ctx, "main", "../tests/assets/opaque-texture.png");
-        texture.is_smooth = false;
-        let material_data = DefaultMaterial2D::new(ctx);
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.size = Vec2::ONE * 0.5;
-        model.camera = target.camera.glob().clone();
+        let target = Texture::new(ctx, "target")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let texture = Texture::new(ctx, "main")
+            .with_is_smooth(false)
+            .load_from_path("../tests/assets/opaque-texture.png");
+        let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "main");
+        let model = Model2D::new(ctx, material.glob())
+            .with_size(Vec2::ONE * 0.5)
+            .with_camera(target.camera.glob().clone());
         Self {
             texture,
             material,

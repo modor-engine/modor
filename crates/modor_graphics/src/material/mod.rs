@@ -22,7 +22,7 @@ use wgpu::{
 ///
 /// See [`Model2D`](crate::Model2D).
 #[derive(Debug, Visit)]
-pub struct Mat<T: Node> {
+pub struct Mat<T> {
     data: T,
     label: String,
     glob: Glob<MaterialGlob>,
@@ -30,10 +30,7 @@ pub struct Mat<T: Node> {
     phantom_data: PhantomData<T>,
 }
 
-impl<T> Deref for Mat<T>
-where
-    T: Node,
-{
+impl<T> Deref for Mat<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -41,10 +38,7 @@ where
     }
 }
 
-impl<T> DerefMut for Mat<T>
-where
-    T: Node,
-{
+impl<T> DerefMut for Mat<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
@@ -65,27 +59,37 @@ impl<T> Mat<T>
 where
     T: Material,
 {
-    /// Creates a new material.
-    ///
-    /// The `label` is used to identity the material in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>, data: T) -> Self {
-        let label = label.into();
-        let glob = MaterialGlob::new(ctx, &data, &label);
-        let dummy_glob = MaterialGlob::new(ctx, &data, &label);
-        Self {
-            data,
-            label,
-            glob: Glob::new(ctx, glob),
-            updated_glob: dummy_glob,
-            phantom_data: PhantomData,
-        }
-    }
-
     /// Returns a reference to global data.
     pub fn glob(&self) -> MaterialGlobRef<T> {
         MaterialGlobRef {
             inner: self.glob.as_ref().clone(),
             phantom: PhantomData,
+        }
+    }
+}
+
+/// A trait implemented for types that can be converted to a [`Mat`].
+pub trait IntoMat: Sized {
+    /// Converts to a [`Mat`].
+    ///
+    /// The `label` is used to identity the material in logs.
+    fn into_mat(self, ctx: &mut Context<'_>, label: impl Into<String>) -> Mat<Self>;
+}
+
+impl<T> IntoMat for T
+where
+    T: Material,
+{
+    fn into_mat(self, ctx: &mut Context<'_>, label: impl Into<String>) -> Mat<Self> {
+        let label = label.into();
+        let glob = MaterialGlob::new(ctx, &self, &label);
+        let dummy_glob = MaterialGlob::new(ctx, &self, &label);
+        Mat {
+            data: self,
+            label,
+            glob: Glob::new(ctx, glob),
+            updated_glob: dummy_glob,
+            phantom_data: PhantomData,
         }
     }
 }
@@ -314,7 +318,7 @@ impl BindingGlobalIds {
 /// # Examples
 ///
 /// See code of `custom_shader` example.
-pub trait Material: Sized + Node + 'static {
+pub trait Material: Sized + 'static {
     /// Raw material data type.
     type Data: Pod;
     /// Raw instance data type.

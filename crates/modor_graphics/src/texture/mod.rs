@@ -4,7 +4,7 @@ use crate::texture::internal::TextureLoaded;
 use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{Context, Glob, GlobRef, Node};
+use modor::{Builder, Context, Glob, GlobRef, Node};
 use modor_resources::{Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
@@ -26,12 +26,12 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///
 /// impl TexturedRectangle {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
-///         let mut material_data = DefaultMaterial2D::new(ctx);
-///         material_data.texture = ctx.get_mut::<Resources>().texture.glob().clone();
-///         let material = Mat::new(ctx, "rectangle", material_data);
-///         let mut model = Model2D::new(ctx, material.glob());
-///         model.position = position;
-///         model.size = size;
+///         let material = DefaultMaterial2D::new(ctx)
+///             .with_texture(ctx.get_mut::<Resources>().texture.glob().clone())
+///             .into_mat(ctx, "rectangle");
+///         let model = Model2D::new(ctx, material.glob())
+///             .with_position(position)
+///             .with_size(size);
 ///         Self { material, model }
 ///     }
 /// }
@@ -44,12 +44,12 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// impl RootNode for Resources {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
 ///         Self {
-///             texture: Res::from_path(ctx, "rectangle", "my-texture.png"),
+///             texture: Texture::new(ctx, "rectangle").load_from_path("my-texture.png"),
 ///         }
 ///     }
 /// }
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Builder)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Texture {
     /// Whether the texture is smooth.
@@ -58,6 +58,7 @@ pub struct Texture {
     /// original size.
     ///
     /// Default is `true`.
+    #[builder(form(value))]
     pub is_smooth: bool,
     /// Whether the texture is repeated.
     ///
@@ -65,6 +66,7 @@ pub struct Texture {
     /// an associated [`Material`](crate::Material) is greater than `1.0`.
     ///
     /// Default is `false`.
+    #[builder(form(value))]
     pub is_repeated: bool,
     /// Whether the texture buffer is enabled.
     ///
@@ -72,20 +74,25 @@ pub struct Texture {
     /// It is accessible with the [`TextureGlob`].
     ///
     /// Default is `false`.
+    #[builder(form(value))]
     pub is_buffer_enabled: bool,
     /// Whether the texture is a rendering [`target`](#structfield.target).
     ///
     /// Default is `false`.
+    #[builder(form(value))]
     pub is_target_enabled: bool,
     /// Render target of the texture.
     ///
     /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
+    #[builder(form(closure))]
     pub target: Target,
     /// Default camera of the texture target.
     ///
     /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
+    #[builder(form(closure))]
     pub camera: Camera2D,
     loaded: TextureLoaded,
+    label: String,
     glob: Glob<TextureGlob>,
 }
 
@@ -93,28 +100,8 @@ impl Resource for Texture {
     type Source = TextureSource;
     type Loaded = TextureLoaded;
 
-    fn create(ctx: &mut Context<'_>, label: &str) -> Self {
-        let loaded = TextureLoaded::default();
-        let glob = TextureGlob::new(
-            ctx,
-            &loaded,
-            Self::DEFAULT_IS_REPEATED,
-            Self::DEFAULT_IS_SMOOTH,
-            Self::DEFAULT_IS_BUFFER_ENABLED,
-            label,
-        );
-        let target = Target::new(ctx, label.into());
-        let camera = Camera2D::new(ctx, label, vec![target.glob().clone()]);
-        Self {
-            is_smooth: Self::DEFAULT_IS_SMOOTH,
-            is_repeated: Self::DEFAULT_IS_REPEATED,
-            is_buffer_enabled: Self::DEFAULT_IS_BUFFER_ENABLED,
-            is_target_enabled: false,
-            target,
-            camera,
-            loaded,
-            glob: Glob::new(ctx, glob),
-        }
+    fn label(&self) -> &str {
+        &self.label
     }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -129,7 +116,7 @@ impl Resource for Texture {
         }))
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
+    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
         let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         if let Some(loaded) = loaded {
             self.loaded = loaded;
@@ -139,7 +126,7 @@ impl Resource for Texture {
                 self.is_repeated,
                 self.is_smooth,
                 self.is_buffer_enabled,
-                label,
+                &self.label,
             );
             let size = Size::new(self.loaded.image.width(), self.loaded.image.height()).into();
             self.init_target(ctx, &gpu, size);
@@ -149,7 +136,7 @@ impl Resource for Texture {
             self.is_repeated,
             self.is_smooth,
             self.is_buffer_enabled,
-            label,
+            &self.label,
         );
         self.update_target();
         self.camera.update(ctx);
@@ -163,6 +150,35 @@ impl Texture {
     pub(crate) const DEFAULT_IS_SMOOTH: bool = true;
     pub(crate) const DEFAULT_IS_REPEATED: bool = false;
     pub(crate) const DEFAULT_IS_BUFFER_ENABLED: bool = false;
+
+    /// Creates a new texture.
+    ///
+    /// The `label` is used to identity the texture in logs.
+    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+        let label = label.into();
+        let loaded = TextureLoaded::default();
+        let glob = TextureGlob::new(
+            ctx,
+            &loaded,
+            Self::DEFAULT_IS_REPEATED,
+            Self::DEFAULT_IS_SMOOTH,
+            Self::DEFAULT_IS_BUFFER_ENABLED,
+            &label,
+        );
+        let target = Target::new(ctx, &label);
+        let camera = Camera2D::new(ctx, &label, vec![target.glob().clone()]);
+        Self {
+            is_smooth: Self::DEFAULT_IS_SMOOTH,
+            is_repeated: Self::DEFAULT_IS_REPEATED,
+            is_buffer_enabled: Self::DEFAULT_IS_BUFFER_ENABLED,
+            is_target_enabled: false,
+            target,
+            camera,
+            loaded,
+            label,
+            glob: Glob::new(ctx, glob),
+        }
+    }
 
     /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<TextureGlob> {

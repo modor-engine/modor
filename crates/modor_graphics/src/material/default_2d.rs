@@ -2,7 +2,7 @@ use crate::resources::GraphicsResources;
 use crate::texture::glob::TextureGlob;
 use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
 use internal::DefaultMaterial2DData;
-use modor::{Context, GlobRef, Node, Visit};
+use modor::{Builder, Context, GlobRef};
 use modor_input::modor_math::Vec2;
 
 /// The default material for 2D rendering.
@@ -10,19 +10,21 @@ use modor_input::modor_math::Vec2;
 /// # Examples
 ///
 /// See [`Model2D`](crate::Model2D).
-#[derive(Debug, Node, Visit)]
+#[derive(Debug, Builder)]
 pub struct DefaultMaterial2D {
     /// Color of the rendered instance.
     ///
     /// This color is multiplied to the [`texture`](#structfield.texture) pixel colors.
     ///
     /// Default is [`Color::WHITE`].
+    #[builder(form(value))]
     pub color: Color,
     /// The texture used to render the models.
     ///
     /// If the texture is not loaded, then the instances attached to the material are not rendered.
     ///
     /// Default is a white texture.
+    #[builder(form(value))]
     pub texture: GlobRef<TextureGlob>,
     /// Top-left position of the extracted texture section.
     ///
@@ -30,18 +32,21 @@ pub struct DefaultMaterial2D {
     /// corner of the texture.
     ///
     /// Default is [`Vec2::ZERO`].
+    #[builder(form(value))]
     pub texture_position: Vec2,
     /// Size of the extracted texture section.
     ///
     /// [`Vec2::ONE`] corresponds to the entire texture.
     ///
     /// Default is [`Vec2::ONE`].
+    #[builder(form(value))]
     pub texture_size: Vec2,
     /// Whether the instance is rendered as an ellipse.
     ///
     /// If `false`, then the instance is displayed as a rectangle.
     ///
     /// Default is `false`.
+    #[builder(form(value))]
     pub is_ellipse: bool,
     default_shader: ShaderGlobRef<Self>,
     ellipse_shader: ShaderGlobRef<Self>,

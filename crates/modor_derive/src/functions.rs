@@ -78,7 +78,7 @@ impl<'a> TestContext<'a> {
                     .platform_conditions
                     .contains_key(platform_as_str(platform).as_str())
             {
-                return Err(error(
+                return Err(utils::error(
                     platform.span(),
                     &format!("allowed platforms are {:?}", self.supported_platforms),
                 ));
@@ -114,7 +114,7 @@ impl<'a> TestContext<'a> {
                 Ident::new(&format!("{main_function_ident}_{suffix}"), span.span());
             let params = params
                 .parse::<TokenStream>()
-                .map_err(|_| error(Span::call_site(), "cannot parse test case args"))?
+                .map_err(|_| utils::error(Span::call_site(), "cannot parse test case args"))?
                 .into_iter()
                 .map(|mut token| {
                     token.set_span(span);
@@ -175,10 +175,6 @@ impl<'a> TestContext<'a> {
         .into_iter()
         .collect()
     }
-}
-
-fn error(span: Span, error: &str) -> TokenStream {
-    syn::Error::new(span, error).into_compile_error()
 }
 
 fn platform_as_str(platform: &Path) -> String {

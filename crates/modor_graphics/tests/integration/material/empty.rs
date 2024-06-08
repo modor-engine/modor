@@ -5,21 +5,18 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture, TextureGlob,
-    TextureSource,
+    IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
+    TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn deref() {
     let mut app = App::new::<Root>(Level::Info);
-    let shader = Res::<Shader<_>>::from_path(&mut app.ctx(), "main", "../tests/assets/red.wgsl");
-    let material_data = TestMaterial {
-        shader: shader.glob(),
-    };
-    let material = Mat::new(&mut app.ctx(), "main", material_data);
+    let shader = Shader::new(&mut app.ctx(), "main").load_from_path("../tests/assets/red.wgsl");
+    let material = TestMaterial::new(&shader).into_mat(&mut app.ctx(), "main");
     assert_eq!(material.shader, shader.glob());
 }
 
@@ -45,18 +42,15 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "main", TextureSource::Size(Size::new(30, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let shader = Res::<Shader<_>>::from_path(ctx, "main", "../tests/assets/red.wgsl");
-        let material_data = TestMaterial {
-            shader: shader.glob(),
-        };
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.size = Vec2::ONE * 0.5;
-        model.camera = target.camera.glob().clone();
+        let target = Texture::new(ctx, "main")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let shader = Shader::new(ctx, "main").load_from_path("../tests/assets/red.wgsl");
+        let material = TestMaterial::new(&shader).into_mat(ctx, "main");
+        let model = Model2D::new(ctx, material.glob())
+            .with_size(Vec2::ONE * 0.5)
+            .with_camera(target.camera.glob().clone());
         Self {
             shader,
             material,
@@ -73,7 +67,6 @@ impl Root {
     }
 }
 
-#[derive(Node, Visit)]
 struct TestMaterial {
     shader: ShaderGlobRef<Self>,
 }
@@ -99,6 +92,14 @@ impl Material for TestMaterial {
     }
 
     fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+}
+
+impl TestMaterial {
+    fn new(shader: &Res<Shader<Self>>) -> Self {
+        Self {
+            shader: shader.glob(),
+        }
+    }
 }
 
 #[repr(C)]

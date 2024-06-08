@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{Context, Glob, GlobRef, Node, Visit};
+use modor::{Builder, Context, Glob, GlobRef, Node, Visit};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -29,11 +29,10 @@ use wgpu::{BindGroup, BufferUsages};
 ///
 /// impl Object {
 ///     fn new(ctx: &mut Context<'_>) -> Self {
-///         let mut material_data = DefaultMaterial2D::new(ctx);
-///         let material = Mat::new(ctx, "object", material_data);
-///         let mut model = Model2D::new(ctx, material.glob());
-///         model.camera = ctx.get_mut::<MovingCamera>().camera.glob().clone();
-///         model.size = Vec2::ONE * 0.2;
+///         let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "object");
+///         let model = Model2D::new(ctx, material.glob())
+///             .with_camera(ctx.get_mut::<MovingCamera>().camera.glob().clone())
+///             .with_size(Vec2::ONE * 0.2);
 ///         Self { material, model }
 ///     }
 /// }
@@ -52,24 +51,29 @@ use wgpu::{BindGroup, BufferUsages};
 /// impl RootNode for MovingCamera {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
 ///         let target = ctx.get_mut::<Window>().target.glob().clone();
-///         let mut camera = Camera2D::new(ctx, "moving", vec![target]);
-///         camera.size = Vec2::ONE * 0.5; // zoom x2
-///         Self { camera }
+///         Self {
+///             camera: Camera2D::new(ctx, "moving", vec![target])
+///                 .with_size(Vec2::ONE * 0.5) // zoom x2
+///         }
 ///     }
 /// }
 /// ```
-#[derive(Debug, Visit)]
+#[derive(Debug, Visit, Builder)]
 pub struct Camera2D {
+    #[builder(form(value))]
     /// Position of the rendered zone center in world units.
     pub position: Vec2,
     /// Size of the rendered zone in world units.
+    #[builder(form(value))]
     pub size: Vec2,
     /// Rotation in radians of the camera around its [`position`](#structfield.position).
+    #[builder(form(value))]
     pub rotation: f32,
     /// The render targets where the camera should be used.
     ///
     /// If a camera is linked to a target, then all models linked to the camera are rendered in the
     /// target.
+    #[builder(form(closure))]
     pub targets: Vec<GlobRef<TargetGlob>>,
     glob: Glob<Camera2DGlob>,
     label: String,

@@ -39,17 +39,18 @@ struct BodyWrapper(Body2D);
 impl BodyWrapper {
     #[allow(clippy::cast_precision_loss)]
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
-        let mut body = Body2D::new(ctx);
-        body.position = Vec2::new(index as f32 * 0.5, index as f32 * 0.5) * 0.5;
-        body.size = Vec2::ONE * 0.1;
-        body.velocity = Vec2::new(1., 2.);
-        body.mass = 1.;
-        body.collision_group = Some(if index % 2 == 0 {
-            ctx.get_mut::<CollisionGroups>().group1.glob().clone()
-        } else {
-            ctx.get_mut::<CollisionGroups>().group2.glob().clone()
-        });
-        Self(body)
+        Self(
+            Body2D::new(ctx)
+                .with_position(Vec2::new(index as f32 * 0.5, index as f32 * 0.5) * 0.5)
+                .with_size(Vec2::ONE * 0.1)
+                .with_velocity(Vec2::new(1., 2.))
+                .with_mass(1.)
+                .with_collision_group(Some(if index % 2 == 0 {
+                    ctx.get_mut::<CollisionGroups>().group1.glob().clone()
+                } else {
+                    ctx.get_mut::<CollisionGroups>().group2.glob().clone()
+                })),
+        )
     }
 }
 

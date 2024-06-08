@@ -57,12 +57,12 @@ impl Target {
         self.glob.as_ref()
     }
 
-    pub(crate) fn new(ctx: &mut Context<'_>, label: String) -> Self {
+    pub(crate) fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
         Self {
             background_color: Color::BLACK,
             loaded: None,
             is_error_logged: false,
-            label,
+            label: label.into(),
             glob: Glob::new(ctx, TargetGlob { size: Size::ZERO }),
             cameras: ctx.handle(),
             materials: ctx.handle(),

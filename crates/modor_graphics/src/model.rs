@@ -6,7 +6,7 @@ use crate::resources::GraphicsResources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
+use modor::{Builder, Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use std::any::TypeId;
 use std::marker::PhantomData;
@@ -30,43 +30,49 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 ///
 /// impl Circle {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, radius: f32, color: Color) -> Self {
-///         let mut material_data = DefaultMaterial2D::new(ctx);
-///         material_data.color = color;
-///         material_data.is_ellipse = true;
-///         let material = Mat::new(ctx, "circle", material_data);
-///         let mut model = Model2D::new(ctx, material.glob());
-///         model.position = position;
-///         model.size = Vec2::ONE * radius * 2.;
+///         let material = DefaultMaterial2D::new(ctx)
+///             .with_color(color)
+///             .with_is_ellipse(true)
+///             .into_mat(ctx, "circle");
+///         let model = Model2D::new(ctx, material.glob())
+///             .with_position(position)
+///             .with_size(Vec2::ONE * radius * 2.);
 ///         Self { material, model }
 ///     }
 /// }
 /// ```
-#[derive(Derivative, Visit)]
+#[derive(Derivative, Visit, Builder)]
 #[derivative(Debug(bound = ""))]
 pub struct Model2D<T> {
     /// The position of the model is world units.
     ///
     /// Default is [`Vec2::ZERO`].
+    #[builder(form(value))]
     pub position: Vec2,
     /// The size of the model is world units.
     ///
     /// Default is [`Vec2::ONE`].
+    #[builder(form(value))]
     pub size: Vec2,
     /// The rotation of the model in radians.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub rotation: f32,
     /// The Z-index of the model.
     ///
     /// [`i16::MIN`] is the farthest from the camera, and [`i16::MAX`] the closest to the camera.
     ///
     /// Default is `0`.
+    #[builder(form(value))]
     pub z_index: i16,
     /// The camera on which the model is rendered.
     ///
     /// Default is the default camera of the [`Window`].
+    #[builder(form(value))]
     pub camera: GlobRef<Camera2DGlob>,
     /// The material used to render the model.
+    #[builder(form(value))]
     pub material: MaterialGlobRef<T>,
     mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,

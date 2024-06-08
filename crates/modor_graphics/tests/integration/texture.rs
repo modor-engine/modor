@@ -2,11 +2,11 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::{Res, ResourceState};
+use modor_resources::{Res, ResLoad, ResourceState};
 
 const TEXTURE_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -222,17 +222,17 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "target", TextureSource::Size(Size::new(20, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let mut texture = Res::<Texture>::from_source(ctx, "main", TextureSource::Size(Size::ONE));
-        texture.is_buffer_enabled = true;
-        let mut material_data = DefaultMaterial2D::new(ctx);
-        material_data.texture = texture.glob().clone();
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.camera = target.camera.glob().clone();
+        let target = Texture::new(ctx, "target")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(20, 20)));
+        let texture = Texture::new(ctx, "main")
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::ONE));
+        let material = DefaultMaterial2D::new(ctx)
+            .with_texture(texture.glob().clone())
+            .into_mat(ctx, "main");
+        let model = Model2D::new(ctx, material.glob()).with_camera(target.camera.glob().clone());
         Self {
             texture,
             material,
