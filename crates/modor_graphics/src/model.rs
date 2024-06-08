@@ -13,7 +13,10 @@ use std::marker::PhantomData;
 use std::mem;
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
-/// The instance of a rendered object.
+/// The instance of a rendered 2D object.
+///
+/// Note that in case a material is only used for a specific model, this model can be directly
+/// created with a [`Sprite`](crate::Sprite).
 ///
 /// # Examples
 ///

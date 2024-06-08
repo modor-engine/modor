@@ -20,19 +20,18 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// #
 /// #[derive(Node, Visit)]
 /// struct TexturedRectangle {
-///     material: Mat<DefaultMaterial2D>,
-///     model: Model2D<DefaultMaterial2D>,
+///     sprite: Sprite2D,
 /// }
 ///
 /// impl TexturedRectangle {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
-///         let material = DefaultMaterial2D::new(ctx)
-///             .with_texture(ctx.get_mut::<Resources>().texture.glob().clone())
-///             .into_mat(ctx, "rectangle");
-///         let model = Model2D::new(ctx, material.glob())
-///             .with_position(position)
-///             .with_size(size);
-///         Self { material, model }
+///         let texture = ctx.get_mut::<Resources>().texture.glob().clone();
+///         Self {
+///             sprite: Sprite2D::new(ctx, "rectangle")
+///                 .with_material(|m| m.texture = texture)
+///                 .with_model(|m| m.position = position)
+///                 .with_model(|m| m.size = size),
+///         }
 ///     }
 /// }
 ///

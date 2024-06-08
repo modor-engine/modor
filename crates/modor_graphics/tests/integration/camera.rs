@@ -1,9 +1,7 @@
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
-use modor_graphics::{
-    Camera2D, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
-};
+use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
 use modor_resources::testing::wait_resource;
@@ -68,8 +66,7 @@ fn root(app: &mut App) -> &mut Root {
 
 #[derive(Node, Visit)]
 struct Root {
-    material: Mat<DefaultMaterial2D>,
-    model: Model2D<DefaultMaterial2D>,
+    sprite: Sprite2D,
     target: Res<Texture>,
     other_target: Res<Texture>,
 }
@@ -84,11 +81,10 @@ impl RootNode for Root {
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(TextureSource::Size(Size::new(30, 20)));
-        let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "main");
-        let model = Model2D::new(ctx, material.glob()).with_camera(target.camera.glob().clone());
+        let sprite =
+            Sprite2D::new(ctx, "main").with_model(|m| m.camera = target.camera.glob().clone());
         Self {
-            material,
-            model,
+            sprite,
             target,
             other_target,
         }

@@ -1,9 +1,7 @@
 use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
-use modor_graphics::{
-    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
-};
+use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
 use modor_resources::{Res, ResLoad, ResourceState};
@@ -190,7 +188,7 @@ fn set_smooth() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_repeated() {
     let (mut app, _glob, target) = configure_app();
-    root(&mut app).material.texture_size = Vec2::ONE * 2.;
+    root(&mut app).sprite.material.texture_size = Vec2::ONE * 2.;
     root(&mut app).texture.is_smooth = false;
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
@@ -215,8 +213,7 @@ fn root(app: &mut App) -> &mut Root {
 #[derive(Node, Visit)]
 struct Root {
     texture: Res<Texture>,
-    material: Mat<DefaultMaterial2D>,
-    model: Model2D<DefaultMaterial2D>,
+    sprite: Sprite2D,
     target: Res<Texture>,
 }
 
@@ -229,14 +226,12 @@ impl RootNode for Root {
         let texture = Texture::new(ctx, "main")
             .with_is_buffer_enabled(true)
             .load_from_source(TextureSource::Size(Size::ONE));
-        let material = DefaultMaterial2D::new(ctx)
-            .with_texture(texture.glob().clone())
-            .into_mat(ctx, "main");
-        let model = Model2D::new(ctx, material.glob()).with_camera(target.camera.glob().clone());
+        let sprite = Sprite2D::new(ctx, "main")
+            .with_model(|m| m.camera = target.camera.glob().clone())
+            .with_material(|m| m.texture = texture.glob().clone());
         Self {
             texture,
-            material,
-            model,
+            sprite,
             target,
         }
     }
