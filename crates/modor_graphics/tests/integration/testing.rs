@@ -4,7 +4,7 @@ use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_max_pixel_diff, assert_same};
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::{env, fs, panic};
@@ -161,10 +161,11 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut texture =
-            Res::<Texture>::from_source(ctx, "main", TextureSource::Bytes(TEXTURE_BYTES));
-        texture.is_buffer_enabled = true;
-        Self { texture }
+        Self {
+            texture: Texture::new(ctx, "main")
+                .with_is_buffer_enabled(true)
+                .load_from_source(TextureSource::Bytes(TEXTURE_BYTES)),
+        }
     }
 }
 

@@ -25,10 +25,8 @@ use std::{any, fmt};
 ///     type Source = ContentSizeSource;
 ///     type Loaded = ContentSizeLoaded;
 ///
-///     fn create(ctx: &mut Context<'_>, _label: &str) -> Self {
-///         Self {
-///             size: None,
-///         }
+///     fn label(&self) -> &str {
+///         "size"
 ///     }
 ///
 ///     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -46,12 +44,7 @@ use std::{any, fmt};
 ///         })
 ///     }
 ///
-///     fn update(
-///         &mut self,
-///         ctx: &mut Context<'_>,
-///         loaded: Option<Self::Loaded>,
-///         _label: &str,
-///     ) {
+///     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
 ///         if let Some(loaded) = loaded {
 ///             self.size = Some(loaded.size_in_bytes);
 ///         }
@@ -85,7 +78,7 @@ use std::{any, fmt};
 /// impl Content {
 ///     fn new(ctx: &mut Context) -> Self {
 ///         Self {
-///             size: Res::from_path(ctx, "size", "path/to/content"),
+///             size: ContentSize::default().load_from_path("path/to/content"),
 ///         }
 ///     }
 /// }
@@ -102,7 +95,6 @@ use std::{any, fmt};
 #[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
     inner: T,
-    label: String,
     location: ResourceLocation<T>,
     loading: Option<Loading<T>>,
     version: u64,
@@ -151,7 +143,7 @@ where
             Some(Loading::Sync(loaded)) => latest_loaded = Some(self.success(loaded)),
             None => (),
         }
-        self.inner.update(ctx, latest_loaded, &self.label);
+        self.inner.update(ctx, latest_loaded);
     }
 }
 
@@ -159,60 +151,6 @@ impl<T> Res<T>
 where
     T: Resource,
 {
-    /// Creates a resource from a `path`.
-    ///
-    /// Resource loading is asynchronous.
-    ///
-    /// The `label` is used to identity the resource in logs.
-    ///
-    /// # Platform-specific
-    ///
-    /// - Web: HTTP GET call is performed to retrieve the file from URL
-    /// `{current_browser_url}/assets/{path}`.
-    /// - Android: the file is retrieved using the Android
-    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
-    /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
-    /// application is run using a `cargo` command), then the file is retrieved from path
-    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
-    /// `{executable_folder_path}/assets/{path}`.
-    pub fn from_path(
-        ctx: &mut Context<'_>,
-        label: impl Into<String>,
-        path: impl Into<String>,
-    ) -> Self {
-        let label = label.into();
-        let mut res = Self {
-            inner: T::create(ctx, &label),
-            label,
-            location: ResourceLocation::Path(path.into()),
-            loading: None,
-            version: 0,
-            state: ResourceState::Loading,
-        };
-        res.reload();
-        res
-    }
-
-    /// Creates a resource from a custom `source`.
-    ///
-    /// Resource loading is asynchronous if [`T::Source::is_async()`](Source::is_async())
-    /// returns `true`.
-    ///
-    /// The `label` is used to identity the resource in logs.
-    pub fn from_source(ctx: &mut Context<'_>, label: impl Into<String>, source: T::Source) -> Self {
-        let label = label.into();
-        let mut res = Self {
-            inner: T::create(ctx, &label),
-            label,
-            location: ResourceLocation::Source(source),
-            loading: None,
-            version: 0,
-            state: ResourceState::Loading,
-        };
-        res.reload();
-        res
-    }
-
     /// Returns the state of the resource.
     pub fn state(&self) -> &ResourceState {
         &self.state
@@ -282,10 +220,68 @@ where
     fn fail(&mut self, err: ResourceError) {
         error!(
             "Failed to load `{}` resource of type `{}`: {err}",
-            self.label,
+            self.inner.label(),
             any::type_name::<T>(),
         );
         self.state = ResourceState::Error(err);
+    }
+}
+
+/// A trait implemented for types that can be used to configure a [`Res`].
+pub trait ResLoad: Sized + Resource {
+    /// Load a resource from a `path`.
+    ///
+    /// Resource loading is asynchronous.
+    ///
+    /// The `label` is used to identity the resource in logs.
+    ///
+    /// # Platform-specific
+    ///
+    /// - Web: HTTP GET call is performed to retrieve the file from URL
+    /// `{current_browser_url}/assets/{path}`.
+    /// - Android: the file is retrieved using the Android
+    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
+    /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
+    /// application is run using a `cargo` command), then the file is retrieved from path
+    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
+    /// `{executable_folder_path}/assets/{path}`.
+    fn load_from_path(self, path: impl Into<String>) -> Res<Self>;
+
+    /// Load a resource from a custom `source`.
+    ///
+    /// Resource loading is asynchronous if [`Self::Source::is_async()`](Source::is_async())
+    /// returns `true`.
+    ///
+    /// The `label` is used to identity the resource in logs.
+    fn load_from_source(self, source: Self::Source) -> Res<Self>;
+}
+
+impl<T> ResLoad for T
+where
+    T: Resource,
+{
+    fn load_from_path(self, path: impl Into<String>) -> Res<Self> {
+        let mut res = Res {
+            inner: self,
+            location: ResourceLocation::Path(path.into()),
+            loading: None,
+            version: 0,
+            state: ResourceState::Loading,
+        };
+        res.reload();
+        res
+    }
+
+    fn load_from_source(self, source: Self::Source) -> Res<Self> {
+        let mut res = Res {
+            inner: self,
+            location: ResourceLocation::Source(source),
+            loading: None,
+            version: 0,
+            state: ResourceState::Loading,
+        };
+        res.reload();
+        res
     }
 }
 
@@ -325,8 +321,8 @@ pub trait Resource {
     /// The loaded resource type.
     type Loaded: Send + 'static;
 
-    /// Creates a new resource.
-    fn create(ctx: &mut Context<'_>, label: &str) -> Self;
+    /// Returns the label used to identity the resource in logs.
+    fn label(&self) -> &str;
 
     /// Loads the resource from file bytes.
     ///
@@ -349,7 +345,7 @@ pub trait Resource {
     /// In case resource loaded has just finished, `loaded` is `Some`.
     ///
     /// `label` can be used for logging.
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str);
+    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>);
 }
 
 /// A trait for defining a source used to load a [`Resource`].

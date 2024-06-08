@@ -3,6 +3,7 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemFn};
 
+mod builder;
 mod functions;
 mod node;
 mod root_node;
@@ -43,10 +44,19 @@ pub fn node_derive(item: TokenStream) -> TokenStream {
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(Visit, attributes(modor))]
+#[proc_macro_derive(Visit)]
 pub fn visit_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    visit::impl_block_with_visit(&input)
+    visit::impl_block(&input)
         .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(Builder, attributes(builder))]
+pub fn builder_derive(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    builder::impl_block(&input)
+        .unwrap_or_else(Into::into)
         .into()
 }

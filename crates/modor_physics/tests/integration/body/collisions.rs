@@ -267,9 +267,9 @@ impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         ctx.get_mut::<Delta>().duration = Duration::from_secs(2);
         let body1 = Body2D::new(ctx);
-        let mut body2 = Body2D::new(ctx);
-        body2.position = Vec2::X;
-        body2.size = Vec2::new(2.5, 0.5);
+        let mut body2 = Body2D::new(ctx)
+            .with_position(Vec2::X)
+            .with_size(Vec2::new(2.5, 0.5));
         body2.update(ctx);
         Self {
             group1: CollisionGroup::new(ctx),

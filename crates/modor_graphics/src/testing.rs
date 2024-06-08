@@ -50,10 +50,11 @@ use std::{env, fs};
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture =
-///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
-///         texture.is_buffer_enabled = true;
-///         Self { texture }
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///         }
 ///     }
 /// }
 /// # }
@@ -109,10 +110,11 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture =
-///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
-///         texture.is_buffer_enabled = true;
-///         Self { texture }
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///         }
 ///     }
 /// }
 /// # }
@@ -176,10 +178,11 @@ pub fn assert_max_component_diff(
 ///
 /// impl RootNode for Root {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let mut texture =
-///             Res::<Texture>::from_source(ctx, "texture", TextureSource::Size(Size::new(10, 10)));
-///         texture.is_buffer_enabled = true;
-///         Self { texture }
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///         }
 ///     }
 /// }
 /// # }

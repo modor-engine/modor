@@ -1,10 +1,10 @@
 use modor::log::Level;
 use modor::{Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
-    bytemuck, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, Shader, ShaderGlobRef, Texture,
-    TextureGlob,
+    bytemuck, IntoMat, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, Shader, ShaderGlobRef,
+    Texture, TextureGlob,
 };
 use std::collections::HashMap;
 
@@ -22,9 +22,9 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let texture = Res::<Texture>::from_path(ctx, "smiley", "smiley.png");
-        let shader = Res::<Shader<_>>::from_path(ctx, "blur", "blur.wgsl");
-        let material = Mat::new(ctx, "blur-default", BlurMaterial::new(&texture, &shader));
+        let texture = Texture::new(ctx, "smiley").load_from_path("smiley.png");
+        let shader = Shader::new(ctx, "blur").load_from_path("blur.wgsl");
+        let material = BlurMaterial::new(&texture, &shader).into_mat(ctx, "blur-default");
         Self {
             sprites: vec![
                 Sprite::new(ctx, Vec2::new(-0.25, 0.25), 0, material.glob()),
@@ -51,9 +51,9 @@ impl Sprite {
         sample_count: u32,
         material: MaterialGlobRef<BlurMaterial>,
     ) -> Self {
-        let mut model = Model2D::new(ctx, material);
-        model.position = position;
-        model.size = Vec2::ONE * 0.4;
+        let model = Model2D::new(ctx, material)
+            .with_position(position)
+            .with_size(Vec2::ONE * 0.4);
         ctx.get_mut::<SpriteProperties>()
             .sample_counts
             .insert(model.glob().index(), sample_count);
@@ -66,7 +66,6 @@ struct SpriteProperties {
     sample_counts: HashMap<usize, u32>,
 }
 
-#[derive(Node, Visit)]
 struct BlurMaterial {
     blur_factor: f32,
     texture: GlobRef<TextureGlob>,

@@ -2,11 +2,11 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 use std::f32::consts::FRAC_PI_4;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -127,21 +127,19 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target1 =
-            Res::<Texture>::from_source(ctx, "target1", TextureSource::Size(Size::new(30, 20)));
-        target1.is_target_enabled = true;
-        target1.is_buffer_enabled = true;
-        let mut target2 =
-            Res::<Texture>::from_source(ctx, "target2", TextureSource::Size(Size::new(30, 20)));
-        target2.is_target_enabled = true;
-        target2.is_buffer_enabled = true;
-        let material1_data = DefaultMaterial2D::new(ctx);
-        let material1 = Mat::new(ctx, "material1", material1_data);
-        let mut material2_data = DefaultMaterial2D::new(ctx);
-        material2_data.color = Color::RED;
-        let material2 = Mat::new(ctx, "material2", material2_data);
-        let mut model = Model2D::new(ctx, material1.glob());
-        model.camera = target1.camera.glob().clone();
+        let target1 = Texture::new(ctx, "target1")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let target2 = Texture::new(ctx, "target2")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let material1 = DefaultMaterial2D::new(ctx).into_mat(ctx, "material1");
+        let material2 = DefaultMaterial2D::new(ctx)
+            .with_color(Color::RED)
+            .into_mat(ctx, "material2");
+        let model = Model2D::new(ctx, material1.glob()).with_camera(target1.camera.glob().clone());
         Self {
             material1,
             material2,

@@ -2,12 +2,12 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Camera2D, DefaultMaterial2D, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+    Camera2D, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 use std::f32::consts::FRAC_PI_4;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -76,18 +76,16 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "target1", TextureSource::Size(Size::new(30, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let mut other_target =
-            Res::<Texture>::from_source(ctx, "target2", TextureSource::Size(Size::new(30, 20)));
-        other_target.is_target_enabled = true;
-        other_target.is_buffer_enabled = true;
-        let material_data = DefaultMaterial2D::new(ctx);
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.camera = target.camera.glob().clone();
+        let target = Texture::new(ctx, "target1")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let other_target = Texture::new(ctx, "target2")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "main");
+        let model = Model2D::new(ctx, material.glob()).with_camera(target.camera.glob().clone());
         Self {
             material,
             model,

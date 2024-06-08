@@ -1,4 +1,4 @@
-use proc_macro2::{Ident, Span};
+use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::FoundCrate;
 
 pub(crate) fn crate_ident() -> Ident {
@@ -10,4 +10,8 @@ pub(crate) fn crate_ident() -> Ident {
         },
         Span::call_site(),
     )
+}
+
+pub(crate) fn error(span: Span, error: &str) -> TokenStream {
+    syn::Error::new(span, error).into_compile_error()
 }

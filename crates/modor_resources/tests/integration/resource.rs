@@ -1,15 +1,14 @@
 use modor::log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{Res, Resource, ResourceError, ResourceState, Source};
+use modor_resources::{Res, ResLoad, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 #[modor::test(disabled(wasm))]
 fn access_inner() {
-    let mut app = App::new::<Root>(Level::Info);
-    let mut res = Res::<ContentSize>::from_path(&mut app.ctx(), "res", "not_empty.txt");
+    let mut res = ContentSize::default().load_from_path("not_empty.txt");
     res.size = Some(1);
     assert_eq!(res.size, Some(1));
 }
@@ -140,11 +139,11 @@ fn reload_with_path() {
 }
 
 fn create_resource_from_path(app: &mut App, path: &str) {
-    app.get_mut::<Root>().content_size = Some(Res::from_path(&mut app.ctx(), "res", path));
+    app.get_mut::<Root>().content_size = Some(ContentSize::default().load_from_path(path));
 }
 
 fn create_resource_from_source(app: &mut App, source: ContentSizeSource) {
-    app.get_mut::<Root>().content_size = Some(Res::from_source(&mut app.ctx(), "res", source));
+    app.get_mut::<Root>().content_size = Some(ContentSize::default().load_from_source(source));
 }
 
 fn wait_resource_loaded(app: &mut App) {
@@ -177,8 +176,8 @@ impl Resource for ContentSize {
     type Source = ContentSizeSource;
     type Loaded = ContentSizeLoaded;
 
-    fn create(_ctx: &mut Context<'_>, _label: &str) -> Self {
-        Self { size: None }
+    fn label(&self) -> &str {
+        "res"
     }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -206,7 +205,7 @@ impl Resource for ContentSize {
         }
     }
 
-    fn update(&mut self, _ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, _label: &str) {
+    fn update(&mut self, _ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
         if let Some(loaded) = loaded {
             self.size = Some(loaded.size);
         }

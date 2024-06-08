@@ -3,7 +3,7 @@ use crate::Material;
 use derivative::Derivative;
 use glob::ShaderGlob;
 use log::error;
-use modor::{Context, Glob, GlobRef};
+use modor::{Builder, Context, Glob, GlobRef};
 use modor_resources::{Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -41,7 +41,7 @@ use std::ops::Deref;
 /// # Examples
 ///
 /// See [`Material`].
-#[derive(Derivative)]
+#[derive(Builder, Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Shader<T> {
     /// Controls how alpha channel should be treated:
@@ -49,8 +49,12 @@ pub struct Shader<T> {
     ///     It means models rendered behind a transparent model might be visible.
     /// - `true`: don't apply any color blending, just overwrites the output color.
     ///     It means models rendered behind a transparent model will never be visible.
+    ///
+    /// Default is `false`.
+    #[builder(form(value))]
     pub is_alpha_replaced: bool,
     loaded: ShaderLoaded,
+    label: String,
     glob: Glob<ShaderGlob>,
     is_invalid: bool,
     old_is_alpha_replaced: bool,
@@ -64,18 +68,8 @@ where
     type Source = ShaderSource;
     type Loaded = ShaderLoaded;
 
-    fn create(ctx: &mut Context<'_>, label: &str) -> Self {
-        let loaded = ShaderLoaded::default();
-        let glob = ShaderGlob::new::<T>(ctx, &loaded, Self::DEFAULT_IS_ALPHA_REPLACED, label)
-            .expect("internal error: cannot load empty shader");
-        Self {
-            is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            glob: Glob::new(ctx, glob),
-            loaded,
-            is_invalid: false,
-            old_is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            phantom_data: PhantomData,
-        }
+    fn label(&self) -> &str {
+        &self.label
     }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
@@ -90,12 +84,12 @@ where
         })
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>, label: &str) {
+    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
         if let Some(loaded) = loaded {
             self.loaded = loaded;
-            self.update(ctx, label);
+            self.update(ctx);
         } else if self.is_alpha_replaced != self.old_is_alpha_replaced {
-            self.update(ctx, label);
+            self.update(ctx);
         }
     }
 }
@@ -105,6 +99,25 @@ where
     T: 'static + Material,
 {
     const DEFAULT_IS_ALPHA_REPLACED: bool = false;
+
+    /// Creates a new shader.
+    ///
+    /// The `label` is used to identity the shader in logs.
+    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+        let label = label.into();
+        let loaded = ShaderLoaded::default();
+        let glob = ShaderGlob::new::<T>(ctx, &loaded, Self::DEFAULT_IS_ALPHA_REPLACED, &label)
+            .expect("internal error: cannot load empty shader");
+        Self {
+            is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
+            glob: Glob::new(ctx, glob),
+            loaded,
+            label,
+            is_invalid: false,
+            old_is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
+            phantom_data: PhantomData,
+        }
+    }
 
     /// Returns a reference to global data.
     pub fn glob(&self) -> ShaderGlobRef<T> {
@@ -119,15 +132,15 @@ where
         self.is_invalid
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, label: &str) {
-        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, label) {
+    fn update(&mut self, ctx: &mut Context<'_>) {
+        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, &self.label) {
             Ok(glob) => {
                 *self.glob.get_mut(ctx) = glob;
                 self.is_invalid = false;
             }
             Err(err) => {
                 self.is_invalid = true;
-                error!("Loading of shader '{label}' has failed: {err}");
+                error!("Loading of shader '{}' has failed: {err}", self.label());
             }
         }
         self.old_is_alpha_replaced = self.is_alpha_replaced;

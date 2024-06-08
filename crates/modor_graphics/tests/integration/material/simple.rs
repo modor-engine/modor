@@ -3,12 +3,12 @@ use log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture, TextureGlob,
-    TextureSource,
+    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
+    TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resource;
-use modor_resources::Res;
+use modor_resources::{Res, ResLoad};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_less_than_shader() {
@@ -76,24 +76,19 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let mut target =
-            Res::<Texture>::from_source(ctx, "main", TextureSource::Size(Size::new(30, 20)));
-        target.is_target_enabled = true;
-        target.is_buffer_enabled = true;
-        let mut texture =
-            Res::<Texture>::from_path(ctx, "main", "../tests/assets/opaque-texture.png");
-        texture.is_smooth = false;
-        let shader = Res::<Shader<_>>::from_path(ctx, "main", "../tests/assets/simple.wgsl");
-        let red_shader = Res::<Shader<_>>::from_path(ctx, "main", "../tests/assets/red.wgsl");
-        let material_data = TestMaterial {
-            color: Color::DARK_GRAY,
-            textures: vec![texture.glob().clone()],
-            shader: shader.glob(),
-        };
-        let material = Mat::new(ctx, "main", material_data);
-        let mut model = Model2D::new(ctx, material.glob());
-        model.size = Vec2::ONE * 0.5;
-        model.camera = target.camera.glob().clone();
+        let target = Texture::new(ctx, "main")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+        let texture = Texture::new(ctx, "main")
+            .with_is_smooth(false)
+            .load_from_path("../tests/assets/opaque-texture.png");
+        let shader = Shader::new(ctx, "main").load_from_path("../tests/assets/simple.wgsl");
+        let red_shader = Shader::new(ctx, "main").load_from_path("../tests/assets/red.wgsl");
+        let material = TestMaterial::new(&texture, &shader).into_mat(ctx, "main");
+        let model = Model2D::new(ctx, material.glob())
+            .with_size(Vec2::ONE * 0.5)
+            .with_camera(target.camera.glob().clone());
         Self {
             texture,
             shader,
@@ -114,7 +109,6 @@ impl Root {
     }
 }
 
-#[derive(Node, Visit)]
 struct TestMaterial {
     color: Color,
     textures: Vec<GlobRef<TextureGlob>>,
@@ -144,6 +138,16 @@ impl Material for TestMaterial {
     }
 
     fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+}
+
+impl TestMaterial {
+    fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
+        Self {
+            color: Color::DARK_GRAY,
+            textures: vec![texture.glob().clone()],
+            shader: shader.glob(),
+        }
+    }
 }
 
 #[repr(C)]

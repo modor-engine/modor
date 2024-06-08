@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{Builder, Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -45,39 +45,45 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///
 /// impl Character {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, group: &CollisionGroup) -> Self {
-///         let mut body = Body2D::new(ctx);
-///         body.position = position;
-///         body.size = Vec2::ONE * 0.2;
-///         body.rotation = FRAC_PI_2;
-///         body.collision_group = Some(group.glob().clone());
-///         body.shape = Shape2D::Circle;
-///         Self { body }
+///         Self {
+///             body: Body2D::new(ctx)
+///                 .with_position(position)
+///                 .with_size(Vec2::ONE * 0.2)
+///                 .with_rotation(FRAC_PI_2)
+///                 .with_collision_group(Some(group.glob().clone()))
+///                 .with_shape(Shape2D::Circle)
+///         }
 ///     }
 /// }
 /// ```
-#[derive(Debug, Visit)]
+#[derive(Debug, Visit, Builder)]
 pub struct Body2D {
     /// Position of the body in world units.
     ///
     /// Default is [`Vec2::ZERO`].
+    #[builder(form(value))]
     pub position: Vec2,
     /// Size of the body in world units.
     ///
     /// Default is [`Vec2::ONE`].
+    #[builder(form(value))]
     pub size: Vec2,
     /// Rotation of the body in radians.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub rotation: f32,
     /// Linear velocity of the body in world units per second.
     ///
     /// Default is `Vec2::ZERO`.
+    #[builder(form(value))]
     pub velocity: Vec2,
     /// Angular velocity of the body in radians per second.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub angular_velocity: f32,
     /// Force applied on the body.
     ///
@@ -86,12 +92,14 @@ pub struct Body2D {
     /// The acceleration of the body corresponds to the force of the body divided by its mass.
     ///
     /// Default is [`Vec2::ZERO`].
+    #[builder(form(value))]
     pub force: Vec2,
     /// Torque applied on the body.
     ///
     /// Has no effect if [`angular_inertia`](#structfield.angular_inertia) is `0.0`.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub torque: f32,
     /// Mass of the body.
     ///
@@ -99,6 +107,7 @@ pub struct Body2D {
     /// (even in case of collisions).
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub mass: f32,
     /// Angular inertia of the body.
     ///
@@ -106,18 +115,21 @@ pub struct Body2D {
     /// any effect (even in case of collisions).
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub angular_inertia: f32,
     /// Linear damping of the body.
     ///
     /// This coefficient is used to automatically slow down the translation of the body.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub damping: f32,
     /// Angular damping of the body.
     ///
     /// This coefficient is used to automatically slow down the rotation of the body.
     ///
     /// Default is `0.0`.
+    #[builder(form(value))]
     pub angular_damping: f32,
     /// Dominance of the body.
     ///
@@ -127,6 +139,7 @@ pub struct Body2D {
     /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
     /// Default is `0`.
+    #[builder(form(value))]
     pub dominance: i8,
     /// Whether Continuous Collision Detection is enabled for the body.
     ///
@@ -141,6 +154,7 @@ pub struct Body2D {
     /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
     ///
     /// Default is `false`.
+    #[builder(form(value))]
     pub is_ccd_enabled: bool,
     /// Collision group of the collider.
     ///
@@ -149,10 +163,12 @@ pub struct Body2D {
     /// the [`position`](#structfield.position) or the [`rotation`](#structfield.rotation).
     ///
     /// Default is `None` (no collision detection is performed).
+    #[builder(form(value))]
     pub collision_group: Option<GlobRef<CollisionGroupGlob>>,
     /// The shape of the body used to detect collisions.
     ///
     /// Default is [`Shape2D::Rectangle`].
+    #[builder(form(value))]
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,

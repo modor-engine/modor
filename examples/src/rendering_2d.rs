@@ -1,7 +1,7 @@
 use instant::Instant;
 use modor::log::{info, Level};
 use modor::{Context, Node, RootNode, Visit};
-use modor_graphics::{Color, DefaultMaterial2D, Mat, Model2D, Window};
+use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use rand::Rng;
 use std::time::Duration;
@@ -64,11 +64,10 @@ impl RootNode for Resources {
             materials: COLORS
                 .iter()
                 .map(|&color| {
-                    let data = DefaultMaterial2D::new(ctx);
-                    let mut material = Mat::new(ctx, "color", data);
-                    material.color = color;
-                    material.is_ellipse = true;
-                    material
+                    DefaultMaterial2D::new(ctx)
+                        .with_color(color)
+                        .with_is_ellipse(true)
+                        .into_mat(ctx, "color")
                 })
                 .collect(),
         }
@@ -99,10 +98,11 @@ impl Sprite {
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
         let mut rng = rand::thread_rng();
         let material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
-        let mut model = Model2D::new(ctx, material);
-        model.position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-        model.size = Vec2::ONE * 0.01;
-        model.z_index = rng.gen_range(i16::MIN..i16::MAX);
+        let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
+        let model = Model2D::new(ctx, material)
+            .with_position(position)
+            .with_size(Vec2::ONE * 0.01)
+            .with_z_index(rng.gen_range(i16::MIN..i16::MAX));
         Self {
             model,
             next_update: Instant::now(),

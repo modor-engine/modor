@@ -32,7 +32,7 @@ pub struct Window {
 
 impl RootNode for Window {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Target::new(ctx, "window(modor_graphics)".into());
+        let target = Target::new(ctx, "window(modor_graphics)");
         let camera = Camera2D::new(ctx, "window(modor_graphics)", vec![target.glob().clone()]);
         Self {
             title: String::new(),
