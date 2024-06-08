@@ -1,12 +1,17 @@
 use crate::gpu::GpuManager;
 use crate::{platform, Size, Window};
+use instant::Instant;
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
+use modor_physics::Delta;
 use std::marker::PhantomData;
+use std::time::Duration;
 use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
+
+const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
 
 // coverage: off (window and inputs cannot be tested)
 
@@ -14,7 +19,7 @@ use winit::window::WindowBuilder;
 ///
 /// This function also has the following effects:
 /// - Inputs of the [`modor_input`] crate are updated based on window events.
-/// - [`Delta`](modor_physics::Delta) is updated based on execution time of the last frame.
+/// - [`Delta`](Delta) is updated based on execution time of the last frame.
 ///
 /// If [`App::update`](App::update) is manually used instead of this function, then no window is
 /// created.
@@ -57,6 +62,7 @@ struct State<T> {
     window: Option<winit::window::Window>,
     level: Level,
     is_suspended: bool,
+    previous_update_end: Instant,
     phantom_data: PhantomData<fn(T)>,
 }
 
@@ -70,6 +76,7 @@ where
             window: Some(Self::create_window(event_loop)),
             level,
             is_suspended: false,
+            previous_update_end: Instant::now(),
             phantom_data: PhantomData,
         }
     }
@@ -85,11 +92,7 @@ where
                 }
             }
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::RedrawRequested => {
-                    if let Some(app) = &mut self.app {
-                        app.update();
-                    }
-                }
+                WindowEvent::RedrawRequested => self.update_app(),
                 WindowEvent::CloseRequested => event_loop.exit(),
                 WindowEvent::Resized(size) => {
                     if let Some(app) = &mut self.app {
@@ -129,6 +132,20 @@ where
             let instance = app.get_mut::<GpuManager>().instance.clone();
             let surface = app.get_mut::<Window>().create_surface(&instance, None);
             app.get_mut::<Window>().set_surface(surface);
+        }
+    }
+
+    fn update_app(&mut self) {
+        if let Some(app) = &mut self.app {
+            app.update();
+            let update_end = Instant::now();
+            app.get_mut::<Delta>().duration = if self.is_suspended {
+                self.is_suspended = false;
+                Duration::ZERO
+            } else {
+                (update_end - self.previous_update_end).min(MAX_FRAME_TIME)
+            };
+            self.previous_update_end = update_end;
         }
     }
 }
