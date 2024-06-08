@@ -127,11 +127,11 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target1 = Texture::new(ctx, "main1")
+        let target1 = Texture::new(ctx, "target1")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(TextureSource::Size(Size::new(30, 20)));
-        let target2 = Texture::new(ctx, "main2")
+        let target2 = Texture::new(ctx, "target2")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(TextureSource::Size(Size::new(30, 20)));
