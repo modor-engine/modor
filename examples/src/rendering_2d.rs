@@ -3,6 +3,7 @@ use modor::log::{info, Level};
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
+use modor_physics::Delta;
 use rand::Rng;
 use std::time::Duration;
 
@@ -82,15 +83,16 @@ struct Object {
 }
 
 impl Node for Object {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
             self.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
-                .with_magnitude(0.001)
+                .with_magnitude(0.05)
                 .unwrap_or(Vec2::ZERO);
-            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(1000..2000));
+            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(200..400));
         }
-        self.model.position += self.velocity;
+        let delta = ctx.get_mut::<Delta>().duration.as_secs_f32();
+        self.model.position += self.velocity * delta;
     }
 }
 
