@@ -140,7 +140,7 @@ where
             }
             Err(err) => {
                 self.is_invalid = true;
-                error!("Loading of shader '{}' has failed: {err}", self.label);
+                error!("Loading of shader '{}' has failed: {err}", self.label());
             }
         }
         self.old_is_alpha_replaced = self.is_alpha_replaced;
