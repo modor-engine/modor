@@ -23,17 +23,17 @@ use wgpu::{BindGroup, BufferUsages};
 /// #
 /// #[derive(Node, Visit)]
 /// struct Object {
-///     material: Mat<DefaultMaterial2D>,
-///     model: Model2D<DefaultMaterial2D>,
+///     sprite: Sprite2D
 /// }
 ///
 /// impl Object {
 ///     fn new(ctx: &mut Context<'_>) -> Self {
-///         let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "object");
-///         let model = Model2D::new(ctx, material.glob())
-///             .with_camera(ctx.get_mut::<MovingCamera>().camera.glob().clone())
-///             .with_size(Vec2::ONE * 0.2);
-///         Self { material, model }
+///         let camera = ctx.get_mut::<MovingCamera>().camera.glob().clone();
+///         Self {
+///             sprite: Sprite2D::new(ctx, "object")
+///                 .with_model(|m| m.size = Vec2::ONE * 0.2)
+///                 .with_model(|m| m.camera = camera)
+///         }
 ///     }
 /// }
 ///

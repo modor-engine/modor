@@ -6,7 +6,7 @@ use modor_physics::modor_math::Vec2;
 use rand::Rng;
 use std::time::Duration;
 
-const SPRITE_COUNT: usize = 200_000;
+const SPRITE_COUNT: usize = 1_000;
 const COLORS: [Color; 10] = [
     Color::RED,
     Color::GREEN,
@@ -26,7 +26,7 @@ pub fn main() {
 
 #[derive(Visit)]
 struct Root {
-    sprites: Vec<Sprite>,
+    objects: Vec<Object>,
     last_frame_instant: Instant,
 }
 
@@ -34,8 +34,8 @@ impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         ctx.get_mut::<Window>().title = "Rendering 2D".into();
         Self {
-            sprites: (0..SPRITE_COUNT)
-                .map(|index| Sprite::new(ctx, index))
+            objects: (0..SPRITE_COUNT)
+                .map(|index| Object::new(ctx, index))
                 .collect(),
             last_frame_instant: Instant::now(),
         }
@@ -75,13 +75,13 @@ impl RootNode for Resources {
 }
 
 #[derive(Visit)]
-struct Sprite {
+struct Object {
     model: Model2D<DefaultMaterial2D>,
     next_update: Instant,
     velocity: Vec2,
 }
 
-impl Node for Sprite {
+impl Node for Object {
     fn on_enter(&mut self, _ctx: &mut Context<'_>) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
@@ -94,7 +94,7 @@ impl Node for Sprite {
     }
 }
 
-impl Sprite {
+impl Object {
     fn new(ctx: &mut Context<'_>, index: usize) -> Self {
         let mut rng = rand::thread_rng();
         let material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();

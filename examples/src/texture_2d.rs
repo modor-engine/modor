@@ -2,7 +2,7 @@ use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Texture};
+use modor_graphics::{Color, Sprite2D, Texture};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 pub fn main() {
@@ -11,14 +11,16 @@ pub fn main() {
 
 #[derive(Node, Visit)]
 struct Root {
-    background: Background,
+    background: Sprite2D,
     smileys: Vec<Smiley>,
 }
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
+        let background_texture = ctx.get_mut::<Resources>().background_texture.glob().clone();
         Self {
-            background: Background::new(ctx),
+            background: Sprite2D::new(ctx, "background")
+                .with_material(|m| m.texture = background_texture),
             smileys: vec![
                 Smiley::new(
                     ctx,
@@ -56,50 +58,34 @@ impl RootNode for Resources {
     }
 }
 
-#[derive(Node, Visit)]
-struct Background {
-    material: Mat<DefaultMaterial2D>,
-    model: Model2D<DefaultMaterial2D>,
-}
-
-impl Background {
-    fn new(ctx: &mut Context<'_>) -> Self {
-        let material = DefaultMaterial2D::new(ctx)
-            .with_texture(ctx.get_mut::<Resources>().background_texture.glob().clone())
-            .into_mat(ctx, "background");
-        let model = Model2D::new(ctx, material.glob());
-        Self { material, model }
-    }
-}
-
 #[derive(Visit)]
 struct Smiley {
-    material: Mat<DefaultMaterial2D>,
-    model: Model2D<DefaultMaterial2D>,
+    sprite: Sprite2D,
     velocity: Vec2,
     angular_velocity: f32,
 }
 
 impl Node for Smiley {
     fn on_enter(&mut self, _ctx: &mut Context<'_>) {
-        if self.model.position.x < -0.5 + self.model.size.x / 2. {
+        let model = &mut self.sprite.model;
+        if model.position.x < -0.5 + model.size.x / 2. {
             self.velocity.x *= -1.;
-            self.model.position.x = -0.5 + self.model.size.x / 2.;
+            model.position.x = -0.5 + model.size.x / 2.;
         }
-        if self.model.position.x > 0.5 - self.model.size.x / 2. {
+        if model.position.x > 0.5 - model.size.x / 2. {
             self.velocity.x *= -1.;
-            self.model.position.x = 0.5 - self.model.size.x / 2.;
+            model.position.x = 0.5 - model.size.x / 2.;
         }
-        if self.model.position.y < -0.5 + self.model.size.y / 2. {
+        if model.position.y < -0.5 + model.size.y / 2. {
             self.velocity.y *= -1.;
-            self.model.position.y = -0.5 + self.model.size.y / 2.;
+            model.position.y = -0.5 + model.size.y / 2.;
         }
-        if self.model.position.y > 0.5 - self.model.size.y / 2. {
+        if model.position.y > 0.5 - model.size.y / 2. {
             self.velocity.y *= -1.;
-            self.model.position.y = 0.5 - self.model.size.y / 2.;
+            model.position.y = 0.5 - model.size.y / 2.;
         }
-        self.model.position += self.velocity / 60.;
-        self.model.rotation += self.angular_velocity / 60.;
+        model.position += self.velocity / 60.;
+        model.rotation += self.angular_velocity / 60.;
     }
 }
 
@@ -112,17 +98,14 @@ impl Smiley {
         velocity: Vec2,
         angular_velocity: f32,
     ) -> Self {
-        let material = DefaultMaterial2D::new(ctx)
-            .with_color(color)
-            .with_texture(ctx.get_mut::<Resources>().smiley_texture.glob().clone())
-            .into_mat(ctx, "smiley");
-        let model = Model2D::new(ctx, material.glob())
-            .with_position(position)
-            .with_size(Vec2::ONE * 0.2)
-            .with_z_index(z_index);
+        let texture = ctx.get_mut::<Resources>().smiley_texture.glob().clone();
         Self {
-            material,
-            model,
+            sprite: Sprite2D::new(ctx, "smiley")
+                .with_model(|m| m.position = position)
+                .with_model(|m| m.size = Vec2::ONE * 0.2)
+                .with_model(|m| m.z_index = z_index)
+                .with_material(|m| m.color = color)
+                .with_material(|m| m.texture = texture),
             velocity,
             angular_velocity,
         }
