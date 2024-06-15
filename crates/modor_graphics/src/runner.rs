@@ -1,13 +1,16 @@
 use crate::gpu::GpuManager;
+use crate::inputs::events;
+use crate::inputs::gamepads::Gamepads;
 use crate::{platform, Size, Window};
 use instant::Instant;
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
+use modor_input::Inputs;
 use modor_physics::Delta;
 use std::marker::PhantomData;
 use std::time::Duration;
 use winit::dpi::PhysicalSize;
-use winit::event::{Event, WindowEvent};
+use winit::event::{DeviceEvent, Event, WindowEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
 
@@ -59,6 +62,7 @@ where
 
 struct State<T> {
     app: Option<App>,
+    gamepads: Option<Gamepads>,
     window: Option<winit::window::Window>,
     level: Level,
     is_suspended: bool,
@@ -73,6 +77,7 @@ where
     fn new(level: Level, event_loop: &EventLoop<()>) -> Self {
         Self {
             app: None,
+            gamepads: None,
             window: Some(Self::create_window(event_loop)),
             level,
             is_suspended: false,
@@ -86,26 +91,47 @@ where
         match event {
             Event::Suspended => self.is_suspended = true,
             Event::Resumed => self.init_surface(),
-            Event::AboutToWait => {
-                if let Some(app) = &mut self.app {
-                    app.get_mut::<Window>().prepare_rendering();
-                }
-            }
+            Event::AboutToWait => self.prepare_rendering(),
+            Event::DeviceEvent {
+                event: DeviceEvent::MouseMotion { delta },
+                ..
+            } => events::update_mouse_motion(&mut self.app, delta),
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::RedrawRequested => self.update_app(),
                 WindowEvent::CloseRequested => event_loop.exit(),
-                WindowEvent::Resized(size) => {
-                    if let Some(app) = &mut self.app {
-                        app.get_mut::<Window>().size = Size::new(size.width, size.height);
-                    }
+                WindowEvent::Resized(size) => self.update_window_size(size),
+                WindowEvent::MouseInput { button, state, .. } => {
+                    events::update_mouse_button(&mut self.app, button, state);
                 }
+                WindowEvent::MouseWheel { delta, .. } => {
+                    events::update_mouse_wheel(&mut self.app, delta);
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    events::update_mouse_position(&mut self.app, position);
+                }
+                WindowEvent::KeyboardInput { event, .. } => {
+                    events::update_keyboard_key(&mut self.app, event);
+                }
+                WindowEvent::Touch(touch) => events::update_fingers(&mut self.app, touch),
                 _ => (),
             },
             _ => (),
         }
     }
 
-    pub(crate) fn create_window(event_loop: &EventLoop<()>) -> winit::window::Window {
+    fn prepare_rendering(&mut self) {
+        if let Some(app) = &mut self.app {
+            app.get_mut::<Window>().prepare_rendering();
+        }
+    }
+
+    fn update_window_size(&mut self, size: PhysicalSize<u32>) {
+        if let Some(app) = &mut self.app {
+            app.get_mut::<Window>().size = Size::new(size.width, size.height);
+        }
+    }
+
+    fn create_window(event_loop: &EventLoop<()>) -> winit::window::Window {
         let size = Window::DEFAULT_SIZE;
         let window = WindowBuilder::new()
             .with_inner_size(PhysicalSize::new(size.width, size.height))
@@ -127,6 +153,7 @@ where
             app.get_mut::<GpuManager>().configure_window(&surface);
             app.get_mut::<Window>().set_surface(surface);
             app.get_mut::<T>();
+            self.gamepads = Some(Gamepads::new(app));
         } else {
             let app = self.app.as_mut().expect("internal error: not created app");
             let instance = app.get_mut::<GpuManager>().instance.clone();
@@ -136,8 +163,10 @@ where
     }
 
     fn update_app(&mut self) {
-        if let Some(app) = &mut self.app {
+        if let (Some(app), Some(gamepads)) = (&mut self.app, &mut self.gamepads) {
+            gamepads.treat_events(app);
             app.update();
+            Self::refresh_inputs(app);
             let update_end = Instant::now();
             app.get_mut::<Delta>().duration = if self.is_suspended {
                 self.is_suspended = false;
@@ -147,6 +176,14 @@ where
             };
             self.previous_update_end = update_end;
         }
+    }
+
+    fn refresh_inputs(app: &mut App) {
+        let inputs = app.get_mut::<Inputs>();
+        inputs.keyboard.refresh();
+        inputs.mouse.refresh();
+        inputs.fingers.refresh();
+        inputs.gamepads.refresh();
     }
 }
 

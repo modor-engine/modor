@@ -15,6 +15,7 @@ mod buffer;
 mod camera;
 mod color;
 mod gpu;
+mod inputs;
 mod material;
 mod mesh;
 mod model;

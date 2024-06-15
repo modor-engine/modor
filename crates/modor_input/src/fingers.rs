@@ -18,8 +18,7 @@ use std::ops::{Index, IndexMut};
 ///     println!("Number of registered fingers: {}", fingers.iter().count());
 ///     println!("Number of pressed fingers: {}", fingers.pressed_iter().count());
 ///     println!("Finger 0 pressed: {}", fingers[0].state.is_pressed());
-///     for finger_id in fingers.iter() {
-///         let finger = &fingers[finger_id];
+///     for (finger_id, finger) in fingers.iter() {
 ///         println!("Finger {} pressed: {}", finger_id, finger.state.is_pressed());
 ///     }
 /// }
@@ -53,17 +52,14 @@ impl Fingers {
         }
     }
 
-    /// Returns an iterator on finger IDs.
-    pub fn iter(&self) -> impl Iterator<Item = u64> + '_ {
-        self.fingers.keys().copied()
+    /// Returns an iterator on finger IDs and details.
+    pub fn iter(&self) -> impl Iterator<Item = (u64, &Finger)> + '_ {
+        self.fingers.iter().map(|(&i, f)| (i, f))
     }
 
-    /// Returns an iterator on pressed finger IDs.
-    pub fn pressed_iter(&self) -> impl Iterator<Item = u64> + '_ {
-        self.fingers
-            .iter()
-            .filter(|(_, f)| f.state.is_pressed())
-            .map(|(&i, _)| i)
+    /// Returns an iterator on pressed finger IDs and details.
+    pub fn pressed_iter(&self) -> impl Iterator<Item = (u64, &Finger)> + '_ {
+        self.iter().filter(|(_, f)| f.state.is_pressed())
     }
 }
 

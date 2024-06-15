@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+approx.workspace = true
 bytemuck.workspace = true
 rand.workspace = true
 modor.workspace = true
@@ -33,8 +34,28 @@ assets = "assets"
 target_sdk_version = 31
 
 [[example]]
+name = "collisions_2d_android"
+path = "examples/android/collisions_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "custom_shader_android"
 path = "examples/android/custom_shader.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "game_of_life_android"
+path = "examples/android/game_of_life.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "physics_2d_android"
+path = "examples/android/physics_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "platformer_android"
+path = "examples/android/platformer.rs"
 crate-type = ["cdylib"]
 
 [[example]]
@@ -50,4 +71,9 @@ crate-type = ["cdylib"]
 [[example]]
 name = "texture_target_android"
 path = "examples/android/texture_target.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "touch_android"
+path = "examples/android/touch.rs"
 crate-type = ["cdylib"]

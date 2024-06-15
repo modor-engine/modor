@@ -23,8 +23,7 @@ pub type GamepadStickDirection = Vec2;
 /// fn access_gamepads(ctx: &mut Context<'_>) {
 ///     let gamepads = &ctx.get_mut::<Inputs>().gamepads;
 ///     println!("Left stick direction of gamepad 0: {:?}", gamepads[0][GamepadStick::LeftStick]);
-///     for gamepad_id in gamepads.iter() {
-///         let gamepad = &gamepads[gamepad_id];
+///     for (gamepad_id, gamepad) in gamepads.iter() {
 ///         println!("=== Gamepad {gamepad_id} ===");
 ///         println!("Start button pressed: {}", gamepad[GamepadButton::Start].state.is_pressed());
 ///         println!("Left stick direction: {:?}", gamepad[GamepadStick::LeftStick]);
@@ -69,9 +68,9 @@ impl Gamepads {
         }
     }
 
-    /// Returns an iterator on gamepad IDs.
-    pub fn iter(&self) -> impl Iterator<Item = u64> + '_ {
-        self.gamepads.keys().copied()
+    /// Returns an iterator on gamepad IDs and details.
+    pub fn iter(&self) -> impl Iterator<Item = (u64, &Gamepad)> + '_ {
+        self.gamepads.iter().map(|(&i, g)| (i, g))
     }
 }
 
