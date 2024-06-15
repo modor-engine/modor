@@ -57,9 +57,11 @@ fn recreate_glob_without_ref_after_update() {
     app.update();
     let mut ctx = app.ctx();
     let glob3 = Glob::new(&mut ctx, "c");
-    assert_eq!(glob3.index(), 0);
-    let glob4 = Glob::new(&mut ctx, "d");
-    assert_eq!(glob4.index(), 2);
+    assert_eq!(glob3.index(), 2);
+    app.update();
+    let mut ctx = app.ctx();
+    assert_eq!(Glob::new(&mut ctx, "d").index(), 0);
+    assert_eq!(Glob::new(&mut ctx, "e").index(), 3);
 }
 
 #[modor::test]
@@ -88,7 +90,11 @@ fn recreate_glob_with_dropped_ref_after_update() {
     app.update();
     let mut ctx = app.ctx();
     let glob3 = Glob::new(&mut ctx, "c");
-    assert_eq!(glob3.index(), 0);
+    assert_eq!(glob3.index(), 2);
+    app.update();
+    let mut ctx = app.ctx();
+    assert_eq!(Glob::new(&mut ctx, "d").index(), 0);
+    assert_eq!(Glob::new(&mut ctx, "e").index(), 3);
 }
 
 #[modor::test]

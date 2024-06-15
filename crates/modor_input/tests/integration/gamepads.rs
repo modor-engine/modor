@@ -19,7 +19,7 @@ fn press_button() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::Start].state.press();
     gamepads[0][GamepadButton::Start].value = 1.;
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     let pressed_buttons: Vec<_> = gamepads[0].pressed_iter().collect();
     assert_eq!(pressed_buttons, vec![GamepadButton::Start]);
@@ -34,7 +34,7 @@ fn refresh_after_button_pressed() {
     gamepads[0][GamepadButton::Start].state.press();
     gamepads[0][GamepadButton::Start].value = 1.;
     gamepads.refresh();
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     let pressed_buttons: Vec<_> = gamepads[0].pressed_iter().collect();
     assert_eq!(pressed_buttons, vec![GamepadButton::Start]);
@@ -52,7 +52,7 @@ fn release_button() {
     gamepads[0][GamepadButton::Start].state.release();
     gamepads[0][GamepadButton::Start].value = 0.;
 
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     assert_eq!(gamepads[0].pressed_iter().count(), 0);
     assert!(!gamepads[0][GamepadButton::Start].state.is_pressed());

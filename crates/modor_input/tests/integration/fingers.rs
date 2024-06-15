@@ -18,9 +18,9 @@ fn create_default() {
 fn press_finger() {
     let mut fingers = Fingers::default();
     fingers[0].state.press();
-    let all_fingers: Vec<_> = fingers.iter().collect();
+    let all_fingers: Vec<_> = fingers.iter().map(|(i, _)| i).collect();
     assert_eq!(all_fingers, vec![0]);
-    let pressed_fingers: Vec<_> = fingers.pressed_iter().collect();
+    let pressed_fingers: Vec<_> = fingers.pressed_iter().map(|(i, _)| i).collect();
     assert_eq!(pressed_fingers, vec![0]);
     assert!(fingers[0].state.is_pressed());
     assert!(fingers[0].state.is_just_pressed());
@@ -32,9 +32,9 @@ fn refresh_after_finger_pressed() {
     let mut fingers = Fingers::default();
     fingers[0].state.press();
     fingers.refresh();
-    let all_fingers: Vec<_> = fingers.iter().collect();
+    let all_fingers: Vec<_> = fingers.iter().map(|(i, _)| i).collect();
     assert_eq!(all_fingers, vec![0]);
-    let pressed_fingers: Vec<_> = fingers.pressed_iter().collect();
+    let pressed_fingers: Vec<_> = fingers.pressed_iter().map(|(i, _)| i).collect();
     assert_eq!(pressed_fingers, vec![0]);
     assert!(fingers[0].state.is_pressed());
     assert!(!fingers[0].state.is_just_pressed());
@@ -47,7 +47,7 @@ fn release_finger() {
     fingers[0].state.press();
     fingers.refresh();
     fingers[0].state.release();
-    let all_fingers: Vec<_> = fingers.iter().collect();
+    let all_fingers: Vec<_> = fingers.iter().map(|(i, _)| i).collect();
     assert_eq!(all_fingers, vec![0]);
     assert_eq!(fingers.pressed_iter().count(), 0);
     assert!(!fingers[0].state.is_pressed());
@@ -62,7 +62,7 @@ fn refresh_after_finger_released() {
     fingers.refresh();
     fingers[0].state.release();
     fingers.refresh();
-    let all_fingers: Vec<_> = fingers.iter().collect();
+    let all_fingers: Vec<_> = fingers.iter().map(|(i, _)| i).collect();
     assert_eq!(all_fingers, vec![0]);
     assert_eq!(fingers.pressed_iter().count(), 0);
     assert!(!fingers[0].state.is_pressed());

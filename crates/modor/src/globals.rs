@@ -167,6 +167,8 @@ where
 
 impl<T> Node for Globals<T> {
     fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+        self.indexes
+            .free_indexes(self.deleted_items.iter().map(|(i, _)| *i));
         self.deleted_items.clear();
         for &index in &self.indexes.take_deleted_indexes() {
             self.deleted_items.push((
@@ -256,12 +258,14 @@ impl IndexPool {
     }
 
     fn take_deleted_indexes(&self) -> Vec<usize> {
-        let indexes = mem::take(&mut *self.deleted_indexes.lock().expect(Self::ERROR));
+        mem::take(&mut *self.deleted_indexes.lock().expect(Self::ERROR))
+    }
+
+    fn free_indexes(&self, indexes: impl Iterator<Item = usize>) {
         self.available_indexes
             .lock()
             .expect(Self::ERROR)
-            .extend_from_slice(&indexes);
-        indexes
+            .extend(indexes);
     }
 }
 
