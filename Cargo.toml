@@ -15,6 +15,7 @@ approx = "0.5"
 android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
 async-std = "1.12"
+bitstream-io = "=2.3.0" # To still support Rust 1.75
 bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.3"
 console_error_panic_hook = "0.1"

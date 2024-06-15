@@ -13,6 +13,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+bitstream-io.workspace = true
 bytemuck.workspace = true
 derivative.workspace = true
 fxhash.workspace = true
