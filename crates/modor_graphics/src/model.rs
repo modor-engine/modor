@@ -8,6 +8,7 @@ use derivative::Derivative;
 use fxhash::FxHashMap;
 use modor::{Builder, Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
+use modor_physics::Body2DGlob;
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::mem;
@@ -62,6 +63,12 @@ pub struct Model2D<T> {
     /// Default is `0.0`.
     #[builder(form(value))]
     pub rotation: f32,
+    /// The physics body linked to the model.
+    ///
+    /// At each model update, the position, size and rotation are replaced by those of the body.
+    ///
+    /// Default is `None`.
+    pub body: Option<GlobRef<Body2DGlob>>,
     /// The Z-index of the model.
     ///
     /// [`i16::MIN`] is the farthest from the camera, and [`i16::MAX`] the closest to the camera.
@@ -88,6 +95,12 @@ where
     T: Material,
 {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        if let Some(body) = &self.body {
+            let glob = body.get(ctx);
+            self.position = glob.position;
+            self.size = glob.size;
+            self.rotation = glob.rotation;
+        }
         let data = T::instance_data(ctx, self.glob());
         self.groups.get_mut(ctx).update_model(self, data);
     }
@@ -109,6 +122,7 @@ where
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
+            body: None,
             z_index: 0,
             glob: Glob::new(ctx, Model2DGlob),
             camera,
