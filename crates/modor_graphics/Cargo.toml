@@ -23,6 +23,7 @@ gilrs.workspace = true
 image.workspace = true
 instant.workspace = true
 log.workspace = true
+ravif.workspace = true
 regex.workspace = true
 spin_sleep.workspace = true
 modor.workspace = true

@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_input::{Inputs, MouseButton};
-use modor_graphics::{Color, Sprite2D, Window};
+use modor_graphics::{Color, CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Impulse, Shape2D};
 use rand::Rng;
@@ -77,15 +77,16 @@ impl Wall {
 #[derive(Visit)]
 struct Cannon {
     sprite: Sprite2D,
+    cursor: CursorTracker,
 }
 
 impl Node for Cannon {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let cursor_position = Self::cursor_position(ctx);
+        let cursor_position = self.cursor.position(ctx);
         self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
         self.sprite.model.position = CANNON_JOIN_POSITION
             + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
-        Self::create_object(ctx, self.sprite.model.rotation);
+        self.create_object(ctx, self.sprite.model.rotation);
     }
 }
 
@@ -94,54 +95,23 @@ impl Cannon {
         Self {
             sprite: Sprite2D::new(ctx, "cannon")
                 .with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
+            cursor: CursorTracker::new(ctx),
         }
     }
 
-    fn cursor_position(ctx: &mut Context<'_>) -> Vec2 {
-        let inputs = ctx.get_mut::<Inputs>();
-        let window_position = if let Some((_, finger)) = inputs.fingers.iter().next() {
-            finger.position
-        } else {
-            inputs.mouse.position
-        };
-        let window = ctx.get_mut::<Window>();
-        window.camera.world_position(window.size(), window_position)
-    }
-
-    fn create_object(ctx: &mut Context<'_>, rotation: f32) {
+    fn create_object(&self, ctx: &mut Context<'_>, rotation: f32) {
         let position = CANNON_JOIN_POSITION
             + (Vec2::Y * (CANNON_LENGTH + OBJECT_RADIUS / 2.)).with_rotation(rotation);
         let velocity = Vec2::Y.with_rotation(rotation) * OBJECT_INITIAL_SPEED;
-        let object = match Self::object_type_to_create(ctx) {
-            ObjectToCreate::Box => Some(Object::new(ctx, position, velocity, false)),
-            ObjectToCreate::Ball => Some(Object::new(ctx, position, velocity, true)),
-            ObjectToCreate::None => None,
+        let object = if self.cursor.state(ctx).is_just_released() {
+            Some(Object::new(ctx, position, velocity, false))
+        } else if ctx.get_mut::<Inputs>().mouse[MouseButton::Right].is_just_released() {
+            Some(Object::new(ctx, position, velocity, true))
+        } else {
+            None
         };
         ctx.get_mut::<Objects>().objects.extend(object);
     }
-
-    fn object_type_to_create(ctx: &mut Context<'_>) -> ObjectToCreate {
-        let inputs = ctx.get_mut::<Inputs>();
-        if let Some((_, finger)) = inputs.fingers.iter().next() {
-            if finger.state.is_just_released() {
-                ObjectToCreate::Box
-            } else {
-                ObjectToCreate::None
-            }
-        } else if inputs.mouse[MouseButton::Left].is_just_released() {
-            ObjectToCreate::Box
-        } else if inputs.mouse[MouseButton::Right].is_just_released() {
-            ObjectToCreate::Ball
-        } else {
-            ObjectToCreate::None
-        }
-    }
-}
-
-enum ObjectToCreate {
-    Box,
-    Ball,
-    None,
 }
 
 #[derive(Default, RootNode, Visit)]

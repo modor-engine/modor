@@ -14,6 +14,7 @@
 mod buffer;
 mod camera;
 mod color;
+mod cursor;
 mod gpu;
 mod inputs;
 mod material;
@@ -33,6 +34,7 @@ mod window;
 
 pub use camera::*;
 pub use color::*;
+pub use cursor::*;
 pub use material::default_2d::*;
 pub use material::*;
 pub use model::*;

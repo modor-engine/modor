@@ -30,7 +30,9 @@ impl Node for Root {
 impl Root {
     fn finger_sprite(ctx: &mut Context<'_>, finger_position: Vec2) -> Sprite2D {
         let window = ctx.get_mut::<Window>();
-        let position = window.camera.world_position(window.size(), finger_position);
+        let window_size = window.size();
+        let camera = window.camera.glob().clone();
+        let position = camera.get(ctx).world_position(window_size, finger_position);
         Sprite2D::new(ctx, "finger")
             .with_model(|m| m.position = position)
             .with_model(|m| m.size = Vec2::ONE * 0.3)

@@ -44,7 +44,10 @@ fn set_position_size_rotation() {
     camera(&mut app).rotation = FRAC_PI_4;
     app.update();
     assert_same(&mut app, &target, "camera#transformed");
-    let world_position = camera(&mut app).world_position(Size::new(800, 600), Vec2::new(0., 600.));
+    let glob = camera(&mut app).glob().clone();
+    let world_position = glob
+        .get(&app.ctx())
+        .world_position(Size::new(800, 600), Vec2::new(0., 600.));
     assert_approx_eq!(world_position, Vec2::new(-1.973_139, 0.912_478));
 }
 
