@@ -135,10 +135,6 @@ impl Context<'_> {
     /// Returns a handle to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if root node `T` is currently updated.
     pub fn handle<T>(&mut self) -> RootNodeHandle<T>
     where
         T: RootNode,
@@ -161,6 +157,14 @@ impl Context<'_> {
         T: RootNode,
     {
         self.handle::<T>().get_mut(self)
+    }
+
+    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    pub fn create<T>(&mut self)
+    where
+        T: RootNode,
+    {
+        self.handle::<T>();
     }
 }
 
