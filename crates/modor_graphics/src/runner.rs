@@ -3,7 +3,6 @@ use crate::inputs::events;
 use crate::inputs::gamepads::Gamepads;
 use crate::{platform, Size, Window};
 use instant::Instant;
-use log::{debug, info};
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
 use modor_input::Inputs;
