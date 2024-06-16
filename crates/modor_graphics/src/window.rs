@@ -1,16 +1,42 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
-use crate::{platform, Camera2D, Size, Target};
+use crate::{platform, Camera2D, FrameRate, Size, Target};
 use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
-use wgpu::{Instance, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor};
+use wgpu::{
+    Instance, PresentMode, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor,
+};
 use winit::dpi::PhysicalSize;
 
 // coverage: off (window cannot be tested)
 
-/// The main window where rendering is performed.
 #[derive(Visit)]
+/// The main window where rendering is performed.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// #
+/// #[derive(Node, Visit)]
+/// struct Root {
+///     // ...
+/// }
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         let window = ctx.get_mut::<Window>();
+///         window.title = "My App".into();
+///         window.frame_rate = FrameRate::Unlimited;
+///         window.target.background_color = Color::GRAY;
+///         Self {
+///             // ...
+///         }
+///     }
+/// }
+/// ```
 pub struct Window {
     /// Title of the window.
     ///
@@ -22,6 +48,10 @@ pub struct Window {
     pub is_cursor_visible: bool,
     /// Render target of the window.
     pub target: Target,
+    /// The rendering frame rate limit.
+    ///
+    /// Default is [`FrameRate::VSync`](FrameRate::VSync).
+    pub frame_rate: FrameRate,
     /// Default camera of the window.
     pub camera: Camera2D,
     pub(crate) size: Size,
@@ -38,6 +68,7 @@ impl RootNode for Window {
             title: String::new(),
             is_cursor_visible: true,
             target,
+            frame_rate: FrameRate::VSync,
             camera,
             size: Self::DEFAULT_SIZE,
             handle: None,
@@ -131,7 +162,7 @@ impl Window {
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
             let size = size.expect("internal error: not configured window");
-            surface.update(&gpu, size);
+            surface.update(&gpu, size, self.frame_rate);
             if size != self.old_state.size {
                 let texture_format = surface.surface_config.format;
                 self.target.enable(ctx, &gpu, size, texture_format);
@@ -198,12 +229,17 @@ impl WindowSurface {
         }
     }
 
-    fn update(&mut self, gpu: &Gpu, size: NonZeroSize) {
+    fn update(&mut self, gpu: &Gpu, size: NonZeroSize, frame_rate: FrameRate) {
         let width = size.width.into();
         let height = size.height.into();
-        if self.surface_config.width != width || self.surface_config.height != height {
+        let present_mode = frame_rate.present_mode(Self::has_immediate_mode(gpu, &self.surface));
+        if self.surface_config.width != width
+            || self.surface_config.height != height
+            || self.surface_config.present_mode != present_mode
+        {
             self.surface_config.width = width;
             self.surface_config.height = height;
+            self.surface_config.present_mode = present_mode;
             self.surface.configure(&gpu.device, &self.surface_config);
         }
     }
@@ -230,5 +266,12 @@ impl WindowSurface {
             .expect("internal error: not supported surface");
         surface.configure(&gpu.device, &config);
         config
+    }
+
+    fn has_immediate_mode(gpu: &Gpu, surface: &Surface<'_>) -> bool {
+        surface
+            .get_capabilities(&gpu.adapter)
+            .present_modes
+            .contains(&PresentMode::Immediate)
     }
 }

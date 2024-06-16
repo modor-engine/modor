@@ -167,6 +167,9 @@ where
             gamepads.treat_events(app);
             app.update();
             Self::refresh_inputs(app);
+            app.get_mut::<Window>()
+                .frame_rate
+                .sleep(self.previous_update_end);
             let update_end = Instant::now();
             app.get_mut::<Delta>().duration = if self.is_suspended {
                 self.is_suspended = false;

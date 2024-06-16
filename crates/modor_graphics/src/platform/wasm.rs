@@ -46,3 +46,7 @@ pub(crate) fn surface_size(
 pub(crate) fn gpu_limits() -> wgpu::Limits {
     wgpu::Limits::downlevel_webgl2_defaults()
 }
+
+pub(crate) fn sleep(_duration: std::time::Duration) {
+    // sleep not supported, do nothing
+}
