@@ -22,8 +22,8 @@ struct Root;
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.handle::<Character>();
-        ctx.handle::<Platforms>();
+        ctx.create::<Character>();
+        ctx.create::<Platforms>();
         Self
     }
 }
