@@ -3,6 +3,7 @@ use crate::inputs::events;
 use crate::inputs::gamepads::Gamepads;
 use crate::{platform, Size, Window};
 use instant::Instant;
+use log::{debug, info};
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
 use modor_input::Inputs;
@@ -167,6 +168,9 @@ where
             gamepads.treat_events(app);
             app.update();
             Self::refresh_inputs(app);
+            app.get_mut::<Window>()
+                .frame_rate
+                .sleep(self.previous_update_end);
             let update_end = Instant::now();
             app.get_mut::<Delta>().duration = if self.is_suspended {
                 self.is_suspended = false;

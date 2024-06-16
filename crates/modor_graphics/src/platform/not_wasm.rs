@@ -29,3 +29,8 @@ pub(crate) fn surface_size(
 pub(crate) fn gpu_limits() -> wgpu::Limits {
     wgpu::Limits::default()
 }
+
+pub(crate) fn sleep(duration: std::time::Duration) {
+    spin_sleep::sleep(duration);
+    log::trace!("slept for {}ns", duration.as_nanos());
+}
