@@ -68,6 +68,7 @@ pub struct Model2D<T> {
     /// At each model update, the position, size and rotation are replaced by those of the body.
     ///
     /// Default is `None`.
+    #[builder(form(value))]
     pub body: Option<GlobRef<Body2DGlob>>,
     /// The Z-index of the model.
     ///
