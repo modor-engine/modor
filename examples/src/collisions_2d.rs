@@ -1,7 +1,6 @@
 use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
-use modor_graphics::modor_input::Inputs;
-use modor_graphics::{Color, Sprite2D, Window};
+use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Collision2D, CollisionGroup, CollisionType, Shape2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_8};
@@ -89,13 +88,12 @@ struct Cursor {
     body: Body2D,
     sprite: Sprite2D,
     collision: Vec<CollisionNormal>,
+    tracker: CursorTracker,
 }
 
 impl Node for Cursor {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let window_position = Self::window_position(ctx);
-        let window = ctx.get_mut::<Window>();
-        self.body.position = window.camera.world_position(window.size(), window_position);
+        self.body.position = self.tracker.position(ctx);
         self.sprite.material.color = if self.body.collisions().is_empty() {
             Color::GREEN
         } else {
@@ -125,15 +123,7 @@ impl Cursor {
             body,
             sprite,
             collision: vec![],
-        }
-    }
-
-    fn window_position(ctx: &mut Context<'_>) -> Vec2 {
-        let inputs = ctx.get_mut::<Inputs>();
-        if let Some((_, finger)) = inputs.fingers.iter().next() {
-            finger.position
-        } else {
-            inputs.mouse.position
+            tracker: CursorTracker::new(ctx),
         }
     }
 }

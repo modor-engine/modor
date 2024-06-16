@@ -2,6 +2,7 @@
 
 pub mod camera;
 pub mod color;
+pub mod cursor;
 pub mod material;
 pub mod model;
 pub mod shader;

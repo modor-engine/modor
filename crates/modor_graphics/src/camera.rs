@@ -84,6 +84,9 @@ impl Node for Camera2D {
         let target_sizes = self.target_sizes(ctx);
         let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let glob = self.glob.get_mut(ctx);
+        glob.position = self.position;
+        glob.size = self.size;
+        glob.rotation = self.rotation;
         glob.register_targets(&self.targets);
         for (target_index, target_size) in target_sizes {
             let transform = self.gpu_transform(target_size.into());
@@ -116,6 +119,47 @@ impl Camera2D {
         self.glob.as_ref()
     }
 
+    fn gpu_transform(&self, target_size: Vec2) -> Mat4 {
+        let x_scale = 1.0_f32.min(target_size.y / target_size.x);
+        let y_scale = 1.0_f32.min(target_size.x / target_size.y);
+        let position = Vec3::new(-self.position.x, -self.position.y, -1.);
+        let scale = Vec3::new(2. * x_scale / self.size.x, 2. * y_scale / self.size.y, -1.);
+        Mat4::from_position(position)
+            * Quat::from_z(self.rotation).matrix()
+            * Mat4::from_scale(scale)
+    }
+
+    fn target_sizes(&self, ctx: &Context<'_>) -> Vec<(usize, Size)> {
+        self.targets
+            .iter()
+            .map(|target| (target.index(), target.get(ctx).size))
+            .collect()
+    }
+}
+
+/// The global data of a [`Camera2D`].
+#[derive(Debug)]
+pub struct Camera2DGlob {
+    pub(crate) position: Vec2,
+    pub(crate) size: Vec2,
+    pub(crate) rotation: f32,
+    pub(crate) targets: Vec<GlobRef<TargetGlob>>,
+    target_uniforms: FxHashMap<usize, CameraUniform>,
+}
+
+impl Default for Camera2DGlob {
+    fn default() -> Self {
+        Self {
+            position: Vec2::ZERO,
+            size: Vec2::ONE,
+            rotation: 0.,
+            targets: vec![],
+            target_uniforms: FxHashMap::default(),
+        }
+    }
+}
+
+impl Camera2DGlob {
     /// Converts a `target_position` for a target surface of size `target_size` into world position.
     ///
     /// `target_size` and `target_position` are expressed in pixels.
@@ -130,41 +174,6 @@ impl Camera2D {
             )
     }
 
-    fn gpu_transform(&self, target_size: Vec2) -> Mat4 {
-        let x_scale = 1.0_f32.min(target_size.y / target_size.x);
-        let y_scale = 1.0_f32.min(target_size.x / target_size.y);
-        let position = Vec3::new(-self.position.x, -self.position.y, -1.);
-        let scale = Vec3::new(2. * x_scale / self.size.x, 2. * y_scale / self.size.y, -1.);
-        Mat4::from_position(position)
-            * Quat::from_z(self.rotation).matrix()
-            * Mat4::from_scale(scale)
-    }
-
-    fn world_transform(&self, target_size: Vec2) -> Mat4 {
-        let x_scale = 1.0_f32.min(target_size.y / target_size.x);
-        let y_scale = 1.0_f32.min(target_size.x / target_size.y);
-        let scale = self.size.with_scale(Vec2::new(1. / x_scale, 1. / y_scale));
-        Mat4::from_scale(scale.with_z(1.))
-            * Quat::from_z(-self.rotation).matrix()
-            * Mat4::from_position(self.position.with_z(0.))
-    }
-
-    fn target_sizes(&self, ctx: &Context<'_>) -> Vec<(usize, Size)> {
-        self.targets
-            .iter()
-            .map(|target| (target.index(), target.get(ctx).size))
-            .collect()
-    }
-}
-
-/// The global data of a [`Camera2D`].
-#[derive(Debug, Default)]
-pub struct Camera2DGlob {
-    pub(crate) targets: Vec<GlobRef<TargetGlob>>,
-    target_uniforms: FxHashMap<usize, CameraUniform>,
-}
-
-impl Camera2DGlob {
     pub(crate) fn bind_group(&self, target: &GlobRef<TargetGlob>) -> Option<&BindGroup> {
         self.target_uniforms
             .get(&target.index())
@@ -185,6 +194,15 @@ impl Camera2DGlob {
                 entry.insert(CameraUniform::new(gpu, transform, label));
             }
         }
+    }
+
+    fn world_transform(&self, target_size: Vec2) -> Mat4 {
+        let x_scale = 1.0_f32.min(target_size.y / target_size.x);
+        let y_scale = 1.0_f32.min(target_size.x / target_size.y);
+        let scale = self.size.with_scale(Vec2::new(1. / x_scale, 1. / y_scale));
+        Mat4::from_scale(scale.with_z(1.))
+            * Quat::from_z(-self.rotation).matrix()
+            * Mat4::from_position(self.position.with_z(0.))
     }
 }
 
