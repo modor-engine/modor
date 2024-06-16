@@ -111,22 +111,23 @@ impl Node for Platform {
             self.next_reverse_instant = Instant::now() + PLATFORM_PERIOD;
             self.body.velocity *= -1.;
         }
-        self.sprite.model.position = self.body.position;
     }
 }
 
 impl Platform {
     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2, velocity: Vec2) -> Self {
         let collision_group = ctx.get_mut::<CollisionGroups>().platform.glob().clone();
+        let body = Body2D::new(ctx)
+            .with_position(position)
+            .with_size(size)
+            .with_velocity(velocity)
+            .with_collision_group(Some(collision_group));
+        let sprite = Sprite2D::new(ctx, "platform")
+            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_material(|m| m.color = Color::GREEN);
         Self {
-            body: Body2D::new(ctx)
-                .with_position(position)
-                .with_size(size)
-                .with_velocity(velocity)
-                .with_collision_group(Some(collision_group)),
-            sprite: Sprite2D::new(ctx, "platform")
-                .with_model(|m| m.size = size)
-                .with_material(|m| m.color = Color::GREEN),
+            body,
+            sprite,
             next_reverse_instant: Instant::now() + PLATFORM_PERIOD,
         }
     }
@@ -149,22 +150,23 @@ impl Node for Character {
         let ground_velocity = touched_ground.map_or(0., |platform| platform.body.velocity.x);
         self.body.force = self.force(touched_ground.is_some(), is_jump_pressed);
         self.body.velocity.x = 0.5f32.mul_add(x_movement, ground_velocity);
-        self.sprite.model.position = self.body.position;
     }
 }
 
 impl RootNode for Character {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         let collision_group = ctx.get_mut::<CollisionGroups>().character.glob().clone();
-        let size = Vec2::new(0.03, 0.1);
+        let body = Body2D::new(ctx)
+            .with_position(Vec2::new(0., 0.5))
+            .with_size(Vec2::new(0.03, 0.1))
+            .with_collision_group(Some(collision_group))
+            .with_mass(CHARACTER_MASS)
+            .with_force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS);
+        let sprite =
+            Sprite2D::new(ctx, "platform").with_model(|m| m.body = Some(body.glob().clone()));
         Self {
-            body: Body2D::new(ctx)
-                .with_position(Vec2::new(0., 0.5))
-                .with_size(size)
-                .with_collision_group(Some(collision_group))
-                .with_mass(CHARACTER_MASS)
-                .with_force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS),
-            sprite: Sprite2D::new(ctx, "platform").with_model(|m| m.size = size),
+            body,
+            sprite,
             platforms: ctx.handle(),
         }
     }

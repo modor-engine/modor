@@ -63,21 +63,22 @@ impl Node for Shape {
 impl Shape {
     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2, is_circle: bool) -> Self {
         let collision_group = ctx.get_mut::<CollisionGroups>().shape.glob().clone();
+        let body = Body2D::new(ctx)
+            .with_position(position)
+            .with_size(size)
+            .with_collision_group(Some(collision_group))
+            .with_shape(if is_circle {
+                Shape2D::Circle
+            } else {
+                Shape2D::Rectangle
+            });
+        let sprite = Sprite2D::new(ctx, "shape")
+            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_material(|m| m.is_ellipse = is_circle)
+            .with_material(|m| m.color = Color::CYAN);
         Self {
-            body: Body2D::new(ctx)
-                .with_position(position)
-                .with_size(size)
-                .with_collision_group(Some(collision_group))
-                .with_shape(if is_circle {
-                    Shape2D::Circle
-                } else {
-                    Shape2D::Rectangle
-                }),
-            sprite: Sprite2D::new(ctx, "shape")
-                .with_model(|m| m.position = position)
-                .with_model(|m| m.size = size)
-                .with_material(|m| m.is_ellipse = is_circle)
-                .with_material(|m| m.color = Color::CYAN),
+            body,
+            sprite,
             collision: vec![],
         }
     }
@@ -95,7 +96,6 @@ impl Node for Cursor {
         let window_position = Self::window_position(ctx);
         let window = ctx.get_mut::<Window>();
         self.body.position = window.camera.world_position(window.size(), window_position);
-        self.sprite.model.position = self.body.position;
         self.sprite.material.color = if self.body.collisions().is_empty() {
             Color::GREEN
         } else {
@@ -112,16 +112,18 @@ impl Node for Cursor {
 impl Cursor {
     fn new(ctx: &mut Context<'_>) -> Self {
         let collision_group = ctx.get_mut::<CollisionGroups>().cursor.glob().clone();
+        let body = Body2D::new(ctx)
+            .with_size(Vec2::new(0.05, 0.1))
+            .with_rotation(FRAC_PI_8)
+            .with_collision_group(Some(collision_group));
+        let sprite = Sprite2D::new(ctx, "cursor")
+            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.rotation = FRAC_PI_8)
+            .with_model(|m| m.z_index = 1)
+            .with_material(|m| m.color = Color::GREEN);
         Self {
-            body: Body2D::new(ctx)
-                .with_size(Vec2::new(0.05, 0.1))
-                .with_rotation(FRAC_PI_8)
-                .with_collision_group(Some(collision_group)),
-            sprite: Sprite2D::new(ctx, "cursor")
-                .with_model(|m| m.size = Vec2::new(0.05, 0.1))
-                .with_model(|m| m.rotation = FRAC_PI_8)
-                .with_model(|m| m.z_index = 1)
-                .with_material(|m| m.color = Color::GREEN),
+            body,
+            sprite,
             collision: vec![],
         }
     }

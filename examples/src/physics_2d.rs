@@ -65,42 +65,35 @@ struct Wall {
 impl Wall {
     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
         let collision_group = ctx.get_mut::<CollisionGroups>().wall.glob().clone();
-        Self {
-            body: Body2D::new(ctx)
-                .with_position(position)
-                .with_size(size)
-                .with_collision_group(Some(collision_group)),
-            sprite: Sprite2D::new(ctx, "wall")
-                .with_model(|m| m.position = position)
-                .with_model(|m| m.size = size),
-        }
+        let body = Body2D::new(ctx)
+            .with_position(position)
+            .with_size(size)
+            .with_collision_group(Some(collision_group));
+        let sprite = Sprite2D::new(ctx, "wall").with_model(|m| m.body = Some(body.glob().clone()));
+        Self { body, sprite }
     }
 }
 
 #[derive(Visit)]
 struct Cannon {
-    body: Body2D,
     sprite: Sprite2D,
 }
 
 impl Node for Cannon {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let cursor_position = Self::cursor_position(ctx);
-        self.body.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
-        self.body.position =
-            CANNON_JOIN_POSITION + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.body.rotation);
-        self.sprite.model.position = self.body.position;
-        self.sprite.model.rotation = self.body.rotation;
-        Self::create_object(ctx, self.body.rotation);
+        self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
+        self.sprite.model.position = CANNON_JOIN_POSITION
+            + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
+        Self::create_object(ctx, self.sprite.model.rotation);
     }
 }
 
 impl Cannon {
     fn new(ctx: &mut Context<'_>) -> Self {
-        let size = Vec2::new(0.05, CANNON_LENGTH);
         Self {
-            body: Body2D::new(ctx).with_size(size),
-            sprite: Sprite2D::new(ctx, "cannon").with_model(|m| m.size = size),
+            sprite: Sprite2D::new(ctx, "cannon")
+                .with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
         }
     }
 
@@ -162,17 +155,10 @@ impl Node for Objects {
     }
 }
 
-#[derive(Visit)]
+#[derive(Node, Visit)]
 struct Object {
     body: Body2D,
     sprite: Sprite2D,
-}
-
-impl Node for Object {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
-        self.sprite.model.position = self.body.position;
-        self.sprite.model.rotation = self.body.rotation;
-    }
 }
 
 impl Object {
@@ -190,20 +176,19 @@ impl Object {
         } else {
             (RECTANGLE_INERTIA_FACTOR, Shape2D::Rectangle)
         };
-        Self {
-            body: Body2D::new(ctx)
-                .with_position(position)
-                .with_size(size)
-                .with_velocity(velocity)
-                .with_force(-Vec2::Y * GRAVITY * OBJECT_MASS)
-                .with_mass(OBJECT_MASS)
-                .with_angular_inertia(OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
-                .with_collision_group(Some(collision_group))
-                .with_shape(shape),
-            sprite: Sprite2D::new(ctx, "object")
-                .with_model(|m| m.size = size)
-                .with_material(|m| m.is_ellipse = is_ball)
-                .with_material(|m| m.color = color),
-        }
+        let body = Body2D::new(ctx)
+            .with_position(position)
+            .with_size(size)
+            .with_velocity(velocity)
+            .with_force(-Vec2::Y * GRAVITY * OBJECT_MASS)
+            .with_mass(OBJECT_MASS)
+            .with_angular_inertia(OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
+            .with_collision_group(Some(collision_group))
+            .with_shape(shape);
+        let sprite = Sprite2D::new(ctx, "object")
+            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_material(|m| m.is_ellipse = is_ball)
+            .with_material(|m| m.color = color);
+        Self { body, sprite }
     }
 }
