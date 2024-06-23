@@ -3,7 +3,7 @@ use crate::mesh::Vertex;
 use crate::mesh::VertexBuffer;
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
-use crate::{validation, Material, Texture, Window};
+use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use fxhash::FxHashMap;
 use modor::Context;
 use std::mem;
@@ -23,7 +23,7 @@ use wgpu::{
 pub struct ShaderGlob {
     pub(crate) material_bind_group_layout: BindGroupLayout,
     pub(crate) texture_count: u32,
-    pub(crate) pipelines: FxHashMap<TextureFormat, RenderPipeline>,
+    pub(crate) pipelines: FxHashMap<(TextureFormat, AntiAliasingMode), RenderPipeline>,
 }
 
 impl ShaderGlob {
@@ -47,21 +47,38 @@ impl ShaderGlob {
     where
         T: 'static + Material,
     {
-        let texture_formats = Self::texture_formats(ctx);
+        let window = ctx.get_mut::<Window>();
+        let window_texture_format = window.texture_format();
+        let supported_anti_aliasing_modes = window.supported_anti_aliasing_modes().to_vec();
         let gpu = ctx.get_mut::<GpuManager>().get_or_init();
         let material_bind_group_layout =
             Self::create_material_bind_group_layout(gpu, loaded, label);
         Ok(Self {
             texture_count: loaded.texture_count,
-            pipelines: texture_formats
+            pipelines: [window_texture_format, Some(Texture::DEFAULT_FORMAT)]
                 .into_iter()
-                .map(|texture_format| {
+                .flatten()
+                .flat_map(|texture_format| {
+                    if Some(texture_format) == window_texture_format {
+                        // coverage: off (only for window, so cannot be tested)
+                        supported_anti_aliasing_modes
+                            .iter()
+                            .copied()
+                            .map(move |anti_aliasing| (texture_format, anti_aliasing))
+                            .collect()
+                        // coverage: on
+                    } else {
+                        vec![(texture_format, AntiAliasingMode::None)]
+                    }
+                })
+                .map(|(texture_format, anti_aliasing)| {
                     Ok((
-                        texture_format,
+                        (texture_format, anti_aliasing),
                         Self::create_pipeline::<T>(
                             gpu,
                             loaded,
                             texture_format,
+                            anti_aliasing,
                             is_alpha_replaced,
                             &material_bind_group_layout,
                             label,
@@ -73,10 +90,18 @@ impl ShaderGlob {
         })
     }
 
-    fn texture_formats(ctx: &mut Context<'_>) -> Vec<TextureFormat> {
-        let mut formats = vec![Texture::DEFAULT_FORMAT];
-        formats.extend(ctx.get_mut::<Window>().texture_format());
-        formats
+    pub(crate) fn pipeline(
+        &self,
+        texture_format: TextureFormat,
+        anti_aliasing: AntiAliasingMode,
+    ) -> Option<&RenderPipeline> {
+        self.pipelines
+            .get(&(texture_format, anti_aliasing))
+            .or_else(|| {
+                // coverage: off (only for window, so cannot be tested)
+                self.pipelines
+                    .get(&(texture_format, AntiAliasingMode::None))
+            }) // coverage: on
     }
 
     fn create_material_bind_group_layout(
@@ -129,6 +154,7 @@ impl ShaderGlob {
         gpu: &Gpu,
         loaded: &ShaderLoaded,
         texture_format: TextureFormat,
+        anti_aliasing: AntiAliasingMode,
         is_alpha_replaced: bool,
         material_bind_group_layout: &BindGroupLayout,
         label: &str,
@@ -199,7 +225,7 @@ impl ShaderGlob {
                         bias: DepthBiasState::default(),
                     }),
                     multisample: MultisampleState {
-                        count: 1,
+                        count: anti_aliasing.sample_count(),
                         mask: !0,
                         alpha_to_coverage_enabled: false,
                     },

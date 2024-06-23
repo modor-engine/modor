@@ -69,6 +69,11 @@ path = "examples/android/texture_2d.rs"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "texture_animation_android"
+path = "examples/android/texture_animation.rs"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "texture_target_android"
 path = "examples/android/texture_target.rs"
 crate-type = ["cdylib"]

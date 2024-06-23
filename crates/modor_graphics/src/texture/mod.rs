@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
-use crate::{Camera2D, Size, Target};
+use crate::{AntiAliasingMode, Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
 use modor::{Builder, Context, Glob, GlobRef, Node};
@@ -207,7 +207,8 @@ impl Texture {
 
     fn init_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, size: NonZeroSize) {
         if self.is_target_enabled {
-            self.target.enable(ctx, gpu, size, Self::DEFAULT_FORMAT);
+            self.target
+                .enable(ctx, gpu, size, Self::DEFAULT_FORMAT, AntiAliasingMode::None);
         }
     }
 

@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{Context, Node, RootNode, Visit};
 use modor_graphics::modor_input::{Inputs, MouseButton};
-use modor_graphics::{Color, CursorTracker, Sprite2D};
+use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Impulse, Shape2D};
 use rand::Rng;
@@ -30,6 +30,13 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
+        let window = ctx.get_mut::<Window>();
+        window.anti_aliasing = window
+            .supported_anti_aliasing_modes()
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or_default();
         Self {
             left_wall: Wall::new(ctx, Vec2::X * -0.5, Vec2::new(0.03, 1.)),
             right_wall: Wall::new(ctx, Vec2::X * 0.5, Vec2::new(0.03, 1.)),

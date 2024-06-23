@@ -16,6 +16,7 @@ rust-version.workspace = true
 bitstream-io.workspace = true
 bytemuck.workspace = true
 derivative.workspace = true
+enum-iterator.workspace = true
 fxhash.workspace = true
 futures.workspace = true
 getrandom.workspace = true
