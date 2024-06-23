@@ -189,7 +189,9 @@ impl Target {
             label: Some("modor_render_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: if sample_count > 1 {
+                    // coverage: off (only for window, so cannot be tested)
                     &loaded.color_buffer_view
+                    // coverage: on
                 } else {
                     view
                 },

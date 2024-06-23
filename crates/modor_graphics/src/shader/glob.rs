@@ -60,11 +60,13 @@ impl ShaderGlob {
                 .flatten()
                 .flat_map(|texture_format| {
                     if Some(texture_format) == window_texture_format {
+                        // coverage: off (only for window, so cannot be tested)
                         supported_anti_aliasing_modes
                             .iter()
                             .copied()
                             .map(move |anti_aliasing| (texture_format, anti_aliasing))
                             .collect()
+                        // coverage: on
                     } else {
                         vec![(texture_format, AntiAliasingMode::None)]
                     }
@@ -96,8 +98,10 @@ impl ShaderGlob {
         self.pipelines
             .get(&(texture_format, anti_aliasing))
             .or_else(|| {
+                // coverage: off (only for window, so cannot be tested)
                 self.pipelines
                     .get(&(texture_format, AntiAliasingMode::None))
+                // coverage: on
             })
     }
 
