@@ -12,5 +12,6 @@ pub mod physics_2d;
 pub mod platformer;
 pub mod rendering_2d;
 pub mod texture_2d;
+pub mod texture_animation;
 pub mod texture_target;
 pub mod touch;

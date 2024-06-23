@@ -3,7 +3,7 @@ use modor::{Builder, Context, GlobRef, Node, RootNodeHandle, Visit};
 use modor_input::modor_math::Vec2;
 use modor_input::{Finger, InputState, Inputs, MouseButton};
 
-/// A convenient type for retrieving cursor properties.
+/// A utility type for retrieving cursor properties.
 ///
 /// The cursor corresponds to either the [`Mouse`](modor_input::Mouse) or the first pressed
 /// [`Finger`].
