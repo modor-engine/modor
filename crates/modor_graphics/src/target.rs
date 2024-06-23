@@ -3,8 +3,8 @@ use crate::mesh::MeshGlob;
 use crate::shader::glob::ShaderGlob;
 use crate::size::NonZeroSize;
 use crate::{
-    validation, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D, MaterialGlob,
-    Size,
+    validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
+    MaterialGlob, Size,
 };
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
@@ -42,6 +42,7 @@ pub struct Target {
     ///
     /// Default is [`Color::BLACK`].
     pub background_color: Color,
+    anti_aliasing: AntiAliasingMode,
     loaded: Option<LoadedTarget>,
     is_error_logged: bool,
     label: String,
@@ -60,6 +61,7 @@ impl Target {
     pub(crate) fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
         Self {
             background_color: Color::BLACK,
+            anti_aliasing: AntiAliasingMode::None,
             loaded: None,
             is_error_logged: false,
             label: label.into(),
@@ -80,12 +82,19 @@ impl Target {
         gpu: &Gpu,
         size: NonZeroSize,
         texture_format: TextureFormat,
+        anti_aliasing: AntiAliasingMode,
     ) {
         self.glob.get_mut(ctx).size = size.into();
+        self.anti_aliasing = anti_aliasing;
         self.loaded = Some(LoadedTarget {
             texture_format,
-            color_buffer_view: Self::create_color_buffer_view(gpu, size, texture_format),
-            depth_buffer_view: Self::create_depth_buffer_view(gpu, size),
+            color_buffer_view: Self::create_color_buffer_view(
+                gpu,
+                size,
+                texture_format,
+                anti_aliasing,
+            ),
+            depth_buffer_view: Self::create_depth_buffer_view(gpu, size, anti_aliasing),
         });
     }
 
@@ -96,7 +105,13 @@ impl Target {
             .as_ref()
             .expect("internal error: target not loaded");
         let mut encoder = Self::create_encoder(gpu, &self.label);
-        let mut pass = Self::create_pass(self.background_color, &mut encoder, &view, loaded);
+        let mut pass = Self::create_pass(
+            self.background_color,
+            self.anti_aliasing,
+            &mut encoder,
+            &view,
+            loaded,
+        );
         let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
         self.render_opaque_groups(ctx, loaded, groups, &mut pass);
         self.render_transparent_groups(ctx, loaded, groups, &mut pass);
@@ -113,6 +128,7 @@ impl Target {
         gpu: &Gpu,
         size: NonZeroSize,
         texture_format: TextureFormat,
+        anti_aliasing: AntiAliasingMode,
     ) -> TextureView {
         let texture = gpu.device.create_texture(&TextureDescriptor {
             label: Some("modor_color_texture"),
@@ -122,7 +138,7 @@ impl Target {
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
-            sample_count: 1,
+            sample_count: anti_aliasing.sample_count(),
             dimension: TextureDimension::D2,
             format: texture_format,
             usage: TextureUsages::RENDER_ATTACHMENT,
@@ -131,7 +147,11 @@ impl Target {
         texture.create_view(&TextureViewDescriptor::default())
     }
 
-    fn create_depth_buffer_view(gpu: &Gpu, size: NonZeroSize) -> TextureView {
+    fn create_depth_buffer_view(
+        gpu: &Gpu,
+        size: NonZeroSize,
+        anti_aliasing: AntiAliasingMode,
+    ) -> TextureView {
         let texture = gpu.device.create_texture(&TextureDescriptor {
             label: Some("modor_depth_texture"),
             size: Extent3d {
@@ -140,7 +160,7 @@ impl Target {
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
-            sample_count: 1,
+            sample_count: anti_aliasing.sample_count(),
             dimension: TextureDimension::D2,
             format: TextureFormat::Depth32Float,
             usage: TextureUsages::RENDER_ATTACHMENT,
@@ -159,15 +179,21 @@ impl Target {
 
     fn create_pass<'a>(
         background_color: Color,
+        anti_aliasing: AntiAliasingMode,
         encoder: &'a mut CommandEncoder,
         view: &'a TextureView,
         loaded: &'a LoadedTarget,
     ) -> RenderPass<'a> {
+        let sample_count = anti_aliasing.sample_count();
         encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("modor_render_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
-                view,
-                resolve_target: None,
+                view: if sample_count > 1 {
+                    &loaded.color_buffer_view
+                } else {
+                    view
+                },
+                resolve_target: (sample_count > 1).then_some(view),
                 ops: Operations {
                     load: LoadOp::Clear(background_color.into()),
                     store: StoreOp::Store,
@@ -263,7 +289,7 @@ impl Target {
         let mesh = self.meshes.get(ctx).get(group.mesh)?;
         let group = &groups.groups[&group];
         let primary_buffer = group.primary_buffer()?;
-        pass.set_pipeline(shader.pipelines.get(&loaded.texture_format)?);
+        pass.set_pipeline(shader.pipeline(loaded.texture_format, self.anti_aliasing)?);
         pass.set_bind_group(
             ShaderGlob::CAMERA_GROUP,
             camera.bind_group(self.glob())?,

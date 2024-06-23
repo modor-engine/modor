@@ -150,15 +150,19 @@ where
             let surface = app
                 .get_mut::<Window>()
                 .create_surface(&instance, Some(window));
-            app.get_mut::<GpuManager>().configure_window(&surface);
-            app.get_mut::<Window>().set_surface(surface);
+            let gpu_manager = app.get_mut::<GpuManager>();
+            gpu_manager.configure_window(&surface);
+            let gpu = gpu_manager.get_or_init().clone();
+            app.get_mut::<Window>().set_surface(&gpu, surface);
             app.get_mut::<T>();
             self.gamepads = Some(Gamepads::new(app));
         } else {
             let app = self.app.as_mut().expect("internal error: not created app");
-            let instance = app.get_mut::<GpuManager>().instance.clone();
+            let gpu_manager = app.get_mut::<GpuManager>();
+            let instance = gpu_manager.instance.clone();
+            let gpu = gpu_manager.get_or_init().clone();
             let surface = app.get_mut::<Window>().create_surface(&instance, None);
-            app.get_mut::<Window>().set_surface(surface);
+            app.get_mut::<Window>().set_surface(&gpu, surface);
         }
     }
 
