@@ -1,5 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
+pub mod animation;
 pub mod camera;
 pub mod color;
 pub mod cursor;
