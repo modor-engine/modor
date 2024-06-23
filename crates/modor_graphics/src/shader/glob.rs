@@ -101,8 +101,7 @@ impl ShaderGlob {
                 // coverage: off (only for window, so cannot be tested)
                 self.pipelines
                     .get(&(texture_format, AntiAliasingMode::None))
-                // coverage: on
-            })
+            }) // coverage: on
     }
 
     fn create_material_bind_group_layout(
