@@ -9,7 +9,7 @@ use wgpu::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, Texture
 ///
 /// # Examples
 ///
-/// See [`Window`].
+/// See [`Window`](crate::Window).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Sequence)]
 #[non_exhaustive]
 pub enum AntiAliasingMode {
