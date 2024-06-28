@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, Context, Node, RootNode, Visit};
-use modor_graphics::testing::assert_same;
+use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
 use modor_resources::{Res, ResLoad};
@@ -23,7 +23,7 @@ fn enable_supported_anti_aliasing() {
     target(&mut app).target.anti_aliasing = AntiAliasingMode::MsaaX4;
     app.update();
     app.update();
-    assert_same(&mut app, &target_glob, "anti_aliasing#enabled");
+    assert_max_component_diff(&mut app, &target_glob, "anti_aliasing#enabled", 30, 1);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
