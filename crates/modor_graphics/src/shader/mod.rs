@@ -133,7 +133,7 @@ where
     }
 
     fn update(&mut self, ctx: &mut Context<'_>) {
-        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, &self.label) {
+        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, self.label()) {
             Ok(glob) => {
                 *self.glob.get_mut(ctx) = glob;
                 self.is_invalid = false;

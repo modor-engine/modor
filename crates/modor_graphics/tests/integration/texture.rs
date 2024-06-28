@@ -134,8 +134,9 @@ fn retrieve_buffer_when_disabled() {
     Root::wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    root(&mut app).texture.is_buffer_enabled = false;
     Root::wait_resources(&mut app);
+    root(&mut app).texture.is_buffer_enabled = false;
+    app.update();
     let ctx = app.ctx();
     let buffer = glob.get(&ctx).buffer(&ctx);
     assert_eq!(buffer.len(), 0);
@@ -167,8 +168,9 @@ fn retrieve_color_when_buffer_disabled() {
     Root::wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    root(&mut app).texture.is_buffer_enabled = false;
     Root::wait_resources(&mut app);
+    root(&mut app).texture.is_buffer_enabled = false;
+    app.update();
     let ctx = app.ctx();
     assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), None);
 }
