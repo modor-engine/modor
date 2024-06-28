@@ -1,7 +1,8 @@
+use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
-use crate::{AntiAliasingMode, Camera2D, Size, Target};
+use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
 use modor::{Builder, Context, Glob, GlobRef, Node};
@@ -154,6 +155,7 @@ impl Texture {
     ///
     /// The `label` is used to identity the texture in logs.
     pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let label = label.into();
         let loaded = TextureLoaded::default();
         let glob = TextureGlob::new(
@@ -164,7 +166,11 @@ impl Texture {
             Self::DEFAULT_IS_BUFFER_ENABLED,
             &label,
         );
-        let target = Target::new(ctx, &label);
+        let mut target = Target::new(ctx, &label);
+        target.supported_anti_aliasing_modes = ctx
+            .get_mut::<SupportedAntiAliasingModes>()
+            .get(&gpu, Self::DEFAULT_FORMAT)
+            .to_vec();
         let camera = Camera2D::new(ctx, &label, vec![target.glob().clone()]);
         Self {
             is_smooth: Self::DEFAULT_IS_SMOOTH,
@@ -207,8 +213,7 @@ impl Texture {
 
     fn init_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, size: NonZeroSize) {
         if self.is_target_enabled {
-            self.target
-                .enable(ctx, gpu, size, Self::DEFAULT_FORMAT, AntiAliasingMode::None);
+            self.target.enable(ctx, gpu, size, Self::DEFAULT_FORMAT);
         }
     }
 

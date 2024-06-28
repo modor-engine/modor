@@ -79,6 +79,8 @@ impl RootNode for Resources {
 struct Object {
     model: Model2D<DefaultMaterial2D>,
     next_update: Instant,
+    // A `Body2D` could be used instead of manually handle the velocity, but for performance reasons
+    // this is not recommended with a large amount of objects (> 10K objects).
     velocity: Vec2,
 }
 
