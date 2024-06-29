@@ -267,9 +267,9 @@ impl OldState {
 
     #[allow(clippy::float_cmp)]
     fn has_changed(&self, text: &Text2D) -> bool {
-        self.content != text.content
-            || self.font_height != text.font_height
-            || self.font != text.font
+        self.font_height != text.font_height
             || self.alignment != text.alignment
+            || self.font != text.font
+            || self.content != text.content
     }
 }

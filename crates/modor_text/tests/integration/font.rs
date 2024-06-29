@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::modor_resources::{Res, ResLoad, Resource};
 use modor_graphics::testing::assert_max_component_diff;
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_text::{Font, FontSource, Text2D};
@@ -11,6 +11,7 @@ fn render_ttf_font_from_path() {
     let (mut app, target) = configure_app();
     let font = Font::new(&mut app.ctx(), "main")
         .load_from_path(&mut app.ctx(), "../tests/assets/IrishGrover-Regular.ttf");
+    assert_eq!(font.label(), "main");
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
