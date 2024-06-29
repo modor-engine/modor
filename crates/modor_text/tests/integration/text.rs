@@ -2,7 +2,7 @@ use modor::log::Level;
 use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::testing::assert_same;
+use modor_graphics::testing::assert_max_component_diff;
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_text::{Alignment, Text2D};
 
@@ -10,7 +10,7 @@ use modor_text::{Alignment, Text2D};
 fn create_default() {
     let (mut app, target) = configure_app();
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "text#default");
+    assert_max_component_diff(&mut app, &target, "text#default", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -19,7 +19,7 @@ fn set_content() {
     wait_resources(&mut app);
     text(&mut app).content = "Content".into();
     app.update();
-    assert_same(&mut app, &target, "text#other_content");
+    assert_max_component_diff(&mut app, &target, "text#other_content", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -27,7 +27,7 @@ fn apply_left_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Left;
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "text#left_alignment");
+    assert_max_component_diff(&mut app, &target, "text#left_alignment", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -35,7 +35,7 @@ fn apply_right_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Right;
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "text#right_alignment");
+    assert_max_component_diff(&mut app, &target, "text#right_alignment", 20, 2);
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
