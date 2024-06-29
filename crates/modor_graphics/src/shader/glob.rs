@@ -1,3 +1,4 @@
+use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::Vertex;
 use crate::mesh::VertexBuffer;
@@ -47,37 +48,30 @@ impl ShaderGlob {
     where
         T: 'static + Material,
     {
-        let window = ctx.get_mut::<Window>();
-        let window_texture_format = window.texture_format();
-        let supported_anti_aliasing_modes = window.supported_anti_aliasing_modes().to_vec();
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
+        let window_texture_format = ctx.get_mut::<Window>().texture_format();
+        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
         let material_bind_group_layout =
-            Self::create_material_bind_group_layout(gpu, loaded, label);
+            Self::create_material_bind_group_layout(&gpu, loaded, label);
         Ok(Self {
             texture_count: loaded.texture_count,
             pipelines: [window_texture_format, Some(Texture::DEFAULT_FORMAT)]
                 .into_iter()
                 .flatten()
-                .flat_map(|texture_format| {
-                    if Some(texture_format) == window_texture_format {
-                        // coverage: off (only for window, so cannot be tested)
-                        supported_anti_aliasing_modes
-                            .iter()
-                            .copied()
-                            .map(move |anti_aliasing| (texture_format, anti_aliasing))
-                            .collect()
-                        // coverage: on
-                    } else {
-                        vec![(texture_format, AntiAliasingMode::None)]
-                    }
+                .flat_map(|format| {
+                    ctx.get_mut::<SupportedAntiAliasingModes>()
+                        .get(&gpu, format)
+                        .iter()
+                        .copied()
+                        .map(move |anti_aliasing| (format, anti_aliasing))
+                        .collect::<Vec<_>>()
                 })
-                .map(|(texture_format, anti_aliasing)| {
+                .map(|(format, anti_aliasing)| {
                     Ok((
-                        (texture_format, anti_aliasing),
+                        (format, anti_aliasing),
                         Self::create_pipeline::<T>(
-                            gpu,
+                            &gpu,
                             loaded,
-                            texture_format,
+                            format,
                             anti_aliasing,
                             is_alpha_replaced,
                             &material_bind_group_layout,
@@ -88,20 +82,6 @@ impl ShaderGlob {
                 .collect::<Result<FxHashMap<_, _>, _>>()?,
             material_bind_group_layout,
         })
-    }
-
-    pub(crate) fn pipeline(
-        &self,
-        texture_format: TextureFormat,
-        anti_aliasing: AntiAliasingMode,
-    ) -> Option<&RenderPipeline> {
-        self.pipelines
-            .get(&(texture_format, anti_aliasing))
-            .or_else(|| {
-                // coverage: off (only for window, so cannot be tested)
-                self.pipelines
-                    .get(&(texture_format, AntiAliasingMode::None))
-            }) // coverage: on
     }
 
     fn create_material_bind_group_layout(

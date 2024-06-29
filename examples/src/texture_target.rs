@@ -55,6 +55,14 @@ impl RootNode for TextureTarget {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         let texture = Texture::new(ctx, "texture-target")
             .with_is_target_enabled(true)
+            .with_target(|target| {
+                target.anti_aliasing = target
+                    .supported_anti_aliasing_modes()
+                    .iter()
+                    .copied()
+                    .max()
+                    .unwrap_or_default();
+            })
             .load_from_source(TextureSource::Size(Size::new(300, 300)));
         let camera = Camera2D::new(ctx, "texture-target", vec![texture.target.glob().clone()]);
         Self { texture, camera }

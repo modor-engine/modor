@@ -1,13 +1,12 @@
+use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
-use crate::{platform, validation, Camera2D, FrameRate, Size, Target};
-use enum_iterator::Sequence;
+use crate::{platform, Camera2D, FrameRate, Size, Target};
 use modor::{Context, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
-    Extent3d, Instance, PresentMode, Surface, SurfaceConfiguration, TextureDescriptor,
-    TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
+    Instance, PresentMode, Surface, SurfaceConfiguration, TextureFormat, TextureViewDescriptor,
 };
 use winit::dpi::PhysicalSize;
 
@@ -34,7 +33,8 @@ use winit::dpi::PhysicalSize;
 ///         window.frame_rate = FrameRate::Unlimited;
 ///         window.target.background_color = Color::GRAY;
 ///         // enable maximum supported anti-aliasing
-///         window.anti_aliasing = window
+///         window.target.anti_aliasing = window
+///             .target
 ///             .supported_anti_aliasing_modes()
 ///             .iter()
 ///             .copied()
@@ -63,14 +63,7 @@ pub struct Window {
     pub frame_rate: FrameRate,
     /// Default camera of the window.
     pub camera: Camera2D,
-    /// Anti-aliasing mode.
-    ///
-    /// If the mode is not supported, then no anti-aliasing is applied.
-    ///
-    /// Default is [`AntiAliasingMode::None`].
-    pub anti_aliasing: AntiAliasingMode,
     pub(crate) size: Size,
-    supported_anti_aliasing_modes: Vec<AntiAliasingMode>,
     handle: Option<Arc<winit::window::Window>>,
     surface: WindowSurfaceState,
     old_state: OldWindowState,
@@ -86,9 +79,7 @@ impl RootNode for Window {
             target,
             frame_rate: FrameRate::VSync,
             camera,
-            anti_aliasing: AntiAliasingMode::None,
             size: Self::DEFAULT_SIZE,
-            supported_anti_aliasing_modes: vec![AntiAliasingMode::None],
             handle: None,
             surface: WindowSurfaceState::None,
             old_state: OldWindowState::default(),
@@ -117,11 +108,6 @@ impl Window {
     /// - Other: default size is 800x600.
     pub fn size(&self) -> Size {
         self.size
-    }
-
-    /// Returns all supported [`AntiAliasingMode`].
-    pub fn supported_anti_aliasing_modes(&self) -> &[AntiAliasingMode] {
-        &self.supported_anti_aliasing_modes
     }
 
     pub(crate) fn prepare_rendering(&self) {
@@ -153,9 +139,11 @@ impl Window {
             .surface_size()
             .expect("internal error: not configured window");
         let surface = WindowSurface::new(gpu, surface, size);
-        let texture_format = surface.surface_config.format;
+        let format = surface.surface_config.format;
         self.surface = WindowSurfaceState::Loading(surface);
-        self.supported_anti_aliasing_modes = Self::supported_modes(gpu, texture_format);
+        self.target.supported_anti_aliasing_modes = SupportedAntiAliasingModes::default()
+            .get(gpu, format)
+            .to_vec();
     }
 
     pub(crate) fn texture_format(&self) -> Option<TextureFormat> {
@@ -185,19 +173,16 @@ impl Window {
         let size = self.surface_size();
         if let Some(surface) = self.surface.take_new() {
             let texture_format = surface.surface_config.format;
-            self.target
-                .enable(ctx, &gpu, surface.size, texture_format, self.anti_aliasing);
+            self.target.enable(ctx, &gpu, surface.size, texture_format);
             self.surface = WindowSurfaceState::Loaded(surface);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
             let size = size.expect("internal error: not configured window");
             surface.update(&gpu, size, self.frame_rate);
-            if size != self.old_state.size || self.anti_aliasing != self.old_state.anti_aliasing {
+            if size != self.old_state.size {
                 let texture_format = surface.surface_config.format;
-                self.target
-                    .enable(ctx, &gpu, size, texture_format, self.anti_aliasing);
+                self.target.enable(ctx, &gpu, size, texture_format);
                 self.old_state.size = size;
-                self.old_state.anti_aliasing = self.anti_aliasing;
                 self.camera.update(ctx); // force camera update to avoid distortion
             }
             surface.render(ctx, &gpu, &mut self.target);
@@ -210,46 +195,12 @@ impl Window {
         let surface_size = platform::surface_size(handle, size);
         Some(Size::new(surface_size.width, surface_size.height).into())
     }
-
-    fn supported_modes(gpu: &Gpu, format: TextureFormat) -> Vec<AntiAliasingMode> {
-        enum_iterator::all::<AntiAliasingMode>()
-            .filter(|&mode| Self::is_anti_aliasing_mode_supported(gpu, format, mode))
-            .collect()
-    }
-
-    fn is_anti_aliasing_mode_supported(
-        gpu: &Gpu,
-        format: TextureFormat,
-        mode: AntiAliasingMode,
-    ) -> bool {
-        if mode == AntiAliasingMode::None {
-            return true;
-        }
-        validation::validate_wgpu(gpu, || {
-            gpu.device.create_texture(&TextureDescriptor {
-                label: Some("modor_texture:msaa_check"),
-                size: Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: mode.sample_count(),
-                dimension: TextureDimension::D2,
-                format,
-                usage: TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            });
-        })
-        .is_ok()
-    }
 }
 
 struct OldWindowState {
     title: String,
     is_cursor_visible: bool,
     size: NonZeroSize,
-    anti_aliasing: AntiAliasingMode,
 }
 
 impl Default for OldWindowState {
@@ -258,7 +209,6 @@ impl Default for OldWindowState {
             title: "winit window".into(),
             is_cursor_visible: true,
             size: Window::DEFAULT_SIZE.into(),
-            anti_aliasing: AntiAliasingMode::None,
         }
     }
 }
@@ -341,39 +291,5 @@ impl WindowSurface {
             .get_capabilities(&gpu.adapter)
             .present_modes
             .contains(&PresentMode::Immediate)
-    }
-}
-
-/// An anti-aliasing mode.
-///
-/// # Examples
-///
-/// See [`Window`].
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Sequence)]
-#[non_exhaustive]
-pub enum AntiAliasingMode {
-    /// Anti-aliasing is disabled.
-    #[default]
-    None,
-    /// Multi-Sample Anti-Aliasing is enabled with 2 samples.
-    MsaaX2,
-    /// Multi-Sample Anti-Aliasing is enabled with 4 samples.
-    MsaaX4,
-    /// Multi-Sample Anti-Aliasing is enabled with 8 samples.
-    MsaaX8,
-    /// Multi-Sample Anti-Aliasing is enabled with 16 samples.
-    MsaaX16,
-}
-
-impl AntiAliasingMode {
-    /// Returns the number of samples applied for anti-aliasing.
-    pub const fn sample_count(self) -> u32 {
-        match self {
-            Self::None => 1,
-            Self::MsaaX2 => 2,
-            Self::MsaaX4 => 4,
-            Self::MsaaX8 => 8,
-            Self::MsaaX16 => 16,
-        }
     }
 }

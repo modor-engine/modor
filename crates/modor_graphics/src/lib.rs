@@ -12,6 +12,7 @@
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
 mod animation;
+mod anti_aliasing;
 mod buffer;
 mod camera;
 mod color;
@@ -35,6 +36,7 @@ mod validation;
 mod window;
 
 pub use animation::*;
+pub use anti_aliasing::*;
 pub use camera::*;
 pub use color::*;
 pub use cursor::*;

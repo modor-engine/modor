@@ -31,7 +31,8 @@ struct Root {
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         let window = ctx.get_mut::<Window>();
-        window.anti_aliasing = window
+        window.target.anti_aliasing = window
+            .target
             .supported_anti_aliasing_modes()
             .iter()
             .copied()

@@ -4,7 +4,7 @@ use crate::shader::glob::ShaderGlob;
 use crate::size::NonZeroSize;
 use crate::{
     validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
-    MaterialGlob, Size,
+    MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
@@ -18,7 +18,7 @@ use wgpu::{
 /// The target for a rendering.
 ///
 /// The models can be rendered either in the [`Window`](crate::Window) target,
-/// or in a created [`Texture`](crate::Texture) target.
+/// or in a created [`Texture`] target.
 ///
 /// # Examples
 ///
@@ -42,9 +42,17 @@ pub struct Target {
     ///
     /// Default is [`Color::BLACK`].
     pub background_color: Color,
-    anti_aliasing: AntiAliasingMode,
+    /// Anti-aliasing mode.
+    ///
+    /// If the mode is not supported, then no anti-aliasing is applied.
+    ///
+    /// Default is [`AntiAliasingMode::None`].
+    pub anti_aliasing: AntiAliasingMode,
+    pub(crate) supported_anti_aliasing_modes: Vec<AntiAliasingMode>,
+    texture_format: TextureFormat,
     loaded: Option<LoadedTarget>,
     is_error_logged: bool,
+    is_incompatible_anti_aliasing_logged: bool,
     label: String,
     glob: Glob<TargetGlob>,
     cameras: RootNodeHandle<Globals<Camera2DGlob>>,
@@ -58,14 +66,28 @@ impl Target {
         self.glob.as_ref()
     }
 
+    /// Returns the sorted list of all supported [`AntiAliasingMode`].
+    pub fn supported_anti_aliasing_modes(&self) -> &[AntiAliasingMode] {
+        &self.supported_anti_aliasing_modes
+    }
+
     pub(crate) fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
         Self {
             background_color: Color::BLACK,
             anti_aliasing: AntiAliasingMode::None,
+            supported_anti_aliasing_modes: vec![AntiAliasingMode::None],
+            texture_format: Texture::DEFAULT_FORMAT,
             loaded: None,
             is_error_logged: false,
+            is_incompatible_anti_aliasing_logged: false,
             label: label.into(),
-            glob: Glob::new(ctx, TargetGlob { size: Size::ZERO }),
+            glob: Glob::new(
+                ctx,
+                TargetGlob {
+                    size: Size::ZERO,
+                    anti_aliasing: AntiAliasingMode::None,
+                },
+            ),
             cameras: ctx.handle(),
             materials: ctx.handle(),
             meshes: ctx.handle(),
@@ -81,17 +103,18 @@ impl Target {
         ctx: &mut Context<'_>,
         gpu: &Gpu,
         size: NonZeroSize,
-        texture_format: TextureFormat,
-        anti_aliasing: AntiAliasingMode,
+        format: TextureFormat,
     ) {
-        self.glob.get_mut(ctx).size = size.into();
-        self.anti_aliasing = anti_aliasing;
+        let glob = self.glob.get_mut(ctx);
+        glob.size = size.into();
+        glob.anti_aliasing = self.anti_aliasing;
+        let anti_aliasing = self.fixed_anti_aliasing();
+        self.texture_format = format;
         self.loaded = Some(LoadedTarget {
-            texture_format,
             color_buffer_view: Self::create_color_buffer_view(
                 gpu,
                 size,
-                texture_format,
+                self.texture_format,
                 anti_aliasing,
             ),
             depth_buffer_view: Self::create_depth_buffer_view(gpu, size, anti_aliasing),
@@ -100,6 +123,8 @@ impl Target {
 
     pub(crate) fn render(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, view: TextureView) {
         ctx.get_mut::<InstanceGroups2D>().sync(gpu);
+        self.update_loaded(ctx, gpu);
+        let anti_aliasing = self.fixed_anti_aliasing();
         let loaded = self
             .loaded
             .as_ref()
@@ -107,14 +132,14 @@ impl Target {
         let mut encoder = Self::create_encoder(gpu, &self.label);
         let mut pass = Self::create_pass(
             self.background_color,
-            self.anti_aliasing,
+            anti_aliasing,
             &mut encoder,
             &view,
             loaded,
         );
         let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
-        self.render_opaque_groups(ctx, loaded, groups, &mut pass);
-        self.render_transparent_groups(ctx, loaded, groups, &mut pass);
+        self.render_opaque_groups(ctx, groups, &mut pass, anti_aliasing);
+        self.render_transparent_groups(ctx, groups, &mut pass, anti_aliasing);
         let result = validation::validate_wgpu(gpu, || drop(pass));
         let is_err = result.is_err();
         if !is_err {
@@ -122,6 +147,15 @@ impl Target {
         }
         trace!("Target '{}' rendered (error: {})", self.label, is_err);
         self.log_error(result);
+    }
+
+    fn update_loaded(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
+        let glob = self.glob.get_mut(ctx);
+        if self.anti_aliasing != glob.anti_aliasing {
+            glob.anti_aliasing = self.anti_aliasing;
+            let size = glob.size.into();
+            self.enable(ctx, gpu, size, self.texture_format);
+        }
     }
 
     fn create_color_buffer_view(
@@ -189,9 +223,7 @@ impl Target {
             label: Some("modor_render_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: if sample_count > 1 {
-                    // coverage: off (only for window, so cannot be tested)
                     &loaded.color_buffer_view
-                    // coverage: on
                 } else {
                     view
                 },
@@ -217,23 +249,23 @@ impl Target {
     fn render_opaque_groups<'a>(
         &self,
         ctx: &'a Context<'_>,
-        loaded: &LoadedTarget,
         groups: &'a InstanceGroups2D,
         pass: &mut RenderPass<'a>,
+        anti_aliasing: AntiAliasingMode,
     ) {
         let mut sorted_groups: Vec<_> = self.group_iter(ctx, groups, false).collect();
         sorted_groups.sort_unstable();
         for group in sorted_groups {
-            self.render_group(ctx, pass, group, None, groups, loaded);
+            self.render_group(ctx, pass, group, None, groups, anti_aliasing);
         }
     }
 
     fn render_transparent_groups<'a>(
         &self,
         ctx: &'a Context<'_>,
-        loaded: &LoadedTarget,
         groups: &'a InstanceGroups2D,
         pass: &mut RenderPass<'a>,
+        anti_aliasing: AntiAliasingMode,
     ) {
         let mut sorted_instances: Vec<_> = self
             .group_iter(ctx, groups, true)
@@ -249,7 +281,14 @@ impl Target {
             z1.total_cmp(z2).then(group1.cmp(group2))
         });
         for (group, instance_index, _) in sorted_instances {
-            self.render_group(ctx, pass, group, Some(instance_index), groups, loaded);
+            self.render_group(
+                ctx,
+                pass,
+                group,
+                Some(instance_index),
+                groups,
+                anti_aliasing,
+            );
         }
     }
 
@@ -280,7 +319,7 @@ impl Target {
         group: InstanceGroup2DProperties,
         instance_index: Option<usize>,
         groups: &'a InstanceGroups2D,
-        loaded: &LoadedTarget,
+        anti_aliasing: AntiAliasingMode,
     ) -> Option<()> {
         let material = self.materials.get(ctx).get(group.material)?;
         let shader = material.shader.get(ctx);
@@ -291,7 +330,8 @@ impl Target {
         let mesh = self.meshes.get(ctx).get(group.mesh)?;
         let group = &groups.groups[&group];
         let primary_buffer = group.primary_buffer()?;
-        pass.set_pipeline(shader.pipeline(loaded.texture_format, self.anti_aliasing)?);
+        let pipeline_params = (self.texture_format, anti_aliasing);
+        pass.set_pipeline(shader.pipelines.get(&pipeline_params)?);
         pass.set_bind_group(
             ShaderGlob::CAMERA_GROUP,
             camera.bind_group(self.glob())?,
@@ -326,11 +366,25 @@ impl Target {
         }
     }
     // coverage: on
+
+    fn fixed_anti_aliasing(&mut self) -> AntiAliasingMode {
+        if self
+            .supported_anti_aliasing_modes
+            .contains(&self.anti_aliasing)
+        {
+            self.anti_aliasing
+        } else {
+            if !self.is_incompatible_anti_aliasing_logged {
+                error!("Unsupported anti-aliasing mode: `{:?}`", self.anti_aliasing);
+                self.is_incompatible_anti_aliasing_logged = true;
+            }
+            AntiAliasingMode::None
+        }
+    }
 }
 
 #[derive(Debug)]
 struct LoadedTarget {
-    texture_format: TextureFormat,
     #[allow(dead_code)] // will be used when supporting antialiasing
     color_buffer_view: TextureView,
     depth_buffer_view: TextureView,
@@ -342,4 +396,5 @@ struct LoadedTarget {
 pub struct TargetGlob {
     /// Size of the target in pixels.
     pub size: Size,
+    anti_aliasing: AntiAliasingMode,
 }
