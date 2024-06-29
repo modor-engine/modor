@@ -1,6 +1,6 @@
 [package]
 name = "modor_graphics"
-description = "Graphics module of Modor game engine"
+description = "Graphics crate of Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "graphics", "display", "rendering", "game"]
 categories = ["game-engines"]

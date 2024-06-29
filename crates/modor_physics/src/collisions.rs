@@ -8,7 +8,7 @@ use rapier2d::na::Point2;
 /// # Examples
 ///
 /// See [`Body2D`](crate::Body2D).
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct Collision2D {
     /// Index of the collided body.

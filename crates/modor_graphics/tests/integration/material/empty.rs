@@ -9,13 +9,14 @@ use modor_graphics::{
     TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn deref() {
     let mut app = App::new::<Root>(Level::Info);
-    let shader = Shader::new(&mut app.ctx(), "main").load_from_path("../tests/assets/red.wgsl");
+    let shader = Shader::new(&mut app.ctx(), "main")
+        .load_from_path(&mut app.ctx(), "../tests/assets/red.wgsl");
     let material = TestMaterial::new(&shader).into_mat(&mut app.ctx(), "main");
     assert_eq!(material.shader, shader.glob());
 }
@@ -23,7 +24,7 @@ fn deref() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn use_material_empty_struct() {
     let mut app = App::new::<Root>(Level::Info);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let target = root(&mut app).target.glob().clone();
     assert_same(&mut app, &target, "material#red");
 }
@@ -45,8 +46,8 @@ impl RootNode for Root {
         let target = Texture::new(ctx, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(ctx, "main").load_from_path("../tests/assets/red.wgsl");
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+        let shader = Shader::new(ctx, "main").load_from_path(ctx, "../tests/assets/red.wgsl");
         let material = TestMaterial::new(&shader).into_mat(ctx, "main");
         let model = Model2D::new(ctx, material.glob())
             .with_size(Vec2::ONE * 0.5)
@@ -57,13 +58,6 @@ impl RootNode for Root {
             model,
             target,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.target);
-        wait_resource(app, |r: &Self| &r.shader);
     }
 }
 

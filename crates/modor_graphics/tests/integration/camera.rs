@@ -4,7 +4,7 @@ use modor_graphics::testing::assert_same;
 use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad};
 use std::f32::consts::FRAC_PI_4;
 
@@ -53,7 +53,7 @@ fn set_position_size_rotation() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let target = root(&mut app).target.glob().clone();
     let other_target = root(&mut app).other_target.glob().clone();
     (app, target, other_target)
@@ -79,11 +79,11 @@ impl RootNode for Root {
         let target = Texture::new(ctx, "target1")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         let other_target = Texture::new(ctx, "target2")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         let sprite =
             Sprite2D::new(ctx, "main").with_model(|m| m.camera = target.camera.glob().clone());
         Self {
@@ -91,12 +91,5 @@ impl RootNode for Root {
             target,
             other_target,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.target);
-        wait_resource(app, |r: &Self| &r.other_target);
     }
 }

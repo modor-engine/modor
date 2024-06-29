@@ -2,7 +2,7 @@ use crate::buffer::Buffer;
 use crate::gpu::Gpu;
 use crate::mesh::MeshGlob;
 use crate::mesh::VertexBuffer;
-use crate::resources::GraphicsResources;
+use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
@@ -114,11 +114,7 @@ where
     /// Creates a new model.
     pub fn new(ctx: &mut Context<'_>, material: MaterialGlobRef<T>) -> Self {
         let camera = ctx.get_mut::<Window>().camera.glob().clone();
-        let mesh = ctx
-            .get_mut::<GraphicsResources>()
-            .rectangle_mesh
-            .glob()
-            .clone();
+        let mesh = ctx.get_mut::<Resources>().rectangle_mesh.glob().clone();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,

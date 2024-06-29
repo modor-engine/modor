@@ -63,7 +63,7 @@ impl RootNode for TextureTarget {
                     .max()
                     .unwrap_or_default();
             })
-            .load_from_source(TextureSource::Size(Size::new(300, 300)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(300, 300)));
         let camera = Camera2D::new(ctx, "texture-target", vec![texture.target.glob().clone()]);
         Self { texture, camera }
     }

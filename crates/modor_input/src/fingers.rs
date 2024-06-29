@@ -83,7 +83,7 @@ impl IndexMut<u64> for Fingers {
 ///
 /// See [`Fingers`].
 #[non_exhaustive]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Finger {
     /// State of the finger.
     pub state: InputState,

@@ -52,8 +52,9 @@ struct Resources {
 impl RootNode for Resources {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         Self {
-            background_texture: Texture::new(ctx, "background").load_from_path("background.png"),
-            smiley_texture: Texture::new(ctx, "smiley").load_from_path("smiley.png"),
+            background_texture: Texture::new(ctx, "background")
+                .load_from_path(ctx, "background.png"),
+            smiley_texture: Texture::new(ctx, "smiley").load_from_path(ctx, "smiley.png"),
         }
     }
 }

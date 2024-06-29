@@ -14,7 +14,8 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// # Examples
 ///
 /// ```rust
-/// # use modor::*;
+/// # use wgpu::core::command::CopySide::Source;
+/// use modor::*;
 /// # use modor_graphics::*;
 /// # use modor_graphics::modor_resources::*;
 /// # use modor_physics::modor_math::*;
@@ -26,12 +27,15 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///
 /// impl TexturedRectangle {
 ///     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
-///         let texture = ctx.get_mut::<Resources>().texture.glob().clone();
+///         let  resources = ctx.get_mut::<Resources>();
+///         let camera = resources.target.camera.glob().clone();
+///         let texture = resources.texture.glob().clone();
 ///         Self {
 ///             sprite: Sprite2D::new(ctx, "rectangle")
 ///                 .with_material(|m| m.texture = texture)
 ///                 .with_model(|m| m.position = position)
-///                 .with_model(|m| m.size = size),
+///                 .with_model(|m| m.size = size)
+///                 .with_model(|m| m.camera = camera),
 ///         }
 ///     }
 /// }
@@ -39,12 +43,16 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// #[derive(Node, Visit)]
 /// struct Resources {
 ///     texture: Res<Texture>,
+///     target: Res<Texture>,
 /// }
 ///
 /// impl RootNode for Resources {
 ///     fn on_create(ctx: &mut Context<'_>) -> Self {
 ///         Self {
-///             texture: Texture::new(ctx, "rectangle").load_from_path("my-texture.png"),
+///             texture: Texture::new(ctx, "rectangle").load_from_path(ctx, "my-texture.png"),
+///             target: Texture::new(ctx, "rectangle")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(800, 600))),
 ///         }
 ///     }
 /// }

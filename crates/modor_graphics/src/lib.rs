@@ -7,7 +7,7 @@
 //! modor_graphics = "0.1"
 //! ```
 //!
-//! Now you can start using this crate, for example by creating [`Model2D`] to render.
+//! Now you can start using this crate, for example by creating a [`Sprite2D`] to render.
 
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 

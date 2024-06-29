@@ -34,7 +34,7 @@ impl RootNode for Resources {
         Self {
             smile_texture: Texture::new(ctx, "slime")
                 .with_is_smooth(false)
-                .load_from_path("slime.png"),
+                .load_from_path(ctx, "slime.png"),
         }
     }
 }

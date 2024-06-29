@@ -7,7 +7,7 @@ use modor_graphics::{
     Texture, TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad};
 
 const SIMPLE_SHADER_PATH: &str = "../tests/assets/simple.wgsl";
@@ -16,7 +16,8 @@ const INVALID_SHADER_PATH: &str = "../tests/assets/invalid.wgsl";
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn load_from_path() {
     let (mut app, target) = configure_app();
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
+    app.update();
     assert_same(&mut app, &target, "shader#default");
     assert!(!root(&mut app).shader.is_invalid());
 }
@@ -31,7 +32,8 @@ fn load_from_string() {
     root(&mut app)
         .shader
         .reload_with_source(ShaderSource::String(code.into()));
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
+    app.update();
     assert_same(&mut app, &target, "shader#red");
     assert!(!root(&mut app).shader.is_invalid());
 }
@@ -39,13 +41,15 @@ fn load_from_string() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn load_invalid_code() {
     let (mut app, target) = configure_app();
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     root(&mut app).shader.reload_with_path(INVALID_SHADER_PATH);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
+    app.update();
     assert_same(&mut app, &target, "shader#default");
     assert!(root(&mut app).shader.is_invalid());
     root(&mut app).shader.reload_with_path(SIMPLE_SHADER_PATH);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
+    app.update();
     assert_same(&mut app, &target, "shader#default");
     assert!(!root(&mut app).shader.is_invalid());
 }
@@ -53,7 +57,8 @@ fn load_invalid_code() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_alpha_replaced() {
     let (mut app, target) = configure_app();
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
+    app.update();
     root(&mut app).shader.is_alpha_replaced = true;
     app.update();
     assert_same(&mut app, &target, "shader#empty"); // because shader updated after material
@@ -85,8 +90,8 @@ impl RootNode for Root {
         let target = Texture::new(ctx, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(ctx, "main").load_from_path(SIMPLE_SHADER_PATH);
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+        let shader = Shader::new(ctx, "main").load_from_path(ctx, SIMPLE_SHADER_PATH);
         let material = TestMaterial::new(&shader).into_mat(ctx, "main");
         let model1 = Model2D::new(ctx, material.glob())
             .with_position(Vec2::ZERO)
@@ -104,14 +109,6 @@ impl RootNode for Root {
             model2,
             target,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.target);
-        wait_resource(app, |r: &Self| &r.shader);
-        app.update();
     }
 }
 

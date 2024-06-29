@@ -11,6 +11,7 @@ repository = "https://github.com/modor-engine/modor"
 rust-version = "1.75.0"
 
 [workspace.dependencies]
+ab_glyph = "0.2"
 approx = "0.5"
 android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
@@ -57,6 +58,7 @@ modor_jobs = { version = "0.1.0", path = "crates/modor_jobs" }
 modor_math = { version = "0.1.0", path = "crates/modor_math" }
 modor_physics = { version = "0.1.0", path = "crates/modor_physics" }
 modor_resources = { version = "0.1.0", path = "crates/modor_resources" }
+modor_text = { version = "0.1.0", path = "crates/modor_text" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"
