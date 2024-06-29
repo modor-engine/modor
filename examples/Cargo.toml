@@ -50,6 +50,21 @@ path = "examples/android/game_of_life.rs"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "gamepad_android"
+path = "examples/android/gamepad.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "keyboard_android"
+path = "examples/android/keyboard.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "mouse_android"
+path = "examples/android/mouse.rs"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "physics_2d_android"
 path = "examples/android/physics_2d.rs"
 crate-type = ["cdylib"]
@@ -57,6 +72,11 @@ crate-type = ["cdylib"]
 [[example]]
 name = "platformer_android"
 path = "examples/android/platformer.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "pong_android"
+path = "examples/android/pong.rs"
 crate-type = ["cdylib"]
 
 [[example]]

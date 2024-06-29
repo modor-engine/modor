@@ -19,5 +19,3 @@ pub use material::*;
 pub use text::*;
 
 pub use modor_graphics;
-
-// TODO: add missing examples

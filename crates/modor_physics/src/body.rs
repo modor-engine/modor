@@ -247,6 +247,18 @@ impl Body2D {
         &self.collisions
     }
 
+    /// Returns the detected collisions with another body from the specific collision `group`.
+    pub fn collisions_with(
+        &self,
+        group: &GlobRef<CollisionGroupGlob>,
+    ) -> impl Iterator<Item = Collision2D> + '_ {
+        let group_index = group.index();
+        self.collisions
+            .iter()
+            .copied()
+            .filter(move |collision| collision.other_group_index == group_index)
+    }
+
     /// Returns whether the body collides with a body inside `group`.
     pub fn is_colliding_with(&self, group: &GlobRef<CollisionGroupGlob>) -> bool {
         self.collisions
