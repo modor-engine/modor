@@ -35,7 +35,7 @@ use std::time::Duration;
 ///
 /// impl AnimatedSprite {
 ///     fn new(ctx: &mut Context<'_>) -> Self {
-///         let texture = Texture::new(ctx, "spritesheet").load_from_path("spritesheet.png");
+///         let texture = Texture::new(ctx, "spritesheet").load_from_path(ctx, "spritesheet.png");
 ///         let animation_parts = vec![
 ///             TexturePart::new(0, 0),
 ///             TexturePart::new(1, 0),

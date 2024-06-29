@@ -3,7 +3,7 @@ use modor::{App, Context, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad, ResourceState};
 
 const TEXTURE_BYTES: &[u8] = include_bytes!(concat!(
@@ -77,7 +77,7 @@ fn load_from_bytes() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert_same(&mut app, &glob, "texture#from_file");
     assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
@@ -87,7 +87,7 @@ fn load_from_path() {
     let (mut app, glob, _) = configure_app();
     let path = "../tests/assets/opaque-texture.png";
     root(&mut app).texture.reload_with_path(path);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert_same(&mut app, &glob, "texture#from_file");
     assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
@@ -97,7 +97,7 @@ fn load_file_with_invalid_format() {
     let (mut app, _, _) = configure_app();
     let path = "../tests/assets/text.txt";
     root(&mut app).texture.reload_with_path(path);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert!(matches!(
         root(&mut app).texture.state(),
         ResourceState::Error(_)
@@ -109,7 +109,7 @@ fn load_corrupted_file() {
     let (mut app, _, _) = configure_app();
     let path = "../tests/assets/corrupted.png";
     root(&mut app).texture.reload_with_path(path);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert!(matches!(
         root(&mut app).texture.state(),
         ResourceState::Error(_)
@@ -121,7 +121,7 @@ fn retrieve_buffer() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let ctx = app.ctx();
     let buffer = glob.get(&ctx).buffer(&ctx);
     assert_eq!(buffer.len(), 4 * 4 * 4);
@@ -131,10 +131,10 @@ fn retrieve_buffer() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_buffer_when_disabled() {
     let (mut app, glob, _) = configure_app();
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     root(&mut app).texture.is_buffer_enabled = false;
     app.update();
     let ctx = app.ctx();
@@ -147,7 +147,7 @@ fn retrieve_color() {
     let (mut app, glob, _) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let ctx = app.ctx();
     assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), Some(Color::RED));
     assert_eq!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.r), Some(1.));
@@ -165,10 +165,10 @@ fn retrieve_color() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn retrieve_color_when_buffer_disabled() {
     let (mut app, glob, _) = configure_app();
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     root(&mut app).texture.is_buffer_enabled = false;
     app.update();
     let ctx = app.ctx();
@@ -180,7 +180,7 @@ fn set_smooth() {
     let (mut app, _glob, target) = configure_app();
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert_max_component_diff(&mut app, &target, "texture#smooth", 10, 1);
     root(&mut app).texture.is_smooth = false;
     app.update();
@@ -194,7 +194,7 @@ fn set_repeated() {
     root(&mut app).texture.is_smooth = false;
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     assert_same(&mut app, &target, "texture#not_repeated");
     root(&mut app).texture.is_repeated = true;
     app.update();
@@ -224,10 +224,10 @@ impl RootNode for Root {
         let target = Texture::new(ctx, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(20, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(20, 20)));
         let texture = Texture::new(ctx, "main")
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::ONE));
+            .load_from_source(ctx, TextureSource::Size(Size::ONE));
         let sprite = Sprite2D::new(ctx, "main")
             .with_model(|m| m.camera = target.camera.glob().clone())
             .with_material(|m| m.texture = texture.glob().clone());
@@ -236,12 +236,5 @@ impl RootNode for Root {
             sprite,
             target,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.texture);
-        wait_resource(app, |r: &Self| &r.target);
     }
 }

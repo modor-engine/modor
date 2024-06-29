@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{Context, Node, Visit};
+use modor::{Context, Glob, Node, Visit};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -78,7 +78,7 @@ use std::{any, fmt};
 /// impl Content {
 ///     fn new(ctx: &mut Context) -> Self {
 ///         Self {
-///             size: ContentSize::default().load_from_path("path/to/content"),
+///             size: ContentSize::default().load_from_path(ctx, "path/to/content"),
 ///         }
 ///     }
 /// }
@@ -99,6 +99,7 @@ pub struct Res<T: Resource> {
     loading: Option<Loading<T>>,
     version: u64,
     state: ResourceState,
+    glob: Glob<ResGlob>,
 }
 
 impl<T> Deref for Res<T>
@@ -144,6 +145,7 @@ where
             None => (),
         }
         self.inner.update(ctx, latest_loaded);
+        self.glob.get_mut(ctx).state = self.state.clone();
     }
 }
 
@@ -245,7 +247,7 @@ pub trait ResLoad: Sized + Resource {
     /// application is run using a `cargo` command), then the file is retrieved from path
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
-    fn load_from_path(self, path: impl Into<String>) -> Res<Self>;
+    fn load_from_path(self, ctx: &mut Context<'_>, path: impl Into<String>) -> Res<Self>;
 
     /// Load a resource from a custom `source`.
     ///
@@ -253,32 +255,44 @@ pub trait ResLoad: Sized + Resource {
     /// returns `true`.
     ///
     /// The `label` is used to identity the resource in logs.
-    fn load_from_source(self, source: Self::Source) -> Res<Self>;
+    fn load_from_source(self, ctx: &mut Context<'_>, source: Self::Source) -> Res<Self>;
 }
 
 impl<T> ResLoad for T
 where
     T: Resource,
 {
-    fn load_from_path(self, path: impl Into<String>) -> Res<Self> {
+    fn load_from_path(self, ctx: &mut Context<'_>, path: impl Into<String>) -> Res<Self> {
         let mut res = Res {
             inner: self,
             location: ResourceLocation::Path(path.into()),
             loading: None,
             version: 0,
             state: ResourceState::Loading,
+            glob: Glob::new(
+                ctx,
+                ResGlob {
+                    state: ResourceState::Loading,
+                },
+            ),
         };
         res.reload();
         res
     }
 
-    fn load_from_source(self, source: Self::Source) -> Res<Self> {
+    fn load_from_source(self, ctx: &mut Context<'_>, source: Self::Source) -> Res<Self> {
         let mut res = Res {
             inner: self,
             location: ResourceLocation::Source(source),
             loading: None,
             version: 0,
             state: ResourceState::Loading,
+            glob: Glob::new(
+                ctx,
+                ResGlob {
+                    state: ResourceState::Loading,
+                },
+            ),
         };
         res.reload();
         res
@@ -371,6 +385,14 @@ impl Display for ResourceError {
             Self::Other(e) => write!(f, "resource loading error: {e}"),
         }
     }
+}
+
+/// The global data of a [`Res`].
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct ResGlob {
+    /// State of the resource.
+    pub state: ResourceState,
 }
 
 #[derive(Debug)]

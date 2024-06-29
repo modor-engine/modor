@@ -1,7 +1,7 @@
 use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
-use crate::resources::GraphicsResources;
+use crate::resources::Resources;
 use crate::shader::glob::ShaderGlob;
 use crate::texture::glob::TextureGlob;
 use crate::ShaderGlobRef;
@@ -194,7 +194,7 @@ impl MaterialGlob {
 
     fn white_texture<'a>(
         ctx: &'a Context<'_>,
-        handle: RootNodeHandle<GraphicsResources>,
+        handle: RootNodeHandle<Resources>,
     ) -> &'a TextureGlob {
         handle.get(ctx).white_texture.glob().get(ctx)
     }

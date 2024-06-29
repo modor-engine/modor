@@ -6,7 +6,7 @@ use modor_graphics::{
 };
 use modor_input::modor_math::Vec2;
 use modor_physics::Body2D;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
@@ -121,7 +121,7 @@ fn set_material() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let target = root(&mut app).target1.glob().clone();
     (app, target)
 }
@@ -144,11 +144,11 @@ impl RootNode for Root {
         let target1 = Texture::new(ctx, "target1")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         let target2 = Texture::new(ctx, "target2")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         let material1 = DefaultMaterial2D::new(ctx).into_mat(ctx, "material1");
         let material2 = DefaultMaterial2D::new(ctx)
             .with_color(Color::RED)
@@ -161,13 +161,5 @@ impl RootNode for Root {
             target1,
             target2,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.target1);
-        wait_resource(app, |r: &Self| &r.target2);
-        app.update();
     }
 }

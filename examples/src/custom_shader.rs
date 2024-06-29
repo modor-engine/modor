@@ -22,8 +22,8 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
-        let texture = Texture::new(ctx, "smiley").load_from_path("smiley.png");
-        let shader = Shader::new(ctx, "blur").load_from_path("blur.wgsl");
+        let texture = Texture::new(ctx, "smiley").load_from_path(ctx, "smiley.png");
+        let shader = Shader::new(ctx, "blur").load_from_path(ctx, "blur.wgsl");
         let material = BlurMaterial::new(&texture, &shader).into_mat(ctx, "blur-default");
         Self {
             sprites: vec![

@@ -7,13 +7,13 @@ use modor_graphics::{
     TextureGlob, TextureSource,
 };
 use modor_input::modor_math::Vec2;
-use modor_resources::testing::wait_resource;
+use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResLoad};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn use_instance_data() {
     let mut app = App::new::<Root>(Level::Info);
-    Root::wait_resources(&mut app);
+    wait_resources(&mut app);
     let target = root(&mut app).target.glob().clone();
     assert_same(&mut app, &target, "material#instances");
     app.update();
@@ -39,11 +39,11 @@ impl RootNode for Root {
         let target = Texture::new(ctx, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         let texture = Texture::new(ctx, "main")
             .with_is_smooth(false)
-            .load_from_path("../tests/assets/opaque-texture.png");
-        let shader = Shader::new(ctx, "main").load_from_path("../tests/assets/complex.wgsl");
+            .load_from_path(ctx, "../tests/assets/opaque-texture.png");
+        let shader = Shader::new(ctx, "main").load_from_path(ctx, "../tests/assets/complex.wgsl");
         let material = TestMaterial::new(&texture, &shader).into_mat(ctx, "main");
         let model1 = Model2D::new(ctx, material.glob())
             .with_position(Vec2::new(-0.25, 0.))
@@ -61,14 +61,6 @@ impl RootNode for Root {
             model2,
             target,
         }
-    }
-}
-
-impl Root {
-    fn wait_resources(app: &mut App) {
-        wait_resource(app, |r: &Self| &r.target);
-        wait_resource(app, |r: &Self| &r.texture);
-        wait_resource(app, |r: &Self| &r.shader);
     }
 }
 

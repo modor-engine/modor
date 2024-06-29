@@ -56,7 +56,7 @@ impl RootNode for Root {
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .with_is_smooth(false)
-            .load_from_source(TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
         Self {
             sprite: Sprite2D::new(ctx, "sprite")
                 .with_model(|m| m.size = Vec2::ONE * 0.5)

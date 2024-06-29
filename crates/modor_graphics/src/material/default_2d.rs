@@ -1,4 +1,4 @@
-use crate::resources::GraphicsResources;
+use crate::resources::Resources;
 use crate::texture::glob::TextureGlob;
 use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
 use internal::DefaultMaterial2DData;
@@ -19,7 +19,7 @@ pub struct DefaultMaterial2D {
     /// Default is [`Color::WHITE`].
     #[builder(form(value))]
     pub color: Color,
-    /// The texture used to render the models.
+    /// Texture used to render the models.
     ///
     /// If the texture is not loaded, then the instances attached to the material are not rendered.
     ///
@@ -86,7 +86,7 @@ impl Material for DefaultMaterial2D {
 impl DefaultMaterial2D {
     /// Creates a new material.
     pub fn new(ctx: &mut Context<'_>) -> Self {
-        let resources = ctx.get_mut::<GraphicsResources>();
+        let resources = ctx.get_mut::<Resources>();
         Self {
             color: Color::WHITE,
             texture: resources.white_texture.glob().clone(),

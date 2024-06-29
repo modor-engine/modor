@@ -53,7 +53,7 @@ use std::{env, fs};
 ///         Self {
 ///             texture: Texture::new(ctx, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }
@@ -113,7 +113,7 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
 ///         Self {
 ///             texture: Texture::new(ctx, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }
@@ -181,7 +181,7 @@ pub fn assert_max_component_diff(
 ///         Self {
 ///             texture: Texture::new(ctx, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }

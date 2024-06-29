@@ -11,6 +11,7 @@ pub mod game_of_life;
 pub mod physics_2d;
 pub mod platformer;
 pub mod rendering_2d;
+pub mod text_2d;
 pub mod texture_2d;
 pub mod texture_animation;
 pub mod texture_target;
