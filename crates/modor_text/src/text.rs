@@ -141,7 +141,7 @@ impl Text2D {
     }
 
     fn update_old_state(&mut self) {
-        self.old_state.content = self.content.clone();
+        self.old_state.content.clone_from(&self.content);
         self.old_state.font_height = self.font_height;
         self.old_state.font = self.font.clone();
         self.old_state.alignment = self.alignment;

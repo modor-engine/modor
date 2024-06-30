@@ -1,3 +1,5 @@
+#![allow(clippy::manual_unwrap_or_default)] // caused by #[darling(default)]
+
 use darling::ast::Data;
 use darling::{FromDeriveInput, FromField, FromMeta};
 use proc_macro2::{Ident, TokenStream};

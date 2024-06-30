@@ -61,7 +61,7 @@ impl SupportedAntiAliasingModes {
         if mode == AntiAliasingMode::None {
             return true;
         }
-        validation::validate_wgpu(gpu, || {
+        validation::validate_wgpu(gpu, true, || {
             gpu.device.create_texture(&TextureDescriptor {
                 label: Some("modor_texture:msaa_check"),
                 size: Extent3d {

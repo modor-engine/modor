@@ -7,6 +7,14 @@ use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_text::{Font, FontSource, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
+fn define_label() {
+    let (mut app, _) = configure_app();
+    let font = Font::new(&mut app.ctx(), "main")
+        .load_from_path(&mut app.ctx(), "../tests/assets/IrishGrover-Regular.ttf");
+    assert_eq!(font.label(), "main");
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn render_ttf_font_from_path() {
     let (mut app, target) = configure_app();
     let font = Font::new(&mut app.ctx(), "main")

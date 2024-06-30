@@ -8,7 +8,7 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/modor-engine/modor"
-rust-version = "1.75.0"
+rust-version = "1.79.0"
 
 [workspace.dependencies]
 ab_glyph = "0.2"
@@ -16,7 +16,6 @@ approx = "0.5"
 android-activity = { version = "0.5", features = ["native-activity"] }
 android_logger = "0.13"
 async-std = "1.12"
-bitstream-io = "=2.3.0" # To still support Rust 1.75
 bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.3"
 console_error_panic_hook = "0.1"
@@ -38,7 +37,6 @@ proc-macro-crate = "3.0"
 proc-macro2 = "1.0"
 rand = "0.8"
 rapier2d = "0.18"
-ravif = { version = "=0.11.5", default-features = false } # To still support Rust 1.75
 regex = "1.10"
 reqwest = "0.12"
 quote = "1.0"
@@ -70,7 +68,6 @@ unsafe_code = "warn"
 unused_extern_crates = "warn"
 unused_import_braces = "warn"
 unused_qualifications = "warn"
-unused_tuple_struct_fields = "warn"
 
 [workspace.lints.clippy]
 all = "warn"

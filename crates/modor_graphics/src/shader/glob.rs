@@ -142,7 +142,7 @@ impl ShaderGlob {
     where
         T: 'static + Material,
     {
-        validation::validate_wgpu(gpu, || {
+        validation::validate_wgpu(gpu, false, || {
             let module = gpu.device.create_shader_module(ShaderModuleDescriptor {
                 label: Some(&format!("modor_shader:{label}")),
                 source: wgpu::ShaderSource::Wgsl(loaded.code.as_str().into()),

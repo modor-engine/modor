@@ -31,7 +31,7 @@ impl Node for Root {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
         let keyboard = &ctx.get_mut::<Inputs>().keyboard;
         if !keyboard.text.is_empty() {
-            self.last_entered_text.content = keyboard.text.clone();
+            self.last_entered_text.content.clone_from(&keyboard.text);
         }
         self.pressed_keys.content = keyboard
             .pressed_iter()

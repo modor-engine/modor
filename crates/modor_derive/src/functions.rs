@@ -1,3 +1,5 @@
+#![allow(clippy::manual_unwrap_or_default)] // caused by #[darling(default)]
+
 use crate::utils;
 use darling::ast::NestedMeta;
 use darling::util::{PathList, SpannedValue};

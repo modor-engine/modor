@@ -134,7 +134,7 @@ impl Resource for Texture {
                 self.is_repeated,
                 self.is_smooth,
                 self.is_buffer_enabled,
-                &self.label,
+                self.label(),
             );
             let size = Size::new(self.loaded.image.width(), self.loaded.image.height()).into();
             self.init_target(ctx, &gpu, size);
@@ -144,7 +144,7 @@ impl Resource for Texture {
             self.is_repeated,
             self.is_smooth,
             self.is_buffer_enabled,
-            &self.label,
+            self.label(),
         );
         self.update_target();
         self.camera.update(ctx);
