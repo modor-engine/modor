@@ -140,7 +140,7 @@ impl Target {
         let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
         self.render_opaque_groups(ctx, groups, &mut pass, anti_aliasing);
         self.render_transparent_groups(ctx, groups, &mut pass, anti_aliasing);
-        let result = validation::validate_wgpu(gpu, || drop(pass));
+        let result = validation::validate_wgpu(gpu, false, || drop(pass));
         let is_err = result.is_err();
         if !is_err {
             gpu.queue.submit(Some(encoder.finish()));
