@@ -158,7 +158,7 @@ impl Window {
         if let Some(handle) = &self.handle {
             if self.title != self.old_state.title {
                 handle.set_title(&self.title);
-                self.old_state.title = self.title.clone();
+                self.old_state.title.clone_from(&self.title);
             }
             if self.is_cursor_visible != self.old_state.is_cursor_visible {
                 handle.set_cursor_visible(self.is_cursor_visible);

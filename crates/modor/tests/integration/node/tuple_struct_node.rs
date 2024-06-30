@@ -29,7 +29,6 @@ impl RootNode for Root {
     }
 }
 
-#[allow(unused_tuple_struct_fields)]
 #[derive(Visit)]
 struct TestNode(InnerNode, usize);
 

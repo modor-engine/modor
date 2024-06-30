@@ -13,7 +13,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-bitstream-io.workspace = true
 bytemuck.workspace = true
 derivative.workspace = true
 enum-iterator.workspace = true
@@ -24,7 +23,6 @@ gilrs.workspace = true
 image.workspace = true
 instant.workspace = true
 log.workspace = true
-ravif.workspace = true
 regex.workspace = true
 spin_sleep.workspace = true
 modor.workspace = true

@@ -106,7 +106,7 @@ impl IndexMut<Key> for Keyboard {
 /// See [`Keyboard`](Keyboard).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[non_exhaustive]
-#[allow(missing_docs)]
+#[allow(missing_docs, clippy::doc_markdown)]
 pub enum Key {
     /// <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave.
     /// This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd>
