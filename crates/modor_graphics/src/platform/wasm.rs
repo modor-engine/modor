@@ -13,11 +13,11 @@ pub(crate) fn init_canvas(handle: &winit::window::Window) {
     }
 }
 
-pub(crate) fn run_event_loop<F>(event_loop: winit::event_loop::EventLoop<()>, event_handler: F)
-where
-    F: FnMut(winit::event::Event<()>, &winit::event_loop::EventLoopWindowTarget<()>) + 'static,
-{
-    event_loop.spawn(event_handler);
+pub(crate) fn run_event_loop(
+    event_loop: winit::event_loop::EventLoop<()>,
+    app: impl winit::application::ApplicationHandler + 'static,
+) {
+    event_loop.spawn_app(app);
 }
 
 pub(crate) fn update_canvas_cursor(handle: &winit::window::Window, is_cursor_show: bool) {

@@ -71,7 +71,7 @@ fn colliding_bodies_with_impulse() {
     assert_approx_eq!(body.position, Vec2::ZERO);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.5);
-    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.074_572);
+    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.001_063);
     assert_eq!(body.collisions()[0].other_index, 1);
     assert_eq!(body.collisions()[0].other_group_index, group2.index());
     assert!(body.is_colliding_with(&group2));
@@ -81,8 +81,8 @@ fn colliding_bodies_with_impulse() {
     let body = body2(&mut app);
     assert!(body.position.x > 1.1);
     assert_eq!(body.collisions().len(), 1);
-    assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.425_427);
-    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.074_572);
+    assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.498_936);
+    assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.001_063);
     assert_eq!(body.collisions()[0].other_index, 0);
     assert_eq!(body.collisions()[0].other_group_index, group1.index());
     assert!(body.is_colliding_with(&group1));
@@ -92,8 +92,8 @@ fn colliding_bodies_with_impulse() {
 }
 
 #[modor::test(cases(
-    zero = "0., Vec2::new(0.25, 0.249_921)",
-    one = "1., Vec2::new(0.228_143, 0.249_921)"
+    zero = "0., Vec2::new(0.25, 0.253_999)",
+    one = "1., Vec2::new(0.222_000, 0.253_999)"
 ))]
 fn set_friction(friction: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
@@ -108,8 +108,8 @@ fn set_friction(friction: f32, expected_position: Vec2) {
 }
 
 #[modor::test(cases(
-    zero = "0., Vec2::new(0., 0.222_098)",
-    one = "1., Vec2::new(0., 0.341_609)"
+    zero = "0., Vec2::new(0., 0.234_789)",
+    one = "1., Vec2::new(0., 0.374_636)"
 ))]
 fn set_restitution(restitution: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
@@ -127,8 +127,8 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
 }
 
 #[modor::test(cases(
-    less = "-1, Vec2::new(0., 0.341_609)",
-    equal = "0, Vec2::new(0., 0.341_609)",
+    less = "-1, Vec2::new(0., 0.374_636)",
+    equal = "0, Vec2::new(0., 0.374_636)",
     greater = "1, Vec2::new(0., -0.0249_998)"
 ))]
 fn set_dominance(dominance: i8, expected_position: Vec2) {
