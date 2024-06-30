@@ -8,7 +8,7 @@ use rapier2d::dynamics::{
     CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
     RigidBodyHandle, RigidBodySet,
 };
-use rapier2d::geometry::{BroadPhase, Collider, ColliderHandle, ColliderSet, NarrowPhase};
+use rapier2d::geometry::{BroadPhaseMultiSap, Collider, ColliderHandle, ColliderSet, NarrowPhase};
 use rapier2d::na::Vector2;
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::RigidBody;
@@ -23,7 +23,7 @@ pub(crate) struct Pipeline {
     integration_parameters: IntegrationParameters,
     #[allow(clippy::struct_field_names)]
     physics_pipeline: PhysicsPipeline,
-    broad_phase: BroadPhase,
+    broad_phase: BroadPhaseMultiSap,
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
     collisions: FxHashMap<ColliderHandle, Vec<Collision2D>>,

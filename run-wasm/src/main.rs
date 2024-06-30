@@ -26,5 +26,5 @@ fn main() {
                 .expect("cannot copy asset folder");
         }
     }
-    cargo_run_wasm::run_wasm_with_css("");
+    cargo_run_wasm::run_wasm_cli_with_css("");
 }
