@@ -1,4 +1,4 @@
-#![allow(renamed_and_removed_lints, clippy::manual_unwrap_or_default)] // caused by #[darling(default)]
+#![allow(clippy::manual_unwrap_or_default)] // caused by #[darling(default)]
 
 use darling::ast::Data;
 use darling::{FromDeriveInput, FromField, FromMeta};
