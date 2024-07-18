@@ -30,6 +30,7 @@ modor_input.workspace = true
 modor_internal.workspace = true
 modor_physics.workspace = true
 modor_resources.workspace = true
+clap = { version = "4.5.8", features = ["derive"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 winit = { workspace = true, features = ["rwh_05"] }

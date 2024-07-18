@@ -4,7 +4,7 @@ use modor::log::Level;
 use modor::{Context, Node, RootNode, RootNodeHandle, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
-use modor_graphics::{Color, Sprite2D};
+use modor_graphics::{Color, Model2DMappings, Sprite2D};
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Impulse};
 use std::time::Duration;
 
@@ -24,6 +24,13 @@ impl RootNode for Root {
     fn on_create(ctx: &mut Context<'_>) -> Self {
         ctx.create::<Character>();
         ctx.create::<Platforms>();
+        // ctx.get_mut::<Model2DMappings>().register(
+        //     ctx.get_mut::<Window>().camera.glob(),
+        //     src_material.glob(),
+        //     dst_camera.glob(),
+        //     dst_material.glob(),
+        //     ctx,
+        // );
         Self
     }
 }

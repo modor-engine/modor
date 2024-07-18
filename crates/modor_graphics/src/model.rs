@@ -1,17 +1,19 @@
 use crate::buffer::Buffer;
 use crate::gpu::Gpu;
-use crate::mesh::MeshGlob;
-use crate::mesh::VertexBuffer;
+use crate::mesh::{MeshGlob, VertexBuffer};
 use crate::resources::Resources;
-use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
+use crate::{
+    Camera2DGlob, DestinationModelProps, Material, MaterialGlobRef, Model2DMappings,
+    SourceModelProps, Window,
+};
 use derivative::Derivative;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use modor::{Builder, Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
 use std::marker::PhantomData;
-use std::mem;
+use std::{iter, mem};
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
 /// The instance of a rendered 2D object.
@@ -85,25 +87,37 @@ pub struct Model2D<T> {
     /// The material used to render the model.
     #[builder(form(value))]
     pub material: MaterialGlobRef<T>,
-    mesh: GlobRef<MeshGlob>,
+    pub(crate) mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,
     groups: RootNodeHandle<InstanceGroups2D>,
     phantom: PhantomData<fn(T)>,
+    is_updated: bool,
 }
+
+// TODO: what should we do ?
+// Model2D::type_ = Model2DType::Static/Model2DType::Dynamic(Option<Glob<Body2DGlob>>)
+// Model2D::on_enter does nothing expect position update
 
 impl<T> Node for Model2D<T>
 where
     T: Material,
 {
     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        if self.is_updated {
+            return;
+        }
         if let Some(body) = &self.body {
             let glob = body.get(ctx);
             self.position = glob.position;
             self.size = glob.size;
             self.rotation = glob.rotation;
         }
+        self.is_updated = true;
         let data = T::instance_data(ctx, self.glob());
-        self.groups.get_mut(ctx).update_model(self, data);
+        let mapping_data = self.mapping_data(ctx);
+        self.groups
+            .get_mut(ctx)
+            .update_model(self, data, mapping_data);
     }
 }
 
@@ -127,15 +141,32 @@ where
             mesh,
             groups: ctx.handle::<InstanceGroups2D>(),
             phantom: PhantomData,
+            is_updated: false,
         };
         let data = T::instance_data(ctx, model.glob());
-        model.groups.get_mut(ctx).register_model(&model, data);
+        let mapping_data = model.mapping_data(ctx);
+        model
+            .groups
+            .get_mut(ctx)
+            .register_model(&model, data, mapping_data);
         model
     }
 
     /// Returns a reference to global data.
     pub fn glob(&self) -> &GlobRef<Model2DGlob> {
         self.glob.as_ref()
+    }
+
+    #[allow(clippy::needless_collect)]
+    fn mapping_data(&self, ctx: &mut Context<'_>) -> Vec<(DestinationModelProps, Vec<u8>)> {
+        let mappings = ctx
+            .get_mut::<Model2DMappings>()
+            .destinations(SourceModelProps::new(&self.camera, &self.material))
+            .collect::<Vec<_>>();
+        mappings
+            .into_iter()
+            .map(|dest| (dest, (dest.generate_instance_data)(ctx, self.glob.index())))
+            .collect::<Vec<_>>()
     }
 }
 
@@ -197,30 +228,41 @@ impl InstanceGroups2D {
         }
     }
 
-    fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
+    pub(crate) fn register_model<T>(
+        &mut self,
+        model: &Model2D<T>,
+        data: T::InstanceData,
+        mapping_data: Vec<(DestinationModelProps, Vec<u8>)>,
+    ) where
         T: Material,
     {
         let group = InstanceGroup2DProperties::new(model);
-        self.group_mut(group).register_model(model, data);
-        let model_index = model.glob.index();
+        self.group_mut(group)
+            .register_model(model, data, mapping_data);
+        let model_index = model.glob().index();
         (self.model_groups.len()..=model_index).for_each(|_| self.model_groups.push(None));
         self.model_groups[model_index] = Some(group);
     }
 
-    fn update_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
+    pub(crate) fn update_model<T>(
+        &mut self,
+        model: &Model2D<T>,
+        data: T::InstanceData,
+        mapping_data: Vec<(DestinationModelProps, Vec<u8>)>,
+    ) where
         T: Material,
     {
-        let model_index = model.glob.index();
+        let model_index = model.glob().index();
         let old_group =
             self.model_groups[model_index].expect("internal error: missing model groups");
         let group = InstanceGroup2DProperties::new(model);
         if group == old_group {
-            self.group_mut(group).update_model(model, data);
+            self.group_mut(group)
+                .update_model(model, data, mapping_data);
         } else {
             self.group_mut(old_group).delete_model(model.glob().index());
-            self.group_mut(group).register_model(model, data);
+            self.group_mut(group)
+                .register_model(model, data, mapping_data);
             self.model_groups[model_index] = Some(group);
         }
     }
@@ -232,54 +274,81 @@ impl InstanceGroups2D {
 
 #[derive(Default, Debug)]
 pub(crate) struct InstanceGroup2D {
-    pub(crate) buffers: FxHashMap<TypeId, InstanceGroupBuffer>,
+    pub(crate) buffers: FxHashMap<BufferId, InstanceGroupBuffer>,
     pub(crate) model_indexes: Vec<usize>,
     pub(crate) z_indexes: Vec<f32>,
     model_positions: FxHashMap<usize, usize>,
     secondary_type: Option<TypeId>,
+    dest_props: FxHashSet<DestinationModelProps>,
 }
 
 impl InstanceGroup2D {
     pub(crate) fn primary_buffer(&self) -> Option<&Buffer<u8>> {
-        self.buffers[&TypeId::of::<Instance>()].buffer.as_ref()
+        self.buffers[&BufferId::Primary].buffer.as_ref()
     }
 
     pub(crate) fn secondary_buffer(&self) -> Option<&Buffer<u8>> {
-        self.secondary_type
-            .and_then(|type_id| self.buffers[&type_id].buffer.as_ref())
+        self.buffers
+            .get(&BufferId::Secondary)
+            .and_then(|b| b.buffer.as_ref())
     }
 
-    fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
+    // TODO: render mappings
+    // TODO: remove old mappings
+    // TODO: explain in doc that not updated models (e.g. in Const<>) will be skipped or have zeroed instance data
+    fn register_model<T>(
+        &mut self,
+        model: &Model2D<T>,
+        data: T::InstanceData,
+        mapping_data: Vec<(DestinationModelProps, Vec<u8>)>,
+    ) where
         T: Material,
     {
         let model_index = model.glob().index();
-        self.model_positions
-            .insert(model_index, self.model_indexes.len());
+        let position = self.model_indexes.len();
+        self.model_positions.insert(model_index, position);
         self.model_indexes.push(model_index);
         let instance = Instance::new(model);
         self.z_indexes.push(instance.z());
-        self.buffer_mut::<Instance>()
+        self.buffer_mut::<T>(BufferId::Primary)
             .push(bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T::InstanceData>()
+            self.buffer_mut::<T>(BufferId::Secondary)
                 .push(bytemuck::cast_slice(&[data]));
             self.secondary_type = Some(TypeId::of::<T::InstanceData>());
         }
+        for (dest_props, data) in mapping_data {
+            if !data.is_empty() {
+                self.buffer_mut::<T>(BufferId::Mapping(dest_props))
+                    .insert(position, &data);
+            }
+            self.dest_props.insert(dest_props);
+        }
     }
 
-    fn update_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
+    fn update_model<T>(
+        &mut self,
+        model: &Model2D<T>,
+        data: T::InstanceData,
+        mapping_data: Vec<(DestinationModelProps, Vec<u8>)>,
+    ) where
         T: Material,
     {
         let position = self.model_positions[&model.glob().index()];
         let instance = Instance::new(model);
         self.z_indexes[position] = instance.z();
-        self.buffer_mut::<Instance>()
-            .replace(position, bytemuck::cast_slice(&[instance]));
+        self.buffer_mut::<T>(BufferId::Primary)
+            .insert(position, bytemuck::cast_slice(&[instance]));
         if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T::InstanceData>()
-                .replace(position, bytemuck::cast_slice(&[data]));
+            self.buffer_mut::<T>(BufferId::Secondary)
+                .insert(position, bytemuck::cast_slice(&[data]));
+        }
+        for (dest_props, data) in mapping_data {
+            if !data.is_empty() {
+                self.buffer_mut::<T>(BufferId::Mapping(dest_props))
+                    .insert(position, &data);
+            }
+            self.dest_props.insert(dest_props);
         }
     }
 
@@ -304,14 +373,25 @@ impl InstanceGroup2D {
         }
     }
 
-    fn buffer_mut<T>(&mut self) -> &mut InstanceGroupBuffer
+    fn buffer_mut<T>(&mut self, id: BufferId) -> &mut InstanceGroupBuffer
     where
-        T: 'static,
+        T: Material,
     {
-        self.buffers
-            .entry(TypeId::of::<T>())
-            .or_insert_with(|| InstanceGroupBuffer::new::<T>())
+        self.buffers.entry(id).or_insert_with(|| {
+            InstanceGroupBuffer::new(match id {
+                BufferId::Primary => mem::size_of::<Instance>(),
+                BufferId::Secondary => mem::size_of::<T::InstanceData>(),
+                BufferId::Mapping(props) => props.instance_data_size,
+            })
+        })
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum BufferId {
+    Primary,
+    Secondary,
+    Mapping(DestinationModelProps),
 }
 
 #[derive(Debug)]
@@ -323,21 +403,25 @@ pub(crate) struct InstanceGroupBuffer {
 }
 
 impl InstanceGroupBuffer {
-    fn new<T>() -> Self {
+    fn new(item_size: usize) -> Self {
         Self {
             buffer: None,
             data: vec![],
-            item_size: mem::size_of::<T>(),
+            item_size,
             is_updated: false,
         }
     }
 
     fn push(&mut self, item: &[u8]) {
-        self.data.extend(item);
+        self.data.extend_from_slice(item);
         self.is_updated = true;
     }
 
-    fn replace(&mut self, position: usize, item: &[u8]) {
+    fn insert(&mut self, position: usize, item: &[u8]) {
+        if position * self.item_size >= self.data.len() {
+            self.data
+                .extend(iter::repeat(0).take(position * self.item_size - self.data.len()));
+        }
         let buffer_range = (position * self.item_size)..((position + 1) * self.item_size);
         if &self.data[buffer_range.clone()] != item {
             for (item_byte, buffer_byte) in buffer_range.enumerate() {

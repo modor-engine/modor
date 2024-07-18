@@ -13,6 +13,7 @@ rust-version.workspace = true
 approx.workspace = true
 bytemuck.workspace = true
 rand.workspace = true
+fxhash.workspace = true # TODO: delete
 modor.workspace = true
 modor_graphics.workspace = true
 modor_physics.workspace = true

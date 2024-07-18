@@ -2,7 +2,6 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::mesh::Vertex;
 use crate::mesh::VertexBuffer;
-use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
 use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use fxhash::FxHashMap;
@@ -18,6 +17,7 @@ use wgpu::{
     StencilState, TextureFormat, TextureSampleType, TextureViewDimension, VertexBufferLayout,
     VertexState, VertexStepMode,
 };
+use crate::model::Instance;
 
 /// The global data of a [`Shader`](crate::Shader).
 #[derive(Debug)]

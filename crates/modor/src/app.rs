@@ -9,6 +9,7 @@ use fxhash::FxHashMap;
 use log::{debug, Level};
 use std::any;
 use std::any::{Any, TypeId};
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 /// The entrypoint of the engine.
@@ -114,8 +115,39 @@ impl App {
     where
         T: RootNode,
     {
-        self.roots[root_index]
-            .value
+        Self::downcast_root_mut(&mut self.roots[root_index])
+    }
+
+    fn root2_mut<T, U>(&mut self, root1_index: usize, root2_index: usize) -> (&mut T, &mut U)
+    where
+        T: RootNode,
+        U: RootNode,
+    {
+        let (left, right) = match root1_index.cmp(&root2_index) {
+            Ordering::Equal => panic!(
+                "try to borrow root node `{}` twice at the same time",
+                any::type_name::<T>()
+            ),
+            Ordering::Less => {
+                let (left, right) = self.roots.split_at_mut(root2_index);
+                (&mut left[root1_index], &mut right[0])
+            }
+            Ordering::Greater => {
+                let (left, right) = self.roots.split_at_mut(root1_index);
+                (&mut right[0], &mut left[root2_index])
+            }
+        };
+        (
+            Self::downcast_root_mut(left),
+            Self::downcast_root_mut(right),
+        )
+    }
+
+    fn downcast_root_mut<T>(root: &mut RootNodeData) -> &mut T
+    where
+        T: RootNode,
+    {
+        root.value
             .as_mut()
             .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
             .downcast_mut::<T>()
@@ -157,6 +189,19 @@ impl Context<'_> {
         T: RootNode,
     {
         self.handle::<T>().get_mut(self)
+    }
+
+    // TODO: doc + test
+    pub fn get2_mut<T, U>(
+        &mut self,
+        first: RootNodeHandle<T>,
+        second: RootNodeHandle<U>,
+    ) -> (&mut T, &mut U)
+    where
+        T: RootNode,
+        U: RootNode,
+    {
+        self.app.root2_mut(first.index, second.index)
     }
 
     /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.

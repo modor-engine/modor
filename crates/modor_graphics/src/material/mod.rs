@@ -125,6 +125,7 @@ pub struct MaterialGlob {
     pub(crate) bind_group: BufferBindGroup,
     pub(crate) binding_ids: BindingGlobalIds,
     pub(crate) shader: GlobRef<ShaderGlob>,
+    pub(crate) instance_data_size: usize,
     buffer: MaterialBuffer,
     textures: Vec<GlobRef<TextureGlob>>,
 }
@@ -155,6 +156,7 @@ impl MaterialGlob {
             ),
             binding_ids: BindingGlobalIds::new(shader_ref, &texture_refs),
             shader,
+            instance_data_size: mem::size_of::<T::InstanceData>(),
             buffer,
             textures,
         }

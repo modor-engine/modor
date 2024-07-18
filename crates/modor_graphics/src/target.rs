@@ -1,11 +1,9 @@
 use crate::gpu::Gpu;
+use crate::model::{InstanceGroup2DProperties, InstanceGroups2D};
 use crate::mesh::MeshGlob;
 use crate::shader::glob::ShaderGlob;
 use crate::size::NonZeroSize;
-use crate::{
-    validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
-    MaterialGlob, Size, Texture,
-};
+use crate::{validation, AntiAliasingMode, Camera2DGlob, Color, MaterialGlob, Size, Texture};
 use log::{error, trace};
 use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
 use wgpu::{

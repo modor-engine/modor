@@ -46,10 +46,8 @@ impl RootNode for Root {
 impl Node for Root {
     fn on_enter(&mut self, _ctx: &mut Context<'_>) {
         let now = Instant::now();
-        info!(
-            "FPS: {}",
-            1. / (now - self.last_frame_instant).as_secs_f32()
-        );
+        let fps = 1. / (now - self.last_frame_instant).as_secs_f32();
+        info!("FPS: {}", fps);
         self.last_frame_instant = now;
     }
 }
