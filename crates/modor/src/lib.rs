@@ -1,3 +1,8 @@
+#![allow(
+    clippy::non_canonical_clone_impl,
+    clippy::non_canonical_partial_ord_impl
+)] // warnings caused by Derivative
+
 //! Modor is a *mod*ular and *o*bject-o*r*iented game engine.
 //!
 //! It has been designed with the following principles in mind:
@@ -64,17 +69,19 @@ pub use log;
 pub use wasm_bindgen_test;
 
 mod app;
+mod from_app;
 mod globals;
-#[doc(hidden)]
-pub mod macro_utils;
-mod node;
 mod platform;
+mod singleton;
+mod updater;
 
 pub use app::*;
+pub use from_app::*;
 pub use globals::*;
-pub use node::*;
 #[allow(unused_imports, unreachable_pub)]
 pub use platform::*;
+pub use singleton::*;
+pub use updater::*;
 
 /// Defines the main function of a Modor application.
 ///
@@ -133,96 +140,8 @@ pub use modor_derive::main;
 /// ```
 pub use modor_derive::test;
 
-/// Implements [`RootNode`].
-///
-/// The type must implement [`Default`] trait.
-///
-/// Both structs and enums are supported.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Default, RootNode, Node, Visit)]
-/// struct Root {
-///     value: u32,
-/// }
-/// ```
-pub use modor_derive::RootNode;
+pub use modor_derive::Singleton;
 
-/// Implements [`Node`].
-///
-/// Both structs and enums are supported.
-///
-/// # Examples
-///
-/// See [`RootNode`](macro@crate::RootNode).
-pub use modor_derive::Node;
+pub use modor_derive::FromApp;
 
-/// Implements [`Visit`] so that inner fields implementing [`Node`] are visited.
-///
-/// Both structs and enums are supported.
-///
-/// Note that generic fields are not dynamically visited. In case a generic field should be visited,
-/// an explicit [`Node`] trait bound is necessary.
-///
-/// # Examples
-///
-/// See [`modor`](crate).
-pub use modor_derive::Visit;
-
-/// Generates builder methods for a `struct` with named fields.
-///
-/// The following attributes can be applied on the `struct` fields:
-/// - `#[builder(form(value))]`: generates a builder method that replaces the value.
-/// - `#[builder(form(closure))]`: generates a builder method that modifies the value.
-///
-/// # Examples
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Default, Builder)]
-/// pub struct BuiltStruct {
-///     #[builder(form(value))]
-///     pub value1: u32,
-///     #[builder(form(closure))]
-///     value2: Vec<i64>,
-///     value3: u8,
-/// }
-///
-/// let value = BuiltStruct::default()
-///     .with_value1(10)
-///     .with_value2(|v| v.push(20));
-/// assert_eq!(value.value1, 10);
-/// assert_eq!(value.value2, [20]);
-/// ```
-///
-/// The above `struct` is expended to:
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Default)]
-/// pub struct BuiltStruct {
-///     value1: u32,
-///     value2: Vec<i64>,
-///     value3: u8,
-/// }
-///
-/// impl BuiltStruct {
-///     /// Returns `self` with a different [`value1`](#structfield.value1).
-///     pub fn with_value1(mut self, value1: u32) -> Self {
-///         self.value1 = value1;
-///         self
-///     }
-///     
-///     /// Returns `self` with a different [`value2`](#structfield.value2).
-///     fn with_value2(mut self, f: impl FnOnce(&mut Vec<i64>)) -> Self {
-///         f(&mut self.value2);
-///         self
-///     }
-/// }
-/// ```
-pub use modor_derive::Builder;
+pub use modor_derive::Updater;

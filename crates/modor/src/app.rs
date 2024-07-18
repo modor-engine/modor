@@ -1,15 +1,9 @@
-#![allow(
-    clippy::non_canonical_clone_impl,
-    clippy::non_canonical_partial_ord_impl
-)] // warnings caused by Derivative
-
-use crate::{platform, Node, RootNode};
-use derivative::Derivative;
+use crate::singleton::SingletonHandle;
+use crate::{platform, Singleton};
 use fxhash::FxHashMap;
 use log::{debug, Level};
 use std::any;
 use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 
 /// The entrypoint of the engine.
 ///
@@ -18,219 +12,188 @@ use std::marker::PhantomData;
 /// See [`modor`](crate).
 #[derive(Debug)]
 pub struct App {
-    root_indexes: FxHashMap<TypeId, usize>,
-    roots: Vec<RootNodeData>, // ensures deterministic update order
+    singleton_indexes: FxHashMap<TypeId, usize>,
+    singletons: Vec<SingletonData>,
 }
 
 impl App {
-    /// Creates a new app with an initial root node of type `T`.
+    /// Creates a new app.
     ///
-    /// This also configures logging with a minimum `log_level` to display.
+    /// This configures logging with a minimum `log_level` to display.
     ///
     /// # Platform-specific
     ///
     /// - Web: logging is initialized using the `console_log` crate and panic hook using the
     ///     `console_error_panic_hook` crate.
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
-    pub fn new<T>(log_level: Level) -> Self
-    where
-        T: RootNode,
-    {
+    pub fn new(log_level: Level) -> Self {
         platform::init_logging(log_level);
-        debug!("Initialize app...");
-        let mut app = Self {
-            root_indexes: FxHashMap::default(),
-            roots: vec![],
-        };
-        app.get_mut::<T>();
         debug!("App initialized");
-        app
+        Self {
+            singleton_indexes: FxHashMap::default(),
+            singletons: vec![],
+        }
     }
 
-    /// Update all root nodes registered in the app.
+    /// Update all singletons registered in the app.
     ///
-    /// [`Node::update`] method is called for each registered root node.
+    /// [`Singleton::update`] method is called for each registered singleton.
     ///
-    /// Root nodes are updated in the order in which they are created.
+    /// Singletons are updated in the order in which they are created.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if any singleton is borrowed.
     pub fn update(&mut self) {
         debug!("Run update app...");
-        for root_index in 0..self.roots.len() {
-            let root = &mut self.roots[root_index];
-            let mut value = root
+        for singleton_index in 0..self.singletons.len() {
+            let singleton = &mut self.singletons[singleton_index];
+            let mut value = singleton
                 .value
                 .take()
-                .expect("internal error: root node already borrowed");
-            let update_fn = root.update_fn;
-            update_fn(&mut *value, &mut self.ctx());
-            self.roots[root_index].value = Some(value);
+                .expect("internal error: singleton already borrowed");
+            (singleton.update_fn)(&mut *value, self);
+            self.singletons[singleton_index].value = Some(value);
         }
         debug!("App updated");
     }
 
-    /// Returns an update context.
+    /// Creates a singleton if it doesn't exist.
     ///
-    /// This method is generally used for testing purpose.
-    pub fn ctx(&mut self) -> Context<'_> {
-        Context { app: self }
-    }
-
-    /// Returns a mutable reference to a root node.
-    ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn get_mut<T>(&mut self) -> &mut T
-    where
-        T: RootNode,
-    {
-        let root_index = self.root_index_or_create::<T>();
-        self.root_mut(root_index)
-    }
-
-    fn root_index_or_create<T>(&mut self) -> usize
-    where
-        T: RootNode,
-    {
-        let type_id = TypeId::of::<T>();
-        if self.root_indexes.contains_key(&type_id) {
-            self.root_indexes[&type_id]
-        } else {
-            self.create_root::<T>(type_id)
-        }
-    }
-
-    fn create_root<T>(&mut self, type_id: TypeId) -> usize
-    where
-        T: RootNode,
-    {
-        debug!("Create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::on_create(&mut self.ctx()));
-        debug!("Root node `{}` created", any::type_name::<T>());
-        let index = self.roots.len();
-        self.root_indexes.insert(type_id, index);
-        self.roots.push(root);
-        index
-    }
-
-    fn root_mut<T>(&mut self, root_index: usize) -> &mut T
-    where
-        T: RootNode,
-    {
-        self.roots[root_index]
-            .value
-            .as_mut()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
-            .downcast_mut::<T>()
-            .expect("internal error: misconfigured root node")
-    }
-}
-
-// If `App` was directly accessible during update, it would be possible to run `App::update`.
-// As this is not wanted, `App` is wrapped in `Context` to limit the allowed operations.
-/// The context accessible during node update.
-#[derive(Debug)]
-pub struct Context<'a> {
-    app: &'a mut App,
-}
-
-impl Context<'_> {
-    /// Returns a handle to a root node.
-    ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
-    where
-        T: RootNode,
-    {
-        RootNodeHandle {
-            index: self.app.root_index_or_create::<T>(),
-            phantom: PhantomData,
-        }
-    }
-
-    /// Returns a mutable reference to a root node.
-    ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The singleton is created with
+    /// [`FromApp::from_app`](crate::from_app::FromApp::from_app) and [`Singleton::init`].
     ///
     /// # Panics
     ///
-    /// This will panic if root node `T` is currently updated.
-    pub fn get_mut<T>(&mut self) -> &mut T
-    where
-        T: RootNode,
-    {
-        self.handle::<T>().get_mut(self)
-    }
-
-    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    /// This will panic if the singleton is borrowed.
     pub fn create<T>(&mut self)
     where
-        T: RootNode,
+        T: Singleton,
     {
-        self.handle::<T>();
+        self.index_or_create::<T>();
     }
-}
 
-/// A handle to access a [`RootNode`].
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = ""),
-    Clone(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    PartialOrd(bound = ""),
-    Ord(bound = ""),
-    Hash(bound = "")
-)]
-pub struct RootNodeHandle<T> {
-    index: usize,
-    phantom: PhantomData<fn(T)>,
-}
+    /// Returns a handle to a singleton.
+    ///
+    /// If it doesn't exist, the singleton is created using
+    /// [`FromApp::from_app`](crate::from_app::FromApp::from_app) and [`Singleton::init`].
+    pub fn handle<T>(&mut self) -> SingletonHandle<T>
+    where
+        T: Singleton,
+    {
+        SingletonHandle::new(self.index_or_create::<T>())
+    }
 
-impl<T> RootNodeHandle<T>
-where
-    T: RootNode,
-{
-    /// Returns an immutable reference to the root node.
-    pub fn get<'a>(self, ctx: &'a Context<'_>) -> &'a T {
-        ctx.app.roots[self.index]
+    /// Returns a mutable reference to a singleton.
+    ///
+    /// If it doesn't exist, the singleton is created using
+    /// [`FromApp::from_app`](crate::from_app::FromApp::from_app) and [`Singleton::init`].
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the singleton is borrowed.
+    pub fn get_mut<T>(&mut self) -> &mut T
+    where
+        T: Singleton,
+    {
+        self.handle().get_mut(self)
+    }
+
+    /// Temporarily takes ownership of a singleton.
+    ///
+    /// This method is particularly useful to get mutable access to multiple singletons
+    /// at the same time.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the singleton is borrowed.
+    pub fn take<T>(&mut self, f: impl FnOnce(&mut T, &mut Self))
+    where
+        T: Singleton,
+    {
+        self.handle().take(self, f);
+    }
+
+    pub(crate) fn get_from_index<T>(&self, index: usize) -> &T
+    where
+        T: Singleton,
+    {
+        self.singletons[index]
             .value
             .as_ref()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .unwrap_or_else(|| panic!("singleton `{}` already borrowed", any::type_name::<T>()))
             .downcast_ref::<T>()
-            .expect("internal error: misconfigured root node")
+            .expect("internal error: misconfigured singleton")
     }
 
-    /// Returns an immutable reference to the root node.
-    pub fn get_mut<'a>(self, ctx: &'a mut Context<'_>) -> &'a mut T {
-        ctx.app.root_mut(self.index)
+    pub(crate) fn get_mut_from_index<T>(&mut self, index: usize) -> &mut T
+    where
+        T: Singleton,
+    {
+        self.singletons[index]
+            .value
+            .as_mut()
+            .unwrap_or_else(|| panic!("singleton `{}` already borrowed", any::type_name::<T>()))
+            .downcast_mut::<T>()
+            .expect("internal error: misconfigured singleton")
+    }
+
+    pub(crate) fn take_from_index<T>(&mut self, index: usize, f: impl FnOnce(&mut T, &mut Self))
+    where
+        T: Singleton,
+    {
+        let mut singleton = self.singletons[index]
+            .value
+            .take()
+            .unwrap_or_else(|| panic!("singleton `{}` already borrowed", any::type_name::<T>()));
+        let singleton_ref = singleton
+            .downcast_mut::<T>()
+            .expect("internal error: misconfigured singleton");
+        f(singleton_ref, self);
+        self.singletons[index].value = Some(singleton);
+    }
+
+    fn index_or_create<T>(&mut self) -> usize
+    where
+        T: Singleton,
+    {
+        let type_id = TypeId::of::<T>();
+        let index = *self
+            .singleton_indexes
+            .entry(type_id)
+            .or_insert_with(|| self.singletons.len());
+        if index == self.singletons.len() {
+            debug!("Create singleton `{}`...", any::type_name::<T>());
+            // reserve slot in case other singleton is creating during T::from_app_with
+            self.singletons.push(SingletonData::new::<T>());
+            let singleton = T::from_app_with(self, T::init);
+            self.singleton_indexes.insert(type_id, index);
+            self.singletons[index].value = Some(Box::new(singleton));
+            debug!("Singleton `{}` created", any::type_name::<T>());
+        }
+        index
     }
 }
 
 #[derive(Debug)]
-struct RootNodeData {
+struct SingletonData {
     value: Option<Box<dyn Any>>,
-    update_fn: fn(&mut dyn Any, &mut Context<'_>),
+    update_fn: fn(&mut dyn Any, &mut App),
 }
 
-impl RootNodeData {
-    fn new<T>(value: T) -> Self
+impl SingletonData {
+    fn new<T>() -> Self
     where
-        T: RootNode,
+        T: Singleton,
     {
         Self {
-            value: Some(Box::new(value)),
-            update_fn: Self::update_root::<T>,
+            value: None,
+            update_fn: |value, app| {
+                let value = value
+                    .downcast_mut::<T>()
+                    .expect("internal error: misconfigured singleton");
+                Singleton::update(value, app);
+            },
         }
-    }
-
-    fn update_root<T>(value: &mut dyn Any, ctx: &mut Context<'_>)
-    where
-        T: RootNode,
-    {
-        Node::update(
-            value
-                .downcast_mut::<T>()
-                .expect("internal error: misconfigured root node"),
-            ctx,
-        );
     }
 }

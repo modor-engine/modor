@@ -3,12 +3,11 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemFn};
 
-mod builder;
+mod from_app;
 mod functions;
-mod node;
-mod root_node;
+mod singleton;
+mod updater;
 mod utils;
-mod visit;
 
 // coverage: off (cannot be tested)
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -30,33 +29,26 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(RootNode)]
-pub fn root_node_derive(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(Singleton)]
+pub fn singleton_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    root_node::impl_block(&input).into()
+    singleton::impl_block(&input).into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(Node)]
-pub fn node_derive(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(FromApp)]
+pub fn from_app_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    node::impl_block(&input).into()
-}
-
-#[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(Visit)]
-pub fn visit_derive(item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-    visit::impl_block(&input)
-        .unwrap_or_else(syn::Error::into_compile_error)
+    from_app::impl_block(&input)
+        .unwrap_or_else(Into::into)
         .into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(Builder, attributes(builder))]
-pub fn builder_derive(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(Updater, attributes(updater))]
+pub fn updater_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    builder::impl_block(&input)
+    updater::impl_block(&input)
         .unwrap_or_else(Into::into)
         .into()
 }
