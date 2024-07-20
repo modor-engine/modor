@@ -1,46 +1,31 @@
-use modor::{BuiltEntity, EntityBuilder};
+use modor::{Context, Node, RootNode, Visit};
 use modor_physics::{CollisionGroup, CollisionType, Impulse};
-use modor_resources::ResKey;
 
-pub(crate) const HORIZONTAL_WALL_GROUP: ResKey<CollisionGroup> = ResKey::new("horizontal-wall");
-pub(crate) const LEFT_WALL_GROUP: ResKey<CollisionGroup> = ResKey::new("left-wall");
-pub(crate) const RIGHT_WALL_GROUP: ResKey<CollisionGroup> = ResKey::new("right-wall");
-pub(crate) const PADDLE_GROUP: ResKey<CollisionGroup> = ResKey::new("paddle");
-pub(crate) const BALL_GROUP: ResKey<CollisionGroup> = ResKey::new("ball");
-
-pub(crate) fn collision_groups() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .child_component(CollisionGroup::new(
-            HORIZONTAL_WALL_GROUP,
-            wall_collision_type,
-        ))
-        .child_component(CollisionGroup::new(LEFT_WALL_GROUP, wall_collision_type))
-        .child_component(CollisionGroup::new(RIGHT_WALL_GROUP, wall_collision_type))
-        .child_component(CollisionGroup::new(PADDLE_GROUP, paddle_collision_type))
-        .child_component(CollisionGroup::new(BALL_GROUP, ball_collision_type))
+#[derive(Node, Visit)]
+pub(crate) struct CollisionGroups {
+    pub(crate) horizontal_wall: CollisionGroup,
+    pub(crate) vertical_wall: CollisionGroup,
+    pub(crate) paddle: CollisionGroup,
+    pub(crate) ball: CollisionGroup,
 }
 
-fn wall_collision_type(_group_key: ResKey<CollisionGroup>) -> CollisionType {
-    CollisionType::None
-}
-
-fn paddle_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
-    if group_key == HORIZONTAL_WALL_GROUP {
-        CollisionType::Impulse(Impulse::new(0., 0.))
-    } else {
-        CollisionType::None
-    }
-}
-
-fn ball_collision_type(group_key: ResKey<CollisionGroup>) -> CollisionType {
-    if group_key == HORIZONTAL_WALL_GROUP {
-        CollisionType::Impulse(Impulse::new(1., 0.))
-    } else if group_key == PADDLE_GROUP
-        || group_key == LEFT_WALL_GROUP
-        || group_key == RIGHT_WALL_GROUP
-    {
-        CollisionType::Sensor
-    } else {
-        CollisionType::None
+impl RootNode for CollisionGroups {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let horizontal_wall = CollisionGroup::new(ctx);
+        let vertical_wall = CollisionGroup::new(ctx);
+        let paddle = CollisionGroup::new(ctx);
+        let impulse = Impulse::new(0., 0.);
+        paddle.add_interaction(ctx, horizontal_wall.glob(), CollisionType::Impulse(impulse));
+        let ball = CollisionGroup::new(ctx);
+        let impulse = Impulse::new(1., 0.);
+        ball.add_interaction(ctx, horizontal_wall.glob(), CollisionType::Impulse(impulse));
+        ball.add_interaction(ctx, vertical_wall.glob(), CollisionType::Sensor);
+        ball.add_interaction(ctx, paddle.glob(), CollisionType::Sensor);
+        Self {
+            horizontal_wall,
+            vertical_wall,
+            paddle,
+            ball,
+        }
     }
 }

@@ -1,6 +1,4 @@
 #![allow(clippy::unwrap_used)]
 
-#[macro_use]
-extern crate modor;
-
-pub mod data;
+pub mod asset_loading_job;
+pub mod job;

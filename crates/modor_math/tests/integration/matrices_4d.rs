@@ -1,7 +1,8 @@
+use modor_internal::assert_approx_eq;
 use modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::f32::consts::FRAC_PI_2;
 
-#[modor_test]
+#[modor::test]
 fn create_from_array() {
     let mat = Mat4::from_array([
         [1., 2., 3., 4.],
@@ -27,7 +28,7 @@ fn create_from_array() {
     assert_approx_eq!(mat.to_array()[3][3], 16.);
 }
 
-#[modor_test]
+#[modor::test]
 fn create_from_position() {
     let mat = Mat4::from_position(Vec3::new(1., 2., 3.));
     assert_approx_eq!(mat.to_array()[0][0], 1.);
@@ -48,7 +49,7 @@ fn create_from_position() {
     assert_approx_eq!(mat.to_array()[3][3], 1.);
 }
 
-#[modor_test]
+#[modor::test]
 fn create_from_scale() {
     let mat = Mat4::from_scale(Vec3::new(4., 5., 6.));
     assert_approx_eq!(mat.to_array()[0][0], 4.);
@@ -69,21 +70,21 @@ fn create_from_scale() {
     assert_approx_eq!(mat.to_array()[3][3], 1.);
 }
 
-#[modor_test]
+#[modor::test]
 fn mul_vec2() {
     let rotation = Quat::from_z(FRAC_PI_2).matrix();
     assert_approx_eq!(rotation * Vec2::new(1., 1.), Vec2::new(-1., 1.));
     assert_approx_eq!(Vec2::new(1., 1.) * rotation, Vec2::new(-1., 1.));
 }
 
-#[modor_test]
+#[modor::test]
 fn mul_vec3() {
     let rotation = Quat::from_x(FRAC_PI_2).matrix();
     assert_approx_eq!(rotation * Vec3::new(1., 1., 1.), Vec3::new(1., -1., 1.));
     assert_approx_eq!(Vec3::new(1., 1., 1.) * rotation, Vec3::new(1., -1., 1.));
 }
 
-#[modor_test]
+#[modor::test]
 fn mul_mat() {
     let translation = Mat4::from_position(Vec3::new(2., 4., 6.));
     let scale = Mat4::from_scale(Vec3::new(0.1, 0.2, 0.3));

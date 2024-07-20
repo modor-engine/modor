@@ -1,6 +1,12 @@
 use crate::{AssetLoadingError, JobFuture, ASSET_FOLDER_NAME};
 use std::marker::PhantomData;
 
+/// A trait implemented for any type implementing [`Send`], or implemented for any type on Web
+/// platform.
+pub trait VariableSend {}
+
+impl<T> VariableSend for T {}
+
 pub(crate) type JobFutureJoinHandle<T> = PhantomData<T>;
 
 pub(crate) fn spawn_future(future: impl JobFuture<()>) -> JobFutureJoinHandle<()> {

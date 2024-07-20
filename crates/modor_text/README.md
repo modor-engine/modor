@@ -1,3 +1,3 @@
 # modor_text
 
-Text module of [Modor](https://github.com/modor-engine/modor).
+Text crate of [Modor](https://github.com/modor-engine/modor).

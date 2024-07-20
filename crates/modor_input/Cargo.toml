@@ -1,6 +1,6 @@
 [package]
 name = "modor_input"
-description = "Input module of Modor game engine"
+description = "Input crate of Modor game engine"
 readme = "../../README.md"
 keywords = ["modor", "input", "keyword", "mouse", "game"]
 categories = ["game-engines"]

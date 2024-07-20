@@ -1,658 +1,236 @@
-use crate::storages::core::CoreStorage;
-use crate::{
-    platform, system, utils, BuildableEntity, Component, ComponentSystems, EntityFilter, EntityMut,
-    Filter, UsizeRange,
-};
-use crate::{Entity, Query};
-use std::any;
-use std::marker::PhantomData;
-use std::panic;
-use std::panic::RefUnwindSafe;
+#![allow(
+    clippy::non_canonical_clone_impl,
+    clippy::non_canonical_partial_ord_impl
+)] // warnings caused by Derivative
 
-pub use log::LevelFilter;
+use crate::{platform, Node, RootNode};
+use derivative::Derivative;
+use fxhash::FxHashMap;
+use log::{debug, Level};
+use std::any;
+use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 
 /// The entrypoint of the engine.
 ///
 /// # Examples
 ///
-/// ```rust
-/// # use modor::*;
-/// #
-/// fn main() {
-///     let mut app = App::new()
-///         .with_thread_count(4)
-///         .with_entity(button("New game"))
-///         .with_entity(button("Settings"))
-///         .with_entity(button("Exit"));
-///     app.update();
-/// }
-///
-/// #[derive(Component, NoSystem)]
-/// struct Label(String);
-///
-/// #[derive(Component, NoSystem)]
-/// struct Button;
-///
-/// fn button(label: &str) -> impl BuiltEntity {
-///     EntityBuilder::new()
-///         .component(Button)
-///         .component(Label(label.into()))
-/// }
-/// ```
-///
-/// See [`EntityBuilder`](crate::EntityBuilder) for details about how to create entities.
-///
-/// [`App`](App) can also be used for testing:
-///
-/// ```rust
-/// # use modor::*;
-/// #
-/// #[derive(Component)]
-/// struct Count(usize);
-///
-/// #[systems]
-/// impl Count {
-///     #[run]
-///     fn increment(count: &mut Count) {
-///         count.0 += 1;
-///     }
-/// }
-///
-/// #[derive(Component, NoSystem)]
-/// struct OtherComponent;
-///
-/// #[test]
-/// fn test_counter() {
-/// # }
-/// # fn main() {
-///     App::new()
-///         .with_entity(Count(0))
-///         .assert::<With<Count>>(1, |e| {
-///             e.has(|c: &Count| assert_eq!(c.0, 0))
-///                 .has_not::<OtherComponent>()
-///                 .child_count(0)
-///         })
-///         .updated()
-///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 1)))
-///         .with_update::<With<Count>, _>(|count: &mut Count| count.0 = 42)
-///         .assert::<With<Count>>(1, |e| e.has(|c: &Count| assert_eq!(c.0, 42)));
-/// }
-/// ```
-#[derive(Default)]
+/// See [`modor`](crate).
+#[derive(Debug)]
 pub struct App {
-    pub(crate) core: CoreStorage,
+    root_indexes: FxHashMap<TypeId, usize>,
+    roots: Vec<RootNodeData>, // ensures deterministic update order
 }
 
 impl App {
-    /// Creates a new empty `App`.
+    /// Creates a new app with an initial root node of type `T`.
+    ///
+    /// This also configures logging with a minimum `log_level` to display.
     ///
     /// # Platform-specific
     ///
-    /// - Web: logging is initialized using the `console_log` crate
-    /// and panic hook using the `console_error_panic_hook` crate.
+    /// - Web: logging is initialized using the `console_log` crate and panic hook using the
+    ///     `console_error_panic_hook` crate.
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
-    pub fn new() -> Self {
-        utils::init_logging();
-        Self::default()
-    }
-
-    /// Returns the number of threads used by the `App` during update.
-    pub fn thread_count(&self) -> u32 {
-        self.core.systems().thread_count()
-    }
-
-    // coverage: off (logs not easily testable)
-    /// Set minimum log level.
-    ///
-    /// Default minimum log level is [`LevelFilter::Warn`].
-    pub fn with_log_level(self, level: LevelFilter) -> Self {
-        log::set_max_level(level);
-        info!("minimum log level set to '{level}'");
-        self
-    }
-    // coverage: on
-
-    /// Changes the number of threads used by the `App` during update.
-    ///
-    /// Update is only done in one thread if `count` is `0` or `1`,
-    /// which is the default behavior.
-    ///
-    /// # Platform-specific
-    ///
-    /// - Web: update is done in one thread even if `count` if greater than `1`.
-    pub fn with_thread_count(mut self, count: u32) -> Self {
-        self.core.set_thread_count(count);
-        let new_thread_count = self.core.systems().thread_count();
-        info!("thread count set to {new_thread_count}");
-        self
-    }
-
-    /// Creates a new entity.
-    pub fn with_entity<T>(mut self, entity: impl BuildableEntity<T>) -> Self {
-        entity.build_entity(&mut self.core, None);
-        self.core.delete_replaced_entities();
-        self
-    }
-
-    /// Adds the component returned by `component_builder` to all entities matching `F` filter.
-    ///
-    /// If an entity already has a component of type `C`, it is overwritten.
-    pub fn with_component<F, C>(mut self, mut component_builder: impl FnMut() -> C) -> Self
+    pub fn new<T>(log_level: Level) -> Self
     where
-        F: EntityFilter,
-        C: ComponentSystems,
+        T: RootNode,
     {
-        self.core
-            .run_system(system!(|mut e: EntityMut<'_>, _: Filter<F>| {
-                e.add_component(component_builder());
-            }));
-        self
+        platform::init_logging(log_level);
+        debug!("Initialize app...");
+        let mut app = Self {
+            root_indexes: FxHashMap::default(),
+            roots: vec![],
+        };
+        app.get_mut::<T>();
+        debug!("App initialized");
+        app
     }
 
-    /// Deletes component of type `C` of each entity matching `F` filter.
+    /// Update all root nodes registered in the app.
     ///
-    /// If a matching entity doesn't have a component of type `C`, nothing is done.
-    pub fn with_deleted_components<F, C>(mut self) -> Self
-    where
-        F: EntityFilter,
-        C: Component,
-    {
-        self.core.run_system(system!(
-            |mut e: EntityMut<'_>, _: Filter<F>| e.delete_component::<C>()
-        ));
-        self
-    }
-
-    /// Deletes all entities matching `F` filter.
-    pub fn with_deleted_entities<F>(mut self) -> Self
-    where
-        F: EntityFilter,
-    {
-        self.core
-            .run_system(system!(|mut e: EntityMut<'_>, _: Filter<F>| e.delete()));
-        self
-    }
-
-    /// Updates the component of type `C` of all entities that match `E` using `f`.
+    /// [`Node::update`] method is called for each registered root node.
     ///
-    /// If a matching entity does not have a component of type `C`, then the update is not
-    /// performed for this entity.
-    pub fn with_update<F, C>(mut self, mut f: impl FnMut(&mut C)) -> Self
-    where
-        F: EntityFilter,
-        C: Component,
-    {
-        self.core
-            .run_system(system!(|c: &mut C, _: Filter<F>| f(c)));
-        self
-    }
-
-    /// Runs all systems registered in the `App`.
-    pub fn updated(mut self) -> Self {
-        self.update();
-        self
-    }
-
-    /// Runs all systems registered in the `App` until `f` returns `true` for the component of
-    /// type `C` of any entity filtered with `F`.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if `max_retry` is reached.
-    pub fn updated_until_any<F, C>(
-        mut self,
-        max_retries: Option<usize>,
-        mut f: impl FnMut(&C) -> bool,
-    ) -> Self
-    where
-        F: EntityFilter,
-        C: Component,
-    {
-        for i in 0.. {
-            self.update();
-            let mut result = false;
-            self.core
-                .run_system(system!(|c: &mut C, _: Filter<F>| result = result || f(c)));
-            if result {
-                break;
-            }
-            if let Some(max_retries) = max_retries {
-                assert!(i < max_retries, "max number of retries reached");
-            }
-        }
-        self
-    }
-
-    /// Runs all systems registered in the `App` until `f` returns `true` for the component of
-    /// type `C` of all entity filtered with `F`.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if `max_retry` is reached.
-    pub fn updated_until_all<F, C>(
-        mut self,
-        max_retries: Option<usize>,
-        mut f: impl FnMut(&C) -> bool,
-    ) -> Self
-    where
-        F: EntityFilter,
-        C: Component,
-    {
-        for i in 0.. {
-            self.update();
-            let mut result = true;
-            self.core
-                .run_system(system!(|c: &mut C, _: Filter<F>| result = result && f(c)));
-            if result {
-                break;
-            }
-            if let Some(max_retries) = max_retries {
-                assert!(i < max_retries, "max number of retries reached");
-            }
-        }
-        self
-    }
-
-    /// Asserts there are `count` entities matching `F` and run `f` on each of these entities.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if `F` does not match `count` entities.
-    pub fn assert<F>(
-        mut self,
-        count: impl UsizeRange,
-        f: impl FnOnce(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>,
-    ) -> Self
-    where
-        F: EntityFilter,
-    {
-        self.assert_entity_count::<F>(count);
-        f(EntityAssertions {
-            core: &mut self.core,
-            phantom: PhantomData,
-        });
-        self
-    }
-
-    /// Asserts there are `count` entities matching `F` and run `f` on each of these entities.
-    ///
-    /// In contrary to [`App::assert_any`](App::assert_any), the assertions will not fail if they
-    /// are true for at least one filtered entity.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if `F` does not match `count` entities.
-    pub fn assert_any<F>(
-        mut self,
-        count: impl UsizeRange,
-        f: impl FnOnce(EntityAnyAssertions<'_, F>) -> EntityAnyAssertions<'_, F>,
-    ) -> Self
-    where
-        F: EntityFilter,
-    {
-        self.assert_entity_count::<F>(count);
-        f(EntityAnyAssertions {
-            core: &mut self.core,
-            phantom: PhantomData,
-        });
-        self
-    }
-
-    /// Execute a `runner` that consumes the `App`.
-    pub fn run<R>(self, runner: R)
-    where
-        R: FnOnce(Self),
-    {
-        runner(self);
-    }
-
-    /// Apply `f` on all components of type `C`.
-    pub fn update_components<C>(&mut self, mut f: impl FnMut(&mut C))
-    where
-        C: Component,
-    {
-        self.core.run_system(system!(&mut f));
-    }
-
-    /// Runs all systems registered in the `App`.
+    /// Root nodes are updated in the order in which they are created.
     pub fn update(&mut self) {
-        debug!("update `App`...");
-        self.core.update();
-        debug!("`App` updated");
-    }
-
-    fn assert_entity_count<F>(&mut self, count: impl UsizeRange + Sized)
-    where
-        F: EntityFilter,
-    {
-        let mut entity_count = 0;
-        self.core
-            .run_system(system!(|_: Filter<F>| entity_count += 1));
-        assert!(
-            count.contains_value(entity_count),
-            "assertion failed: {:?} entities matching {}, actual count: {}",
-            count,
-            any::type_name::<F>(),
-            entity_count,
-        );
-    }
-}
-
-/// A utility for asserting on all entities matching `F` filter.
-///
-/// # Examples
-///
-/// See [`App`](App).
-pub struct EntityAssertions<'a, F> {
-    core: &'a mut CoreStorage,
-    phantom: PhantomData<F>,
-}
-
-impl<'a, F> EntityAssertions<'a, F>
-where
-    F: EntityFilter,
-{
-    /// Asserts the entity has a component of type `C` and run `f` on this component.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity does not have a component of type `C` or if `f` panics.
-    pub fn has<C>(self, mut f: impl FnMut(&C)) -> Self
-    where
-        C: Component,
-    {
-        let mut entity_count = 0;
-        let mut component_count = 0;
-        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
-            entity_count += 1;
-            if let Some(component) = c {
-                component_count += 1;
-                f(component);
-            }
-        }));
-        assert_eq!(
-            entity_count,
-            component_count,
-            "assertion failed: entities matching {} have component {}",
-            any::type_name::<F>(),
-            any::type_name::<C>(),
-        );
-        self
-    }
-
-    /// Asserts the entity has not a component of type `C`.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity has a component of type `C`.
-    pub fn has_not<C>(self) -> Self
-    where
-        C: Component,
-    {
-        let mut component_count = 0;
-        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
-            if c.is_some() {
-                component_count += 1;
-            }
-        }));
-        assert_eq!(
-            component_count,
-            0,
-            "assertion failed: entities matching {} have not component {}",
-            any::type_name::<F>(),
-            any::type_name::<C>(),
-        );
-        self
-    }
-
-    /// Asserts the entity has `count` children.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity has not `count` children.
-    pub fn child_count(self, count: impl UsizeRange) -> Self {
-        let mut entity_count = 0;
-        let mut correct_entity_count = 0;
-        self.core.run_system(system!(|e: Entity<'_>, _: Filter<F>| {
-            entity_count += 1;
-            if count.contains_value(e.children().len()) {
-                correct_entity_count += 1;
-            }
-        }));
-        assert_eq!(
-            correct_entity_count,
-            entity_count,
-            "assertion failed: entities matching {} have {:?} children",
-            any::type_name::<F>(),
-            count,
-        );
-        self
-    }
-
-    /// Asserts the entity has a parent matching `P`.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity parent does not match `P`.
-    pub fn has_parent<P>(self) -> Self
-    where
-        P: EntityFilter,
-    {
-        let mut entity_count = 0;
-        let mut correct_entity_count = 0;
-        self.core.run_system(system!(
-            |e: Entity<'_>, _: Filter<F>, p: Query<'_, Filter<P>>| {
-                entity_count += 1;
-                if let Some(parent) = e.parent() {
-                    if p.get(parent.id()).is_some() {
-                        correct_entity_count += 1;
-                    }
-                }
-            }
-        ));
-        assert_eq!(
-            correct_entity_count,
-            entity_count,
-            "assertion failed: entities matching {} have parent matching {}",
-            any::type_name::<F>(),
-            any::type_name::<P>(),
-        );
-        self
-    }
-}
-
-/// A utility for asserting on any entity matching `F` filter.
-///
-/// # Examples
-///
-/// See [`App`](App).
-pub struct EntityAnyAssertions<'a, F> {
-    core: &'a mut CoreStorage,
-    phantom: PhantomData<F>,
-}
-
-impl<F> EntityAnyAssertions<'_, F>
-where
-    F: EntityFilter,
-{
-    /// Asserts the entity has a component of type `C` and run `f` on this component.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity does not have a component of type `C` or if `f` panics.
-    ///
-    /// The method will also panic for Web platform as [`catch_unwind`](panic::catch_unwind)
-    /// is unsupported.
-    pub fn has<C>(self, f: impl Fn(&C) + RefUnwindSafe) -> Self
-    where
-        C: Component + RefUnwindSafe,
-    {
-        platform::check_catch_unwind_availability();
-        let mut component_count = 0;
-        let mut error = None;
-        let mut ok_count = 0;
-        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
-            if let Some(component) = c {
-                component_count += 1;
-                if let Err(unwind_error) = panic::catch_unwind(|| f(component)) {
-                    error = Some(unwind_error);
-                } else {
-                    ok_count += 1;
-                }
-            }
-        }));
-        assert!(
-            component_count > 0,
-            "assertion failed: entities matching {} have component {}",
-            any::type_name::<F>(),
-            any::type_name::<C>(),
-        );
-        if let Some(error) = error {
-            if ok_count == 0 {
-                panic::resume_unwind(error);
-            }
+        debug!("Run update app...");
+        for root_index in 0..self.roots.len() {
+            let root = &mut self.roots[root_index];
+            let mut value = root
+                .value
+                .take()
+                .expect("internal error: root node already borrowed");
+            let update_fn = root.update_fn;
+            update_fn(&mut *value, &mut self.ctx());
+            self.roots[root_index].value = Some(value);
         }
-        self
+        debug!("App updated");
     }
 
-    /// Asserts the entity has not a component of type `C`.
+    /// Returns an update context.
     ///
-    /// # Panics
+    /// This method is generally used for testing purpose.
+    pub fn ctx(&mut self) -> Context<'_> {
+        Context { app: self }
+    }
+
+    /// Returns a mutable reference to a root node.
     ///
-    /// This will panic if the entity has a component of type `C`.
-    pub fn has_not<C>(self) -> Self
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    pub fn get_mut<T>(&mut self) -> &mut T
     where
-        C: Component,
+        T: RootNode,
     {
-        let mut missing_component_count = 0;
-        self.core.run_system(system!(|c: Option<&C>, _: Filter<F>| {
-            if c.is_none() {
-                missing_component_count += 1;
-            }
-        }));
-        assert!(
-            missing_component_count > 0,
-            "assertion failed: entities matching {} have not component {}",
-            any::type_name::<F>(),
-            any::type_name::<C>(),
-        );
-        self
+        let root_index = self.root_index_or_create::<T>();
+        self.root_mut(root_index)
     }
 
-    /// Asserts the entity has `count` children.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity has not `count` children.
-    pub fn child_count(self, count: impl UsizeRange) -> Self {
-        let mut correct_entity_count = 0;
-        self.core.run_system(system!(|e: Entity<'_>, _: Filter<F>| {
-            if count.contains_value(e.children().len()) {
-                correct_entity_count += 1;
-            }
-        }));
-        assert!(
-            correct_entity_count > 0,
-            "assertion failed: entities matching {} have {:?} children",
-            any::type_name::<F>(),
-            count,
-        );
-        self
-    }
-
-    /// Asserts the entity has a parent matching `P`.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if the entity parent does not match `P`.
-    pub fn has_parent<P>(self) -> Self
+    fn root_index_or_create<T>(&mut self) -> usize
     where
-        P: EntityFilter,
+        T: RootNode,
     {
-        let mut correct_entity_count = 0;
-        self.core.run_system(system!(
-            |e: Entity<'_>, _: Filter<F>, p: Query<'_, Filter<P>>| {
-                if let Some(parent) = e.parent() {
-                    if p.get(parent.id()).is_some() {
-                        correct_entity_count += 1;
-                    }
-                }
-            }
-        ));
-        assert!(
-            correct_entity_count > 0,
-            "assertion failed: entities matching {} have parent matching {}",
-            any::type_name::<F>(),
-            any::type_name::<P>(),
-        );
-        self
+        let type_id = TypeId::of::<T>();
+        if self.root_indexes.contains_key(&type_id) {
+            self.root_indexes[&type_id]
+        } else {
+            self.create_root::<T>(type_id)
+        }
+    }
+
+    fn create_root<T>(&mut self, type_id: TypeId) -> usize
+    where
+        T: RootNode,
+    {
+        debug!("Create root node `{}`...", any::type_name::<T>());
+        let root = RootNodeData::new(T::on_create(&mut self.ctx()));
+        debug!("Root node `{}` created", any::type_name::<T>());
+        let index = self.roots.len();
+        self.root_indexes.insert(type_id, index);
+        self.roots.push(root);
+        index
+    }
+
+    fn root_mut<T>(&mut self, root_index: usize) -> &mut T
+    where
+        T: RootNode,
+    {
+        self.roots[root_index]
+            .value
+            .as_mut()
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .downcast_mut::<T>()
+            .expect("internal error: misconfigured root node")
     }
 }
 
-/// Generates an assertion function usable in `App::assert*` methods from a simpler definition.
-///
-/// # Examples
-///
-/// ```rust
-/// #[macro_use]
-/// # use modor::*;
-/// #
-/// App::new()
-///     .with_entity(Number(42))
-///     .assert::<()>(1, my_assertion_method(42));
-///
-/// #[derive(Component, NoSystem)]
-/// struct Number(u32);
-///
-/// assertion_functions!(
-///     fn my_assertion_method(actual_number: &Number, expected_number: u32) {
-///         assert_eq!(actual_number.0, expected_number);
-///     }
-/// );
-/// ```
-///
-/// Which is equivalent to:
-/// ```rust
-/// # use modor::*;
-/// #
-/// App::new()
-///     .with_entity(Number(42))
-///     .assert::<()>(1, my_assertion_method(42));
-///
-/// #[derive(Component, NoSystem)]
-/// struct Number(u32);
-///
-/// fn my_assertion_method<F>(
-///     expected_number: u32
-/// ) -> impl FnMut(EntityAssertions<'_, F>) -> EntityAssertions<'_, F>
-/// where
-///     F: EntityFilter,
-/// {
-///     move |e| e.has(|actual_number: &Number| {
-///         assert_eq!(actual_number.0, expected_number);
-///     })
-/// }
-/// ```
-#[macro_export]
-macro_rules! assertion_functions {
-    ($(
-        $(#[$attr:meta])*
-        $vis:vis fn $function_name:ident(
-            $component_name:ident: &$component_type:ty
-            $(,$param_name:ident: $param_type:ty)*$(,)?
-        )
-        $block:block
-    )*) => {
-        $(
-            $(#[$attr])*
-            $vis fn $function_name<F>(
-                $($param_name: $param_type),*
-            ) -> impl FnMut(::modor::EntityAssertions<'_, F>) -> ::modor::EntityAssertions<'_, F>
-            where
-                F: ::modor::EntityFilter,
-            {
-                move |e| e.has(|$component_name: &$component_type| $block)
-            }
-        )*
-    };
+// If `App` was directly accessible during update, it would be possible to run `App::update`.
+// As this is not wanted, `App` is wrapped in `Context` to limit the allowed operations.
+/// The context accessible during node update.
+#[derive(Debug)]
+pub struct Context<'a> {
+    app: &'a mut App,
+}
+
+impl Context<'_> {
+    /// Returns a handle to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
+    where
+        T: RootNode,
+    {
+        RootNodeHandle {
+            index: self.app.root_index_or_create::<T>(),
+            phantom: PhantomData,
+        }
+    }
+
+    /// Returns a mutable reference to a root node.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if root node `T` is currently updated.
+    pub fn get_mut<T>(&mut self) -> &mut T
+    where
+        T: RootNode,
+    {
+        self.handle::<T>().get_mut(self)
+    }
+
+    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    pub fn create<T>(&mut self)
+    where
+        T: RootNode,
+    {
+        self.handle::<T>();
+    }
+}
+
+/// A handle to access a [`RootNode`].
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Clone(bound = ""),
+    Copy(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = ""),
+    Hash(bound = "")
+)]
+pub struct RootNodeHandle<T> {
+    index: usize,
+    phantom: PhantomData<fn(T)>,
+}
+
+impl<T> RootNodeHandle<T>
+where
+    T: RootNode,
+{
+    /// Returns an immutable reference to the root node.
+    pub fn get<'a>(self, ctx: &'a Context<'_>) -> &'a T {
+        ctx.app.roots[self.index]
+            .value
+            .as_ref()
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .downcast_ref::<T>()
+            .expect("internal error: misconfigured root node")
+    }
+
+    /// Returns an immutable reference to the root node.
+    pub fn get_mut<'a>(self, ctx: &'a mut Context<'_>) -> &'a mut T {
+        ctx.app.root_mut(self.index)
+    }
+}
+
+#[derive(Debug)]
+struct RootNodeData {
+    value: Option<Box<dyn Any>>,
+    update_fn: fn(&mut dyn Any, &mut Context<'_>),
+}
+
+impl RootNodeData {
+    fn new<T>(value: T) -> Self
+    where
+        T: RootNode,
+    {
+        Self {
+            value: Some(Box::new(value)),
+            update_fn: Self::update_root::<T>,
+        }
+    }
+
+    fn update_root<T>(value: &mut dyn Any, ctx: &mut Context<'_>)
+    where
+        T: RootNode,
+    {
+        Node::update(
+            value
+                .downcast_mut::<T>()
+                .expect("internal error: misconfigured root node"),
+            ctx,
+        );
+    }
 }

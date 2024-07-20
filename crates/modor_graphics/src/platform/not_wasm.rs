@@ -1,28 +1,36 @@
-use std::sync::Arc;
-use std::time::Duration;
-use wgpu::Limits;
-use winit::dpi::PhysicalSize;
-use winit::window::Window as WindowHandle;
+// coverage: off (window cannot be tested)
 
-pub(crate) type ThreadSafeRc<T> = Arc<T>;
-
-pub(crate) fn init_canvas(_handle: &WindowHandle) {
+pub(crate) fn init_canvas(_handle: &winit::window::Window) {
     // does nothing
 }
 
-pub(crate) fn update_canvas_cursor(_handle: &WindowHandle, _is_cursor_show: bool) {
+pub(crate) fn run_event_loop(
+    event_loop: winit::event_loop::EventLoop<()>,
+    mut app: impl winit::application::ApplicationHandler + 'static,
+) {
+    event_loop
+        .run_app(&mut app)
+        .expect("graphics event loop failed");
+}
+
+pub(crate) fn update_canvas_cursor(_handle: &winit::window::Window, _is_cursor_show: bool) {
     // does nothing
 }
 
-pub(crate) fn surface_size(_handle: &WindowHandle, size: PhysicalSize<u32>) -> PhysicalSize<u32> {
+pub(crate) fn surface_size(
+    _handle: &winit::window::Window,
+    size: winit::dpi::PhysicalSize<u32>,
+) -> winit::dpi::PhysicalSize<u32> {
     size
 }
 
-pub(crate) fn gpu_limits() -> Limits {
-    Limits::default()
+// coverage: on
+
+pub(crate) fn gpu_limits() -> wgpu::Limits {
+    wgpu::Limits::default()
 }
 
-pub(crate) fn sleep(duration: Duration) {
+pub(crate) fn sleep(duration: std::time::Duration) {
     spin_sleep::sleep(duration);
-    trace!("slept for {}ns", duration.as_nanos());
+    log::trace!("slept for {}ns", duration.as_nanos());
 }

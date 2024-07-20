@@ -1,83 +1,75 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::testing::{has_component_diff, is_same};
-use modor_graphics::{texture_target, Color, Size, Texture, TextureBuffer, TEXTURE_CAMERAS_2D};
-use modor_resources::testing::wait_resource_loading;
-use modor_resources::ResKey;
-use modor_text::{text_2d, Alignment, Font, Text, Text2DMaterial};
+use modor::log::Level;
+use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor_graphics::modor_resources::testing::wait_resources;
+use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::testing::assert_max_component_diff;
+use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
+use modor_text::{Alignment, Text2D};
 
-#[modor_test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(text(|_| ()))
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("text#default"));
+    let (mut app, target) = configure_app();
+    wait_resources(&mut app);
+    assert_max_component_diff(&mut app, &target, "text#default", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_alignment() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(text(|t| t.alignment = Alignment::Left))
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("text#left"))
-        .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.alignment = Alignment::Right)
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("text#right"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_content() {
+    let (mut app, target) = configure_app();
+    wait_resources(&mut app);
+    text(&mut app).content = "Content".into();
+    app.update();
+    assert_max_component_diff(&mut app, &target, "text#other_content", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_font() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(Font::from_path(
-            TTF_FONT,
-            "../tests/assets/IrishGrover-Regular.ttf",
-        ))
-        .with_entity(Font::from_path(
-            OTF_FONT,
-            "../tests/assets/Foglihtenno07.otf",
-        ))
-        .with_entity(text(|t| t.font_key = TTF_FONT))
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"))
-        .with_update::<With<TextureBuffer>, _>(|t: &mut Text| t.font_key = OTF_FONT)
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("text#font_otf"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn apply_left_alignment() {
+    let (mut app, target) = configure_app();
+    text(&mut app).alignment = Alignment::Left;
+    wait_resources(&mut app);
+    assert_max_component_diff(&mut app, &target, "text#left_alignment", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_before_font() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(text(|t| t.font_key = TTF_FONT))
-        .updated()
-        .with_entity(Font::from_path(
-            TTF_FONT,
-            "../tests/assets/IrishGrover-Regular.ttf",
-        ))
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("text#font_ttf"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn apply_right_alignment() {
+    let (mut app, target) = configure_app();
+    text(&mut app).alignment = Alignment::Right;
+    wait_resources(&mut app);
+    assert_max_component_diff(&mut app, &target, "text#right_alignment", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_text_2d() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(texture_target(0, Size::new(100, 50), true))
-        .with_entity(text_2d(TEXTURE_CAMERAS_2D.get(0), "text", 30.))
-        .with_update::<(), _>(|m: &mut Text2DMaterial| m.color = Color::GREEN)
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("text#2d", 50, 1));
+fn configure_app() -> (App, GlobRef<TextureGlob>) {
+    let mut app = App::new::<Root>(Level::Info);
+    let target = root(&mut app).target.glob().clone();
+    (app, target)
 }
 
-fn text(updater: impl FnOnce(&mut Text)) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Text::new("text\nto\nrender", 30.))
-        .with(updater)
-        .component(Texture::from_size(ResKey::unique("text"), Size::ZERO))
-        .component(TextureBuffer::default())
+fn root(app: &mut App) -> &mut Root {
+    app.get_mut::<Root>()
 }
 
-const TTF_FONT: ResKey<Font> = ResKey::new("ttf");
-const OTF_FONT: ResKey<Font> = ResKey::new("otf");
+fn text(app: &mut App) -> &mut Text2D {
+    &mut root(app).text
+}
+
+#[derive(Node, Visit)]
+struct Root {
+    text: Text2D,
+    target: Res<Texture>,
+}
+
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let target = Texture::new(ctx, "target")
+            .with_is_buffer_enabled(true)
+            .with_is_target_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::new(100, 50)));
+        Self {
+            text: Text2D::new(ctx, "main")
+                .with_content("text\nto\nrender".into())
+                .with_texture(|t| t.is_smooth = false)
+                .with_model(|m| m.camera = target.camera.glob().clone()),
+            target,
+        }
+    }
+}

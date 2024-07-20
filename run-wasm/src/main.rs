@@ -12,7 +12,7 @@ fn main() {
     let _features: Result<Option<String>, _> = args.opt_value_from_str("--features");
     let _host: Result<Option<String>, _> = args.opt_value_from_str("--host");
     let _port: Result<Option<String>, _> = args.opt_value_from_str("--port");
-    if let Some(name) = args.finish().get(0) {
+    if let Some(name) = args.finish().first() {
         let source_folder = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../examples")
             .join("assets");
@@ -26,5 +26,5 @@ fn main() {
                 .expect("cannot copy asset folder");
         }
     }
-    cargo_run_wasm::run_wasm_with_css("");
+    cargo_run_wasm::run_wasm_cli_with_css("");
 }

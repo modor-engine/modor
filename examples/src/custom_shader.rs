@@ -1,60 +1,92 @@
-use modor::{
-    App, BuiltEntity, Changed, Component, EntityBuilder, NoSystem, SystemParamWithLifetime, With,
-};
+use modor::log::Level;
+use modor::{Context, GlobRef, Node, RootNode, Visit};
+use modor_graphics::modor_input::modor_math::Vec2;
+use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
-    instance_group_2d, window_target, InstanceData, MaterialSource, Shader, Texture,
-    WINDOW_CAMERA_2D,
+    bytemuck, IntoMat, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, Shader, ShaderGlobRef,
+    Texture, TextureGlob,
 };
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_resources::ResKey;
-
-const BLUR_SHADER: ResKey<Shader> = ResKey::new("blur");
-const TEXTURE: ResKey<Texture> = ResKey::new("sprite");
+use std::collections::HashMap;
 
 pub fn main() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(window_target())
-        .with_entity(Shader::from_path::<BlurInstanceData>(
-            BLUR_SHADER,
-            "blur.wgsl",
-            false,
-        ))
-        .with_entity(Texture::from_path(TEXTURE, "smiley.png"))
-        .with_entity(sprite_group())
-        .with_entity(sprite(Vec2::new(-0.25, 0.25), 0))
-        .with_entity(sprite(Vec2::new(0.25, 0.25), 3))
-        .with_entity(sprite(Vec2::new(-0.25, -0.25), 6))
-        .with_entity(sprite(Vec2::new(0.25, -0.25), 9))
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn sprite_group() -> impl BuiltEntity {
-    instance_group_2d::<With<Blur>>(WINDOW_CAMERA_2D, BlurMaterial { blur_factor: 0.005 })
+#[derive(Node, Visit)]
+struct Root {
+    texture: Res<Texture>,
+    shader: Res<Shader<BlurMaterial>>,
+    material: Mat<BlurMaterial>,
+    sprites: Vec<Sprite>,
 }
 
-fn sprite(position: Vec2, sample_count: u32) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| t.position = position)
-        .with(|t| t.size = Vec2::ONE * 0.4)
-        .component(Blur { sample_count })
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let texture = Texture::new(ctx, "smiley").load_from_path(ctx, "smiley.png");
+        let shader = Shader::new(ctx, "blur").load_from_path(ctx, "blur.wgsl");
+        let material = BlurMaterial::new(&texture, &shader).into_mat(ctx, "blur-default");
+        Self {
+            sprites: vec![
+                Sprite::new(ctx, Vec2::new(-0.25, 0.25), 0, material.glob()),
+                Sprite::new(ctx, Vec2::new(0.25, 0.25), 3, material.glob()),
+                Sprite::new(ctx, Vec2::new(-0.25, -0.25), 6, material.glob()),
+                Sprite::new(ctx, Vec2::new(0.25, -0.25), 9, material.glob()),
+            ],
+            texture,
+            shader,
+            material,
+        }
+    }
 }
 
-#[derive(Component, NoSystem)]
-struct Blur {
-    sample_count: u32,
+#[derive(Node, Visit)]
+struct Sprite {
+    model: Model2D<BlurMaterial>,
 }
 
-#[derive(Component, NoSystem)]
+impl Sprite {
+    fn new(
+        ctx: &mut Context<'_>,
+        position: Vec2,
+        sample_count: u32,
+        material: MaterialGlobRef<BlurMaterial>,
+    ) -> Self {
+        let model = Model2D::new(ctx, material)
+            .with_position(position)
+            .with_size(Vec2::ONE * 0.4);
+        ctx.get_mut::<SpriteProperties>()
+            .sample_counts
+            .insert(model.glob().index(), sample_count);
+        Self { model }
+    }
+}
+
+#[derive(Default, RootNode, Node, Visit)]
+struct SpriteProperties {
+    sample_counts: HashMap<usize, u32>,
+}
+
 struct BlurMaterial {
     blur_factor: f32,
+    texture: GlobRef<TextureGlob>,
+    shader: ShaderGlobRef<Self>,
 }
 
-impl MaterialSource for BlurMaterial {
+impl Material for BlurMaterial {
     type Data = BlurMaterialData;
     type InstanceData = BlurInstanceData;
+
+    fn shader(&self) -> ShaderGlobRef<Self> {
+        self.shader.clone()
+    }
+
+    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+        vec![self.texture.clone()]
+    }
+
+    fn is_transparent(&self) -> bool {
+        false
+    }
 
     fn data(&self) -> Self::Data {
         BlurMaterialData {
@@ -64,16 +96,21 @@ impl MaterialSource for BlurMaterial {
         }
     }
 
-    fn texture_keys(&self) -> Vec<ResKey<Texture>> {
-        vec![TEXTURE]
+    fn instance_data(ctx: &mut Context<'_>, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
+        let sample_counts = &ctx.get_mut::<SpriteProperties>().sample_counts;
+        BlurInstanceData {
+            sample_count: sample_counts.get(&model.index()).copied().unwrap_or(0),
+        }
     }
+}
 
-    fn shader_key(&self) -> ResKey<Shader> {
-        BLUR_SHADER
-    }
-
-    fn is_transparent(&self) -> bool {
-        false
+impl BlurMaterial {
+    fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
+        Self {
+            blur_factor: 0.005,
+            texture: texture.glob().clone(),
+            shader: shader.glob(),
+        }
     }
 }
 
@@ -89,15 +126,4 @@ struct BlurMaterialData {
 #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
 struct BlurInstanceData {
     sample_count: u32,
-}
-
-impl InstanceData for BlurInstanceData {
-    type Query = &'static Blur;
-    type UpdateFilter = Changed<Blur>;
-
-    fn data(item: <Self::Query as SystemParamWithLifetime<'_>>::Param) -> Self {
-        Self {
-            sample_count: item.sample_count,
-        }
-    }
 }

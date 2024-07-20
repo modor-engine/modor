@@ -1,3 +1,3 @@
 # modor_resources
 
-Resources module of [Modor](https://github.com/modor-engine/modor).
+Resources crate of [Modor](https://github.com/modor-engine/modor).

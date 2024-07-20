@@ -1,39 +1,66 @@
-use crate::pong::field;
-use crate::pong::Side;
-use modor::{systems, BuiltEntity, SingletonComponent};
-use modor_graphics::WINDOW_CAMERA_2D;
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_text::{text_2d, Text};
+use crate::pong::side::Side;
+use crate::pong::wall::FIELD_SIZE;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::modor_input::modor_math::Vec2;
+use modor_text::Text2D;
 
-pub(crate) fn score(side: Side) -> impl BuiltEntity {
-    const TEXT_HEIGHT: f32 = 0.2;
-    text_2d(WINDOW_CAMERA_2D, "0", 100.)
-        .updated(|t: &mut Transform2D| t.position.x = side.x_sign() * field::SIZE.x / 4.)
-        .updated(|t: &mut Transform2D| t.position.y = field::SIZE.y / 2. - TEXT_HEIGHT / 2.)
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(0.3, TEXT_HEIGHT))
-        .component_option((side == Side::Left).then_some(LeftScore(0)))
-        .component_option((side == Side::Right).then_some(RightScore(0)))
+#[derive(Visit)]
+pub(crate) struct Scores {
+    pub(crate) is_reset_required: bool,
+    is_just_updated: bool,
+    left_score: Text2D,
+    right_score: Text2D,
 }
 
-#[derive(SingletonComponent, Debug)]
-pub(crate) struct LeftScore(pub(crate) u32);
-
-#[systems]
-impl LeftScore {
-    #[run]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.to_string();
+impl RootNode for Scores {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            is_reset_required: false,
+            is_just_updated: false,
+            left_score: Self::score_text(ctx, Side::Left),
+            right_score: Self::score_text(ctx, Side::Right),
+        }
     }
 }
 
-#[derive(SingletonComponent, Debug)]
-pub(crate) struct RightScore(pub(crate) u32);
+impl Node for Scores {
+    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+        // `is_reset_required` ensures that all nodes see this variable equal to `true` at
+        // least once. This is not guaranteed for `is_just_updated` depending on node update order.
+        if self.is_just_updated {
+            self.is_reset_required = true;
+            self.is_just_updated = false;
+        } else {
+            self.is_reset_required = false;
+        }
+    }
+}
 
-#[systems]
-impl RightScore {
-    #[run]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.to_string();
+impl Scores {
+    const TEXT_HEIGHT: f32 = 0.2;
+
+    pub(crate) fn increment(&mut self, side: Side) {
+        if self.is_reset_required {
+            return;
+        }
+        let score = match side {
+            Side::Left => &mut self.left_score,
+            Side::Right => &mut self.right_score,
+        };
+        score.content = (score
+            .content
+            .parse::<u64>()
+            .expect("internal error: invalid score")
+            + 1)
+        .to_string();
+        self.is_just_updated = true;
+    }
+
+    fn score_text(ctx: &mut Context<'_>, side: Side) -> Text2D {
+        Text2D::new(ctx, "score")
+            .with_model(|m| m.position.x = side.x_sign() * FIELD_SIZE.x / 4.)
+            .with_model(|m| m.position.y = FIELD_SIZE.y / 2. - Self::TEXT_HEIGHT / 2.)
+            .with_model(|m| m.size = Vec2::new(0.3, Self::TEXT_HEIGHT))
+            .with_content("0".into())
     }
 }

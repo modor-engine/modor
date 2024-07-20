@@ -1,187 +1,95 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::testing::is_same;
-use modor_graphics::{
-    instance_2d, texture_target, Camera2D, Color, Default2DMaterial, Size, TEXTURE_TARGETS,
-};
+use log::Level;
+use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor_graphics::testing::assert_same;
+use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
+use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_resources::ResKey;
-use std::f32::consts::FRAC_PI_2;
+use modor_resources::testing::wait_resources;
+use modor_resources::{Res, ResLoad};
+use std::f32::consts::FRAC_PI_4;
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_hidden() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(test_camera(Camera2D::hidden(CAMERA)))
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(-2. / 3., 0.5)),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(
-                Size::new(800, 600),
-                Vec2::new(800., 600.),
-                Vec2::new(2. / 3., -0.5),
-            ),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(-0.5, 2. / 3.)),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(
-                Size::new(600, 800),
-                Vec2::new(600., 800.),
-                Vec2::new(0.5, -2. / 3.),
-            ),
-        );
-}
-
-#[modor_test(disabled(macos, android, wasm))]
+#[modor::test(disabled(windows, macos, android, wasm))]
 fn create_with_one_target() {
-    let missing_target_key = ResKey::new("missing");
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(test_camera(Camera2D::new(CAMERA, TEXTURE_TARGETS.get(0))))
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .with_update::<With<TestCamera>, _>(|c: &mut Camera2D| {
-            c.target_keys[0] = TEXTURE_TARGETS.get(1);
-        })
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#not_empty2"))
-        .with_update::<With<TestCamera>, _>(|c: &mut Camera2D| {
-            c.target_keys[0] = missing_target_key;
-        })
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#empty2"));
+    let (mut app, target, other_target) = configure_app();
+    assert_same(&mut app, &target, "camera#default");
+    assert_same(&mut app, &other_target, "camera#empty");
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_many_targets() {
-    let mut camera = Camera2D::new(CAMERA, TEXTURE_TARGETS.get(0));
-    camera.target_keys.push(TEXTURE_TARGETS.get(1));
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(test_camera(camera))
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#not_empty2"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn remove_target() {
+    let (mut app, target, other_target) = configure_app();
+    camera(&mut app).targets.clear();
+    app.update();
+    assert_same(&mut app, &target, "camera#empty");
+    assert_same(&mut app, &other_target, "camera#empty");
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_transform() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(test_camera(Camera2D::new(CAMERA, TEXTURE_TARGETS.get(0))))
-        .updated()
-        .with_component::<With<TestCamera>, _>(|| {
-            let mut transform = Transform2D::new();
-            transform.position = Vec2::ONE * 0.5;
-            transform.size = Vec2::ONE * 2.;
-            transform.rotation = FRAC_PI_2;
-            transform
-        })
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#not_empty_offset1"))
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(Size::new(800, 600), Vec2::ZERO, Vec2::new(1.5, 11. / 6.)),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(
-                Size::new(800, 600),
-                Vec2::new(800., 600.),
-                Vec2::new(-0.5, -5. / 6.),
-            ),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(Size::new(600, 800), Vec2::ZERO, Vec2::new(11. / 6., 1.5)),
-        )
-        .assert::<With<TestCamera>>(
-            1,
-            assert_position(
-                Size::new(600, 800),
-                Vec2::new(600., 800.),
-                Vec2::new(-5. / 6., -0.5),
-            ),
-        )
-        .with_deleted_components::<With<TestCamera>, Transform2D>()
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#not_empty1"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn add_target() {
+    let (mut app, target, other_target) = configure_app();
+    let other_target_glob = root(&mut app).other_target.target.glob().clone();
+    camera(&mut app).targets.push(other_target_glob);
+    app.update();
+    assert_same(&mut app, &target, "camera#default");
+    assert_same(&mut app, &other_target, "camera#default");
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn recreate_entity() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(resources())
-        .with_entity(test_camera(Camera2D::new(CAMERA, TEXTURE_TARGETS.get(0))))
-        .updated()
-        .with_deleted_entities::<With<TestCamera>>()
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#empty2"))
-        .with_entity(test_camera(Camera2D::new(CAMERA, TEXTURE_TARGETS.get(0))))
-        .updated()
-        .assert::<With<Target1>>(1, is_same("camera#not_empty1"))
-        .assert::<With<Target2>>(1, is_same("camera#empty2"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_position_size_rotation() {
+    let (mut app, target, _) = configure_app();
+    let position = Vec2::new(-0.5, 0.5);
+    let size = Vec2::new(2., 1.5);
+    camera(&mut app).position = position;
+    camera(&mut app).size = size;
+    camera(&mut app).rotation = FRAC_PI_4;
+    app.update();
+    assert_same(&mut app, &target, "camera#transformed");
+    let glob = camera(&mut app).glob().clone();
+    let world_position = glob
+        .get(&app.ctx())
+        .world_position(Size::new(800, 600), Vec2::new(0., 600.));
+    assert_approx_eq!(world_position, Vec2::new(-1.973_139, 0.912_478));
 }
 
-assertion_functions!(
-    fn assert_position(
-        camera: &Camera2D,
-        surface_size: Size,
-        surface_position: Vec2,
-        world_position: Vec2,
-    ) {
-        assert_approx_eq!(
-            camera.world_position(surface_size, surface_position),
-            world_position
-        );
+fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
+    let mut app = App::new::<Root>(Level::Info);
+    wait_resources(&mut app);
+    let target = root(&mut app).target.glob().clone();
+    let other_target = root(&mut app).other_target.glob().clone();
+    (app, target, other_target)
+}
+
+fn camera(app: &mut App) -> &mut Camera2D {
+    &mut root(app).target.camera
+}
+
+fn root(app: &mut App) -> &mut Root {
+    app.get_mut::<Root>()
+}
+
+#[derive(Node, Visit)]
+struct Root {
+    sprite: Sprite2D,
+    target: Res<Texture>,
+    other_target: Res<Texture>,
+}
+
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let target = Texture::new(ctx, "target1")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+        let other_target = Texture::new(ctx, "target2")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+        let sprite =
+            Sprite2D::new(ctx, "main").with_model(|m| m.camera = target.camera.glob().clone());
+        Self {
+            sprite,
+            target,
+            other_target,
+        }
     }
-);
-
-fn resources() -> impl BuiltEntity {
-    EntityBuilder::new()
-        .child_entity(texture_target(0, Size::new(30, 20), true).component(Target1))
-        .child_entity(texture_target(1, Size::new(20, 30), true).component(Target2))
-        .child_entity(model())
 }
-
-fn model() -> impl BuiltEntity {
-    instance_2d(CAMERA, Default2DMaterial::new())
-        .updated(|t: &mut Transform2D| t.position = Vec2::ONE * 0.25)
-        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.5)
-        .updated(|m: &mut Default2DMaterial| m.color = Color::BLUE)
-}
-
-fn test_camera(camera: Camera2D) -> impl BuiltEntity {
-    EntityBuilder::new().component(camera).component(TestCamera)
-}
-
-const CAMERA: ResKey<Camera2D> = ResKey::new("main");
-
-#[derive(SingletonComponent, NoSystem)]
-struct Target1;
-
-#[derive(SingletonComponent, NoSystem)]
-struct Target2;
-
-#[derive(SingletonComponent, NoSystem)]
-struct TestCamera;

@@ -1,198 +1,217 @@
 //! Testing utilities.
 
-use crate::TextureBuffer;
+use crate::TextureGlob;
 use image::imageops::FilterType;
 use image::{ColorType, ImageBuffer, Rgba};
+use modor::{App, GlobRef};
 use std::path::PathBuf;
 use std::{env, fs};
 
-pub use crate::platform::testing::*;
-pub use crate::runner::testing::*;
+/// Asserts a [`Texture`](crate::Texture) buffer is the same as the expected texture.
+///
+/// If the expected texture is not yet generated, it is saved in
+/// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
+/// run, the function shouldn't panic if the actual texture is similar to the expected one.
+///
+/// If there is a difference between expected and actual texture, a diff texture is saved in a
+/// temporary folder and the function panics with a message containing the path to the diff
+/// texture.
+///
+/// The generated diff texture is a black texture, with white color for pixels that are
+/// different.
+///
+/// # Panics
+///
+/// This will panic if:
+/// - the expected and actual textures are different.
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+/// - there is an I/O error while reading or writing the expected or the diff texture.
+///
+/// # Examples
+///
+/// ```rust
+/// # use log::*;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::testing::*;
+/// # use modor_resources::*;
+/// #
+/// # fn no_run() {
+/// let mut app = App::new::<Root>(Level::Info);
+/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// assert_same(&mut app, &texture, "expected_texture");
+///
+/// #[derive(Node, Visit)]
+/// struct Root {
+///     texture: Res<Texture>,
+/// }
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///         }
+///     }
+/// }
+/// # }
+/// ```
+pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRef<str>) {
+    assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
+}
 
-assertion_functions!(
-    /// Asserts the [`TextureBuffer`](TextureBuffer) is the same as the expected texture.
-    ///
-    /// If the expected texture is not yet generated, it is saved in
-    /// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
-    /// run, the function shouldn't panic if the actual texture is similar to the expected one.
-    ///
-    /// If there is a difference between expected and actual texture, a diff texture is saved in a
-    /// temporary folder and the function panics with a message containing the path to the diff
-    /// texture.
-    ///
-    /// The generated diff texture is a black texture, with white color for pixels that are
-    /// different.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if:
-    /// - the expected and actual textures are different.
-    /// - the [`TextureBuffer`](TextureBuffer) buffer is empty.
-    /// - the actual texture found in the [`TextureBuffer`](TextureBuffer) is not similar to the
-    /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
-    /// - there is an I/O error while reading or writing the expected or the diff texture.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use modor::*;
-    /// # use modor_graphics::*;
-    /// # use modor_graphics::testing::*;
-    /// # use modor_resources::*;
-    /// #
-    /// # fn f() {
-    /// use modor_resources::testing::wait_resource_loading;
-    ///
-    /// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
-    ///
-    /// fn texture() -> impl BuiltEntity {
-    ///     EntityBuilder::new()
-    ///         .component(Texture::from_path(TEXTURE, "image.png"))
-    ///         .component(TextureBuffer::default())
-    /// }
-    ///
-    /// App::new()
-    ///     .with_entity(texture())
-    ///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-    ///     .assert::<With<TextureBuffer>>(1, is_same("texture"));
-    /// # }
-    /// ```
-    pub fn is_same(buffer: &TextureBuffer, key: impl AsRef<str>) {
-        assert_texture(buffer, key.as_ref(), MaxTextureDiff::Zero);
-    }
+/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
+/// at component level.
+///
+/// If the expected texture is not yet generated, it is saved in
+/// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
+/// run, the function shouldn't panic if the actual texture is similar to the expected one.
+///
+/// If at least one of the pixel components has a difference greater than `max_component_diff`
+/// between expected and actual texture, a diff texture is saved in a temporary folder and the
+/// function panics with a message containing the path to the diff texture.
+///
+/// The generated diff texture is a black texture, with white color for pixels that are
+/// different.
+///
+/// The images are downscaled at a factor of `downscale_factor` using linear filtering
+/// before being compared.
+///
+/// # Panics
+///
+/// This will panic if:
+/// - the expected and actual textures are not similar.
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+/// - there is an I/O error while reading or writing the expected or the diff texture.
+///
+/// # Examples
+///
+/// ```rust
+/// # use log::*;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::testing::*;
+/// # use modor_resources::*;
+/// #
+/// # fn no_run() {
+/// let mut app = App::new::<Root>(Level::Info);
+/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// assert_max_component_diff(&mut app, &texture, "expected_texture", 1, 1);
+///
+/// #[derive(Node, Visit)]
+/// struct Root {
+///     texture: Res<Texture>,
+/// }
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///         }
+///     }
+/// }
+/// # }
+/// ```
+pub fn assert_max_component_diff(
+    app: &mut App,
+    texture: &GlobRef<TextureGlob>,
+    key: impl AsRef<str>,
+    max_component_diff: u8,
+    downscale_factor: u8,
+) {
+    assert_texture(
+        app,
+        texture,
+        key.as_ref(),
+        MaxTextureDiff::Component(max_component_diff, downscale_factor),
+    );
+}
 
-    /// Asserts the [`TextureBuffer`](TextureBuffer) is similar to the expected texture
-    /// at component level.
-    ///
-    /// If the expected texture is not yet generated, it is saved in
-    /// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
-    /// run, the function shouldn't panic if the actual texture is similar to the expected one.
-    ///
-    /// If at least one of the pixel components has a difference greater than `max_component_diff`
-    /// between expected and actual texture, a diff texture is saved in a temporary folder and the
-    /// function panics with a message containing the path to the diff texture.
-    ///
-    /// The generated diff texture is a black texture, with white color for pixels that are
-    /// different.
-    ///
-    /// The images are downscaled at a factor of `downscale_factor` using linear filtering
-    /// before being compared.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if:
-    /// - the expected and actual textures are not similar.
-    /// - the [`TextureBuffer`](TextureBuffer) buffer is empty.
-    /// - the actual texture found in the [`TextureBuffer`](TextureBuffer) is not similar to the
-    /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
-    /// - there is an I/O error while reading or writing the expected or the diff texture.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use modor::*;
-    /// # use modor_graphics::*;
-    /// # use modor_graphics::testing::*;
-    /// # use modor_resources::*;
-    /// #
-    /// # fn f() {
-    /// use modor_resources::testing::wait_resource_loading;
-    ///
-    /// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
-    ///
-    /// fn texture() -> impl BuiltEntity {
-    ///     EntityBuilder::new()
-    ///         .component(Texture::from_path(TEXTURE, "image.png"))
-    ///         .component(TextureBuffer::default())
-    /// }
-    ///
-    /// App::new()
-    ///     .with_entity(texture())
-    ///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-    ///     .assert::<With<TextureBuffer>>(1, has_component_diff("texture", 1,1));
-    /// # }
-    /// ```
-    pub fn has_component_diff(
-        buffer: &TextureBuffer,
-        key: impl AsRef<str>,
-        max_component_diff: u8,
-        downscale_factor: u8,
-    ) {
-        assert_texture(
-            buffer,
-            key.as_ref(),
-            MaxTextureDiff::Component(max_component_diff, downscale_factor),
-        );
-    }
+/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
+/// at pixel level.
+///
+/// If the expected texture is not yet generated, it is saved in
+/// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
+/// run, the function shouldn't panic if the actual texture is similar to the expected one.
+///
+/// If more than `max_pixel_count_diff` pixels are different between expected and actual
+/// textures, a diff texture is saved in a temporary folder and the function panics with a
+/// message containing the path to the diff texture.
+///
+/// The generated diff texture is a black texture, with white color for pixels that are
+/// different.
+///
+/// # Panics
+///
+/// This will panic if:
+/// - the expected and actual textures are not similar.
+/// - the [`Texture`](crate::Texture) buffer is empty.
+/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+/// - there is an I/O error while reading or writing the expected or the diff texture.
+///
+/// # Examples
+///
+/// ```rust
+/// # use log::*;
+/// # use modor::*;
+/// # use modor_graphics::*;
+/// # use modor_graphics::testing::*;
+/// # use modor_resources::*;
+/// #
+/// # fn no_run() {
+/// let mut app = App::new::<Root>(Level::Info);
+/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// assert_max_pixel_diff(&mut app, &texture, "expected_texture", 10);
+///
+/// #[derive(Node, Visit)]
+/// struct Root {
+///     texture: Res<Texture>,
+/// }
+///
+/// impl RootNode for Root {
+///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///         Self {
+///             texture: Texture::new(ctx, "texture")
+///                 .with_is_target_enabled(true)
+///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///         }
+///     }
+/// }
+/// # }
+/// ```
+pub fn assert_max_pixel_diff(
+    app: &mut App,
+    texture: &GlobRef<TextureGlob>,
+    key: impl AsRef<str>,
+    max_pixel_count_diff: usize,
+) {
+    assert_texture(
+        app,
+        texture,
+        key.as_ref(),
+        MaxTextureDiff::PixelCount(max_pixel_count_diff),
+    );
+}
 
-    /// Asserts the [`TextureBuffer`](TextureBuffer) is similar to the expected texture
-    /// at pixel level.
-    ///
-    /// If the expected texture is not yet generated, it is saved in
-    /// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
-    /// run, the function shouldn't panic if the actual texture is similar to the expected one.
-    ///
-    /// If more than `max_pixel_count_diff` pixels are different between expected and actual
-    /// textures, a diff texture is saved in a temporary folder and the function panics with a
-    /// message containing the path to the diff texture.
-    ///
-    /// The generated diff texture is a black texture, with white color for pixels that are
-    /// different.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if:
-    /// - the expected and actual textures are not similar.
-    /// - the [`TextureBuffer`](TextureBuffer) buffer is empty.
-    /// - the actual texture found in the [`TextureBuffer`](TextureBuffer) is not similar to the
-    /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
-    /// - there is an I/O error while reading or writing the expected or the diff texture.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use modor::*;
-    /// # use modor_graphics::*;
-    /// # use modor_resources::*;
-    /// # use modor_graphics::testing::*;
-    /// #
-    /// # fn f() {
-    /// use modor_resources::testing::wait_resource_loading;
-    ///
-    /// const TEXTURE: ResKey<Texture> = ResKey::new("texture");
-    ///
-    /// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-    /// struct TextureKey;
-    ///
-    /// fn texture() -> impl BuiltEntity {
-    ///     EntityBuilder::new()
-    ///         .component(Texture::from_path(TEXTURE, "image.png"))
-    ///         .component(TextureBuffer::default())
-    /// }
-    ///
-    /// App::new()
-    ///     .with_entity(texture())
-    ///     .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-    ///     .assert::<With<TextureBuffer>>(1, has_pixel_diff("texture", 10));
-    /// # }
-    /// ```
-    pub fn has_pixel_diff(
-        buffer: &TextureBuffer,
-        key: impl AsRef<str>,
-        max_pixel_count_diff: usize,
-    ) {
-        assert_texture(
-            buffer,
-            key.as_ref(),
-            MaxTextureDiff::PixelCount(max_pixel_count_diff),
-        );
-    }
-);
-
-fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDiff) {
-    let data = buffer.get();
-    let size = buffer.size();
-    assert_ne!(size.width * size.height, 0, "texture buffer is empty");
+fn assert_texture(
+    app: &mut App,
+    texture: &GlobRef<TextureGlob>,
+    key: &str,
+    max_diff: MaxTextureDiff,
+) {
+    let ctx = app.ctx();
+    let glob = texture.get(&ctx);
+    let data = glob.buffer(&ctx);
+    let size = glob.size;
+    assert!(!data.is_empty(), "texture buffer is empty");
     let expected_folder = env::var("CARGO_MANIFEST_DIR")
         .expect("`CARGO_MANIFEST_DIR` environment variable not set")
         + "/tests/expected";
@@ -204,8 +223,8 @@ fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDiff) {
         let expected_data = image.to_rgba8().into_raw();
         assert_eq!(size.width, expected_width, "texture width is different");
         assert_eq!(size.height, expected_height, "texture height is different");
-        if !are_texture_similar(data, &expected_data, expected_width, max_diff) {
-            let diff_data = texture_diff(data, &expected_data);
+        if !are_texture_similar(&data, &expected_data, expected_width, max_diff) {
+            let diff_data = texture_diff(&data, &expected_data);
             let diff_file = env::temp_dir().join(format!("diff_{key}.png"));
             image::save_buffer(
                 &diff_file,
@@ -221,7 +240,7 @@ fn assert_texture(buffer: &TextureBuffer, key: &str, max_diff: MaxTextureDiff) {
         fs::create_dir_all(expected_folder).expect("cannot create folder for expected texture");
         image::save_buffer(
             &expected_file,
-            data,
+            &data,
             size.width,
             size.height,
             ColorType::Rgba8,

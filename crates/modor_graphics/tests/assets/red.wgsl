@@ -2,10 +2,6 @@ struct Camera {
     transform: mat4x4<f32>,
 };
 
-struct Material {
-    color: vec4<f32>,
-}
-
 struct Vertex {
     @location(0)
     position: vec3<f32>,
@@ -33,10 +29,6 @@ struct Fragment {
 @binding(0)
 var<uniform> camera: Camera;
 
-@group(1)
-@binding(0)
-var<uniform> material: Material;
-
 @vertex
 fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
     let transform = mat4x4<f32>(
@@ -45,7 +37,9 @@ fn vs_main(vertex: Vertex, instance: Instance) -> Fragment {
         instance.transform_2,
         instance.transform_3,
     );
-    return Fragment(camera.transform * transform * vec4<f32>(vertex.position, 1.));
+    return Fragment(
+        camera.transform * transform * vec4<f32>(vertex.position, 1.),
+    );
 }
 
 @fragment

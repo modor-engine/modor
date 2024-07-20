@@ -1,61 +1,50 @@
-use modor::{systems, App, BuiltEntity, SingleRef, SingletonComponent};
-use modor_graphics::{window_target, WINDOW_CAMERA_2D};
-use modor_input::Keyboard;
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_text::{text_2d, Text};
+use modor::log::Level;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::modor_input::Inputs;
+use modor_physics::modor_math::Vec2;
+use modor_text::Text2D;
 
 pub fn main() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(window_target())
-        .with_entity(text(0.375, "Last entered text:"))
-        .with_entity(text(0.125, "").component(EnteredText::default()))
-        .with_entity(text(-0.125, "Pressed keys:"))
-        .with_entity(text(-0.375, "").component(PressedKeys::default()))
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn text(position_y: f32, text: &str) -> impl BuiltEntity {
-    text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
-        .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
+#[derive(Visit)]
+struct Root {
+    last_entered_text_label: Text2D,
+    last_entered_text: Text2D,
+    pressed_keys_label: Text2D,
+    pressed_keys: Text2D,
 }
 
-#[derive(SingletonComponent, Default)]
-struct EnteredText(String);
-
-#[systems]
-impl EnteredText {
-    #[run_after(component(Keyboard))]
-    fn retrieve(&mut self, keyboard: SingleRef<'_, '_, Keyboard>) {
-        let new_text = keyboard.get().text.clone();
-        if !new_text.is_empty() {
-            self.0 = new_text;
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            last_entered_text_label: text(ctx, 0.375, "Last entered text:"),
+            last_entered_text: text(ctx, 0.125, ""),
+            pressed_keys_label: text(ctx, -0.125, "Pressed keys:"),
+            pressed_keys: text(ctx, -0.375, ""),
         }
     }
+}
 
-    #[run_after_previous]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.clone();
+impl Node for Root {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        let keyboard = &ctx.get_mut::<Inputs>().keyboard;
+        if !keyboard.text.is_empty() {
+            self.last_entered_text.content.clone_from(&keyboard.text);
+        }
+        self.pressed_keys.content = keyboard
+            .pressed_iter()
+            .map(|key| format!("{key:?}"))
+            .collect::<Vec<_>>()
+            .join(", ");
     }
 }
 
-#[derive(SingletonComponent, Default)]
-struct PressedKeys(Vec<String>);
-
-#[systems]
-impl PressedKeys {
-    #[run_after(component(Keyboard))]
-    fn retrieve(&mut self, keyboard: SingleRef<'_, '_, Keyboard>) {
-        self.0.clear();
-        for key in keyboard.get().pressed_iter() {
-            self.0.push(format!("{key:?}"));
-        }
-    }
-
-    #[run_after_previous]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.join(", ");
-    }
+fn text(ctx: &mut Context<'_>, position_y: f32, content: &str) -> Text2D {
+    Text2D::new(ctx, "text")
+        .with_model(|m| m.position = Vec2::Y * position_y)
+        .with_model(|m| m.size = Vec2::new(1., 0.15))
+        .with_content(content.into())
+        .with_font_height(50.)
 }

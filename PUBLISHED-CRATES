@@ -1,10 +1,10 @@
 modor_derive
-modor_internal
 modor
-modor_jobs
-modor_resources
+modor_internal
 modor_math
 modor_physics
 modor_input
+modor_jobs
+modor_resources
 modor_graphics
 modor_text

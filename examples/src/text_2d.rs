@@ -1,67 +1,67 @@
 use instant::Instant;
-use modor::{systems, App, BuiltEntity, Component};
-use modor_graphics::{
-    instance_2d, window_target, Color, Default2DMaterial, ZIndex2D, WINDOW_CAMERA_2D,
-};
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_resources::ResKey;
-use modor_text::{text_2d, Font, Text, Text2DMaterial};
+use modor::log::Level;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::{Color, Sprite2D};
+use modor_physics::modor_math::Vec2;
+use modor_text::{Font, Text2D};
 use std::time::Duration;
 
-const FONT: ResKey<Font> = ResKey::new("main");
-
 pub fn main() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(window_target())
-        .with_entity(Font::from_path(FONT, "IrishGrover-Regular.ttf"))
-        .with_entity(text())
-        .with_entity(text_background())
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn text() -> impl BuiltEntity {
-    text_2d(WINDOW_CAMERA_2D, "Loading", 300.)
-        .updated(|t: &mut Text| t.font_key = FONT)
-        .updated(|m: &mut Text2DMaterial| m.color = Color::GREEN)
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.2))
-        .component(LoadingText::default())
-        .component(ZIndex2D::from(1))
-}
-
-fn text_background() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::default())
-        .updated(|m: &mut Default2DMaterial| m.color = Color::rgb(0.1, 0.1, 0.1))
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.2))
-}
-
-#[derive(Component)]
-struct LoadingText {
+#[derive(Visit)]
+struct Root {
+    background: Sprite2D,
+    text: Text2D,
     last_update: Instant,
 }
 
-impl Default for LoadingText {
-    fn default() -> Self {
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let size = Vec2::new(1., 0.2);
+        let font = ctx.get_mut::<Resources>().font.glob().clone();
         Self {
+            background: Sprite2D::new(ctx, "background")
+                .with_model(|m| m.size = size)
+                .with_material(|m| m.color = Color::rgb(0.1, 0.1, 0.1)),
+            text: Text2D::new(ctx, "text")
+                .with_content("Loading".into())
+                .with_font(font)
+                .with_font_height(300.)
+                .with_material(|m| m.color = Color::GREEN)
+                .with_model(|m| m.size = size)
+                .with_model(|m| m.z_index = 1),
             last_update: Instant::now(),
         }
     }
 }
 
-#[systems]
-impl LoadingText {
-    #[run]
-    fn update(&mut self, text: &mut Text) {
+impl Node for Root {
+    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
-            let new_text = match text.content.matches('.').count() {
+            let new_text = match self.text.content.matches('.').count() {
                 0 => "Loading.",
                 1 => "Loading..",
                 2 => "Loading...",
                 _ => "Loading",
             };
-            text.content = new_text.into();
+            self.text.content = new_text.into();
             self.last_update = Instant::now();
+        }
+    }
+}
+
+#[derive(Node, Visit)]
+struct Resources {
+    font: Res<Font>,
+}
+
+impl RootNode for Resources {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            font: Font::new(ctx, "main").load_from_path(ctx, "IrishGrover-Regular.ttf"),
         }
     }
 }

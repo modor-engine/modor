@@ -3,6 +3,12 @@ use async_std::task;
 use async_std::task::JoinHandle;
 use std::env;
 
+/// A trait implemented for any type implementing [`Send`], or implemented for any type on Web
+/// platform.
+pub trait VariableSend: Send {}
+
+impl<T> VariableSend for T where T: Send {}
+
 pub(crate) type JobFutureJoinHandle<T> = JoinHandle<T>;
 
 pub(crate) fn spawn_future(future: impl JobFuture<()>) -> JobFutureJoinHandle<()> {

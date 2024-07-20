@@ -1,249 +1,240 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::testing::{has_component_diff, is_same};
-use modor_graphics::{
-    instance_2d, texture_target, Default2DMaterial, Size, Texture, TextureBuffer, TextureSource,
-    TEXTURE_CAMERAS_2D,
-};
-use modor_math::Vec2;
-use modor_resources::testing::wait_resource_loading;
-use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceState};
+use log::Level;
+use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor_graphics::testing::{assert_max_component_diff, assert_same};
+use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
+use modor_input::modor_math::Vec2;
+use modor_resources::testing::wait_resources;
+use modor_resources::{Res, ResLoad, ResourceState};
 
-const TEXTURE_DATA: &[u8] = include_bytes!(concat!(
+const TEXTURE_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/assets/opaque-texture.png"
 ));
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_size() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_size(RECTANGLE_TEXTURE, Size::new(40, 20))))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#size"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(40, 20)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_size() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Size(Size::new(40, 20));
+    root(&mut app).texture.reload_with_source(source);
+    app.update();
+    assert_same(&mut app, &glob, "texture#from_size");
+    assert_eq!(glob.get(&app.ctx()).size, Size::new(40, 20));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_zero_size() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_size(RECTANGLE_TEXTURE, Size::ZERO)))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(1, 1)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_zero_size() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Size(Size::ZERO);
+    root(&mut app).texture.reload_with_source(source);
+    app.update();
+    assert!(matches!(
+        root(&mut app).texture.state(),
+        ResourceState::Loaded
+    ));
+    assert_same(&mut app, &glob, "texture#empty");
+    assert_eq!(glob.get(&app.ctx()).size, Size::ONE);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_buffer() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_buffer(
-            RECTANGLE_TEXTURE,
-            Size::new(3, 1),
-            vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
-        )))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_buffer() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Buffer(
+        Size::new(3, 1),
+        vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
+    );
+    root(&mut app).texture.reload_with_source(source);
+    app.update();
+    assert_same(&mut app, &glob, "texture#from_buffer");
+    assert_eq!(glob.get(&app.ctx()).size, Size::new(3, 1));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_empty_buffer() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_buffer(
-            RECTANGLE_TEXTURE,
-            Size::ZERO,
-            vec![],
-        )))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#zero"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(1, 1)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_empty_buffer() {
+    let (mut app, _, _) = configure_app();
+    let source = TextureSource::Buffer(Size::ZERO, vec![]);
+    root(&mut app).texture.reload_with_source(source);
+    app.update();
+    assert!(matches!(
+        root(&mut app).texture.state(),
+        ResourceState::Error(_)
+    ));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_file() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA)))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_too_small_buffer() {
+    let (mut app, _, _) = configure_app();
+    let source = TextureSource::Buffer(Size::ONE, vec![]);
+    root(&mut app).texture.reload_with_source(source);
+    app.update();
+    assert!(matches!(
+        root(&mut app).texture.state(),
+        ResourceState::Error(_)
+    ));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_path() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_path(
-            RECTANGLE_TEXTURE,
-            "../tests/assets/opaque-texture.png",
-        )))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_loading())
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_bytes() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    assert_same(&mut app, &glob, "texture#from_file");
+    assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_unsupported_format() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_path(
-            RECTANGLE_TEXTURE,
-            "../tests/assets/text.txt",
-        )))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, assert_invalid_format());
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_from_path() {
+    let (mut app, glob, _) = configure_app();
+    let path = "../tests/assets/opaque-texture.png";
+    root(&mut app).texture.reload_with_path(path);
+    wait_resources(&mut app);
+    assert_same(&mut app, &glob, "texture#from_file");
+    assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_corrupted_file() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_path(
-            RECTANGLE_TEXTURE,
-            "../tests/assets/corrupted-texture.png",
-        )))
-        .assert::<With<TextureBuffer>>(1, assert_not_loaded())
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, assert_invalid_format());
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_file_with_invalid_format() {
+    let (mut app, _, _) = configure_app();
+    let path = "../tests/assets/text.txt";
+    root(&mut app).texture.reload_with_path(path);
+    wait_resources(&mut app);
+    assert!(matches!(
+        root(&mut app).texture.state(),
+        ResourceState::Error(_)
+    ));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_buffer_with_too_big_size() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_buffer(
-            RECTANGLE_TEXTURE,
-            Size::new(4, 1),
-            vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
-        )))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, assert_invalid_format());
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn load_corrupted_file() {
+    let (mut app, _, _) = configure_app();
+    let path = "../tests/assets/corrupted.png";
+    root(&mut app).texture.reload_with_path(path);
+    wait_resources(&mut app);
+    assert!(matches!(
+        root(&mut app).texture.state(),
+        ResourceState::Error(_)
+    ));
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_default_params() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(rectangle())
-        .with_entity(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1, 1));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn retrieve_buffer() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    let ctx = app.ctx();
+    let buffer = glob.get(&ctx).buffer(&ctx);
+    assert_eq!(buffer.len(), 4 * 4 * 4);
+    assert_eq!(buffer[0..4], [255, 0, 0, 255]);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_smooth() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(rectangle())
-        .with_entity(
-            EntityBuilder::new()
-                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
-                .with(|t| t.is_smooth = false)
-                .component(TestedTexture),
-        )
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("texture#render_not_smooth"))
-        .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_smooth = true)
-        .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1, 1));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn retrieve_buffer_when_disabled() {
+    let (mut app, glob, _) = configure_app();
+    wait_resources(&mut app);
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    root(&mut app).texture.is_buffer_enabled = false;
+    app.update();
+    let ctx = app.ctx();
+    let buffer = glob.get(&ctx).buffer(&ctx);
+    assert_eq!(buffer.len(), 0);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_with_repeated() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(texture_target(0, Size::new(30, 20), true))
-        .with_entity(rectangle())
-        .with_entity(
-            EntityBuilder::new()
-                .component(Texture::from_file(RECTANGLE_TEXTURE, TEXTURE_DATA))
-                .with(|t| t.is_repeated = true)
-                .component(TestedTexture),
-        )
-        .updated_until_all::<(), Texture>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_repeated", 1, 1))
-        .with_update::<With<TestedTexture>, _>(|t: &mut Texture| t.is_repeated = false)
-        .updated()
-        .assert::<With<TextureBuffer>>(1, has_component_diff("texture#render_default", 1, 1));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn retrieve_color() {
+    let (mut app, glob, _) = configure_app();
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    let ctx = app.ctx();
+    assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), Some(Color::RED));
+    assert_eq!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.r), Some(1.));
+    assert!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.g) > Some(0.9));
+    assert_eq!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.b), Some(0.));
+    assert_eq!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.r), Some(0.));
+    assert_eq!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.g), Some(1.));
+    assert!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.b) < Some(0.1));
+    assert_eq!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.r), Some(0.));
+    assert!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.g) < Some(0.1));
+    assert_eq!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.b), Some(1.));
+    assert_eq!(glob.get(&ctx).color(&ctx, 4, 4), None);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn set_source() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(buffer().component(Texture::from_buffer(
-            RECTANGLE_TEXTURE,
-            Size::new(3, 1),
-            vec![255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255],
-        )))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
-        .with_update::<With<TextureBuffer>, _>(|t: &mut Texture| {
-            t.set_source(TextureSource::File(TEXTURE_DATA));
-        })
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("texture#buffer"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(3, 1)))
-        .updated_until_any::<With<TextureBuffer>, _>(Some(100), |t: &Texture| {
-            t.size() == Some(Size::new(4, 4))
-        })
-        .assert::<With<TextureBuffer>>(1, is_same("texture#file"))
-        .assert::<With<TextureBuffer>>(1, assert_loaded(Size::new(4, 4)));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn retrieve_color_when_buffer_disabled() {
+    let (mut app, glob, _) = configure_app();
+    wait_resources(&mut app);
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    root(&mut app).texture.is_buffer_enabled = false;
+    app.update();
+    let ctx = app.ctx();
+    assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), None);
 }
 
-assertion_functions!(
-    fn assert_not_loaded(texture: &Texture) {
-        assert_eq!(texture.size(), None);
-        assert_eq!(texture.state(), ResourceState::NotLoaded);
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_smooth() {
+    let (mut app, _glob, target) = configure_app();
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    assert_max_component_diff(&mut app, &target, "texture#smooth", 10, 1);
+    root(&mut app).texture.is_smooth = false;
+    app.update();
+    assert_same(&mut app, &target, "texture#not_smooth");
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_repeated() {
+    let (mut app, _glob, target) = configure_app();
+    root(&mut app).sprite.material.texture_size = Vec2::ONE * 2.;
+    root(&mut app).texture.is_smooth = false;
+    let source = TextureSource::Bytes(TEXTURE_BYTES);
+    root(&mut app).texture.reload_with_source(source);
+    wait_resources(&mut app);
+    assert_same(&mut app, &target, "texture#not_repeated");
+    root(&mut app).texture.is_repeated = true;
+    app.update();
+    assert_same(&mut app, &target, "texture#repeated");
+}
+
+fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
+    let mut app = App::new::<Root>(Level::Info);
+    let texture = root(&mut app).texture.glob().clone();
+    let target = app.get_mut::<Root>().target.glob().clone();
+    (app, texture, target)
+}
+
+fn root(app: &mut App) -> &mut Root {
+    app.get_mut::<Root>()
+}
+
+#[derive(Node, Visit)]
+struct Root {
+    texture: Res<Texture>,
+    sprite: Sprite2D,
+    target: Res<Texture>,
+}
+
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let target = Texture::new(ctx, "target")
+            .with_is_target_enabled(true)
+            .with_is_buffer_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::new(20, 20)));
+        let texture = Texture::new(ctx, "main")
+            .with_is_buffer_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::ONE));
+        let sprite = Sprite2D::new(ctx, "main")
+            .with_model(|m| m.camera = target.camera.glob().clone())
+            .with_material(|m| m.texture = texture.glob().clone());
+        Self {
+            texture,
+            sprite,
+            target,
+        }
     }
-
-    fn assert_loaded(texture: &Texture, size: Size) {
-        assert_eq!(texture.size(), Some(size));
-        assert_eq!(texture.state(), ResourceState::Loaded);
-    }
-
-    fn assert_loading(texture: &Texture) {
-        assert_eq!(texture.size(), None);
-        assert_eq!(texture.state(), ResourceState::Loading);
-    }
-
-    fn assert_invalid_format(texture: &Texture) {
-        assert_eq!(texture.size(), None);
-        assert!(matches!(
-            texture.state(),
-            ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
-        ));
-    }
-);
-
-fn buffer() -> impl BuiltEntity {
-    EntityBuilder::new().component(TextureBuffer::default())
 }
-
-fn rectangle() -> impl BuiltEntity {
-    instance_2d(TEXTURE_CAMERAS_2D.get(0), Default2DMaterial::new())
-        .updated(|m: &mut Default2DMaterial| m.texture_key = Some(RECTANGLE_TEXTURE))
-        .updated(|m: &mut Default2DMaterial| m.texture_size = Vec2::ONE * 2.)
-}
-
-#[derive(Component, NoSystem)]
-struct TestedTexture;
-
-const RECTANGLE_TEXTURE: ResKey<Texture> = ResKey::new("rectangle");

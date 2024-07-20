@@ -1,9 +1,9 @@
-use winit::event_loop::{EventLoop, EventLoopBuilder};
+// coverage: off (window cannot be tested)
 
-// coverage: off (cannot be run during tests)
-pub(crate) fn event_loop() -> EventLoop<()> {
-    EventLoopBuilder::new()
+pub(crate) fn event_loop() -> winit::event_loop::EventLoop<()> {
+    winit::event_loop::EventLoop::builder()
         .build()
-        .expect("graphics runner initialization has failed")
+        .expect("graphics initialization failed")
 }
+
 // coverage: on

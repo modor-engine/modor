@@ -12,16 +12,10 @@ rust-version.workspace = true
 [dependencies]
 approx.workspace = true
 bytemuck.workspace = true
-getrandom.workspace = true
-instant.workspace = true
-log.workspace = true
 rand.workspace = true
 modor.workspace = true
-modor_math.workspace = true
 modor_graphics.workspace = true
-modor_input.workspace = true
 modor_physics.workspace = true
-modor_resources.workspace = true
 modor_text.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -39,16 +33,6 @@ assets = "assets"
 
 [package.metadata.android.sdk]
 target_sdk_version = 31
-
-[[example]]
-name = "animation_2d_android"
-path = "examples/android/animation_2d.rs"
-crate-type = ["cdylib"]
-
-[[example]]
-name = "anti_aliasing_android"
-path = "examples/android/anti_aliasing.rs"
-crate-type = ["cdylib"]
 
 [[example]]
 name = "collisions_2d_android"
@@ -108,6 +92,16 @@ crate-type = ["cdylib"]
 [[example]]
 name = "texture_2d_android"
 path = "examples/android/texture_2d.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "texture_animation_android"
+path = "examples/android/texture_animation.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "texture_target_android"
+path = "examples/android/texture_target.rs"
 crate-type = ["cdylib"]
 
 [[example]]

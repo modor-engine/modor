@@ -1,71 +1,51 @@
-use modor::{systems, App, BuiltEntity, Single, SingleRef, SingletonComponent};
-use modor_graphics::{
-    instance_2d, window_target, Camera2D, Default2DMaterial, Window, WINDOW_CAMERA_2D,
-};
-use modor_input::Mouse;
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_text::{text_2d, Text};
+use modor::log::Level;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::modor_input::Inputs;
+use modor_graphics::{CursorTracker, Sprite2D};
+use modor_physics::modor_math::Vec2;
+use modor_text::Text2D;
 
 pub fn main() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(window_target())
-        .with_entity(cursor())
-        .with_entity(text(0.25, "Pressed buttons:"))
-        .with_entity(text(-0.25, "").component(PressedButtons::default()))
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn cursor() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
-        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.02)
-        .updated(|m: &mut Default2DMaterial| m.is_ellipse = true)
-        .component(CursorPosition::default())
+#[derive(Visit)]
+struct Root {
+    pressed_buttons_label: Text2D,
+    pressed_buttons: Text2D,
+    cursor: Sprite2D,
+    tracker: CursorTracker,
 }
 
-fn text(position_y: f32, text: &str) -> impl BuiltEntity {
-    text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
-        .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
-}
-
-#[derive(SingletonComponent, Default)]
-struct CursorPosition(Vec2);
-
-#[systems]
-impl CursorPosition {
-    #[run_after(component(Mouse))]
-    fn retrieve(
-        &mut self,
-        mouse: SingleRef<'_, '_, Mouse>,
-        window_camera: Single<'_, Window, (&Window, &Camera2D)>,
-    ) {
-        let (window, camera) = window_camera.get();
-        self.0 = camera.world_position(window.size(), mouse.get().position);
-    }
-
-    #[run_after_previous]
-    fn update_display(&self, transform: &mut Transform2D) {
-        transform.position = self.0;
-    }
-}
-
-#[derive(SingletonComponent, Default)]
-struct PressedButtons(Vec<String>);
-
-#[systems]
-impl PressedButtons {
-    #[run_after(component(Mouse))]
-    fn retrieve(&mut self, mouse: SingleRef<'_, '_, Mouse>) {
-        self.0.clear();
-        for button in mouse.get().pressed_iter() {
-            self.0.push(format!("{button:?}"));
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            pressed_buttons_label: text(ctx, 0.25, "Pressed buttons:"),
+            pressed_buttons: text(ctx, -0.25, ""),
+            cursor: Sprite2D::new(ctx, "cursor")
+                .with_model(|m| m.size = Vec2::ONE * 0.02)
+                .with_material(|m| m.is_ellipse = true),
+            tracker: CursorTracker::new(ctx),
         }
     }
+}
 
-    #[run_after_previous]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.join(", ");
+impl Node for Root {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        let mouse = &ctx.get_mut::<Inputs>().mouse;
+        self.pressed_buttons.content = mouse
+            .pressed_iter()
+            .map(|button| format!("{button:?}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        self.cursor.model.position = self.tracker.position(ctx);
     }
+}
+
+fn text(ctx: &mut Context<'_>, position_y: f32, content: &str) -> Text2D {
+    Text2D::new(ctx, "text")
+        .with_model(|m| m.position = Vec2::Y * position_y)
+        .with_model(|m| m.size = Vec2::new(1., 0.15))
+        .with_content(content.into())
+        .with_font_height(50.)
 }

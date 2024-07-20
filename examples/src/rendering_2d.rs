@@ -1,16 +1,13 @@
 use instant::Instant;
-use modor::{systems, App, BuiltEntity, Component, EntityBuilder, SingleRef, SingletonComponent};
-use modor_graphics::{
-    instance_2d, material, window_target, Color, Default2DMaterial, Material, ZIndex2D,
-    WINDOW_CAMERA_2D,
-};
-use modor_math::Vec2;
-use modor_physics::{DeltaTime, Dynamics2D, Transform2D};
-use modor_resources::IndexResKey;
+use modor::log::{info, Level};
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
+use modor_physics::modor_math::Vec2;
+use modor_physics::Delta;
 use rand::Rng;
 use std::time::Duration;
 
-const SPRITE_COUNT: usize = 1000;
+const SPRITE_COUNT: usize = 1_000;
 const COLORS: [Color; 10] = [
     Color::RED,
     Color::GREEN,
@@ -24,85 +21,96 @@ const COLORS: [Color; 10] = [
     Color::OLIVE,
 ];
 
-const MATERIAL: IndexResKey<Material> = IndexResKey::new("sprite");
-
 pub fn main() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(FpsPrinter)
-        .with_entity(window_target())
-        .with_entity(materials())
-        .with_entity(sprites())
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn materials() -> impl BuiltEntity {
-    EntityBuilder::new().child_entities(|g| {
-        for (color_id, color) in COLORS.into_iter().enumerate() {
-            g.add(
-                material::<Default2DMaterial>(MATERIAL.get(color_id))
-                    .updated(|m: &mut Default2DMaterial| m.color = color)
-                    .updated(|m: &mut Default2DMaterial| m.is_ellipse = true),
-            );
-        }
-    })
+#[derive(Visit)]
+struct Root {
+    objects: Vec<Object>,
+    last_frame_instant: Instant,
 }
 
-fn sprites() -> impl BuiltEntity {
-    EntityBuilder::new().child_entities(move |b| {
-        for entity_id in 0..SPRITE_COUNT {
-            b.add(sprite(entity_id));
-        }
-    })
-}
-
-fn sprite(entity_id: usize) -> impl BuiltEntity {
-    let mut rng = rand::thread_rng();
-    let material_key = MATERIAL.get(entity_id % COLORS.len());
-    let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-    instance_2d(WINDOW_CAMERA_2D, material_key)
-        .updated(|t: &mut Transform2D| t.position = position)
-        .updated(|t: &mut Transform2D| t.size = Vec2::ONE * 0.01)
-        .component(Dynamics2D::new())
-        .component(ZIndex2D::from(rng.gen_range(0..u16::MAX)))
-        .component(RandomMovement::new())
-}
-
-#[derive(Component)]
-struct RandomMovement {
-    next_update: Instant,
-}
-
-#[systems]
-impl RandomMovement {
-    fn new() -> Self {
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        ctx.get_mut::<Window>().title = "Rendering 2D".into();
         Self {
-            next_update: Instant::now(),
+            objects: (0..SPRITE_COUNT)
+                .map(|index| Object::new(ctx, index))
+                .collect(),
+            last_frame_instant: Instant::now(),
         }
     }
+}
 
-    #[run]
-    fn update_velocity(&mut self, dynamics: &mut Dynamics2D) {
+impl Node for Root {
+    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+        let now = Instant::now();
+        info!(
+            "FPS: {}",
+            1. / (now - self.last_frame_instant).as_secs_f32()
+        );
+        self.last_frame_instant = now;
+    }
+}
+
+#[derive(Node, Visit)]
+struct Resources {
+    materials: Vec<Mat<DefaultMaterial2D>>,
+}
+
+impl RootNode for Resources {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            materials: COLORS
+                .iter()
+                .map(|&color| {
+                    DefaultMaterial2D::new(ctx)
+                        .with_color(color)
+                        .with_is_ellipse(true)
+                        .into_mat(ctx, "color")
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Visit)]
+struct Object {
+    model: Model2D<DefaultMaterial2D>,
+    next_update: Instant,
+    // A `Body2D` could be used instead of manually handle the velocity, but for performance reasons
+    // this is not recommended with a large amount of objects (> 10K objects).
+    velocity: Vec2,
+}
+
+impl Node for Object {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
-            dynamics.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
+            self.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
                 .with_magnitude(0.05)
                 .unwrap_or(Vec2::ZERO);
-            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(100..200));
+            self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(200..400));
         }
+        let delta = ctx.get_mut::<Delta>().duration.as_secs_f32();
+        self.model.position += self.velocity * delta;
     }
 }
 
-#[derive(SingletonComponent)]
-struct FpsPrinter;
-
-#[systems]
-impl FpsPrinter {
-    #[run]
-    fn run(delta: SingleRef<'_, '_, DeltaTime>) {
-        log::warn!(
-            "FPS: {}",
-            (1. / delta.get().get().as_secs_f32()).round() as u32
-        );
+impl Object {
+    fn new(ctx: &mut Context<'_>, index: usize) -> Self {
+        let mut rng = rand::thread_rng();
+        let material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
+        let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
+        let model = Model2D::new(ctx, material)
+            .with_position(position)
+            .with_size(Vec2::ONE * 0.01)
+            .with_z_index(rng.gen_range(i16::MIN..i16::MAX));
+        Self {
+            model,
+            next_update: Instant::now(),
+            velocity: Vec2::ONE * 0.0001,
+        }
     }
 }

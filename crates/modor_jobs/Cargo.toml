@@ -1,6 +1,6 @@
 [package]
 name = "modor_jobs"
-description = "Jobs module of Modor game engine"
+description = "Jobs crate of Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "job", "task", "async", "game"]
 categories = ["game-engines"]
@@ -24,10 +24,6 @@ async-std.workspace = true
 reqwest.workspace = true
 wasm-bindgen-futures.workspace = true
 web-sys.workspace = true
-
-[dev-dependencies]
-modor.workspace = true
-modor_internal.workspace = true
 
 [lints]
 workspace = true

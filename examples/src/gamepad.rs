@@ -1,75 +1,64 @@
-use modor::{systems, App, BuiltEntity, SingleRef, SingletonComponent};
-use modor_graphics::{window_target, WINDOW_CAMERA_2D};
-use modor_input::{GamepadStick, Gamepads};
-use modor_math::Vec2;
-use modor_physics::Transform2D;
-use modor_text::{text_2d, Text};
+use modor::log::Level;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::modor_input::{GamepadStick, Inputs};
+use modor_physics::modor_math::Vec2;
+use modor_text::Text2D;
 
 pub fn main() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(window_target())
-        .with_entity(text(0.375, "Moved sticks:"))
-        .with_entity(text(0.125, "").component(MovedSticks::default()))
-        .with_entity(text(-0.125, "Pressed buttons:"))
-        .with_entity(text(-0.375, "").component(PressedButtons::default()))
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn text(position_y: f32, text: &str) -> impl BuiltEntity {
-    text_2d(WINDOW_CAMERA_2D, text.to_string(), 50.)
-        .updated(|t: &mut Transform2D| t.position = Vec2::Y * position_y)
-        .updated(|t: &mut Transform2D| t.size = Vec2::new(1., 0.15))
+#[derive(Visit)]
+struct Root {
+    moved_sticks_label: Text2D,
+    moved_sticks: Text2D,
+    pressed_buttons_label: Text2D,
+    pressed_buttons: Text2D,
 }
 
-#[derive(SingletonComponent, Default)]
-struct MovedSticks(Vec<String>);
-
-#[systems]
-impl MovedSticks {
-    #[run_after(component(Gamepads))]
-    fn retrieve(&mut self, gamepads: SingleRef<'_, '_, Gamepads>) {
-        let gamepads = gamepads.get();
-        self.0.clear();
-        if let Some(gamepad_id) = gamepads.iter().next() {
-            let gamepad = &gamepads[gamepad_id];
-            if gamepad[GamepadStick::LeftStick] != Vec2::ZERO {
-                self.0.push("LeftStick".into());
-            }
-            if gamepad[GamepadStick::RightStick] != Vec2::ZERO {
-                self.0.push("RightStick".into());
-            }
-            if gamepad[GamepadStick::DPad] != Vec2::ZERO {
-                self.0.push("DPad".into());
-            }
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        Self {
+            moved_sticks_label: text(ctx, 0.375, "Moved sticks:"),
+            moved_sticks: text(ctx, 0.125, ""),
+            pressed_buttons_label: text(ctx, -0.125, "Pressed buttons:"),
+            pressed_buttons: text(ctx, -0.375, ""),
         }
     }
+}
 
-    #[run_after_previous]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.join(", ");
+const STICK_LABELS: [(GamepadStick, &str); 3] = [
+    (GamepadStick::LeftStick, "LeftStick"),
+    (GamepadStick::RightStick, "RightStick"),
+    (GamepadStick::DPad, "DPad"),
+];
+
+impl Node for Root {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        let gamepads = &ctx.get_mut::<Inputs>().gamepads;
+        if let Some((_, gamepad)) = gamepads.iter().next() {
+            self.moved_sticks.content = STICK_LABELS
+                .into_iter()
+                .filter(|(stick, _)| gamepad[*stick] != Vec2::ZERO)
+                .map(|(_, label)| label)
+                .collect::<Vec<_>>()
+                .join(", ");
+            self.pressed_buttons.content = gamepad
+                .pressed_iter()
+                .map(|button| format!("{button:?}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+        } else {
+            self.moved_sticks.content.clear();
+            self.pressed_buttons.content.clear();
+        }
     }
 }
 
-#[derive(SingletonComponent, Default)]
-struct PressedButtons(Vec<String>);
-
-#[systems]
-impl PressedButtons {
-    #[run_after(component(Gamepads))]
-    fn retrieve(&mut self, gamepads: SingleRef<'_, '_, Gamepads>) {
-        let gamepads = gamepads.get();
-        self.0.clear();
-        if let Some(gamepad_id) = gamepads.iter().next() {
-            let gamepad = &gamepads[gamepad_id];
-            for button in gamepad.pressed_iter() {
-                self.0.push(format!("{button:?}"));
-            }
-        }
-    }
-
-    #[run_after_previous]
-    fn update_display(&self, text: &mut Text) {
-        text.content = self.0.join(", ");
-    }
+fn text(ctx: &mut Context<'_>, position_y: f32, content: &str) -> Text2D {
+    Text2D::new(ctx, "text")
+        .with_model(|m| m.position = Vec2::Y * position_y)
+        .with_model(|m| m.size = Vec2::new(1., 0.15))
+        .with_content(content.into())
+        .with_font_height(50.)
 }

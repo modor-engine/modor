@@ -1,3 +1,3 @@
 # modor_physics
 
-Physics module of [Modor](https://github.com/modor-engine/modor).
+Physics crate of [Modor](https://github.com/modor-engine/modor).

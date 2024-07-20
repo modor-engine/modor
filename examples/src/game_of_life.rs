@@ -1,63 +1,38 @@
 use instant::Instant;
-use modor::{
-    systems, App, BuiltEntity, Component, Entity, EntityBuilder, Filter, NoSystem, Query,
-    SingletonComponent, With, World,
-};
-use modor_graphics::{
-    instance_2d, instance_group_2d, window_target, Color, Default2DMaterial, ZIndex2D,
-    WINDOW_CAMERA_2D,
-};
-use modor_math::Vec2;
-use modor_physics::Transform2D;
+use modor::log::Level;
+use modor::{Context, Node, RootNode, Visit};
+use modor_graphics::{Color, Sprite2D};
+use modor_physics::modor_math::Vec2;
 use std::time::Duration;
 
 const GRID_SIZE: usize = 150;
 const REFRESH_PERIOD: Duration = Duration::from_millis(100);
 
 pub fn main() {
-    App::new()
-        .with_entity(modor_graphics::module())
-        .with_entity(window_target())
-        .with_entity(alive_cell_instance_group())
-        .with_entity(background())
-        .with_entity(Grid::load())
-        .run(modor_graphics::runner);
+    modor_graphics::run::<Root>(Level::Info);
 }
 
-fn background() -> impl BuiltEntity {
-    instance_2d(WINDOW_CAMERA_2D, Default2DMaterial::new())
-}
-
-fn alive_cell_instance_group() -> impl BuiltEntity {
-    instance_group_2d::<With<AliveCell>>(WINDOW_CAMERA_2D, Default2DMaterial::new())
-        .updated(|m: &mut Default2DMaterial| m.color = Color::BLACK)
-}
-
-fn alive_cell(x: usize, y: usize) -> impl BuiltEntity {
-    EntityBuilder::new()
-        .component(Transform2D::new())
-        .with(|t| t.position = to_word_position(x, y))
-        .with(|t| t.size = Vec2::ONE / GRID_SIZE as f32)
-        .component(ZIndex2D::from(1))
-        .component(AliveCell)
-}
-
-fn to_word_position(x: usize, y: usize) -> Vec2 {
-    Vec2::new(
-        (x as f32 + 0.5) / GRID_SIZE as f32 - 0.5,
-        0.5 - (y as f32 + 0.5) / GRID_SIZE as f32,
-    )
-}
-
-#[derive(SingletonComponent)]
-struct Grid {
-    are_cells_alive: Vec<Vec<bool>>,
+#[derive(Visit)]
+struct Root {
     last_update: Instant,
+    background: Sprite2D,
+    are_cells_alive: Vec<Vec<bool>>,
+    cells: Vec<Sprite2D>,
 }
 
-#[systems]
-impl Grid {
-    fn load() -> Self {
+impl Node for Root {
+    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+        if self.last_update.elapsed() < REFRESH_PERIOD {
+            return;
+        }
+        self.last_update = Instant::now();
+        let alive_cell_count = self.refresh_grid();
+        self.update_alive_cells(ctx, alive_cell_count);
+    }
+}
+
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
         let mut are_cells_alive = vec![vec![false; GRID_SIZE]; GRID_SIZE];
         for (x, line) in include_str!("../res/game-of-life-grid").lines().enumerate() {
             for (y, character) in line.chars().enumerate() {
@@ -67,54 +42,15 @@ impl Grid {
             }
         }
         Self {
-            are_cells_alive,
             last_update: Instant::now(),
+            background: Sprite2D::new(ctx, "background"),
+            are_cells_alive,
+            cells: vec![],
         }
     }
+}
 
-    #[run]
-    fn update(&mut self) {
-        if self.last_update.elapsed() > REFRESH_PERIOD {
-            self.last_update = Instant::now();
-            let are_cells_alive = self.are_cells_alive.clone();
-            for x in 0..GRID_SIZE {
-                for y in 0..GRID_SIZE {
-                    let neighbor_count = Self::neighbor_count(&are_cells_alive, x, y);
-                    let is_cell_alive = &mut self.are_cells_alive[x][y];
-                    if *is_cell_alive && !(neighbor_count == 2 || neighbor_count == 3) {
-                        *is_cell_alive = false;
-                    } else if !*is_cell_alive && neighbor_count == 3 {
-                        *is_cell_alive = true;
-                    }
-                }
-            }
-        }
-    }
-
-    #[run_after_previous]
-    fn update_display(
-        &self,
-        entity: Entity<'_>,
-        mut cells: Query<'_, (&mut Transform2D, Entity<'_>, Filter<With<AliveCell>>)>,
-        mut world: World<'_>,
-    ) {
-        let mut cells = cells.iter_mut();
-        for x in 0..GRID_SIZE {
-            for y in 0..GRID_SIZE {
-                if self.are_cells_alive[x][y] {
-                    if let Some((cell_transform, _, _)) = cells.next() {
-                        cell_transform.position = to_word_position(x, y);
-                    } else {
-                        world.create_child_entity(entity.id(), alive_cell(x, y));
-                    }
-                }
-            }
-        }
-        for (_, cell_entity, _) in cells {
-            world.delete_entity(cell_entity.id());
-        }
-    }
-
+impl Root {
     fn neighbor_count(are_cells_alive: &[Vec<bool>], x: usize, y: usize) -> u8 {
         let first_x = x.saturating_sub(1);
         let first_y = y.saturating_sub(1);
@@ -128,7 +64,52 @@ impl Grid {
         }
         neighbor_count
     }
-}
 
-#[derive(Component, NoSystem)]
-struct AliveCell;
+    fn cell_position(x: usize, y: usize) -> Vec2 {
+        Vec2::new(
+            (x as f32 + 0.5) / GRID_SIZE as f32 - 0.5,
+            0.5 - (y as f32 + 0.5) / GRID_SIZE as f32,
+        )
+    }
+
+    fn refresh_grid(&mut self) -> usize {
+        let mut alive_cell_count = 0;
+        let old_are_cells_alive = self.are_cells_alive.clone();
+        for x in 0..GRID_SIZE {
+            for y in 0..GRID_SIZE {
+                let neighbor_count = Self::neighbor_count(&old_are_cells_alive, x, y);
+                let is_cell_alive = &mut self.are_cells_alive[x][y];
+                if *is_cell_alive && !(neighbor_count == 2 || neighbor_count == 3) {
+                    *is_cell_alive = false;
+                } else if !*is_cell_alive && neighbor_count == 3 {
+                    *is_cell_alive = true;
+                }
+                if *is_cell_alive {
+                    alive_cell_count += 1;
+                }
+            }
+        }
+        alive_cell_count
+    }
+
+    fn update_alive_cells(&mut self, ctx: &mut Context<'_>, alive_cell_count: usize) {
+        self.cells
+            .resize_with(alive_cell_count, || Self::alive_cell(ctx));
+        let mut current_cell_index = 0;
+        for x in 0..GRID_SIZE {
+            for y in 0..GRID_SIZE {
+                if self.are_cells_alive[x][y] {
+                    self.cells[current_cell_index].model.position = Self::cell_position(x, y);
+                    current_cell_index += 1;
+                }
+            }
+        }
+    }
+
+    fn alive_cell(ctx: &mut Context<'_>) -> Sprite2D {
+        Sprite2D::new(ctx, "cell")
+            .with_model(|m| m.size = Vec2::ONE / GRID_SIZE as f32)
+            .with_model(|m| m.z_index = 1)
+            .with_material(|m| m.color = Color::BLACK)
+    }
+}

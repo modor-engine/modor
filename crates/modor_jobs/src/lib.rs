@@ -1,10 +1,9 @@
-//! Jobs module of Modor.
+//! Jobs crate of Modor.
 //!
 //! # Getting started
 //!
 //! You need to include these dependencies in your `Cargo.toml` file:
 //! ```toml
-//! modor = "0.1"
 //! modor_jobs = "0.1"
 //! ```
 //!
@@ -13,10 +12,10 @@
 #[macro_use]
 extern crate log;
 
-mod data;
+mod asset_loading_job;
+mod job;
 mod platform;
-mod traits;
 
-pub use data::asset_loading::*;
-pub use data::job::*;
-pub use traits::*;
+pub use asset_loading_job::*;
+pub use job::*;
+pub use platform::*;

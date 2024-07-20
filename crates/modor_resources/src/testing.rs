@@ -1,25 +1,27 @@
 //! Testing utilities.
 
-use crate::{Resource, ResourceState};
+use crate::resource::ResGlob;
+use crate::ResourceState;
+use modor::{App, Globals};
 use std::thread;
 use std::time::Duration;
 
-/// Returns whether a resource is loaded, and sleeps 10ms if not yet loaded.
+/// Wait until all resources are loaded.
 ///
-/// The resource is considered as loaded if the state is [`ResourceState::Loaded`] or
+/// A resource is considered as loaded if its state is [`ResourceState::Loaded`] or
 /// [`ResourceState::Error`].
 ///
 /// # Platform-specific
 ///
 /// - Web: sleep is not supported, so the function panics.
-pub fn wait_resource_loading<R: Resource>(resource: &R) -> bool {
-    if matches!(
-        resource.state(),
-        ResourceState::Loaded | ResourceState::Error(_)
-    ) {
-        true
-    } else {
+pub fn wait_resources(app: &mut App) {
+    app.update();
+    while app
+        .get_mut::<Globals<ResGlob>>()
+        .iter()
+        .any(|res| res.state == ResourceState::Loading)
+    {
+        app.update();
         thread::sleep(Duration::from_micros(10));
-        false
     }
 }

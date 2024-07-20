@@ -3,9 +3,7 @@ vulnerability = "deny"
 unmaintained = "deny"
 yanked = "deny"
 notice = "deny"
-ignore = [
-    "RUSTSEC-2022-0048", # xml-rs is used by winit
-]
+ignore = []
 
 [bans]
 multiple-versions = "allow"
@@ -27,8 +25,8 @@ allow = [
     "CC0-1.0",
     "ISC",
     "MIT",
-    "MPL-2.0",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     "Zlib",
     "0BSD",
 ]

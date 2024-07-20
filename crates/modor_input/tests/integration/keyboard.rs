@@ -1,7 +1,8 @@
 use modor_input::{Key, Keyboard};
+use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 
-#[modor_test]
+#[modor::test]
 fn create_default() {
     let keyboard = Keyboard::default();
     assert_eq!(keyboard.pressed_iter().count(), 0);
@@ -10,7 +11,7 @@ fn create_default() {
     assert!(!keyboard[Key::Enter].is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn press_key() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::Enter].press();
@@ -21,7 +22,7 @@ fn press_key() {
     assert!(!keyboard[Key::Enter].is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn refresh_after_key_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::Enter].press();
@@ -33,7 +34,7 @@ fn refresh_after_key_pressed() {
     assert!(!keyboard[Key::Enter].is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn release_key() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::Enter].press();
@@ -45,7 +46,7 @@ fn release_key() {
     assert!(keyboard[Key::Enter].is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn refresh_after_key_released() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::Enter].press();
@@ -58,7 +59,7 @@ fn refresh_after_key_released() {
     assert!(!keyboard[Key::Enter].is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn refresh_after_text_entered() {
     let mut keyboard = Keyboard::default();
     keyboard.text = "entered text".into();
@@ -66,7 +67,7 @@ fn refresh_after_text_entered() {
     assert_eq!(keyboard.text, "");
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_not_pressed() {
     let keyboard = Keyboard::default();
     let direction = keyboard.direction(
@@ -78,7 +79,7 @@ fn retrieve_direction_when_not_pressed() {
     assert_approx_eq!(direction, Vec2::ZERO);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_up_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowUp].press();
@@ -91,7 +92,7 @@ fn retrieve_direction_when_up_pressed() {
     assert_approx_eq!(direction, Vec2::Y);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_down_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowDown].press();
@@ -104,7 +105,7 @@ fn retrieve_direction_when_down_pressed() {
     assert_approx_eq!(direction, -Vec2::Y);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_left_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowLeft].press();
@@ -117,7 +118,7 @@ fn retrieve_direction_when_left_pressed() {
     assert_approx_eq!(direction, -Vec2::X);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_right_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowRight].press();
@@ -130,7 +131,7 @@ fn retrieve_direction_when_right_pressed() {
     assert_approx_eq!(direction, Vec2::X);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_direction_when_multiple_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowRight].press();
@@ -144,14 +145,14 @@ fn retrieve_direction_when_multiple_pressed() {
     assert_approx_eq!(direction, Vec2::new(1., -1.).with_magnitude(1.).unwrap());
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_axis_when_not_pressed() {
     let keyboard = Keyboard::default();
     let axis = keyboard.axis(Key::ArrowLeft, Key::ArrowRight);
     assert_approx_eq!(axis, 0.);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_axis_when_left_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowLeft].press();
@@ -159,7 +160,7 @@ fn retrieve_axis_when_left_pressed() {
     assert_approx_eq!(axis, -1.);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_axis_when_right_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowRight].press();
@@ -167,7 +168,7 @@ fn retrieve_axis_when_right_pressed() {
     assert_approx_eq!(axis, 1.);
 }
 
-#[modor_test]
+#[modor::test]
 fn retrieve_axis_when_both_pressed() {
     let mut keyboard = Keyboard::default();
     keyboard[Key::ArrowLeft].press();

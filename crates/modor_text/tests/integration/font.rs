@@ -1,98 +1,94 @@
-use modor::{App, BuiltEntity, EntityBuilder, With};
-use modor_graphics::testing::is_same;
-use modor_graphics::{Size, Texture, TextureBuffer};
-use modor_resources::testing::wait_resource_loading;
-use modor_resources::{ResKey, Resource, ResourceLoadingError, ResourceState};
-use modor_text::{Font, FontSource, Text};
-use std::thread;
-use std::time::Duration;
+use modor::log::Level;
+use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor_graphics::modor_resources::testing::wait_resources;
+use modor_graphics::modor_resources::{Res, ResLoad, Resource};
+use modor_graphics::testing::assert_max_component_diff;
+use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
+use modor_text::{Font, FontSource, Text2D};
 
-const FONT_DATA: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/assets/Foglihtenno07.otf"
-));
-
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_path() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(Font::from_path(
-            FONT,
-            "../tests/assets/IrishGrover-Regular.ttf",
-        ))
-        .with_entity(text())
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("font#text_ttf"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn define_label() {
+    let (mut app, _) = configure_app();
+    let font = Font::new(&mut app.ctx(), "main")
+        .load_from_path(&mut app.ctx(), "../tests/assets/IrishGrover-Regular.ttf");
+    assert_eq!(font.label(), "main");
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_file() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(Font::from_file(FONT, FONT_DATA))
-        .with_entity(text())
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("font#text_otf"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn render_ttf_font_from_path() {
+    let (mut app, target) = configure_app();
+    let font = Font::new(&mut app.ctx(), "main")
+        .load_from_path(&mut app.ctx(), "../tests/assets/IrishGrover-Regular.ttf");
+    assert_eq!(font.label(), "main");
+    set_font(&mut app, font);
+    wait_resources(&mut app);
+    app.update();
+    assert_max_component_diff(&mut app, &target, "font#ttf", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn create_from_unsupported_format() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(
-            EntityBuilder::new()
-                .component(Font::from_path(FONT, "../tests/assets/text.txt"))
-                .component(CustomFont),
-        )
-        .assert::<With<CustomFont>>(1, |e| {
-            e.has(|f: &Font| assert_eq!(f.state(), ResourceState::NotLoaded))
-        })
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<CustomFont>>(1, |e| {
-            e.has(|f: &Font| {
-                assert!(matches!(
-                    f.state(),
-                    ResourceState::Error(ResourceLoadingError::InvalidFormat(_))
-                ));
-            })
-        });
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn render_otf_font_from_path() {
+    let (mut app, target) = configure_app();
+    let font = Font::new(&mut app.ctx(), "main")
+        .load_from_path(&mut app.ctx(), "../tests/assets/Foglihtenno07.otf");
+    set_font(&mut app, font);
+    wait_resources(&mut app);
+    app.update();
+    assert_max_component_diff(&mut app, &target, "font#otf", 20, 2);
 }
 
-#[modor_test(disabled(macos, android, wasm))]
-fn set_source() {
-    App::new()
-        .with_entity(modor_text::module())
-        .with_entity(text())
-        .with_entity(
-            EntityBuilder::new()
-                .component(Font::from_path(
-                    FONT,
-                    "../tests/assets/IrishGrover-Regular.ttf",
-                ))
-                .component(CustomFont),
-        )
-        .updated_until_all::<With<Font>, Font>(Some(100), wait_resource_loading)
-        .assert::<With<TextureBuffer>>(1, is_same("font#text_ttf"))
-        .with_update::<With<CustomFont>, _>(|f: &mut Font| {
-            f.set_source(FontSource::File(FONT_DATA));
-        })
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("font#text_ttf"))
-        .with_update::<With<TextureBuffer>, _>(|_: &mut Font| thread::sleep(Duration::from_secs(5)))
-        .updated()
-        .assert::<With<TextureBuffer>>(1, is_same("font#text_otf"));
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn render_font_from_bytes() {
+    let (mut app, target) = configure_app();
+    let font = Font::new(&mut app.ctx(), "main").load_from_source(
+        &mut app.ctx(),
+        FontSource::Bytes(include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/assets/Foglihtenno07.otf"
+        ))),
+    );
+    set_font(&mut app, font);
+    wait_resources(&mut app);
+    app.update();
+    assert_max_component_diff(&mut app, &target, "font#otf", 20, 2);
 }
 
-fn text() -> impl BuiltEntity {
-    let texture_key = ResKey::unique("text");
-    EntityBuilder::new()
-        .component(Texture::from_size(texture_key, Size::ZERO))
-        .component(TextureBuffer::default())
-        .component(Text::new("text", 20.))
-        .with(|t| t.font_key = FONT)
+fn configure_app() -> (App, GlobRef<TextureGlob>) {
+    let mut app = App::new::<Root>(Level::Info);
+    let target = root(&mut app).target.glob().clone();
+    (app, target)
 }
 
-#[derive(Component, NoSystem)]
-struct CustomFont;
+fn root(app: &mut App) -> &mut Root {
+    app.get_mut::<Root>()
+}
 
-const FONT: ResKey<Font> = ResKey::new("custom");
+fn set_font(app: &mut App, font: Res<Font>) {
+    root(app).text.font = font.glob().clone();
+    root(app).font = Some(font);
+}
+
+#[derive(Node, Visit)]
+struct Root {
+    text: Text2D,
+    target: Res<Texture>,
+    font: Option<Res<Font>>,
+}
+
+impl RootNode for Root {
+    fn on_create(ctx: &mut Context<'_>) -> Self {
+        let target = Texture::new(ctx, "target")
+            .with_is_buffer_enabled(true)
+            .with_is_target_enabled(true)
+            .load_from_source(ctx, TextureSource::Size(Size::new(60, 40)));
+        Self {
+            text: Text2D::new(ctx, "main")
+                .with_content("text".into())
+                .with_font_height(30.)
+                .with_texture(|t| t.is_smooth = false)
+                .with_model(|m| m.camera = target.camera.glob().clone()),
+            target,
+            font: None,
+        }
+    }
+}

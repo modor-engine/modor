@@ -1,6 +1,6 @@
 [package]
 name = "modor_physics"
-description = "Physics module of Modor game engine"
+description = "Physics crate of Modor game engine"
 readme = "./README.md"
 keywords = ["modor", "physics", "collision", "game", "engine"]
 categories = ["game-engines"]
@@ -15,13 +15,9 @@ rust-version.workspace = true
 [dependencies]
 approx.workspace = true
 fxhash.workspace = true
-log.workspace = true
 rapier2d.workspace = true
 modor.workspace = true
 modor_math.workspace = true
-modor_resources.workspace = true
-
-[dev-dependencies]
 modor_internal.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]

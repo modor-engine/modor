@@ -1,7 +1,8 @@
 use modor_input::{GamepadButton, GamepadStick, Gamepads};
+use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 
-#[modor_test]
+#[modor::test]
 fn create_default() {
     let gamepads = Gamepads::default();
     assert_eq!(gamepads.iter().count(), 0);
@@ -13,12 +14,12 @@ fn create_default() {
     assert_approx_eq!(gamepads[0][GamepadStick::LeftStick], Vec2::ZERO);
 }
 
-#[modor_test]
+#[modor::test]
 fn press_button() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::Start].state.press();
     gamepads[0][GamepadButton::Start].value = 1.;
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     let pressed_buttons: Vec<_> = gamepads[0].pressed_iter().collect();
     assert_eq!(pressed_buttons, vec![GamepadButton::Start]);
@@ -27,13 +28,13 @@ fn press_button() {
     assert!(!gamepads[0][GamepadButton::Start].state.is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn refresh_after_button_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::Start].state.press();
     gamepads[0][GamepadButton::Start].value = 1.;
     gamepads.refresh();
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     let pressed_buttons: Vec<_> = gamepads[0].pressed_iter().collect();
     assert_eq!(pressed_buttons, vec![GamepadButton::Start]);
@@ -42,7 +43,7 @@ fn refresh_after_button_pressed() {
     assert!(!gamepads[0][GamepadButton::Start].state.is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn release_button() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::Start].state.press();
@@ -51,7 +52,7 @@ fn release_button() {
     gamepads[0][GamepadButton::Start].state.release();
     gamepads[0][GamepadButton::Start].value = 0.;
 
-    let all_gamepads: Vec<_> = gamepads.iter().collect();
+    let all_gamepads: Vec<_> = gamepads.iter().map(|(i, _)| i).collect();
     assert_eq!(all_gamepads, vec![0]);
     assert_eq!(gamepads[0].pressed_iter().count(), 0);
     assert!(!gamepads[0][GamepadButton::Start].state.is_pressed());
@@ -59,7 +60,7 @@ fn release_button() {
     assert!(gamepads[0][GamepadButton::Start].state.is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn refresh_after_button_released() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::Start].state.press();
@@ -75,7 +76,7 @@ fn refresh_after_button_released() {
     assert!(!gamepads[0][GamepadButton::Start].state.is_just_released());
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_not_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);
@@ -83,7 +84,7 @@ fn sync_d_pad_when_not_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], Vec2::new(0.5, 0.2));
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_previously_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadButton::DPadUp].state.press();
@@ -94,7 +95,7 @@ fn sync_d_pad_when_previously_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], Vec2::ZERO);
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_up_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);
@@ -103,7 +104,7 @@ fn sync_d_pad_when_up_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], Vec2::Y);
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_down_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);
@@ -112,7 +113,7 @@ fn sync_d_pad_when_down_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], -Vec2::Y);
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_left_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);
@@ -121,7 +122,7 @@ fn sync_d_pad_when_left_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], -Vec2::X);
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_right_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);
@@ -130,7 +131,7 @@ fn sync_d_pad_when_right_pressed() {
     assert_approx_eq!(gamepads[0][GamepadStick::DPad], Vec2::X);
 }
 
-#[modor_test]
+#[modor::test]
 fn sync_d_pad_when_multiple_pressed() {
     let mut gamepads = Gamepads::default();
     gamepads[0][GamepadStick::DPad] = Vec2::new(0.5, 0.2);

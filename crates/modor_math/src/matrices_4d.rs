@@ -2,7 +2,7 @@ use crate::{Vec2, Vec3};
 use std::ops::Mul;
 
 /// A 4x4 matrix.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Mat4 {
     elements: [[f32; 4]; 4],
 }
