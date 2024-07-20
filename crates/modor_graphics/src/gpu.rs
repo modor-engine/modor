@@ -5,7 +5,8 @@ use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingType, BufferBindingType, Device, DeviceDescriptor, Features, Gles3MinorVersion,
-    Instance, InstanceFlags, PowerPreference, Queue, RequestAdapterOptions, ShaderStages, Surface,
+    Instance, InstanceFlags, MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
+    ShaderStages, Surface,
 };
 
 #[derive(Debug, Visit, Node)]
@@ -80,6 +81,7 @@ impl Gpu {
             label: None,
             required_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
             required_limits: platform::gpu_limits(),
+            memory_hints: MemoryHints::Performance,
         };
         executor::block_on(adapter.request_device(&device_descriptor, None))
             .expect("error when retrieving graphic device")
