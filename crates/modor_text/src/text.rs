@@ -1,7 +1,7 @@
 use crate::resources::TextResources;
 use crate::{FontGlob, TextMaterial2D};
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{Builder, Context, GlobRef, Node, Visit};
+use modor::{App, Builder, GlobRef, Node, Visit};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
 use std::iter;
@@ -22,10 +22,10 @@ use std::iter;
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let font = ctx.get_mut::<Resources>().font.glob().clone();
+///     fn on_create(app: &mut App) -> Self {
+///         let font = app.get_mut::<Resources>().font.glob().clone();
 ///         Self {
-///             text: Text2D::new(ctx, "text")
+///             text: Text2D::new(app, "text")
 ///                 .with_content("Hello world!".into())
 ///                 .with_font(font)
 ///                 .with_font_height(200.)
@@ -40,9 +40,9 @@ use std::iter;
 /// }
 ///
 /// impl RootNode for Resources {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             font: Font::new(ctx, "main").load_from_path(ctx, "my-font.ttf"),
+///             font: Font::new(app, "main").load_from_path(app, "my-font.ttf"),
 ///         }
 ///     }
 /// }
@@ -90,8 +90,8 @@ pub struct Text2D {
 
 impl Node for Text2D {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let font = self.font.get(ctx);
+    fn on_enter(&mut self, app: &mut App) {
+        let font = self.font.get(app);
         if let Some(font_vec) = &font.font {
             if self.old_state.has_changed(self) || font.has_changed {
                 let scaled_font = font_vec.as_scaled(self.font_height);
@@ -121,13 +121,13 @@ impl Text2D {
     /// Creates a new sprite.
     ///
     /// The `label` is used to identity the texture and the material in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
         let label = label.into();
-        let font = ctx.get_mut::<TextResources>().default_font.glob().clone();
-        let texture = Texture::new(ctx, &label)
-            .load_from_source(ctx, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(ctx, texture.glob().clone()).into_mat(ctx, label);
-        let model = Model2D::new(ctx, material.glob());
+        let font = app.get_mut::<TextResources>().default_font.glob().clone();
+        let texture = Texture::new(app, &label)
+            .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
+        let material = TextMaterial2D::new(app, texture.glob().clone()).into_mat(app, label);
+        let model = Model2D::new(app, material.glob());
         Self {
             content: String::new(),
             font_height: 100.,

@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -19,14 +19,14 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         let size = Vec2::new(1., 0.2);
-        let font = ctx.get_mut::<Resources>().font.glob().clone();
+        let font = app.get_mut::<Resources>().font.glob().clone();
         Self {
-            background: Sprite2D::new(ctx, "background")
+            background: Sprite2D::new(app, "background")
                 .with_model(|m| m.size = size)
                 .with_material(|m| m.color = Color::rgb(0.1, 0.1, 0.1)),
-            text: Text2D::new(ctx, "text")
+            text: Text2D::new(app, "text")
                 .with_content("Loading".into())
                 .with_font(font)
                 .with_font_height(300.)
@@ -39,7 +39,7 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
             let new_text = match self.text.content.matches('.').count() {
                 0 => "Loading.",
@@ -59,9 +59,9 @@ struct Resources {
 }
 
 impl RootNode for Resources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            font: Font::new(ctx, "main").load_from_path(ctx, "IrishGrover-Regular.ttf"),
+            font: Font::new(app, "main").load_from_path(app, "IrishGrover-Regular.ttf"),
         }
     }
 }

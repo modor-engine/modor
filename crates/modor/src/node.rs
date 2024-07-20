@@ -1,4 +1,4 @@
-use crate::Context;
+use crate::App;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
@@ -14,7 +14,7 @@ pub trait RootNode: 'static + Node {
     /// Creates the root node.
     ///
     /// Note that this method shouldn't be called manually to create the node.
-    fn on_create(ctx: &mut Context<'_>) -> Self;
+    fn on_create(app: &mut App) -> Self;
 }
 
 /// A trait for defining a node that can be automatically updated.
@@ -29,12 +29,12 @@ pub trait Node: Visit {
     /// Runs logic before the node is updated.
     #[inline]
     #[allow(unused_variables)]
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {}
+    fn on_enter(&mut self, app: &mut App) {}
 
     /// Runs logic after the node is updated.
     #[inline]
     #[allow(unused_variables)]
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {}
+    fn on_exit(&mut self, app: &mut App) {}
 
     /// Runs node update.
     ///
@@ -48,21 +48,21 @@ pub trait Node: Visit {
     /// It shouldn't be necessary to override the default implementation of this method. It is
     /// recommended instead to update the above methods.
     #[inline]
-    fn update(&mut self, ctx: &mut Context<'_>) {
-        self.on_enter(ctx);
-        self.visit(ctx);
-        self.on_exit(ctx);
+    fn update(&mut self, app: &mut App) {
+        self.on_enter(app);
+        self.visit(app);
+        self.on_exit(app);
     }
 
     /// Converts the node into a [`Const<Self>`].
     ///
     /// This method runs [`Node::update`] before making the conversion.
     #[inline]
-    fn into_const(mut self, ctx: &mut Context<'_>) -> Const<Self>
+    fn into_const(mut self, app: &mut App) -> Const<Self>
     where
         Self: Sized,
     {
-        self.update(ctx);
+        self.update(app);
         Const { inner: self }
     }
 }
@@ -76,15 +76,15 @@ pub trait Node: Visit {
 /// See [`modor`](crate).
 pub trait Visit {
     /// Visits the inner nodes.
-    fn visit(&mut self, ctx: &mut Context<'_>);
+    fn visit(&mut self, app: &mut App);
 }
 
 impl Node for Box<dyn Node> {}
 
 impl Visit for Box<dyn Node> {
     #[inline]
-    fn visit(&mut self, ctx: &mut Context<'_>) {
-        self.deref_mut().update(ctx);
+    fn visit(&mut self, app: &mut App) {
+        self.deref_mut().update(app);
     }
 }
 
@@ -95,8 +95,8 @@ where
     T: Node,
 {
     #[inline]
-    fn visit(&mut self, ctx: &mut Context<'_>) {
-        self.deref_mut().update(ctx);
+    fn visit(&mut self, app: &mut App) {
+        self.deref_mut().update(app);
     }
 }
 
@@ -107,9 +107,9 @@ where
     T: Node,
 {
     #[inline]
-    fn visit(&mut self, ctx: &mut Context<'_>) {
+    fn visit(&mut self, app: &mut App) {
         if let Some(node) = self {
-            node.update(ctx);
+            node.update(app);
         }
     }
 }
@@ -120,9 +120,9 @@ impl<T> Visit for Vec<T>
 where
     T: Node,
 {
-    fn visit(&mut self, ctx: &mut Context<'_>) {
+    fn visit(&mut self, app: &mut App) {
         for node in self {
-            node.update(ctx);
+            node.update(app);
         }
     }
 }
@@ -134,9 +134,9 @@ where
     V: Node,
 {
     #[inline]
-    fn visit(&mut self, ctx: &mut Context<'_>) {
+    fn visit(&mut self, app: &mut App) {
         for node in self.values_mut() {
-            node.update(ctx);
+            node.update(app);
         }
     }
 }
@@ -157,9 +157,9 @@ where
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             constant: Value(42).into_const(ctx),
+///             constant: Value(42).into_const(app),
 ///         }
 ///     }
 /// }

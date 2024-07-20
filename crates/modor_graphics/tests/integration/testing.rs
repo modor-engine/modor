@@ -1,6 +1,6 @@
 use image::ImageError;
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_max_pixel_diff, assert_same};
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -19,7 +19,7 @@ fn compare_to_not_existing_expected() {
     let (mut app, texture) = configure_app();
     wait_resources(&mut app);
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        assert_same(&mut app, &texture, "testing#temporary");
+        assert_same(&app, &texture, "testing#temporary");
     }));
     let actual_path = "tests/expected/testing#temporary.png";
     let actual_image = load_image_data(actual_path);
@@ -33,13 +33,13 @@ fn compare_to_not_existing_expected() {
 fn compare_to_same_texture() {
     let (mut app, texture) = configure_app();
     wait_resources(&mut app);
-    assert_same(&mut app, &texture, "testing#texture");
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 0, 1);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 0, 2);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 0, 10);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 255, 1);
-    assert_max_pixel_diff(&mut app, &texture, "testing#texture", 0);
-    assert_max_pixel_diff(&mut app, &texture, "testing#texture", 100_000);
+    assert_same(&app, &texture, "testing#texture");
+    assert_max_component_diff(&app, &texture, "testing#texture", 0, 1);
+    assert_max_component_diff(&app, &texture, "testing#texture", 0, 2);
+    assert_max_component_diff(&app, &texture, "testing#texture", 0, 10);
+    assert_max_component_diff(&app, &texture, "testing#texture", 255, 1);
+    assert_max_pixel_diff(&app, &texture, "testing#texture", 0);
+    assert_max_pixel_diff(&app, &texture, "testing#texture", 100_000);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -47,9 +47,9 @@ fn compare_to_similar_texture() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 2, 1);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 1, 2);
-    assert_max_pixel_diff(&mut app, &texture, "testing#texture", 1);
+    assert_max_component_diff(&app, &texture, "testing#texture", 2, 1);
+    assert_max_component_diff(&app, &texture, "testing#texture", 1, 2);
+    assert_max_pixel_diff(&app, &texture, "testing#texture", 1);
 }
 
 #[should_panic = "texture is different"]
@@ -58,7 +58,7 @@ fn compare_to_different_texture_using_zero_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
     wait_resources(&mut app);
-    assert_same(&mut app, &texture, "testing#texture");
+    assert_same(&app, &texture, "testing#texture");
 }
 
 #[should_panic = "texture is different"]
@@ -67,7 +67,7 @@ fn compare_to_different_texture_using_component_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &texture, "testing#texture", 1, 1);
+    assert_max_component_diff(&app, &texture, "testing#texture", 1, 1);
 }
 
 #[should_panic = "texture is different"]
@@ -76,7 +76,7 @@ fn compare_to_different_texture_using_pixel_count_diff() {
     let (mut app, texture) = configure_app();
     load_different_pixels(&mut app);
     wait_resources(&mut app);
-    assert_max_pixel_diff(&mut app, &texture, "testing#texture", 0);
+    assert_max_pixel_diff(&app, &texture, "testing#texture", 0);
 }
 
 #[should_panic = "texture buffer is empty"]
@@ -85,7 +85,7 @@ fn compare_to_empty_texture() {
     let (mut app, texture) = configure_app();
     root(&mut app).texture.is_buffer_enabled = false;
     app.update();
-    assert_same(&mut app, &texture, "testing#texture");
+    assert_same(&app, &texture, "testing#texture");
 }
 
 #[should_panic = "texture width is different"]
@@ -94,7 +94,7 @@ fn compare_to_texture_with_different_width() {
     let (mut app, texture) = configure_app();
     load_different_width(&mut app);
     app.update();
-    assert_same(&mut app, &texture, "testing#texture");
+    assert_same(&app, &texture, "testing#texture");
 }
 
 #[should_panic = "texture height is different"]
@@ -103,7 +103,7 @@ fn compare_to_texture_with_different_height() {
     let (mut app, texture) = configure_app();
     load_different_height(&mut app);
     app.update();
-    assert_same(&mut app, &texture, "testing#texture");
+    assert_same(&app, &texture, "testing#texture");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -112,7 +112,7 @@ fn generate_diff_texture() {
     load_different_pixels(&mut app);
     app.update();
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        assert_same(&mut app, &texture, "testing#texture");
+        assert_same(&app, &texture, "testing#texture");
     }));
     assert!(result.is_err());
     let expected_diff = load_image_data("tests/expected/testing#texture_diff.png");
@@ -160,11 +160,11 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            texture: Texture::new(ctx, "main")
+            texture: Texture::new(app, "main")
                 .with_is_buffer_enabled(true)
-                .load_from_source(ctx, TextureSource::Bytes(TEXTURE_BYTES)),
+                .load_from_source(app, TextureSource::Bytes(TEXTURE_BYTES)),
         }
     }
 }

@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size,
@@ -18,7 +18,7 @@ fn load_from_path() {
     let (mut app, target) = configure_app();
     wait_resources(&mut app);
     app.update();
-    assert_same(&mut app, &target, "shader#default");
+    assert_same(&app, &target, "shader#default");
     assert!(!root(&mut app).shader.is_invalid());
 }
 
@@ -34,7 +34,7 @@ fn load_from_string() {
         .reload_with_source(ShaderSource::String(code.into()));
     wait_resources(&mut app);
     app.update();
-    assert_same(&mut app, &target, "shader#red");
+    assert_same(&app, &target, "shader#red");
     assert!(!root(&mut app).shader.is_invalid());
 }
 
@@ -45,12 +45,12 @@ fn load_invalid_code() {
     root(&mut app).shader.reload_with_path(INVALID_SHADER_PATH);
     wait_resources(&mut app);
     app.update();
-    assert_same(&mut app, &target, "shader#default");
+    assert_same(&app, &target, "shader#default");
     assert!(root(&mut app).shader.is_invalid());
     root(&mut app).shader.reload_with_path(SIMPLE_SHADER_PATH);
     wait_resources(&mut app);
     app.update();
-    assert_same(&mut app, &target, "shader#default");
+    assert_same(&app, &target, "shader#default");
     assert!(!root(&mut app).shader.is_invalid());
 }
 
@@ -61,9 +61,9 @@ fn set_alpha_replaced() {
     app.update();
     root(&mut app).shader.is_alpha_replaced = true;
     app.update();
-    assert_same(&mut app, &target, "shader#empty"); // because shader updated after material
+    assert_same(&app, &target, "shader#empty"); // because shader updated after material
     app.update();
-    assert_same(&mut app, &target, "shader#not_replaced_alpha");
+    assert_same(&app, &target, "shader#not_replaced_alpha");
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
@@ -86,18 +86,18 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(ctx, "main").load_from_path(ctx, SIMPLE_SHADER_PATH);
-        let material = TestMaterial::new(&shader).into_mat(ctx, "main");
-        let model1 = Model2D::new(ctx, material.glob())
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let shader = Shader::new(app, "main").load_from_path(app, SIMPLE_SHADER_PATH);
+        let material = TestMaterial::new(&shader).into_mat(app, "main");
+        let model1 = Model2D::new(app, material.glob())
             .with_position(Vec2::ZERO)
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());
-        let model2 = Model2D::new(ctx, material.glob())
+        let model2 = Model2D::new(app, material.glob())
             .with_position(Vec2::ONE * 0.25)
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone())
@@ -139,7 +139,7 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TestMaterial {

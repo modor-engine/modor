@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{Context, Glob, Node, Visit};
+use modor::{App, Glob, Node, Visit};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -44,7 +44,7 @@ use std::{any, fmt};
 ///         })
 ///     }
 ///
-///     fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
+///     fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
 ///         if let Some(loaded) = loaded {
 ///             self.size = Some(loaded.size_in_bytes);
 ///         }
@@ -76,15 +76,15 @@ use std::{any, fmt};
 /// }
 ///
 /// impl Content {
-///     fn new(ctx: &mut Context) -> Self {
+///     fn new(app: &mut App) -> Self {
 ///         Self {
-///             size: ContentSize::default().load_from_path(ctx, "path/to/content"),
+///             size: ContentSize::default().load_from_path(app, "path/to/content"),
 ///         }
 ///     }
 /// }
 ///
 /// impl Node for Content {
-///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+///     fn on_enter(&mut self, app: &mut App) {
 ///         if let (Some(size), ResourceState::Loaded) = (self.size.size, self.size.state()) {
 ///             println!("Content size: {}", size);
 ///         }
@@ -126,7 +126,7 @@ impl<T> Node for Res<T>
 where
     T: Resource,
 {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         let mut latest_loaded = None;
         match self.loading.take() {
             Some(Loading::Path(mut job)) => match job.try_poll() {
@@ -144,8 +144,8 @@ where
             Some(Loading::Sync(loaded)) => latest_loaded = Some(self.success(loaded)),
             None => (),
         }
-        self.inner.update(ctx, latest_loaded);
-        self.glob.get_mut(ctx).state = self.state.clone();
+        self.inner.update(app, latest_loaded);
+        self.glob.get_mut(app).state = self.state.clone();
     }
 }
 
@@ -247,7 +247,7 @@ pub trait ResLoad: Sized + Resource {
     /// application is run using a `cargo` command), then the file is retrieved from path
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
-    fn load_from_path(self, ctx: &mut Context<'_>, path: impl Into<String>) -> Res<Self>;
+    fn load_from_path(self, app: &mut App, path: impl Into<String>) -> Res<Self>;
 
     /// Load a resource from a custom `source`.
     ///
@@ -255,14 +255,14 @@ pub trait ResLoad: Sized + Resource {
     /// returns `true`.
     ///
     /// The `label` is used to identity the resource in logs.
-    fn load_from_source(self, ctx: &mut Context<'_>, source: Self::Source) -> Res<Self>;
+    fn load_from_source(self, app: &mut App, source: Self::Source) -> Res<Self>;
 }
 
 impl<T> ResLoad for T
 where
     T: Resource,
 {
-    fn load_from_path(self, ctx: &mut Context<'_>, path: impl Into<String>) -> Res<Self> {
+    fn load_from_path(self, app: &mut App, path: impl Into<String>) -> Res<Self> {
         let mut res = Res {
             inner: self,
             location: ResourceLocation::Path(path.into()),
@@ -270,7 +270,7 @@ where
             version: 0,
             state: ResourceState::Loading,
             glob: Glob::new(
-                ctx,
+                app,
                 ResGlob {
                     state: ResourceState::Loading,
                 },
@@ -280,7 +280,7 @@ where
         res
     }
 
-    fn load_from_source(self, ctx: &mut Context<'_>, source: Self::Source) -> Res<Self> {
+    fn load_from_source(self, app: &mut App, source: Self::Source) -> Res<Self> {
         let mut res = Res {
             inner: self,
             location: ResourceLocation::Source(source),
@@ -288,7 +288,7 @@ where
             version: 0,
             state: ResourceState::Loading,
             glob: Glob::new(
-                ctx,
+                app,
                 ResGlob {
                     state: ResourceState::Loading,
                 },
@@ -359,7 +359,7 @@ pub trait Resource {
     /// In case resource loaded has just finished, `loaded` is `Some`.
     ///
     /// `label` can be used for logging.
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>);
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>);
 }
 
 /// A trait for defining a source used to load a [`Resource`].

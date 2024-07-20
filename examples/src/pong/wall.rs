@@ -1,4 +1,4 @@
-use modor::{Context, GlobRef, Node, Visit};
+use modor::{App, GlobRef, Node, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::Sprite2D;
 use modor_physics::{Body2D, CollisionGroupGlob};
@@ -14,16 +14,16 @@ pub(crate) struct Wall {
 
 impl Wall {
     pub(crate) fn new(
-        ctx: &mut Context<'_>,
+        app: &mut App,
         orientation: WallOrientation,
         group: GlobRef<CollisionGroupGlob>,
     ) -> Self {
-        let body = Body2D::new(ctx)
+        let body = Body2D::new(app)
             .with_collision_group(Some(group))
             .with_position(orientation.position())
             .with_size(orientation.size());
         Self {
-            sprite: Sprite2D::new(ctx, "wall").with_model(|m| m.body = Some(body.glob().clone())),
+            sprite: Sprite2D::new(app, "wall").with_model(|m| m.body = Some(body.glob().clone())),
             body,
         }
     }

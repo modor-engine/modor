@@ -5,7 +5,7 @@ use crate::texture::internal::TextureLoaded;
 use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{Builder, Context, Glob, GlobRef, Node};
+use modor::{App, Builder, Glob, GlobRef, Node};
 use modor_resources::{Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
@@ -26,12 +26,12 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// }
 ///
 /// impl TexturedRectangle {
-///     fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
-///         let  resources = ctx.get_mut::<Resources>();
+///     fn new(app: &mut App, position: Vec2, size: Vec2) -> Self {
+///         let  resources = app.get_mut::<Resources>();
 ///         let camera = resources.target.camera.glob().clone();
 ///         let texture = resources.texture.glob().clone();
 ///         Self {
-///             sprite: Sprite2D::new(ctx, "rectangle")
+///             sprite: Sprite2D::new(app, "rectangle")
 ///                 .with_material(|m| m.texture = texture)
 ///                 .with_model(|m| m.position = position)
 ///                 .with_model(|m| m.size = size)
@@ -47,12 +47,12 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// }
 ///
 /// impl RootNode for Resources {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             texture: Texture::new(ctx, "rectangle").load_from_path(ctx, "my-texture.png"),
-///             target: Texture::new(ctx, "rectangle")
+///             texture: Texture::new(app, "rectangle").load_from_path(app, "my-texture.png"),
+///             target: Texture::new(app, "rectangle")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(ctx, TextureSource::Size(Size::new(800, 600))),
+///                 .load_from_source(app, TextureSource::Size(Size::new(800, 600))),
 ///         }
 ///     }
 /// }
@@ -124,12 +124,12 @@ impl Resource for Texture {
         }))
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         if let Some(loaded) = loaded {
             self.loaded = loaded;
-            *self.glob.get_mut(ctx) = TextureGlob::new(
-                ctx,
+            *self.glob.get_mut(app) = TextureGlob::new(
+                app,
                 &self.loaded,
                 self.is_repeated,
                 self.is_smooth,
@@ -137,9 +137,9 @@ impl Resource for Texture {
                 self.label(),
             );
             let size = Size::new(self.loaded.image.width(), self.loaded.image.height()).into();
-            self.init_target(ctx, &gpu, size);
+            self.init_target(app, &gpu, size);
         }
-        self.glob.get_mut(ctx).update(
+        self.glob.get_mut(app).update(
             &gpu,
             self.is_repeated,
             self.is_smooth,
@@ -147,9 +147,9 @@ impl Resource for Texture {
             self.label(),
         );
         self.update_target();
-        self.camera.update(ctx);
-        self.render_target(ctx, &gpu);
-        self.glob.get_mut(ctx).update_buffer(&gpu);
+        self.camera.update(app);
+        self.render_target(app, &gpu);
+        self.glob.get_mut(app).update_buffer(&gpu);
     }
 }
 
@@ -162,24 +162,24 @@ impl Texture {
     /// Creates a new texture.
     ///
     /// The `label` is used to identity the texture in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let label = label.into();
         let loaded = TextureLoaded::default();
         let glob = TextureGlob::new(
-            ctx,
+            app,
             &loaded,
             Self::DEFAULT_IS_REPEATED,
             Self::DEFAULT_IS_SMOOTH,
             Self::DEFAULT_IS_BUFFER_ENABLED,
             &label,
         );
-        let mut target = Target::new(ctx, &label);
-        target.supported_anti_aliasing_modes = ctx
+        let mut target = Target::new(app, &label);
+        target.supported_anti_aliasing_modes = app
             .get_mut::<SupportedAntiAliasingModes>()
             .get(&gpu, Self::DEFAULT_FORMAT)
             .to_vec();
-        let camera = Camera2D::new(ctx, &label, vec![target.glob().clone()]);
+        let camera = Camera2D::new(app, &label, vec![target.glob().clone()]);
         Self {
             is_smooth: Self::DEFAULT_IS_SMOOTH,
             is_repeated: Self::DEFAULT_IS_REPEATED,
@@ -189,7 +189,7 @@ impl Texture {
             camera,
             loaded,
             label,
-            glob: Glob::new(ctx, glob),
+            glob: Glob::new(app, glob),
         }
     }
 
@@ -219,9 +219,9 @@ impl Texture {
         })
     }
 
-    fn init_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, size: NonZeroSize) {
+    fn init_target(&mut self, app: &mut App, gpu: &Gpu, size: NonZeroSize) {
         if self.is_target_enabled {
-            self.target.enable(ctx, gpu, size, Self::DEFAULT_FORMAT);
+            self.target.enable(app, gpu, size, Self::DEFAULT_FORMAT);
         }
     }
 
@@ -231,14 +231,14 @@ impl Texture {
         }
     }
 
-    fn render_target(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
+    fn render_target(&mut self, app: &mut App, gpu: &Gpu) {
         if self.is_target_enabled {
             let view = self
                 .glob
-                .get_mut(ctx)
+                .get_mut(app)
                 .texture
                 .create_view(&TextureViewDescriptor::default());
-            self.target.render(ctx, gpu, view);
+            self.target.render(app, gpu, view);
         }
     }
 }

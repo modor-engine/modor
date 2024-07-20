@@ -1,6 +1,6 @@
 use crate::pong::side::Side;
 use crate::pong::wall::FIELD_SIZE;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_text::Text2D;
 
@@ -13,18 +13,18 @@ pub(crate) struct Scores {
 }
 
 impl RootNode for Scores {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
             is_reset_required: false,
             is_just_updated: false,
-            left_score: Self::score_text(ctx, Side::Left),
-            right_score: Self::score_text(ctx, Side::Right),
+            left_score: Self::score_text(app, Side::Left),
+            right_score: Self::score_text(app, Side::Right),
         }
     }
 }
 
 impl Node for Scores {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         // `is_reset_required` ensures that all nodes see this variable equal to `true` at
         // least once. This is not guaranteed for `is_just_updated` depending on node update order.
         if self.is_just_updated {
@@ -56,8 +56,8 @@ impl Scores {
         self.is_just_updated = true;
     }
 
-    fn score_text(ctx: &mut Context<'_>, side: Side) -> Text2D {
-        Text2D::new(ctx, "score")
+    fn score_text(app: &mut App, side: Side) -> Text2D {
+        Text2D::new(app, "score")
             .with_model(|m| m.position.x = side.x_sign() * FIELD_SIZE.x / 4.)
             .with_model(|m| m.position.y = FIELD_SIZE.y / 2. - Self::TEXT_HEIGHT / 2.)
             .with_model(|m| m.size = Vec2::new(0.3, Self::TEXT_HEIGHT))

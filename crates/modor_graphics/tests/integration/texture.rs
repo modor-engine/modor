@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -17,8 +17,8 @@ fn load_from_size() {
     let source = TextureSource::Size(Size::new(40, 20));
     root(&mut app).texture.reload_with_source(source);
     app.update();
-    assert_same(&mut app, &glob, "texture#from_size");
-    assert_eq!(glob.get(&app.ctx()).size, Size::new(40, 20));
+    assert_same(&app, &glob, "texture#from_size");
+    assert_eq!(glob.get(&app).size, Size::new(40, 20));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -31,8 +31,8 @@ fn load_from_zero_size() {
         root(&mut app).texture.state(),
         ResourceState::Loaded
     ));
-    assert_same(&mut app, &glob, "texture#empty");
-    assert_eq!(glob.get(&app.ctx()).size, Size::ONE);
+    assert_same(&app, &glob, "texture#empty");
+    assert_eq!(glob.get(&app).size, Size::ONE);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -44,8 +44,8 @@ fn load_from_buffer() {
     );
     root(&mut app).texture.reload_with_source(source);
     app.update();
-    assert_same(&mut app, &glob, "texture#from_buffer");
-    assert_eq!(glob.get(&app.ctx()).size, Size::new(3, 1));
+    assert_same(&app, &glob, "texture#from_buffer");
+    assert_eq!(glob.get(&app).size, Size::new(3, 1));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -78,8 +78,8 @@ fn load_from_bytes() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     wait_resources(&mut app);
-    assert_same(&mut app, &glob, "texture#from_file");
-    assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
+    assert_same(&app, &glob, "texture#from_file");
+    assert_eq!(glob.get(&app).size, Size::new(4, 4));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -88,8 +88,8 @@ fn load_from_path() {
     let path = "../tests/assets/opaque-texture.png";
     root(&mut app).texture.reload_with_path(path);
     wait_resources(&mut app);
-    assert_same(&mut app, &glob, "texture#from_file");
-    assert_eq!(glob.get(&app.ctx()).size, Size::new(4, 4));
+    assert_same(&app, &glob, "texture#from_file");
+    assert_eq!(glob.get(&app).size, Size::new(4, 4));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -122,8 +122,7 @@ fn retrieve_buffer() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     wait_resources(&mut app);
-    let ctx = app.ctx();
-    let buffer = glob.get(&ctx).buffer(&ctx);
+    let buffer = glob.get(&app).buffer(&app);
     assert_eq!(buffer.len(), 4 * 4 * 4);
     assert_eq!(buffer[0..4], [255, 0, 0, 255]);
 }
@@ -137,8 +136,7 @@ fn retrieve_buffer_when_disabled() {
     wait_resources(&mut app);
     root(&mut app).texture.is_buffer_enabled = false;
     app.update();
-    let ctx = app.ctx();
-    let buffer = glob.get(&ctx).buffer(&ctx);
+    let buffer = glob.get(&app).buffer(&app);
     assert_eq!(buffer.len(), 0);
 }
 
@@ -148,18 +146,17 @@ fn retrieve_color() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     wait_resources(&mut app);
-    let ctx = app.ctx();
-    assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), Some(Color::RED));
-    assert_eq!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.r), Some(1.));
-    assert!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.g) > Some(0.9));
-    assert_eq!(glob.get(&ctx).color(&ctx, 3, 0).map(|c| c.b), Some(0.));
-    assert_eq!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.r), Some(0.));
-    assert_eq!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.g), Some(1.));
-    assert!(glob.get(&ctx).color(&ctx, 0, 3).map(|c| c.b) < Some(0.1));
-    assert_eq!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.r), Some(0.));
-    assert!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.g) < Some(0.1));
-    assert_eq!(glob.get(&ctx).color(&ctx, 3, 3).map(|c| c.b), Some(1.));
-    assert_eq!(glob.get(&ctx).color(&ctx, 4, 4), None);
+    assert_eq!(glob.get(&app).color(&app, 0, 0), Some(Color::RED));
+    assert_eq!(glob.get(&app).color(&app, 3, 0).map(|c| c.r), Some(1.));
+    assert!(glob.get(&app).color(&app, 3, 0).map(|c| c.g) > Some(0.9));
+    assert_eq!(glob.get(&app).color(&app, 3, 0).map(|c| c.b), Some(0.));
+    assert_eq!(glob.get(&app).color(&app, 0, 3).map(|c| c.r), Some(0.));
+    assert_eq!(glob.get(&app).color(&app, 0, 3).map(|c| c.g), Some(1.));
+    assert!(glob.get(&app).color(&app, 0, 3).map(|c| c.b) < Some(0.1));
+    assert_eq!(glob.get(&app).color(&app, 3, 3).map(|c| c.r), Some(0.));
+    assert!(glob.get(&app).color(&app, 3, 3).map(|c| c.g) < Some(0.1));
+    assert_eq!(glob.get(&app).color(&app, 3, 3).map(|c| c.b), Some(1.));
+    assert_eq!(glob.get(&app).color(&app, 4, 4), None);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -171,8 +168,7 @@ fn retrieve_color_when_buffer_disabled() {
     wait_resources(&mut app);
     root(&mut app).texture.is_buffer_enabled = false;
     app.update();
-    let ctx = app.ctx();
-    assert_eq!(glob.get(&ctx).color(&ctx, 0, 0), None);
+    assert_eq!(glob.get(&app).color(&app, 0, 0), None);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -181,10 +177,10 @@ fn set_smooth() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &target, "texture#smooth", 10, 1);
+    assert_max_component_diff(&app, &target, "texture#smooth", 10, 1);
     root(&mut app).texture.is_smooth = false;
     app.update();
-    assert_same(&mut app, &target, "texture#not_smooth");
+    assert_same(&app, &target, "texture#not_smooth");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -195,10 +191,10 @@ fn set_repeated() {
     let source = TextureSource::Bytes(TEXTURE_BYTES);
     root(&mut app).texture.reload_with_source(source);
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "texture#not_repeated");
+    assert_same(&app, &target, "texture#not_repeated");
     root(&mut app).texture.is_repeated = true;
     app.update();
-    assert_same(&mut app, &target, "texture#repeated");
+    assert_same(&app, &target, "texture#repeated");
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
@@ -220,15 +216,15 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(20, 20)));
-        let texture = Texture::new(ctx, "main")
+            .load_from_source(app, TextureSource::Size(Size::new(20, 20)));
+        let texture = Texture::new(app, "main")
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::ONE));
-        let sprite = Sprite2D::new(ctx, "main")
+            .load_from_source(app, TextureSource::Size(Size::ONE));
+        let sprite = Sprite2D::new(app, "main")
             .with_model(|m| m.camera = target.camera.glob().clone())
             .with_material(|m| m.texture = texture.glob().clone());
         Self {

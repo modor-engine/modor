@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::testing::assert_max_component_diff;
@@ -10,7 +10,7 @@ use modor_text::{Alignment, Text2D};
 fn create_default() {
     let (mut app, target) = configure_app();
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &target, "text#default", 20, 2);
+    assert_max_component_diff(&app, &target, "text#default", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -19,7 +19,7 @@ fn set_content() {
     wait_resources(&mut app);
     text(&mut app).content = "Content".into();
     app.update();
-    assert_max_component_diff(&mut app, &target, "text#other_content", 20, 2);
+    assert_max_component_diff(&app, &target, "text#other_content", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -27,7 +27,7 @@ fn apply_left_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Left;
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &target, "text#left_alignment", 20, 2);
+    assert_max_component_diff(&app, &target, "text#left_alignment", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -35,7 +35,7 @@ fn apply_right_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Right;
     wait_resources(&mut app);
-    assert_max_component_diff(&mut app, &target, "text#right_alignment", 20, 2);
+    assert_max_component_diff(&app, &target, "text#right_alignment", 20, 2);
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
@@ -59,13 +59,13 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_buffer_enabled(true)
             .with_is_target_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(100, 50)));
+            .load_from_source(app, TextureSource::Size(Size::new(100, 50)));
         Self {
-            text: Text2D::new(ctx, "main")
+            text: Text2D::new(app, "main")
                 .with_content("text\nto\nrender".into())
                 .with_texture(|t| t.is_smooth = false)
                 .with_model(|m| m.camera = target.camera.glob().clone()),

@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::texture::internal::TextureLoaded;
 use crate::{Color, Size, Texture};
-use modor::{Context, RootNodeHandle};
+use modor::{App, RootNodeHandle};
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -38,10 +38,10 @@ impl TextureGlob {
     /// - The [`Texture`] buffer has been updated.
     ///
     /// Note that retrieving data from the GPU may have a significant impact on performance.
-    pub fn buffer(&self, ctx: &Context<'_>) -> Vec<u8> {
+    pub fn buffer(&self, app: &App) -> Vec<u8> {
         let gpu = self
             .gpu_manager
-            .get(ctx)
+            .get(app)
             .get()
             .expect("internal error: not initialized GPU");
         if let (Some(buffer), Some(submission_index)) = (&self.buffer, &self.submission_index) {
@@ -63,10 +63,10 @@ impl TextureGlob {
     /// - The pixel coordinates (`x`, `y`) are not out of bound.
     ///
     /// Note that retrieving data from the GPU may have a significant impact on performance.
-    pub fn color(&self, ctx: &Context<'_>, x: u32, y: u32) -> Option<Color> {
+    pub fn color(&self, app: &App, x: u32, y: u32) -> Option<Color> {
         let gpu = self
             .gpu_manager
-            .get(ctx)
+            .get(app)
             .get()
             .expect("internal error: not initialized GPU");
         if let (Some(buffer), Some(submission_index)) = (&self.buffer, &self.submission_index) {
@@ -81,14 +81,14 @@ impl TextureGlob {
     }
 
     pub(super) fn new(
-        ctx: &mut Context<'_>,
+        app: &mut App,
         loaded: &TextureLoaded,
         is_repeated: bool,
         is_smooth: bool,
         is_buffer_enabled: bool,
         label: &str,
     ) -> Self {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
+        let gpu = app.get_mut::<GpuManager>().get_or_init();
         let texture = Self::create_texture(gpu, loaded, label);
         Self::write_texture(gpu, loaded, &texture);
         let view = texture.create_view(&TextureViewDescriptor::default());
@@ -104,7 +104,7 @@ impl TextureGlob {
             submission_index: None,
             is_smooth,
             is_repeated,
-            gpu_manager: ctx.handle(),
+            gpu_manager: app.handle(),
         }
     }
 

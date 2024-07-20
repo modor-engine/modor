@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -16,10 +16,10 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
+    fn on_create(app: &mut App) -> Self {
+        app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
         Self {
-            slime: Slime::new(ctx),
+            slime: Slime::new(app),
         }
     }
 }
@@ -30,11 +30,11 @@ struct Resources {
 }
 
 impl RootNode for Resources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            smile_texture: Texture::new(ctx, "slime")
+            smile_texture: Texture::new(app, "slime")
                 .with_is_smooth(false)
-                .load_from_path(ctx, "slime.png"),
+                .load_from_path(app, "slime.png"),
         }
     }
 }
@@ -48,9 +48,9 @@ struct Slime {
 }
 
 impl Node for Slime {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         self.body.velocity = 0.2
-            * ctx.get_mut::<Inputs>().keyboard.direction(
+            * app.get_mut::<Inputs>().keyboard.direction(
                 Key::ArrowLeft,
                 Key::ArrowRight,
                 Key::ArrowUp,
@@ -66,10 +66,10 @@ impl Node for Slime {
 }
 
 impl Slime {
-    fn new(ctx: &mut Context<'_>) -> Self {
-        let texture = ctx.get_mut::<Resources>().smile_texture.glob().clone();
-        let body = Body2D::new(ctx).with_size(Vec2::ONE * 0.15);
-        let sprite = Sprite2D::new(ctx, "slime")
+    fn new(app: &mut App) -> Self {
+        let texture = app.get_mut::<Resources>().smile_texture.glob().clone();
+        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
+        let sprite = Sprite2D::new(app, "slime")
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.texture = texture);
         Self {

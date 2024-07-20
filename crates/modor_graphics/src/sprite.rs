@@ -1,5 +1,5 @@
 use crate::{DefaultMaterial2D, IntoMat, Mat, Model2D};
-use modor::{Builder, Context, Node, Visit};
+use modor::{App, Builder, Node, Visit};
 
 /// A rendered 2D object that can be colored or textured.
 ///
@@ -23,9 +23,9 @@ impl Sprite2D {
     /// Creates a new sprite.
     ///
     /// The `label` is used to identity the material in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
-        let material = DefaultMaterial2D::new(ctx).into_mat(ctx, label);
-        let model = Model2D::new(ctx, material.glob());
+    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
+        let material = DefaultMaterial2D::new(app).into_mat(app, label);
+        let model = Model2D::new(app, material.glob());
         Self { material, model }
     }
 }

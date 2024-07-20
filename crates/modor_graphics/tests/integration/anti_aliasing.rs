@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -19,11 +19,11 @@ fn enable_supported_anti_aliasing() {
     let mut app = App::new::<Root>(Level::Info);
     let target_glob = target(&mut app).glob().clone();
     app.update();
-    assert_same(&mut app, &target_glob, "anti_aliasing#disabled");
+    assert_same(&app, &target_glob, "anti_aliasing#disabled");
     target(&mut app).target.anti_aliasing = AntiAliasingMode::MsaaX4;
     app.update();
     app.update();
-    assert_max_component_diff(&mut app, &target_glob, "anti_aliasing#enabled", 30, 1);
+    assert_max_component_diff(&app, &target_glob, "anti_aliasing#enabled", 30, 1);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -36,7 +36,7 @@ fn enable_unsupported_anti_aliasing() {
     }
     target(&mut app).target.anti_aliasing = AntiAliasingMode::MsaaX16;
     app.update();
-    assert_same(&mut app, &target_glob, "anti_aliasing#disabled");
+    assert_same(&app, &target_glob, "anti_aliasing#disabled");
     app.update();
 }
 
@@ -51,14 +51,14 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .with_is_smooth(false)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
         Self {
-            sprite: Sprite2D::new(ctx, "sprite")
+            sprite: Sprite2D::new(app, "sprite")
                 .with_model(|m| m.size = Vec2::ONE * 0.5)
                 .with_model(|m| m.rotation = FRAC_PI_4)
                 .with_model(|m| m.camera = target.camera.glob().clone()),

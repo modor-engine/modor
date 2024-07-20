@@ -49,17 +49,17 @@ use std::{env, fs};
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             texture: Texture::new(ctx, "texture")
+///             texture: Texture::new(app, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }
 /// # }
 /// ```
-pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRef<str>) {
+pub fn assert_same(app: &App, texture: &GlobRef<TextureGlob>, key: impl AsRef<str>) {
     assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
 }
 
@@ -109,18 +109,18 @@ pub fn assert_same(app: &mut App, texture: &GlobRef<TextureGlob>, key: impl AsRe
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             texture: Texture::new(ctx, "texture")
+///             texture: Texture::new(app, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }
 /// # }
 /// ```
 pub fn assert_max_component_diff(
-    app: &mut App,
+    app: &App,
     texture: &GlobRef<TextureGlob>,
     key: impl AsRef<str>,
     max_component_diff: u8,
@@ -177,18 +177,18 @@ pub fn assert_max_component_diff(
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
+///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             texture: Texture::new(ctx, "texture")
+///             texture: Texture::new(app, "texture")
 ///                 .with_is_target_enabled(true)
-///                 .load_from_source(ctx, TextureSource::Size(Size::new(10, 10)))
+///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
 /// }
 /// # }
 /// ```
 pub fn assert_max_pixel_diff(
-    app: &mut App,
+    app: &App,
     texture: &GlobRef<TextureGlob>,
     key: impl AsRef<str>,
     max_pixel_count_diff: usize,
@@ -201,15 +201,9 @@ pub fn assert_max_pixel_diff(
     );
 }
 
-fn assert_texture(
-    app: &mut App,
-    texture: &GlobRef<TextureGlob>,
-    key: &str,
-    max_diff: MaxTextureDiff,
-) {
-    let ctx = app.ctx();
-    let glob = texture.get(&ctx);
-    let data = glob.buffer(&ctx);
+fn assert_texture(app: &App, texture: &GlobRef<TextureGlob>, key: &str, max_diff: MaxTextureDiff) {
+    let glob = texture.get(app);
+    let data = glob.buffer(app);
     let size = glob.size;
     assert!(!data.is_empty(), "texture buffer is empty");
     let expected_folder = env::var("CARGO_MANIFEST_DIR")

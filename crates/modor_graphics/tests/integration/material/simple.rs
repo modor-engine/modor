@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -15,7 +15,7 @@ fn set_textures_less_than_shader() {
     let (mut app, target) = configure_app();
     root(&mut app).material.textures = vec![];
     app.update();
-    assert_same(&mut app, &target, "material#no_texture");
+    assert_same(&app, &target, "material#no_texture");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -24,7 +24,7 @@ fn set_textures_more_than_shader() {
     let texture = root(&mut app).texture.glob().clone();
     root(&mut app).material.textures = vec![texture.clone(), texture];
     app.update();
-    assert_same(&mut app, &target, "material#default");
+    assert_same(&app, &target, "material#default");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -32,7 +32,7 @@ fn set_color_opaque() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE;
     app.update();
-    assert_same(&mut app, &target, "material#lighter");
+    assert_same(&app, &target, "material#lighter");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -40,7 +40,7 @@ fn set_color_transparent() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE.with_alpha(0.5);
     app.update();
-    assert_max_component_diff(&mut app, &target, "material#alpha", 10, 1);
+    assert_max_component_diff(&app, &target, "material#alpha", 10, 1);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -49,14 +49,14 @@ fn set_shader() {
     let shader = root(&mut app).red_shader.glob();
     root(&mut app).material.shader = shader;
     app.update();
-    assert_same(&mut app, &target, "material#red");
+    assert_same(&app, &target, "material#red");
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
     let target = root(&mut app).target.glob().clone();
-    assert_same(&mut app, &target, "material#default");
+    assert_same(&app, &target, "material#default");
     (app, target)
 }
 
@@ -75,18 +75,18 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "main")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "main")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(ctx, "main")
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let texture = Texture::new(app, "main")
             .with_is_smooth(false)
-            .load_from_path(ctx, "../tests/assets/opaque-texture.png");
-        let shader = Shader::new(ctx, "main").load_from_path(ctx, "../tests/assets/simple.wgsl");
-        let red_shader = Shader::new(ctx, "main").load_from_path(ctx, "../tests/assets/red.wgsl");
-        let material = TestMaterial::new(&texture, &shader).into_mat(ctx, "main");
-        let model = Model2D::new(ctx, material.glob())
+            .load_from_path(app, "../tests/assets/opaque-texture.png");
+        let shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/simple.wgsl");
+        let red_shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/red.wgsl");
+        let material = TestMaterial::new(&texture, &shader).into_mat(app, "main");
+        let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());
         Self {
@@ -128,7 +128,7 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_ctx: &mut Context<'_>, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TestMaterial {

@@ -1,7 +1,7 @@
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::log::Level;
-use modor::{Context, Node, RootNode, RootNodeHandle, Visit};
+use modor::{App, Node, RootNode, RootNodeHandle, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Color, Sprite2D};
@@ -21,9 +21,9 @@ pub fn main() {
 struct Root;
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.create::<Character>();
-        ctx.create::<Platforms>();
+    fn on_create(app: &mut App) -> Self {
+        app.create::<Character>();
+        app.create::<Platforms>();
         Self
     }
 }
@@ -34,34 +34,34 @@ struct Platforms {
 }
 
 impl RootNode for Platforms {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
             platforms: vec![
                 // ground
-                Platform::new(ctx, Vec2::new(0., -0.4), Vec2::new(1., 0.02), Vec2::ZERO),
+                Platform::new(app, Vec2::new(0., -0.4), Vec2::new(1., 0.02), Vec2::ZERO),
                 // wall
-                Platform::new(ctx, Vec2::new(-0.5, 0.), Vec2::new(0.02, 0.82), Vec2::ZERO),
+                Platform::new(app, Vec2::new(-0.5, 0.), Vec2::new(0.02, 0.82), Vec2::ZERO),
                 // dynamic platforms
                 Platform::new(
-                    ctx,
+                    app,
                     Vec2::new(0., 0.2),
                     Vec2::new(0.25, 0.02),
                     Vec2::new(0.15, 0.),
                 ),
                 Platform::new(
-                    ctx,
+                    app,
                     Vec2::new(0., 0.05),
                     Vec2::new(0.25, 0.02),
                     Vec2::new(-0.2, 0.),
                 ),
                 Platform::new(
-                    ctx,
+                    app,
                     Vec2::new(0., -0.1),
                     Vec2::new(0.25, 0.02),
                     Vec2::new(0.05, 0.),
                 ),
                 Platform::new(
-                    ctx,
+                    app,
                     Vec2::new(0., -0.25),
                     Vec2::new(0.25, 0.02),
                     Vec2::new(-0.1, 0.),
@@ -86,11 +86,11 @@ struct CollisionGroups {
 }
 
 impl RootNode for CollisionGroups {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let platform = CollisionGroup::new(ctx);
-        let character = CollisionGroup::new(ctx);
+    fn on_create(app: &mut App) -> Self {
+        let platform = CollisionGroup::new(app);
+        let character = CollisionGroup::new(app);
         let impulse = CollisionType::Impulse(Impulse::new(0., 0.));
-        character.add_interaction(ctx, platform.glob(), impulse);
+        character.add_interaction(app, platform.glob(), impulse);
         Self {
             platform,
             character,
@@ -106,7 +106,7 @@ struct Platform {
 }
 
 impl Node for Platform {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         if Instant::now() >= self.next_reverse_instant {
             self.next_reverse_instant = Instant::now() + PLATFORM_PERIOD;
             self.body.velocity *= -1.;
@@ -115,14 +115,14 @@ impl Node for Platform {
 }
 
 impl Platform {
-    fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2, velocity: Vec2) -> Self {
-        let collision_group = ctx.get_mut::<CollisionGroups>().platform.glob().clone();
-        let body = Body2D::new(ctx)
+    fn new(app: &mut App, position: Vec2, size: Vec2, velocity: Vec2) -> Self {
+        let collision_group = app.get_mut::<CollisionGroups>().platform.glob().clone();
+        let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
             .with_velocity(velocity)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(ctx, "platform")
+        let sprite = Sprite2D::new(app, "platform")
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.color = Color::GREEN);
         Self {
@@ -141,12 +141,12 @@ struct Character {
 }
 
 impl Node for Character {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        self.body.update(ctx); // force update to use latest information
-        let keyboard = &ctx.get_mut::<Inputs>().keyboard;
+    fn on_enter(&mut self, app: &mut App) {
+        self.body.update(app); // force update to use latest information
+        let keyboard = &app.get_mut::<Inputs>().keyboard;
         let x_movement = keyboard.axis(Key::ArrowLeft, Key::ArrowRight);
         let is_jump_pressed = keyboard[Key::ArrowUp].is_pressed();
-        let touched_ground = self.touched_ground(ctx);
+        let touched_ground = self.touched_ground(app);
         let ground_velocity = touched_ground.map_or(0., |platform| platform.body.velocity.x);
         self.body.force = self.force(touched_ground.is_some(), is_jump_pressed);
         self.body.velocity.x = 0.5f32.mul_add(x_movement, ground_velocity);
@@ -154,30 +154,30 @@ impl Node for Character {
 }
 
 impl RootNode for Character {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let collision_group = ctx.get_mut::<CollisionGroups>().character.glob().clone();
-        let body = Body2D::new(ctx)
+    fn on_create(app: &mut App) -> Self {
+        let collision_group = app.get_mut::<CollisionGroups>().character.glob().clone();
+        let body = Body2D::new(app)
             .with_position(Vec2::new(0., 0.5))
             .with_size(Vec2::new(0.03, 0.1))
             .with_collision_group(Some(collision_group))
             .with_mass(CHARACTER_MASS)
             .with_force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS);
         let sprite =
-            Sprite2D::new(ctx, "platform").with_model(|m| m.body = Some(body.glob().clone()));
+            Sprite2D::new(app, "platform").with_model(|m| m.body = Some(body.glob().clone()));
         Self {
             body,
             sprite,
-            platforms: ctx.handle(),
+            platforms: app.handle(),
         }
     }
 }
 
 impl Character {
-    fn touched_ground<'a>(&'a self, ctx: &'a Context<'_>) -> Option<&Platform> {
+    fn touched_ground<'a>(&'a self, app: &'a App) -> Option<&Platform> {
         self.body
             .collisions()
             .iter()
-            .filter_map(|collision| self.platforms.get(ctx).find(collision.other_index))
+            .filter_map(|collision| self.platforms.get(app).find(collision.other_index))
             .find(|platform| self.is_on_platform(platform))
     }
 

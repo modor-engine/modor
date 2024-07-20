@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -19,13 +19,13 @@ use rapier2d::prelude::InteractionGroups;
 /// }
 ///
 /// impl RootNode for CollisionGroups {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let wall = CollisionGroup::new(ctx);
-///         let ball = CollisionGroup::new(ctx);
-///         ball.add_interaction(ctx, wall.glob(), CollisionType::Impulse(Impulse::new(1., 0.)));
-///         let paddle = CollisionGroup::new(ctx);
-///         paddle.add_interaction(ctx, wall.glob(), CollisionType::Impulse(Impulse::new(0., 0.)));
-///         paddle.add_interaction(ctx, ball.glob(), CollisionType::Sensor);
+///     fn on_create(app: &mut App) -> Self {
+///         let wall = CollisionGroup::new(app);
+///         let ball = CollisionGroup::new(app);
+///         ball.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(1., 0.)));
+///         let paddle = CollisionGroup::new(app);
+///         paddle.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(0., 0.)));
+///         paddle.add_interaction(app, ball.glob(), CollisionType::Sensor);
 ///         Self {
 ///             wall,
 ///             ball,
@@ -34,11 +34,11 @@ use rapier2d::prelude::InteractionGroups;
 ///     }
 /// }
 ///
-/// fn create_wall_body(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Body2D {
-///     Body2D::new(ctx)
+/// fn create_wall_body(app: &mut App, position: Vec2, size: Vec2) -> Body2D {
+///     Body2D::new(app)
 ///         .with_position(position)
 ///         .with_size(size)
-///         .with_collision_group(Some(ctx.get_mut::<CollisionGroups>().wall.glob().clone()))
+///         .with_collision_group(Some(app.get_mut::<CollisionGroups>().wall.glob().clone()))
 /// }
 /// ```
 #[derive(Debug, Visit)]
@@ -48,21 +48,21 @@ pub struct CollisionGroup {
 }
 
 impl Node for CollisionGroup {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         let interactions = self
             .physics_hooks
-            .get_mut(ctx)
+            .get_mut(app)
             .interactions(self.glob.index());
-        self.glob.get_mut(ctx).interactions = interactions;
+        self.glob.get_mut(app).interactions = interactions;
     }
 }
 
 impl CollisionGroup {
     /// Creates and register a new collision group.
-    pub fn new(ctx: &mut Context<'_>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         Self {
-            glob: Glob::new(ctx, CollisionGroupGlob::default()),
-            physics_hooks: ctx.handle::<PhysicsHooks>(),
+            glob: Glob::new(app, CollisionGroupGlob::default()),
+            physics_hooks: app.handle::<PhysicsHooks>(),
         }
     }
 
@@ -77,12 +77,12 @@ impl CollisionGroup {
     /// overwritten.
     pub fn add_interaction(
         &self,
-        ctx: &mut Context<'_>,
+        app: &mut App,
         other: &GlobRef<CollisionGroupGlob>,
         type_: CollisionType,
     ) {
         self.physics_hooks
-            .get_mut(ctx)
+            .get_mut(app)
             .add_interaction(self.glob.index(), other.index(), type_);
     }
 }

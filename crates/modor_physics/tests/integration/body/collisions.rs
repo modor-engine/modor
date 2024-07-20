@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta, Impulse, Shape2D};
@@ -210,7 +210,7 @@ fn drop_body() {
     app.update();
     app.update();
     assert_eq!(body1(&mut app).collisions().len(), 1);
-    *body2(&mut app) = Body2D::new(&mut app.ctx());
+    *body2(&mut app) = Body2D::new(&mut app);
     app.update();
     app.update();
     assert_eq!(body1(&mut app).collisions().len(), 0);
@@ -272,16 +272,16 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.get_mut::<Delta>().duration = Duration::from_secs(2);
-        let body1 = Body2D::new(ctx);
-        let mut body2 = Body2D::new(ctx)
+    fn on_create(app: &mut App) -> Self {
+        app.get_mut::<Delta>().duration = Duration::from_secs(2);
+        let body1 = Body2D::new(app);
+        let mut body2 = Body2D::new(app)
             .with_position(Vec2::X)
             .with_size(Vec2::new(2.5, 0.5));
-        body2.update(ctx);
+        body2.update(app);
         Self {
-            group1: CollisionGroup::new(ctx),
-            group2: CollisionGroup::new(ctx),
+            group1: CollisionGroup::new(app),
+            group2: CollisionGroup::new(app),
             collision_type: None,
             body1,
             body2,
@@ -290,10 +290,10 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         if let Some(collision_type) = self.collision_type {
             self.group1
-                .add_interaction(ctx, self.group2.glob(), collision_type);
+                .add_interaction(app, self.group2.glob(), collision_type);
         }
     }
 }

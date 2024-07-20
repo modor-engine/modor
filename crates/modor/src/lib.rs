@@ -28,7 +28,7 @@
 //! }
 //!
 //! impl RootNode for Root {
-//!     fn on_create(ctx: &mut Context<'_>) -> Self {
+//!     fn on_create(app: &mut App) -> Self {
 //!         Self {
 //!             counter: Counter::default()
 //!         }
@@ -36,11 +36,11 @@
 //! }
 //!
 //! impl Node for Root {
-//!     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+//!     fn on_enter(&mut self, app: &mut App) {
 //!         println!("Update counter...");
 //!     }
 //!
-//!     fn on_exit(&mut self, ctx: &mut Context<'_>) {
+//!     fn on_exit(&mut self, app: &mut App) {
 //!         println!("Counter updated, new value is {}", self.counter.value);
 //!     }
 //! }
@@ -51,7 +51,7 @@
 //! }
 //!
 //! impl Node for Counter {
-//!     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+//!     fn on_enter(&mut self, app: &mut App) {
 //!         self.value += 1;
 //!     }
 //! }
