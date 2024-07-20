@@ -1,6 +1,6 @@
 use crate::mesh::Mesh;
 use crate::{DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource};
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_resources::{Res, ResLoad};
 
 #[non_exhaustive]
@@ -13,23 +13,23 @@ pub(crate) struct Resources {
 }
 
 impl RootNode for Resources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            rectangle_mesh: Mesh::rectangle(ctx),
-            default_shader: Shader::new(ctx, "default(modor_graphics)").load_from_source(
-                ctx,
+            rectangle_mesh: Mesh::rectangle(app),
+            default_shader: Shader::new(app, "default(modor_graphics)").load_from_source(
+                app,
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")).into(),
                 ),
             ),
-            ellipse_shader: Shader::new(ctx, "ellipse(modor_graphics)").load_from_source(
-                ctx,
+            ellipse_shader: Shader::new(app, "ellipse(modor_graphics)").load_from_source(
+                app,
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")).into(),
                 ),
             ),
-            white_texture: Texture::new(ctx, "white(modor_graphics)")
-                .load_from_source(ctx, TextureSource::Size(Size::ONE)),
+            white_texture: Texture::new(app, "white(modor_graphics)")
+                .load_from_source(app, TextureSource::Size(Size::ONE)),
         }
     }
 }

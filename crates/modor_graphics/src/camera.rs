@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{Builder, Context, Glob, GlobRef, Node, Visit};
+use modor::{App, Builder, Glob, GlobRef, Node, Visit};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -27,10 +27,10 @@ use wgpu::{BindGroup, BufferUsages};
 /// }
 ///
 /// impl Object {
-///     fn new(ctx: &mut Context<'_>) -> Self {
-///         let camera = ctx.get_mut::<MovingCamera>().camera.glob().clone();
+///     fn new(app: &mut App) -> Self {
+///         let camera = app.get_mut::<MovingCamera>().camera.glob().clone();
 ///         Self {
-///             sprite: Sprite2D::new(ctx, "object")
+///             sprite: Sprite2D::new(app, "object")
 ///                 .with_model(|m| m.size = Vec2::ONE * 0.2)
 ///                 .with_model(|m| m.camera = camera)
 ///         }
@@ -43,16 +43,16 @@ use wgpu::{BindGroup, BufferUsages};
 /// }
 ///
 /// impl Node for MovingCamera {
-///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
+///     fn on_enter(&mut self, app: &mut App) {
 ///         self.camera.position += Vec2::new(0.1, 0.2);
 ///     }
 /// }
 ///
 /// impl RootNode for MovingCamera {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let target = ctx.get_mut::<Window>().target.glob().clone();
+///     fn on_create(app: &mut App) -> Self {
+///         let target = app.get_mut::<Window>().target.glob().clone();
 ///         Self {
-///             camera: Camera2D::new(ctx, "moving", vec![target])
+///             camera: Camera2D::new(app, "moving", vec![target])
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2
 ///         }
 ///     }
@@ -80,10 +80,10 @@ pub struct Camera2D {
 }
 
 impl Node for Camera2D {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let target_sizes = self.target_sizes(ctx);
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
-        let glob = self.glob.get_mut(ctx);
+    fn on_enter(&mut self, app: &mut App) {
+        let target_sizes = self.target_sizes(app);
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let glob = self.glob.get_mut(app);
         glob.position = self.position;
         glob.size = self.size;
         glob.rotation = self.rotation;
@@ -99,17 +99,13 @@ impl Camera2D {
     /// Creates a new camera.
     ///
     /// The `label` is used to identity the camera in logs.
-    pub fn new(
-        ctx: &mut Context<'_>,
-        label: impl Into<String>,
-        targets: Vec<GlobRef<TargetGlob>>,
-    ) -> Self {
+    pub fn new(app: &mut App, label: impl Into<String>, targets: Vec<GlobRef<TargetGlob>>) -> Self {
         Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
             targets,
-            glob: Glob::new(ctx, Camera2DGlob::default()),
+            glob: Glob::new(app, Camera2DGlob::default()),
             label: label.into(),
         }
     }
@@ -129,10 +125,10 @@ impl Camera2D {
             * Mat4::from_scale(scale)
     }
 
-    fn target_sizes(&self, ctx: &Context<'_>) -> Vec<(usize, Size)> {
+    fn target_sizes(&self, app: &App) -> Vec<(usize, Size)> {
         self.targets
             .iter()
-            .map(|target| (target.index(), target.get(ctx).size))
+            .map(|target| (target.index(), target.get(app).size))
             .collect()
     }
 }

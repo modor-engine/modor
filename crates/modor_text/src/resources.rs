@@ -1,5 +1,5 @@
 use crate::{Font, FontSource, TextMaterial2D};
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Shader, ShaderSource};
 
@@ -10,16 +10,16 @@ pub(crate) struct TextResources {
 }
 
 impl RootNode for TextResources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            text_shader: Shader::new(ctx, "text-2d(modor_text)").load_from_source(
-                ctx,
+            text_shader: Shader::new(app, "text-2d(modor_text)").load_from_source(
+                app,
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/text.wgsl")).into(),
                 ),
             ),
-            default_font: Font::new(ctx, "default(modor_text)").load_from_source(
-                ctx,
+            default_font: Font::new(app, "default(modor_text)").load_from_source(
+                app,
                 FontSource::Bytes(include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/res/Roboto-Regular.ttf"

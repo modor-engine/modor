@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -29,8 +29,8 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let window = ctx.get_mut::<Window>();
+    fn on_create(app: &mut App) -> Self {
+        let window = app.get_mut::<Window>();
         window.target.anti_aliasing = window
             .target
             .supported_anti_aliasing_modes()
@@ -39,10 +39,10 @@ impl RootNode for Root {
             .max()
             .unwrap_or_default();
         Self {
-            left_wall: Wall::new(ctx, Vec2::X * -0.5, Vec2::new(0.03, 1.)),
-            right_wall: Wall::new(ctx, Vec2::X * 0.5, Vec2::new(0.03, 1.)),
-            bottom_wall: Wall::new(ctx, Vec2::Y * -0.5, Vec2::new(1., 0.03)),
-            cannon: Cannon::new(ctx),
+            left_wall: Wall::new(app, Vec2::X * -0.5, Vec2::new(0.03, 1.)),
+            right_wall: Wall::new(app, Vec2::X * 0.5, Vec2::new(0.03, 1.)),
+            bottom_wall: Wall::new(app, Vec2::Y * -0.5, Vec2::new(1., 0.03)),
+            cannon: Cannon::new(app),
         }
     }
 }
@@ -54,12 +54,12 @@ struct CollisionGroups {
 }
 
 impl RootNode for CollisionGroups {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let wall = CollisionGroup::new(ctx);
-        let object = CollisionGroup::new(ctx);
+    fn on_create(app: &mut App) -> Self {
+        let wall = CollisionGroup::new(app);
+        let object = CollisionGroup::new(app);
         let impulse = CollisionType::Impulse(Impulse::new(0.1, 0.8));
-        object.add_interaction(ctx, wall.glob(), impulse);
-        object.add_interaction(ctx, object.glob(), impulse);
+        object.add_interaction(app, wall.glob(), impulse);
+        object.add_interaction(app, object.glob(), impulse);
         Self { wall, object }
     }
 }
@@ -71,13 +71,13 @@ struct Wall {
 }
 
 impl Wall {
-    fn new(ctx: &mut Context<'_>, position: Vec2, size: Vec2) -> Self {
-        let collision_group = ctx.get_mut::<CollisionGroups>().wall.glob().clone();
-        let body = Body2D::new(ctx)
+    fn new(app: &mut App, position: Vec2, size: Vec2) -> Self {
+        let collision_group = app.get_mut::<CollisionGroups>().wall.glob().clone();
+        let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(ctx, "wall").with_model(|m| m.body = Some(body.glob().clone()));
+        let sprite = Sprite2D::new(app, "wall").with_model(|m| m.body = Some(body.glob().clone()));
         Self { body, sprite }
     }
 }
@@ -89,36 +89,36 @@ struct Cannon {
 }
 
 impl Node for Cannon {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let cursor_position = self.cursor.position(ctx);
+    fn on_enter(&mut self, app: &mut App) {
+        let cursor_position = self.cursor.position(app);
         self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
         self.sprite.model.position = CANNON_JOIN_POSITION
             + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
-        self.create_object(ctx, self.sprite.model.rotation);
+        self.create_object(app, self.sprite.model.rotation);
     }
 }
 
 impl Cannon {
-    fn new(ctx: &mut Context<'_>) -> Self {
+    fn new(app: &mut App) -> Self {
         Self {
-            sprite: Sprite2D::new(ctx, "cannon")
+            sprite: Sprite2D::new(app, "cannon")
                 .with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
-            cursor: CursorTracker::new(ctx),
+            cursor: CursorTracker::new(app),
         }
     }
 
-    fn create_object(&self, ctx: &mut Context<'_>, rotation: f32) {
+    fn create_object(&self, app: &mut App, rotation: f32) {
         let position = CANNON_JOIN_POSITION
             + (Vec2::Y * (CANNON_LENGTH + OBJECT_RADIUS / 2.)).with_rotation(rotation);
         let velocity = Vec2::Y.with_rotation(rotation) * OBJECT_INITIAL_SPEED;
-        let object = if self.cursor.state(ctx).is_just_released() {
-            Some(Object::new(ctx, position, velocity, false))
-        } else if ctx.get_mut::<Inputs>().mouse[MouseButton::Right].is_just_released() {
-            Some(Object::new(ctx, position, velocity, true))
+        let object = if self.cursor.state(app).is_just_released() {
+            Some(Object::new(app, position, velocity, false))
+        } else if app.get_mut::<Inputs>().mouse[MouseButton::Right].is_just_released() {
+            Some(Object::new(app, position, velocity, true))
         } else {
             None
         };
-        ctx.get_mut::<Objects>().objects.extend(object);
+        app.get_mut::<Objects>().objects.extend(object);
     }
 }
 
@@ -128,7 +128,7 @@ struct Objects {
 }
 
 impl Node for Objects {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         self.objects.retain(|objects| objects.body.position.y > -5.);
     }
 }
@@ -140,8 +140,8 @@ struct Object {
 }
 
 impl Object {
-    fn new(ctx: &mut Context<'_>, position: Vec2, velocity: Vec2, is_ball: bool) -> Self {
-        let collision_group = ctx.get_mut::<CollisionGroups>().object.glob().clone();
+    fn new(app: &mut App, position: Vec2, velocity: Vec2, is_ball: bool) -> Self {
+        let collision_group = app.get_mut::<CollisionGroups>().object.glob().clone();
         let size = Vec2::ONE * OBJECT_RADIUS * 2.;
         let mut rng = rand::thread_rng();
         let color = Color::rgb(
@@ -154,7 +154,7 @@ impl Object {
         } else {
             (RECTANGLE_INERTIA_FACTOR, Shape2D::Rectangle)
         };
-        let body = Body2D::new(ctx)
+        let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
             .with_velocity(velocity)
@@ -163,7 +163,7 @@ impl Object {
             .with_angular_inertia(OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
             .with_collision_group(Some(collision_group))
             .with_shape(shape);
-        let sprite = Sprite2D::new(ctx, "object")
+        let sprite = Sprite2D::new(app, "object")
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.is_ellipse = is_ball)
             .with_material(|m| m.color = color);

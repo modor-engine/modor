@@ -7,7 +7,7 @@ use crate::{
     MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
-use modor::{Context, Glob, GlobRef, Globals, RootNodeHandle};
+use modor::{App, Glob, GlobRef, Globals, RootNodeHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -30,8 +30,8 @@ use wgpu::{
 /// struct Root;
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         ctx.get_mut::<Window>().target.background_color = Color::RED;
+///     fn on_create(app: &mut App) -> Self {
+///         app.get_mut::<Window>().target.background_color = Color::RED;
 ///         Self
 ///     }
 /// }
@@ -71,7 +71,7 @@ impl Target {
         &self.supported_anti_aliasing_modes
     }
 
-    pub(crate) fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+    pub(crate) fn new(app: &mut App, label: impl Into<String>) -> Self {
         Self {
             background_color: Color::BLACK,
             anti_aliasing: AntiAliasingMode::None,
@@ -82,15 +82,15 @@ impl Target {
             is_incompatible_anti_aliasing_logged: false,
             label: label.into(),
             glob: Glob::new(
-                ctx,
+                app,
                 TargetGlob {
                     size: Size::ZERO,
                     anti_aliasing: AntiAliasingMode::None,
                 },
             ),
-            cameras: ctx.handle(),
-            materials: ctx.handle(),
-            meshes: ctx.handle(),
+            cameras: app.handle(),
+            materials: app.handle(),
+            meshes: app.handle(),
         }
     }
 
@@ -100,12 +100,12 @@ impl Target {
 
     pub(crate) fn enable(
         &mut self,
-        ctx: &mut Context<'_>,
+        app: &mut App,
         gpu: &Gpu,
         size: NonZeroSize,
         format: TextureFormat,
     ) {
-        let glob = self.glob.get_mut(ctx);
+        let glob = self.glob.get_mut(app);
         glob.size = size.into();
         glob.anti_aliasing = self.anti_aliasing;
         let anti_aliasing = self.fixed_anti_aliasing();
@@ -121,9 +121,9 @@ impl Target {
         });
     }
 
-    pub(crate) fn render(&mut self, ctx: &mut Context<'_>, gpu: &Gpu, view: TextureView) {
-        ctx.get_mut::<InstanceGroups2D>().sync(gpu);
-        self.update_loaded(ctx, gpu);
+    pub(crate) fn render(&mut self, app: &mut App, gpu: &Gpu, view: TextureView) {
+        app.get_mut::<InstanceGroups2D>().sync(gpu);
+        self.update_loaded(app, gpu);
         let anti_aliasing = self.fixed_anti_aliasing();
         let loaded = self
             .loaded
@@ -137,9 +137,9 @@ impl Target {
             &view,
             loaded,
         );
-        let groups = ctx.handle::<InstanceGroups2D>().get(ctx);
-        self.render_opaque_groups(ctx, groups, &mut pass, anti_aliasing);
-        self.render_transparent_groups(ctx, groups, &mut pass, anti_aliasing);
+        let groups = app.handle::<InstanceGroups2D>().get(app);
+        self.render_opaque_groups(app, groups, &mut pass, anti_aliasing);
+        self.render_transparent_groups(app, groups, &mut pass, anti_aliasing);
         let result = validation::validate_wgpu(gpu, false, || drop(pass));
         let is_err = result.is_err();
         if !is_err {
@@ -149,12 +149,12 @@ impl Target {
         self.log_error(result);
     }
 
-    fn update_loaded(&mut self, ctx: &mut Context<'_>, gpu: &Gpu) {
-        let glob = self.glob.get_mut(ctx);
+    fn update_loaded(&mut self, app: &mut App, gpu: &Gpu) {
+        let glob = self.glob.get_mut(app);
         if self.anti_aliasing != glob.anti_aliasing {
             glob.anti_aliasing = self.anti_aliasing;
             let size = glob.size.into();
-            self.enable(ctx, gpu, size, self.texture_format);
+            self.enable(app, gpu, size, self.texture_format);
         }
     }
 
@@ -248,27 +248,27 @@ impl Target {
 
     fn render_opaque_groups<'a>(
         &self,
-        ctx: &'a Context<'_>,
+        app: &'a App,
         groups: &'a InstanceGroups2D,
         pass: &mut RenderPass<'a>,
         anti_aliasing: AntiAliasingMode,
     ) {
-        let mut sorted_groups: Vec<_> = self.group_iter(ctx, groups, false).collect();
+        let mut sorted_groups: Vec<_> = self.group_iter(app, groups, false).collect();
         sorted_groups.sort_unstable();
         for group in sorted_groups {
-            self.render_group(ctx, pass, group, None, groups, anti_aliasing);
+            self.render_group(app, pass, group, None, groups, anti_aliasing);
         }
     }
 
     fn render_transparent_groups<'a>(
         &self,
-        ctx: &'a Context<'_>,
+        app: &'a App,
         groups: &'a InstanceGroups2D,
         pass: &mut RenderPass<'a>,
         anti_aliasing: AntiAliasingMode,
     ) {
         let mut sorted_instances: Vec<_> = self
-            .group_iter(ctx, groups, true)
+            .group_iter(app, groups, true)
             .flat_map(|group| {
                 groups.groups[&group]
                     .z_indexes
@@ -282,7 +282,7 @@ impl Target {
         });
         for (group, instance_index, _) in sorted_instances {
             self.render_group(
-                ctx,
+                app,
                 pass,
                 group,
                 Some(instance_index),
@@ -294,18 +294,18 @@ impl Target {
 
     fn group_iter<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        app: &'a App,
         groups: &'a InstanceGroups2D,
         is_transparent: bool,
     ) -> impl Iterator<Item = InstanceGroup2DProperties> + 'a {
         groups.group_iter().filter(move |group| {
             self.cameras
-                .get(ctx)
+                .get(app)
                 .get(group.camera)
                 .map_or(false, |camera| camera.targets.contains(self.glob()))
                 && self
                     .materials
-                    .get(ctx)
+                    .get(app)
                     .get(group.material)
                     .map_or(false, |material| material.is_transparent == is_transparent)
         })
@@ -314,20 +314,20 @@ impl Target {
     #[allow(clippy::cast_possible_truncation, clippy::range_plus_one)]
     fn render_group<'a>(
         &self,
-        ctx: &'a Context<'_>,
+        app: &'a App,
         pass: &mut RenderPass<'a>,
         group: InstanceGroup2DProperties,
         instance_index: Option<usize>,
         groups: &'a InstanceGroups2D,
         anti_aliasing: AntiAliasingMode,
     ) -> Option<()> {
-        let material = self.materials.get(ctx).get(group.material)?;
-        let shader = material.shader.get(ctx);
+        let material = self.materials.get(app).get(group.material)?;
+        let shader = material.shader.get(app);
         if material.binding_ids.bind_group_layout != shader.material_bind_group_layout.global_id() {
             return None;
         }
-        let camera = self.cameras.get(ctx).get(group.camera)?;
-        let mesh = self.meshes.get(ctx).get(group.mesh)?;
+        let camera = self.cameras.get(app).get(group.camera)?;
+        let mesh = self.meshes.get(app).get(group.mesh)?;
         let group = &groups.groups[&group];
         let primary_buffer = group.primary_buffer()?;
         let pipeline_params = (self.texture_format, anti_aliasing);

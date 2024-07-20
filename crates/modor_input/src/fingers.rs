@@ -13,8 +13,8 @@ use std::ops::{Index, IndexMut};
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn access_fingers(ctx: &mut Context<'_>) {
-///     let fingers = &ctx.get_mut::<Inputs>().fingers;
+/// fn access_fingers(app: &mut App) {
+///     let fingers = &app.get_mut::<Inputs>().fingers;
 ///     println!("Number of registered fingers: {}", fingers.iter().count());
 ///     println!("Number of pressed fingers: {}", fingers.pressed_iter().count());
 ///     println!("Finger 0 pressed: {}", fingers[0].state.is_pressed());
@@ -30,8 +30,8 @@ use std::ops::{Index, IndexMut};
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn modify_fingers(ctx: &mut Context<'_>) {
-///     let fingers = &mut ctx.get_mut::<Inputs>().fingers;
+/// fn modify_fingers(app: &mut App) {
+///     let fingers = &mut app.get_mut::<Inputs>().fingers;
 ///     fingers.refresh();
 ///     let finger_id = 0;
 ///     fingers[finger_id].state.press();

@@ -2,7 +2,7 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::{platform, Camera2D, FrameRate, Size, Target};
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -27,8 +27,8 @@ use winit::dpi::PhysicalSize;
 /// }
 ///
 /// impl RootNode for Root {
-///     fn on_create(ctx: &mut Context<'_>) -> Self {
-///         let window = ctx.get_mut::<Window>();
+///     fn on_create(app: &mut App) -> Self {
+///         let window = app.get_mut::<Window>();
 ///         window.title = "My App".into();
 ///         window.frame_rate = FrameRate::Unlimited;
 ///         window.target.background_color = Color::GRAY;
@@ -70,9 +70,9 @@ pub struct Window {
 }
 
 impl RootNode for Window {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Target::new(ctx, "window(modor_graphics)");
-        let camera = Camera2D::new(ctx, "window(modor_graphics)", vec![target.glob().clone()]);
+    fn on_create(app: &mut App) -> Self {
+        let target = Target::new(app, "window(modor_graphics)");
+        let camera = Camera2D::new(app, "window(modor_graphics)", vec![target.glob().clone()]);
         Self {
             title: String::new(),
             is_cursor_visible: true,
@@ -88,9 +88,9 @@ impl RootNode for Window {
 }
 
 impl Node for Window {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         self.update_properties();
-        self.update_surface(ctx);
+        self.update_surface(app);
     }
 }
 
@@ -168,12 +168,12 @@ impl Window {
         }
     }
 
-    fn update_surface(&mut self, ctx: &mut Context<'_>) {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+    fn update_surface(&mut self, app: &mut App) {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let size = self.surface_size();
         if let Some(surface) = self.surface.take_new() {
             let texture_format = surface.surface_config.format;
-            self.target.enable(ctx, &gpu, surface.size, texture_format);
+            self.target.enable(app, &gpu, surface.size, texture_format);
             self.surface = WindowSurfaceState::Loaded(surface);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
@@ -181,11 +181,11 @@ impl Window {
             surface.update(&gpu, size, self.frame_rate);
             if size != self.old_state.size {
                 let texture_format = surface.surface_config.format;
-                self.target.enable(ctx, &gpu, size, texture_format);
+                self.target.enable(app, &gpu, size, texture_format);
                 self.old_state.size = size;
-                self.camera.update(ctx); // force camera update to avoid distortion
+                self.camera.update(app); // force camera update to avoid distortion
             }
-            surface.render(ctx, &gpu, &mut self.target);
+            surface.render(app, &gpu, &mut self.target);
         }
     }
 
@@ -262,7 +262,7 @@ impl WindowSurface {
         }
     }
 
-    fn render(&self, ctx: &mut Context<'_>, gpu: &Gpu, target: &mut Target) {
+    fn render(&self, app: &mut App, gpu: &Gpu, target: &mut Target) {
         let texture = self
             .surface
             .get_current_texture()
@@ -270,7 +270,7 @@ impl WindowSurface {
         let view = texture
             .texture
             .create_view(&TextureViewDescriptor::default());
-        target.render(ctx, gpu, view);
+        target.render(app, gpu, view);
         texture.present();
     }
 

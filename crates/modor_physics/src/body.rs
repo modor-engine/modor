@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{Builder, Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Builder, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -32,11 +32,11 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// }
 ///
 /// impl Node for Character {
-///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         self.body.velocity = ctx.get_mut::<CharacterDirection>().0 * 0.5;
+///     fn on_enter(&mut self, app: &mut App) {
+///         self.body.velocity = app.get_mut::<CharacterDirection>().0 * 0.5;
 ///     }
 ///
-///     fn on_exit(&mut self, ctx: &mut Context<'_>) {
+///     fn on_exit(&mut self, app: &mut App) {
 ///         for collision in self.body.collisions() {
 ///             println!("Ball is colliding with body {}", collision.other_index);
 ///         }
@@ -44,9 +44,9 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// }
 ///
 /// impl Character {
-///     fn new(ctx: &mut Context<'_>, position: Vec2, group: &CollisionGroup) -> Self {
+///     fn new(app: &mut App, position: Vec2, group: &CollisionGroup) -> Self {
 ///         Self {
-///             body: Body2D::new(ctx)
+///             body: Body2D::new(app)
 ///                 .with_position(position)
 ///                 .with_size(Vec2::ONE * 0.2)
 ///                 .with_rotation(FRAC_PI_2)
@@ -176,23 +176,23 @@ pub struct Body2D {
 }
 
 impl Node for Body2D {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let glob = self.glob.get(ctx);
+    fn on_enter(&mut self, app: &mut App) {
+        let glob = self.glob.get(app);
         let changes = Body2DChanges::new(self, glob);
         let rigid_body_handle = glob.rigid_body_handle;
         let collider_handle = glob.collider_handle;
         let interaction_groups = self
             .collision_group
             .as_ref()
-            .map_or_else(InteractionGroups::none, |g| g.get(ctx).interactions);
-        let pipeline = self.pipeline.get_mut(ctx);
+            .map_or_else(InteractionGroups::none, |g| g.get(app).interactions);
+        let pipeline = self.pipeline.get_mut(app);
         let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
         self.update_from_rigid_body(rigid_body, changes);
         self.update_rigid_body(rigid_body, changes);
         let collider = pipeline.collider_mut(collider_handle);
         self.update_collider(collider, changes, interaction_groups);
         self.collisions = pipeline.collisions(collider_handle).to_vec();
-        let glob = self.glob.get_mut(ctx);
+        let glob = self.glob.get_mut(app);
         self.update_glob(glob);
     }
 }
@@ -202,10 +202,10 @@ impl Body2D {
     const DEFAULT_SIZE: Vec2 = Vec2::ONE;
 
     /// Creates a new body.
-    pub fn new(ctx: &mut Context<'_>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         let active_hooks = ActiveHooks::FILTER_CONTACT_PAIRS | ActiveHooks::MODIFY_SOLVER_CONTACTS;
-        let pipeline_handle = ctx.handle::<Pipeline>();
-        let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(ctx).register_body(
+        let pipeline_handle = app.handle::<Pipeline>();
+        let (rigid_body_handle, collider_handle) = pipeline_handle.get_mut(app).register_body(
             Self::default_rigid_body(Self::DEFAULT_POSITION),
             Self::default_collider(Self::DEFAULT_SIZE, active_hooks),
         );
@@ -232,7 +232,7 @@ impl Body2D {
             collision_group: None,
             shape: Shape2D::Rectangle,
             collisions: vec![],
-            glob: Glob::new(ctx, data),
+            glob: Glob::new(app, data),
             pipeline: pipeline_handle,
         }
     }

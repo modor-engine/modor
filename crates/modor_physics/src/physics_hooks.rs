@@ -1,7 +1,7 @@
 use crate::user_data::ColliderUserData;
 use crate::{CollisionGroupGlob, CollisionType};
 use fxhash::FxHashMap;
-use modor::{Context, Globals, Node, RootNode, Visit};
+use modor::{App, Globals, Node, RootNode, Visit};
 use rapier2d::geometry::{Group, InteractionGroups, SolverFlags};
 use rapier2d::pipeline::{ContactModificationContext, PairFilterContext};
 
@@ -11,8 +11,8 @@ pub(crate) struct PhysicsHooks {
 }
 
 impl Node for PhysicsHooks {
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        for &(index, _) in ctx.get_mut::<Globals<CollisionGroupGlob>>().deleted_items() {
+    fn on_exit(&mut self, app: &mut App) {
+        for &(index, _) in app.get_mut::<Globals<CollisionGroupGlob>>().deleted_items() {
             self.collision_types
                 .retain(|&(index1, index2), _| index != index1 && index != index2);
         }

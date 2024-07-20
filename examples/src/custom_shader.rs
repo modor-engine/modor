@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
@@ -21,16 +21,16 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let texture = Texture::new(ctx, "smiley").load_from_path(ctx, "smiley.png");
-        let shader = Shader::new(ctx, "blur").load_from_path(ctx, "blur.wgsl");
-        let material = BlurMaterial::new(&texture, &shader).into_mat(ctx, "blur-default");
+    fn on_create(app: &mut App) -> Self {
+        let texture = Texture::new(app, "smiley").load_from_path(app, "smiley.png");
+        let shader = Shader::new(app, "blur").load_from_path(app, "blur.wgsl");
+        let material = BlurMaterial::new(&texture, &shader).into_mat(app, "blur-default");
         Self {
             sprites: vec![
-                Sprite::new(ctx, Vec2::new(-0.25, 0.25), 0, material.glob()),
-                Sprite::new(ctx, Vec2::new(0.25, 0.25), 3, material.glob()),
-                Sprite::new(ctx, Vec2::new(-0.25, -0.25), 6, material.glob()),
-                Sprite::new(ctx, Vec2::new(0.25, -0.25), 9, material.glob()),
+                Sprite::new(app, Vec2::new(-0.25, 0.25), 0, material.glob()),
+                Sprite::new(app, Vec2::new(0.25, 0.25), 3, material.glob()),
+                Sprite::new(app, Vec2::new(-0.25, -0.25), 6, material.glob()),
+                Sprite::new(app, Vec2::new(0.25, -0.25), 9, material.glob()),
             ],
             texture,
             shader,
@@ -46,15 +46,15 @@ struct Sprite {
 
 impl Sprite {
     fn new(
-        ctx: &mut Context<'_>,
+        app: &mut App,
         position: Vec2,
         sample_count: u32,
         material: MaterialGlobRef<BlurMaterial>,
     ) -> Self {
-        let model = Model2D::new(ctx, material)
+        let model = Model2D::new(app, material)
             .with_position(position)
             .with_size(Vec2::ONE * 0.4);
-        ctx.get_mut::<SpriteProperties>()
+        app.get_mut::<SpriteProperties>()
             .sample_counts
             .insert(model.glob().index(), sample_count);
         Self { model }
@@ -96,8 +96,8 @@ impl Material for BlurMaterial {
         }
     }
 
-    fn instance_data(ctx: &mut Context<'_>, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
-        let sample_counts = &ctx.get_mut::<SpriteProperties>().sample_counts;
+    fn instance_data(app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
+        let sample_counts = &app.get_mut::<SpriteProperties>().sample_counts;
         BlurInstanceData {
             sample_count: sample_counts.get(&model.index()).copied().unwrap_or(0),
         }

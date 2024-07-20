@@ -1,5 +1,5 @@
 use ab_glyph::FontVec;
-use modor::{Context, Glob, GlobRef};
+use modor::{App, Glob, GlobRef};
 use modor_graphics::modor_resources::{Resource, ResourceError, Source};
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
@@ -35,8 +35,8 @@ impl Resource for Font {
         }
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
-        let glob = self.glob.get_mut(ctx);
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+        let glob = self.glob.get_mut(app);
         if let Some(loaded) = loaded {
             glob.font = Some(loaded);
             glob.has_changed = true;
@@ -50,10 +50,10 @@ impl Font {
     /// Creates a new font.
     ///
     /// The `label` is used to identity the font in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
         Self {
             label: label.into(),
-            glob: Glob::new(ctx, FontGlob::default()),
+            glob: Glob::new(app, FontGlob::default()),
         }
     }
 

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 
 #[modor::test]
 fn update_node() {
@@ -24,7 +24,7 @@ struct Container(Vec<&'static str>);
 struct Root(TestNode);
 
 impl RootNode for Root {
-    fn on_create(_ctx: &mut Context<'_>) -> Self {
+    fn on_create(_app: &mut App) -> Self {
         Self(TestNode::Node(InnerNode))
     }
 }
@@ -40,12 +40,12 @@ enum TestNode {
 }
 
 impl Node for TestNode {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>().0.push("TestNode::on_enter");
+    fn on_enter(&mut self, app: &mut App) {
+        app.get_mut::<Container>().0.push("TestNode::on_enter");
     }
 
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>().0.push("TestNode::on_exit");
+    fn on_exit(&mut self, app: &mut App) {
+        app.get_mut::<Container>().0.push("TestNode::on_exit");
     }
 }
 
@@ -53,11 +53,11 @@ impl Node for TestNode {
 struct InnerNode;
 
 impl Node for InnerNode {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>().0.push("InnerNode::on_enter");
+    fn on_enter(&mut self, app: &mut App) {
+        app.get_mut::<Container>().0.push("InnerNode::on_enter");
     }
 
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>().0.push("InnerNode::on_exit");
+    fn on_exit(&mut self, app: &mut App) {
+        app.get_mut::<Container>().0.push("InnerNode::on_exit");
     }
 }

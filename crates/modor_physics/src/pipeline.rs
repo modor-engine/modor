@@ -3,7 +3,7 @@ use crate::physics_hooks::PhysicsHooks;
 use crate::user_data::ColliderUserData;
 use crate::{Body2DGlob, Delta};
 use fxhash::FxHashMap;
-use modor::{Context, Globals, Node, RootNode, Visit};
+use modor::{App, Globals, Node, RootNode, Visit};
 use rapier2d::dynamics::{
     CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
     RigidBodyHandle, RigidBodySet,
@@ -30,8 +30,8 @@ pub(crate) struct Pipeline {
 }
 
 impl Node for Pipeline {
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        for (_, body) in ctx.get_mut::<Globals<Body2DGlob>>().deleted_items() {
+    fn on_exit(&mut self, app: &mut App) {
+        for (_, body) in app.get_mut::<Globals<Body2DGlob>>().deleted_items() {
             self.rigid_bodies.remove(
                 body.rigid_body_handle,
                 &mut self.island_manager,
@@ -42,7 +42,7 @@ impl Node for Pipeline {
             );
             self.collisions.remove(&body.collider_handle);
         }
-        self.integration_parameters.dt = ctx.get_mut::<Delta>().duration.as_secs_f32();
+        self.integration_parameters.dt = app.get_mut::<Delta>().duration.as_secs_f32();
         self.physics_pipeline.step(
             &Vector2::zeros(),
             &self.integration_parameters,
@@ -55,7 +55,7 @@ impl Node for Pipeline {
             &mut self.multibody_joints,
             &mut self.ccd_solver,
             None,
-            ctx.get_mut::<PhysicsHooks>(),
+            app.get_mut::<PhysicsHooks>(),
             &(),
         );
         self.reset_collisions();

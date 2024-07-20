@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Delta;
@@ -32,11 +32,11 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.get_mut::<Window>().title = "Rendering 2D".into();
+    fn on_create(app: &mut App) -> Self {
+        app.get_mut::<Window>().title = "Rendering 2D".into();
         Self {
             objects: (0..SPRITE_COUNT)
-                .map(|index| Object::new(ctx, index))
+                .map(|index| Object::new(app, index))
                 .collect(),
             last_frame_instant: Instant::now(),
         }
@@ -44,7 +44,7 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         let now = Instant::now();
         info!(
             "FPS: {}",
@@ -60,15 +60,15 @@ struct Resources {
 }
 
 impl RootNode for Resources {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
             materials: COLORS
                 .iter()
                 .map(|&color| {
-                    DefaultMaterial2D::new(ctx)
+                    DefaultMaterial2D::new(app)
                         .with_color(color)
                         .with_is_ellipse(true)
-                        .into_mat(ctx, "color")
+                        .into_mat(app, "color")
                 })
                 .collect(),
         }
@@ -85,7 +85,7 @@ struct Object {
 }
 
 impl Node for Object {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
             self.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
@@ -93,17 +93,17 @@ impl Node for Object {
                 .unwrap_or(Vec2::ZERO);
             self.next_update = Instant::now() + Duration::from_millis(rng.gen_range(200..400));
         }
-        let delta = ctx.get_mut::<Delta>().duration.as_secs_f32();
+        let delta = app.get_mut::<Delta>().duration.as_secs_f32();
         self.model.position += self.velocity * delta;
     }
 }
 
 impl Object {
-    fn new(ctx: &mut Context<'_>, index: usize) -> Self {
+    fn new(app: &mut App, index: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let material = ctx.get_mut::<Resources>().materials[index % COLORS.len()].glob();
+        let material = app.get_mut::<Resources>().materials[index % COLORS.len()].glob();
         let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-        let model = Model2D::new(ctx, material)
+        let model = Model2D::new(app, material)
             .with_position(position)
             .with_size(Vec2::ONE * 0.01)
             .with_z_index(rng.gen_range(i16::MIN..i16::MAX));

@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{Builder, Context, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
+use modor::{App, Builder, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
@@ -33,12 +33,12 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 /// }
 ///
 /// impl Circle {
-///     fn new(ctx: &mut Context<'_>, position: Vec2, radius: f32, color: Color) -> Self {
-///         let material = DefaultMaterial2D::new(ctx)
+///     fn new(app: &mut App, position: Vec2, radius: f32, color: Color) -> Self {
+///         let material = DefaultMaterial2D::new(app)
 ///             .with_color(color)
 ///             .with_is_ellipse(true)
-///             .into_mat(ctx, "circle");
-///         let model = Model2D::new(ctx, material.glob())
+///             .into_mat(app, "circle");
+///         let model = Model2D::new(app, material.glob())
 ///             .with_position(position)
 ///             .with_size(Vec2::ONE * radius * 2.);
 ///         Self { material, model }
@@ -95,15 +95,15 @@ impl<T> Node for Model2D<T>
 where
     T: Material,
 {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         if let Some(body) = &self.body {
-            let glob = body.get(ctx);
+            let glob = body.get(app);
             self.position = glob.position;
             self.size = glob.size;
             self.rotation = glob.rotation;
         }
-        let data = T::instance_data(ctx, self.glob());
-        self.groups.get_mut(ctx).update_model(self, data);
+        let data = T::instance_data(app, self.glob());
+        self.groups.get_mut(app).update_model(self, data);
     }
 }
 
@@ -112,24 +112,24 @@ where
     T: Material,
 {
     /// Creates a new model.
-    pub fn new(ctx: &mut Context<'_>, material: MaterialGlobRef<T>) -> Self {
-        let camera = ctx.get_mut::<Window>().camera.glob().clone();
-        let mesh = ctx.get_mut::<Resources>().rectangle_mesh.glob().clone();
+    pub fn new(app: &mut App, material: MaterialGlobRef<T>) -> Self {
+        let camera = app.get_mut::<Window>().camera.glob().clone();
+        let mesh = app.get_mut::<Resources>().rectangle_mesh.glob().clone();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
             body: None,
             z_index: 0,
-            glob: Glob::new(ctx, Model2DGlob),
+            glob: Glob::new(app, Model2DGlob),
             camera,
             material,
             mesh,
-            groups: ctx.handle::<InstanceGroups2D>(),
+            groups: app.handle::<InstanceGroups2D>(),
             phantom: PhantomData,
         };
-        let data = T::instance_data(ctx, model.glob());
-        model.groups.get_mut(ctx).register_model(&model, data);
+        let data = T::instance_data(app, model.glob());
+        model.groups.get_mut(app).register_model(&model, data);
         model
     }
 
@@ -174,8 +174,8 @@ pub struct InstanceGroups2D {
 }
 
 impl Node for InstanceGroups2D {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        for (model_index, _) in ctx.get_mut::<Globals<Model2DGlob>>().deleted_items() {
+    fn on_enter(&mut self, app: &mut App) {
+        for (model_index, _) in app.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]
                 .take()
                 .expect("internal error: missing model groups");

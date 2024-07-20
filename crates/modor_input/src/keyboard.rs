@@ -13,8 +13,8 @@ use std::ops::{Index, IndexMut};
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn access_keyboard(ctx: &mut Context<'_>) {
-///     let keyboard = &ctx.get_mut::<Inputs>().keyboard;
+/// fn access_keyboard(app: &mut App) {
+///     let keyboard = &app.get_mut::<Inputs>().keyboard;
 ///     println!("Enter key pressed: {}", keyboard[Key::Enter].is_pressed());
 ///     println!("Entered text: {}", keyboard.text);
 /// }
@@ -26,8 +26,8 @@ use std::ops::{Index, IndexMut};
 /// # use modor::*;
 /// # use modor_input::*;
 /// #
-/// fn modify_keyboard(ctx: &mut Context<'_>) {
-///     let keyboard = &mut ctx.get_mut::<Inputs>().keyboard;
+/// fn modify_keyboard(app: &mut App) {
+///     let keyboard = &mut app.get_mut::<Inputs>().keyboard;
 ///     keyboard.refresh();
 ///     keyboard[Key::Escape].press();
 /// }

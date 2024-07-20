@@ -52,6 +52,10 @@ impl App {
     /// [`Node::update`] method is called for each registered root node.
     ///
     /// Root nodes are updated in the order in which they are created.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if any root node is already borrowed.
     pub fn update(&mut self) {
         debug!("Run update app...");
         for root_index in 0..self.roots.len() {
@@ -61,22 +65,40 @@ impl App {
                 .take()
                 .expect("internal error: root node already borrowed");
             let update_fn = root.update_fn;
-            update_fn(&mut *value, &mut self.ctx());
+            update_fn(&mut *value, self);
             self.roots[root_index].value = Some(value);
         }
         debug!("App updated");
     }
 
-    /// Returns an update context.
+    /// Returns a handle to a root node.
     ///
-    /// This method is generally used for testing purpose.
-    pub fn ctx(&mut self) -> Context<'_> {
-        Context { app: self }
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
+    where
+        T: RootNode,
+    {
+        RootNodeHandle {
+            index: self.root_index_or_create::<T>(),
+            phantom: PhantomData,
+        }
+    }
+
+    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    pub fn create<T>(&mut self)
+    where
+        T: RootNode,
+    {
+        self.handle::<T>();
     }
 
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if root node `T` is already borrowed.
     pub fn get_mut<T>(&mut self) -> &mut T
     where
         T: RootNode,
@@ -102,7 +124,7 @@ impl App {
         T: RootNode,
     {
         debug!("Create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::on_create(&mut self.ctx()));
+        let root = RootNodeData::new(T::on_create(self));
         debug!("Root node `{}` created", any::type_name::<T>());
         let index = self.roots.len();
         self.root_indexes.insert(type_id, index);
@@ -120,51 +142,6 @@ impl App {
             .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
             .downcast_mut::<T>()
             .expect("internal error: misconfigured root node")
-    }
-}
-
-// If `App` was directly accessible during update, it would be possible to run `App::update`.
-// As this is not wanted, `App` is wrapped in `Context` to limit the allowed operations.
-/// The context accessible during node update.
-#[derive(Debug)]
-pub struct Context<'a> {
-    app: &'a mut App,
-}
-
-impl Context<'_> {
-    /// Returns a handle to a root node.
-    ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
-    where
-        T: RootNode,
-    {
-        RootNodeHandle {
-            index: self.app.root_index_or_create::<T>(),
-            phantom: PhantomData,
-        }
-    }
-
-    /// Returns a mutable reference to a root node.
-    ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    ///
-    /// # Panics
-    ///
-    /// This will panic if root node `T` is currently updated.
-    pub fn get_mut<T>(&mut self) -> &mut T
-    where
-        T: RootNode,
-    {
-        self.handle::<T>().get_mut(self)
-    }
-
-    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
-    pub fn create<T>(&mut self)
-    where
-        T: RootNode,
-    {
-        self.handle::<T>();
     }
 }
 
@@ -190,8 +167,8 @@ where
     T: RootNode,
 {
     /// Returns an immutable reference to the root node.
-    pub fn get<'a>(self, ctx: &'a Context<'_>) -> &'a T {
-        ctx.app.roots[self.index]
+    pub fn get(self, app: &App) -> &T {
+        app.roots[self.index]
             .value
             .as_ref()
             .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
@@ -199,16 +176,16 @@ where
             .expect("internal error: misconfigured root node")
     }
 
-    /// Returns an immutable reference to the root node.
-    pub fn get_mut<'a>(self, ctx: &'a mut Context<'_>) -> &'a mut T {
-        ctx.app.root_mut(self.index)
+    /// Returns a mutable reference to the root node.
+    pub fn get_mut(self, app: &mut App) -> &mut T {
+        app.root_mut(self.index)
     }
 }
 
 #[derive(Debug)]
 struct RootNodeData {
     value: Option<Box<dyn Any>>,
-    update_fn: fn(&mut dyn Any, &mut Context<'_>),
+    update_fn: fn(&mut dyn Any, &mut App),
 }
 
 impl RootNodeData {
@@ -222,7 +199,7 @@ impl RootNodeData {
         }
     }
 
-    fn update_root<T>(value: &mut dyn Any, ctx: &mut Context<'_>)
+    fn update_root<T>(value: &mut dyn Any, app: &mut App)
     where
         T: RootNode,
     {
@@ -230,7 +207,7 @@ impl RootNodeData {
             value
                 .downcast_mut::<T>()
                 .expect("internal error: misconfigured root node"),
-            ctx,
+            app,
         );
     }
 }

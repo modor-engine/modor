@@ -10,7 +10,7 @@ pub(crate) fn impl_block(input: &DeriveInput) -> TokenStream {
     quote! {
         #[automatically_derived]
         impl #impl_generics ::#crate_ident::RootNode for #ident #type_generics #where_clause {
-            fn on_create(ctx: &mut ::#crate_ident::Context<'_>) -> Self {
+            fn on_create(_app: &mut ::#crate_ident::App) -> Self {
                 Default::default()
             }
         }

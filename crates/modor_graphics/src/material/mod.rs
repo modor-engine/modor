@@ -8,7 +8,7 @@ use crate::ShaderGlobRef;
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{Context, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -26,7 +26,7 @@ pub struct Mat<T> {
     data: T,
     label: String,
     glob: Glob<MaterialGlob>,
-    updated_glob: MaterialGlob, // used to update the glob without borrowing Context
+    updated_glob: MaterialGlob, // used to update the glob without borrowing App
     phantom_data: PhantomData<T>,
 }
 
@@ -48,10 +48,10 @@ impl<T> Node for Mat<T>
 where
     T: Material,
 {
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        mem::swap(self.glob.get_mut(ctx), &mut self.updated_glob);
-        self.updated_glob.update(ctx, &self.data, &self.label);
-        mem::swap(self.glob.get_mut(ctx), &mut self.updated_glob);
+    fn on_exit(&mut self, app: &mut App) {
+        mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
+        self.updated_glob.update(app, &self.data, &self.label);
+        mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
     }
 }
 
@@ -73,21 +73,21 @@ pub trait IntoMat: Sized {
     /// Converts to a [`Mat`].
     ///
     /// The `label` is used to identity the material in logs.
-    fn into_mat(self, ctx: &mut Context<'_>, label: impl Into<String>) -> Mat<Self>;
+    fn into_mat(self, app: &mut App, label: impl Into<String>) -> Mat<Self>;
 }
 
 impl<T> IntoMat for T
 where
     T: Material,
 {
-    fn into_mat(self, ctx: &mut Context<'_>, label: impl Into<String>) -> Mat<Self> {
+    fn into_mat(self, app: &mut App, label: impl Into<String>) -> Mat<Self> {
         let label = label.into();
-        let glob = MaterialGlob::new(ctx, &self, &label);
-        let dummy_glob = MaterialGlob::new(ctx, &self, &label);
+        let glob = MaterialGlob::new(app, &self, &label);
+        let dummy_glob = MaterialGlob::new(app, &self, &label);
         Mat {
             data: self,
             label,
-            glob: Glob::new(ctx, glob),
+            glob: Glob::new(app, glob),
             updated_glob: dummy_glob,
             phantom_data: PhantomData,
         }
@@ -130,18 +130,18 @@ pub struct MaterialGlob {
 }
 
 impl MaterialGlob {
-    fn new<T>(ctx: &mut Context<'_>, material: &T, label: &str) -> Self
+    fn new<T>(app: &mut App, material: &T, label: &str) -> Self
     where
         T: Material,
     {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let shader = material.shader().deref().clone();
         let textures = material.textures();
-        let resources = ctx.handle();
-        let white_texture = Self::white_texture(ctx, resources);
-        let texture_refs = Self::textures(ctx, &textures);
+        let resources = app.handle();
+        let white_texture = Self::white_texture(app, resources);
+        let texture_refs = Self::textures(app, &textures);
         let buffer = MaterialBuffer::new(&gpu, material, label);
-        let shader_ref = shader.get(ctx);
+        let shader_ref = shader.get(app);
         Self {
             is_transparent: material.is_transparent()
                 || texture_refs.iter().any(|texture| texture.is_transparent),
@@ -160,17 +160,17 @@ impl MaterialGlob {
         }
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, material: &impl Material, label: &str) {
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+    fn update(&mut self, app: &mut App, material: &impl Material, label: &str) {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         self.shader = material.shader().deref().clone();
         self.textures = material.textures();
         self.buffer.update(&gpu, material);
-        let resources = ctx.handle();
-        let white_texture = Self::white_texture(ctx, resources);
-        let textures = Self::textures(ctx, &self.textures);
+        let resources = app.handle();
+        let white_texture = Self::white_texture(app, resources);
+        let textures = Self::textures(app, &self.textures);
         self.is_transparent =
             material.is_transparent() || textures.iter().any(|texture| texture.is_transparent);
-        let shader = self.shader.get(ctx);
+        let shader = self.shader.get(app);
         let binding_ids = BindingGlobalIds::new(shader, &textures);
         if binding_ids != self.binding_ids {
             self.bind_group = Self::create_bind_group(
@@ -185,18 +185,12 @@ impl MaterialGlob {
         }
     }
 
-    fn textures<'a>(
-        ctx: &'a Context<'_>,
-        textures: &[GlobRef<TextureGlob>],
-    ) -> Vec<&'a TextureGlob> {
-        textures.iter().map(|texture| texture.get(ctx)).collect()
+    fn textures<'a>(app: &'a App, textures: &[GlobRef<TextureGlob>]) -> Vec<&'a TextureGlob> {
+        textures.iter().map(|texture| texture.get(app)).collect()
     }
 
-    fn white_texture<'a>(
-        ctx: &'a Context<'_>,
-        handle: RootNodeHandle<Resources>,
-    ) -> &'a TextureGlob {
-        handle.get(ctx).white_texture.glob().get(ctx)
+    fn white_texture(app: &App, handle: RootNodeHandle<Resources>) -> &TextureGlob {
+        handle.get(app).white_texture.glob().get(app)
     }
 
     fn create_bind_group(
@@ -356,7 +350,7 @@ pub trait Material: Sized + 'static {
     fn data(&self) -> Self::Data;
 
     /// Returns the instance data of a given `model`.
-    fn instance_data(ctx: &mut Context<'_>, model: &GlobRef<Model2DGlob>) -> Self::InstanceData;
+    fn instance_data(app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData;
 }
 
 pub(crate) mod default_2d;

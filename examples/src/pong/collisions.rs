@@ -1,4 +1,4 @@
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_physics::{CollisionGroup, CollisionType, Impulse};
 
 #[derive(Node, Visit)]
@@ -10,17 +10,17 @@ pub(crate) struct CollisionGroups {
 }
 
 impl RootNode for CollisionGroups {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let horizontal_wall = CollisionGroup::new(ctx);
-        let vertical_wall = CollisionGroup::new(ctx);
-        let paddle = CollisionGroup::new(ctx);
+    fn on_create(app: &mut App) -> Self {
+        let horizontal_wall = CollisionGroup::new(app);
+        let vertical_wall = CollisionGroup::new(app);
+        let paddle = CollisionGroup::new(app);
         let impulse = Impulse::new(0., 0.);
-        paddle.add_interaction(ctx, horizontal_wall.glob(), CollisionType::Impulse(impulse));
-        let ball = CollisionGroup::new(ctx);
+        paddle.add_interaction(app, horizontal_wall.glob(), CollisionType::Impulse(impulse));
+        let ball = CollisionGroup::new(app);
         let impulse = Impulse::new(1., 0.);
-        ball.add_interaction(ctx, horizontal_wall.glob(), CollisionType::Impulse(impulse));
-        ball.add_interaction(ctx, vertical_wall.glob(), CollisionType::Sensor);
-        ball.add_interaction(ctx, paddle.glob(), CollisionType::Sensor);
+        ball.add_interaction(app, horizontal_wall.glob(), CollisionType::Impulse(impulse));
+        ball.add_interaction(app, vertical_wall.glob(), CollisionType::Sensor);
+        ball.add_interaction(app, paddle.glob(), CollisionType::Sensor);
         Self {
             horizontal_wall,
             vertical_wall,

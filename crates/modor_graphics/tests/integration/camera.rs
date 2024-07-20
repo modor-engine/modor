@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -10,9 +10,9 @@ use std::f32::consts::FRAC_PI_4;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn create_with_one_target() {
-    let (mut app, target, other_target) = configure_app();
-    assert_same(&mut app, &target, "camera#default");
-    assert_same(&mut app, &other_target, "camera#empty");
+    let (app, target, other_target) = configure_app();
+    assert_same(&app, &target, "camera#default");
+    assert_same(&app, &other_target, "camera#empty");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -20,8 +20,8 @@ fn remove_target() {
     let (mut app, target, other_target) = configure_app();
     camera(&mut app).targets.clear();
     app.update();
-    assert_same(&mut app, &target, "camera#empty");
-    assert_same(&mut app, &other_target, "camera#empty");
+    assert_same(&app, &target, "camera#empty");
+    assert_same(&app, &other_target, "camera#empty");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -30,8 +30,8 @@ fn add_target() {
     let other_target_glob = root(&mut app).other_target.target.glob().clone();
     camera(&mut app).targets.push(other_target_glob);
     app.update();
-    assert_same(&mut app, &target, "camera#default");
-    assert_same(&mut app, &other_target, "camera#default");
+    assert_same(&app, &target, "camera#default");
+    assert_same(&app, &other_target, "camera#default");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -43,10 +43,10 @@ fn set_position_size_rotation() {
     camera(&mut app).size = size;
     camera(&mut app).rotation = FRAC_PI_4;
     app.update();
-    assert_same(&mut app, &target, "camera#transformed");
+    assert_same(&app, &target, "camera#transformed");
     let glob = camera(&mut app).glob().clone();
     let world_position = glob
-        .get(&app.ctx())
+        .get(&app)
         .world_position(Size::new(800, 600), Vec2::new(0., 600.));
     assert_approx_eq!(world_position, Vec2::new(-1.973_139, 0.912_478));
 }
@@ -75,17 +75,17 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target1")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target1")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
-        let other_target = Texture::new(ctx, "target2")
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let other_target = Texture::new(app, "target2")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
         let sprite =
-            Sprite2D::new(ctx, "main").with_model(|m| m.camera = target.camera.glob().clone());
+            Sprite2D::new(app, "main").with_model(|m| m.camera = target.camera.glob().clone());
         Self {
             sprite,
             target,

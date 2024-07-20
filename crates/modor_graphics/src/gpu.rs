@@ -1,6 +1,6 @@
 use crate::platform;
 use futures::executor;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
@@ -16,7 +16,7 @@ pub(crate) struct GpuManager {
 }
 
 impl RootNode for GpuManager {
-    fn on_create(_ctx: &mut Context<'_>) -> Self {
+    fn on_create(_app: &mut App) -> Self {
         Self {
             instance: Self::create_instance().into(),
             details: None,

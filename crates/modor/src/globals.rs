@@ -1,6 +1,6 @@
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
-use crate::{Context, Node, RootNode, RootNodeHandle, Visit};
+use crate::{App, Node, RootNode, RootNodeHandle, Visit};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -17,9 +17,9 @@ use std::sync::{Arc, Mutex};
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob(ctx: &mut Context<'_>) -> Glob<&'static str> {
-///     let glob = Glob::new(ctx, "shared value");
-///     assert_eq!(glob.get(ctx), &"shared value");
+/// fn create_glob(app: &mut App) -> Glob<&'static str> {
+///     let glob = Glob::new(app, "shared value");
+///     assert_eq!(glob.get(app), &"shared value");
 ///     glob
 /// }
 /// ```
@@ -42,11 +42,11 @@ where
     T: 'static,
 {
     /// Creates a new shared `value`.
-    pub fn new(ctx: &mut Context<'_>, value: T) -> Self {
-        let globals = ctx.handle::<Globals<T>>();
+    pub fn new(app: &mut App, value: T) -> Self {
+        let globals = app.handle::<Globals<T>>();
         Self {
             ref_: GlobRef {
-                index: globals.get_mut(ctx).register(value).into(),
+                index: globals.get_mut(app).register(value).into(),
                 globals,
                 phantom: PhantomData,
             },
@@ -64,13 +64,13 @@ where
     }
 
     /// Returns an immutable reference to the shared value.
-    pub fn get<'a>(&self, ctx: &'a Context<'_>) -> &'a T {
-        &self.ref_.globals.get(ctx)[self.index()]
+    pub fn get<'a>(&self, app: &'a App) -> &'a T {
+        &self.ref_.globals.get(app)[self.index()]
     }
 
     /// Returns a mutable reference to the shared value.
-    pub fn get_mut<'a>(&self, ctx: &'a mut Context<'_>) -> &'a mut T {
-        self.ref_.globals.get_mut(ctx).items[self.index()]
+    pub fn get_mut<'a>(&self, app: &'a mut App) -> &'a mut T {
+        self.ref_.globals.get_mut(app).items[self.index()]
             .as_mut()
             .expect("internal error: invalid index")
     }
@@ -92,10 +92,10 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob_ref(ctx: &mut Context<'_>) -> GlobRef<&'static str> {
-///     let glob = Glob::new(ctx, "shared value");
+/// fn create_glob_ref(app: &mut App) -> GlobRef<&'static str> {
+///     let glob = Glob::new(app, "shared value");
 ///     let ref_ = glob.as_ref().clone();
-///     assert_eq!(ref_.get(ctx), &"shared value");
+///     assert_eq!(ref_.get(app), &"shared value");
 ///     ref_
 /// }
 /// ```
@@ -129,8 +129,8 @@ where
     }
 
     /// Returns an immutable reference to the shared value.
-    pub fn get<'a>(&self, ctx: &'a Context<'_>) -> &'a T {
-        &self.globals.get(ctx)[self.index.index]
+    pub fn get<'a>(&self, app: &'a App) -> &'a T {
+        &self.globals.get(app)[self.index.index]
     }
 }
 
@@ -141,8 +141,8 @@ where
 /// ```
 /// # use modor::*;
 /// #
-/// fn access_glob(ctx: &mut Context<'_>, index: usize) -> &'static str {
-///     ctx.get_mut::<Globals<&'static str>>()[index]
+/// fn access_glob(app: &mut App, index: usize) -> &'static str {
+///     app.get_mut::<Globals<&'static str>>()[index]
 /// }
 /// ```
 #[derive(Debug)]
@@ -156,7 +156,7 @@ impl<T> RootNode for Globals<T>
 where
     T: 'static,
 {
-    fn on_create(_ctx: &mut Context<'_>) -> Self {
+    fn on_create(_app: &mut App) -> Self {
         Self {
             indexes: Arc::default(),
             items: vec![],
@@ -166,7 +166,7 @@ where
 }
 
 impl<T> Node for Globals<T> {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         self.indexes
             .free_indexes(self.deleted_items.iter().map(|(i, _)| *i));
         self.deleted_items.clear();
@@ -182,7 +182,7 @@ impl<T> Node for Globals<T> {
 }
 
 impl<T> Visit for Globals<T> {
-    fn visit(&mut self, _ctx: &mut Context<'_>) {}
+    fn visit(&mut self, _app: &mut App) {}
 }
 
 impl<T> Globals<T> {

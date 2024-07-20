@@ -1,6 +1,6 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
-use modor::{Context, Glob, GlobRef, Node, Visit};
+use modor::{App, Glob, GlobRef, Node, Visit};
 use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
@@ -15,23 +15,23 @@ pub(crate) struct Mesh {
 
 impl Mesh {
     fn new(
-        ctx: &mut Context<'_>,
+        app: &mut App,
         vertices: Vec<Vertex>,
         indices: Vec<u16>,
         label: impl Into<String>,
     ) -> Self {
         let label = label.into();
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init();
+        let gpu = app.get_mut::<GpuManager>().get_or_init();
         let glob = MeshGlob::new(gpu, &vertices, &indices, &label);
         Self {
             label,
-            glob: Glob::new(ctx, glob),
+            glob: Glob::new(app, glob),
         }
     }
 
-    pub(crate) fn rectangle(ctx: &mut Context<'_>) -> Self {
+    pub(crate) fn rectangle(app: &mut App) -> Self {
         Self::new(
-            ctx,
+            app,
             vec![
                 Vertex {
                     position: [-0.5, 0.5, 0.],

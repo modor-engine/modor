@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
@@ -12,7 +12,7 @@ use modor_resources::{Res, ResLoad};
 fn create_default() {
     let (mut app, target) = configure_app();
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "material#white");
+    assert_same(&app, &target, "material#white");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -25,7 +25,7 @@ fn set_properties() {
     root(&mut app).material.texture_size = Vec2::ONE * 0.75;
     root(&mut app).material.texture_position = Vec2::ONE * 0.25;
     wait_resources(&mut app);
-    assert_same(&mut app, &target, "material#custom_default");
+    assert_same(&app, &target, "material#custom_default");
 }
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
@@ -47,16 +47,16 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(ctx, "main")
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let texture = Texture::new(app, "main")
             .with_is_smooth(false)
-            .load_from_path(ctx, "../tests/assets/opaque-texture.png");
-        let material = DefaultMaterial2D::new(ctx).into_mat(ctx, "main");
-        let model = Model2D::new(ctx, material.glob())
+            .load_from_path(app, "../tests/assets/opaque-texture.png");
+        let material = DefaultMaterial2D::new(app).into_mat(app, "main");
+        let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());
         Self {

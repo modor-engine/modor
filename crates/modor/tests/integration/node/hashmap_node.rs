@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use std::collections::HashMap;
 
 #[modor::test]
@@ -22,7 +22,7 @@ struct Container(Vec<String>);
 struct Root(HashMap<usize, InnerNode>);
 
 impl RootNode for Root {
-    fn on_create(_ctx: &mut Context<'_>) -> Self {
+    fn on_create(_app: &mut App) -> Self {
         Self(
             [(0, InnerNode(0)), (1, InnerNode(1)), (2, InnerNode(2))]
                 .into_iter()
@@ -35,14 +35,14 @@ impl RootNode for Root {
 struct InnerNode(usize);
 
 impl Node for InnerNode {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>()
+    fn on_enter(&mut self, app: &mut App) {
+        app.get_mut::<Container>()
             .0
             .push(format!("InnerNode({})::on_enter", self.0));
     }
 
-    fn on_exit(&mut self, ctx: &mut Context<'_>) {
-        ctx.get_mut::<Container>()
+    fn on_exit(&mut self, app: &mut App) {
+        app.get_mut::<Container>()
             .0
             .push(format!("InnerNode({})::on_exit", self.0));
     }

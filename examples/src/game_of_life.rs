@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
@@ -21,18 +21,18 @@ struct Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, app: &mut App) {
         if self.last_update.elapsed() < REFRESH_PERIOD {
             return;
         }
         self.last_update = Instant::now();
         let alive_cell_count = self.refresh_grid();
-        self.update_alive_cells(ctx, alive_cell_count);
+        self.update_alive_cells(app, alive_cell_count);
     }
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         let mut are_cells_alive = vec![vec![false; GRID_SIZE]; GRID_SIZE];
         for (x, line) in include_str!("../res/game-of-life-grid").lines().enumerate() {
             for (y, character) in line.chars().enumerate() {
@@ -43,7 +43,7 @@ impl RootNode for Root {
         }
         Self {
             last_update: Instant::now(),
-            background: Sprite2D::new(ctx, "background"),
+            background: Sprite2D::new(app, "background"),
             are_cells_alive,
             cells: vec![],
         }
@@ -92,9 +92,9 @@ impl Root {
         alive_cell_count
     }
 
-    fn update_alive_cells(&mut self, ctx: &mut Context<'_>, alive_cell_count: usize) {
+    fn update_alive_cells(&mut self, app: &mut App, alive_cell_count: usize) {
         self.cells
-            .resize_with(alive_cell_count, || Self::alive_cell(ctx));
+            .resize_with(alive_cell_count, || Self::alive_cell(app));
         let mut current_cell_index = 0;
         for x in 0..GRID_SIZE {
             for y in 0..GRID_SIZE {
@@ -106,8 +106,8 @@ impl Root {
         }
     }
 
-    fn alive_cell(ctx: &mut Context<'_>) -> Sprite2D {
-        Sprite2D::new(ctx, "cell")
+    fn alive_cell(app: &mut App) -> Sprite2D {
+        Sprite2D::new(app, "cell")
             .with_model(|m| m.size = Vec2::ONE / GRID_SIZE as f32)
             .with_model(|m| m.z_index = 1)
             .with_material(|m| m.color = Color::BLACK)

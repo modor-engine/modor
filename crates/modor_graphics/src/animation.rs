@@ -1,5 +1,5 @@
 use instant::Instant;
-use modor::{Builder, Context, Node, Visit};
+use modor::{App, Builder, Node, Visit};
 use modor_input::modor_math::Vec2;
 use std::time::Duration;
 
@@ -27,15 +27,15 @@ use std::time::Duration;
 /// }
 ///
 /// impl Node for AnimatedSprite {
-///     fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+///     fn on_enter(&mut self, _app: &mut App) {
 ///         self.sprite.material.texture_size = self.animation.part_size();
 ///         self.sprite.material.texture_position = self.animation.part_position();
 ///     }
 /// }
 ///
 /// impl AnimatedSprite {
-///     fn new(ctx: &mut Context<'_>) -> Self {
-///         let texture = Texture::new(ctx, "spritesheet").load_from_path(ctx, "spritesheet.png");
+///     fn new(app: &mut App) -> Self {
+///         let texture = Texture::new(app, "spritesheet").load_from_path(app, "spritesheet.png");
 ///         let animation_parts = vec![
 ///             TexturePart::new(0, 0),
 ///             TexturePart::new(1, 0),
@@ -45,7 +45,7 @@ use std::time::Duration;
 ///             TexturePart::new(2, 1),
 ///         ];
 ///         Self {
-///             sprite: Sprite2D::new(ctx, "sprite")
+///             sprite: Sprite2D::new(app, "sprite")
 ///                 .with_material(|m| m.texture = texture.glob().clone()),
 ///             animation: TextureAnimation::new(3, 2)
 ///                 .with_fps(5)
@@ -86,7 +86,7 @@ pub struct TextureAnimation {
 }
 
 impl Node for TextureAnimation {
-    fn on_enter(&mut self, _ctx: &mut Context<'_>) {
+    fn on_enter(&mut self, _app: &mut App) {
         if let Some(new_frame_elapsed_time) = self
             .last_update_instant
             .elapsed()

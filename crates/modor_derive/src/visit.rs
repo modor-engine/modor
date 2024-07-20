@@ -18,7 +18,7 @@ pub(crate) fn impl_block(input: &DeriveInput) -> syn::Result<TokenStream> {
         #[automatically_derived]
         impl #impl_generics ::#crate_ident::Visit for #ident #type_generics #where_clause {
             #[inline]
-            fn visit(&mut self, ctx: &mut ::#crate_ident::Context<'_>) {
+            fn visit(&mut self, app: &mut ::#crate_ident::App) {
                 use ::#crate_ident::macro_utils::NotNode;
                 #visit_body
             }
@@ -51,7 +51,7 @@ fn enum_tuple_branch_body(crate_ident: &Ident, variant: &VisitVariant) -> TokenS
     quote_spanned! {
         variant_ident.span() =>
         Self::#variant_ident(#(#field_names),*) => {
-            #(::#crate_ident::macro_utils::MaybeNode(#field_names).update(ctx));*
+            #(::#crate_ident::macro_utils::MaybeNode(#field_names).update(app));*
         }
     }
 }
@@ -66,7 +66,7 @@ fn enum_struct_branch_body(crate_ident: &Ident, variant: &VisitVariant) -> Token
     quote_spanned! {
         variant_ident.span() =>
         Self::#variant_ident{#(#field_names),*} => {
-            #(::#crate_ident::macro_utils::MaybeNode(#field_names).update(ctx));*
+            #(::#crate_ident::macro_utils::MaybeNode(#field_names).update(app));*
         }
     }
 }
@@ -95,7 +95,7 @@ fn struct_visit_body(crate_ident: &Ident, fields: Fields<VisitField>) -> TokenSt
         .map(|(field_ident, field_type)| {
             quote_spanned! {
                 field_type.span() =>
-                ::#crate_ident::macro_utils::MaybeNode(&mut self.#field_ident).update(ctx);
+                ::#crate_ident::macro_utils::MaybeNode(&mut self.#field_ident).update(app);
             }
         })
         .collect()

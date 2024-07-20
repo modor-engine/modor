@@ -3,7 +3,7 @@ use crate::Material;
 use derivative::Derivative;
 use glob::ShaderGlob;
 use log::error;
-use modor::{Builder, Context, Glob, GlobRef};
+use modor::{App, Builder, Glob, GlobRef};
 use modor_resources::{Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -84,12 +84,12 @@ where
         })
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>, loaded: Option<Self::Loaded>) {
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
         if let Some(loaded) = loaded {
             self.loaded = loaded;
-            self.update(ctx);
+            self.update(app);
         } else if self.is_alpha_replaced != self.old_is_alpha_replaced {
-            self.update(ctx);
+            self.update(app);
         }
     }
 }
@@ -103,14 +103,14 @@ where
     /// Creates a new shader.
     ///
     /// The `label` is used to identity the shader in logs.
-    pub fn new(ctx: &mut Context<'_>, label: impl Into<String>) -> Self {
+    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
         let label = label.into();
         let loaded = ShaderLoaded::default();
-        let glob = ShaderGlob::new::<T>(ctx, &loaded, Self::DEFAULT_IS_ALPHA_REPLACED, &label)
+        let glob = ShaderGlob::new::<T>(app, &loaded, Self::DEFAULT_IS_ALPHA_REPLACED, &label)
             .expect("internal error: cannot load empty shader");
         Self {
             is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            glob: Glob::new(ctx, glob),
+            glob: Glob::new(app, glob),
             loaded,
             label,
             is_invalid: false,
@@ -132,10 +132,10 @@ where
         self.is_invalid
     }
 
-    fn update(&mut self, ctx: &mut Context<'_>) {
-        match ShaderGlob::new::<T>(ctx, &self.loaded, self.is_alpha_replaced, self.label()) {
+    fn update(&mut self, app: &mut App) {
+        match ShaderGlob::new::<T>(app, &self.loaded, self.is_alpha_replaced, self.label()) {
             Ok(glob) => {
-                *self.glob.get_mut(ctx) = glob;
+                *self.glob.get_mut(app) = glob;
                 self.is_invalid = false;
             }
             Err(err) => {

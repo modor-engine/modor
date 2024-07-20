@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Context, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -15,9 +15,9 @@ fn use_instance_data() {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
     let target = root(&mut app).target.glob().clone();
-    assert_same(&mut app, &target, "material#instances");
+    assert_same(&app, &target, "material#instances");
     app.update();
-    assert_same(&mut app, &target, "material#instances");
+    assert_same(&app, &target, "material#instances");
 }
 
 fn root(app: &mut App) -> &mut Root {
@@ -35,21 +35,21 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let target = Texture::new(ctx, "target")
+    fn on_create(app: &mut App) -> Self {
+        let target = Texture::new(app, "target")
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
-            .load_from_source(ctx, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(ctx, "main")
+            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let texture = Texture::new(app, "main")
             .with_is_smooth(false)
-            .load_from_path(ctx, "../tests/assets/opaque-texture.png");
-        let shader = Shader::new(ctx, "main").load_from_path(ctx, "../tests/assets/complex.wgsl");
-        let material = TestMaterial::new(&texture, &shader).into_mat(ctx, "main");
-        let model1 = Model2D::new(ctx, material.glob())
+            .load_from_path(app, "../tests/assets/opaque-texture.png");
+        let shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/complex.wgsl");
+        let material = TestMaterial::new(&texture, &shader).into_mat(app, "main");
+        let model1 = Model2D::new(app, material.glob())
             .with_position(Vec2::new(-0.25, 0.))
             .with_size(Vec2::new(0.25, 0.5))
             .with_camera(target.camera.glob().clone());
-        let model2 = Model2D::new(ctx, material.glob())
+        let model2 = Model2D::new(app, material.glob())
             .with_position(Vec2::new(0.25, 0.))
             .with_size(Vec2::new(0.25, 0.5))
             .with_camera(target.camera.glob().clone());
@@ -92,7 +92,7 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_ctx: &mut Context<'_>, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
+    fn instance_data(_app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
         vec![
             TestInstanceData {
                 color: [0., 0., 1., 1.],

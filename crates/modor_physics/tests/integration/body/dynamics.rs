@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, Delta};
@@ -143,10 +143,10 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        ctx.get_mut::<Delta>().duration = Duration::from_secs(2);
+    fn on_create(app: &mut App) -> Self {
+        app.get_mut::<Delta>().duration = Duration::from_secs(2);
         Self {
-            body: Body2D::new(ctx),
+            body: Body2D::new(app),
         }
     }
 }

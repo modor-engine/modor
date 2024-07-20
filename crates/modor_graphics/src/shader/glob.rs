@@ -6,7 +6,7 @@ use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
 use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use fxhash::FxHashMap;
-use modor::Context;
+use modor::App;
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -40,7 +40,7 @@ impl ShaderGlob {
     ];
 
     pub(super) fn new<T>(
-        ctx: &mut Context<'_>,
+        app: &mut App,
         loaded: &ShaderLoaded,
         is_alpha_replaced: bool,
         label: &str,
@@ -48,8 +48,8 @@ impl ShaderGlob {
     where
         T: 'static + Material,
     {
-        let window_texture_format = ctx.get_mut::<Window>().texture_format();
-        let gpu = ctx.get_mut::<GpuManager>().get_or_init().clone();
+        let window_texture_format = app.get_mut::<Window>().texture_format();
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let material_bind_group_layout =
             Self::create_material_bind_group_layout(&gpu, loaded, label);
         Ok(Self {
@@ -58,7 +58,7 @@ impl ShaderGlob {
                 .into_iter()
                 .flatten()
                 .flat_map(|format| {
-                    ctx.get_mut::<SupportedAntiAliasingModes>()
+                    app.get_mut::<SupportedAntiAliasingModes>()
                         .get(&gpu, format)
                         .iter()
                         .copied()

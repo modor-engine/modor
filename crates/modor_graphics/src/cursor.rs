@@ -1,5 +1,5 @@
 use crate::{Camera2DGlob, Window};
-use modor::{Builder, Context, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Builder, GlobRef, Node, RootNodeHandle, Visit};
 use modor_input::modor_math::Vec2;
 use modor_input::{Finger, InputState, Inputs, MouseButton};
 
@@ -20,9 +20,9 @@ use modor_input::{Finger, InputState, Inputs, MouseButton};
 /// }
 ///
 /// impl Node for Cursor {
-///     fn on_enter(&mut self, ctx: &mut Context<'_>) {
-///         println!("Cursor position: {:?}", self.tracker.position(ctx));
-///         println!("Cursor is pressed: {}", self.tracker.state(ctx).is_pressed());
+///     fn on_enter(&mut self, app: &mut App) {
+///         println!("Cursor position: {:?}", self.tracker.position(app));
+///         println!("Cursor is pressed: {}", self.tracker.state(app).is_pressed());
 ///     }
 /// }
 /// ```
@@ -40,8 +40,8 @@ pub struct CursorTracker {
 }
 
 impl Node for CursorTracker {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let inputs = self.inputs.get(ctx);
+    fn on_enter(&mut self, app: &mut App) {
+        let inputs = self.inputs.get(app);
         if let Some((finger_id, _)) = inputs.fingers.pressed_iter().next() {
             self.is_touch = true;
             self.last_finger_id = Some(finger_id);
@@ -53,33 +53,33 @@ impl Node for CursorTracker {
 
 impl CursorTracker {
     /// Creates a new cursor.
-    pub fn new(ctx: &mut Context<'_>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         Self {
-            camera: ctx.get_mut::<Window>().camera.glob().clone(),
-            window: ctx.handle(),
-            inputs: ctx.handle(),
+            camera: app.get_mut::<Window>().camera.glob().clone(),
+            window: app.handle(),
+            inputs: app.handle(),
             is_touch: false,
             last_finger_id: None,
         }
     }
 
     /// Returns the position of the cursor.
-    pub fn position(&self, ctx: &Context<'_>) -> Vec2 {
-        let window = self.window.get(ctx);
-        let inputs = self.inputs.get(ctx);
+    pub fn position(&self, app: &App) -> Vec2 {
+        let window = self.window.get(app);
+        let inputs = self.inputs.get(app);
         let window_position = self
             .finger(inputs)
             .map_or(inputs.mouse.position, |finger| finger.position);
         self.camera
-            .get(ctx)
+            .get(app)
             .world_position(window.size(), window_position)
     }
 
     /// Returns the state of the cursor.
     ///
     /// For the mouse, [`MouseButton::Left`] state is taken.
-    pub fn state(&self, ctx: &Context<'_>) -> InputState {
-        let inputs = self.inputs.get(ctx);
+    pub fn state(&self, app: &App) -> InputState {
+        let inputs = self.inputs.get(app);
         self.finger(inputs)
             .map_or_else(|| inputs.mouse[MouseButton::Left], |finger| finger.state)
     }

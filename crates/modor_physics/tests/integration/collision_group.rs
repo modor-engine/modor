@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
@@ -18,7 +18,7 @@ fn drop_group() {
 }
 
 fn create_group2_with_no_interaction(app: &mut App) {
-    let collision_group = CollisionGroup::new(&mut app.ctx());
+    let collision_group = CollisionGroup::new(app);
     body2(app).collision_group = Some(collision_group.glob().clone());
     *group2(app) = Some(collision_group);
 }
@@ -40,12 +40,12 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
-        let group1 = CollisionGroup::new(ctx);
-        let group2 = CollisionGroup::new(ctx);
-        group1.add_interaction(ctx, group2.glob(), CollisionType::Sensor);
-        let body1 = Body2D::new(ctx).with_collision_group(Some(group1.glob().clone()));
-        let body2 = Body2D::new(ctx).with_collision_group(Some(group2.glob().clone()));
+    fn on_create(app: &mut App) -> Self {
+        let group1 = CollisionGroup::new(app);
+        let group2 = CollisionGroup::new(app);
+        group1.add_interaction(app, group2.glob(), CollisionType::Sensor);
+        let body1 = Body2D::new(app).with_collision_group(Some(group1.glob().clone()));
+        let body2 = Body2D::new(app).with_collision_group(Some(group2.glob().clone()));
         Self {
             group1,
             group2: Some(group2),

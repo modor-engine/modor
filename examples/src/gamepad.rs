@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{Context, Node, RootNode, Visit};
+use modor::{App, Node, RootNode, Visit};
 use modor_graphics::modor_input::{GamepadStick, Inputs};
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
@@ -17,12 +17,12 @@ struct Root {
 }
 
 impl RootNode for Root {
-    fn on_create(ctx: &mut Context<'_>) -> Self {
+    fn on_create(app: &mut App) -> Self {
         Self {
-            moved_sticks_label: text(ctx, 0.375, "Moved sticks:"),
-            moved_sticks: text(ctx, 0.125, ""),
-            pressed_buttons_label: text(ctx, -0.125, "Pressed buttons:"),
-            pressed_buttons: text(ctx, -0.375, ""),
+            moved_sticks_label: text(app, 0.375, "Moved sticks:"),
+            moved_sticks: text(app, 0.125, ""),
+            pressed_buttons_label: text(app, -0.125, "Pressed buttons:"),
+            pressed_buttons: text(app, -0.375, ""),
         }
     }
 }
@@ -34,8 +34,8 @@ const STICK_LABELS: [(GamepadStick, &str); 3] = [
 ];
 
 impl Node for Root {
-    fn on_enter(&mut self, ctx: &mut Context<'_>) {
-        let gamepads = &ctx.get_mut::<Inputs>().gamepads;
+    fn on_enter(&mut self, app: &mut App) {
+        let gamepads = &app.get_mut::<Inputs>().gamepads;
         if let Some((_, gamepad)) = gamepads.iter().next() {
             self.moved_sticks.content = STICK_LABELS
                 .into_iter()
@@ -55,8 +55,8 @@ impl Node for Root {
     }
 }
 
-fn text(ctx: &mut Context<'_>, position_y: f32, content: &str) -> Text2D {
-    Text2D::new(ctx, "text")
+fn text(app: &mut App, position_y: f32, content: &str) -> Text2D {
+    Text2D::new(app, "text")
         .with_model(|m| m.position = Vec2::Y * position_y)
         .with_model(|m| m.size = Vec2::new(1., 0.15))
         .with_content(content.into())
