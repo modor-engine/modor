@@ -4,6 +4,7 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemFn};
 
 mod builder;
+mod from_app;
 mod functions;
 mod node;
 mod root_node;
@@ -57,6 +58,15 @@ pub fn visit_derive(item: TokenStream) -> TokenStream {
 pub fn builder_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     builder::impl_block(&input)
+        .unwrap_or_else(Into::into)
+        .into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(FromApp)]
+pub fn from_app_derive(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    from_app::impl_block(&input)
         .unwrap_or_else(Into::into)
         .into()
 }

@@ -64,6 +64,7 @@ pub use log;
 pub use wasm_bindgen_test;
 
 mod app;
+mod from_app;
 mod globals;
 #[doc(hidden)]
 pub mod macro_utils;
@@ -71,6 +72,7 @@ mod node;
 mod platform;
 
 pub use app::*;
+pub use from_app::*;
 pub use globals::*;
 pub use node::*;
 #[allow(unused_imports, unreachable_pub)]
@@ -226,3 +228,8 @@ pub use modor_derive::Visit;
 /// }
 /// ```
 pub use modor_derive::Builder;
+
+/// Implements [`FromApp`].
+///
+/// Only structs are supported.
+pub use modor_derive::FromApp;
