@@ -173,14 +173,12 @@ impl ShaderGlob {
                     vertex: VertexState {
                         module: &module,
                         entry_point: "vs_main",
-                        #[cfg(not(target_arch = "wasm32"))]
                         compilation_options: wgpu::PipelineCompilationOptions::default(),
                         buffers: &buffer_layout,
                     },
                     fragment: Some(FragmentState {
                         module: &module,
                         entry_point: "fs_main",
-                        #[cfg(not(target_arch = "wasm32"))]
                         compilation_options: wgpu::PipelineCompilationOptions::default(),
                         targets: &[Some(ColorTargetState {
                             format: texture_format,
@@ -214,6 +212,7 @@ impl ShaderGlob {
                         alpha_to_coverage_enabled: false,
                     },
                     multiview: None,
+                    cache: None,
                 })
         })
     }
