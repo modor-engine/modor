@@ -58,7 +58,7 @@ impl Paddle {
             .with_collision_group(Some(group))
             .with_mass(1.);
         Self {
-            sprite: Sprite2D::new(app, "paddle").with_model(|m| m.body = Some(body.glob().clone())),
+            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone())),
             body,
             controls: controller,
             window: app.handle(),

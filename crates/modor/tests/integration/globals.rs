@@ -1,12 +1,14 @@
 use log::Level;
-use modor::{App, Glob, Globals};
+use modor::{App, FromApp, Glob, Globals};
 use modor_derive::{Node, RootNode, Visit};
 
 #[modor::test]
 fn create_glob() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::from_app(&mut app);
+    let glob2 = Glob::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
+    *glob2.get_mut(&mut app) = "b";
     assert_eq!(glob1.index(), 0);
     assert_eq!(glob2.index(), 1);
     assert_eq!(glob1.get(&app), &"a");
@@ -19,8 +21,10 @@ fn create_glob() {
 #[modor::test]
 fn create_glob_ref() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::from_app(&mut app);
+    let glob2 = Glob::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
+    *glob2.get_mut(&mut app) = "b";
     let glob1_ref = glob1.as_ref().clone();
     let glob2_ref = glob2.as_ref().clone();
     assert_eq!(glob1_ref.index(), 0);
@@ -35,62 +39,65 @@ fn create_glob_ref() {
 #[modor::test]
 fn recreate_glob_without_ref_before_update() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::from_app(&mut app);
+    let _glob2 = Glob::<&str>::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
     drop(glob1);
-    let glob3 = Glob::new(&mut app, "c");
+    let glob3 = Glob::<&str>::from_app(&mut app);
     assert_eq!(glob3.index(), 2);
-    let glob4 = Glob::new(&mut app, "d");
+    let glob4 = Glob::<&str>::from_app(&mut app);
     assert_eq!(glob4.index(), 3);
 }
 
 #[modor::test]
 fn recreate_glob_without_ref_after_update() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::<&str>::from_app(&mut app);
+    let _glob2 = Glob::<&str>::from_app(&mut app);
     drop(glob1);
     app.update();
-    let glob3 = Glob::new(&mut app, "c");
+    let glob3 = Glob::<&str>::from_app(&mut app);
     assert_eq!(glob3.index(), 2);
     app.update();
-    assert_eq!(Glob::new(&mut app, "d").index(), 0);
-    assert_eq!(Glob::new(&mut app, "e").index(), 3);
+    assert_eq!(Glob::<&str>::from_app(&mut app).index(), 0);
+    assert_eq!(Glob::<&str>::from_app(&mut app).index(), 3);
 }
 
 #[modor::test]
 fn recreate_glob_with_not_dropped_ref_after_update() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::<&str>::from_app(&mut app);
+    let _glob2 = Glob::<&str>::from_app(&mut app);
     let _glob1_ref = glob1.as_ref().clone();
     drop(glob1);
     app.update();
-    let glob3 = Glob::new(&mut app, "c");
+    let glob3 = Glob::<&str>::from_app(&mut app);
     assert_eq!(glob3.index(), 2);
 }
 
 #[modor::test]
 fn recreate_glob_with_dropped_ref_after_update() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::<&str>::from_app(&mut app);
+    let _glob2 = Glob::<&str>::from_app(&mut app);
     let glob1_ref = glob1.as_ref().clone();
     drop(glob1);
     drop(glob1_ref);
     app.update();
-    let glob3 = Glob::new(&mut app, "c");
+    let glob3 = Glob::<&str>::from_app(&mut app);
     assert_eq!(glob3.index(), 2);
     app.update();
-    assert_eq!(Glob::new(&mut app, "d").index(), 0);
-    assert_eq!(Glob::new(&mut app, "e").index(), 3);
+    assert_eq!(Glob::<&str>::from_app(&mut app).index(), 0);
+    assert_eq!(Glob::<&str>::from_app(&mut app).index(), 3);
 }
 
 #[modor::test]
 fn access_all_globals() {
     let mut app = App::new::<Root>(Level::Info);
-    let _glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::from_app(&mut app);
+    let glob2 = Glob::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
+    *glob2.get_mut(&mut app) = "b";
     let globals = app.get_mut::<Globals<&str>>();
     assert!(globals.deleted_items().is_empty());
     assert_eq!(globals.get(0), Some(&"a"));
@@ -105,8 +112,10 @@ fn access_all_globals() {
 #[modor::test]
 fn access_all_globals_after_value_dropped() {
     let mut app = App::new::<Root>(Level::Info);
-    let glob1 = Glob::new(&mut app, "a");
-    let _glob2 = Glob::new(&mut app, "b");
+    let glob1 = Glob::from_app(&mut app);
+    let glob2 = Glob::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
+    *glob2.get_mut(&mut app) = "b";
     drop(glob1);
     app.update();
     let globals = app.get_mut::<Globals<&str>>();

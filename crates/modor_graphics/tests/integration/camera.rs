@@ -76,16 +76,15 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target1")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let other_target = Texture::new(app, "target2")
+        let other_target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let sprite =
-            Sprite2D::new(app, "main").with_model(|m| m.camera = target.camera.glob().clone());
+        let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().clone());
         Self {
             sprite,
             target,

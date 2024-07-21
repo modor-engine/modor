@@ -46,7 +46,7 @@ impl Ball {
             .with_is_ccd_enabled(true)
             .with_collision_group(Some(group));
         Self {
-            sprite: Sprite2D::new(app, "ball")
+            sprite: Sprite2D::new(app)
                 .with_model(|m| m.body = Some(body.glob().clone()))
                 .with_material(|m| m.is_ellipse = true),
             body,

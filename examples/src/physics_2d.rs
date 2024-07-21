@@ -77,7 +77,7 @@ impl Wall {
             .with_position(position)
             .with_size(size)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(app, "wall").with_model(|m| m.body = Some(body.glob().clone()));
+        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone()));
         Self { body, sprite }
     }
 }
@@ -101,8 +101,7 @@ impl Node for Cannon {
 impl Cannon {
     fn new(app: &mut App) -> Self {
         Self {
-            sprite: Sprite2D::new(app, "cannon")
-                .with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
+            sprite: Sprite2D::new(app).with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
             cursor: CursorTracker::new(app),
         }
     }
@@ -163,7 +162,7 @@ impl Object {
             .with_angular_inertia(OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
             .with_collision_group(Some(collision_group))
             .with_shape(shape);
-        let sprite = Sprite2D::new(app, "object")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.is_ellipse = is_ball)
             .with_material(|m| m.color = color);

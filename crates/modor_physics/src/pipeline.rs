@@ -33,14 +33,19 @@ impl Node for Pipeline {
     fn on_exit(&mut self, app: &mut App) {
         for (_, body) in app.get_mut::<Globals<Body2DGlob>>().deleted_items() {
             self.rigid_bodies.remove(
-                body.rigid_body_handle,
+                body.rigid_body_handle
+                    .expect("internal error: missing body handle"),
                 &mut self.island_manager,
                 &mut self.colliders,
                 &mut self.impulse_joints,
                 &mut self.multibody_joints,
                 true,
             );
-            self.collisions.remove(&body.collider_handle);
+            self.collisions.remove(
+                &body
+                    .collider_handle
+                    .expect("internal error: missing collider handle"),
+            );
         }
         self.integration_parameters.dt = app.get_mut::<Delta>().duration.as_secs_f32();
         self.physics_pipeline.step(

@@ -37,7 +37,7 @@ impl RootNode for Root {
             right_wall: Wall::new(app, WallOrientation::Right, vertical_wall_group),
             top_wall: Wall::new(app, WallOrientation::Top, horizontal_wall_group.clone()),
             bottom_wall: Wall::new(app, WallOrientation::Bottom, horizontal_wall_group),
-            separator: Sprite2D::new(app, "separator")
+            separator: Sprite2D::new(app)
                 .with_model(|m| m.size = Vec2::new(FIELD_BORDER_WIDTH / 4., FIELD_SIZE.y)),
             ball: Ball::new(app),
             left_paddle: Paddle::new_player(app, Side::Left),

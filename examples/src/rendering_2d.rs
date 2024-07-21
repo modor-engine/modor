@@ -68,7 +68,7 @@ impl RootNode for Resources {
                     DefaultMaterial2D::new(app)
                         .with_color(color)
                         .with_is_ellipse(true)
-                        .into_mat(app, "color")
+                        .into_mat(app)
                 })
                 .collect(),
         }

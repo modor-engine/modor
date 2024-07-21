@@ -48,14 +48,14 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(app, "main")
+        let texture = Texture::new(app)
             .with_is_smooth(false)
             .load_from_path(app, "../tests/assets/opaque-texture.png");
-        let material = DefaultMaterial2D::new(app).into_mat(app, "main");
+        let material = DefaultMaterial2D::new(app).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());

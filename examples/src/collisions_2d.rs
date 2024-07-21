@@ -71,7 +71,7 @@ impl Shape {
             } else {
                 Shape2D::Rectangle
             });
-        let sprite = Sprite2D::new(app, "shape")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.is_ellipse = is_circle)
             .with_material(|m| m.color = Color::CYAN);
@@ -114,7 +114,7 @@ impl Cursor {
             .with_size(Vec2::new(0.05, 0.1))
             .with_rotation(FRAC_PI_8)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(app, "cursor")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_model(|m| m.rotation = FRAC_PI_8)
             .with_model(|m| m.z_index = 1)
@@ -149,13 +149,13 @@ impl CollisionNormal {
             .unwrap_or_default();
         let penetration_position = collision.position - collision.penetration / 2. + lateral_offset;
         Self {
-            position: Sprite2D::new(app, "collision-position")
+            position: Sprite2D::new(app)
                 .with_model(|m| m.position = collision.position)
                 .with_model(|m| m.size = Vec2::ONE * 0.02)
                 .with_model(|m| m.z_index = z_index)
                 .with_material(|m| m.color = color)
                 .with_material(|m| m.is_ellipse = true),
-            penetration: Sprite2D::new(app, "collision-penetration")
+            penetration: Sprite2D::new(app)
                 .with_model(|m| m.position = penetration_position)
                 .with_model(|m| m.size = Vec2::new(0.005, collision.penetration.magnitude()))
                 .with_model(|m| m.rotation = Vec2::Y.rotation(-collision.penetration))

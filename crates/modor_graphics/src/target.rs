@@ -7,7 +7,7 @@ use crate::{
     MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
-use modor::{App, Glob, GlobRef, Globals, RootNodeHandle};
+use modor::{App, FromApp, Glob, GlobRef, Globals, RootNodeHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -53,7 +53,6 @@ pub struct Target {
     loaded: Option<LoadedTarget>,
     is_error_logged: bool,
     is_incompatible_anti_aliasing_logged: bool,
-    label: String,
     glob: Glob<TargetGlob>,
     cameras: RootNodeHandle<Globals<Camera2DGlob>>,
     materials: RootNodeHandle<Globals<MaterialGlob>>,
@@ -71,7 +70,7 @@ impl Target {
         &self.supported_anti_aliasing_modes
     }
 
-    pub(crate) fn new(app: &mut App, label: impl Into<String>) -> Self {
+    pub(crate) fn new(app: &mut App) -> Self {
         Self {
             background_color: Color::BLACK,
             anti_aliasing: AntiAliasingMode::None,
@@ -80,14 +79,7 @@ impl Target {
             loaded: None,
             is_error_logged: false,
             is_incompatible_anti_aliasing_logged: false,
-            label: label.into(),
-            glob: Glob::new(
-                app,
-                TargetGlob {
-                    size: Size::ZERO,
-                    anti_aliasing: AntiAliasingMode::None,
-                },
-            ),
+            glob: Glob::from_app(app),
             cameras: app.handle(),
             materials: app.handle(),
             meshes: app.handle(),
@@ -129,7 +121,7 @@ impl Target {
             .loaded
             .as_ref()
             .expect("internal error: target not loaded");
-        let mut encoder = Self::create_encoder(gpu, &self.label);
+        let mut encoder = Self::create_encoder(gpu);
         let mut pass = Self::create_pass(
             self.background_color,
             anti_aliasing,
@@ -145,7 +137,7 @@ impl Target {
         if !is_err {
             gpu.queue.submit(Some(encoder.finish()));
         }
-        trace!("Target '{}' rendered (error: {})", self.label, is_err);
+        trace!("Target rendered (error: {})", is_err);
         self.log_error(result);
     }
 
@@ -203,10 +195,9 @@ impl Target {
         texture.create_view(&TextureViewDescriptor::default())
     }
 
-    fn create_encoder(gpu: &Gpu, label: &str) -> CommandEncoder {
-        let label = format!("modor_render_encoder:{label}");
+    fn create_encoder(gpu: &Gpu) -> CommandEncoder {
         let descriptor = CommandEncoderDescriptor {
-            label: Some(&label),
+            label: Some("modor_render_encoder"),
         };
         gpu.device.create_command_encoder(&descriptor)
     }
@@ -345,7 +336,7 @@ impl Target {
             pass.set_vertex_buffer(2, buffer.slice());
         }
         pass.draw_indexed(
-            0..(mesh.index_count as u32),
+            0..(mesh.index_buffer.len() as u32),
             0,
             if let Some(index) = instance_index {
                 index as u32..index as u32 + 1
@@ -360,7 +351,7 @@ impl Target {
     fn log_error(&mut self, result: Result<(), wgpu::Error>) {
         if !self.is_error_logged {
             if let Err(error) = result {
-                error!("Error during rendering in target '{}': {error}", self.label);
+                error!("Error during target rendering: {error}");
                 self.is_error_logged = true;
             }
         }
@@ -397,4 +388,13 @@ pub struct TargetGlob {
     /// Size of the target in pixels.
     pub size: Size,
     anti_aliasing: AntiAliasingMode,
+}
+
+impl Default for TargetGlob {
+    fn default() -> Self {
+        Self {
+            size: Size::ZERO,
+            anti_aliasing: AntiAliasingMode::None,
+        }
+    }
 }

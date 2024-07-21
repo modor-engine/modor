@@ -1,25 +1,16 @@
 use modor::log::Level;
 use modor::{App, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::{Res, ResLoad, Resource};
+use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::testing::assert_max_component_diff;
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_text::{Font, FontSource, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
-fn define_label() {
-    let (mut app, _) = configure_app();
-    let font = Font::new(&mut app, "main")
-        .load_from_path(&mut app, "../tests/assets/IrishGrover-Regular.ttf");
-    assert_eq!(font.label(), "main");
-}
-
-#[modor::test(disabled(windows, macos, android, wasm))]
 fn render_ttf_font_from_path() {
     let (mut app, target) = configure_app();
-    let font = Font::new(&mut app, "main")
-        .load_from_path(&mut app, "../tests/assets/IrishGrover-Regular.ttf");
-    assert_eq!(font.label(), "main");
+    let font =
+        Font::new(&mut app).load_from_path(&mut app, "../tests/assets/IrishGrover-Regular.ttf");
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -29,8 +20,7 @@ fn render_ttf_font_from_path() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_otf_font_from_path() {
     let (mut app, target) = configure_app();
-    let font =
-        Font::new(&mut app, "main").load_from_path(&mut app, "../tests/assets/Foglihtenno07.otf");
+    let font = Font::new(&mut app).load_from_path(&mut app, "../tests/assets/Foglihtenno07.otf");
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -40,7 +30,7 @@ fn render_otf_font_from_path() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_font_from_bytes() {
     let (mut app, target) = configure_app();
-    let font = Font::new(&mut app, "main").load_from_source(
+    let font = Font::new(&mut app).load_from_source(
         &mut app,
         FontSource::Bytes(include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -77,12 +67,12 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_buffer_enabled(true)
             .with_is_target_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(60, 40)));
         Self {
-            text: Text2D::new(app, "main")
+            text: Text2D::new(app)
                 .with_content("text".into())
                 .with_font_height(30.)
                 .with_texture(|t| t.is_smooth = false)

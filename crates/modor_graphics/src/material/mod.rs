@@ -4,14 +4,14 @@ use crate::model::Model2DGlob;
 use crate::resources::Resources;
 use crate::shader::glob::ShaderGlob;
 use crate::texture::glob::TextureGlob;
-use crate::ShaderGlobRef;
+use crate::{DefaultMaterial2D, ShaderGlobRef};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{App, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::{any, mem};
 use wgpu::{
     BindGroupEntry, BindGroupLayout, BindingResource, BufferUsages, Id, Sampler, TextureView,
 };
@@ -24,7 +24,6 @@ use wgpu::{
 #[derive(Debug, Visit)]
 pub struct Mat<T> {
     data: T,
-    label: String,
     glob: Glob<MaterialGlob>,
     updated_glob: MaterialGlob, // used to update the glob without borrowing App
     phantom_data: PhantomData<T>,
@@ -50,7 +49,7 @@ where
 {
     fn on_exit(&mut self, app: &mut App) {
         mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
-        self.updated_glob.update(app, &self.data, &self.label);
+        self.updated_glob.update(app, &self.data);
         mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
     }
 }
@@ -71,26 +70,22 @@ where
 /// A trait implemented for types that can be converted to a [`Mat`].
 pub trait IntoMat: Sized {
     /// Converts to a [`Mat`].
-    ///
-    /// The `label` is used to identity the material in logs.
-    fn into_mat(self, app: &mut App, label: impl Into<String>) -> Mat<Self>;
+    fn into_mat(self, app: &mut App) -> Mat<Self>;
 }
 
 impl<T> IntoMat for T
 where
     T: Material,
 {
-    fn into_mat(self, app: &mut App, label: impl Into<String>) -> Mat<Self> {
-        let label = label.into();
-        let glob = MaterialGlob::new(app, &self, &label);
-        let dummy_glob = MaterialGlob::new(app, &self, &label);
-        Mat {
+    fn into_mat(self, app: &mut App) -> Mat<Self> {
+        let mut material = Mat {
             data: self,
-            label,
-            glob: Glob::new(app, glob),
-            updated_glob: dummy_glob,
+            glob: Glob::from_app(app),
+            updated_glob: MaterialGlob::from_app(app),
             phantom_data: PhantomData,
-        }
+        };
+        material.update(app);
+        material
     }
 }
 
@@ -129,29 +124,29 @@ pub struct MaterialGlob {
     textures: Vec<GlobRef<TextureGlob>>,
 }
 
-impl MaterialGlob {
-    fn new<T>(app: &mut App, material: &T, label: &str) -> Self
-    where
-        T: Material,
-    {
+impl FromApp for MaterialGlob {
+    fn from_app(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let shader = material.shader().deref().clone();
-        let textures = material.textures();
+        let shader = app
+            .get_mut::<Resources>()
+            .empty_shader
+            .glob()
+            .deref()
+            .clone();
+        let textures = vec![];
         let resources = app.handle();
         let white_texture = Self::white_texture(app, resources);
         let texture_refs = Self::textures(app, &textures);
-        let buffer = MaterialBuffer::new(&gpu, material, label);
+        let buffer = MaterialBuffer::new(&gpu);
         let shader_ref = shader.get(app);
         Self {
-            is_transparent: material.is_transparent()
-                || texture_refs.iter().any(|texture| texture.is_transparent),
-            bind_group: Self::create_bind_group(
+            is_transparent: false,
+            bind_group: Self::create_bind_group::<DefaultMaterial2D>(
                 &gpu,
                 &buffer,
                 &texture_refs,
                 white_texture,
                 shader_ref,
-                label,
             ),
             binding_ids: BindingGlobalIds::new(shader_ref, &texture_refs),
             shader,
@@ -159,8 +154,13 @@ impl MaterialGlob {
             textures,
         }
     }
+}
 
-    fn update(&mut self, app: &mut App, material: &impl Material, label: &str) {
+impl MaterialGlob {
+    fn update<T>(&mut self, app: &mut App, material: &T)
+    where
+        T: Material,
+    {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         self.shader = material.shader().deref().clone();
         self.textures = material.textures();
@@ -173,14 +173,8 @@ impl MaterialGlob {
         let shader = self.shader.get(app);
         let binding_ids = BindingGlobalIds::new(shader, &textures);
         if binding_ids != self.binding_ids {
-            self.bind_group = Self::create_bind_group(
-                &gpu,
-                &self.buffer,
-                &textures,
-                white_texture,
-                shader,
-                label,
-            );
+            self.bind_group =
+                Self::create_bind_group::<T>(&gpu, &self.buffer, &textures, white_texture, shader);
             self.binding_ids = binding_ids;
         }
     }
@@ -193,39 +187,50 @@ impl MaterialGlob {
         handle.get(app).white_texture.glob().get(app)
     }
 
-    fn create_bind_group(
+    fn create_bind_group<T>(
         gpu: &Gpu,
         buffer: &MaterialBuffer,
         textures: &[&TextureGlob],
         white_texture: &TextureGlob,
         shader: &ShaderGlob,
-        label: &str,
-    ) -> BufferBindGroup {
-        let entries = Self::create_bind_group_entries(
+    ) -> BufferBindGroup
+    where
+        T: Material,
+    {
+        let entries = Self::create_bind_group_entries::<T>(
             buffer,
             textures,
             white_texture,
             shader.texture_count,
-            label,
         );
-        BufferBindGroup::new(gpu, &entries, &shader.material_bind_group_layout, label)
+        BufferBindGroup::new(
+            gpu,
+            &entries,
+            &shader.material_bind_group_layout,
+            "material",
+        )
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn create_bind_group_entries<'a>(
+    fn create_bind_group_entries<'a, T>(
         buffer: &'a MaterialBuffer,
         textures: &'a [&TextureGlob],
         white_texture: &'a TextureGlob,
         shader_texture_count: u32,
-        label: &str,
-    ) -> Vec<BindGroupEntry<'a>> {
+    ) -> Vec<BindGroupEntry<'a>>
+    where
+        T: Material,
+    {
         let mut entries = vec![BindGroupEntry {
             binding: 0,
             resource: buffer.inner.resource(),
         }];
         for i in 0..shader_texture_count {
             let texture = textures.get(i as usize).unwrap_or_else(|| {
-                error!("Invalid number of textures for material `{}`", label);
+                error!(
+                    "Invalid number of textures for material of type `{}`",
+                    any::type_name::<T>()
+                );
                 &white_texture
             });
             entries.extend([
@@ -250,19 +255,15 @@ struct MaterialBuffer {
 }
 
 impl MaterialBuffer {
-    fn new<T>(gpu: &Gpu, material: &T, label: &str) -> Self
-    where
-        T: Material,
-    {
-        let data = Self::data(material);
+    fn new(gpu: &Gpu) -> Self {
         Self {
             inner: Buffer::new(
                 gpu,
-                &data,
+                &[],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-                label,
+                "material",
             ),
-            data,
+            data: vec![],
         }
     }
 
@@ -279,7 +280,7 @@ impl MaterialBuffer {
 
     fn data(material: &impl Material) -> Vec<u8> {
         bytemuck::try_cast_slice(&[material.data()])
-            .unwrap_or(&[0])
+            .unwrap_or(&[])
             .into()
     }
 }

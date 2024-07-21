@@ -3,8 +3,8 @@ use crate::Material;
 use derivative::Derivative;
 use glob::ShaderGlob;
 use log::error;
-use modor::{App, Builder, Glob, GlobRef};
-use modor_resources::{Resource, ResourceError, Source};
+use modor::{App, Builder, FromApp, Glob, GlobRef};
+use modor_resources::{ResSource, Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -54,7 +54,6 @@ pub struct Shader<T> {
     #[builder(form(value))]
     pub is_alpha_replaced: bool,
     loaded: ShaderLoaded,
-    label: String,
     glob: Glob<ShaderGlob>,
     is_invalid: bool,
     old_is_alpha_replaced: bool,
@@ -68,10 +67,6 @@ where
     type Source = ShaderSource;
     type Loaded = ShaderLoaded;
 
-    fn label(&self) -> &str {
-        &self.label
-    }
-
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
         let code =
             String::from_utf8(file_bytes).map_err(|err| ResourceError::Other(format!("{err}")))?;
@@ -84,12 +79,12 @@ where
         })
     }
 
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, source: &ResSource<Self>) {
         if let Some(loaded) = loaded {
             self.loaded = loaded;
-            self.update(app);
+            self.update(app, source);
         } else if self.is_alpha_replaced != self.old_is_alpha_replaced {
-            self.update(app);
+            self.update(app, source);
         }
     }
 }
@@ -101,18 +96,11 @@ where
     const DEFAULT_IS_ALPHA_REPLACED: bool = false;
 
     /// Creates a new shader.
-    ///
-    /// The `label` is used to identity the shader in logs.
-    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
-        let label = label.into();
-        let loaded = ShaderLoaded::default();
-        let glob = ShaderGlob::new::<T>(app, &loaded, Self::DEFAULT_IS_ALPHA_REPLACED, &label)
-            .expect("internal error: cannot load empty shader");
+    pub fn new(app: &mut App) -> Self {
         Self {
             is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            glob: Glob::new(app, glob),
-            loaded,
-            label,
+            glob: Glob::from_app(app),
+            loaded: ShaderLoaded::default(),
             is_invalid: false,
             old_is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
             phantom_data: PhantomData,
@@ -132,15 +120,15 @@ where
         self.is_invalid
     }
 
-    fn update(&mut self, app: &mut App) {
-        match ShaderGlob::new::<T>(app, &self.loaded, self.is_alpha_replaced, self.label()) {
+    fn update(&mut self, app: &mut App, source: &ResSource<Self>) {
+        match ShaderGlob::new::<T>(app, &self.loaded, self.is_alpha_replaced) {
             Ok(glob) => {
                 *self.glob.get_mut(app) = glob;
                 self.is_invalid = false;
             }
             Err(err) => {
                 self.is_invalid = true;
-                error!("Loading of shader '{}' has failed: {err}", self.label());
+                error!("Loading of shader from `{source:?}` has failed: {err}");
             }
         }
         self.old_is_alpha_replaced = self.is_alpha_replaced;

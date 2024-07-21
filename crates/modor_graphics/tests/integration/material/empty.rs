@@ -15,8 +15,8 @@ use modor_resources::{Res, ResLoad};
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn deref() {
     let mut app = App::new::<Root>(Level::Info);
-    let shader = Shader::new(&mut app, "main").load_from_path(&mut app, "../tests/assets/red.wgsl");
-    let material = TestMaterial::new(&shader).into_mat(&mut app, "main");
+    let shader = Shader::new(&mut app).load_from_path(&mut app, "../tests/assets/red.wgsl");
+    let material = TestMaterial::new(&shader).into_mat(&mut app);
     assert_eq!(material.shader, shader.glob());
 }
 
@@ -42,12 +42,12 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/red.wgsl");
-        let material = TestMaterial::new(&shader).into_mat(app, "main");
+        let shader = Shader::new(app).load_from_path(app, "../tests/assets/red.wgsl");
+        let material = TestMaterial::new(&shader).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());

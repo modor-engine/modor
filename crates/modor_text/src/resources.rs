@@ -12,13 +12,13 @@ pub(crate) struct TextResources {
 impl RootNode for TextResources {
     fn on_create(app: &mut App) -> Self {
         Self {
-            text_shader: Shader::new(app, "text-2d(modor_text)").load_from_source(
+            text_shader: Shader::new(app).load_from_source(
                 app,
                 ShaderSource::String(
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/text.wgsl")).into(),
                 ),
             ),
-            default_font: Font::new(app, "default(modor_text)").load_from_source(
+            default_font: Font::new(app).load_from_source(
                 app,
                 FontSource::Bytes(include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

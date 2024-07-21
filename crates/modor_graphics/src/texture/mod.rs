@@ -5,8 +5,8 @@ use crate::texture::internal::TextureLoaded;
 use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{App, Builder, Glob, GlobRef, Node};
-use modor_resources::{Resource, ResourceError, Source};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Node};
+use modor_resources::{ResSource, Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
 /// A texture that can be attached to a [material](crate::Mat).
@@ -31,7 +31,7 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///         let camera = resources.target.camera.glob().clone();
 ///         let texture = resources.texture.glob().clone();
 ///         Self {
-///             sprite: Sprite2D::new(app, "rectangle")
+///             sprite: Sprite2D::new(app)
 ///                 .with_material(|m| m.texture = texture)
 ///                 .with_model(|m| m.position = position)
 ///                 .with_model(|m| m.size = size)
@@ -49,8 +49,8 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// impl RootNode for Resources {
 ///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             texture: Texture::new(app, "rectangle").load_from_path(app, "my-texture.png"),
-///             target: Texture::new(app, "rectangle")
+///             texture: Texture::new(app).load_from_path(app, "my-texture.png"),
+///             target: Texture::new(app)
 ///                 .with_is_target_enabled(true)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(800, 600))),
 ///         }
@@ -100,17 +100,12 @@ pub struct Texture {
     #[builder(form(closure))]
     pub camera: Camera2D,
     loaded: TextureLoaded,
-    label: String,
     glob: Glob<TextureGlob>,
 }
 
 impl Resource for Texture {
     type Source = TextureSource;
     type Loaded = TextureLoaded;
-
-    fn label(&self) -> &str {
-        &self.label
-    }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
         Self::load_from_file(&file_bytes).map(Into::into)
@@ -124,7 +119,7 @@ impl Resource for Texture {
         }))
     }
 
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, _source: &ResSource<Self>) {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         if let Some(loaded) = loaded {
             self.loaded = loaded;
@@ -134,7 +129,6 @@ impl Resource for Texture {
                 self.is_repeated,
                 self.is_smooth,
                 self.is_buffer_enabled,
-                self.label(),
             );
             let size = Size::new(self.loaded.image.width(), self.loaded.image.height()).into();
             self.init_target(app, &gpu, size);
@@ -144,7 +138,6 @@ impl Resource for Texture {
             self.is_repeated,
             self.is_smooth,
             self.is_buffer_enabled,
-            self.label(),
         );
         self.update_target();
         self.camera.update(app);
@@ -160,26 +153,14 @@ impl Texture {
     pub(crate) const DEFAULT_IS_BUFFER_ENABLED: bool = false;
 
     /// Creates a new texture.
-    ///
-    /// The `label` is used to identity the texture in logs.
-    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let label = label.into();
-        let loaded = TextureLoaded::default();
-        let glob = TextureGlob::new(
-            app,
-            &loaded,
-            Self::DEFAULT_IS_REPEATED,
-            Self::DEFAULT_IS_SMOOTH,
-            Self::DEFAULT_IS_BUFFER_ENABLED,
-            &label,
-        );
-        let mut target = Target::new(app, &label);
+        let mut target = Target::new(app);
         target.supported_anti_aliasing_modes = app
             .get_mut::<SupportedAntiAliasingModes>()
             .get(&gpu, Self::DEFAULT_FORMAT)
             .to_vec();
-        let camera = Camera2D::new(app, &label, vec![target.glob().clone()]);
+        let camera = Camera2D::new(app, vec![target.glob().clone()]);
         Self {
             is_smooth: Self::DEFAULT_IS_SMOOTH,
             is_repeated: Self::DEFAULT_IS_REPEATED,
@@ -187,9 +168,8 @@ impl Texture {
             is_target_enabled: false,
             target,
             camera,
-            loaded,
-            label,
-            glob: Glob::new(app, glob),
+            loaded: TextureLoaded::default(),
+            glob: Glob::from_app(app),
         }
     }
 

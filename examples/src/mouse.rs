@@ -22,7 +22,7 @@ impl RootNode for Root {
         Self {
             pressed_buttons_label: text(app, 0.25, "Pressed buttons:"),
             pressed_buttons: text(app, -0.25, ""),
-            cursor: Sprite2D::new(app, "cursor")
+            cursor: Sprite2D::new(app)
                 .with_model(|m| m.size = Vec2::ONE * 0.02)
                 .with_material(|m| m.is_ellipse = true),
             tracker: CursorTracker::new(app),
@@ -43,7 +43,7 @@ impl Node for Root {
 }
 
 fn text(app: &mut App, position_y: f32, content: &str) -> Text2D {
-    Text2D::new(app, "text")
+    Text2D::new(app)
         .with_model(|m| m.position = Vec2::Y * position_y)
         .with_model(|m| m.size = Vec2::new(1., 0.15))
         .with_content(content.into())

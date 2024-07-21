@@ -22,9 +22,9 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let texture = Texture::new(app, "smiley").load_from_path(app, "smiley.png");
-        let shader = Shader::new(app, "blur").load_from_path(app, "blur.wgsl");
-        let material = BlurMaterial::new(&texture, &shader).into_mat(app, "blur-default");
+        let texture = Texture::new(app).load_from_path(app, "smiley.png");
+        let shader = Shader::new(app).load_from_path(app, "blur.wgsl");
+        let material = BlurMaterial::new(&texture, &shader).into_mat(app);
         Self {
             sprites: vec![
                 Sprite::new(app, Vec2::new(-0.25, 0.25), 0, material.glob()),

@@ -6,7 +6,7 @@ use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
 use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use fxhash::FxHashMap;
-use modor::App;
+use modor::{App, FromApp};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -19,12 +19,24 @@ use wgpu::{
     VertexState, VertexStepMode,
 };
 
-/// The global data of a [`Shader`](crate::Shader).
+/// The global data of a [`Shader`](Shader).
 #[derive(Debug)]
 pub struct ShaderGlob {
     pub(crate) material_bind_group_layout: BindGroupLayout,
     pub(crate) texture_count: u32,
     pub(crate) pipelines: FxHashMap<(TextureFormat, AntiAliasingMode), RenderPipeline>,
+}
+
+impl FromApp for ShaderGlob {
+    fn from_app(app: &mut App) -> Self {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let loaded = ShaderLoaded::default();
+        Self {
+            material_bind_group_layout: Self::create_material_bind_group_layout(&gpu, &loaded),
+            texture_count: 0,
+            pipelines: FxHashMap::default(),
+        }
+    }
 }
 
 impl ShaderGlob {
@@ -43,15 +55,13 @@ impl ShaderGlob {
         app: &mut App,
         loaded: &ShaderLoaded,
         is_alpha_replaced: bool,
-        label: &str,
     ) -> Result<Self, wgpu::Error>
     where
         T: 'static + Material,
     {
         let window_texture_format = app.get_mut::<Window>().texture_format();
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let material_bind_group_layout =
-            Self::create_material_bind_group_layout(&gpu, loaded, label);
+        let material_bind_group_layout = Self::create_material_bind_group_layout(&gpu, loaded);
         Ok(Self {
             texture_count: loaded.texture_count,
             pipelines: [window_texture_format, Some(Texture::DEFAULT_FORMAT)]
@@ -75,7 +85,6 @@ impl ShaderGlob {
                             anti_aliasing,
                             is_alpha_replaced,
                             &material_bind_group_layout,
-                            label,
                         )?,
                     ))
                 })
@@ -84,15 +93,11 @@ impl ShaderGlob {
         })
     }
 
-    fn create_material_bind_group_layout(
-        gpu: &Arc<Gpu>,
-        loaded: &ShaderLoaded,
-        label: &str,
-    ) -> BindGroupLayout {
+    fn create_material_bind_group_layout(gpu: &Arc<Gpu>, loaded: &ShaderLoaded) -> BindGroupLayout {
         gpu.device
             .create_bind_group_layout(&BindGroupLayoutDescriptor {
                 entries: &Self::create_bind_group_layout_entries(loaded),
-                label: Some(&format!("modor_bind_group_layout_texture:{label}")),
+                label: Some("modor_bind_group_layout_texture"),
             })
     }
 
@@ -137,20 +142,19 @@ impl ShaderGlob {
         anti_aliasing: AntiAliasingMode,
         is_alpha_replaced: bool,
         material_bind_group_layout: &BindGroupLayout,
-        label: &str,
     ) -> Result<RenderPipeline, wgpu::Error>
     where
         T: 'static + Material,
     {
         validation::validate_wgpu(gpu, false, || {
             let module = gpu.device.create_shader_module(ShaderModuleDescriptor {
-                label: Some(&format!("modor_shader:{label}")),
+                label: Some("modor_shader"),
                 source: wgpu::ShaderSource::Wgsl(loaded.code.as_str().into()),
             });
             let layout = gpu
                 .device
                 .create_pipeline_layout(&PipelineLayoutDescriptor {
-                    label: Some(&format!("modor_pipeline_layout:{label}")),
+                    label: Some("modor_pipeline_layout"),
                     bind_group_layouts: &[
                         &gpu.camera_bind_group_layout,
                         material_bind_group_layout,
@@ -168,7 +172,7 @@ impl ShaderGlob {
             }
             gpu.device
                 .create_render_pipeline(&RenderPipelineDescriptor {
-                    label: Some(&format!("modor_render_pipeline:{label}")),
+                    label: Some("modor_render_pipeline"),
                     layout: Some(&layout),
                     vertex: VertexState {
                         module: &module,

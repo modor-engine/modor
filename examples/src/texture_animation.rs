@@ -32,7 +32,7 @@ struct Resources {
 impl RootNode for Resources {
     fn on_create(app: &mut App) -> Self {
         Self {
-            smile_texture: Texture::new(app, "slime")
+            smile_texture: Texture::new(app)
                 .with_is_smooth(false)
                 .load_from_path(app, "slime.png"),
         }
@@ -69,7 +69,7 @@ impl Slime {
     fn new(app: &mut App) -> Self {
         let texture = app.get_mut::<Resources>().smile_texture.glob().clone();
         let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
-        let sprite = Sprite2D::new(app, "slime")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.texture = texture);
         Self {

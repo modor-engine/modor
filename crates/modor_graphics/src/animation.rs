@@ -35,7 +35,7 @@ use std::time::Duration;
 ///
 /// impl AnimatedSprite {
 ///     fn new(app: &mut App) -> Self {
-///         let texture = Texture::new(app, "spritesheet").load_from_path(app, "spritesheet.png");
+///         let texture = Texture::new(app).load_from_path(app, "spritesheet.png");
 ///         let animation_parts = vec![
 ///             TexturePart::new(0, 0),
 ///             TexturePart::new(1, 0),
@@ -45,7 +45,7 @@ use std::time::Duration;
 ///             TexturePart::new(2, 1),
 ///         ];
 ///         Self {
-///             sprite: Sprite2D::new(app, "sprite")
+///             sprite: Sprite2D::new(app)
 ///                 .with_material(|m| m.texture = texture.glob().clone()),
 ///             animation: TextureAnimation::new(3, 2)
 ///                 .with_fps(5)

@@ -87,12 +87,12 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(app, "main").load_from_path(app, SIMPLE_SHADER_PATH);
-        let material = TestMaterial::new(&shader).into_mat(app, "main");
+        let shader = Shader::new(app).load_from_path(app, SIMPLE_SHADER_PATH);
+        let material = TestMaterial::new(&shader).into_mat(app);
         let model1 = Model2D::new(app, material.glob())
             .with_position(Vec2::ZERO)
             .with_size(Vec2::ONE * 0.5)

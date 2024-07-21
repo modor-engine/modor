@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{App, Builder, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -179,8 +179,12 @@ impl Node for Body2D {
     fn on_enter(&mut self, app: &mut App) {
         let glob = self.glob.get(app);
         let changes = Body2DChanges::new(self, glob);
-        let rigid_body_handle = glob.rigid_body_handle;
-        let collider_handle = glob.collider_handle;
+        let rigid_body_handle = glob
+            .rigid_body_handle
+            .expect("internal error: no body handle");
+        let collider_handle = glob
+            .collider_handle
+            .expect("internal error: no collider handle");
         let interaction_groups = self
             .collision_group
             .as_ref()
@@ -209,12 +213,10 @@ impl Body2D {
             Self::default_rigid_body(Self::DEFAULT_POSITION),
             Self::default_collider(Self::DEFAULT_SIZE, active_hooks),
         );
-        let data = Body2DGlob::new(
-            Self::DEFAULT_POSITION,
-            Self::DEFAULT_SIZE,
-            rigid_body_handle,
-            collider_handle,
-        );
+        let glob = Glob::<Body2DGlob>::from_app(app);
+        let glob_ref = glob.get_mut(app);
+        glob_ref.rigid_body_handle = Some(rigid_body_handle);
+        glob_ref.collider_handle = Some(collider_handle);
         Self {
             position: Self::DEFAULT_POSITION,
             size: Self::DEFAULT_SIZE,
@@ -232,7 +234,7 @@ impl Body2D {
             collision_group: None,
             shape: Shape2D::Rectangle,
             collisions: vec![],
-            glob: Glob::new(app, data),
+            glob,
             pipeline: pipeline_handle,
         }
     }
@@ -384,8 +386,8 @@ pub struct Body2DGlob {
     pub size: Vec2,
     /// Rotation of the body in radians.
     pub rotation: f32,
-    pub(crate) rigid_body_handle: RigidBodyHandle,
-    pub(crate) collider_handle: ColliderHandle,
+    pub(crate) rigid_body_handle: Option<RigidBodyHandle>,
+    pub(crate) collider_handle: Option<ColliderHandle>,
     velocity: Vec2,
     angular_velocity: f32,
     force: Vec2,
@@ -395,19 +397,14 @@ pub struct Body2DGlob {
     shape: Shape2D,
 }
 
-impl Body2DGlob {
-    fn new(
-        position: Vec2,
-        size: Vec2,
-        rigid_body_handle: RigidBodyHandle,
-        collider_handle: ColliderHandle,
-    ) -> Self {
+impl Default for Body2DGlob {
+    fn default() -> Self {
         Self {
-            position,
-            size,
+            position: Body2D::DEFAULT_POSITION,
+            size: Body2D::DEFAULT_SIZE,
             rotation: 0.,
-            rigid_body_handle,
-            collider_handle,
+            rigid_body_handle: None,
+            collider_handle: None,
             velocity: Vec2::ZERO,
             angular_velocity: 0.,
             force: Vec2::ZERO,

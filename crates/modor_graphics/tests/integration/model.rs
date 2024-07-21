@@ -141,18 +141,18 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target1 = Texture::new(app, "target1")
+        let target1 = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let target2 = Texture::new(app, "target2")
+        let target2 = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let material1 = DefaultMaterial2D::new(app).into_mat(app, "material1");
+        let material1 = DefaultMaterial2D::new(app).into_mat(app);
         let material2 = DefaultMaterial2D::new(app)
             .with_color(Color::RED)
-            .into_mat(app, "material2");
+            .into_mat(app);
         let model = Model2D::new(app, material1.glob()).with_camera(target1.camera.glob().clone());
         Self {
             material1,
