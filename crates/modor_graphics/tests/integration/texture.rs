@@ -217,14 +217,14 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(20, 20)));
-        let texture = Texture::new(app, "main")
+        let texture = Texture::new(app)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::ONE));
-        let sprite = Sprite2D::new(app, "main")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.camera = target.camera.glob().clone())
             .with_material(|m| m.texture = texture.glob().clone());
         Self {

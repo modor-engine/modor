@@ -1,6 +1,6 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
-use modor::{App, Glob, GlobRef, Node, Visit};
+use modor::{App, FromApp, Glob, GlobRef, Node, Visit};
 use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
@@ -9,24 +9,15 @@ use wgpu::{
 
 #[derive(Debug, Visit, Node)]
 pub(crate) struct Mesh {
-    label: String,
     glob: Glob<MeshGlob>,
 }
 
 impl Mesh {
-    fn new(
-        app: &mut App,
-        vertices: Vec<Vertex>,
-        indices: Vec<u16>,
-        label: impl Into<String>,
-    ) -> Self {
-        let label = label.into();
-        let gpu = app.get_mut::<GpuManager>().get_or_init();
-        let glob = MeshGlob::new(gpu, &vertices, &indices, &label);
-        Self {
-            label,
-            glob: Glob::new(app, glob),
-        }
+    fn new(app: &mut App, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let glob = Glob::<MeshGlob>::from_app(app);
+        glob.get_mut(app).load(&gpu, &vertices, &indices);
+        Self { glob }
     }
 
     pub(crate) fn rectangle(app: &mut App) -> Self {
@@ -51,7 +42,6 @@ impl Mesh {
                 },
             ],
             vec![0, 1, 2, 0, 2, 3],
-            "rectangle",
         )
     }
 
@@ -62,28 +52,24 @@ impl Mesh {
 
 #[derive(Debug)]
 pub(crate) struct MeshGlob {
-    pub(crate) index_count: usize,
     pub(crate) vertex_buffer: Buffer<Vertex>,
     pub(crate) index_buffer: Buffer<u16>,
 }
 
-impl MeshGlob {
-    fn new(gpu: &Gpu, vertices: &[Vertex], indices: &[u16], label: &str) -> Self {
+impl FromApp for MeshGlob {
+    fn from_app(app: &mut App) -> Self {
+        let gpu = app.get_mut::<GpuManager>().get_or_init();
         Self {
-            index_count: indices.len(),
-            vertex_buffer: Buffer::new(
-                gpu,
-                vertices,
-                BufferUsages::VERTEX,
-                format!("mesh_vertices:{label}"),
-            ),
-            index_buffer: Buffer::new(
-                gpu,
-                indices,
-                BufferUsages::INDEX,
-                format!("mesh_indices:{label}"),
-            ),
+            vertex_buffer: Buffer::new(gpu, &[], BufferUsages::VERTEX, "mesh_vertices"),
+            index_buffer: Buffer::new(gpu, &[], BufferUsages::INDEX, "mesh_indices"),
         }
+    }
+}
+
+impl MeshGlob {
+    fn load(&mut self, gpu: &Gpu, vertices: &[Vertex], indices: &[u16]) {
+        self.vertex_buffer.update(gpu, vertices);
+        self.index_buffer.update(gpu, indices);
     }
 }
 

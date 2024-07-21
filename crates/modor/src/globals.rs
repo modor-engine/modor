@@ -1,6 +1,6 @@
 #![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
 
-use crate::{App, Node, RootNode, RootNodeHandle, Visit};
+use crate::{App, FromApp, Node, RootNode, RootNodeHandle, Visit};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -18,7 +18,8 @@ use std::sync::{Arc, Mutex};
 /// # use modor::*;
 /// #
 /// fn create_glob(app: &mut App) -> Glob<&'static str> {
-///     let glob = Glob::new(app, "shared value");
+///     let glob = Glob::from_app(app);
+///     *glob.get_mut(app) =  "shared value";
 ///     assert_eq!(glob.get(app), &"shared value");
 ///     glob
 /// }
@@ -37,12 +38,12 @@ pub struct Glob<T> {
     phantom: PhantomData<fn(T)>,
 }
 
-impl<T> Glob<T>
+impl<T> FromApp for Glob<T>
 where
-    T: 'static,
+    T: FromApp,
 {
-    /// Creates a new shared `value`.
-    pub fn new(app: &mut App, value: T) -> Self {
+    fn from_app(app: &mut App) -> Self {
+        let value = T::from_app(app);
         let globals = app.handle::<Globals<T>>();
         Self {
             ref_: GlobRef {
@@ -53,7 +54,12 @@ where
             phantom: PhantomData,
         }
     }
+}
 
+impl<T> Glob<T>
+where
+    T: 'static,
+{
     /// Returns the unique index of the shared value.
     ///
     /// Note that in case the [`Glob<T>`] and all associated [`GlobRef<T>`]s are dropped, this index
@@ -93,7 +99,8 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 /// # use modor::*;
 /// #
 /// fn create_glob_ref(app: &mut App) -> GlobRef<&'static str> {
-///     let glob = Glob::new(app, "shared value");
+///     let glob = Glob::from_app(app);
+///     *glob.get_mut(app) = "shared_value";
 ///     let ref_ = glob.as_ref().clone();
 ///     assert_eq!(ref_.get(app), &"shared value");
 ///     ref_

@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, Glob, Node, Visit};
+use modor::{App, FromApp, Glob, Node, Visit};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -25,10 +25,6 @@ use std::{any, fmt};
 ///     type Source = ContentSizeSource;
 ///     type Loaded = ContentSizeLoaded;
 ///
-///     fn label(&self) -> &str {
-///         "size"
-///     }
-///
 ///     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
 ///         Ok(ContentSizeLoaded {
 ///             size_in_bytes: file_bytes.len()
@@ -44,9 +40,10 @@ use std::{any, fmt};
 ///         })
 ///     }
 ///
-///     fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+///     fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, source: &ResSource<Self>) {
 ///         if let Some(loaded) = loaded {
 ///             self.size = Some(loaded.size_in_bytes);
+///             println!("Resource has been successfully loaded from `{source:?}`");
 ///         }
 ///     }
 /// }
@@ -95,7 +92,7 @@ use std::{any, fmt};
 #[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
     inner: T,
-    location: ResourceLocation<T>,
+    source: ResSource<T>,
     loading: Option<Loading<T>>,
     version: u64,
     state: ResourceState,
@@ -144,7 +141,7 @@ where
             Some(Loading::Sync(loaded)) => latest_loaded = Some(self.success(loaded)),
             None => (),
         }
-        self.inner.update(app, latest_loaded);
+        self.inner.update(app, latest_loaded, &self.source);
         self.glob.get_mut(app).state = self.state.clone();
     }
 }
@@ -165,13 +162,13 @@ where
     pub fn reload(&mut self) {
         self.state = ResourceState::Loading;
         self.loading = None;
-        match &self.location {
-            ResourceLocation::Path(path) => {
+        match &self.source {
+            ResSource::Path(path) => {
                 self.loading = Some(Loading::Path(AssetLoadingJob::new(path, |t| async {
                     T::load_from_file(t)
                 })));
             }
-            ResourceLocation::Source(source) => {
+            ResSource::Source(source) => {
                 if source.is_async() {
                     let source = source.clone();
                     self.loading = Some(Loading::Source(Job::new(async move { T::load(&source) })));
@@ -201,7 +198,7 @@ where
     /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
     /// `{executable_folder_path}/assets/{path}`.
     pub fn reload_with_path(&mut self, path: impl Into<String>) {
-        self.location = ResourceLocation::Path(path.into());
+        self.source = ResSource::Path(path.into());
         self.reload();
     }
 
@@ -210,7 +207,7 @@ where
     /// During reloading and in case the reloading fails, the previously loaded resource is
     /// still used.
     pub fn reload_with_source(&mut self, source: T::Source) {
-        self.location = ResourceLocation::Source(source);
+        self.source = ResSource::Source(source);
         self.reload();
     }
 
@@ -221,9 +218,9 @@ where
 
     fn fail(&mut self, err: ResourceError) {
         error!(
-            "Failed to load `{}` resource of type `{}`: {err}",
-            self.inner.label(),
+            "Failed to load resource of type `{}` from `{:?}`: {err}",
             any::type_name::<T>(),
+            self.source,
         );
         self.state = ResourceState::Error(err);
     }
@@ -234,8 +231,6 @@ pub trait ResLoad: Sized + Resource {
     /// Load a resource from a `path`.
     ///
     /// Resource loading is asynchronous.
-    ///
-    /// The `label` is used to identity the resource in logs.
     ///
     /// # Platform-specific
     ///
@@ -253,8 +248,6 @@ pub trait ResLoad: Sized + Resource {
     ///
     /// Resource loading is asynchronous if [`Self::Source::is_async()`](Source::is_async())
     /// returns `true`.
-    ///
-    /// The `label` is used to identity the resource in logs.
     fn load_from_source(self, app: &mut App, source: Self::Source) -> Res<Self>;
 }
 
@@ -265,16 +258,11 @@ where
     fn load_from_path(self, app: &mut App, path: impl Into<String>) -> Res<Self> {
         let mut res = Res {
             inner: self,
-            location: ResourceLocation::Path(path.into()),
+            source: ResSource::Path(path.into()),
             loading: None,
             version: 0,
             state: ResourceState::Loading,
-            glob: Glob::new(
-                app,
-                ResGlob {
-                    state: ResourceState::Loading,
-                },
-            ),
+            glob: Glob::from_app(app),
         };
         res.reload();
         res
@@ -283,16 +271,11 @@ where
     fn load_from_source(self, app: &mut App, source: Self::Source) -> Res<Self> {
         let mut res = Res {
             inner: self,
-            location: ResourceLocation::Source(source),
+            source: ResSource::Source(source),
             loading: None,
             version: 0,
             state: ResourceState::Loading,
-            glob: Glob::new(
-                app,
-                ResGlob {
-                    state: ResourceState::Loading,
-                },
-            ),
+            glob: Glob::from_app(app),
         };
         res.reload();
         res
@@ -329,14 +312,11 @@ impl ResourceState {
 /// # Examples
 ///
 /// See [`Res`].
-pub trait Resource {
+pub trait Resource: Sized {
     /// The custom source type.
     type Source: Source;
     /// The loaded resource type.
     type Loaded: Send + 'static;
-
-    /// Returns the label used to identity the resource in logs.
-    fn label(&self) -> &str;
 
     /// Loads the resource from file bytes.
     ///
@@ -359,11 +339,11 @@ pub trait Resource {
     /// In case resource loaded has just finished, `loaded` is `Some`.
     ///
     /// `label` can be used for logging.
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>);
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, source: &ResSource<Self>);
 }
 
 /// A trait for defining a source used to load a [`Resource`].
-pub trait Source: Clone + Send + 'static {
+pub trait Source: Clone + Send + Debug + 'static {
     /// Returns whether the resource is loaded asynchronously.
     fn is_async(&self) -> bool;
 }
@@ -395,9 +375,21 @@ pub struct ResGlob {
     pub state: ResourceState,
 }
 
-#[derive(Debug)]
-enum ResourceLocation<T: Resource> {
+impl Default for ResGlob {
+    fn default() -> Self {
+        Self {
+            state: ResourceState::Loading,
+        }
+    }
+}
+
+/// The source of a [`Res`].
+#[derive(Derivative)]
+#[derivative(Debug(bound = ""))]
+pub enum ResSource<T: Resource> {
+    /// A path.
     Path(String),
+    /// A custom source.
     Source(T::Source),
 }
 

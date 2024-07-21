@@ -33,12 +33,12 @@ impl Node for Root {
 impl Root {
     fn target_rectangle(app: &mut App) -> Sprite2D {
         let target_texture = app.get_mut::<TextureTarget>().texture.glob().clone();
-        Sprite2D::new(app, "target-rectangle").with_material(|m| m.texture = target_texture)
+        Sprite2D::new(app).with_material(|m| m.texture = target_texture)
     }
 
     fn inner_rectangle(app: &mut App) -> Sprite2D {
         let target_camera = app.get_mut::<TextureTarget>().camera.glob().clone();
-        Sprite2D::new(app, "target-rectangle")
+        Sprite2D::new(app)
             .with_model(|m| m.size = Vec2::ONE * 0.2)
             .with_model(|m| m.camera = target_camera)
             .with_material(|m| m.color = Color::RED)
@@ -53,7 +53,7 @@ struct TextureTarget {
 
 impl RootNode for TextureTarget {
     fn on_create(app: &mut App) -> Self {
-        let texture = Texture::new(app, "texture-target")
+        let texture = Texture::new(app)
             .with_is_target_enabled(true)
             .with_target(|target| {
                 target.anti_aliasing = target
@@ -64,7 +64,7 @@ impl RootNode for TextureTarget {
                     .unwrap_or_default();
             })
             .load_from_source(app, TextureSource::Size(Size::new(300, 300)));
-        let camera = Camera2D::new(app, "texture-target", vec![texture.target.glob().clone()]);
+        let camera = Camera2D::new(app, vec![texture.target.glob().clone()]);
         Self { texture, camera }
     }
 }

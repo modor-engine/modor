@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{App, Builder, Glob, GlobRef, Node, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Node, Visit};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -30,7 +30,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///     fn new(app: &mut App) -> Self {
 ///         let camera = app.get_mut::<MovingCamera>().camera.glob().clone();
 ///         Self {
-///             sprite: Sprite2D::new(app, "object")
+///             sprite: Sprite2D::new(app)
 ///                 .with_model(|m| m.size = Vec2::ONE * 0.2)
 ///                 .with_model(|m| m.camera = camera)
 ///         }
@@ -52,7 +52,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///     fn on_create(app: &mut App) -> Self {
 ///         let target = app.get_mut::<Window>().target.glob().clone();
 ///         Self {
-///             camera: Camera2D::new(app, "moving", vec![target])
+///             camera: Camera2D::new(app, vec![target])
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2
 ///         }
 ///     }
@@ -76,7 +76,6 @@ pub struct Camera2D {
     #[builder(form(closure))]
     pub targets: Vec<GlobRef<TargetGlob>>,
     glob: Glob<Camera2DGlob>,
-    label: String,
 }
 
 impl Node for Camera2D {
@@ -90,23 +89,20 @@ impl Node for Camera2D {
         glob.register_targets(&self.targets);
         for (target_index, target_size) in target_sizes {
             let transform = self.gpu_transform(target_size.into());
-            glob.update_target(&gpu, target_index, transform, &self.label);
+            glob.update_target(&gpu, target_index, transform);
         }
     }
 }
 
 impl Camera2D {
     /// Creates a new camera.
-    ///
-    /// The `label` is used to identity the camera in logs.
-    pub fn new(app: &mut App, label: impl Into<String>, targets: Vec<GlobRef<TargetGlob>>) -> Self {
+    pub fn new(app: &mut App, targets: Vec<GlobRef<TargetGlob>>) -> Self {
         Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
             rotation: 0.,
             targets,
-            glob: Glob::new(app, Camera2DGlob::default()),
-            label: label.into(),
+            glob: Glob::from_app(app),
         }
     }
 
@@ -183,11 +179,11 @@ impl Camera2DGlob {
         self.targets = targets.into();
     }
 
-    fn update_target(&mut self, gpu: &Gpu, target_index: usize, transform: Mat4, label: &str) {
+    fn update_target(&mut self, gpu: &Gpu, target_index: usize, transform: Mat4) {
         match self.target_uniforms.entry(target_index) {
             Entry::Occupied(mut entry) => entry.get_mut().update(gpu, transform),
             Entry::Vacant(entry) => {
-                entry.insert(CameraUniform::new(gpu, transform, label));
+                entry.insert(CameraUniform::new(gpu, transform));
             }
         }
     }
@@ -212,13 +208,12 @@ struct CameraUniform {
 impl CameraUniform {
     const BINDING: u32 = 0;
 
-    fn new(gpu: &Gpu, transform: Mat4, label: &str) -> Self {
-        let label = format!("camera_2d:{label}");
+    fn new(gpu: &Gpu, transform: Mat4) -> Self {
         let buffer = Buffer::new(
             gpu,
             &[transform.to_array()],
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &label,
+            "camera_2d",
         );
         Self {
             bind_group: BufferBindGroup::uniform(
@@ -226,7 +221,7 @@ impl CameraUniform {
                 &buffer,
                 Self::BINDING,
                 &gpu.camera_bind_group_layout,
-                &label,
+                "camera_2d",
             ),
             buffer,
             transform,

@@ -26,15 +26,19 @@ where
         usages: BufferUsages,
         label: impl Into<String>,
     ) -> Self {
-        let data = bytemuck::cast_slice(data);
+        let cast_data = Self::cast_data(data);
         let label = label.into();
         Self {
-            inner: Self::create_buffer(gpu, data, usages, &label),
+            inner: Self::create_buffer(gpu, cast_data, usages, &label),
             len: data.len(),
             usages,
             label,
             phantom: PhantomData,
         }
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.len
     }
 
     pub(crate) fn resource(&self) -> BindingResource<'_> {
@@ -46,12 +50,12 @@ where
     }
 
     pub(crate) fn update(&mut self, gpu: &Gpu, data: &[T]) {
-        let data = bytemuck::cast_slice(data);
+        let cast_data = Self::cast_data(data);
         if self.len < data.len() {
-            self.inner = Self::create_buffer(gpu, data, self.usages, &self.label);
+            self.inner = Self::create_buffer(gpu, cast_data, self.usages, &self.label);
             self.len = data.len();
         } else {
-            gpu.queue.write_buffer(&self.inner, 0, data);
+            gpu.queue.write_buffer(&self.inner, 0, cast_data);
         }
     }
 
@@ -61,6 +65,15 @@ where
             contents: data,
             usage: usages,
         })
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn cast_data(data: &[T]) -> &[u8] {
+        if data.is_empty() {
+            &[0; wgpu::COPY_BUFFER_ALIGNMENT as usize]
+        } else {
+            bytemuck::cast_slice(data)
+        }
     }
 }
 

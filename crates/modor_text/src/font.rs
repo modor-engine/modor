@@ -1,6 +1,6 @@
 use ab_glyph::FontVec;
-use modor::{App, Glob, GlobRef};
-use modor_graphics::modor_resources::{Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, GlobRef};
+use modor_graphics::modor_resources::{ResSource, Resource, ResourceError, Source};
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
 ///
@@ -12,17 +12,12 @@ use modor_graphics::modor_resources::{Resource, ResourceError, Source};
 ///
 /// See [`Text2D`](crate::Text2D).
 pub struct Font {
-    label: String,
     glob: Glob<FontGlob>,
 }
 
 impl Resource for Font {
     type Source = FontSource;
     type Loaded = FontVec;
-
-    fn label(&self) -> &str {
-        &self.label
-    }
 
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
         FontVec::try_from_vec(file_bytes).map_err(|_| ResourceError::Other("invalid font".into()))
@@ -35,7 +30,7 @@ impl Resource for Font {
         }
     }
 
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>) {
+    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, _source: &ResSource<Self>) {
         let glob = self.glob.get_mut(app);
         if let Some(loaded) = loaded {
             glob.font = Some(loaded);
@@ -48,12 +43,9 @@ impl Resource for Font {
 
 impl Font {
     /// Creates a new font.
-    ///
-    /// The `label` is used to identity the font in logs.
-    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         Self {
-            label: label.into(),
-            glob: Glob::new(app, FontGlob::default()),
+            glob: Glob::from_app(app),
         }
     }
 

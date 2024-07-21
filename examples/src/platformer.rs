@@ -122,7 +122,7 @@ impl Platform {
             .with_size(size)
             .with_velocity(velocity)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(app, "platform")
+        let sprite = Sprite2D::new(app)
             .with_model(|m| m.body = Some(body.glob().clone()))
             .with_material(|m| m.color = Color::GREEN);
         Self {
@@ -162,8 +162,7 @@ impl RootNode for Character {
             .with_collision_group(Some(collision_group))
             .with_mass(CHARACTER_MASS)
             .with_force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS);
-        let sprite =
-            Sprite2D::new(app, "platform").with_model(|m| m.body = Some(body.glob().clone()));
+        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone()));
         Self {
             body,
             sprite,

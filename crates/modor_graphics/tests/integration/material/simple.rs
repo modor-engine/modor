@@ -76,16 +76,16 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "main")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(app, "main")
+        let texture = Texture::new(app)
             .with_is_smooth(false)
             .load_from_path(app, "../tests/assets/opaque-texture.png");
-        let shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/simple.wgsl");
-        let red_shader = Shader::new(app, "main").load_from_path(app, "../tests/assets/red.wgsl");
-        let material = TestMaterial::new(&texture, &shader).into_mat(app, "main");
+        let shader = Shader::new(app).load_from_path(app, "../tests/assets/simple.wgsl");
+        let red_shader = Shader::new(app).load_from_path(app, "../tests/assets/red.wgsl");
+        let material = TestMaterial::new(&texture, &shader).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
             .with_camera(target.camera.glob().clone());

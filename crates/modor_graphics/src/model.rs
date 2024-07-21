@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{App, Builder, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
@@ -37,7 +37,7 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 ///         let material = DefaultMaterial2D::new(app)
 ///             .with_color(color)
 ///             .with_is_ellipse(true)
-///             .into_mat(app, "circle");
+///             .into_mat(app);
 ///         let model = Model2D::new(app, material.glob())
 ///             .with_position(position)
 ///             .with_size(Vec2::ONE * radius * 2.);
@@ -121,7 +121,7 @@ where
             rotation: 0.,
             body: None,
             z_index: 0,
-            glob: Glob::new(app, Model2DGlob),
+            glob: Glob::from_app(app),
             camera,
             material,
             mesh,
@@ -141,7 +141,7 @@ where
 
 /// The global data of a [`Model2D`].
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Model2DGlob;
 
 /// The properties of an instance group.

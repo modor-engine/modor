@@ -33,7 +33,7 @@ impl Root {
         let window_size = window.size();
         let camera = window.camera.glob().clone();
         let position = camera.get(app).world_position(window_size, finger_position);
-        Sprite2D::new(app, "finger")
+        Sprite2D::new(app)
             .with_model(|m| m.position = position)
             .with_model(|m| m.size = Vec2::ONE * 0.3)
             .with_material(|m| m.is_ellipse = true)

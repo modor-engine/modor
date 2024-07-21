@@ -52,13 +52,13 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .with_is_smooth(false)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
         Self {
-            sprite: Sprite2D::new(app, "sprite")
+            sprite: Sprite2D::new(app)
                 .with_model(|m| m.size = Vec2::ONE * 0.5)
                 .with_model(|m| m.rotation = FRAC_PI_4)
                 .with_model(|m| m.camera = target.camera.glob().clone()),

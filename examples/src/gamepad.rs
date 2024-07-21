@@ -56,7 +56,7 @@ impl Node for Root {
 }
 
 fn text(app: &mut App, position_y: f32, content: &str) -> Text2D {
-    Text2D::new(app, "text")
+    Text2D::new(app)
         .with_model(|m| m.position = Vec2::Y * position_y)
         .with_model(|m| m.size = Vec2::new(1., 0.15))
         .with_content(content.into())

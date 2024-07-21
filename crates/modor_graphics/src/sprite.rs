@@ -21,10 +21,8 @@ pub struct Sprite2D {
 
 impl Sprite2D {
     /// Creates a new sprite.
-    ///
-    /// The `label` is used to identity the material in logs.
-    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
-        let material = DefaultMaterial2D::new(app).into_mat(app, label);
+    pub fn new(app: &mut App) -> Self {
+        let material = DefaultMaterial2D::new(app).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self { material, model }
     }

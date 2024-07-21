@@ -43,7 +43,7 @@ impl RootNode for Root {
         }
         Self {
             last_update: Instant::now(),
-            background: Sprite2D::new(app, "background"),
+            background: Sprite2D::new(app),
             are_cells_alive,
             cells: vec![],
         }
@@ -107,7 +107,7 @@ impl Root {
     }
 
     fn alive_cell(app: &mut App) -> Sprite2D {
-        Sprite2D::new(app, "cell")
+        Sprite2D::new(app)
             .with_model(|m| m.size = Vec2::ONE / GRID_SIZE as f32)
             .with_model(|m| m.z_index = 1)
             .with_material(|m| m.color = Color::BLACK)

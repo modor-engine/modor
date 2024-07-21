@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::texture::internal::TextureLoaded;
 use crate::{Color, Size, Texture};
-use modor::{App, RootNodeHandle};
+use modor::{App, FromApp, RootNodeHandle};
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -24,6 +24,19 @@ pub struct TextureGlob {
     is_smooth: bool,
     is_repeated: bool,
     gpu_manager: RootNodeHandle<GpuManager>,
+}
+
+impl FromApp for TextureGlob {
+    fn from_app(app: &mut App) -> Self {
+        let loaded = TextureLoaded::default();
+        Self::new(
+            app,
+            &loaded,
+            Texture::DEFAULT_IS_REPEATED,
+            Texture::DEFAULT_IS_SMOOTH,
+            Texture::DEFAULT_IS_BUFFER_ENABLED,
+        )
+    }
 }
 
 impl TextureGlob {
@@ -86,13 +99,12 @@ impl TextureGlob {
         is_repeated: bool,
         is_smooth: bool,
         is_buffer_enabled: bool,
-        label: &str,
     ) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init();
-        let texture = Self::create_texture(gpu, loaded, label);
+        let texture = Self::create_texture(gpu, loaded);
         Self::write_texture(gpu, loaded, &texture);
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let sampler = Self::create_sampler(gpu, is_repeated, is_smooth, label);
+        let sampler = Self::create_sampler(gpu, is_repeated, is_smooth);
         let size = Size::new(loaded.image.width(), loaded.image.height());
         Self {
             size,
@@ -100,7 +112,7 @@ impl TextureGlob {
             view,
             sampler,
             texture,
-            buffer: is_buffer_enabled.then(|| Self::create_buffer(gpu, size, label)),
+            buffer: is_buffer_enabled.then(|| Self::create_buffer(gpu, size)),
             submission_index: None,
             is_smooth,
             is_repeated,
@@ -114,15 +126,14 @@ impl TextureGlob {
         is_repeated: bool,
         is_smooth: bool,
         is_buffer_enabled: bool,
-        label: &str,
     ) {
         if self.is_smooth != is_smooth || self.is_repeated != is_repeated {
-            self.sampler = Self::create_sampler(gpu, is_repeated, is_smooth, label);
+            self.sampler = Self::create_sampler(gpu, is_repeated, is_smooth);
             self.is_smooth = is_smooth;
             self.is_repeated = is_repeated;
         }
         if self.buffer.is_none() && is_buffer_enabled {
-            self.buffer = Some(Self::create_buffer(gpu, self.size, label));
+            self.buffer = Some(Self::create_buffer(gpu, self.size));
         } else if self.buffer.is_some() && !is_buffer_enabled {
             self.buffer = None;
         }
@@ -132,9 +143,9 @@ impl TextureGlob {
         self.copy_texture_in_buffer(gpu);
     }
 
-    fn create_texture(gpu: &Gpu, loaded: &TextureLoaded, label: &str) -> wgpu::Texture {
+    fn create_texture(gpu: &Gpu, loaded: &TextureLoaded) -> wgpu::Texture {
         gpu.device.create_texture(&TextureDescriptor {
-            label: Some(&format!("modor_texture:{label}")),
+            label: Some("modor_texture"),
             size: Extent3d {
                 width: loaded.image.width(),
                 height: loaded.image.height(),
@@ -174,14 +185,14 @@ impl TextureGlob {
         );
     }
 
-    fn create_sampler(gpu: &Gpu, is_repeated: bool, is_smooth: bool, label: &str) -> Sampler {
+    fn create_sampler(gpu: &Gpu, is_repeated: bool, is_smooth: bool) -> Sampler {
         let address_mode = if is_repeated {
             AddressMode::Repeat
         } else {
             AddressMode::ClampToEdge
         };
         gpu.device.create_sampler(&SamplerDescriptor {
-            label: Some(&format!("modor_texture_sampler:{label}")),
+            label: Some("modor_texture_sampler"),
             address_mode_u: address_mode,
             address_mode_v: address_mode,
             address_mode_w: address_mode,
@@ -200,10 +211,10 @@ impl TextureGlob {
         })
     }
 
-    fn create_buffer(gpu: &Gpu, size: Size, label: &str) -> Buffer {
+    fn create_buffer(gpu: &Gpu, size: Size) -> Buffer {
         let padded_bytes_per_row = Self::calculate_padded_row_bytes(size.width);
         gpu.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(&format!("modor_texture_buffer:{label}")),
+            label: Some("modor_texture_buffer"),
             size: u64::from(padded_bytes_per_row * size.height),
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,

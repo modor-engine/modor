@@ -162,7 +162,7 @@ struct Root {
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
         Self {
-            texture: Texture::new(app, "main")
+            texture: Texture::new(app)
                 .with_is_buffer_enabled(true)
                 .load_from_source(app, TextureSource::Bytes(TEXTURE_BYTES)),
         }

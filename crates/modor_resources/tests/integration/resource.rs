@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, Node, RootNode, Visit};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{Res, ResLoad, Resource, ResourceError, ResourceState, Source};
+use modor_resources::{Res, ResLoad, ResSource, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -177,10 +177,6 @@ impl Resource for ContentSize {
     type Source = ContentSizeSource;
     type Loaded = ContentSizeLoaded;
 
-    fn label(&self) -> &str {
-        "res"
-    }
-
     fn load_from_file(file_bytes: Vec<u8>) -> Result<Self::Loaded, ResourceError> {
         thread::sleep(Duration::from_millis(10));
         if file_bytes.is_empty() {
@@ -206,7 +202,7 @@ impl Resource for ContentSize {
         }
     }
 
-    fn update(&mut self, _app: &mut App, loaded: Option<Self::Loaded>) {
+    fn update(&mut self, _app: &mut App, loaded: Option<Self::Loaded>, _source: &ResSource<Self>) {
         if let Some(loaded) = loaded {
             self.size = Some(loaded.size);
         }

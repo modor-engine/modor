@@ -60,12 +60,12 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let target = Texture::new(app, "target")
+        let target = Texture::new(app)
             .with_is_buffer_enabled(true)
             .with_is_target_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(100, 50)));
         Self {
-            text: Text2D::new(app, "main")
+            text: Text2D::new(app)
                 .with_content("text\nto\nrender".into())
                 .with_texture(|t| t.is_smooth = false)
                 .with_model(|m| m.camera = target.camera.glob().clone()),

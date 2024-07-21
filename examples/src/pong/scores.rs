@@ -57,7 +57,7 @@ impl Scores {
     }
 
     fn score_text(app: &mut App, side: Side) -> Text2D {
-        Text2D::new(app, "score")
+        Text2D::new(app)
             .with_model(|m| m.position.x = side.x_sign() * FIELD_SIZE.x / 4.)
             .with_model(|m| m.position.y = FIELD_SIZE.y / 2. - Self::TEXT_HEIGHT / 2.)
             .with_model(|m| m.size = Vec2::new(0.3, Self::TEXT_HEIGHT))

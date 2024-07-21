@@ -23,10 +23,10 @@ impl RootNode for Root {
         let size = Vec2::new(1., 0.2);
         let font = app.get_mut::<Resources>().font.glob().clone();
         Self {
-            background: Sprite2D::new(app, "background")
+            background: Sprite2D::new(app)
                 .with_model(|m| m.size = size)
                 .with_material(|m| m.color = Color::rgb(0.1, 0.1, 0.1)),
-            text: Text2D::new(app, "text")
+            text: Text2D::new(app)
                 .with_content("Loading".into())
                 .with_font(font)
                 .with_font_height(300.)
@@ -61,7 +61,7 @@ struct Resources {
 impl RootNode for Resources {
     fn on_create(app: &mut App) -> Self {
         Self {
-            font: Font::new(app, "main").load_from_path(app, "IrishGrover-Regular.ttf"),
+            font: Font::new(app).load_from_path(app, "IrishGrover-Regular.ttf"),
         }
     }
 }

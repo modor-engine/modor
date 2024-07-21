@@ -25,7 +25,7 @@ use std::iter;
 ///     fn on_create(app: &mut App) -> Self {
 ///         let font = app.get_mut::<Resources>().font.glob().clone();
 ///         Self {
-///             text: Text2D::new(app, "text")
+///             text: Text2D::new(app)
 ///                 .with_content("Hello world!".into())
 ///                 .with_font(font)
 ///                 .with_font_height(200.)
@@ -42,7 +42,7 @@ use std::iter;
 /// impl RootNode for Resources {
 ///     fn on_create(app: &mut App) -> Self {
 ///         Self {
-///             font: Font::new(app, "main").load_from_path(app, "my-font.ttf"),
+///             font: Font::new(app).load_from_path(app, "my-font.ttf"),
 ///         }
 ///     }
 /// }
@@ -119,14 +119,11 @@ impl Text2D {
     const TEXTURE_PADDING_PX: u32 = 1;
 
     /// Creates a new sprite.
-    ///
-    /// The `label` is used to identity the texture and the material in logs.
-    pub fn new(app: &mut App, label: impl Into<String>) -> Self {
-        let label = label.into();
+    pub fn new(app: &mut App) -> Self {
         let font = app.get_mut::<TextResources>().default_font.glob().clone();
-        let texture = Texture::new(app, &label)
+        let texture = Texture::new(app)
             .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(app, texture.glob().clone()).into_mat(app, label);
+        let material = TextMaterial2D::new(app, texture.glob().clone()).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self {
             content: String::new(),

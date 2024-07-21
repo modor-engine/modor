@@ -19,8 +19,7 @@ impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
         let background_texture = app.get_mut::<Resources>().background_texture.glob().clone();
         Self {
-            background: Sprite2D::new(app, "background")
-                .with_material(|m| m.texture = background_texture),
+            background: Sprite2D::new(app).with_material(|m| m.texture = background_texture),
             smileys: vec![
                 Smiley::new(
                     app,
@@ -52,9 +51,8 @@ struct Resources {
 impl RootNode for Resources {
     fn on_create(app: &mut App) -> Self {
         Self {
-            background_texture: Texture::new(app, "background")
-                .load_from_path(app, "background.png"),
-            smiley_texture: Texture::new(app, "smiley").load_from_path(app, "smiley.png"),
+            background_texture: Texture::new(app).load_from_path(app, "background.png"),
+            smiley_texture: Texture::new(app).load_from_path(app, "smiley.png"),
         }
     }
 }
@@ -101,7 +99,7 @@ impl Smiley {
     ) -> Self {
         let texture = app.get_mut::<Resources>().smiley_texture.glob().clone();
         Self {
-            sprite: Sprite2D::new(app, "smiley")
+            sprite: Sprite2D::new(app)
                 .with_model(|m| m.position = position)
                 .with_model(|m| m.size = Vec2::ONE * 0.2)
                 .with_model(|m| m.z_index = z_index)
