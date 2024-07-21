@@ -32,9 +32,9 @@ fn set_background() {
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.target.glob().clone();
+    let target = root(&mut app).target.target.glob().to_ref();
     assert_eq!(target.get(&app).size, Size::new(30, 20));
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     (app, target)
 }
 
@@ -54,7 +54,7 @@ impl RootNode for Root {
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().clone());
+        let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().to_ref());
         Self { sprite, target }
     }
 }

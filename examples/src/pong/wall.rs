@@ -23,7 +23,7 @@ impl Wall {
             .with_position(orientation.position())
             .with_size(orientation.size());
         Self {
-            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone())),
+            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref())),
             body,
         }
     }

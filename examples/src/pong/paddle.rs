@@ -51,14 +51,14 @@ impl Paddle {
     }
 
     fn new(app: &mut App, side: Side, controller: Option<PlayerControls>) -> Self {
-        let group = app.get_mut::<CollisionGroups>().paddle.glob().clone();
+        let group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(Vec2::X * 0.4 * side.x_sign())
             .with_size(Self::SIZE)
             .with_collision_group(Some(group))
             .with_mass(1.);
         Self {
-            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone())),
+            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref())),
             body,
             controls: controller,
             window: app.handle(),
@@ -83,7 +83,7 @@ impl Paddle {
             if inputs.fingers.pressed_iter().count() > 0 {
                 let window = self.window.get(app);
                 let window_size = window.size();
-                let camera = window.camera.glob().clone();
+                let camera = window.camera.glob();
                 inputs
                     .fingers
                     .pressed_iter()

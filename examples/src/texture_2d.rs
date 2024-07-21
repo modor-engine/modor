@@ -17,7 +17,11 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        let background_texture = app.get_mut::<Resources>().background_texture.glob().clone();
+        let background_texture = app
+            .get_mut::<Resources>()
+            .background_texture
+            .glob()
+            .to_ref();
         Self {
             background: Sprite2D::new(app).with_material(|m| m.texture = background_texture),
             smileys: vec![
@@ -97,7 +101,7 @@ impl Smiley {
         velocity: Vec2,
         angular_velocity: f32,
     ) -> Self {
-        let texture = app.get_mut::<Resources>().smiley_texture.glob().clone();
+        let texture = app.get_mut::<Resources>().smiley_texture.glob().to_ref();
         Self {
             sprite: Sprite2D::new(app)
                 .with_model(|m| m.position = position)

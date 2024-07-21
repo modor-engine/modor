@@ -18,7 +18,7 @@ fn create_default() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_properties() {
     let (mut app, target) = configure_app();
-    let texture = root(&mut app).texture.glob().clone();
+    let texture = root(&mut app).texture.glob().to_ref();
     root(&mut app).material.texture = texture;
     root(&mut app).material.is_ellipse = true;
     root(&mut app).material.color = Color::DARK_GRAY;
@@ -30,7 +30,7 @@ fn set_properties() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = app.get_mut::<Root>().target.glob().clone();
+    let target = app.get_mut::<Root>().target.glob().to_ref();
     (app, target)
 }
 
@@ -58,7 +58,7 @@ impl RootNode for Root {
         let material = DefaultMaterial2D::new(app).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         Self {
             texture,
             material,

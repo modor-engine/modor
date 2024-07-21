@@ -1,3 +1,8 @@
+#![allow(
+    clippy::non_canonical_clone_impl,
+    clippy::non_canonical_partial_ord_impl
+)] // warnings caused by Derivative
+
 //! Modor is a *mod*ular and *o*bject-o*r*iented game engine.
 //!
 //! It has been designed with the following principles in mind:

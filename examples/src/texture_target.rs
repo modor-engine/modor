@@ -32,12 +32,12 @@ impl Node for Root {
 
 impl Root {
     fn target_rectangle(app: &mut App) -> Sprite2D {
-        let target_texture = app.get_mut::<TextureTarget>().texture.glob().clone();
+        let target_texture = app.get_mut::<TextureTarget>().texture.glob().to_ref();
         Sprite2D::new(app).with_material(|m| m.texture = target_texture)
     }
 
     fn inner_rectangle(app: &mut App) -> Sprite2D {
-        let target_camera = app.get_mut::<TextureTarget>().camera.glob().clone();
+        let target_camera = app.get_mut::<TextureTarget>().camera.glob().to_ref();
         Sprite2D::new(app)
             .with_model(|m| m.size = Vec2::ONE * 0.2)
             .with_model(|m| m.camera = target_camera)
@@ -64,7 +64,7 @@ impl RootNode for TextureTarget {
                     .unwrap_or_default();
             })
             .load_from_source(app, TextureSource::Size(Size::new(300, 300)));
-        let camera = Camera2D::new(app, vec![texture.target.glob().clone()]);
+        let camera = Camera2D::new(app, vec![texture.target.glob().to_ref()]);
         Self { texture, camera }
     }
 }

@@ -3,7 +3,7 @@
 use crate::TextureGlob;
 use image::imageops::FilterType;
 use image::{ColorType, ImageBuffer, Rgba};
-use modor::{App, GlobRef};
+use modor::{App, Glob};
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -40,7 +40,7 @@ use std::{env, fs};
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_same(&mut app, &texture, "expected_texture");
 ///
 /// #[derive(Node, Visit)]
@@ -59,7 +59,7 @@ use std::{env, fs};
 /// }
 /// # }
 /// ```
-pub fn assert_same(app: &App, texture: &GlobRef<TextureGlob>, key: impl AsRef<str>) {
+pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>) {
     assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
 }
 
@@ -100,7 +100,7 @@ pub fn assert_same(app: &App, texture: &GlobRef<TextureGlob>, key: impl AsRef<st
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_max_component_diff(&mut app, &texture, "expected_texture", 1, 1);
 ///
 /// #[derive(Node, Visit)]
@@ -121,7 +121,7 @@ pub fn assert_same(app: &App, texture: &GlobRef<TextureGlob>, key: impl AsRef<st
 /// ```
 pub fn assert_max_component_diff(
     app: &App,
-    texture: &GlobRef<TextureGlob>,
+    texture: &Glob<TextureGlob>,
     key: impl AsRef<str>,
     max_component_diff: u8,
     downscale_factor: u8,
@@ -168,7 +168,7 @@ pub fn assert_max_component_diff(
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().clone();
+/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_max_pixel_diff(&mut app, &texture, "expected_texture", 10);
 ///
 /// #[derive(Node, Visit)]
@@ -189,7 +189,7 @@ pub fn assert_max_component_diff(
 /// ```
 pub fn assert_max_pixel_diff(
     app: &App,
-    texture: &GlobRef<TextureGlob>,
+    texture: &Glob<TextureGlob>,
     key: impl AsRef<str>,
     max_pixel_count_diff: usize,
 ) {
@@ -201,7 +201,7 @@ pub fn assert_max_pixel_diff(
     );
 }
 
-fn assert_texture(app: &App, texture: &GlobRef<TextureGlob>, key: &str, max_diff: MaxTextureDiff) {
+fn assert_texture(app: &App, texture: &Glob<TextureGlob>, key: &str, max_diff: MaxTextureDiff) {
     let glob = texture.get(app);
     let data = glob.buffer(app);
     let size = glob.size;

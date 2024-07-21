@@ -40,7 +40,7 @@ fn apply_right_alignment() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     (app, target)
 }
 
@@ -68,7 +68,7 @@ impl RootNode for Root {
             text: Text2D::new(app)
                 .with_content("text\nto\nrender".into())
                 .with_texture(|t| t.is_smooth = false)
-                .with_model(|m| m.camera = target.camera.glob().clone()),
+                .with_model(|m| m.camera = target.camera.glob().to_ref()),
             target,
         }
     }

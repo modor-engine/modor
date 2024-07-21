@@ -217,8 +217,8 @@ fn drop_body() {
 }
 
 fn configure_colliding_groups(app: &mut App) {
-    body1(app).collision_group = Some(group1(app).glob().clone());
-    body2(app).collision_group = Some(group2(app).glob().clone());
+    body1(app).collision_group = Some(group1(app).glob().to_ref());
+    body2(app).collision_group = Some(group2(app).glob().to_ref());
 }
 
 fn configure_ground(app: &mut App) {

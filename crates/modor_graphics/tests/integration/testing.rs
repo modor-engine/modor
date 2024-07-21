@@ -122,7 +122,7 @@ fn generate_diff_texture() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let texture = root(&mut app).texture.glob().clone();
+    let texture = root(&mut app).texture.glob().to_ref();
     (app, texture)
 }
 

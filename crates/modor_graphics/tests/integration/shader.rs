@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size,
@@ -68,7 +68,7 @@ fn set_alpha_replaced() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     (app, target)
 }
 
@@ -96,11 +96,11 @@ impl RootNode for Root {
         let model1 = Model2D::new(app, material.glob())
             .with_position(Vec2::ZERO)
             .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         let model2 = Model2D::new(app, material.glob())
             .with_position(Vec2::ONE * 0.25)
             .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().clone())
+            .with_camera(target.camera.glob().to_ref())
             .with_z_index(-1);
         Self {
             material,
@@ -139,7 +139,7 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TestMaterial {

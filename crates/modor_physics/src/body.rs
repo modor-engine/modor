@@ -50,7 +50,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///                 .with_position(position)
 ///                 .with_size(Vec2::ONE * 0.2)
 ///                 .with_rotation(FRAC_PI_2)
-///                 .with_collision_group(Some(group.glob().clone()))
+///                 .with_collision_group(Some(group.glob().to_ref()))
 ///                 .with_shape(Shape2D::Circle)
 ///         }
 ///     }
@@ -240,8 +240,8 @@ impl Body2D {
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Body2DGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<Body2DGlob> {
+        &self.glob
     }
 
     /// Returns the detected collisions.
@@ -252,7 +252,7 @@ impl Body2D {
     /// Returns the detected collisions with another body from the specific collision `group`.
     pub fn collisions_with(
         &self,
-        group: &GlobRef<CollisionGroupGlob>,
+        group: &Glob<CollisionGroupGlob>,
     ) -> impl Iterator<Item = Collision2D> + '_ {
         let group_index = group.index();
         self.collisions
@@ -262,7 +262,7 @@ impl Body2D {
     }
 
     /// Returns whether the body collides with a body inside `group`.
-    pub fn is_colliding_with(&self, group: &GlobRef<CollisionGroupGlob>) -> bool {
+    pub fn is_colliding_with(&self, group: &Glob<CollisionGroupGlob>) -> bool {
         self.collisions
             .iter()
             .any(|c| c.other_group_index == group.index())
@@ -352,7 +352,10 @@ impl Body2D {
                 Shape2D::Circle => SharedShape::ball(self.size.x.min(self.size.y) / 2.),
             });
         }
-        let group_index = self.collision_group.as_ref().map_or(0, GlobRef::index);
+        let group_index = self
+            .collision_group
+            .as_ref()
+            .map_or(0, |group| group.index());
         collider.user_data = ColliderUserData::new(self.glob.index(), group_index).into();
         collider.set_enabled(self.collision_group.is_some());
         collider.set_collision_groups(interaction_groups);

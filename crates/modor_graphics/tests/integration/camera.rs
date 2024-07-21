@@ -27,7 +27,7 @@ fn remove_target() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn add_target() {
     let (mut app, target, other_target) = configure_app();
-    let other_target_glob = root(&mut app).other_target.target.glob().clone();
+    let other_target_glob = root(&mut app).other_target.target.glob().to_ref();
     camera(&mut app).targets.push(other_target_glob);
     app.update();
     assert_same(&app, &target, "camera#default");
@@ -44,7 +44,7 @@ fn set_position_size_rotation() {
     camera(&mut app).rotation = FRAC_PI_4;
     app.update();
     assert_same(&app, &target, "camera#transformed");
-    let glob = camera(&mut app).glob().clone();
+    let glob = camera(&mut app).glob().to_ref();
     let world_position = glob
         .get(&app)
         .world_position(Size::new(800, 600), Vec2::new(0., 600.));
@@ -54,8 +54,8 @@ fn set_position_size_rotation() {
 fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().clone();
-    let other_target = root(&mut app).other_target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
+    let other_target = root(&mut app).other_target.glob().to_ref();
     (app, target, other_target)
 }
 
@@ -84,7 +84,7 @@ impl RootNode for Root {
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().clone());
+        let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().to_ref());
         Self {
             sprite,
             target,

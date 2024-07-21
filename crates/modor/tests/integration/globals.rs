@@ -25,8 +25,8 @@ fn create_glob_ref() {
     let glob2 = Glob::from_app(&mut app);
     *glob1.get_mut(&mut app) = "a";
     *glob2.get_mut(&mut app) = "b";
-    let glob1_ref = glob1.as_ref().clone();
-    let glob2_ref = glob2.as_ref().clone();
+    let glob1_ref = glob1.to_ref();
+    let glob2_ref = glob2.to_ref();
     assert_eq!(glob1_ref.index(), 0);
     assert_eq!(glob2_ref.index(), 1);
     assert_eq!(glob1_ref.get(&app), &"a");
@@ -68,7 +68,7 @@ fn recreate_glob_with_not_dropped_ref_after_update() {
     let mut app = App::new::<Root>(Level::Info);
     let glob1 = Glob::<&str>::from_app(&mut app);
     let _glob2 = Glob::<&str>::from_app(&mut app);
-    let _glob1_ref = glob1.as_ref().clone();
+    let _glob1_ref = glob1.to_ref();
     drop(glob1);
     app.update();
     let glob3 = Glob::<&str>::from_app(&mut app);
@@ -80,7 +80,7 @@ fn recreate_glob_with_dropped_ref_after_update() {
     let mut app = App::new::<Root>(Level::Info);
     let glob1 = Glob::<&str>::from_app(&mut app);
     let _glob2 = Glob::<&str>::from_app(&mut app);
-    let glob1_ref = glob1.as_ref().clone();
+    let glob1_ref = glob1.to_ref();
     drop(glob1);
     drop(glob1_ref);
     app.update();

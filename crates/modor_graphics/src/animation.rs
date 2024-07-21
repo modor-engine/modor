@@ -46,7 +46,7 @@ use std::time::Duration;
 ///         ];
 ///         Self {
 ///             sprite: Sprite2D::new(app)
-///                 .with_material(|m| m.texture = texture.glob().clone()),
+///                 .with_material(|m| m.texture = texture.glob().to_ref()),
 ///             animation: TextureAnimation::new(3, 2)
 ///                 .with_fps(5)
 ///                 .with_parts(|p| *p = animation_parts),

@@ -5,7 +5,7 @@ use crate::texture::internal::TextureLoaded;
 use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{App, Builder, FromApp, Glob, GlobRef, Node};
+use modor::{App, Builder, FromApp, Glob, Node};
 use modor_resources::{ResSource, Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
@@ -28,8 +28,8 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// impl TexturedRectangle {
 ///     fn new(app: &mut App, position: Vec2, size: Vec2) -> Self {
 ///         let  resources = app.get_mut::<Resources>();
-///         let camera = resources.target.camera.glob().clone();
-///         let texture = resources.texture.glob().clone();
+///         let camera = resources.target.camera.glob().to_ref();
+///         let texture = resources.texture.glob().to_ref();
 ///         Self {
 ///             sprite: Sprite2D::new(app)
 ///                 .with_material(|m| m.texture = texture)
@@ -160,7 +160,7 @@ impl Texture {
             .get_mut::<SupportedAntiAliasingModes>()
             .get(&gpu, Self::DEFAULT_FORMAT)
             .to_vec();
-        let camera = Camera2D::new(app, vec![target.glob().clone()]);
+        let camera = Camera2D::new(app, vec![target.glob().to_ref()]);
         Self {
             is_smooth: Self::DEFAULT_IS_SMOOTH,
             is_repeated: Self::DEFAULT_IS_REPEATED,
@@ -174,8 +174,8 @@ impl Texture {
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<TextureGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<TextureGlob> {
+        &self.glob
     }
 
     fn load_from_file(data: &[u8]) -> Result<RgbaImage, ResourceError> {

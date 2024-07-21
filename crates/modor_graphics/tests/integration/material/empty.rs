@@ -2,7 +2,7 @@
 
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -24,7 +24,7 @@ fn deref() {
 fn use_material_empty_struct() {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     assert_same(&app, &target, "material#red");
 }
 
@@ -50,7 +50,7 @@ impl RootNode for Root {
         let material = TestMaterial::new(&shader).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         Self {
             shader,
             material,
@@ -84,7 +84,7 @@ impl Material for TestMaterial {
         TestMaterialData
     }
 
-    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TestMaterial {

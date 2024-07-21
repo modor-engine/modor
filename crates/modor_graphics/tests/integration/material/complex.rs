@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -14,7 +14,7 @@ use modor_resources::{Res, ResLoad};
 fn use_instance_data() {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     assert_same(&app, &target, "material#instances");
     app.update();
     assert_same(&app, &target, "material#instances");
@@ -48,11 +48,11 @@ impl RootNode for Root {
         let model1 = Model2D::new(app, material.glob())
             .with_position(Vec2::new(-0.25, 0.))
             .with_size(Vec2::new(0.25, 0.5))
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         let model2 = Model2D::new(app, material.glob())
             .with_position(Vec2::new(0.25, 0.))
             .with_size(Vec2::new(0.25, 0.5))
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         Self {
             texture,
             shader,
@@ -92,7 +92,7 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
+    fn instance_data(_app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData {
         vec![
             TestInstanceData {
                 color: [0., 0., 1., 1.],
@@ -108,7 +108,7 @@ impl TestMaterial {
     fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
         Self {
             color: Color::DARK_GRAY,
-            texture: texture.glob().clone(),
+            texture: texture.glob().to_ref(),
             shader: shader.glob(),
         }
     }
