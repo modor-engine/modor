@@ -179,7 +179,7 @@ where
 }
 
 impl<T> Node for Globals<T> {
-    fn update(&mut self, _app: &mut App) {
+    fn on_enter(&mut self, _app: &mut App) {
         self.available_indexes
             .extend(self.deleted_items.drain(..).map(|(index, _)| index));
         let deleted_indexes = mem::take(
