@@ -61,7 +61,7 @@ where
     /// Returns a reference to global data.
     pub fn glob(&self) -> MaterialGlobRef<T> {
         MaterialGlobRef {
-            inner: self.glob.as_ref().clone(),
+            inner: self.glob.to_ref(),
             phantom: PhantomData,
         }
     }
@@ -351,7 +351,7 @@ pub trait Material: Sized + 'static {
     fn data(&self) -> Self::Data;
 
     /// Returns the instance data of a given `model`.
-    fn instance_data(app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData;
+    fn instance_data(app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData;
 }
 
 pub(crate) mod default_2d;

@@ -1,13 +1,10 @@
-#![allow(clippy::non_canonical_partial_ord_impl)] // warnings caused by Derivative
-
 use crate::{App, FromApp, Node, RootNode, RootNodeHandle, Visit};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
-use std::marker::PhantomData;
 use std::mem;
+use std::ops::Deref;
 use std::slice::Iter;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// A globally shared value of type `T`.
@@ -19,7 +16,8 @@ use std::sync::{Arc, Mutex};
 /// #
 /// fn create_glob(app: &mut App) -> Glob<&'static str> {
 ///     let glob = Glob::from_app(app);
-///     *glob.get_mut(app) =  "shared value";
+///     assert_eq!(glob.get(app), "");
+///     *glob.get_mut(app) = "shared value";
 ///     assert_eq!(glob.get(app), &"shared value");
 ///     glob
 /// }
@@ -34,8 +32,21 @@ use std::sync::{Arc, Mutex};
     Ord(bound = "")
 )]
 pub struct Glob<T> {
-    ref_: GlobRef<T>,
-    phantom: PhantomData<fn(T)>,
+    index: usize,
+    #[derivative(
+        Hash = "ignore",
+        PartialEq = "ignore",
+        PartialOrd = "ignore",
+        Ord = "ignore"
+    )]
+    globals: RootNodeHandle<Globals<T>>,
+    #[derivative(
+        Hash = "ignore",
+        PartialEq = "ignore",
+        PartialOrd = "ignore",
+        Ord = "ignore"
+    )]
+    lifetime: Arc<GlobLifetime>,
 }
 
 impl<T> FromApp for Glob<T>
@@ -43,15 +54,13 @@ where
     T: FromApp,
 {
     fn from_app(app: &mut App) -> Self {
-        let value = T::from_app(app);
         let globals = app.handle::<Globals<T>>();
+        let value = T::from_app(app);
+        let lifetime = globals.get_mut(app).register(value);
         Self {
-            ref_: GlobRef {
-                index: globals.get_mut(app).register(value).into(),
-                globals,
-                phantom: PhantomData,
-            },
-            phantom: PhantomData,
+            index: lifetime.index,
+            globals,
+            lifetime: Arc::from(lifetime),
         }
     }
 }
@@ -66,26 +75,28 @@ where
     /// can be reused for a new [`Glob<T>`].
     #[inline]
     pub fn index(&self) -> usize {
-        self.as_ref().index()
+        self.index
     }
 
     /// Returns an immutable reference to the shared value.
     pub fn get<'a>(&self, app: &'a App) -> &'a T {
-        &self.ref_.globals.get(app)[self.index()]
+        &self.globals.get(app)[self.index()]
     }
 
     /// Returns a mutable reference to the shared value.
     pub fn get_mut<'a>(&self, app: &'a mut App) -> &'a mut T {
-        self.ref_.globals.get_mut(app).items[self.index()]
+        self.globals.get_mut(app).items[self.index()]
             .as_mut()
             .expect("internal error: invalid index")
     }
-}
 
-impl<T> AsRef<GlobRef<T>> for Glob<T> {
-    #[inline]
-    fn as_ref(&self) -> &GlobRef<T> {
-        &self.ref_
+    /// Returns an immutable reference with static lifetime to the shared value.
+    pub fn to_ref(&self) -> GlobRef<T> {
+        GlobRef(Self {
+            index: self.index,
+            globals: self.globals,
+            lifetime: self.lifetime.clone(),
+        })
     }
 }
 
@@ -100,8 +111,8 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 /// #
 /// fn create_glob_ref(app: &mut App) -> GlobRef<&'static str> {
 ///     let glob = Glob::from_app(app);
-///     *glob.get_mut(app) = "shared_value";
-///     let ref_ = glob.as_ref().clone();
+///     let ref_ = glob.to_ref();
+///     *glob.get_mut(app) = "shared value";
 ///     assert_eq!(ref_.get(app), &"shared value");
 ///     ref_
 /// }
@@ -109,35 +120,29 @@ impl<T> AsRef<GlobRef<T>> for Glob<T> {
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = ""),
-    Clone(bound = ""),
     Hash(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     PartialOrd(bound = ""),
     Ord(bound = "")
 )]
-pub struct GlobRef<T> {
-    index: Arc<Index>,
-    globals: RootNodeHandle<Globals<T>>,
-    phantom: PhantomData<fn(T)>,
-}
+pub struct GlobRef<T>(Glob<T>);
 
-impl<T> GlobRef<T>
+impl<T> Clone for GlobRef<T>
 where
     T: 'static,
 {
-    /// Returns the unique index of the shared value.
-    ///
-    /// Note that in case the [`Glob<T>`] and all associated [`GlobRef<T>`]s are dropped, this index
-    /// can be reused for a new [`Glob<T>`].
-    #[inline]
-    pub fn index(&self) -> usize {
-        self.index.index
+    fn clone(&self) -> Self {
+        self.0.to_ref()
     }
+}
 
-    /// Returns an immutable reference to the shared value.
-    pub fn get<'a>(&self, app: &'a App) -> &'a T {
-        &self.globals.get(app)[self.index.index]
+impl<T> Deref for GlobRef<T> {
+    type Target = Glob<T>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -148,15 +153,20 @@ where
 /// ```
 /// # use modor::*;
 /// #
-/// fn access_glob(app: &mut App, index: usize) -> &'static str {
-///     app.get_mut::<Globals<&'static str>>()[index]
+/// fn print_all_strings(app: &mut App) {
+///     for string in app.get_mut::<Globals<&'static str>>().iter() {
+///         println!("{}", string);
+///     }
 /// }
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct Globals<T> {
-    indexes: Arc<IndexPool>,
     items: Vec<Option<T>>,
     deleted_items: Vec<(usize, T)>,
+    deleted_indexes: Arc<Mutex<Vec<usize>>>,
+    available_indexes: Vec<usize>,
+    next_index: usize,
 }
 
 impl<T> RootNode for Globals<T>
@@ -164,25 +174,26 @@ where
     T: 'static,
 {
     fn on_create(_app: &mut App) -> Self {
-        Self {
-            indexes: Arc::default(),
-            items: vec![],
-            deleted_items: vec![],
-        }
+        Self::default()
     }
 }
 
 impl<T> Node for Globals<T> {
-    fn on_enter(&mut self, _app: &mut App) {
-        self.indexes
-            .free_indexes(self.deleted_items.iter().map(|(i, _)| *i));
-        self.deleted_items.clear();
-        for &index in &self.indexes.take_deleted_indexes() {
+    fn update(&mut self, _app: &mut App) {
+        self.available_indexes
+            .extend(self.deleted_items.drain(..).map(|(index, _)| index));
+        let deleted_indexes = mem::take(
+            &mut *self
+                .deleted_indexes
+                .lock()
+                .expect("cannot lock deleted glob indexes"),
+        );
+        for index in deleted_indexes {
             self.deleted_items.push((
                 index,
                 self.items[index]
                     .take()
-                    .expect("internal error: missing item in arena"),
+                    .expect("internal error: missing glob"),
             ));
         }
     }
@@ -193,7 +204,7 @@ impl<T> Visit for Globals<T> {
 }
 
 impl<T> Globals<T> {
-    /// Returns the indexes and values dropped since last update of the node.
+    /// Returns the indexes and values dropped since last update of the singleton.
     pub fn deleted_items(&self) -> &[(usize, T)] {
         &self.deleted_items
     }
@@ -216,13 +227,20 @@ impl<T> Globals<T> {
             .filter_map(|(index, item)| item.as_ref().map(|item| (index, item)))
     }
 
-    fn register(&mut self, item: T) -> Index {
-        let index = self.indexes.generate();
-        for _ in self.items.len()..=index.index {
+    fn register(&mut self, item: T) -> GlobLifetime {
+        let lifetime = GlobLifetime {
+            index: self.available_indexes.pop().unwrap_or_else(|| {
+                let index = self.next_index + 1;
+                self.next_index += 1;
+                index
+            }),
+            deleted_indexes: self.deleted_indexes.clone(),
+        };
+        for _ in self.items.len()..=lifetime.index {
             self.items.push(None);
         }
-        self.items[index.index] = Some(item);
-        index
+        self.items[lifetime.index] = Some(item);
+        lifetime
     }
 }
 
@@ -243,55 +261,15 @@ impl<T> std::ops::Index<usize> for Globals<T> {
     }
 }
 
-#[derive(Debug, Default)]
-struct IndexPool {
-    deleted_indexes: Mutex<Vec<usize>>,
-    available_indexes: Mutex<Vec<usize>>,
-    next_index: AtomicUsize,
-}
-
-impl IndexPool {
-    const ERROR: &'static str = "cannot access index pool";
-
-    fn generate(self: &Arc<Self>) -> Index {
-        Index {
-            index: if let Some(index) = self.available_indexes.lock().expect(Self::ERROR).pop() {
-                index
-            } else {
-                self.next_index.fetch_add(1, Ordering::Relaxed)
-            },
-            pool: self.clone(),
-        }
-    }
-
-    fn take_deleted_indexes(&self) -> Vec<usize> {
-        mem::take(&mut *self.deleted_indexes.lock().expect(Self::ERROR))
-    }
-
-    fn free_indexes(&self, indexes: impl Iterator<Item = usize>) {
-        self.available_indexes
-            .lock()
-            .expect(Self::ERROR)
-            .extend(indexes);
-    }
-}
-
-#[derive(Debug, Derivative)]
-#[derivative(Hash, PartialEq, Eq, PartialOrd, Ord)]
-struct Index {
+#[derive(Debug)]
+struct GlobLifetime {
     index: usize,
-    #[derivative(
-        Hash = "ignore",
-        PartialEq = "ignore",
-        PartialOrd = "ignore",
-        Ord = "ignore"
-    )]
-    pool: Arc<IndexPool>,
+    deleted_indexes: Arc<Mutex<Vec<usize>>>,
 }
 
-impl Drop for Index {
+impl Drop for GlobLifetime {
     fn drop(&mut self) {
-        match self.pool.deleted_indexes.lock() {
+        match self.deleted_indexes.lock() {
             Ok(mut indexes) => indexes.push(self.index),
             Err(err) => error!("Error: {err}"), // no-coverage (difficult to test poisoning)
         }

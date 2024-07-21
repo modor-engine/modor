@@ -116,14 +116,14 @@ impl Node for Platform {
 
 impl Platform {
     fn new(app: &mut App, position: Vec2, size: Vec2, velocity: Vec2) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().platform.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().platform.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
             .with_velocity(velocity)
             .with_collision_group(Some(collision_group));
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
             .with_material(|m| m.color = Color::GREEN);
         Self {
             body,
@@ -155,14 +155,14 @@ impl Node for Character {
 
 impl RootNode for Character {
     fn on_create(app: &mut App) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().character.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().character.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(Vec2::new(0., 0.5))
             .with_size(Vec2::new(0.03, 0.1))
             .with_collision_group(Some(collision_group))
             .with_mass(CHARACTER_MASS)
             .with_force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS);
-        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone()));
+        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref()));
         Self {
             body,
             sprite,

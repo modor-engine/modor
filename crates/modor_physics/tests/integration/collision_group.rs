@@ -19,7 +19,7 @@ fn drop_group() {
 
 fn create_group2_with_no_interaction(app: &mut App) {
     let collision_group = CollisionGroup::new(app);
-    body2(app).collision_group = Some(collision_group.glob().clone());
+    body2(app).collision_group = Some(collision_group.glob().to_ref());
     *group2(app) = Some(collision_group);
 }
 
@@ -44,8 +44,8 @@ impl RootNode for Root {
         let group1 = CollisionGroup::new(app);
         let group2 = CollisionGroup::new(app);
         group1.add_interaction(app, group2.glob(), CollisionType::Sensor);
-        let body1 = Body2D::new(app).with_collision_group(Some(group1.glob().clone()));
-        let body2 = Body2D::new(app).with_collision_group(Some(group2.glob().clone()));
+        let body1 = Body2D::new(app).with_collision_group(Some(group1.glob().to_ref()));
+        let body2 = Body2D::new(app).with_collision_group(Some(group2.glob().to_ref()));
         Self {
             group1,
             group2: Some(group2),

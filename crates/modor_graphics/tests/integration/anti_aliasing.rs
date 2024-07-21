@@ -17,7 +17,7 @@ fn retrieve_supported_modes() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn enable_supported_anti_aliasing() {
     let mut app = App::new::<Root>(Level::Info);
-    let target_glob = target(&mut app).glob().clone();
+    let target_glob = target(&mut app).glob().to_ref();
     app.update();
     assert_same(&app, &target_glob, "anti_aliasing#disabled");
     target(&mut app).target.anti_aliasing = AntiAliasingMode::MsaaX4;
@@ -29,7 +29,7 @@ fn enable_supported_anti_aliasing() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn enable_unsupported_anti_aliasing() {
     let mut app = App::new::<Root>(Level::Info);
-    let target_glob = target(&mut app).glob().clone();
+    let target_glob = target(&mut app).glob().to_ref();
     let supported_modes = target(&mut app).target.supported_anti_aliasing_modes();
     if supported_modes.contains(&AntiAliasingMode::MsaaX16) {
         return;
@@ -61,7 +61,7 @@ impl RootNode for Root {
             sprite: Sprite2D::new(app)
                 .with_model(|m| m.size = Vec2::ONE * 0.5)
                 .with_model(|m| m.rotation = FRAC_PI_4)
-                .with_model(|m| m.camera = target.camera.glob().clone()),
+                .with_model(|m| m.camera = target.camera.glob().to_ref()),
             target,
         }
     }

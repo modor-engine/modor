@@ -21,7 +21,7 @@ struct Root {
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
         let size = Vec2::new(1., 0.2);
-        let font = app.get_mut::<Resources>().font.glob().clone();
+        let font = app.get_mut::<Resources>().font.glob().to_ref();
         Self {
             background: Sprite2D::new(app)
                 .with_model(|m| m.size = size)

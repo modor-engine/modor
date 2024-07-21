@@ -30,8 +30,8 @@ impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
         app.create::<Scores>();
         let groups = app.get_mut::<CollisionGroups>();
-        let vertical_wall_group = groups.vertical_wall.glob().clone();
-        let horizontal_wall_group = groups.horizontal_wall.glob().clone();
+        let vertical_wall_group = groups.vertical_wall.glob().to_ref();
+        let horizontal_wall_group = groups.horizontal_wall.glob().to_ref();
         Self {
             left_wall: Wall::new(app, WallOrientation::Left, vertical_wall_group.clone()),
             right_wall: Wall::new(app, WallOrientation::Right, vertical_wall_group),

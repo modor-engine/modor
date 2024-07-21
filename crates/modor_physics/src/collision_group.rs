@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, FromApp, Glob, Node, RootNodeHandle, Visit};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -38,7 +38,7 @@ use rapier2d::prelude::InteractionGroups;
 ///     Body2D::new(app)
 ///         .with_position(position)
 ///         .with_size(size)
-///         .with_collision_group(Some(app.get_mut::<CollisionGroups>().wall.glob().clone()))
+///         .with_collision_group(Some(app.get_mut::<CollisionGroups>().wall.glob().to_ref()))
 /// }
 /// ```
 #[derive(Debug, Visit)]
@@ -67,8 +67,8 @@ impl CollisionGroup {
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<CollisionGroupGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<CollisionGroupGlob> {
+        &self.glob
     }
 
     /// Register an interaction of a given `type_` between the group and an `other` group.
@@ -78,7 +78,7 @@ impl CollisionGroup {
     pub fn add_interaction(
         &self,
         app: &mut App,
-        other: &GlobRef<CollisionGroupGlob>,
+        other: &Glob<CollisionGroupGlob>,
         type_: CollisionType,
     ) {
         self.physics_hooks

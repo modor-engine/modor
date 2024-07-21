@@ -72,12 +72,12 @@ struct Wall {
 
 impl Wall {
     fn new(app: &mut App, position: Vec2, size: Vec2) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().wall.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().wall.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
             .with_collision_group(Some(collision_group));
-        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().clone()));
+        let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref()));
         Self { body, sprite }
     }
 }
@@ -140,7 +140,7 @@ struct Object {
 
 impl Object {
     fn new(app: &mut App, position: Vec2, velocity: Vec2, is_ball: bool) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().object.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().object.glob().to_ref();
         let size = Vec2::ONE * OBJECT_RADIUS * 2.;
         let mut rng = rand::thread_rng();
         let color = Color::rgb(
@@ -163,7 +163,7 @@ impl Object {
             .with_collision_group(Some(collision_group))
             .with_shape(shape);
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
             .with_material(|m| m.is_ellipse = is_ball)
             .with_material(|m| m.color = color);
         Self { body, sprite }

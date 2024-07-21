@@ -110,7 +110,7 @@ where
     /// Returns a reference to global data.
     pub fn glob(&self) -> ShaderGlobRef<T> {
         ShaderGlobRef {
-            inner: self.glob.as_ref().clone(),
+            inner: self.glob.to_ref(),
             phantom: PhantomData,
         }
     }

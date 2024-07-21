@@ -23,7 +23,7 @@ use std::iter;
 ///
 /// impl RootNode for Root {
 ///     fn on_create(app: &mut App) -> Self {
-///         let font = app.get_mut::<Resources>().font.glob().clone();
+///         let font = app.get_mut::<Resources>().font.glob().to_ref();
 ///         Self {
 ///             text: Text2D::new(app)
 ///                 .with_content("Hello world!".into())
@@ -120,10 +120,10 @@ impl Text2D {
 
     /// Creates a new sprite.
     pub fn new(app: &mut App) -> Self {
-        let font = app.get_mut::<TextResources>().default_font.glob().clone();
+        let font = app.get_mut::<TextResources>().default_font.glob().to_ref();
         let texture = Texture::new(app)
             .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(app, texture.glob().clone()).into_mat(app);
+        let material = TextMaterial2D::new(app, texture.glob().to_ref()).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self {
             content: String::new(),

@@ -67,10 +67,10 @@ impl Node for Slime {
 
 impl Slime {
     fn new(app: &mut App) -> Self {
-        let texture = app.get_mut::<Resources>().smile_texture.glob().clone();
+        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
         let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
             .with_material(|m| m.texture = texture);
         Self {
             body,

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
@@ -96,7 +96,7 @@ impl Material for BlurMaterial {
         }
     }
 
-    fn instance_data(app: &mut App, model: &GlobRef<Model2DGlob>) -> Self::InstanceData {
+    fn instance_data(app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData {
         let sample_counts = &app.get_mut::<SpriteProperties>().sample_counts;
         BlurInstanceData {
             sample_count: sample_counts.get(&model.index()).copied().unwrap_or(0),
@@ -108,7 +108,7 @@ impl BlurMaterial {
     fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
         Self {
             blur_factor: 0.005,
-            texture: texture.glob().clone(),
+            texture: texture.glob().to_ref(),
             shader: shader.glob(),
         }
     }

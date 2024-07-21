@@ -31,7 +31,7 @@ impl Root {
     fn finger_sprite(app: &mut App, finger_position: Vec2) -> Sprite2D {
         let window = app.get_mut::<Window>();
         let window_size = window.size();
-        let camera = window.camera.glob().clone();
+        let camera = window.camera.glob().to_ref();
         let position = camera.get(app).world_position(window_size, finger_position);
         Sprite2D::new(app)
             .with_model(|m| m.position = position)

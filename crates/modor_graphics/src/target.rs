@@ -7,7 +7,7 @@ use crate::{
     MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
-use modor::{App, FromApp, Glob, GlobRef, Globals, RootNodeHandle};
+use modor::{App, FromApp, Glob, Globals, RootNodeHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -61,8 +61,8 @@ pub struct Target {
 
 impl Target {
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<TargetGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<TargetGlob> {
+        &self.glob
     }
 
     /// Returns the sorted list of all supported [`AntiAliasingMode`].
@@ -293,7 +293,9 @@ impl Target {
             self.cameras
                 .get(app)
                 .get(group.camera)
-                .map_or(false, |camera| camera.targets.contains(self.glob()))
+                .map_or(false, |camera| {
+                    camera.targets.contains(&self.glob().to_ref())
+                })
                 && self
                     .materials
                     .get(app)

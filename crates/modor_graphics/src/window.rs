@@ -72,7 +72,7 @@ pub struct Window {
 impl RootNode for Window {
     fn on_create(app: &mut App) -> Self {
         let target = Target::new(app);
-        let camera = Camera2D::new(app, vec![target.glob().clone()]);
+        let camera = Camera2D::new(app, vec![target.glob().to_ref()]);
         Self {
             title: String::new(),
             is_cursor_visible: true,

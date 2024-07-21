@@ -61,7 +61,7 @@ impl Node for Shape {
 
 impl Shape {
     fn new(app: &mut App, position: Vec2, size: Vec2, is_circle: bool) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().shape.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().shape.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(position)
             .with_size(size)
@@ -72,7 +72,7 @@ impl Shape {
                 Shape2D::Rectangle
             });
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
             .with_material(|m| m.is_ellipse = is_circle)
             .with_material(|m| m.color = Color::CYAN);
         Self {
@@ -109,13 +109,13 @@ impl Node for Cursor {
 
 impl Cursor {
     fn new(app: &mut App) -> Self {
-        let collision_group = app.get_mut::<CollisionGroups>().cursor.glob().clone();
+        let collision_group = app.get_mut::<CollisionGroups>().cursor.glob().to_ref();
         let body = Body2D::new(app)
             .with_size(Vec2::new(0.05, 0.1))
             .with_rotation(FRAC_PI_8)
             .with_collision_group(Some(collision_group));
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().clone()))
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
             .with_model(|m| m.rotation = FRAC_PI_8)
             .with_model(|m| m.z_index = 1)
             .with_material(|m| m.color = Color::GREEN);

@@ -56,7 +56,7 @@ fn set_body() {
     body.size = Vec2::new(0.5, 0.25);
     body.rotation = FRAC_PI_2;
     body.update(&mut app);
-    root(&mut app).models[0].body = Some(body.glob().clone());
+    root(&mut app).models[0].body = Some(body.glob().to_ref());
     app.update();
     assert_same(&app, &target, "model#with_body");
 }
@@ -64,7 +64,7 @@ fn set_body() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_z_index() {
     let (mut app, target) = configure_app();
-    let camera = root(&mut app).target1.camera.glob().clone();
+    let camera = root(&mut app).target1.camera.glob().to_ref();
     let material1 = root(&mut app).material1.glob();
     let material2 = root(&mut app).material2.glob();
     let model2 = Model2D::new(&mut app, material2.clone());
@@ -104,7 +104,7 @@ fn set_z_index() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_camera() {
     let (mut app, target) = configure_app();
-    let camera = root(&mut app).target2.camera.glob().clone();
+    let camera = root(&mut app).target2.camera.glob().to_ref();
     root(&mut app).models[0].camera = camera;
     app.update();
     assert_same(&app, &target, "model#empty");
@@ -122,7 +122,7 @@ fn set_material() {
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target1.glob().clone();
+    let target = root(&mut app).target1.glob().to_ref();
     (app, target)
 }
 
@@ -153,7 +153,7 @@ impl RootNode for Root {
         let material2 = DefaultMaterial2D::new(app)
             .with_color(Color::RED)
             .into_mat(app);
-        let model = Model2D::new(app, material1.glob()).with_camera(target1.camera.glob().clone());
+        let model = Model2D::new(app, material1.glob()).with_camera(target1.camera.glob().to_ref());
         Self {
             material1,
             material2,

@@ -45,7 +45,7 @@ fn render_font_from_bytes() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     (app, target)
 }
 
@@ -54,7 +54,7 @@ fn root(app: &mut App) -> &mut Root {
 }
 
 fn set_font(app: &mut App, font: Res<Font>) {
-    root(app).text.font = font.glob().clone();
+    root(app).text.font = font.glob().to_ref();
     root(app).font = Some(font);
 }
 
@@ -76,7 +76,7 @@ impl RootNode for Root {
                 .with_content("text".into())
                 .with_font_height(30.)
                 .with_texture(|t| t.is_smooth = false)
-                .with_model(|m| m.camera = target.camera.glob().clone()),
+                .with_model(|m| m.camera = target.camera.glob().to_ref()),
             target,
             font: None,
         }

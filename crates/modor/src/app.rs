@@ -1,8 +1,3 @@
-#![allow(
-    clippy::non_canonical_clone_impl,
-    clippy::non_canonical_partial_ord_impl
-)] // warnings caused by Derivative
-
 use crate::{platform, Node, RootNode};
 use derivative::Derivative;
 use fxhash::FxHashMap;

@@ -2,7 +2,7 @@ use crate::resources::Resources;
 use crate::texture::glob::TextureGlob;
 use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
 use internal::DefaultMaterial2DData;
-use modor::{App, Builder, GlobRef};
+use modor::{App, Builder, Glob, GlobRef};
 use modor_input::modor_math::Vec2;
 
 /// The default material for 2D rendering.
@@ -80,7 +80,7 @@ impl Material for DefaultMaterial2D {
         }
     }
 
-    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl DefaultMaterial2D {
@@ -89,7 +89,7 @@ impl DefaultMaterial2D {
         let resources = app.get_mut::<Resources>();
         Self {
             color: Color::WHITE,
-            texture: resources.white_texture.glob().clone(),
+            texture: resources.white_texture.glob().to_ref(),
             texture_position: Vec2::ZERO,
             texture_size: Vec2::ONE,
             is_ellipse: false,

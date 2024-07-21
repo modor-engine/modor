@@ -55,7 +55,7 @@ impl CursorTracker {
     /// Creates a new cursor.
     pub fn new(app: &mut App) -> Self {
         Self {
-            camera: app.get_mut::<Window>().camera.glob().clone(),
+            camera: app.get_mut::<Window>().camera.glob().to_ref(),
             window: app.handle(),
             inputs: app.handle(),
             is_touch: false,

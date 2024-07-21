@@ -28,7 +28,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///
 /// impl Object {
 ///     fn new(app: &mut App) -> Self {
-///         let camera = app.get_mut::<MovingCamera>().camera.glob().clone();
+///         let camera = app.get_mut::<MovingCamera>().camera.glob().to_ref();
 ///         Self {
 ///             sprite: Sprite2D::new(app)
 ///                 .with_model(|m| m.size = Vec2::ONE * 0.2)
@@ -50,7 +50,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///
 /// impl RootNode for MovingCamera {
 ///     fn on_create(app: &mut App) -> Self {
-///         let target = app.get_mut::<Window>().target.glob().clone();
+///         let target = app.get_mut::<Window>().target.glob().to_ref();
 ///         Self {
 ///             camera: Camera2D::new(app, vec![target])
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2
@@ -107,8 +107,8 @@ impl Camera2D {
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Camera2DGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<Camera2DGlob> {
+        &self.glob
     }
 
     fn gpu_transform(&self, target_size: Vec2) -> Mat4 {
@@ -166,14 +166,14 @@ impl Camera2DGlob {
             )
     }
 
-    pub(crate) fn bind_group(&self, target: &GlobRef<TargetGlob>) -> Option<&BindGroup> {
+    pub(crate) fn bind_group(&self, target: &Glob<TargetGlob>) -> Option<&BindGroup> {
         self.target_uniforms
             .get(&target.index())
             .map(|uniform| &uniform.bind_group.inner)
     }
 
     fn register_targets(&mut self, targets: &[GlobRef<TargetGlob>]) {
-        let target_indexes: Vec<_> = targets.iter().map(GlobRef::index).collect();
+        let target_indexes: Vec<_> = targets.iter().map(|target| target.index()).collect();
         self.target_uniforms
             .retain(|target_index, _| target_indexes.contains(target_index));
         self.targets = targets.into();

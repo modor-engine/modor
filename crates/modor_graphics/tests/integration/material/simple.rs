@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -21,7 +21,7 @@ fn set_textures_less_than_shader() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_more_than_shader() {
     let (mut app, target) = configure_app();
-    let texture = root(&mut app).texture.glob().clone();
+    let texture = root(&mut app).texture.glob().to_ref();
     root(&mut app).material.textures = vec![texture.clone(), texture];
     app.update();
     assert_same(&app, &target, "material#default");
@@ -55,7 +55,7 @@ fn set_shader() {
 fn configure_app() -> (App, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().clone();
+    let target = root(&mut app).target.glob().to_ref();
     assert_same(&app, &target, "material#default");
     (app, target)
 }
@@ -88,7 +88,7 @@ impl RootNode for Root {
         let material = TestMaterial::new(&texture, &shader).into_mat(app);
         let model = Model2D::new(app, material.glob())
             .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().clone());
+            .with_camera(target.camera.glob().to_ref());
         Self {
             texture,
             shader,
@@ -128,14 +128,14 @@ impl Material for TestMaterial {
         }
     }
 
-    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TestMaterial {
     fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
         Self {
             color: Color::DARK_GRAY,
-            textures: vec![texture.glob().clone()],
+            textures: vec![texture.glob().to_ref()],
             shader: shader.glob(),
         }
     }

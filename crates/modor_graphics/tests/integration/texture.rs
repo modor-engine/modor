@@ -199,8 +199,8 @@ fn set_repeated() {
 
 fn configure_app() -> (App, GlobRef<TextureGlob>, GlobRef<TextureGlob>) {
     let mut app = App::new::<Root>(Level::Info);
-    let texture = root(&mut app).texture.glob().clone();
-    let target = app.get_mut::<Root>().target.glob().clone();
+    let texture = root(&mut app).texture.glob().to_ref();
+    let target = app.get_mut::<Root>().target.glob().to_ref();
     (app, texture, target)
 }
 
@@ -225,8 +225,8 @@ impl RootNode for Root {
             .with_is_buffer_enabled(true)
             .load_from_source(app, TextureSource::Size(Size::ONE));
         let sprite = Sprite2D::new(app)
-            .with_model(|m| m.camera = target.camera.glob().clone())
-            .with_material(|m| m.texture = texture.glob().clone());
+            .with_model(|m| m.camera = target.camera.glob().to_ref())
+            .with_material(|m| m.texture = texture.glob().to_ref());
         Self {
             texture,
             sprite,

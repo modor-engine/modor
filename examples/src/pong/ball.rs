@@ -37,7 +37,7 @@ impl Ball {
     const ACCELERATION: f32 = 0.05;
 
     pub(crate) fn new(app: &mut App) -> Self {
-        let group = app.get_mut::<CollisionGroups>().ball.glob().clone();
+        let group = app.get_mut::<CollisionGroups>().ball.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(Vec2::ZERO)
             .with_size(Self::SIZE)
@@ -47,7 +47,7 @@ impl Ball {
             .with_collision_group(Some(group));
         Self {
             sprite: Sprite2D::new(app)
-                .with_model(|m| m.body = Some(body.glob().clone()))
+                .with_model(|m| m.body = Some(body.glob().to_ref()))
                 .with_material(|m| m.is_ellipse = true),
             body,
             creation_instant: Instant::now(),
@@ -61,8 +61,8 @@ impl Ball {
     }
 
     pub(crate) fn handle_collision_with_paddle(&mut self, app: &mut App) {
-        let paddle_group = app.get_mut::<CollisionGroups>().paddle.glob();
-        let Some(collision) = self.body.collisions_with(paddle_group).next() else {
+        let paddle_group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
+        let Some(collision) = self.body.collisions_with(&paddle_group).next() else {
             return;
         };
         let paddle = &app.get_mut::<Globals<Body2DGlob>>()[collision.other_index];
@@ -75,8 +75,12 @@ impl Ball {
     }
 
     pub(crate) fn handle_collision_with_ball(&mut self, app: &mut App) {
-        let vertical_wall_group = app.get_mut::<CollisionGroups>().vertical_wall.glob();
-        if self.body.is_colliding_with(vertical_wall_group) {
+        let vertical_wall_group = app
+            .get_mut::<CollisionGroups>()
+            .vertical_wall
+            .glob()
+            .to_ref();
+        if self.body.is_colliding_with(&vertical_wall_group) {
             app.get_mut::<Scores>()
                 .increment(if self.body.position.x < 0. {
                     Side::Right

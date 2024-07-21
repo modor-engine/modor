@@ -1,6 +1,6 @@
 use crate::material::internal::TextMaterial2DData;
 use crate::resources::TextResources;
-use modor::{App, GlobRef};
+use modor::{App, Glob, GlobRef};
 use modor_graphics::{Color, Material, Model2DGlob, ShaderGlobRef, TextureGlob};
 
 /// A material for 2D text rendering.
@@ -40,7 +40,7 @@ impl Material for TextMaterial2D {
         }
     }
 
-    fn instance_data(_app: &mut App, _model: &GlobRef<Model2DGlob>) -> Self::InstanceData {}
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
 impl TextMaterial2D {

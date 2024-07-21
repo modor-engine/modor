@@ -113,8 +113,8 @@ where
 {
     /// Creates a new model.
     pub fn new(app: &mut App, material: MaterialGlobRef<T>) -> Self {
-        let camera = app.get_mut::<Window>().camera.glob().clone();
-        let mesh = app.get_mut::<Resources>().rectangle_mesh.glob().clone();
+        let camera = app.get_mut::<Window>().camera.glob().to_ref();
+        let mesh = app.get_mut::<Resources>().rectangle_mesh.glob().to_ref();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
@@ -134,8 +134,8 @@ where
     }
 
     /// Returns a reference to global data.
-    pub fn glob(&self) -> &GlobRef<Model2DGlob> {
-        self.glob.as_ref()
+    pub fn glob(&self) -> &Glob<Model2DGlob> {
+        &self.glob
     }
 }
 
