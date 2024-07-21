@@ -50,7 +50,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///                 .with_position(position)
 ///                 .with_size(Vec2::ONE * 0.2)
 ///                 .with_rotation(FRAC_PI_2)
-///                 .with_collision_group(Some(group.glob().clone()))
+///                 .with_collision_group(Some(group.glob().to_ref()))
 ///                 .with_shape(Shape2D::Circle)
 ///         }
 ///     }
@@ -252,7 +252,7 @@ impl Body2D {
     /// Returns the detected collisions with another body from the specific collision `group`.
     pub fn collisions_with(
         &self,
-        group: &GlobRef<CollisionGroupGlob>,
+        group: &Glob<CollisionGroupGlob>,
     ) -> impl Iterator<Item = Collision2D> + '_ {
         let group_index = group.index();
         self.collisions
@@ -262,7 +262,7 @@ impl Body2D {
     }
 
     /// Returns whether the body collides with a body inside `group`.
-    pub fn is_colliding_with(&self, group: &GlobRef<CollisionGroupGlob>) -> bool {
+    pub fn is_colliding_with(&self, group: &Glob<CollisionGroupGlob>) -> bool {
         self.collisions
             .iter()
             .any(|c| c.other_group_index == group.index())

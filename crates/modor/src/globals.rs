@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 /// #
 /// fn create_glob(app: &mut App) -> Glob<&'static str> {
 ///     let glob = Glob::from_app(app);
-///     assert_eq!(glob.get(app), "");
+///     assert_eq!(glob.get(app), &"");
 ///     *glob.get_mut(app) = "shared value";
 ///     assert_eq!(glob.get(app), &"shared value");
 ///     glob
@@ -230,7 +230,7 @@ impl<T> Globals<T> {
     fn register(&mut self, item: T) -> GlobLifetime {
         let lifetime = GlobLifetime {
             index: self.available_indexes.pop().unwrap_or_else(|| {
-                let index = self.next_index + 1;
+                let index = self.next_index;
                 self.next_index += 1;
                 index
             }),
