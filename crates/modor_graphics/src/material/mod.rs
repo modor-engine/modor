@@ -9,9 +9,9 @@ use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::{any, mem};
 use wgpu::{
     BindGroupEntry, BindGroupLayout, BindingResource, BufferUsages, Id, Sampler, TextureView,
 };
@@ -25,7 +25,6 @@ use wgpu::{
 pub struct Mat<T> {
     data: T,
     glob: Glob<MaterialGlob>,
-    updated_glob: MaterialGlob, // used to update the glob without borrowing App
     phantom_data: PhantomData<T>,
 }
 
@@ -48,9 +47,8 @@ where
     T: Material,
 {
     fn on_exit(&mut self, app: &mut App) {
-        mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
-        self.updated_glob.update(app, &self.data);
-        mem::swap(self.glob.get_mut(app), &mut self.updated_glob);
+        self.glob
+            .take(app, |glob, app| glob.update(app, &self.data));
     }
 }
 
@@ -81,7 +79,6 @@ where
         let mut material = Mat {
             data: self,
             glob: Glob::from_app(app),
-            updated_glob: MaterialGlob::from_app(app),
             phantom_data: PhantomData,
         };
         material.update(app);

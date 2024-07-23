@@ -55,10 +55,7 @@ impl App {
         debug!("Run update app...");
         for root_index in 0..self.roots.len() {
             let root = &mut self.roots[root_index];
-            let mut value = root
-                .value
-                .take()
-                .expect("internal error: root node already borrowed");
+            let mut value = root.value.take().expect("root node is already borrowed");
             let update_fn = root.update_fn;
             update_fn(&mut *value, self);
             self.roots[root_index].value = Some(value);
@@ -102,6 +99,25 @@ impl App {
         self.root_mut(root_index)
     }
 
+    /// Borrows a root node without borrowing the app.
+    ///
+    /// The method returns the output of `f`.
+    ///
+    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    ///
+    /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if root node `T` is already borrowed.
+    pub fn take<T, O>(&mut self, f: impl FnOnce(&mut T, &mut Self) -> O) -> O
+    where
+        T: RootNode,
+    {
+        let root_index = self.root_index_or_create::<T>();
+        self.take_root(root_index, f)
+    }
+
     fn root_index_or_create<T>(&mut self) -> usize
     where
         T: RootNode,
@@ -138,6 +154,23 @@ impl App {
             .downcast_mut::<T>()
             .expect("internal error: misconfigured root node")
     }
+
+    fn take_root<T, O>(&mut self, root_index: usize, f: impl FnOnce(&mut T, &mut Self) -> O) -> O
+    where
+        T: RootNode,
+    {
+        let root = &mut self.roots[root_index];
+        let mut value = root
+            .value
+            .take()
+            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()));
+        let value_ref = value
+            .downcast_mut()
+            .expect("internal error: misconfigured root node");
+        let result = f(value_ref, self);
+        self.roots[root_index].value = Some(value);
+        result
+    }
 }
 
 /// A handle to access a [`RootNode`].
@@ -162,6 +195,10 @@ where
     T: RootNode,
 {
     /// Returns an immutable reference to the root node.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the root node is already borrowed.
     pub fn get(self, app: &App) -> &T {
         app.roots[self.index]
             .value
@@ -172,8 +209,25 @@ where
     }
 
     /// Returns a mutable reference to the root node.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the root node is already borrowed.
     pub fn get_mut(self, app: &mut App) -> &mut T {
         app.root_mut(self.index)
+    }
+
+    /// Borrows a root node without borrowing the app.
+    ///
+    /// The method returns the output of `f`.
+    ///
+    /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the root node is already borrowed.
+    pub fn take<O>(self, app: &mut App, f: impl FnOnce(&mut T, &mut App) -> O) -> O {
+        app.take_root(self.index, f)
     }
 }
 

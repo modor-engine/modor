@@ -130,6 +130,21 @@ fn access_all_globals_after_value_dropped() {
 }
 
 #[modor::test]
+fn take_glob() {
+    let mut app = App::new::<Root>(Level::Info);
+    let mut glob1 = Glob::from_app(&mut app);
+    let glob2 = Glob::from_app(&mut app);
+    *glob1.get_mut(&mut app) = "a";
+    *glob2.get_mut(&mut app) = 42;
+    let result = glob1.take(&mut app, |glob1, app| {
+        assert_eq!(glob1, &"a");
+        assert_eq!(glob2.get_mut(app), &42);
+        42
+    });
+    assert_eq!(result, 42);
+}
+
+#[modor::test]
 fn access_glob() {}
 
 #[derive(Default, RootNode, Node, Visit)]
