@@ -79,15 +79,39 @@ where
     }
 
     /// Returns an immutable reference to the shared value.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if a shared value of type `T` is already mutably borrowed.
     pub fn get<'a>(&self, app: &'a App) -> &'a T {
         &self.globals.get(app)[self.index()]
     }
 
     /// Returns a mutable reference to the shared value.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if a shared value of type `T` is already mutably borrowed.
     pub fn get_mut<'a>(&self, app: &'a mut App) -> &'a mut T {
         self.globals.get_mut(app).items[self.index()]
             .as_mut()
             .expect("internal error: invalid index")
+    }
+
+    /// Borrows the shared value without borrowing the app.
+    ///
+    /// The method returns the output of `f`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if a shared value of type `T` is already mutably borrowed.
+    pub fn take<O>(&mut self, app: &mut App, f: impl FnOnce(&mut T, &mut App) -> O) -> O {
+        self.globals.take(app, |globals, app| {
+            let value = globals.items[self.index()]
+                .as_mut()
+                .expect("internal error: invalid index");
+            f(value, app)
+        })
     }
 
     /// Returns an immutable reference with static lifetime to the shared value.

@@ -17,6 +17,28 @@ fn create_node_handle() {
     assert_eq!(handle.get_mut(&mut app).value, 0);
 }
 
+#[modor::test]
+fn take_node() {
+    let mut app = App::new::<Root>(Level::Info);
+    let result = app.take(|root: &mut Root, app| {
+        assert_eq!(app.get_mut::<Counter>().value, 1);
+        assert_eq!(root.value, 0);
+        42
+    });
+    assert_eq!(result, 42);
+}
+
+#[modor::test]
+fn take_node_handle() {
+    let mut app = App::new::<Root>(Level::Info);
+    let result = app.handle::<Root>().take(&mut app, |root: &mut Root, app| {
+        assert_eq!(app.get_mut::<Counter>().value, 1);
+        assert_eq!(root.value, 0);
+        42
+    });
+    assert_eq!(result, 42);
+}
+
 #[derive(Node, Visit)]
 struct Root {
     value: usize,

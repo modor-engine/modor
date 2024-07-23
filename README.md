@@ -47,6 +47,8 @@ dependencies in your `Cargo.toml` file:
 ```toml
 modor = "0.1"
 modor_physics = "0.1"
+modor_graphics = "0.1"
+modor_text = "0.1"
 modor_input = "0.1"
 ```
 
