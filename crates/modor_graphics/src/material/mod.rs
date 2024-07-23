@@ -317,7 +317,7 @@ pub trait Material: Sized + 'static {
     ///
     /// Each rendered model has its own instance data.
     ///
-    /// In case this type has a size of zero with [`mem::size_of`](mem::size_of()),
+    /// In case this type has a size of zero with [`mem::size_of`](std::mem::size_of()),
     /// then no instance data are sent to the shader.
     type InstanceData: Pod;
 
