@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, FromApp, Glob, Node, Visit};
+use modor::{App, FromApp, Glob, Node};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -67,7 +67,6 @@ use std::{any, fmt};
 ///
 /// // Usage
 ///
-/// #[derive(Visit)]
 /// struct Content {
 ///     size: Res<ContentSize>,
 /// }
@@ -81,14 +80,15 @@ use std::{any, fmt};
 /// }
 ///
 /// impl Node for Content {
-///     fn on_enter(&mut self, app: &mut App) {
+///     fn update(&mut self, app: &mut App) {
+///         self.size.update(app);
 ///         if let (Some(size), ResourceState::Loaded) = (self.size.size, self.size.state()) {
 ///             println!("Content size: {}", size);
 ///         }
 ///     }
 /// }
 /// ```
-#[derive(Visit, Derivative)]
+#[derive(Derivative)]
 #[derivative(Debug(bound = "T: Debug, T::Source: Debug"))]
 pub struct Res<T: Resource> {
     inner: T,
@@ -123,7 +123,7 @@ impl<T> Node for Res<T>
 where
     T: Resource,
 {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let mut latest_loaded = None;
         match self.loading.take() {
             Some(Loading::Path(mut job)) => match job.try_poll() {
@@ -393,7 +393,7 @@ pub enum ResSource<T: Resource> {
     Source(T::Source),
 }
 
-#[derive(Visit, Derivative)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 enum Loading<T: Resource> {
     Path(#[derivative(Debug = "ignore")] AssetLoadingJob<Result<T::Loaded, ResourceError>>),

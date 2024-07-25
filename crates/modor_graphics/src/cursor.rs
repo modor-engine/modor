@@ -1,5 +1,5 @@
 use crate::{Camera2DGlob, Window};
-use modor::{App, Builder, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Builder, GlobRef, Node, RootNodeHandle};
 use modor_input::modor_math::Vec2;
 use modor_input::{Finger, InputState, Inputs, MouseButton};
 
@@ -14,19 +14,19 @@ use modor_input::{Finger, InputState, Inputs, MouseButton};
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
-/// #[derive(Visit)]
 /// struct Cursor {
 ///     tracker: CursorTracker,
 /// }
 ///
 /// impl Node for Cursor {
-///     fn on_enter(&mut self, app: &mut App) {
+///     fn update(&mut self, app: &mut App) {
+///         self.tracker.update(app);
 ///         println!("Cursor position: {:?}", self.tracker.position(app));
 ///         println!("Cursor is pressed: {}", self.tracker.state(app).is_pressed());
 ///     }
 /// }
 /// ```
-#[derive(Visit, Builder)]
+#[derive(Builder)]
 pub struct CursorTracker {
     /// The camera used to calculate cursor position.
     ///
@@ -40,7 +40,7 @@ pub struct CursorTracker {
 }
 
 impl Node for CursorTracker {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let inputs = self.inputs.get(app);
         if let Some((finger_id, _)) = inputs.fingers.pressed_iter().next() {
             self.is_touch = true;

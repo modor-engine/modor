@@ -2,13 +2,12 @@ use crate::pong::ball::BallProperties;
 use crate::pong::collisions::CollisionGroups;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
-use modor::{App, Node, RootNodeHandle, Visit};
+use modor::{App, Node, RootNodeHandle};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Body2D;
 
-#[derive(Visit)]
 pub(crate) struct Paddle {
     body: Body2D,
     sprite: Sprite2D,
@@ -18,9 +17,11 @@ pub(crate) struct Paddle {
 }
 
 impl Node for Paddle {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.body.velocity.y = self.new_velocity(app);
         self.reset_on_score(app);
+        self.body.update(app);
+        self.sprite.update(app);
     }
 }
 

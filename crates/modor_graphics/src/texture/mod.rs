@@ -20,7 +20,6 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 /// # use modor_graphics::modor_resources::*;
 /// # use modor_physics::modor_math::*;
 /// #
-/// #[derive(Node, Visit)]
 /// struct TexturedRectangle {
 ///     sprite: Sprite2D,
 /// }
@@ -40,7 +39,12 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///     }
 /// }
 ///
-/// #[derive(Node, Visit)]
+/// impl Node for TexturedRectangle {
+///     fn update(&mut self, app: &mut App) {
+///         self.sprite.update(app);
+///     }
+/// }
+///
 /// struct Resources {
 ///     texture: Res<Texture>,
 ///     target: Res<Texture>,
@@ -54,6 +58,13 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///                 .with_is_target_enabled(true)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(800, 600))),
 ///         }
+///     }
+/// }
+///
+/// impl Node for Resources {
+///     fn update(&mut self, app: &mut App) {
+///         self.texture.update(app);
+///         self.target.update(app);
 ///     }
 /// }
 /// ```

@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Delta;
@@ -25,7 +25,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     objects: Vec<Object>,
     last_frame_instant: Instant,
@@ -44,17 +43,19 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let now = Instant::now();
         info!(
             "FPS: {}",
             1. / (now - self.last_frame_instant).as_secs_f32()
         );
         self.last_frame_instant = now;
+        for object in &mut self.objects {
+            object.update(app);
+        }
     }
 }
 
-#[derive(Node, Visit)]
 struct Resources {
     materials: Vec<Mat<DefaultMaterial2D>>,
 }
@@ -75,7 +76,14 @@ impl RootNode for Resources {
     }
 }
 
-#[derive(Visit)]
+impl Node for Resources {
+    fn update(&mut self, app: &mut App) {
+        for material in &mut self.materials {
+            material.update(app);
+        }
+    }
+}
+
 struct Object {
     model: Model2D<DefaultMaterial2D>,
     next_update: Instant,
@@ -85,7 +93,7 @@ struct Object {
 }
 
 impl Node for Object {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         if Instant::now() > self.next_update {
             let mut rng = rand::thread_rng();
             self.velocity = Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5))
@@ -95,6 +103,7 @@ impl Node for Object {
         }
         let delta = app.get_mut::<Delta>().duration.as_secs_f32();
         self.model.position += self.velocity * delta;
+        self.model.update(app);
     }
 }
 

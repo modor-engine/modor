@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::testing::assert_max_component_diff;
@@ -52,7 +52,6 @@ fn text(app: &mut App) -> &mut Text2D {
     &mut root(app).text
 }
 
-#[derive(Node, Visit)]
 struct Root {
     text: Text2D,
     target: Res<Texture>,
@@ -71,5 +70,12 @@ impl RootNode for Root {
                 .with_model(|m| m.camera = target.camera.glob().to_ref()),
             target,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.text.update(app);
+        self.target.update(app);
     }
 }

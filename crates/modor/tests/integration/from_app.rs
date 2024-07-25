@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, FromApp};
-use modor_derive::{Node, RootNode, Visit};
+use modor_derive::{Node, RootNode};
 
 #[modor::test]
 fn create_struct_with_named_fields() {
@@ -25,7 +25,7 @@ fn create_with_callback() {
     assert_eq!(value.field2, 1);
 }
 
-#[derive(Default, RootNode, Node, Visit)]
+#[derive(Default, RootNode, Node)]
 struct Root;
 
 #[derive(FromApp)]
@@ -48,7 +48,7 @@ impl FromApp for Integer {
     }
 }
 
-#[derive(RootNode, Node, Visit)]
+#[derive(RootNode, Node)]
 struct DefaultInteger(u32);
 
 impl Default for DefaultInteger {

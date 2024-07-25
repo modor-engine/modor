@@ -1,7 +1,7 @@
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode, RootNodeHandle, Visit};
+use modor::{App, Node, RootNode, RootNodeHandle};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Color, Sprite2D};
@@ -17,7 +17,7 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
+#[derive(Node)]
 struct Root;
 
 impl RootNode for Root {
@@ -28,7 +28,6 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
 struct Platforms {
     platforms: Vec<Platform>,
 }
@@ -71,6 +70,14 @@ impl RootNode for Platforms {
     }
 }
 
+impl Node for Platforms {
+    fn update(&mut self, app: &mut App) {
+        for platform in &mut self.platforms {
+            platform.update(app);
+        }
+    }
+}
+
 impl Platforms {
     fn find(&self, body_index: usize) -> Option<&Platform> {
         self.platforms
@@ -79,7 +86,6 @@ impl Platforms {
     }
 }
 
-#[derive(Node, Visit)]
 struct CollisionGroups {
     platform: CollisionGroup,
     character: CollisionGroup,
@@ -98,7 +104,13 @@ impl RootNode for CollisionGroups {
     }
 }
 
-#[derive(Visit)]
+impl Node for CollisionGroups {
+    fn update(&mut self, app: &mut App) {
+        self.platform.update(app);
+        self.character.update(app);
+    }
+}
+
 struct Platform {
     body: Body2D,
     sprite: Sprite2D,
@@ -106,11 +118,13 @@ struct Platform {
 }
 
 impl Node for Platform {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         if Instant::now() >= self.next_reverse_instant {
             self.next_reverse_instant = Instant::now() + PLATFORM_PERIOD;
             self.body.velocity *= -1.;
         }
+        self.body.update(app);
+        self.sprite.update(app);
     }
 }
 
@@ -133,7 +147,6 @@ impl Platform {
     }
 }
 
-#[derive(Visit)]
 struct Character {
     body: Body2D,
     sprite: Sprite2D,
@@ -141,7 +154,7 @@ struct Character {
 }
 
 impl Node for Character {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.body.update(app); // force update to use latest information
         let keyboard = &app.get_mut::<Inputs>().keyboard;
         let x_movement = keyboard.axis(Key::ArrowLeft, Key::ArrowRight);
@@ -150,6 +163,8 @@ impl Node for Character {
         let ground_velocity = touched_ground.map_or(0., |platform| platform.body.velocity.x);
         self.body.force = self.force(touched_ground.is_some(), is_jump_pressed);
         self.body.velocity.x = 0.5f32.mul_add(x_movement, ground_velocity);
+        self.body.update(app);
+        self.sprite.update(app);
     }
 }
 

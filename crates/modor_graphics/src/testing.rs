@@ -43,7 +43,6 @@ use std::{env, fs};
 /// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_same(&mut app, &texture, "expected_texture");
 ///
-/// #[derive(Node, Visit)]
 /// struct Root {
 ///     texture: Res<Texture>,
 /// }
@@ -55,6 +54,12 @@ use std::{env, fs};
 ///                 .with_is_target_enabled(true)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
+///     }
+/// }
+///
+/// impl Node for Root {
+///     fn update(&mut self, app: &mut App) {
+///         self.texture.update(app);
 ///     }
 /// }
 /// # }
@@ -103,7 +108,6 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 /// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_max_component_diff(&mut app, &texture, "expected_texture", 1, 1);
 ///
-/// #[derive(Node, Visit)]
 /// struct Root {
 ///     texture: Res<Texture>,
 /// }
@@ -115,6 +119,12 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 ///                 .with_is_target_enabled(true)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
+///     }
+/// }
+///
+/// impl Node for Root {
+///     fn update(&mut self, app: &mut App) {
+///         self.texture.update(app);
 ///     }
 /// }
 /// # }
@@ -171,7 +181,6 @@ pub fn assert_max_component_diff(
 /// let texture = app.get_mut::<Root>().texture.glob().to_ref();
 /// assert_max_pixel_diff(&mut app, &texture, "expected_texture", 10);
 ///
-/// #[derive(Node, Visit)]
 /// struct Root {
 ///     texture: Res<Texture>,
 /// }
@@ -183,6 +192,12 @@ pub fn assert_max_component_diff(
 ///                 .with_is_target_enabled(true)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
+///     }
+/// }
+///
+/// impl Node for Root {
+///     fn update(&mut self, app: &mut App) {
+///         self.texture.update(app);
 ///     }
 /// }
 /// # }

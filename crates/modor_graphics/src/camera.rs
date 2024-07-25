@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Node, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Node};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -21,7 +21,6 @@ use wgpu::{BindGroup, BufferUsages};
 /// # use modor_graphics::modor_resources::*;
 /// # use modor_physics::modor_math::*;
 /// #
-/// #[derive(Node, Visit)]
 /// struct Object {
 ///     sprite: Sprite2D
 /// }
@@ -37,15 +36,14 @@ use wgpu::{BindGroup, BufferUsages};
 ///     }
 /// }
 ///
-/// #[derive(Visit)]
-/// struct MovingCamera {
-///     camera: Camera2D
+/// impl Node for Object {
+///     fn update(&mut self, app: &mut App) {
+///         self.sprite.update(app);
+///     }
 /// }
 ///
-/// impl Node for MovingCamera {
-///     fn on_enter(&mut self, app: &mut App) {
-///         self.camera.position += Vec2::new(0.1, 0.2);
-///     }
+/// struct MovingCamera {
+///     camera: Camera2D
 /// }
 ///
 /// impl RootNode for MovingCamera {
@@ -57,8 +55,15 @@ use wgpu::{BindGroup, BufferUsages};
 ///         }
 ///     }
 /// }
+///
+/// impl Node for MovingCamera {
+///     fn update(&mut self, app: &mut App) {
+///         self.camera.position += Vec2::new(0.1, 0.2);
+///         self.camera.update(app);
+///     }
+/// }
 /// ```
-#[derive(Debug, Visit, Builder)]
+#[derive(Debug, Builder)]
 pub struct Camera2D {
     #[builder(form(value))]
     /// Position of the rendered zone center in world units.
@@ -79,7 +84,7 @@ pub struct Camera2D {
 }
 
 impl Node for Camera2D {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let target_sizes = self.target_sizes(app);
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let glob = self.glob.get_mut(app);

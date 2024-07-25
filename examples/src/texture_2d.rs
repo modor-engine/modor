@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture};
@@ -9,7 +9,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     background: Sprite2D,
     smileys: Vec<Smiley>,
@@ -46,7 +45,15 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.background.update(app);
+        for smiley in &mut self.smileys {
+            smiley.update(app);
+        }
+    }
+}
+
 struct Resources {
     background_texture: Res<Texture>,
     smiley_texture: Res<Texture>,
@@ -61,7 +68,13 @@ impl RootNode for Resources {
     }
 }
 
-#[derive(Visit)]
+impl Node for Resources {
+    fn update(&mut self, app: &mut App) {
+        self.background_texture.update(app);
+        self.smiley_texture.update(app);
+    }
+}
+
 struct Smiley {
     sprite: Sprite2D,
     velocity: Vec2,
@@ -69,7 +82,7 @@ struct Smiley {
 }
 
 impl Node for Smiley {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let model = &mut self.sprite.model;
         if model.position.x < -0.5 + model.size.x / 2. {
             self.velocity.x *= -1.;
@@ -89,6 +102,7 @@ impl Node for Smiley {
         }
         model.position += self.velocity / 60.;
         model.rotation += self.angular_velocity / 60.;
+        self.sprite.update(app);
     }
 }
 

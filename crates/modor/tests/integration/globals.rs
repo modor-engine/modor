@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, FromApp, Glob, Globals};
-use modor_derive::{Node, RootNode, Visit};
+use modor_derive::{Node, RootNode};
 
 #[modor::test]
 fn create_glob() {
@@ -147,5 +147,5 @@ fn take_glob() {
 #[modor::test]
 fn access_glob() {}
 
-#[derive(Default, RootNode, Node, Visit)]
+#[derive(Default, RootNode, Node)]
 struct Root;

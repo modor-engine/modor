@@ -1,13 +1,13 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
-use modor::{App, FromApp, Glob, Node, Visit};
+use modor::{App, FromApp, Glob, Node};
 use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
     VertexStepMode,
 };
 
-#[derive(Debug, Visit, Node)]
+#[derive(Debug, Node)]
 pub(crate) struct Mesh {
     glob: Glob<MeshGlob>,
 }

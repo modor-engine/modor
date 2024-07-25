@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Camera2D, Color, Size, Sprite2D, Texture, TextureSource, Window};
 use modor_physics::modor_math::Vec2;
@@ -8,7 +8,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     target_rectangle: Sprite2D,
     inner_rectangle: Sprite2D,
@@ -25,8 +24,10 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.inner_rectangle.model.rotation += 0.01;
+        self.target_rectangle.update(app);
+        self.inner_rectangle.update(app);
     }
 }
 
@@ -45,7 +46,6 @@ impl Root {
     }
 }
 
-#[derive(Node, Visit)]
 struct TextureTarget {
     texture: Res<Texture>,
     camera: Camera2D,
@@ -66,5 +66,12 @@ impl RootNode for TextureTarget {
             .load_from_source(app, TextureSource::Size(Size::new(300, 300)));
         let camera = Camera2D::new(app, vec![texture.target.glob().to_ref()]);
         Self { texture, camera }
+    }
+}
+
+impl Node for TextureTarget {
+    fn update(&mut self, app: &mut App) {
+        self.texture.update(app);
+        self.camera.update(app);
     }
 }

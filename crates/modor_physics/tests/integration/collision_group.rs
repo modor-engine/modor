@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
@@ -31,7 +31,6 @@ fn group2(app: &mut App) -> &mut Option<CollisionGroup> {
     &mut app.get_mut::<Root>().group2
 }
 
-#[derive(Node, Visit)]
 struct Root {
     group1: CollisionGroup,
     group2: Option<CollisionGroup>,
@@ -52,5 +51,16 @@ impl RootNode for Root {
             body1,
             body2,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.group1.update(app);
+        if let Some(group) = &mut self.group2 {
+            group.update(app);
+        }
+        self.body1.update(app);
+        self.body2.update(app);
     }
 }

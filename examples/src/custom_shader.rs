@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
@@ -12,7 +12,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     texture: Res<Texture>,
     shader: Res<Shader<BlurMaterial>>,
@@ -39,9 +38,25 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.texture.update(app);
+        self.shader.update(app);
+        self.material.update(app);
+        for sprite in &mut self.sprites {
+            sprite.update(app);
+        }
+    }
+}
+
 struct Sprite {
     model: Model2D<BlurMaterial>,
+}
+
+impl Node for Sprite {
+    fn update(&mut self, app: &mut App) {
+        self.model.update(app);
+    }
 }
 
 impl Sprite {
@@ -61,7 +76,7 @@ impl Sprite {
     }
 }
 
-#[derive(Default, RootNode, Node, Visit)]
+#[derive(Default, RootNode, Node)]
 struct SpriteProperties {
     sample_counts: HashMap<usize, u32>,
 }

@@ -1,4 +1,4 @@
-use modor::{App, GlobRef, Node, Visit};
+use modor::{App, GlobRef, Node};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::Sprite2D;
 use modor_physics::{Body2D, CollisionGroupGlob};
@@ -6,10 +6,16 @@ use modor_physics::{Body2D, CollisionGroupGlob};
 pub(crate) const FIELD_BORDER_WIDTH: f32 = 0.02;
 pub(crate) const FIELD_SIZE: Vec2 = Vec2::new(1. - FIELD_BORDER_WIDTH, 0.75);
 
-#[derive(Node, Visit)]
 pub(crate) struct Wall {
     body: Body2D,
     sprite: Sprite2D,
+}
+
+impl Node for Wall {
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
+        self.sprite.update(app);
+    }
 }
 
 impl Wall {

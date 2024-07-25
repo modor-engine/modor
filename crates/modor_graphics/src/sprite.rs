@@ -1,5 +1,5 @@
 use crate::{DefaultMaterial2D, IntoMat, Mat, Model2D};
-use modor::{App, Builder, Node, Visit};
+use modor::{App, Builder, Node};
 
 /// A rendered 2D object that can be colored or textured.
 ///
@@ -9,7 +9,7 @@ use modor::{App, Builder, Node, Visit};
 ///
 /// See [`Texture`](crate::Texture).
 #[non_exhaustive]
-#[derive(Debug, Node, Visit, Builder)]
+#[derive(Debug, Builder)]
 pub struct Sprite2D {
     /// Material of the sprite, i.e. the aspect.
     #[builder(form(closure))]
@@ -17,6 +17,13 @@ pub struct Sprite2D {
     /// Model of the sprite, i.e. where the sprite is rendered.
     #[builder(form(closure))]
     pub model: Model2D<DefaultMaterial2D>,
+}
+
+impl Node for Sprite2D {
+    fn update(&mut self, app: &mut App) {
+        self.material.update(app);
+        self.model.update(app);
+    }
 }
 
 impl Sprite2D {

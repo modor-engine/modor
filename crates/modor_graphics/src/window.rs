@@ -2,7 +2,7 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::{platform, Camera2D, FrameRate, Size, Target};
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -12,7 +12,6 @@ use winit::dpi::PhysicalSize;
 
 // coverage: off (window cannot be tested)
 
-#[derive(Visit)]
 /// The main window where rendering is performed.
 ///
 /// # Examples
@@ -21,7 +20,7 @@ use winit::dpi::PhysicalSize;
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
-/// #[derive(Node, Visit)]
+/// #[derive(Node)]
 /// struct Root {
 ///     // ...
 /// }
@@ -88,9 +87,10 @@ impl RootNode for Window {
 }
 
 impl Node for Window {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.update_properties();
         self.update_surface(app);
+        self.camera.update(app);
     }
 }
 

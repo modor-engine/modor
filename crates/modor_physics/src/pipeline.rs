@@ -3,7 +3,7 @@ use crate::physics_hooks::PhysicsHooks;
 use crate::user_data::ColliderUserData;
 use crate::{Body2DGlob, Delta};
 use fxhash::FxHashMap;
-use modor::{App, Globals, Node, RootNode, Visit};
+use modor::{App, Globals, Node, RootNode};
 use rapier2d::dynamics::{
     CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
     RigidBodyHandle, RigidBodySet,
@@ -13,7 +13,7 @@ use rapier2d::na::Vector2;
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::RigidBody;
 
-#[derive(Default, RootNode, Visit)]
+#[derive(Default, RootNode)]
 pub(crate) struct Pipeline {
     rigid_bodies: RigidBodySet,
     colliders: ColliderSet,
@@ -30,7 +30,7 @@ pub(crate) struct Pipeline {
 }
 
 impl Node for Pipeline {
-    fn on_exit(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         for (_, body) in app.get_mut::<Globals<Body2DGlob>>().deleted_items() {
             self.rigid_bodies.remove(
                 body.rigid_body_handle

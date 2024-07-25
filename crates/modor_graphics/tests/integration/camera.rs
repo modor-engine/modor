@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -67,7 +67,6 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
-#[derive(Node, Visit)]
 struct Root {
     sprite: Sprite2D,
     target: Res<Texture>,
@@ -90,5 +89,13 @@ impl RootNode for Root {
             target,
             other_target,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.sprite.update(app);
+        self.target.update(app);
+        self.other_target.update(app);
     }
 }

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::Inputs;
 use modor_graphics::{CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -9,7 +9,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     pressed_buttons_label: Text2D,
     pressed_buttons: Text2D,
@@ -31,14 +30,18 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let mouse = &app.get_mut::<Inputs>().mouse;
         self.pressed_buttons.content = mouse
             .pressed_iter()
             .map(|button| format!("{button:?}"))
             .collect::<Vec<_>>()
             .join(", ");
+        self.tracker.update(app);
         self.cursor.model.position = self.tracker.position(app);
+        self.pressed_buttons_label.update(app);
+        self.pressed_buttons.update(app);
+        self.cursor.update(app);
     }
 }
 

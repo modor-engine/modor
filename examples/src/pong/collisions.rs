@@ -1,7 +1,6 @@
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_physics::{CollisionGroup, CollisionType, Impulse};
 
-#[derive(Node, Visit)]
 pub(crate) struct CollisionGroups {
     pub(crate) horizontal_wall: CollisionGroup,
     pub(crate) vertical_wall: CollisionGroup,
@@ -27,5 +26,14 @@ impl RootNode for CollisionGroups {
             paddle,
             ball,
         }
+    }
+}
+
+impl Node for CollisionGroups {
+    fn update(&mut self, app: &mut App) {
+        self.horizontal_wall.update(app);
+        self.vertical_wall.update(app);
+        self.paddle.update(app);
+        self.ball.update(app);
     }
 }

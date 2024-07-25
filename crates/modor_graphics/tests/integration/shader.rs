@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Glob, GlobRef, Node, RootNode, Visit};
+use modor::{App, Glob, GlobRef, Node, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size,
@@ -76,7 +76,6 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
-#[derive(Node, Visit)]
 struct Root {
     material: Mat<TestMaterial>,
     shader: Res<Shader<TestMaterial>>,
@@ -109,6 +108,16 @@ impl RootNode for Root {
             model2,
             target,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.material.update(app);
+        self.shader.update(app);
+        self.model1.update(app);
+        self.model2.update(app);
+        self.target.update(app);
     }
 }
 

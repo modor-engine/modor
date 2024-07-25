@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -20,7 +20,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     left_wall: Wall,
     right_wall: Wall,
@@ -47,7 +46,15 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.left_wall.update(app);
+        self.right_wall.update(app);
+        self.bottom_wall.update(app);
+        self.cannon.update(app);
+    }
+}
+
 struct CollisionGroups {
     wall: CollisionGroup,
     object: CollisionGroup,
@@ -64,10 +71,23 @@ impl RootNode for CollisionGroups {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for CollisionGroups {
+    fn update(&mut self, app: &mut App) {
+        self.wall.update(app);
+        self.object.update(app);
+    }
+}
+
 struct Wall {
     body: Body2D,
     sprite: Sprite2D,
+}
+
+impl Node for Wall {
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
+        self.sprite.update(app);
+    }
 }
 
 impl Wall {
@@ -82,19 +102,20 @@ impl Wall {
     }
 }
 
-#[derive(Visit)]
 struct Cannon {
     sprite: Sprite2D,
     cursor: CursorTracker,
 }
 
 impl Node for Cannon {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let cursor_position = self.cursor.position(app);
         self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
         self.sprite.model.position = CANNON_JOIN_POSITION
             + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
         self.create_object(app, self.sprite.model.rotation);
+        self.sprite.update(app);
+        self.cursor.update(app);
     }
 }
 
@@ -121,21 +142,30 @@ impl Cannon {
     }
 }
 
-#[derive(Default, RootNode, Visit)]
+#[derive(Default, RootNode)]
 struct Objects {
     objects: Vec<Object>,
 }
 
 impl Node for Objects {
-    fn on_enter(&mut self, _app: &mut App) {
-        self.objects.retain(|objects| objects.body.position.y > -5.);
+    fn update(&mut self, app: &mut App) {
+        self.objects.retain_mut(|object| {
+            object.update(app);
+            object.body.position.y > -5.
+        });
     }
 }
 
-#[derive(Node, Visit)]
 struct Object {
     body: Body2D,
     sprite: Sprite2D,
+}
+
+impl Node for Object {
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
+        self.sprite.update(app);
+    }
 }
 
 impl Object {

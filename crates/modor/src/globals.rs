@@ -1,4 +1,4 @@
-use crate::{App, FromApp, Node, RootNode, RootNodeHandle, Visit};
+use crate::{App, FromApp, Node, RootNode, RootNodeHandle};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -203,7 +203,7 @@ where
 }
 
 impl<T> Node for Globals<T> {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, _app: &mut App) {
         self.available_indexes
             .extend(self.deleted_items.drain(..).map(|(index, _)| index));
         let deleted_indexes = mem::take(
@@ -221,10 +221,6 @@ impl<T> Node for Globals<T> {
             ));
         }
     }
-}
-
-impl<T> Visit for Globals<T> {
-    fn visit(&mut self, _app: &mut App) {}
 }
 
 impl<T> Globals<T> {

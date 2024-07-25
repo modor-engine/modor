@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::Inputs;
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
@@ -8,7 +8,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     last_entered_text_label: Text2D,
     last_entered_text: Text2D,
@@ -28,7 +27,7 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let keyboard = &app.get_mut::<Inputs>().keyboard;
         if !keyboard.text.is_empty() {
             self.last_entered_text.content.clone_from(&keyboard.text);
@@ -38,6 +37,10 @@ impl Node for Root {
             .map(|key| format!("{key:?}"))
             .collect::<Vec<_>>()
             .join(", ");
+        self.last_entered_text_label.update(app);
+        self.last_entered_text.update(app);
+        self.pressed_keys_label.update(app);
+        self.pressed_keys.update(app);
     }
 }
 

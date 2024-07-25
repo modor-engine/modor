@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 
 #[modor::test]
 fn create_node() {
@@ -39,7 +39,7 @@ fn take_node_handle() {
     assert_eq!(result, 42);
 }
 
-#[derive(Node, Visit)]
+#[derive(Node)]
 struct Root {
     value: usize,
 }
@@ -51,7 +51,7 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Default, RootNode, Node, Visit)]
+#[derive(Default, RootNode, Node)]
 struct Counter {
     value: usize,
 }

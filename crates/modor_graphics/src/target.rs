@@ -26,7 +26,7 @@ use wgpu::{
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
-/// #[derive(Node, Visit)]
+/// #[derive(Node)]
 /// struct Root;
 ///
 /// impl RootNode for Root {

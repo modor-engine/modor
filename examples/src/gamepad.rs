@@ -1,14 +1,19 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::{GamepadStick, Inputs};
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
+
+const STICK_LABELS: [(GamepadStick, &str); 3] = [
+    (GamepadStick::LeftStick, "LeftStick"),
+    (GamepadStick::RightStick, "RightStick"),
+    (GamepadStick::DPad, "DPad"),
+];
 
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     moved_sticks_label: Text2D,
     moved_sticks: Text2D,
@@ -27,14 +32,8 @@ impl RootNode for Root {
     }
 }
 
-const STICK_LABELS: [(GamepadStick, &str); 3] = [
-    (GamepadStick::LeftStick, "LeftStick"),
-    (GamepadStick::RightStick, "RightStick"),
-    (GamepadStick::DPad, "DPad"),
-];
-
 impl Node for Root {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let gamepads = &app.get_mut::<Inputs>().gamepads;
         if let Some((_, gamepad)) = gamepads.iter().next() {
             self.moved_sticks.content = STICK_LABELS
@@ -52,6 +51,10 @@ impl Node for Root {
             self.moved_sticks.content.clear();
             self.pressed_buttons.content.clear();
         }
+        self.moved_sticks_label.update(app);
+        self.moved_sticks.update(app);
+        self.pressed_buttons_label.update(app);
+        self.pressed_buttons.update(app);
     }
 }
 

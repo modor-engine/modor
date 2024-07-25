@@ -1,10 +1,9 @@
 use crate::pong::side::Side;
 use crate::pong::wall::FIELD_SIZE;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_text::Text2D;
 
-#[derive(Visit)]
 pub(crate) struct Scores {
     pub(crate) is_reset_required: bool,
     is_just_updated: bool,
@@ -24,7 +23,7 @@ impl RootNode for Scores {
 }
 
 impl Node for Scores {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         // `is_reset_required` ensures that all nodes see this variable equal to `true` at
         // least once. This is not guaranteed for `is_just_updated` depending on node update order.
         if self.is_just_updated {
@@ -33,6 +32,8 @@ impl Node for Scores {
         } else {
             self.is_reset_required = false;
         }
+        self.left_score.update(app);
+        self.right_score.update(app);
     }
 }
 

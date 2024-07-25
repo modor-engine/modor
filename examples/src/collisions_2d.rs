@@ -1,6 +1,6 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
-use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
+use modor::{App, Node, RootNode};
+use modor_graphics::{Color, CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Collision2D, CollisionGroup, CollisionType, Shape2D};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_8};
@@ -9,7 +9,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     rectangle: Shape,
     circle: Shape,
@@ -18,7 +17,7 @@ struct Root {
 
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
-        app.get_mut::<Window>().is_cursor_visible = false;
+        // app.get_mut::<Window>().is_cursor_visible = false;
         Self {
             rectangle: Shape::new(app, Vec2::X * 0.25, Vec2::new(0.2, 0.3), false),
             circle: Shape::new(app, -Vec2::X * 0.25, Vec2::ONE * 0.4, true),
@@ -27,7 +26,14 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.rectangle.update(app);
+        self.circle.update(app);
+        self.cursor.update(app);
+    }
+}
+
 struct CollisionGroups {
     shape: CollisionGroup,
     cursor: CollisionGroup,
@@ -42,19 +48,30 @@ impl RootNode for CollisionGroups {
     }
 }
 
-#[derive(Visit)]
+impl Node for CollisionGroups {
+    fn update(&mut self, app: &mut App) {
+        self.shape.update(app);
+        self.cursor.update(app);
+    }
+}
+
 struct Shape {
     body: Body2D,
     sprite: Sprite2D,
-    collision: Vec<CollisionNormal>,
+    collisions: Vec<CollisionNormal>,
 }
 
 impl Node for Shape {
-    fn on_enter(&mut self, app: &mut App) {
-        self.collision.clear();
+    fn update(&mut self, app: &mut App) {
+        self.collisions.clear();
         for collision in self.body.collisions() {
-            self.collision
+            self.collisions
                 .push(CollisionNormal::new(app, collision, false));
+        }
+        self.body.update(app);
+        self.sprite.update(app);
+        for collision in &mut self.collisions {
+            collision.update(app);
         }
     }
 }
@@ -78,31 +95,36 @@ impl Shape {
         Self {
             body,
             sprite,
-            collision: vec![],
+            collisions: vec![],
         }
     }
 }
 
-#[derive(Visit)]
 struct Cursor {
     body: Body2D,
     sprite: Sprite2D,
-    collision: Vec<CollisionNormal>,
+    collisions: Vec<CollisionNormal>,
     tracker: CursorTracker,
 }
 
 impl Node for Cursor {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
+        self.tracker.update(app);
         self.body.position = self.tracker.position(app);
         self.sprite.material.color = if self.body.collisions().is_empty() {
             Color::GREEN
         } else {
             Color::RED
         };
-        self.collision.clear();
+        self.collisions.clear();
         for collision in self.body.collisions() {
-            self.collision
+            self.collisions
                 .push(CollisionNormal::new(app, collision, true));
+        }
+        self.body.update(app);
+        self.sprite.update(app);
+        for collision in &mut self.collisions {
+            collision.update(app);
         }
     }
 }
@@ -122,16 +144,22 @@ impl Cursor {
         Self {
             body,
             sprite,
-            collision: vec![],
+            collisions: vec![],
             tracker: CursorTracker::new(app),
         }
     }
 }
 
-#[derive(Node, Visit)]
 struct CollisionNormal {
     position: Sprite2D,
     penetration: Sprite2D,
+}
+
+impl Node for CollisionNormal {
+    fn update(&mut self, app: &mut App) {
+        self.position.update(app);
+        self.penetration.update(app);
+    }
 }
 
 impl CollisionNormal {

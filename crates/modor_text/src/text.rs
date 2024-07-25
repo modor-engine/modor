@@ -1,7 +1,7 @@
 use crate::resources::TextResources;
 use crate::{FontGlob, TextMaterial2D};
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{App, Builder, GlobRef, Node, Visit};
+use modor::{App, Builder, GlobRef, Node};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
 use std::iter;
@@ -16,7 +16,6 @@ use std::iter;
 /// # use modor_graphics::modor_resources::*;
 /// # use modor_text::*;
 /// #
-/// #[derive(Node, Visit)]
 /// struct Root {
 ///     text: Text2D,
 /// }
@@ -34,7 +33,12 @@ use std::iter;
 ///     }
 /// }
 ///
-/// #[derive(Node, Visit)]
+/// impl Node for Root {
+///     fn update(&mut self, app: &mut App) {
+///         self.text.update(app);
+///     }
+/// }
+///
 /// struct Resources {
 ///     font: Res<Font>,
 /// }
@@ -46,8 +50,14 @@ use std::iter;
 ///         }
 ///     }
 /// }
+///
+/// impl Node for Resources {
+///     fn update(&mut self, app: &mut App) {
+///         self.font.update(app);
+///     }
+/// }
 /// ```
-#[derive(Debug, Visit, Builder)]
+#[derive(Debug, Builder)]
 #[non_exhaustive]
 pub struct Text2D {
     /// Text to render.
@@ -90,7 +100,7 @@ pub struct Text2D {
 
 impl Node for Text2D {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let font = self.font.get(app);
         if let Some(font_vec) = &font.font {
             if self.old_state.has_changed(self) || font.has_changed {
@@ -112,6 +122,9 @@ impl Node for Text2D {
                 self.update_old_state();
             }
         }
+        self.texture.update(app);
+        self.material.update(app);
+        self.model.update(app);
     }
 }
 

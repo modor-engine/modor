@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
@@ -12,7 +12,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     last_update: Instant,
     background: Sprite2D,
@@ -21,13 +20,17 @@ struct Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() < REFRESH_PERIOD {
             return;
         }
         self.last_update = Instant::now();
         let alive_cell_count = self.refresh_grid();
         self.update_alive_cells(app, alive_cell_count);
+        self.background.update(app);
+        for cell in &mut self.cells {
+            cell.update(app);
+        }
     }
 }
 

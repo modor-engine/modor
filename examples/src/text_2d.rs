@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -11,7 +11,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Visit)]
 struct Root {
     background: Sprite2D,
     text: Text2D,
@@ -39,7 +38,7 @@ impl RootNode for Root {
 }
 
 impl Node for Root {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
             let new_text = match self.text.content.matches('.').count() {
                 0 => "Loading.",
@@ -50,10 +49,11 @@ impl Node for Root {
             self.text.content = new_text.into();
             self.last_update = Instant::now();
         }
+        self.background.update(app);
+        self.text.update(app);
     }
 }
 
-#[derive(Node, Visit)]
 struct Resources {
     font: Res<Font>,
 }
@@ -63,5 +63,11 @@ impl RootNode for Resources {
         Self {
             font: Font::new(app).load_from_path(app, "IrishGrover-Regular.ttf"),
         }
+    }
+}
+
+impl Node for Resources {
+    fn update(&mut self, app: &mut App) {
+        self.font.update(app);
     }
 }

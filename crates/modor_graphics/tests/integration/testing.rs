@@ -1,6 +1,6 @@
 use image::ImageError;
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode};
 use modor_graphics::testing::{assert_max_component_diff, assert_max_pixel_diff, assert_same};
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -154,7 +154,6 @@ fn load_different_height(app: &mut App) {
     root(app).texture.reload_with_source(source);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     texture: Res<Texture>,
 }
@@ -166,5 +165,11 @@ impl RootNode for Root {
                 .with_is_buffer_enabled(true)
                 .load_from_source(app, TextureSource::Bytes(TEXTURE_BYTES)),
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.texture.update(app);
     }
 }

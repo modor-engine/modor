@@ -9,7 +9,6 @@ mod functions;
 mod node;
 mod root_node;
 mod utils;
-mod visit;
 
 // coverage: off (cannot be tested)
 #[allow(missing_docs)] // doc available in `modor` crate
@@ -42,15 +41,6 @@ pub fn root_node_derive(item: TokenStream) -> TokenStream {
 pub fn node_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     node::impl_block(&input).into()
-}
-
-#[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(Visit)]
-pub fn visit_derive(item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-    visit::impl_block(&input)
-        .unwrap_or_else(syn::Error::into_compile_error)
-        .into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate

@@ -1,5 +1,5 @@
 use instant::Instant;
-use modor::{App, Builder, Node, Visit};
+use modor::{App, Builder, Node};
 use modor_input::modor_math::Vec2;
 use std::time::Duration;
 
@@ -19,7 +19,6 @@ use std::time::Duration;
 /// # use modor_graphics::*;
 /// # use modor_resources::*;
 /// #
-/// #[derive(Visit)]
 /// struct AnimatedSprite {
 ///     sprite: Sprite2D,
 ///     animation: TextureAnimation,
@@ -27,9 +26,12 @@ use std::time::Duration;
 /// }
 ///
 /// impl Node for AnimatedSprite {
-///     fn on_enter(&mut self, _app: &mut App) {
+///     fn update(&mut self, app: &mut App) {
 ///         self.sprite.material.texture_size = self.animation.part_size();
 ///         self.sprite.material.texture_position = self.animation.part_position();
+///         self.sprite.update(app);
+///         self.animation.update(app);
+///         self.texture.update(app);
 ///     }
 /// }
 ///
@@ -55,7 +57,7 @@ use std::time::Duration;
 ///     }
 /// }
 /// ```
-#[derive(Visit, Builder)]
+#[derive(Builder)]
 pub struct TextureAnimation {
     /// The number of columns in the texture.
     ///
@@ -86,7 +88,7 @@ pub struct TextureAnimation {
 }
 
 impl Node for TextureAnimation {
-    fn on_enter(&mut self, _app: &mut App) {
+    fn update(&mut self, _app: &mut App) {
         if let Some(new_frame_elapsed_time) = self
             .last_update_instant
             .elapsed()

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -10,7 +10,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     slime: Slime,
 }
@@ -24,7 +23,12 @@ impl RootNode for Root {
     }
 }
 
-#[derive(Node, Visit)]
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.slime.update(app);
+    }
+}
+
 struct Resources {
     smile_texture: Res<Texture>,
 }
@@ -39,7 +43,12 @@ impl RootNode for Resources {
     }
 }
 
-#[derive(Visit)]
+impl Node for Resources {
+    fn update(&mut self, app: &mut App) {
+        self.smile_texture.update(app);
+    }
+}
+
 struct Slime {
     body: Body2D,
     sprite: Sprite2D,
@@ -48,7 +57,7 @@ struct Slime {
 }
 
 impl Node for Slime {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.body.velocity = 0.2
             * app.get_mut::<Inputs>().keyboard.direction(
                 Key::ArrowLeft,
@@ -62,6 +71,9 @@ impl Node for Slime {
         self.animation.parts = self.direction.texture_parts(is_stopped);
         self.sprite.material.texture_size = self.animation.part_size();
         self.sprite.material.texture_position = self.animation.part_position();
+        self.body.update(app);
+        self.sprite.update(app);
+        self.animation.update(app);
     }
 }
 

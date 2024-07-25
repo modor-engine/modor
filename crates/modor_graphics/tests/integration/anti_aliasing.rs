@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -44,7 +44,6 @@ fn target(app: &mut App) -> &mut Res<Texture> {
     &mut app.get_mut::<Root>().target
 }
 
-#[derive(Node, Visit)]
 struct Root {
     sprite: Sprite2D,
     target: Res<Texture>,
@@ -64,5 +63,12 @@ impl RootNode for Root {
                 .with_model(|m| m.camera = target.camera.glob().to_ref()),
             target,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.sprite.update(app);
+        self.target.update(app);
     }
 }

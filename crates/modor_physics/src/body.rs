@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Node, RootNodeHandle};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -23,20 +23,17 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// # use modor_math::*;
 /// # use modor_physics::*;
 /// #
-/// #[derive(Default, RootNode, Node, Visit)]
+/// #[derive(Default, RootNode, Node)]
 /// struct CharacterDirection(Vec2);
 ///
-/// #[derive(Visit)]
 /// struct Character {
 ///     body: Body2D,
 /// }
 ///
 /// impl Node for Character {
-///     fn on_enter(&mut self, app: &mut App) {
+///     fn update(&mut self, app: &mut App) {
 ///         self.body.velocity = app.get_mut::<CharacterDirection>().0 * 0.5;
-///     }
-///
-///     fn on_exit(&mut self, app: &mut App) {
+///         self.body.update(app);
 ///         for collision in self.body.collisions() {
 ///             println!("Ball is colliding with body {}", collision.other_index);
 ///         }
@@ -56,7 +53,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///     }
 /// }
 /// ```
-#[derive(Debug, Visit, Builder)]
+#[derive(Debug, Builder)]
 pub struct Body2D {
     /// Position of the body in world units.
     ///
@@ -176,7 +173,7 @@ pub struct Body2D {
 }
 
 impl Node for Body2D {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         let glob = self.glob.get(app);
         let changes = Body2DChanges::new(self, glob);
         let rigid_body_handle = glob

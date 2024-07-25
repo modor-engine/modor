@@ -8,7 +8,7 @@ use crate::{DefaultMaterial2D, ShaderGlobRef};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle, Visit};
+use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle};
 use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -21,7 +21,7 @@ use wgpu::{
 /// # Examples
 ///
 /// See [`Model2D`](crate::Model2D).
-#[derive(Debug, Visit)]
+#[derive(Debug)]
 pub struct Mat<T> {
     data: T,
     glob: Glob<MaterialGlob>,
@@ -46,7 +46,7 @@ impl<T> Node for Mat<T>
 where
     T: Material,
 {
-    fn on_exit(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         self.glob
             .take(app, |glob, app| glob.update(app, &self.data));
     }

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode, Visit};
+use modor::{App, GlobRef, Node, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
@@ -38,7 +38,6 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
-#[derive(Node, Visit)]
 struct Root {
     texture: Res<Texture>,
     material: Mat<DefaultMaterial2D>,
@@ -65,5 +64,14 @@ impl RootNode for Root {
             model,
             target,
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.texture.update(app);
+        self.material.update(app);
+        self.model.update(app);
+        self.target.update(app);
     }
 }

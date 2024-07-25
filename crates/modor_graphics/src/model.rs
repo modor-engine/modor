@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle, Visit};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
@@ -26,10 +26,16 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 /// # use modor_graphics::*;
 /// # use modor_physics::modor_math::*;
 /// #
-/// #[derive(Node, Visit)]
 /// struct Circle {
 ///     material: Mat<DefaultMaterial2D>,
 ///     model: Model2D<DefaultMaterial2D>,
+/// }
+///
+/// impl Node for Circle {
+///     fn update(&mut self, app: &mut App) {
+///          self.material.update(app);
+///          self.model.update(app);
+///     }
 /// }
 ///
 /// impl Circle {
@@ -45,7 +51,7 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 ///     }
 /// }
 /// ```
-#[derive(Derivative, Visit, Builder)]
+#[derive(Derivative, Builder)]
 #[derivative(Debug(bound = ""))]
 pub struct Model2D<T> {
     /// The position of the model is world units.
@@ -95,7 +101,7 @@ impl<T> Node for Model2D<T>
 where
     T: Material,
 {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         if let Some(body) = &self.body {
             let glob = body.get(app);
             self.position = glob.position;
@@ -167,14 +173,14 @@ impl InstanceGroup2DProperties {
 }
 
 /// The information about instance groups managed by the graphics crate.
-#[derive(Default, RootNode, Visit)]
+#[derive(Default, RootNode)]
 pub struct InstanceGroups2D {
     pub(crate) groups: FxHashMap<InstanceGroup2DProperties, InstanceGroup2D>,
     model_groups: Vec<Option<InstanceGroup2DProperties>>,
 }
 
 impl Node for InstanceGroups2D {
-    fn on_enter(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App) {
         for (model_index, _) in app.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]
                 .take()

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Globals, Node, RootNode, Visit};
+use modor::{App, Globals, Node, RootNode};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, Body2DGlob};
@@ -27,7 +27,6 @@ fn body(app: &mut App) -> &mut Body2D {
     &mut app.get_mut::<Root>().body
 }
 
-#[derive(Node, Visit)]
 struct Root {
     body: Body2D,
 }
@@ -37,5 +36,11 @@ impl RootNode for Root {
         Self {
             body: Body2D::new(app),
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
     }
 }

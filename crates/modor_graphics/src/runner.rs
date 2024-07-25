@@ -4,7 +4,7 @@ use crate::inputs::gamepads::Gamepads;
 use crate::{platform, Size, Window};
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_input::Inputs;
 use modor_physics::Delta;
 use std::marker::PhantomData;
@@ -46,7 +46,7 @@ const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
 ///     modor_graphics::run::<Root>(Level::Info);
 /// }
 ///
-/// #[derive(Default, RootNode, Node, Visit)]
+/// #[derive(Default, RootNode, Node)]
 /// struct Root;
 /// # }
 /// ```
@@ -220,5 +220,5 @@ where
     }
 }
 
-#[derive(Default, RootNode, Node, Visit)]
+#[derive(Default, RootNode, Node)]
 struct RunnerRoot;

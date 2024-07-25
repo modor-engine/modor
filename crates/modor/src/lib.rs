@@ -27,7 +27,6 @@
 //!     app.update();
 //! }
 //!
-//! #[derive(Visit)]
 //! struct Root {
 //!     counter: Counter,
 //! }
@@ -41,22 +40,20 @@
 //! }
 //!
 //! impl Node for Root {
-//!     fn on_enter(&mut self, app: &mut App) {
+//!     fn update(&mut self, app: &mut App) {
 //!         println!("Update counter...");
-//!     }
-//!
-//!     fn on_exit(&mut self, app: &mut App) {
+//!         self.counter.update(app);
 //!         println!("Counter updated, new value is {}", self.counter.value);
 //!     }
 //! }
 //!
-//! #[derive(Default, Visit)]
+//! #[derive(Default)]
 //! struct Counter {
 //!     value: u32,
 //! }
 //!
 //! impl Node for Counter {
-//!     fn on_enter(&mut self, app: &mut App) {
+//!     fn update(&mut self, app: &mut App) {
 //!         self.value += 1;
 //!     }
 //! }
@@ -71,8 +68,6 @@ pub use wasm_bindgen_test;
 mod app;
 mod from_app;
 mod globals;
-#[doc(hidden)]
-pub mod macro_utils;
 mod node;
 mod platform;
 
@@ -99,7 +94,7 @@ pub use platform::*;
 ///     app.update();
 /// }
 ///
-/// #[derive(Default, RootNode, Node, Visit)]
+/// #[derive(Default, RootNode, Node)]
 /// struct Root;
 /// ```
 pub use modor_derive::main;
@@ -151,7 +146,7 @@ pub use modor_derive::test;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Default, RootNode, Node, Visit)]
+/// #[derive(Default, RootNode, Node)]
 /// struct Root {
 ///     value: u32,
 /// }
@@ -166,18 +161,6 @@ pub use modor_derive::RootNode;
 ///
 /// See [`RootNode`](macro@crate::RootNode).
 pub use modor_derive::Node;
-
-/// Implements [`Visit`] so that inner fields implementing [`Node`] are visited.
-///
-/// Both structs and enums are supported.
-///
-/// Note that generic fields are not dynamically visited. In case a generic field should be visited,
-/// an explicit [`Node`] trait bound is necessary.
-///
-/// # Examples
-///
-/// See [`modor`](crate).
-pub use modor_derive::Visit;
 
 /// Generates builder methods for a `struct` with named fields.
 ///
@@ -236,5 +219,6 @@ pub use modor_derive::Builder;
 
 /// Implements [`FromApp`].
 ///
-/// Only structs are supported.
+/// Only structs are supported. All fields must implement [`FromApp`] (or [`Default`], as
+/// [`FromApp`] is automatically implemented for all types implementing [`Default`]).
 pub use modor_derive::FromApp;

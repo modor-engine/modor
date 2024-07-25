@@ -4,7 +4,7 @@ use crate::pong::scores::Scores;
 use crate::pong::wall::{FIELD_BORDER_WIDTH, FIELD_SIZE};
 use collisions::CollisionGroups;
 use modor::log::Level;
-use modor::{App, Node, RootNode, Visit};
+use modor::{App, Node, RootNode};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
 use side::Side;
@@ -14,7 +14,6 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
-#[derive(Node, Visit)]
 struct Root {
     left_wall: Wall,
     right_wall: Wall,
@@ -43,6 +42,19 @@ impl RootNode for Root {
             left_paddle: Paddle::new_player(app, Side::Left),
             right_paddle: Paddle::new_bot(app, Side::Right),
         }
+    }
+}
+
+impl Node for Root {
+    fn update(&mut self, app: &mut App) {
+        self.left_wall.update(app);
+        self.right_wall.update(app);
+        self.top_wall.update(app);
+        self.bottom_wall.update(app);
+        self.separator.update(app);
+        self.ball.update(app);
+        self.left_paddle.update(app);
+        self.right_paddle.update(app);
     }
 }
 
