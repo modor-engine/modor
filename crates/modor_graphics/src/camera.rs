@@ -44,15 +44,17 @@ use wgpu::{BindGroup, BufferUsages};
 ///     camera: Camera2D
 /// }
 ///
-/// impl RootNode for MovingCamera {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for MovingCamera {
+///     fn from_app(app: &mut App) -> Self {
 ///         let target = app.get_mut::<Window>().target.glob().to_ref();
 ///         Self {
 ///             camera: Camera2D::new(app, vec![target])
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2
 ///         }
 ///     }
+/// }
 ///
+/// impl RootNode for MovingCamera {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.camera.position += Vec2::new(0.1, 0.2);
 ///         self.camera.update(app);

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::{Color, CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Collision2D, CollisionGroup, CollisionType, Shape2D};
@@ -15,8 +15,8 @@ struct Root {
     cursor: Cursor,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         // app.get_mut::<Window>().is_cursor_visible = false;
         Self {
             rectangle: Shape::new(app, Vec2::X * 0.25, Vec2::new(0.2, 0.3), false),
@@ -24,7 +24,9 @@ impl RootNode for Root {
             cursor: Cursor::new(app),
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.rectangle.update(app);
         self.circle.update(app);
@@ -37,14 +39,16 @@ struct CollisionGroups {
     cursor: CollisionGroup,
 }
 
-impl RootNode for CollisionGroups {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for CollisionGroups {
+    fn from_app(app: &mut App) -> Self {
         let shape = CollisionGroup::new(app);
         let cursor = CollisionGroup::new(app);
         cursor.add_interaction(app, shape.glob(), CollisionType::Sensor);
         Self { shape, cursor }
     }
+}
 
+impl RootNode for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.shape.update(app);
         self.cursor.update(app);

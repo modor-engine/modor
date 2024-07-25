@@ -20,8 +20,8 @@ use std::iter;
 ///     text: Text2D,
 /// }
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     fn from_app(app: &mut App) -> Self {
 ///         let font = app.get_mut::<Resources>().font.glob().to_ref();
 ///         Self {
 ///             text: Text2D::new(app)
@@ -31,7 +31,9 @@ use std::iter;
 ///                 .with_material(|m| m.color = Color::GREEN),
 ///         }
 ///     }
+/// }
 ///
+/// impl RootNode for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.text.update(app);
 ///     }
@@ -41,13 +43,15 @@ use std::iter;
 ///     font: Res<Font>,
 /// }
 ///
-/// impl RootNode for Resources {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Resources {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             font: Font::new(app).load_from_path(app, "my-font.ttf"),
 ///         }
 ///     }
+/// }
 ///
+/// impl RootNode for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.font.update(app);
 ///     }

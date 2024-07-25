@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, RootNode};
+use modor::{App, FromApp, GlobRef, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -47,8 +47,8 @@ struct Root {
     target: Res<Texture>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
@@ -56,7 +56,9 @@ impl RootNode for Root {
         let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().to_ref());
         Self { sprite, target }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

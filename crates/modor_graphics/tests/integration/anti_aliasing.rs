@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -49,8 +49,8 @@ struct Root {
     target: Res<Texture>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
@@ -64,7 +64,9 @@ impl RootNode for Root {
             target,
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
@@ -38,8 +38,8 @@ struct Root {
     body2: Body2D,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let group1 = CollisionGroup::new(app);
         let group2 = CollisionGroup::new(app);
         group1.add_interaction(app, group2.glob(), CollisionType::Sensor);
@@ -52,7 +52,9 @@ impl RootNode for Root {
             body2,
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.group1.update(app);
         if let Some(group) = &mut self.group2 {

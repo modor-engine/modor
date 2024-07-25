@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture};
@@ -14,8 +14,8 @@ struct Root {
     smileys: Vec<Smiley>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let background_texture = app
             .get_mut::<Resources>()
             .background_texture
@@ -43,7 +43,9 @@ impl RootNode for Root {
             ],
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.background.update(app);
         for smiley in &mut self.smileys {
@@ -57,14 +59,16 @@ struct Resources {
     smiley_texture: Res<Texture>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             background_texture: Texture::new(app).load_from_path(app, "background.png"),
             smiley_texture: Texture::new(app).load_from_path(app, "smiley.png"),
         }
     }
+}
 
+impl RootNode for Resources {
     fn update(&mut self, app: &mut App) {
         self.background_texture.update(app);
         self.smiley_texture.update(app);

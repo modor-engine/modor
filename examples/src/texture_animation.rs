@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -14,14 +14,16 @@ struct Root {
     slime: Slime,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
         Self {
             slime: Slime::new(app),
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.slime.update(app);
     }
@@ -31,15 +33,17 @@ struct Resources {
     smile_texture: Res<Texture>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             smile_texture: Texture::new(app)
                 .with_is_smooth(false)
                 .load_from_path(app, "slime.png"),
         }
     }
+}
 
+impl RootNode for Resources {
     fn update(&mut self, app: &mut App) {
         self.smile_texture.update(app);
     }

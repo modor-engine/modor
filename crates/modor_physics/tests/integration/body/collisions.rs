@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta, Impulse, Shape2D};
@@ -270,8 +270,8 @@ struct Root {
     collision_type: Option<CollisionType>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         app.get_mut::<Delta>().duration = Duration::from_secs(2);
         let body1 = Body2D::new(app);
         let mut body2 = Body2D::new(app)
@@ -286,7 +286,9 @@ impl RootNode for Root {
             body2,
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         if let Some(collision_type) = self.collision_type {
             self.group1

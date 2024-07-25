@@ -26,10 +26,12 @@ use wgpu::{
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
+/// #[derive(RootNode)]
 /// struct Root;
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     // TODO: use init() instead
+///     fn from_app(app: &mut App) -> Self {
 ///         app.get_mut::<Window>().target.background_color = Color::RED;
 ///         Self
 ///     }

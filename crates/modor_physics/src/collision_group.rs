@@ -17,8 +17,8 @@ use rapier2d::prelude::InteractionGroups;
 ///     paddle: CollisionGroup,
 /// }
 ///
-/// impl RootNode for CollisionGroups {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for CollisionGroups {
+///     fn from_app(app: &mut App) -> Self {
 ///         let wall = CollisionGroup::new(app);
 ///         let ball = CollisionGroup::new(app);
 ///         ball.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(1., 0.)));
@@ -31,7 +31,9 @@ use rapier2d::prelude::InteractionGroups;
 ///             paddle,
 ///         }   
 ///     }
+/// }
 ///
+/// impl RootNode for CollisionGroups {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.wall.update(app);
 ///         self.ball.update(app);

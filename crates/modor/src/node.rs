@@ -1,4 +1,4 @@
-use crate::App;
+use crate::{App, FromApp};
 
 // TODO: rename to "singleton" everywhere
 
@@ -10,13 +10,7 @@ use crate::App;
 /// # Examples
 ///
 /// See [`modor`](crate).
-pub trait RootNode: 'static {
-    // TODO: replace by FromApp
-    /// Creates the root node.
-    ///
-    /// Note that this method shouldn't be called manually to create the node.
-    fn on_create(app: &mut App) -> Self;
-
+pub trait RootNode: FromApp {
     // TODO: add init()
 
     /// Updates the node.

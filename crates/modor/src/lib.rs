@@ -27,17 +27,12 @@
 //!     app.update();
 //! }
 //!
+//! #[derive(FromApp)]
 //! struct Root {
 //!     counter: Counter,
 //! }
 //!
 //! impl RootNode for Root {
-//!     fn on_create(app: &mut App) -> Self {
-//!         Self {
-//!             counter: Counter::default()
-//!         }
-//!     }
-//!
 //!     fn update(&mut self, app: &mut App) {
 //!         println!("Update counter...");
 //!         self.counter.value += 1;

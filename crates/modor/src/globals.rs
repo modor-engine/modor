@@ -197,10 +197,6 @@ impl<T> RootNode for Globals<T>
 where
     T: 'static,
 {
-    fn on_create(_app: &mut App) -> Self {
-        Self::default()
-    }
-
     fn update(&mut self, _app: &mut App) {
         self.available_indexes
             .extend(self.deleted_items.drain(..).map(|(index, _)| index));

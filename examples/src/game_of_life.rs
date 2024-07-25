@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
@@ -19,8 +19,8 @@ struct Root {
     cells: Vec<Sprite2D>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let mut are_cells_alive = vec![vec![false; GRID_SIZE]; GRID_SIZE];
         for (x, line) in include_str!("../res/game-of-life-grid").lines().enumerate() {
             for (y, character) in line.chars().enumerate() {
@@ -36,7 +36,9 @@ impl RootNode for Root {
             cells: vec![],
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() < REFRESH_PERIOD {
             return;

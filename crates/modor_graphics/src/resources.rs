@@ -1,6 +1,6 @@
 use crate::mesh::Mesh;
 use crate::{DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource};
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_resources::{Res, ResLoad};
 
 #[non_exhaustive]
@@ -13,8 +13,8 @@ pub(crate) struct Resources {
     pub(crate) white_texture: Res<Texture>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             rectangle_mesh: Mesh::rectangle(app),
             empty_shader: Shader::new(app).load_from_source(
@@ -38,7 +38,9 @@ impl RootNode for Resources {
             white_texture: Texture::new(app).load_from_source(app, TextureSource::Size(Size::ONE)),
         }
     }
+}
 
+impl RootNode for Resources {
     fn update(&mut self, app: &mut App) {
         self.empty_shader.update(app);
         self.default_shader.update(app);

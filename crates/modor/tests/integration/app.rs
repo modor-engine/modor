@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 
 #[modor::test]
 fn create_node() {
@@ -39,12 +39,13 @@ fn take_node_handle() {
     assert_eq!(result, 42);
 }
 
+#[derive(RootNode)]
 struct Root {
     value: usize,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         app.get_mut::<Counter>().value += 1;
         Self { value: 0 }
     }

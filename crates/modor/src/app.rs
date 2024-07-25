@@ -44,7 +44,7 @@ impl App {
 
     /// Update all root nodes registered in the app.
     ///
-    /// [`Node::update`] method is called for each registered root node.
+    /// [`RootNode::update`] method is called for each registered root node.
     ///
     /// Root nodes are updated in the order in which they are created.
     ///
@@ -65,7 +65,8 @@ impl App {
 
     /// Returns a handle to a root node.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// if it doesn't exist.
     pub fn handle<T>(&mut self) -> RootNodeHandle<T>
     where
         T: RootNode,
@@ -76,7 +77,8 @@ impl App {
         }
     }
 
-    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    /// Creates the root node of type `T` using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// if it doesn't exist.
     pub fn create<T>(&mut self)
     where
         T: RootNode,
@@ -86,7 +88,8 @@ impl App {
 
     /// Returns a mutable reference to a root node.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// if it doesn't exist.
     ///
     /// # Panics
     ///
@@ -103,7 +106,8 @@ impl App {
     ///
     /// The method returns the output of `f`.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// if it doesn't exist.
     ///
     /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
     ///
@@ -135,7 +139,7 @@ impl App {
         T: RootNode,
     {
         debug!("Create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::on_create(self));
+        let root = RootNodeData::new(T::from_app(self));
         debug!("Root node `{}` created", any::type_name::<T>());
         let index = self.roots.len();
         self.root_indexes.insert(type_id, index);

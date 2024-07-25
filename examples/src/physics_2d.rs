@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -27,8 +27,8 @@ struct Root {
     cannon: Cannon,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let window = app.get_mut::<Window>();
         window.target.anti_aliasing = window
             .target
@@ -44,7 +44,9 @@ impl RootNode for Root {
             cannon: Cannon::new(app),
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);
@@ -58,8 +60,8 @@ struct CollisionGroups {
     object: CollisionGroup,
 }
 
-impl RootNode for CollisionGroups {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for CollisionGroups {
+    fn from_app(app: &mut App) -> Self {
         let wall = CollisionGroup::new(app);
         let object = CollisionGroup::new(app);
         let impulse = CollisionType::Impulse(Impulse::new(0.1, 0.8));
@@ -67,7 +69,9 @@ impl RootNode for CollisionGroups {
         object.add_interaction(app, object.glob(), impulse);
         Self { wall, object }
     }
+}
 
+impl RootNode for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.wall.update(app);
         self.object.update(app);
@@ -134,16 +138,12 @@ impl Cannon {
     }
 }
 
-#[derive(Default)]
+#[derive(FromApp)]
 struct Objects {
     objects: Vec<Object>,
 }
 
 impl RootNode for Objects {
-    fn on_create(_app: &mut App) -> Self {
-        Self::default()
-    }
-
     fn update(&mut self, app: &mut App) {
         self.objects.retain_mut(|object| {
             object.update(app);

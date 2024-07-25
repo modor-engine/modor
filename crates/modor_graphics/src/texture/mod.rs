@@ -48,8 +48,8 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///     target: Res<Texture>,
 /// }
 ///
-/// impl RootNode for Resources {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Resources {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             texture: Texture::new(app).load_from_path(app, "my-texture.png"),
 ///             target: Texture::new(app)
@@ -57,7 +57,9 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///                 .load_from_source(app, TextureSource::Size(Size::new(800, 600))),
 ///         }
 ///     }
+/// }
 ///
+/// impl RootNode for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///         self.target.update(app);

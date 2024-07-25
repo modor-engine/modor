@@ -1,7 +1,7 @@
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, RootNode, RootNodeHandle};
+use modor::{App, FromApp, RootNode, RootNodeHandle};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Color, Sprite2D};
@@ -17,13 +17,14 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
+#[derive(FromApp)]
 struct Root;
 
 impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+    // TODO: replace by init()
+    fn update(&mut self, app: &mut App) {
         app.create::<Character>();
         app.create::<Platforms>();
-        Self
     }
 }
 
@@ -31,8 +32,8 @@ struct Platforms {
     platforms: Vec<Platform>,
 }
 
-impl RootNode for Platforms {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Platforms {
+    fn from_app(app: &mut App) -> Self {
         Self {
             platforms: vec![
                 // ground
@@ -67,7 +68,9 @@ impl RootNode for Platforms {
             ],
         }
     }
+}
 
+impl RootNode for Platforms {
     fn update(&mut self, app: &mut App) {
         for platform in &mut self.platforms {
             platform.update(app);
@@ -88,8 +91,8 @@ struct CollisionGroups {
     character: CollisionGroup,
 }
 
-impl RootNode for CollisionGroups {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for CollisionGroups {
+    fn from_app(app: &mut App) -> Self {
         let platform = CollisionGroup::new(app);
         let character = CollisionGroup::new(app);
         let impulse = CollisionType::Impulse(Impulse::new(0., 0.));
@@ -99,7 +102,9 @@ impl RootNode for CollisionGroups {
             character,
         }
     }
+}
 
+impl RootNode for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.platform.update(app);
         self.character.update(app);
@@ -146,8 +151,8 @@ struct Character {
     platforms: RootNodeHandle<Platforms>,
 }
 
-impl RootNode for Character {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Character {
+    fn from_app(app: &mut App) -> Self {
         let collision_group = app.get_mut::<CollisionGroups>().character.glob().to_ref();
         let body = Body2D::new(app)
             .with_position(Vec2::new(0., 0.5))
@@ -162,7 +167,9 @@ impl RootNode for Character {
             platforms: app.handle(),
         }
     }
+}
 
+impl RootNode for Character {
     fn update(&mut self, app: &mut App) {
         self.body.update(app); // force update to use latest information
         let keyboard = &app.get_mut::<Inputs>().keyboard;

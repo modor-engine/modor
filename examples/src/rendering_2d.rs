@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, RootNode};
+use modor::{App, FromApp, RootNode};
 use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Delta;
@@ -30,8 +30,8 @@ struct Root {
     last_frame_instant: Instant,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         app.get_mut::<Window>().title = "Rendering 2D".into();
         Self {
             objects: (0..SPRITE_COUNT)
@@ -40,7 +40,9 @@ impl RootNode for Root {
             last_frame_instant: Instant::now(),
         }
     }
+}
 
+impl RootNode for Root {
     fn update(&mut self, app: &mut App) {
         let now = Instant::now();
         info!(
@@ -58,8 +60,8 @@ struct Resources {
     materials: Vec<Mat<DefaultMaterial2D>>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             materials: COLORS
                 .iter()
@@ -72,7 +74,9 @@ impl RootNode for Resources {
                 .collect(),
         }
     }
+}
 
+impl RootNode for Resources {
     fn update(&mut self, app: &mut App) {
         for material in &mut self.materials {
             material.update(app);

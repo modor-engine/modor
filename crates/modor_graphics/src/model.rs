@@ -167,17 +167,13 @@ impl InstanceGroup2DProperties {
 }
 
 /// The information about instance groups managed by the graphics crate.
-#[derive(Default)]
+#[derive(FromApp)]
 pub struct InstanceGroups2D {
     pub(crate) groups: FxHashMap<InstanceGroup2DProperties, InstanceGroup2D>,
     model_groups: Vec<Option<InstanceGroup2DProperties>>,
 }
 
 impl RootNode for InstanceGroups2D {
-    fn on_create(_app: &mut App) -> Self {
-        Self::default()
-    }
-
     fn update(&mut self, app: &mut App) {
         for (model_index, _) in app.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]
