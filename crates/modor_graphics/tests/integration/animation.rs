@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::{TextureAnimation, TexturePart};
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
@@ -54,5 +54,5 @@ fn create_with_zero_fps() {
     assert_approx_eq!(texture_animation.part_position(), Vec2::new(0.5, 0.5));
 }
 
-#[derive(Default, RootNode, Node)]
+#[derive(Default, RootNode)]
 struct Root;

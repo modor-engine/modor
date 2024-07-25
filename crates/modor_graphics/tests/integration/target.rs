@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode};
+use modor::{App, GlobRef, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Color, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -56,9 +56,7 @@ impl RootNode for Root {
         let sprite = Sprite2D::new(app).with_model(|m| m.camera = target.camera.glob().to_ref());
         Self { sprite, target }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

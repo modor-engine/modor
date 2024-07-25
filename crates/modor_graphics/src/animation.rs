@@ -1,5 +1,5 @@
 use instant::Instant;
-use modor::{App, Builder, Node};
+use modor::{App, Builder};
 use modor_input::modor_math::Vec2;
 use std::time::Duration;
 
@@ -25,16 +25,6 @@ use std::time::Duration;
 ///     texture: Res<Texture>
 /// }
 ///
-/// impl Node for AnimatedSprite {
-///     fn update(&mut self, app: &mut App) {
-///         self.sprite.material.texture_size = self.animation.part_size();
-///         self.sprite.material.texture_position = self.animation.part_position();
-///         self.sprite.update(app);
-///         self.animation.update(app);
-///         self.texture.update(app);
-///     }
-/// }
-///
 /// impl AnimatedSprite {
 ///     fn new(app: &mut App) -> Self {
 ///         let texture = Texture::new(app).load_from_path(app, "spritesheet.png");
@@ -54,6 +44,14 @@ use std::time::Duration;
 ///                 .with_parts(|p| *p = animation_parts),
 ///             texture,
 ///         }
+///     }
+///
+///     fn update(&mut self, app: &mut App) {
+///         self.sprite.material.texture_size = self.animation.part_size();
+///         self.sprite.material.texture_position = self.animation.part_position();
+///         self.sprite.update(app);
+///         self.animation.update(app);
+///         self.texture.update(app);
 ///     }
 /// }
 /// ```
@@ -87,20 +85,6 @@ pub struct TextureAnimation {
     current_part_index: Option<usize>,
 }
 
-impl Node for TextureAnimation {
-    fn update(&mut self, _app: &mut App) {
-        if let Some(new_frame_elapsed_time) = self
-            .last_update_instant
-            .elapsed()
-            .checked_sub(self.frame_duration())
-        {
-            let now = Instant::now();
-            self.last_update_instant = now.checked_sub(new_frame_elapsed_time).unwrap_or(now);
-            self.current_part_index = self.next_part_index();
-        }
-    }
-}
-
 impl TextureAnimation {
     const DEFAULT_FPS: u16 = 10;
 
@@ -113,6 +97,19 @@ impl TextureAnimation {
             parts: vec![],
             last_update_instant: Instant::now(),
             current_part_index: None,
+        }
+    }
+
+    /// Updates the animation.
+    pub fn update(&mut self, _app: &mut App) {
+        if let Some(new_frame_elapsed_time) = self
+            .last_update_instant
+            .elapsed()
+            .checked_sub(self.frame_duration())
+        {
+            let now = Instant::now();
+            self.last_update_instant = now.checked_sub(new_frame_elapsed_time).unwrap_or(now);
+            self.current_part_index = self.next_part_index();
         }
     }
 

@@ -4,7 +4,7 @@ use crate::pong::scores::Scores;
 use crate::pong::wall::{FIELD_BORDER_WIDTH, FIELD_SIZE};
 use collisions::CollisionGroups;
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
 use side::Side;
@@ -43,9 +43,7 @@ impl RootNode for Root {
             right_paddle: Paddle::new_bot(app, Side::Right),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);

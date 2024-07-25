@@ -1,5 +1,5 @@
 use crate::{Camera2DGlob, Window};
-use modor::{App, Builder, GlobRef, Node, RootNodeHandle};
+use modor::{App, Builder, GlobRef, RootNodeHandle};
 use modor_input::modor_math::Vec2;
 use modor_input::{Finger, InputState, Inputs, MouseButton};
 
@@ -18,7 +18,7 @@ use modor_input::{Finger, InputState, Inputs, MouseButton};
 ///     tracker: CursorTracker,
 /// }
 ///
-/// impl Node for Cursor {
+/// impl Cursor {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.tracker.update(app);
 ///         println!("Cursor position: {:?}", self.tracker.position(app));
@@ -39,18 +39,6 @@ pub struct CursorTracker {
     last_finger_id: Option<u64>,
 }
 
-impl Node for CursorTracker {
-    fn update(&mut self, app: &mut App) {
-        let inputs = self.inputs.get(app);
-        if let Some((finger_id, _)) = inputs.fingers.pressed_iter().next() {
-            self.is_touch = true;
-            self.last_finger_id = Some(finger_id);
-        } else if inputs.mouse.delta != Vec2::ZERO {
-            self.is_touch = false;
-        }
-    }
-}
-
 impl CursorTracker {
     /// Creates a new cursor.
     pub fn new(app: &mut App) -> Self {
@@ -60,6 +48,17 @@ impl CursorTracker {
             inputs: app.handle(),
             is_touch: false,
             last_finger_id: None,
+        }
+    }
+
+    /// Updates the cursor.
+    pub fn update(&mut self, app: &App) {
+        let inputs = self.inputs.get(app);
+        if let Some((finger_id, _)) = inputs.fingers.pressed_iter().next() {
+            self.is_touch = true;
+            self.last_finger_id = Some(finger_id);
+        } else if inputs.mouse.delta != Vec2::ZERO {
+            self.is_touch = false;
         }
     }
 

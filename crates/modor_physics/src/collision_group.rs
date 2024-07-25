@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{App, FromApp, Glob, Node, RootNodeHandle};
+use modor::{App, FromApp, Glob, RootNodeHandle};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -31,9 +31,7 @@ use rapier2d::prelude::InteractionGroups;
 ///             paddle,
 ///         }   
 ///     }
-/// }
 ///
-/// impl Node for CollisionGroups {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.wall.update(app);
 ///         self.ball.update(app);
@@ -54,16 +52,6 @@ pub struct CollisionGroup {
     physics_hooks: RootNodeHandle<PhysicsHooks>,
 }
 
-impl Node for CollisionGroup {
-    fn update(&mut self, app: &mut App) {
-        let interactions = self
-            .physics_hooks
-            .get_mut(app)
-            .interactions(self.glob.index());
-        self.glob.get_mut(app).interactions = interactions;
-    }
-}
-
 impl CollisionGroup {
     /// Creates and register a new collision group.
     pub fn new(app: &mut App) -> Self {
@@ -71,6 +59,15 @@ impl CollisionGroup {
             glob: Glob::from_app(app),
             physics_hooks: app.handle::<PhysicsHooks>(),
         }
+    }
+
+    /// Updates the collision group.
+    pub fn update(&mut self, app: &mut App) {
+        let interactions = self
+            .physics_hooks
+            .get_mut(app)
+            .interactions(self.glob.index());
+        self.glob.get_mut(app).interactions = interactions;
     }
 
     /// Returns a reference to global data.

@@ -1,5 +1,5 @@
 use crate::{Font, FontSource, TextMaterial2D};
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Shader, ShaderSource};
 
@@ -26,9 +26,7 @@ impl RootNode for TextResources {
             ),
         }
     }
-}
 
-impl Node for TextResources {
     fn update(&mut self, app: &mut App) {
         self.text_shader.update(app);
         self.default_font.update(app);

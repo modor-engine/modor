@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, Delta};
@@ -148,9 +148,7 @@ impl RootNode for Root {
             body: Body2D::new(app),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.body.update(app);
     }

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode};
+use modor::{App, GlobRef, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Camera2D, Size, Sprite2D, Texture, TextureGlob, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -90,9 +90,7 @@ impl RootNode for Root {
             other_target,
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

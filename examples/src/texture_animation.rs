@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -21,9 +21,7 @@ impl RootNode for Root {
             slime: Slime::new(app),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.slime.update(app);
     }
@@ -41,9 +39,7 @@ impl RootNode for Resources {
                 .load_from_path(app, "slime.png"),
         }
     }
-}
 
-impl Node for Resources {
     fn update(&mut self, app: &mut App) {
         self.smile_texture.update(app);
     }
@@ -56,7 +52,22 @@ struct Slime {
     direction: Direction,
 }
 
-impl Node for Slime {
+impl Slime {
+    fn new(app: &mut App) -> Self {
+        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
+        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
+        let sprite = Sprite2D::new(app)
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
+            .with_material(|m| m.texture = texture);
+        Self {
+            body,
+            sprite,
+            animation: TextureAnimation::new(5, 9)
+                .with_parts(|p| *p = Direction::Down.stopped_texture_parts()),
+            direction: Direction::Down,
+        }
+    }
+
     fn update(&mut self, app: &mut App) {
         self.body.velocity = 0.2
             * app.get_mut::<Inputs>().keyboard.direction(
@@ -74,23 +85,6 @@ impl Node for Slime {
         self.body.update(app);
         self.sprite.update(app);
         self.animation.update(app);
-    }
-}
-
-impl Slime {
-    fn new(app: &mut App) -> Self {
-        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
-        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
-        let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().to_ref()))
-            .with_material(|m| m.texture = texture);
-        Self {
-            body,
-            sprite,
-            animation: TextureAnimation::new(5, 9)
-                .with_parts(|p| *p = Direction::Down.stopped_texture_parts()),
-            direction: Direction::Down,
-        }
     }
 }
 

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode};
+use modor::{App, GlobRef, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
@@ -65,9 +65,7 @@ impl RootNode for Root {
             target,
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.texture.update(app);
         self.material.update(app);

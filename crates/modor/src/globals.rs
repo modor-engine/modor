@@ -1,4 +1,4 @@
-use crate::{App, FromApp, Node, RootNode, RootNodeHandle};
+use crate::{App, FromApp, RootNode, RootNodeHandle};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -200,9 +200,7 @@ where
     fn on_create(_app: &mut App) -> Self {
         Self::default()
     }
-}
 
-impl<T> Node for Globals<T> {
     fn update(&mut self, _app: &mut App) {
         self.available_indexes
             .extend(self.deleted_items.drain(..).map(|(index, _)| index));

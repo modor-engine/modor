@@ -1,5 +1,5 @@
 use crate::{Fingers, Gamepads, Keyboard, Mouse};
-use modor::{Node, RootNode};
+use modor::RootNode;
 
 /// The state of the inputs.
 ///
@@ -10,7 +10,7 @@ use modor::{Node, RootNode};
 /// # Examples
 ///
 /// See [`Keyboard`], [`Mouse`], [`Fingers`], [`Gamepads`].
-#[derive(Default, RootNode, Node)]
+#[derive(Default, RootNode)]
 pub struct Inputs {
     /// State of the keyboard.
     pub keyboard: Keyboard,

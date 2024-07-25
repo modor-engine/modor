@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Node};
+use modor::{App, Builder, FromApp, Glob, GlobRef};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -34,9 +34,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///                 .with_model(|m| m.camera = camera)
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for Object {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.sprite.update(app);
 ///     }
@@ -54,9 +52,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for MovingCamera {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.camera.position += Vec2::new(0.1, 0.2);
 ///         self.camera.update(app);
@@ -83,8 +79,20 @@ pub struct Camera2D {
     glob: Glob<Camera2DGlob>,
 }
 
-impl Node for Camera2D {
-    fn update(&mut self, app: &mut App) {
+impl Camera2D {
+    /// Creates a new camera.
+    pub fn new(app: &mut App, targets: Vec<GlobRef<TargetGlob>>) -> Self {
+        Self {
+            position: Vec2::ZERO,
+            size: Vec2::ONE,
+            rotation: 0.,
+            targets,
+            glob: Glob::from_app(app),
+        }
+    }
+
+    /// Updates the camera.
+    pub fn update(&mut self, app: &mut App) {
         let target_sizes = self.target_sizes(app);
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let glob = self.glob.get_mut(app);
@@ -95,19 +103,6 @@ impl Node for Camera2D {
         for (target_index, target_size) in target_sizes {
             let transform = self.gpu_transform(target_size.into());
             glob.update_target(&gpu, target_index, transform);
-        }
-    }
-}
-
-impl Camera2D {
-    /// Creates a new camera.
-    pub fn new(app: &mut App, targets: Vec<GlobRef<TargetGlob>>) -> Self {
-        Self {
-            position: Vec2::ZERO,
-            size: Vec2::ONE,
-            rotation: 0.,
-            targets,
-            glob: Glob::from_app(app),
         }
     }
 

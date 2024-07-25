@@ -1,6 +1,6 @@
 use image::ImageError;
 use log::Level;
-use modor::{App, GlobRef, Node, RootNode};
+use modor::{App, GlobRef, RootNode};
 use modor_graphics::testing::{assert_max_component_diff, assert_max_pixel_diff, assert_same};
 use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -166,9 +166,7 @@ impl RootNode for Root {
                 .load_from_source(app, TextureSource::Bytes(TEXTURE_BYTES)),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.texture.update(app);
     }

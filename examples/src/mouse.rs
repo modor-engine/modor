@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_input::Inputs;
 use modor_graphics::{CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -27,9 +27,7 @@ impl RootNode for Root {
             tracker: CursorTracker::new(app),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         let mouse = &app.get_mut::<Inputs>().mouse;
         self.pressed_buttons.content = mouse

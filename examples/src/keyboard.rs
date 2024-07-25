@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_input::Inputs;
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
@@ -24,9 +24,7 @@ impl RootNode for Root {
             pressed_keys: text(app, -0.375, ""),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         let keyboard = &app.get_mut::<Inputs>().keyboard;
         if !keyboard.text.is_empty() {

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta, Impulse, Shape2D};
@@ -286,9 +286,7 @@ impl RootNode for Root {
             body2,
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         if let Some(collision_type) = self.collision_type {
             self.group1

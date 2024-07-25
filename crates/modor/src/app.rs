@@ -1,4 +1,4 @@
-use crate::{platform, Node, RootNode};
+use crate::{platform, RootNode};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use log::{debug, Level};
@@ -252,7 +252,7 @@ impl RootNodeData {
     where
         T: RootNode,
     {
-        Node::update(
+        T::update(
             value
                 .downcast_mut::<T>()
                 .expect("internal error: misconfigured root node"),

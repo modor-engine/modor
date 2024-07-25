@@ -37,12 +37,10 @@
 //!             counter: Counter::default()
 //!         }
 //!     }
-//! }
 //!
-//! impl Node for Root {
 //!     fn update(&mut self, app: &mut App) {
 //!         println!("Update counter...");
-//!         self.counter.update(app);
+//!         self.counter.value += 1;
 //!         println!("Counter updated, new value is {}", self.counter.value);
 //!     }
 //! }
@@ -50,12 +48,6 @@
 //! #[derive(Default)]
 //! struct Counter {
 //!     value: u32,
-//! }
-//!
-//! impl Node for Counter {
-//!     fn update(&mut self, app: &mut App) {
-//!         self.value += 1;
-//!     }
 //! }
 //! ```
 
@@ -94,7 +86,7 @@ pub use platform::*;
 ///     app.update();
 /// }
 ///
-/// #[derive(Default, RootNode, Node)]
+/// #[derive(Default, RootNode)]
 /// struct Root;
 /// ```
 pub use modor_derive::main;
@@ -146,21 +138,12 @@ pub use modor_derive::test;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Default, RootNode, Node)]
+/// #[derive(Default, RootNode)]
 /// struct Root {
 ///     value: u32,
 /// }
 /// ```
 pub use modor_derive::RootNode;
-
-/// Implements [`Node`].
-///
-/// Both structs and enums are supported.
-///
-/// # Examples
-///
-/// See [`RootNode`](macro@crate::RootNode).
-pub use modor_derive::Node;
 
 /// Generates builder methods for a `struct` with named fields.
 ///

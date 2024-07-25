@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, Node, RootNode, RootNodeHandle};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, RootNode, RootNodeHandle};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
@@ -31,13 +31,6 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 ///     model: Model2D<DefaultMaterial2D>,
 /// }
 ///
-/// impl Node for Circle {
-///     fn update(&mut self, app: &mut App) {
-///          self.material.update(app);
-///          self.model.update(app);
-///     }
-/// }
-///
 /// impl Circle {
 ///     fn new(app: &mut App, position: Vec2, radius: f32, color: Color) -> Self {
 ///         let material = DefaultMaterial2D::new(app)
@@ -48,6 +41,11 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 ///             .with_position(position)
 ///             .with_size(Vec2::ONE * radius * 2.);
 ///         Self { material, model }
+///     }
+///
+///     fn update(&mut self, app: &mut App) {
+///          self.material.update(app);
+///          self.model.update(app);
 ///     }
 /// }
 /// ```
@@ -97,22 +95,6 @@ pub struct Model2D<T> {
     phantom: PhantomData<fn(T)>,
 }
 
-impl<T> Node for Model2D<T>
-where
-    T: Material,
-{
-    fn update(&mut self, app: &mut App) {
-        if let Some(body) = &self.body {
-            let glob = body.get(app);
-            self.position = glob.position;
-            self.size = glob.size;
-            self.rotation = glob.rotation;
-        }
-        let data = T::instance_data(app, self.glob());
-        self.groups.get_mut(app).update_model(self, data);
-    }
-}
-
 impl<T> Model2D<T>
 where
     T: Material,
@@ -137,6 +119,18 @@ where
         let data = T::instance_data(app, model.glob());
         model.groups.get_mut(app).register_model(&model, data);
         model
+    }
+
+    /// Updates the model.
+    pub fn update(&mut self, app: &mut App) {
+        if let Some(body) = &self.body {
+            let glob = body.get(app);
+            self.position = glob.position;
+            self.size = glob.size;
+            self.rotation = glob.rotation;
+        }
+        let data = T::instance_data(app, self.glob());
+        self.groups.get_mut(app).update_model(self, data);
     }
 
     /// Returns a reference to global data.
@@ -173,13 +167,17 @@ impl InstanceGroup2DProperties {
 }
 
 /// The information about instance groups managed by the graphics crate.
-#[derive(Default, RootNode)]
+#[derive(Default)]
 pub struct InstanceGroups2D {
     pub(crate) groups: FxHashMap<InstanceGroup2DProperties, InstanceGroup2D>,
     model_groups: Vec<Option<InstanceGroup2DProperties>>,
 }
 
-impl Node for InstanceGroups2D {
+impl RootNode for InstanceGroups2D {
+    fn on_create(_app: &mut App) -> Self {
+        Self::default()
+    }
+
     fn update(&mut self, app: &mut App) {
         for (model_index, _) in app.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]

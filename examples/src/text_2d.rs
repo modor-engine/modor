@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -35,9 +35,7 @@ impl RootNode for Root {
             last_update: Instant::now(),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
             let new_text = match self.text.content.matches('.').count() {
@@ -64,9 +62,7 @@ impl RootNode for Resources {
             font: Font::new(app).load_from_path(app, "IrishGrover-Regular.ttf"),
         }
     }
-}
 
-impl Node for Resources {
     fn update(&mut self, app: &mut App) {
         self.font.update(app);
     }

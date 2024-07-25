@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::{Color, CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Collision2D, CollisionGroup, CollisionType, Shape2D};
@@ -24,9 +24,7 @@ impl RootNode for Root {
             cursor: Cursor::new(app),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.rectangle.update(app);
         self.circle.update(app);
@@ -46,9 +44,7 @@ impl RootNode for CollisionGroups {
         cursor.add_interaction(app, shape.glob(), CollisionType::Sensor);
         Self { shape, cursor }
     }
-}
 
-impl Node for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.shape.update(app);
         self.cursor.update(app);
@@ -59,21 +55,6 @@ struct Shape {
     body: Body2D,
     sprite: Sprite2D,
     collisions: Vec<CollisionNormal>,
-}
-
-impl Node for Shape {
-    fn update(&mut self, app: &mut App) {
-        self.collisions.clear();
-        for collision in self.body.collisions() {
-            self.collisions
-                .push(CollisionNormal::new(app, collision, false));
-        }
-        self.body.update(app);
-        self.sprite.update(app);
-        for collision in &mut self.collisions {
-            collision.update(app);
-        }
-    }
 }
 
 impl Shape {
@@ -98,28 +79,12 @@ impl Shape {
             collisions: vec![],
         }
     }
-}
 
-struct Cursor {
-    body: Body2D,
-    sprite: Sprite2D,
-    collisions: Vec<CollisionNormal>,
-    tracker: CursorTracker,
-}
-
-impl Node for Cursor {
     fn update(&mut self, app: &mut App) {
-        self.tracker.update(app);
-        self.body.position = self.tracker.position(app);
-        self.sprite.material.color = if self.body.collisions().is_empty() {
-            Color::GREEN
-        } else {
-            Color::RED
-        };
         self.collisions.clear();
         for collision in self.body.collisions() {
             self.collisions
-                .push(CollisionNormal::new(app, collision, true));
+                .push(CollisionNormal::new(app, collision, false));
         }
         self.body.update(app);
         self.sprite.update(app);
@@ -127,6 +92,13 @@ impl Node for Cursor {
             collision.update(app);
         }
     }
+}
+
+struct Cursor {
+    body: Body2D,
+    sprite: Sprite2D,
+    collisions: Vec<CollisionNormal>,
+    tracker: CursorTracker,
 }
 
 impl Cursor {
@@ -148,18 +120,31 @@ impl Cursor {
             tracker: CursorTracker::new(app),
         }
     }
+
+    fn update(&mut self, app: &mut App) {
+        self.tracker.update(app);
+        self.body.position = self.tracker.position(app);
+        self.sprite.material.color = if self.body.collisions().is_empty() {
+            Color::GREEN
+        } else {
+            Color::RED
+        };
+        self.collisions.clear();
+        for collision in self.body.collisions() {
+            self.collisions
+                .push(CollisionNormal::new(app, collision, true));
+        }
+        self.body.update(app);
+        self.sprite.update(app);
+        for collision in &mut self.collisions {
+            collision.update(app);
+        }
+    }
 }
 
 struct CollisionNormal {
     position: Sprite2D,
     penetration: Sprite2D,
-}
-
-impl Node for CollisionNormal {
-    fn update(&mut self, app: &mut App) {
-        self.position.update(app);
-        self.penetration.update(app);
-    }
 }
 
 impl CollisionNormal {
@@ -190,5 +175,10 @@ impl CollisionNormal {
                 .with_model(|m| m.z_index = z_index)
                 .with_material(|m| m.color = color),
         }
+    }
+
+    fn update(&mut self, app: &mut App) {
+        self.position.update(app);
+        self.penetration.update(app);
     }
 }

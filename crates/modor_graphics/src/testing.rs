@@ -55,9 +55,7 @@ use std::{env, fs};
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -120,9 +118,7 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -193,9 +189,7 @@ pub fn assert_max_component_diff(
 ///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }

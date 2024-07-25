@@ -2,7 +2,7 @@
 
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Glob, GlobRef, Node, RootNode};
+use modor::{App, Glob, GlobRef, RootNode};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
@@ -57,9 +57,7 @@ impl RootNode for Root {
             target,
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.shader.update(app);
         self.material.update(app);

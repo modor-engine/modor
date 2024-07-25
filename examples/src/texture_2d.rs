@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture};
@@ -43,9 +43,7 @@ impl RootNode for Root {
             ],
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.background.update(app);
         for smiley in &mut self.smileys {
@@ -66,9 +64,7 @@ impl RootNode for Resources {
             smiley_texture: Texture::new(app).load_from_path(app, "smiley.png"),
         }
     }
-}
 
-impl Node for Resources {
     fn update(&mut self, app: &mut App) {
         self.background_texture.update(app);
         self.smiley_texture.update(app);
@@ -79,31 +75,6 @@ struct Smiley {
     sprite: Sprite2D,
     velocity: Vec2,
     angular_velocity: f32,
-}
-
-impl Node for Smiley {
-    fn update(&mut self, app: &mut App) {
-        let model = &mut self.sprite.model;
-        if model.position.x < -0.5 + model.size.x / 2. {
-            self.velocity.x *= -1.;
-            model.position.x = -0.5 + model.size.x / 2.;
-        }
-        if model.position.x > 0.5 - model.size.x / 2. {
-            self.velocity.x *= -1.;
-            model.position.x = 0.5 - model.size.x / 2.;
-        }
-        if model.position.y < -0.5 + model.size.y / 2. {
-            self.velocity.y *= -1.;
-            model.position.y = -0.5 + model.size.y / 2.;
-        }
-        if model.position.y > 0.5 - model.size.y / 2. {
-            self.velocity.y *= -1.;
-            model.position.y = 0.5 - model.size.y / 2.;
-        }
-        model.position += self.velocity / 60.;
-        model.rotation += self.angular_velocity / 60.;
-        self.sprite.update(app);
-    }
 }
 
 impl Smiley {
@@ -126,5 +97,28 @@ impl Smiley {
             velocity,
             angular_velocity,
         }
+    }
+
+    fn update(&mut self, app: &mut App) {
+        let model = &mut self.sprite.model;
+        if model.position.x < -0.5 + model.size.x / 2. {
+            self.velocity.x *= -1.;
+            model.position.x = -0.5 + model.size.x / 2.;
+        }
+        if model.position.x > 0.5 - model.size.x / 2. {
+            self.velocity.x *= -1.;
+            model.position.x = 0.5 - model.size.x / 2.;
+        }
+        if model.position.y < -0.5 + model.size.y / 2. {
+            self.velocity.y *= -1.;
+            model.position.y = -0.5 + model.size.y / 2.;
+        }
+        if model.position.y > 0.5 - model.size.y / 2. {
+            self.velocity.y *= -1.;
+            model.position.y = 0.5 - model.size.y / 2.;
+        }
+        model.position += self.velocity / 60.;
+        model.rotation += self.angular_velocity / 60.;
+        self.sprite.update(app);
     }
 }

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -44,9 +44,7 @@ impl RootNode for Root {
             cannon: Cannon::new(app),
         }
     }
-}
 
-impl Node for Root {
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);
@@ -69,9 +67,7 @@ impl RootNode for CollisionGroups {
         object.add_interaction(app, object.glob(), impulse);
         Self { wall, object }
     }
-}
 
-impl Node for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.wall.update(app);
         self.object.update(app);
@@ -81,13 +77,6 @@ impl Node for CollisionGroups {
 struct Wall {
     body: Body2D,
     sprite: Sprite2D,
-}
-
-impl Node for Wall {
-    fn update(&mut self, app: &mut App) {
-        self.body.update(app);
-        self.sprite.update(app);
-    }
 }
 
 impl Wall {
@@ -100,23 +89,16 @@ impl Wall {
         let sprite = Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref()));
         Self { body, sprite }
     }
+
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
+        self.sprite.update(app);
+    }
 }
 
 struct Cannon {
     sprite: Sprite2D,
     cursor: CursorTracker,
-}
-
-impl Node for Cannon {
-    fn update(&mut self, app: &mut App) {
-        let cursor_position = self.cursor.position(app);
-        self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
-        self.sprite.model.position = CANNON_JOIN_POSITION
-            + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
-        self.create_object(app, self.sprite.model.rotation);
-        self.sprite.update(app);
-        self.cursor.update(app);
-    }
 }
 
 impl Cannon {
@@ -125,6 +107,16 @@ impl Cannon {
             sprite: Sprite2D::new(app).with_model(|m| m.size = Vec2::new(0.05, CANNON_LENGTH)),
             cursor: CursorTracker::new(app),
         }
+    }
+
+    fn update(&mut self, app: &mut App) {
+        let cursor_position = self.cursor.position(app);
+        self.sprite.model.rotation = Vec2::Y.rotation(cursor_position - CANNON_JOIN_POSITION);
+        self.sprite.model.position = CANNON_JOIN_POSITION
+            + (Vec2::Y * CANNON_LENGTH / 2.).with_rotation(self.sprite.model.rotation);
+        self.create_object(app, self.sprite.model.rotation);
+        self.sprite.update(app);
+        self.cursor.update(app);
     }
 
     fn create_object(&self, app: &mut App, rotation: f32) {
@@ -142,12 +134,16 @@ impl Cannon {
     }
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default)]
 struct Objects {
     objects: Vec<Object>,
 }
 
-impl Node for Objects {
+impl RootNode for Objects {
+    fn on_create(_app: &mut App) -> Self {
+        Self::default()
+    }
+
     fn update(&mut self, app: &mut App) {
         self.objects.retain_mut(|object| {
             object.update(app);
@@ -159,13 +155,6 @@ impl Node for Objects {
 struct Object {
     body: Body2D,
     sprite: Sprite2D,
-}
-
-impl Node for Object {
-    fn update(&mut self, app: &mut App) {
-        self.body.update(app);
-        self.sprite.update(app);
-    }
 }
 
 impl Object {
@@ -197,5 +186,10 @@ impl Object {
             .with_material(|m| m.is_ellipse = is_ball)
             .with_material(|m| m.color = color);
         Self { body, sprite }
+    }
+
+    fn update(&mut self, app: &mut App) {
+        self.body.update(app);
+        self.sprite.update(app);
     }
 }

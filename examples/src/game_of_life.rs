@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, RootNode};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
@@ -19,21 +19,6 @@ struct Root {
     cells: Vec<Sprite2D>,
 }
 
-impl Node for Root {
-    fn update(&mut self, app: &mut App) {
-        if self.last_update.elapsed() < REFRESH_PERIOD {
-            return;
-        }
-        self.last_update = Instant::now();
-        let alive_cell_count = self.refresh_grid();
-        self.update_alive_cells(app, alive_cell_count);
-        self.background.update(app);
-        for cell in &mut self.cells {
-            cell.update(app);
-        }
-    }
-}
-
 impl RootNode for Root {
     fn on_create(app: &mut App) -> Self {
         let mut are_cells_alive = vec![vec![false; GRID_SIZE]; GRID_SIZE];
@@ -49,6 +34,19 @@ impl RootNode for Root {
             background: Sprite2D::new(app),
             are_cells_alive,
             cells: vec![],
+        }
+    }
+
+    fn update(&mut self, app: &mut App) {
+        if self.last_update.elapsed() < REFRESH_PERIOD {
+            return;
+        }
+        self.last_update = Instant::now();
+        let alive_cell_count = self.refresh_grid();
+        self.update_alive_cells(app, alive_cell_count);
+        self.background.update(app);
+        for cell in &mut self.cells {
+            cell.update(app);
         }
     }
 }
