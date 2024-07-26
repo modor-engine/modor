@@ -20,13 +20,13 @@ use winit::dpi::PhysicalSize;
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
+/// #[derive(FromApp)]
 /// struct Root {
 ///     // ...
 /// }
 ///
-/// impl FromApp for Root {
-///     // TODO: use init()
-///     fn from_app(app: &mut App) -> Self {
+/// impl RootNode for Root {
+///     fn init(&mut self, app: &mut App) {
 ///         let window = app.get_mut::<Window>();
 ///         window.title = "My App".into();
 ///         window.frame_rate = FrameRate::Unlimited;
@@ -39,9 +39,6 @@ use winit::dpi::PhysicalSize;
 ///             .copied()
 ///             .max()
 ///             .unwrap_or_default();
-///         Self {
-///             // ...
-///         }
 ///     }
 /// }
 /// ```

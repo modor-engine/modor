@@ -66,7 +66,7 @@ impl App {
     /// Returns a handle to a root node.
     ///
     /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
-    /// if it doesn't exist.
+    /// and [`RootNode::init`] if it doesn't exist.
     pub fn handle<T>(&mut self) -> RootNodeHandle<T>
     where
         T: RootNode,
@@ -78,7 +78,7 @@ impl App {
     }
 
     /// Creates the root node of type `T` using [`FromApp::from_app`](crate::FromApp::from_app)
-    /// if it doesn't exist.
+    /// and [`RootNode::init`] if it doesn't exist.
     pub fn create<T>(&mut self)
     where
         T: RootNode,
@@ -89,7 +89,7 @@ impl App {
     /// Returns a mutable reference to a root node.
     ///
     /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
-    /// if it doesn't exist.
+    /// and [`RootNode::init`] if it doesn't exist.
     ///
     /// # Panics
     ///
@@ -107,7 +107,7 @@ impl App {
     /// The method returns the output of `f`.
     ///
     /// The root node is created using [`FromApp::from_app`](crate::FromApp::from_app)
-    /// if it doesn't exist.
+    /// and [`RootNode::init`] if it doesn't exist.
     ///
     /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
     ///
@@ -122,6 +122,7 @@ impl App {
         self.take_root(root_index, f)
     }
 
+    #[allow(clippy::map_entry)]
     fn root_index_or_create<T>(&mut self) -> usize
     where
         T: RootNode,
@@ -130,21 +131,14 @@ impl App {
         if self.root_indexes.contains_key(&type_id) {
             self.root_indexes[&type_id]
         } else {
-            self.create_root::<T>(type_id)
+            debug!("Create root node `{}`...", any::type_name::<T>());
+            let root = RootNodeData::new(T::from_app(self));
+            debug!("Root node `{}` created", any::type_name::<T>());
+            let index = self.roots.len();
+            self.root_indexes.insert(type_id, index);
+            self.roots.push(root);
+            index
         }
-    }
-
-    fn create_root<T>(&mut self, type_id: TypeId) -> usize
-    where
-        T: RootNode,
-    {
-        debug!("Create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::from_app(self));
-        debug!("Root node `{}` created", any::type_name::<T>());
-        let index = self.roots.len();
-        self.root_indexes.insert(type_id, index);
-        self.roots.push(root);
-        index
     }
 
     fn root_mut<T>(&mut self, root_index: usize) -> &mut T
@@ -248,19 +242,12 @@ impl RootNodeData {
     {
         Self {
             value: Some(Box::new(value)),
-            update_fn: Self::update_root::<T>,
+            update_fn: |value, app| {
+                let value = value
+                    .downcast_mut::<T>()
+                    .expect("internal error: misconfigured singleton");
+                T::update(value, app);
+            },
         }
-    }
-
-    fn update_root<T>(value: &mut dyn Any, app: &mut App)
-    where
-        T: RootNode,
-    {
-        T::update(
-            value
-                .downcast_mut::<T>()
-                .expect("internal error: misconfigured root node"),
-            app,
-        );
     }
 }

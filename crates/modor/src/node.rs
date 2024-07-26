@@ -11,7 +11,11 @@ use crate::{App, FromApp};
 ///
 /// See [`modor`](crate).
 pub trait RootNode: FromApp {
-    // TODO: add init()
+    /// Initializes the node.
+    ///
+    /// This method is called just after the node is created with [`FromApp`].
+    #[allow(unused_variables)]
+    fn init(&mut self, app: &mut App) {}
 
     /// Updates the node.
     ///

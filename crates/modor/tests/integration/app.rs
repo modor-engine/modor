@@ -13,8 +13,8 @@ fn create_node_handle() {
     let mut app = App::new::<Root>(Level::Info);
     let handle = app.handle::<Root>();
     assert_eq!(app.get_mut::<Counter>().value, 1);
-    assert_eq!(handle.get(&app).value, 0);
-    assert_eq!(handle.get_mut(&mut app).value, 0);
+    assert_eq!(handle.get(&app).value, 42);
+    assert_eq!(handle.get_mut(&mut app).value, 42);
 }
 
 #[modor::test]
@@ -22,7 +22,7 @@ fn take_node() {
     let mut app = App::new::<Root>(Level::Info);
     let result = app.take(|root: &mut Root, app| {
         assert_eq!(app.get_mut::<Counter>().value, 1);
-        assert_eq!(root.value, 0);
+        assert_eq!(root.value, 42);
         42
     });
     assert_eq!(result, 42);
@@ -33,13 +33,12 @@ fn take_node_handle() {
     let mut app = App::new::<Root>(Level::Info);
     let result = app.handle::<Root>().take(&mut app, |root: &mut Root, app| {
         assert_eq!(app.get_mut::<Counter>().value, 1);
-        assert_eq!(root.value, 0);
+        assert_eq!(root.value, 42);
         42
     });
     assert_eq!(result, 42);
 }
 
-#[derive(RootNode)]
 struct Root {
     value: usize,
 }
@@ -48,6 +47,12 @@ impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         app.get_mut::<Counter>().value += 1;
         Self { value: 0 }
+    }
+}
+
+impl RootNode for Root {
+    fn init(&mut self, _app: &mut App) {
+        self.value = 42;
     }
 }
 

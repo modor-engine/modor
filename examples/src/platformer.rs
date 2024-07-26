@@ -21,8 +21,7 @@ pub fn main() {
 struct Root;
 
 impl RootNode for Root {
-    // TODO: replace by init()
-    fn update(&mut self, app: &mut App) {
+    fn init(&mut self, app: &mut App) {
         app.create::<Character>();
         app.create::<Platforms>();
     }

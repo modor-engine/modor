@@ -16,7 +16,7 @@ fn retrieve_supported_modes() {
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn enable_supported_anti_aliasing() {
-    let mut app = App::new::<Root>(Level::Info);
+    let mut app = App::new::<Root>(Level::Debug);
     let target_glob = target(&mut app).glob().to_ref();
     app.update();
     assert_same(&app, &target_glob, "anti_aliasing#disabled");
