@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::Inputs;
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
@@ -15,8 +15,8 @@ struct Root {
     pressed_keys: Text2D,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         Self {
             last_entered_text_label: text(app, 0.375, "Last entered text:"),
             last_entered_text: text(app, 0.125, ""),
@@ -26,7 +26,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         let keyboard = &app.get_mut::<Inputs>().keyboard;
         if !keyboard.text.is_empty() {

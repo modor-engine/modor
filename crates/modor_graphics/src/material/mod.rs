@@ -8,7 +8,7 @@ use crate::{DefaultMaterial2D, ShaderGlobRef};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, Node, RootNodeHandle};
+use modor::{App, FromApp, Glob, GlobRef, StateHandle};
 use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -42,20 +42,16 @@ impl<T> DerefMut for Mat<T> {
     }
 }
 
-impl<T> Node for Mat<T>
-where
-    T: Material,
-{
-    fn update(&mut self, app: &mut App) {
-        self.glob
-            .take(app, |glob, app| glob.update(app, &self.data));
-    }
-}
-
 impl<T> Mat<T>
 where
     T: Material,
 {
+    /// Updates the material.
+    pub fn update(&mut self, app: &mut App) {
+        self.glob
+            .take(app, |glob, app| glob.update(app, &self.data));
+    }
+
     /// Returns a reference to global data.
     pub fn glob(&self) -> MaterialGlobRef<T> {
         MaterialGlobRef {
@@ -180,7 +176,7 @@ impl MaterialGlob {
         textures.iter().map(|texture| texture.get(app)).collect()
     }
 
-    fn white_texture(app: &App, handle: RootNodeHandle<Resources>) -> &TextureGlob {
+    fn white_texture(app: &App, handle: StateHandle<Resources>) -> &TextureGlob {
         handle.get(app).white_texture.glob().get(app)
     }
 

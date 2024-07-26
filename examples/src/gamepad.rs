@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::{GamepadStick, Inputs};
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
@@ -21,8 +21,8 @@ struct Root {
     pressed_buttons: Text2D,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         Self {
             moved_sticks_label: text(app, 0.375, "Moved sticks:"),
             moved_sticks: text(app, 0.125, ""),
@@ -32,7 +32,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         let gamepads = &app.get_mut::<Inputs>().gamepads;
         if let Some((_, gamepad)) = gamepads.iter().next() {

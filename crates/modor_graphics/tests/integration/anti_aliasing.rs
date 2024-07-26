@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -16,7 +16,7 @@ fn retrieve_supported_modes() {
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn enable_supported_anti_aliasing() {
-    let mut app = App::new::<Root>(Level::Info);
+    let mut app = App::new::<Root>(Level::Debug);
     let target_glob = target(&mut app).glob().to_ref();
     app.update();
     assert_same(&app, &target_glob, "anti_aliasing#disabled");
@@ -49,8 +49,8 @@ struct Root {
     target: Res<Texture>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
@@ -66,7 +66,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

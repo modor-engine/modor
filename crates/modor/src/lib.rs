@@ -27,22 +27,15 @@
 //!     app.update();
 //! }
 //!
+//! #[derive(FromApp)]
 //! struct Root {
 //!     counter: Counter,
 //! }
 //!
-//! impl RootNode for Root {
-//!     fn on_create(app: &mut App) -> Self {
-//!         Self {
-//!             counter: Counter::default()
-//!         }
-//!     }
-//! }
-//!
-//! impl Node for Root {
+//! impl State for Root {
 //!     fn update(&mut self, app: &mut App) {
 //!         println!("Update counter...");
-//!         self.counter.update(app);
+//!         self.counter.value += 1;
 //!         println!("Counter updated, new value is {}", self.counter.value);
 //!     }
 //! }
@@ -50,12 +43,6 @@
 //! #[derive(Default)]
 //! struct Counter {
 //!     value: u32,
-//! }
-//!
-//! impl Node for Counter {
-//!     fn update(&mut self, app: &mut App) {
-//!         self.value += 1;
-//!     }
 //! }
 //! ```
 
@@ -68,15 +55,15 @@ pub use wasm_bindgen_test;
 mod app;
 mod from_app;
 mod globals;
-mod node;
 mod platform;
+mod state;
 
 pub use app::*;
 pub use from_app::*;
 pub use globals::*;
-pub use node::*;
 #[allow(unused_imports, unreachable_pub)]
 pub use platform::*;
+pub use state::*;
 
 /// Defines the main function of a Modor application.
 ///
@@ -94,7 +81,7 @@ pub use platform::*;
 ///     app.update();
 /// }
 ///
-/// #[derive(Default, RootNode, Node)]
+/// #[derive(Default, State)]
 /// struct Root;
 /// ```
 pub use modor_derive::main;
@@ -135,7 +122,7 @@ pub use modor_derive::main;
 /// ```
 pub use modor_derive::test;
 
-/// Implements [`RootNode`].
+/// Implements [`State`].
 ///
 /// The type must implement [`Default`] trait.
 ///
@@ -146,21 +133,12 @@ pub use modor_derive::test;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Default, RootNode, Node)]
+/// #[derive(Default, State)]
 /// struct Root {
 ///     value: u32,
 /// }
 /// ```
-pub use modor_derive::RootNode;
-
-/// Implements [`Node`].
-///
-/// Both structs and enums are supported.
-///
-/// # Examples
-///
-/// See [`RootNode`](macro@crate::RootNode).
-pub use modor_derive::Node;
+pub use modor_derive::State;
 
 /// Generates builder methods for a `struct` with named fields.
 ///

@@ -1,7 +1,7 @@
 use crate::resources::TextResources;
 use crate::{FontGlob, TextMaterial2D};
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{App, Builder, GlobRef, Node};
+use modor::{App, Builder, GlobRef};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
 use std::iter;
@@ -20,8 +20,8 @@ use std::iter;
 ///     text: Text2D,
 /// }
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     fn from_app(app: &mut App) -> Self {
 ///         let font = app.get_mut::<Resources>().font.glob().to_ref();
 ///         Self {
 ///             text: Text2D::new(app)
@@ -33,7 +33,7 @@ use std::iter;
 ///     }
 /// }
 ///
-/// impl Node for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.text.update(app);
 ///     }
@@ -43,15 +43,15 @@ use std::iter;
 ///     font: Res<Font>,
 /// }
 ///
-/// impl RootNode for Resources {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Resources {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             font: Font::new(app).load_from_path(app, "my-font.ttf"),
 ///         }
 ///     }
 /// }
 ///
-/// impl Node for Resources {
+/// impl State for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.font.update(app);
 ///     }
@@ -98,9 +98,31 @@ pub struct Text2D {
     old_state: OldState,
 }
 
-impl Node for Text2D {
+impl Text2D {
+    const TEXTURE_PADDING_PX: u32 = 1;
+
+    /// Creates a new sprite.
+    pub fn new(app: &mut App) -> Self {
+        let font = app.get_mut::<TextResources>().default_font.glob().to_ref();
+        let texture = Texture::new(app)
+            .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
+        let material = TextMaterial2D::new(app, texture.glob().to_ref()).into_mat(app);
+        let model = Model2D::new(app, material.glob());
+        Self {
+            content: String::new(),
+            font_height: 100.,
+            font: font.clone(),
+            alignment: Alignment::default(),
+            texture,
+            material,
+            model,
+            old_state: OldState::new(font),
+        }
+    }
+
+    /// Updates the text.
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    fn update(&mut self, app: &mut App) {
+    pub fn update(&mut self, app: &mut App) {
         let font = self.font.get(app);
         if let Some(font_vec) = &font.font {
             if self.old_state.has_changed(self) || font.has_changed {
@@ -125,29 +147,6 @@ impl Node for Text2D {
         self.texture.update(app);
         self.material.update(app);
         self.model.update(app);
-    }
-}
-
-impl Text2D {
-    const TEXTURE_PADDING_PX: u32 = 1;
-
-    /// Creates a new sprite.
-    pub fn new(app: &mut App) -> Self {
-        let font = app.get_mut::<TextResources>().default_font.glob().to_ref();
-        let texture = Texture::new(app)
-            .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(app, texture.glob().to_ref()).into_mat(app);
-        let model = Model2D::new(app, material.glob());
-        Self {
-            content: String::new(),
-            font_height: 100.,
-            font: font.clone(),
-            alignment: Alignment::default(),
-            texture,
-            material,
-            model,
-            old_state: OldState::new(font),
-        }
     }
 
     fn update_old_state(&mut self) {

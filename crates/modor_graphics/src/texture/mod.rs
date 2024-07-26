@@ -5,7 +5,7 @@ use crate::texture::internal::TextureLoaded;
 use crate::{Camera2D, Size, Target};
 use glob::TextureGlob;
 use image::{DynamicImage, RgbaImage};
-use modor::{App, Builder, FromApp, Glob, Node};
+use modor::{App, Builder, FromApp, Glob};
 use modor_resources::{ResSource, Resource, ResourceError, Source};
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
@@ -37,9 +37,7 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///                 .with_model(|m| m.camera = camera),
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for TexturedRectangle {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.sprite.update(app);
 ///     }
@@ -50,8 +48,8 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///     target: Res<Texture>,
 /// }
 ///
-/// impl RootNode for Resources {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Resources {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             texture: Texture::new(app).load_from_path(app, "my-texture.png"),
 ///             target: Texture::new(app)
@@ -61,7 +59,7 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///     }
 /// }
 ///
-/// impl Node for Resources {
+/// impl State for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///         self.target.update(app);

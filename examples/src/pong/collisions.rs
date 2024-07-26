@@ -1,4 +1,4 @@
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_physics::{CollisionGroup, CollisionType, Impulse};
 
 pub(crate) struct CollisionGroups {
@@ -8,8 +8,8 @@ pub(crate) struct CollisionGroups {
     pub(crate) ball: CollisionGroup,
 }
 
-impl RootNode for CollisionGroups {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for CollisionGroups {
+    fn from_app(app: &mut App) -> Self {
         let horizontal_wall = CollisionGroup::new(app);
         let vertical_wall = CollisionGroup::new(app);
         let paddle = CollisionGroup::new(app);
@@ -29,7 +29,7 @@ impl RootNode for CollisionGroups {
     }
 }
 
-impl Node for CollisionGroups {
+impl State for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.horizontal_wall.update(app);
         self.vertical_wall.update(app);

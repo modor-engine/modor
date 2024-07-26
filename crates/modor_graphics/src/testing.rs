@@ -47,8 +47,8 @@ use std::{env, fs};
 ///     texture: Res<Texture>,
 /// }
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             texture: Texture::new(app)
 ///                 .with_is_target_enabled(true)
@@ -57,7 +57,7 @@ use std::{env, fs};
 ///     }
 /// }
 ///
-/// impl Node for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -112,8 +112,8 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 ///     texture: Res<Texture>,
 /// }
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             texture: Texture::new(app)
 ///                 .with_is_target_enabled(true)
@@ -122,7 +122,7 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 ///     }
 /// }
 ///
-/// impl Node for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -185,8 +185,8 @@ pub fn assert_max_component_diff(
 ///     texture: Res<Texture>,
 /// }
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for Root {
+///     fn from_app(app: &mut App) -> Self {
 ///         Self {
 ///             texture: Texture::new(app)
 ///                 .with_is_target_enabled(true)
@@ -195,7 +195,7 @@ pub fn assert_max_component_diff(
 ///     }
 /// }
 ///
-/// impl Node for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }

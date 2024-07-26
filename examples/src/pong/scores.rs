@@ -1,6 +1,6 @@
 use crate::pong::side::Side;
 use crate::pong::wall::FIELD_SIZE;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_text::Text2D;
 
@@ -11,8 +11,8 @@ pub(crate) struct Scores {
     right_score: Text2D,
 }
 
-impl RootNode for Scores {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Scores {
+    fn from_app(app: &mut App) -> Self {
         Self {
             is_reset_required: false,
             is_just_updated: false,
@@ -22,10 +22,10 @@ impl RootNode for Scores {
     }
 }
 
-impl Node for Scores {
+impl State for Scores {
     fn update(&mut self, app: &mut App) {
-        // `is_reset_required` ensures that all nodes see this variable equal to `true` at
-        // least once. This is not guaranteed for `is_just_updated` depending on node update order.
+        // `is_reset_required` ensures that all states see this variable equal to `true` at
+        // least once. This is not guaranteed for `is_just_updated` depending on state update order.
         if self.is_just_updated {
             self.is_reset_required = true;
             self.is_just_updated = false;

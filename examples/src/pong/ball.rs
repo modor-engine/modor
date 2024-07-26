@@ -3,7 +3,7 @@ use crate::pong::paddle::Paddle;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
 use instant::Instant;
-use modor::{App, Globals, Node, RootNode};
+use modor::{App, Globals, State};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DGlob};
@@ -14,19 +14,6 @@ pub(crate) struct Ball {
     body: Body2D,
     sprite: Sprite2D,
     creation_instant: Instant,
-}
-
-impl Node for Ball {
-    fn update(&mut self, app: &mut App) {
-        self.body.update(app); // to use the latest state of the body
-        self.handle_collision_with_paddle(app);
-        self.handle_collision_with_ball(app);
-        self.apply_acceleration();
-        self.reset_on_score(app);
-        self.body.update(app); // to use the latest state of the body
-        self.sprite.update(app);
-        app.get_mut::<BallProperties>().position = self.body.position;
-    }
 }
 
 impl Ball {
@@ -50,6 +37,17 @@ impl Ball {
             body,
             creation_instant: Instant::now(),
         }
+    }
+
+    pub(crate) fn update(&mut self, app: &mut App) {
+        self.body.update(app); // to use the latest state of the body
+        self.handle_collision_with_paddle(app);
+        self.handle_collision_with_ball(app);
+        self.apply_acceleration();
+        self.reset_on_score(app);
+        self.body.update(app); // to use the latest state of the body
+        self.sprite.update(app);
+        app.get_mut::<BallProperties>().position = self.body.position;
     }
 
     fn generate_velocity() -> Vec2 {
@@ -110,7 +108,7 @@ impl Ball {
     }
 }
 
-#[derive(Default, RootNode, Node)]
+#[derive(Default, State)]
 pub(crate) struct BallProperties {
     pub(crate) position: Vec2,
 }

@@ -1,4 +1,4 @@
-use crate::{App, FromApp, Node, RootNode, RootNodeHandle};
+use crate::{App, FromApp, State, StateHandle};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -39,7 +39,7 @@ pub struct Glob<T> {
         PartialOrd = "ignore",
         Ord = "ignore"
     )]
-    globals: RootNodeHandle<Globals<T>>,
+    globals: StateHandle<Globals<T>>,
     #[derivative(
         Hash = "ignore",
         PartialEq = "ignore",
@@ -193,16 +193,10 @@ pub struct Globals<T> {
     next_index: usize,
 }
 
-impl<T> RootNode for Globals<T>
+impl<T> State for Globals<T>
 where
     T: 'static,
 {
-    fn on_create(_app: &mut App) -> Self {
-        Self::default()
-    }
-}
-
-impl<T> Node for Globals<T> {
     fn update(&mut self, _app: &mut App) {
         self.available_indexes
             .extend(self.deleted_items.drain(..).map(|(index, _)| index));
@@ -224,7 +218,7 @@ impl<T> Node for Globals<T> {
 }
 
 impl<T> Globals<T> {
-    /// Returns the indexes and values dropped since last update of the singleton.
+    /// Returns the indexes and values dropped since last update.
     pub fn deleted_items(&self) -> &[(usize, T)] {
         &self.deleted_items
     }

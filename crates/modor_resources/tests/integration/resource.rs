@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_jobs::AssetLoadingError;
 use modor_resources::{Res, ResLoad, ResSource, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
@@ -163,12 +163,12 @@ fn res(app: &mut App) -> &mut Res<ContentSize> {
     app.get_mut::<Root>().content_size.as_mut().unwrap()
 }
 
-#[derive(Default, RootNode)]
+#[derive(FromApp)]
 struct Root {
     content_size: Option<Res<ContentSize>>,
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         if let Some(size) = &mut self.content_size {
             size.update(app);

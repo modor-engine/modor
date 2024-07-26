@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Node, RootNodeHandle};
+use modor::{App, Builder, FromApp, Glob, GlobRef, StateHandle};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -23,21 +23,11 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// # use modor_math::*;
 /// # use modor_physics::*;
 /// #
-/// #[derive(Default, RootNode, Node)]
+/// #[derive(Default, State)]
 /// struct CharacterDirection(Vec2);
 ///
 /// struct Character {
 ///     body: Body2D,
-/// }
-///
-/// impl Node for Character {
-///     fn update(&mut self, app: &mut App) {
-///         self.body.velocity = app.get_mut::<CharacterDirection>().0 * 0.5;
-///         self.body.update(app);
-///         for collision in self.body.collisions() {
-///             println!("Ball is colliding with body {}", collision.other_index);
-///         }
-///     }
 /// }
 ///
 /// impl Character {
@@ -49,6 +39,14 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 ///                 .with_rotation(FRAC_PI_2)
 ///                 .with_collision_group(Some(group.glob().to_ref()))
 ///                 .with_shape(Shape2D::Circle)
+///         }
+///     }
+///
+///     fn update(&mut self, app: &mut App) {
+///         self.body.velocity = app.get_mut::<CharacterDirection>().0 * 0.5;
+///         self.body.update(app);
+///         for collision in self.body.collisions() {
+///             println!("Ball is colliding with body {}", collision.other_index);
 ///         }
 ///     }
 /// }
@@ -169,33 +167,7 @@ pub struct Body2D {
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
-    pipeline: RootNodeHandle<Pipeline>,
-}
-
-impl Node for Body2D {
-    fn update(&mut self, app: &mut App) {
-        let glob = self.glob.get(app);
-        let changes = Body2DChanges::new(self, glob);
-        let rigid_body_handle = glob
-            .rigid_body_handle
-            .expect("internal error: no body handle");
-        let collider_handle = glob
-            .collider_handle
-            .expect("internal error: no collider handle");
-        let interaction_groups = self
-            .collision_group
-            .as_ref()
-            .map_or_else(InteractionGroups::none, |g| g.get(app).interactions);
-        let pipeline = self.pipeline.get_mut(app);
-        let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
-        self.update_from_rigid_body(rigid_body, changes);
-        self.update_rigid_body(rigid_body, changes);
-        let collider = pipeline.collider_mut(collider_handle);
-        self.update_collider(collider, changes, interaction_groups);
-        self.collisions = pipeline.collisions(collider_handle).to_vec();
-        let glob = self.glob.get_mut(app);
-        self.update_glob(glob);
-    }
+    pipeline: StateHandle<Pipeline>,
 }
 
 impl Body2D {
@@ -234,6 +206,31 @@ impl Body2D {
             glob,
             pipeline: pipeline_handle,
         }
+    }
+
+    /// Updates the body.
+    pub fn update(&mut self, app: &mut App) {
+        let glob = self.glob.get(app);
+        let changes = Body2DChanges::new(self, glob);
+        let rigid_body_handle = glob
+            .rigid_body_handle
+            .expect("internal error: no body handle");
+        let collider_handle = glob
+            .collider_handle
+            .expect("internal error: no collider handle");
+        let interaction_groups = self
+            .collision_group
+            .as_ref()
+            .map_or_else(InteractionGroups::none, |g| g.get(app).interactions);
+        let pipeline = self.pipeline.get_mut(app);
+        let rigid_body = pipeline.rigid_body_mut(rigid_body_handle);
+        self.update_from_rigid_body(rigid_body, changes);
+        self.update_rigid_body(rigid_body, changes);
+        let collider = pipeline.collider_mut(collider_handle);
+        self.update_collider(collider, changes, interaction_groups);
+        self.collisions = pipeline.collisions(collider_handle).to_vec();
+        let glob = self.glob.get_mut(app);
+        self.update_glob(glob);
     }
 
     /// Returns a reference to global data.

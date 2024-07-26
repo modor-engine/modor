@@ -1,5 +1,5 @@
 use crate::physics_hooks::PhysicsHooks;
-use modor::{App, FromApp, Glob, Node, RootNodeHandle};
+use modor::{App, FromApp, Glob, StateHandle};
 use rapier2d::prelude::InteractionGroups;
 
 /// A collision group that can interact with other collision groups.
@@ -17,8 +17,8 @@ use rapier2d::prelude::InteractionGroups;
 ///     paddle: CollisionGroup,
 /// }
 ///
-/// impl RootNode for CollisionGroups {
-///     fn on_create(app: &mut App) -> Self {
+/// impl FromApp for CollisionGroups {
+///     fn from_app(app: &mut App) -> Self {
 ///         let wall = CollisionGroup::new(app);
 ///         let ball = CollisionGroup::new(app);
 ///         ball.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(1., 0.)));
@@ -33,7 +33,7 @@ use rapier2d::prelude::InteractionGroups;
 ///     }
 /// }
 ///
-/// impl Node for CollisionGroups {
+/// impl State for CollisionGroups {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.wall.update(app);
 ///         self.ball.update(app);
@@ -51,17 +51,7 @@ use rapier2d::prelude::InteractionGroups;
 #[derive(Debug)]
 pub struct CollisionGroup {
     pub(crate) glob: Glob<CollisionGroupGlob>,
-    physics_hooks: RootNodeHandle<PhysicsHooks>,
-}
-
-impl Node for CollisionGroup {
-    fn update(&mut self, app: &mut App) {
-        let interactions = self
-            .physics_hooks
-            .get_mut(app)
-            .interactions(self.glob.index());
-        self.glob.get_mut(app).interactions = interactions;
-    }
+    physics_hooks: StateHandle<PhysicsHooks>,
 }
 
 impl CollisionGroup {
@@ -71,6 +61,15 @@ impl CollisionGroup {
             glob: Glob::from_app(app),
             physics_hooks: app.handle::<PhysicsHooks>(),
         }
+    }
+
+    /// Updates the collision group.
+    pub fn update(&mut self, app: &mut App) {
+        let interactions = self
+            .physics_hooks
+            .get_mut(app)
+            .interactions(self.glob.index());
+        self.glob.get_mut(app).interactions = interactions;
     }
 
     /// Returns a reference to global data.

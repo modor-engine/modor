@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, FromApp, Glob, Node};
+use modor::{App, FromApp, Glob};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -77,9 +77,7 @@ use std::{any, fmt};
 ///             size: ContentSize::default().load_from_path(app, "path/to/content"),
 ///         }
 ///     }
-/// }
 ///
-/// impl Node for Content {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.size.update(app);
 ///         if let (Some(size), ResourceState::Loaded) = (self.size.size, self.size.state()) {
@@ -119,11 +117,12 @@ where
     }
 }
 
-impl<T> Node for Res<T>
+impl<T> Res<T>
 where
     T: Resource,
 {
-    fn update(&mut self, app: &mut App) {
+    /// Updates the resource.
+    pub fn update(&mut self, app: &mut App) {
         let mut latest_loaded = None;
         match self.loading.take() {
             Some(Loading::Path(mut job)) => match job.try_poll() {
@@ -144,12 +143,7 @@ where
         self.inner.update(app, latest_loaded, &self.source);
         self.glob.get_mut(app).state = self.state.clone();
     }
-}
 
-impl<T> Res<T>
-where
-    T: Resource,
-{
     /// Returns the state of the resource.
     pub fn state(&self) -> &ResourceState {
         &self.state
@@ -334,7 +328,7 @@ pub trait Resource: Sized {
     /// An error is returned if the resource cannot be loaded.
     fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError>;
 
-    /// Updates the resource during node update.
+    /// Updates the resource.
     ///
     /// In case resource loaded has just finished, `loaded` is `Some`.
     ///

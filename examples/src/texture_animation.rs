@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -14,8 +14,8 @@ struct Root {
     slime: Slime,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
         Self {
             slime: Slime::new(app),
@@ -23,7 +23,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.slime.update(app);
     }
@@ -33,8 +33,8 @@ struct Resources {
     smile_texture: Res<Texture>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             smile_texture: Texture::new(app)
                 .with_is_smooth(false)
@@ -43,7 +43,7 @@ impl RootNode for Resources {
     }
 }
 
-impl Node for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.smile_texture.update(app);
     }
@@ -56,7 +56,22 @@ struct Slime {
     direction: Direction,
 }
 
-impl Node for Slime {
+impl Slime {
+    fn new(app: &mut App) -> Self {
+        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
+        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
+        let sprite = Sprite2D::new(app)
+            .with_model(|m| m.body = Some(body.glob().to_ref()))
+            .with_material(|m| m.texture = texture);
+        Self {
+            body,
+            sprite,
+            animation: TextureAnimation::new(5, 9)
+                .with_parts(|p| *p = Direction::Down.stopped_texture_parts()),
+            direction: Direction::Down,
+        }
+    }
+
     fn update(&mut self, app: &mut App) {
         self.body.velocity = 0.2
             * app.get_mut::<Inputs>().keyboard.direction(
@@ -74,23 +89,6 @@ impl Node for Slime {
         self.body.update(app);
         self.sprite.update(app);
         self.animation.update(app);
-    }
-}
-
-impl Slime {
-    fn new(app: &mut App) -> Self {
-        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
-        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
-        let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().to_ref()))
-            .with_material(|m| m.texture = texture);
-        Self {
-            body,
-            sprite,
-            animation: TextureAnimation::new(5, 9)
-                .with_parts(|p| *p = Direction::Down.stopped_texture_parts()),
-            direction: Direction::Down,
-        }
     }
 }
 

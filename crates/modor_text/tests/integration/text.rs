@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, GlobRef, Node, RootNode};
+use modor::{App, FromApp, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::testing::assert_max_component_diff;
@@ -57,8 +57,8 @@ struct Root {
     target: Res<Texture>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let target = Texture::new(app)
             .with_is_buffer_enabled(true)
             .with_is_target_enabled(true)
@@ -73,7 +73,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.text.update(app);
         self.target.update(app);

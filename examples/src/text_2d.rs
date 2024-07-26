@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, Node, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -17,8 +17,8 @@ struct Root {
     last_update: Instant,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let size = Vec2::new(1., 0.2);
         let font = app.get_mut::<Resources>().font.glob().to_ref();
         Self {
@@ -37,7 +37,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
             let new_text = match self.text.content.matches('.').count() {
@@ -58,15 +58,15 @@ struct Resources {
     font: Res<Font>,
 }
 
-impl RootNode for Resources {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Resources {
+    fn from_app(app: &mut App) -> Self {
         Self {
             font: Font::new(app).load_from_path(app, "IrishGrover-Regular.ttf"),
         }
     }
 }
 
-impl Node for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.font.update(app);
     }

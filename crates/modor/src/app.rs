@@ -1,4 +1,4 @@
-use crate::{platform, Node, RootNode};
+use crate::{platform, State};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use log::{debug, Level};
@@ -13,12 +13,12 @@ use std::marker::PhantomData;
 /// See [`modor`](crate).
 #[derive(Debug)]
 pub struct App {
-    root_indexes: FxHashMap<TypeId, usize>,
-    roots: Vec<RootNodeData>, // ensures deterministic update order
+    state_indexes: FxHashMap<TypeId, usize>,
+    states: Vec<StateData>, // ensures deterministic update order
 }
 
 impl App {
-    /// Creates a new app with an initial root node of type `T`.
+    /// Creates a new app with an initial state of type `T`.
     ///
     /// This also configures logging with a minimum `log_level` to display.
     ///
@@ -29,151 +29,149 @@ impl App {
     /// - Other: logging is initialized using the `pretty_env_logger` crate.
     pub fn new<T>(log_level: Level) -> Self
     where
-        T: RootNode,
+        T: State,
     {
         platform::init_logging(log_level);
         debug!("Initialize app...");
         let mut app = Self {
-            root_indexes: FxHashMap::default(),
-            roots: vec![],
+            state_indexes: FxHashMap::default(),
+            states: vec![],
         };
         app.get_mut::<T>();
         debug!("App initialized");
         app
     }
 
-    /// Update all root nodes registered in the app.
+    /// Update all states registered in the app.
     ///
-    /// [`Node::update`] method is called for each registered root node.
+    /// [`State::update`] method is called for each registered state.
     ///
-    /// Root nodes are updated in the order in which they are created.
+    /// States are updated in the order in which they are created.
     ///
     /// # Panics
     ///
-    /// This will panic if any root node is already borrowed.
+    /// This will panic if any state is already borrowed.
     pub fn update(&mut self) {
         debug!("Run update app...");
-        for root_index in 0..self.roots.len() {
-            let root = &mut self.roots[root_index];
-            let mut value = root.value.take().expect("root node is already borrowed");
-            let update_fn = root.update_fn;
+        for state_index in 0..self.states.len() {
+            let state = &mut self.states[state_index];
+            let mut value = state.value.take().expect("state is already borrowed");
+            let update_fn = state.update_fn;
             update_fn(&mut *value, self);
-            self.roots[root_index].value = Some(value);
+            self.states[state_index].value = Some(value);
         }
         debug!("App updated");
     }
 
-    /// Returns a handle to a root node.
+    /// Returns a handle to a state.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
-    pub fn handle<T>(&mut self) -> RootNodeHandle<T>
+    /// The state is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// and [`State::init`] if it doesn't exist.
+    pub fn handle<T>(&mut self) -> StateHandle<T>
     where
-        T: RootNode,
+        T: State,
     {
-        RootNodeHandle {
-            index: self.root_index_or_create::<T>(),
+        StateHandle {
+            index: self.state_index_or_create::<T>(),
             phantom: PhantomData,
         }
     }
 
-    /// Creates the root node of type `T` using [`RootNode::on_create`] if it doesn't exist.
+    /// Creates the state of type `T` using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// and [`State::init`] if it doesn't exist.
     pub fn create<T>(&mut self)
     where
-        T: RootNode,
+        T: State,
     {
         self.handle::<T>();
     }
 
-    /// Returns a mutable reference to a root node.
+    /// Returns a mutable reference to a state.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The state is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// and [`State::init`] if it doesn't exist.
     ///
     /// # Panics
     ///
-    /// This will panic if root node `T` is already borrowed.
+    /// This will panic if state `T` is already borrowed.
     pub fn get_mut<T>(&mut self) -> &mut T
     where
-        T: RootNode,
+        T: State,
     {
-        let root_index = self.root_index_or_create::<T>();
-        self.root_mut(root_index)
+        let state_index = self.state_index_or_create::<T>();
+        self.state_mut(state_index)
     }
 
-    /// Borrows a root node without borrowing the app.
+    /// Borrows a state without borrowing the app.
     ///
     /// The method returns the output of `f`.
     ///
-    /// The root node is created using [`RootNode::on_create`] if it doesn't exist.
+    /// The state is created using [`FromApp::from_app`](crate::FromApp::from_app)
+    /// and [`State::init`] if it doesn't exist.
     ///
-    /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
+    /// This method is useful when it is needed to have a mutable reference to multiple states.
     ///
     /// # Panics
     ///
-    /// This will panic if root node `T` is already borrowed.
+    /// This will panic if state `T` is already borrowed.
     pub fn take<T, O>(&mut self, f: impl FnOnce(&mut T, &mut Self) -> O) -> O
     where
-        T: RootNode,
+        T: State,
     {
-        let root_index = self.root_index_or_create::<T>();
-        self.take_root(root_index, f)
+        let state_index = self.state_index_or_create::<T>();
+        self.take_state(state_index, f)
     }
 
-    fn root_index_or_create<T>(&mut self) -> usize
+    #[allow(clippy::map_entry)]
+    fn state_index_or_create<T>(&mut self) -> usize
     where
-        T: RootNode,
+        T: State,
     {
         let type_id = TypeId::of::<T>();
-        if self.root_indexes.contains_key(&type_id) {
-            self.root_indexes[&type_id]
+        if self.state_indexes.contains_key(&type_id) {
+            self.state_indexes[&type_id]
         } else {
-            self.create_root::<T>(type_id)
+            debug!("Create state `{}`...", any::type_name::<T>());
+            let state = StateData::new(T::from_app_with(self, T::init));
+            debug!("State `{}` created", any::type_name::<T>());
+            let index = self.states.len();
+            self.state_indexes.insert(type_id, index);
+            self.states.push(state);
+            index
         }
     }
 
-    fn create_root<T>(&mut self, type_id: TypeId) -> usize
+    fn state_mut<T>(&mut self, state_index: usize) -> &mut T
     where
-        T: RootNode,
+        T: State,
     {
-        debug!("Create root node `{}`...", any::type_name::<T>());
-        let root = RootNodeData::new(T::on_create(self));
-        debug!("Root node `{}` created", any::type_name::<T>());
-        let index = self.roots.len();
-        self.root_indexes.insert(type_id, index);
-        self.roots.push(root);
-        index
-    }
-
-    fn root_mut<T>(&mut self, root_index: usize) -> &mut T
-    where
-        T: RootNode,
-    {
-        self.roots[root_index]
+        self.states[state_index]
             .value
             .as_mut()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .unwrap_or_else(|| panic!("state `{}` already borrowed", any::type_name::<T>()))
             .downcast_mut::<T>()
-            .expect("internal error: misconfigured root node")
+            .expect("internal error: misconfigured state")
     }
 
-    fn take_root<T, O>(&mut self, root_index: usize, f: impl FnOnce(&mut T, &mut Self) -> O) -> O
+    fn take_state<T, O>(&mut self, state_index: usize, f: impl FnOnce(&mut T, &mut Self) -> O) -> O
     where
-        T: RootNode,
+        T: State,
     {
-        let root = &mut self.roots[root_index];
-        let mut value = root
+        let state = &mut self.states[state_index];
+        let mut value = state
             .value
             .take()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()));
+            .unwrap_or_else(|| panic!("state `{}` already borrowed", any::type_name::<T>()));
         let value_ref = value
             .downcast_mut()
-            .expect("internal error: misconfigured root node");
+            .expect("internal error: misconfigured state");
         let result = f(value_ref, self);
-        self.roots[root_index].value = Some(value);
+        self.states[state_index].value = Some(value);
         result
     }
 }
 
-/// A handle to access a [`RootNode`].
+/// A handle to access a [`State`].
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = ""),
@@ -185,78 +183,71 @@ impl App {
     Ord(bound = ""),
     Hash(bound = "")
 )]
-pub struct RootNodeHandle<T> {
+pub struct StateHandle<T> {
     index: usize,
     phantom: PhantomData<fn(T)>,
 }
 
-impl<T> RootNodeHandle<T>
+impl<T> StateHandle<T>
 where
-    T: RootNode,
+    T: State,
 {
-    /// Returns an immutable reference to the root node.
+    /// Returns an immutable reference to the state.
     ///
     /// # Panics
     ///
-    /// This will panic if the root node is already borrowed.
+    /// This will panic if the state is already borrowed.
     pub fn get(self, app: &App) -> &T {
-        app.roots[self.index]
+        app.states[self.index]
             .value
             .as_ref()
-            .unwrap_or_else(|| panic!("root node `{}` already borrowed", any::type_name::<T>()))
+            .unwrap_or_else(|| panic!("state `{}` already borrowed", any::type_name::<T>()))
             .downcast_ref::<T>()
-            .expect("internal error: misconfigured root node")
+            .expect("internal error: misconfigured state")
     }
 
-    /// Returns a mutable reference to the root node.
+    /// Returns a mutable reference to the state.
     ///
     /// # Panics
     ///
-    /// This will panic if the root node is already borrowed.
+    /// This will panic if the state is already borrowed.
     pub fn get_mut(self, app: &mut App) -> &mut T {
-        app.root_mut(self.index)
+        app.state_mut(self.index)
     }
 
-    /// Borrows a root node without borrowing the app.
+    /// Borrows a state without borrowing the app.
     ///
     /// The method returns the output of `f`.
     ///
-    /// This method is useful when it is needed to have a mutable reference to multiple root nodes.
+    /// This method is useful when it is needed to have a mutable reference to multiple states.
     ///
     /// # Panics
     ///
-    /// This will panic if the root node is already borrowed.
+    /// This will panic if the state is already borrowed.
     pub fn take<O>(self, app: &mut App, f: impl FnOnce(&mut T, &mut App) -> O) -> O {
-        app.take_root(self.index, f)
+        app.take_state(self.index, f)
     }
 }
 
 #[derive(Debug)]
-struct RootNodeData {
+struct StateData {
     value: Option<Box<dyn Any>>,
     update_fn: fn(&mut dyn Any, &mut App),
 }
 
-impl RootNodeData {
+impl StateData {
     fn new<T>(value: T) -> Self
     where
-        T: RootNode,
+        T: State,
     {
         Self {
             value: Some(Box::new(value)),
-            update_fn: Self::update_root::<T>,
+            update_fn: |value, app| {
+                let value = value
+                    .downcast_mut::<T>()
+                    .expect("internal error: misconfigured state");
+                T::update(value, app);
+            },
         }
-    }
-
-    fn update_root<T>(value: &mut dyn Any, app: &mut App)
-    where
-        T: RootNode,
-    {
-        Node::update(
-            value
-                .downcast_mut::<T>()
-                .expect("internal error: misconfigured root node"),
-            app,
-        );
     }
 }

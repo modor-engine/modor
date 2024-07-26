@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::texture::internal::TextureLoaded;
 use crate::{Color, Size, Texture};
-use modor::{App, FromApp, RootNodeHandle};
+use modor::{App, FromApp, StateHandle};
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -23,7 +23,7 @@ pub struct TextureGlob {
     submission_index: Option<SubmissionIndex>,
     is_smooth: bool,
     is_repeated: bool,
-    gpu_manager: RootNodeHandle<GpuManager>,
+    gpu_manager: StateHandle<GpuManager>,
 }
 
 impl FromApp for TextureGlob {

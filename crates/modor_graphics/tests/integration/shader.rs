@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, Glob, GlobRef, Node, RootNode};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, ShaderSource, Size,
@@ -84,8 +84,8 @@ struct Root {
     target: Res<Texture>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let target = Texture::new(app)
             .with_is_target_enabled(true)
             .with_is_buffer_enabled(true)
@@ -111,7 +111,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.material.update(app);
         self.shader.update(app);

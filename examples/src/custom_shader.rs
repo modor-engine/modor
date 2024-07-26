@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, Glob, GlobRef, Node, RootNode};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{
@@ -19,8 +19,8 @@ struct Root {
     sprites: Vec<Sprite>,
 }
 
-impl RootNode for Root {
-    fn on_create(app: &mut App) -> Self {
+impl FromApp for Root {
+    fn from_app(app: &mut App) -> Self {
         let texture = Texture::new(app).load_from_path(app, "smiley.png");
         let shader = Shader::new(app).load_from_path(app, "blur.wgsl");
         let material = BlurMaterial::new(&texture, &shader).into_mat(app);
@@ -38,7 +38,7 @@ impl RootNode for Root {
     }
 }
 
-impl Node for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.texture.update(app);
         self.shader.update(app);
@@ -51,12 +51,6 @@ impl Node for Root {
 
 struct Sprite {
     model: Model2D<BlurMaterial>,
-}
-
-impl Node for Sprite {
-    fn update(&mut self, app: &mut App) {
-        self.model.update(app);
-    }
 }
 
 impl Sprite {
@@ -74,9 +68,13 @@ impl Sprite {
             .insert(model.glob().index(), sample_count);
         Self { model }
     }
+
+    fn update(&mut self, app: &mut App) {
+        self.model.update(app);
+    }
 }
 
-#[derive(Default, RootNode, Node)]
+#[derive(Default, State)]
 struct SpriteProperties {
     sample_counts: HashMap<usize, u32>,
 }

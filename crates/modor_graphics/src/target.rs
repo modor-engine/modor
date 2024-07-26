@@ -7,7 +7,7 @@ use crate::{
     MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
-use modor::{App, FromApp, Glob, Globals, RootNodeHandle};
+use modor::{App, FromApp, Glob, Globals, StateHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -26,13 +26,12 @@ use wgpu::{
 /// # use modor::*;
 /// # use modor_graphics::*;
 /// #
-/// #[derive(Node)]
+/// #[derive(FromApp)]
 /// struct Root;
 ///
-/// impl RootNode for Root {
-///     fn on_create(app: &mut App) -> Self {
+/// impl State for Root {
+///     fn init(&mut self, app: &mut App) {
 ///         app.get_mut::<Window>().target.background_color = Color::RED;
-///         Self
 ///     }
 /// }
 /// ```
@@ -54,9 +53,9 @@ pub struct Target {
     is_error_logged: bool,
     is_incompatible_anti_aliasing_logged: bool,
     glob: Glob<TargetGlob>,
-    cameras: RootNodeHandle<Globals<Camera2DGlob>>,
-    materials: RootNodeHandle<Globals<MaterialGlob>>,
-    meshes: RootNodeHandle<Globals<MeshGlob>>,
+    cameras: StateHandle<Globals<Camera2DGlob>>,
+    materials: StateHandle<Globals<MaterialGlob>>,
+    meshes: StateHandle<Globals<MeshGlob>>,
 }
 
 impl Target {
