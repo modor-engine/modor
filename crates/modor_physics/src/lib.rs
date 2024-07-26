@@ -7,7 +7,7 @@
 //! modor_physics = "0.1"
 //! ```
 //!
-//! Now you can start using this crate, for example by creating a [`Body2D`] node.
+//! Now you can start using this crate, for example by creating a [`Body2D`].
 
 mod body;
 mod collision_group;

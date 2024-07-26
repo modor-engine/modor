@@ -55,15 +55,15 @@ pub use wasm_bindgen_test;
 mod app;
 mod from_app;
 mod globals;
-mod node;
 mod platform;
+mod state;
 
 pub use app::*;
 pub use from_app::*;
 pub use globals::*;
-pub use node::*;
 #[allow(unused_imports, unreachable_pub)]
 pub use platform::*;
+pub use state::*;
 
 /// Defines the main function of a Modor application.
 ///

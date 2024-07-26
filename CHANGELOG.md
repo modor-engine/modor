@@ -4,7 +4,7 @@
 
 ### Added
 
-- Node definition
+- State definition
 - Physics for 2D objects
 - Graphics for 2D rendering
 - Text rendering

@@ -24,8 +24,8 @@ impl FromApp for Scores {
 
 impl State for Scores {
     fn update(&mut self, app: &mut App) {
-        // `is_reset_required` ensures that all nodes see this variable equal to `true` at
-        // least once. This is not guaranteed for `is_just_updated` depending on node update order.
+        // `is_reset_required` ensures that all states see this variable equal to `true` at
+        // least once. This is not guaranteed for `is_just_updated` depending on state update order.
         if self.is_just_updated {
             self.is_reset_required = true;
             self.is_just_updated = false;

@@ -2,7 +2,7 @@
 name = "modor"
 description = "Core library of Modor game engine"
 readme = "../../README.md"
-keywords = ["game", "engine", "modular", "node", "object"]
+keywords = ["game", "engine", "modular", "object", "simple"]
 categories = ["game-engines"]
 exclude = [".github", "README.md"]
 version.workspace = true

@@ -328,7 +328,7 @@ pub trait Resource: Sized {
     /// An error is returned if the resource cannot be loaded.
     fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError>;
 
-    /// Updates the resource during node update.
+    /// Updates the resource.
     ///
     /// In case resource loaded has just finished, `loaded` is `Some`.
     ///

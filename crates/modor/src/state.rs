@@ -9,13 +9,13 @@ use crate::{App, FromApp};
 ///
 /// See [`modor`](crate).
 pub trait State: FromApp {
-    /// Initializes the node.
+    /// Initializes the state.
     ///
-    /// This method is called just after the node is created with [`FromApp`].
+    /// This method is called just after the state is created with [`FromApp`].
     #[allow(unused_variables)]
     fn init(&mut self, app: &mut App) {}
 
-    /// Updates the node.
+    /// Updates the state.
     ///
     /// This method is called once during each app update.
     #[allow(unused_variables)]
