@@ -32,7 +32,7 @@
 //!     counter: Counter,
 //! }
 //!
-//! impl RootNode for Root {
+//! impl State for Root {
 //!     fn update(&mut self, app: &mut App) {
 //!         println!("Update counter...");
 //!         self.counter.value += 1;
@@ -81,7 +81,7 @@ pub use platform::*;
 ///     app.update();
 /// }
 ///
-/// #[derive(Default, RootNode)]
+/// #[derive(Default, State)]
 /// struct Root;
 /// ```
 pub use modor_derive::main;
@@ -122,7 +122,7 @@ pub use modor_derive::main;
 /// ```
 pub use modor_derive::test;
 
-/// Implements [`RootNode`].
+/// Implements [`State`].
 ///
 /// The type must implement [`Default`] trait.
 ///
@@ -133,12 +133,12 @@ pub use modor_derive::test;
 /// ```rust
 /// # use modor::*;
 /// #
-/// #[derive(Default, RootNode)]
+/// #[derive(Default, State)]
 /// struct Root {
 ///     value: u32,
 /// }
 /// ```
-pub use modor_derive::RootNode;
+pub use modor_derive::State;
 
 /// Generates builder methods for a `struct` with named fields.
 ///

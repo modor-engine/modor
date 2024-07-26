@@ -2,7 +2,7 @@ use crate::collisions::Collision2D;
 use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::CollisionGroupGlob;
-use modor::{App, Builder, FromApp, Glob, GlobRef, RootNodeHandle};
+use modor::{App, Builder, FromApp, Glob, GlobRef, StateHandle};
 use modor_math::Vec2;
 use rapier2d::dynamics::{MassProperties, RigidBody, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -23,7 +23,7 @@ use rapier2d::prelude::{InteractionGroups, RigidBodyBuilder};
 /// # use modor_math::*;
 /// # use modor_physics::*;
 /// #
-/// #[derive(Default, RootNode)]
+/// #[derive(Default, State)]
 /// struct CharacterDirection(Vec2);
 ///
 /// struct Character {
@@ -167,7 +167,7 @@ pub struct Body2D {
     pub shape: Shape2D,
     collisions: Vec<Collision2D>,
     glob: Glob<Body2DGlob>,
-    pipeline: RootNodeHandle<Pipeline>,
+    pipeline: StateHandle<Pipeline>,
 }
 
 impl Body2D {

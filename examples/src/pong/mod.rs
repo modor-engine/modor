@@ -4,7 +4,7 @@ use crate::pong::scores::Scores;
 use crate::pong::wall::{FIELD_BORDER_WIDTH, FIELD_SIZE};
 use collisions::CollisionGroups;
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
 use side::Side;
@@ -45,7 +45,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);

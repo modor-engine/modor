@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -46,7 +46,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);
@@ -71,7 +71,7 @@ impl FromApp for CollisionGroups {
     }
 }
 
-impl RootNode for CollisionGroups {
+impl State for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.wall.update(app);
         self.object.update(app);
@@ -143,7 +143,7 @@ struct Objects {
     objects: Vec<Object>,
 }
 
-impl RootNode for Objects {
+impl State for Objects {
     fn update(&mut self, app: &mut App) {
         self.objects.retain_mut(|object| {
             object.update(app);

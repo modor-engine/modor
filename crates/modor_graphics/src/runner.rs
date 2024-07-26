@@ -4,7 +4,7 @@ use crate::inputs::gamepads::Gamepads;
 use crate::{platform, Size, Window};
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, RootNode};
+use modor::{App, State};
 use modor_input::Inputs;
 use modor_physics::Delta;
 use std::marker::PhantomData;
@@ -46,13 +46,13 @@ const MAX_FRAME_TIME: Duration = Duration::from_secs(1);
 ///     modor_graphics::run::<Root>(Level::Info);
 /// }
 ///
-/// #[derive(Default, RootNode)]
+/// #[derive(Default, State)]
 /// struct Root;
 /// # }
 /// ```
 pub fn run<T>(level: Level)
 where
-    T: RootNode,
+    T: State,
 {
     let event_loop = platform::event_loop();
     let app = Application::<T>::new(level);
@@ -71,7 +71,7 @@ struct Application<T> {
 
 impl<T> ApplicationHandler for Application<T>
 where
-    T: RootNode,
+    T: State,
 {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.init_surface(event_loop);
@@ -127,7 +127,7 @@ where
 
 impl<T> Application<T>
 where
-    T: RootNode,
+    T: State,
 {
     fn new(level: Level) -> Self {
         Self {
@@ -220,5 +220,5 @@ where
     }
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default, State)]
 struct RunnerRoot;

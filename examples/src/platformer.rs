@@ -1,7 +1,7 @@
 use approx::AbsDiffEq;
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, FromApp, RootNode, RootNodeHandle};
+use modor::{App, FromApp, State, StateHandle};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Color, Sprite2D};
@@ -20,7 +20,7 @@ pub fn main() {
 #[derive(FromApp)]
 struct Root;
 
-impl RootNode for Root {
+impl State for Root {
     fn init(&mut self, app: &mut App) {
         app.create::<Character>();
         app.create::<Platforms>();
@@ -69,7 +69,7 @@ impl FromApp for Platforms {
     }
 }
 
-impl RootNode for Platforms {
+impl State for Platforms {
     fn update(&mut self, app: &mut App) {
         for platform in &mut self.platforms {
             platform.update(app);
@@ -103,7 +103,7 @@ impl FromApp for CollisionGroups {
     }
 }
 
-impl RootNode for CollisionGroups {
+impl State for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.platform.update(app);
         self.character.update(app);
@@ -147,7 +147,7 @@ impl Platform {
 struct Character {
     body: Body2D,
     sprite: Sprite2D,
-    platforms: RootNodeHandle<Platforms>,
+    platforms: StateHandle<Platforms>,
 }
 
 impl FromApp for Character {
@@ -168,7 +168,7 @@ impl FromApp for Character {
     }
 }
 
-impl RootNode for Character {
+impl State for Character {
     fn update(&mut self, app: &mut App) {
         self.body.update(app); // force update to use latest information
         let keyboard = &app.get_mut::<Inputs>().keyboard;

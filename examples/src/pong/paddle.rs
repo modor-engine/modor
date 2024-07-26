@@ -2,7 +2,7 @@ use crate::pong::ball::BallProperties;
 use crate::pong::collisions::CollisionGroups;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
-use modor::{App, RootNodeHandle};
+use modor::{App, StateHandle};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
@@ -12,8 +12,8 @@ pub(crate) struct Paddle {
     body: Body2D,
     sprite: Sprite2D,
     controls: Option<PlayerControls>,
-    window: RootNodeHandle<Window>,
-    inputs: RootNodeHandle<Inputs>,
+    window: StateHandle<Window>,
+    inputs: StateHandle<Inputs>,
 }
 
 impl Paddle {

@@ -2,7 +2,7 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::{platform, Camera2D, FrameRate, Size, Target};
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -25,7 +25,7 @@ use winit::dpi::PhysicalSize;
 ///     // ...
 /// }
 ///
-/// impl RootNode for Root {
+/// impl State for Root {
 ///     fn init(&mut self, app: &mut App) {
 ///         let window = app.get_mut::<Window>();
 ///         window.title = "My App".into();
@@ -83,7 +83,7 @@ impl FromApp for Window {
     }
 }
 
-impl RootNode for Window {
+impl State for Window {
     fn update(&mut self, app: &mut App) {
         self.update_properties();
         self.update_surface(app);

@@ -54,7 +54,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///     }
 /// }
 ///
-/// impl RootNode for MovingCamera {
+/// impl State for MovingCamera {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.camera.position += Vec2::new(0.1, 0.2);
 ///         self.camera.update(app);

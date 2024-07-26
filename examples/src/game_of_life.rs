@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
@@ -38,7 +38,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() < REFRESH_PERIOD {
             return;

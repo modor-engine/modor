@@ -59,7 +59,7 @@ use wgpu::{TextureFormat, TextureViewDescriptor};
 ///     }
 /// }
 ///
-/// impl RootNode for Resources {
+/// impl State for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///         self.target.update(app);

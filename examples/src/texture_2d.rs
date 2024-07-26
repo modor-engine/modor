@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture};
@@ -45,7 +45,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.background.update(app);
         for smiley in &mut self.smileys {
@@ -68,7 +68,7 @@ impl FromApp for Resources {
     }
 }
 
-impl RootNode for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.background_texture.update(app);
         self.smiley_texture.update(app);

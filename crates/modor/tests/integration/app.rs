@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 
 #[modor::test]
 fn create_node() {
@@ -50,13 +50,13 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn init(&mut self, _app: &mut App) {
         self.value = 42;
     }
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default, State)]
 struct Counter {
     value: usize,
 }

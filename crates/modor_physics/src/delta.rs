@@ -1,4 +1,4 @@
-use modor::RootNode;
+use modor::State;
 use std::time::Duration;
 
 /// The duration of the latest update.
@@ -7,7 +7,7 @@ use std::time::Duration;
 /// It can be manually set to simulate time, or be automatically updated
 /// by another crate (e.g. by the graphics crate).
 #[non_exhaustive]
-#[derive(Default, Debug, RootNode)]
+#[derive(Default, Debug, State)]
 pub struct Delta {
     /// Duration of the last update.
     ///

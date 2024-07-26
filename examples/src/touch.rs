@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::Inputs;
 use modor_graphics::{Sprite2D, Window};
@@ -13,7 +13,7 @@ struct Root {
     fingers: Vec<Sprite2D>,
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.fingers = app
             .get_mut::<Inputs>()

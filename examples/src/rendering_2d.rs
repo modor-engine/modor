@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::{info, Level};
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Delta;
@@ -42,7 +42,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         let now = Instant::now();
         info!(
@@ -76,7 +76,7 @@ impl FromApp for Resources {
     }
 }
 
-impl RootNode for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         for material in &mut self.materials {
             material.update(app);

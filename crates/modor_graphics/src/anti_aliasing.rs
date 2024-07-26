@@ -2,7 +2,7 @@ use crate::gpu::Gpu;
 use crate::validation;
 use enum_iterator::Sequence;
 use fxhash::FxHashMap;
-use modor::RootNode;
+use modor::State;
 use wgpu::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 /// An anti-aliasing mode.
@@ -39,7 +39,7 @@ impl AntiAliasingMode {
     }
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default, State)]
 pub(crate) struct SupportedAntiAliasingModes {
     modes: FxHashMap<TextureFormat, Vec<AntiAliasingMode>>,
 }

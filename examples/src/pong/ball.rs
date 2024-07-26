@@ -3,7 +3,7 @@ use crate::pong::paddle::Paddle;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
 use instant::Instant;
-use modor::{App, Globals, RootNode};
+use modor::{App, Globals, State};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DGlob};
@@ -108,7 +108,7 @@ impl Ball {
     }
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default, State)]
 pub(crate) struct BallProperties {
     pub(crate) position: Vec2,
 }

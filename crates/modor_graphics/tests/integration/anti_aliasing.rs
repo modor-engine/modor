@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -66,7 +66,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.sprite.update(app);
         self.target.update(app);

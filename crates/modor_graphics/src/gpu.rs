@@ -1,6 +1,6 @@
 use crate::platform;
 use futures::executor;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use std::sync::Arc;
 use wgpu::{
     Adapter, Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
@@ -9,7 +9,7 @@ use wgpu::{
     ShaderStages, Surface,
 };
 
-#[derive(Debug, RootNode)]
+#[derive(Debug, State)]
 pub(crate) struct GpuManager {
     pub(crate) instance: Arc<Instance>,
     details: Option<Arc<Gpu>>,

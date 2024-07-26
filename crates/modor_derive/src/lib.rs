@@ -6,7 +6,7 @@ use syn::{parse_macro_input, DeriveInput, ItemFn};
 mod builder;
 mod from_app;
 mod functions;
-mod root_node;
+mod state;
 mod utils;
 
 // coverage: off (cannot be tested)
@@ -29,10 +29,10 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(RootNode)]
-pub fn root_node_derive(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(State)]
+pub fn state_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    root_node::impl_block(&input).into()
+    state::impl_block(&input).into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate

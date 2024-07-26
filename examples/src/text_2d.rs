@@ -1,6 +1,6 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
@@ -37,7 +37,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         if self.last_update.elapsed() > Duration::from_secs(1) {
             let new_text = match self.text.content.matches('.').count() {
@@ -66,7 +66,7 @@ impl FromApp for Resources {
     }
 }
 
-impl RootNode for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.font.update(app);
     }

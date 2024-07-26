@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::{Color, CursorTracker, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Collision2D, CollisionGroup, CollisionType, Shape2D};
@@ -26,7 +26,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.rectangle.update(app);
         self.circle.update(app);
@@ -48,7 +48,7 @@ impl FromApp for CollisionGroups {
     }
 }
 
-impl RootNode for CollisionGroups {
+impl State for CollisionGroups {
     fn update(&mut self, app: &mut App) {
         self.shape.update(app);
         self.cursor.update(app);

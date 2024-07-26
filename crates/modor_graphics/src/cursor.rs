@@ -1,5 +1,5 @@
 use crate::{Camera2DGlob, Window};
-use modor::{App, Builder, GlobRef, RootNodeHandle};
+use modor::{App, Builder, GlobRef, StateHandle};
 use modor_input::modor_math::Vec2;
 use modor_input::{Finger, InputState, Inputs, MouseButton};
 
@@ -33,8 +33,8 @@ pub struct CursorTracker {
     /// Default is the default camera of the [`Window`].
     #[builder(form(value))]
     pub camera: GlobRef<Camera2DGlob>,
-    window: RootNodeHandle<Window>,
-    inputs: RootNodeHandle<Inputs>,
+    window: StateHandle<Window>,
+    inputs: StateHandle<Inputs>,
     is_touch: bool,
     last_finger_id: Option<u64>,
 }

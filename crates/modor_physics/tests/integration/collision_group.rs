@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_physics::{Body2D, CollisionGroup, CollisionType};
 
 #[modor::test]
@@ -54,7 +54,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.group1.update(app);
         if let Some(group) = &mut self.group2 {

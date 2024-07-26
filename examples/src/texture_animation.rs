@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -23,7 +23,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.slime.update(app);
     }
@@ -43,7 +43,7 @@ impl FromApp for Resources {
     }
 }
 
-impl RootNode for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.smile_texture.update(app);
     }

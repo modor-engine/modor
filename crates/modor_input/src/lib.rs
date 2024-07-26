@@ -7,7 +7,7 @@
 //! modor_input = "0.1"
 //! ```
 //!
-//! Now you can start using this crate, for example by accessing [`Inputs`] root node.
+//! Now you can start using this crate, for example by accessing [`Inputs`] state.
 
 mod fingers;
 mod gamepads;

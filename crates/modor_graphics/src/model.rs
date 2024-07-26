@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, RootNode, RootNodeHandle};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, State, StateHandle};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2DGlob;
 use std::any::TypeId;
@@ -91,7 +91,7 @@ pub struct Model2D<T> {
     pub material: MaterialGlobRef<T>,
     mesh: GlobRef<MeshGlob>,
     glob: Glob<Model2DGlob>,
-    groups: RootNodeHandle<InstanceGroups2D>,
+    groups: StateHandle<InstanceGroups2D>,
     phantom: PhantomData<fn(T)>,
 }
 
@@ -173,7 +173,7 @@ pub struct InstanceGroups2D {
     model_groups: Vec<Option<InstanceGroup2DProperties>>,
 }
 
-impl RootNode for InstanceGroups2D {
+impl State for InstanceGroups2D {
     fn update(&mut self, app: &mut App) {
         for (model_index, _) in app.get_mut::<Globals<Model2DGlob>>().deleted_items() {
             let group = self.model_groups[*model_index]

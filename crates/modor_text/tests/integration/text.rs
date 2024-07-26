@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, GlobRef, RootNode};
+use modor::{App, FromApp, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::testing::assert_max_component_diff;
@@ -73,7 +73,7 @@ impl FromApp for Root {
     }
 }
 
-impl RootNode for Root {
+impl State for Root {
     fn update(&mut self, app: &mut App) {
         self.text.update(app);
         self.target.update(app);

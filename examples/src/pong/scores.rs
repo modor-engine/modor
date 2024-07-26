@@ -1,6 +1,6 @@
 use crate::pong::side::Side;
 use crate::pong::wall::FIELD_SIZE;
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_text::Text2D;
 
@@ -22,7 +22,7 @@ impl FromApp for Scores {
     }
 }
 
-impl RootNode for Scores {
+impl State for Scores {
     fn update(&mut self, app: &mut App) {
         // `is_reset_required` ensures that all nodes see this variable equal to `true` at
         // least once. This is not guaranteed for `is_just_updated` depending on node update order.

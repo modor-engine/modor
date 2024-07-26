@@ -1,6 +1,6 @@
 use crate::mesh::Mesh;
 use crate::{DefaultMaterial2D, Shader, ShaderSource, Size, Texture, TextureSource};
-use modor::{App, FromApp, RootNode};
+use modor::{App, FromApp, State};
 use modor_resources::{Res, ResLoad};
 
 #[non_exhaustive]
@@ -40,7 +40,7 @@ impl FromApp for Resources {
     }
 }
 
-impl RootNode for Resources {
+impl State for Resources {
     fn update(&mut self, app: &mut App) {
         self.empty_shader.update(app);
         self.default_shader.update(app);

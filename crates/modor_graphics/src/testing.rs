@@ -57,7 +57,7 @@ use std::{env, fs};
 ///     }
 /// }
 ///
-/// impl RootNode for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -122,7 +122,7 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 ///     }
 /// }
 ///
-/// impl RootNode for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }
@@ -195,7 +195,7 @@ pub fn assert_max_component_diff(
 ///     }
 /// }
 ///
-/// impl RootNode for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.texture.update(app);
 ///     }

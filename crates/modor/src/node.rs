@@ -1,16 +1,14 @@
 use crate::{App, FromApp};
 
-// TODO: rename to "singleton" everywhere
-
-/// A trait for defining a root node accessible from anywhere during update.
+/// A trait for defining a state accessible from anywhere during update.
 ///
-/// [`RootNode`](macro@crate::RootNode) derive macro can be used in case the type implements
+/// [`State`](macro@crate::State) derive macro can be used in case the type implements
 /// [`Default`].
 ///
 /// # Examples
 ///
 /// See [`modor`](crate).
-pub trait RootNode: FromApp {
+pub trait State: FromApp {
     /// Initializes the node.
     ///
     /// This method is called just after the node is created with [`FromApp`].

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, RootNode};
+use modor::{App, State};
 use modor_graphics::CursorTracker;
 use modor_input::modor_math::Vec2;
 use modor_input::{Inputs, MouseButton};
@@ -97,5 +97,5 @@ fn inputs(app: &mut App) -> &mut Inputs {
     app.get_mut::<Inputs>()
 }
 
-#[derive(Default, RootNode)]
+#[derive(Default, State)]
 struct Root;

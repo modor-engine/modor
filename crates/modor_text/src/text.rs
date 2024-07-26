@@ -33,7 +33,7 @@ use std::iter;
 ///     }
 /// }
 ///
-/// impl RootNode for Root {
+/// impl State for Root {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.text.update(app);
 ///     }
@@ -51,7 +51,7 @@ use std::iter;
 ///     }
 /// }
 ///
-/// impl RootNode for Resources {
+/// impl State for Resources {
 ///     fn update(&mut self, app: &mut App) {
 ///         self.font.update(app);
 ///     }
