@@ -57,11 +57,9 @@ impl Ball {
     }
 
     pub(crate) fn handle_collision_with_paddle(&mut self, app: &mut App) {
-        let paddle_group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
-        let Some(collision) = self.body.collisions_with(&paddle_group).next() else {
+        let Some(paddle) = Self::collided_paddle(&self.body, app) else {
             return;
         };
-        let paddle = &app.get_mut::<Globals<Body2DGlob>>()[collision.other_index];
         let normalized_direction = -self.body.position.x.signum();
         let direction = self.body.velocity.magnitude() * normalized_direction;
         let relative_y_offset = normalized_direction * (self.body.position.y - paddle.position.y)
@@ -105,6 +103,13 @@ impl Ball {
             .velocity
             .with_magnitude(speed)
             .expect("internal error: ball velocity is zero");
+    }
+
+    fn collided_paddle<'a>(body: &Body2D, app: &'a mut App) -> Option<&'a Body2DGlob> {
+        let paddle_group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
+        let collision = body.collisions_with(&paddle_group).next()?;
+        app.get_mut::<Globals<Body2DGlob>>()
+            .get(collision.other_index)
     }
 }
 

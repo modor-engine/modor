@@ -103,10 +103,22 @@ fn access_all_globals() {
     assert_eq!(globals.get(0), Some(&"a"));
     assert_eq!(globals.get(1), Some(&"b"));
     assert_eq!(globals.get(2), None);
+    assert_eq!(globals.get_mut(0), Some(&mut "a"));
+    assert_eq!(globals.get_mut(1), Some(&mut "b"));
+    assert_eq!(globals.get_mut(2), None);
+    globals[&glob1] = "a";
+    assert_eq!(globals[&glob1], "a");
+    assert_eq!(globals[&glob2], "b");
     assert_eq!(globals.iter().collect::<Vec<_>>(), vec![&"a", &"b"]);
-    assert_eq!(globals.into_iter().collect::<Vec<_>>(), vec![&"a", &"b"]);
-    let enumerated_values = globals.iter_enumerated().collect::<Vec<_>>();
-    assert_eq!(enumerated_values, vec![(0, &"a"), (1, &"b")]);
+    assert_eq!(globals.iter_mut().collect::<Vec<_>>(), vec![&"a", &"b"]);
+    let iterator = (&*globals).into_iter().collect::<Vec<_>>();
+    assert_eq!(iterator, vec![&"a", &"b"]);
+    let iterator = (&mut *globals).into_iter().collect::<Vec<_>>();
+    assert_eq!(iterator, vec![&"a", &"b"]);
+    let iterator = globals.iter_enumerated().collect::<Vec<_>>();
+    assert_eq!(iterator, vec![(0, &"a"), (1, &"b")]);
+    let iterator = globals.iter_mut_enumerated().collect::<Vec<_>>();
+    assert_eq!(iterator, vec![(0, &mut "a"), (1, &mut "b")]);
 }
 
 #[modor::test]
@@ -124,7 +136,6 @@ fn access_all_globals_after_value_dropped() {
     assert_eq!(globals.get(1), Some(&"b"));
     assert_eq!(globals.get(2), None);
     assert_eq!(globals.iter().collect::<Vec<_>>(), vec![&"b"]);
-    assert_eq!(globals.into_iter().collect::<Vec<_>>(), vec![&"b"]);
     let enumerated_values = globals.iter_enumerated().collect::<Vec<_>>();
     assert_eq!(enumerated_values, vec![(1, &"b")]);
 }
