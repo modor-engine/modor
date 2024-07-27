@@ -51,3 +51,20 @@ pub(crate) fn generic_type_idents(generics: &Generics) -> Vec<&Ident> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use syn::Type;
+
+    #[test]
+    fn extract_first_generic_type() -> syn::Result<()> {
+        assert!(super::first_generic_type(syn::parse_str("[usize; 2]")?).is_none());
+        assert!(super::first_generic_type(syn::parse_str("fn(usize)")?).is_none());
+        assert!(super::first_generic_type(syn::parse_str("T<'a>")?).is_none());
+        assert_eq!(
+            super::first_generic_type(syn::parse_str("T<U>")?),
+            Some(syn::parse_str::<Type>("U")?)
+        );
+        Ok(())
+    }
+}
