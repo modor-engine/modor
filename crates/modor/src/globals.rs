@@ -1,4 +1,4 @@
-use crate::{App, FromApp, State, StateHandle};
+use crate::{App, FromApp, GlobUpdater, State, StateHandle};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -103,7 +103,7 @@ where
     /// # Panics
     ///
     /// This will panic if a shared value of type `T` is already mutably borrowed.
-    pub fn take<O>(&mut self, app: &mut App, f: impl FnOnce(&mut T, &mut App) -> O) -> O {
+    pub fn take<O>(&self, app: &mut App, f: impl FnOnce(&mut T, &mut App) -> O) -> O {
         self.globals.take(app, |globals, app| {
             let value = globals.items[self.index()]
                 .as_mut()
@@ -122,9 +122,19 @@ where
     }
 }
 
-/// An immutable reference with static lifetime to a shared value of type `T`.
+impl<T> Glob<T>
+where
+    T: GlobUpdater,
+{
+    /// Creates an updater.
+    pub fn updater(&self) -> T::Updater<'_> {
+        T::updater(self)
+    }
+}
+
+/// A reference with static lifetime to a shared value of type `T`.
 ///
-/// The reference remains valid even after the [`Glob<T>`] is dropped.
+/// The reference remains valid even after the original [`Glob<T>`] is dropped.
 ///
 /// # Examples
 ///
