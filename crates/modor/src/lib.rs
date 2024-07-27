@@ -199,4 +199,9 @@ pub use modor_derive::Builder;
 ///
 /// Only structs are supported. All fields must implement [`FromApp`] (or [`Default`], as
 /// [`FromApp`] is automatically implemented for all types implementing [`Default`]).
+///
+/// # Special cases
+///
+/// - [`Instant`](std::time::Instant) type is initialized with
+///   [`Instant::now`](std::time::Instant::now) method.
 pub use modor_derive::FromApp;
