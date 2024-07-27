@@ -1,7 +1,8 @@
 use crate::utils;
-use proc_macro2::{Literal, TokenStream};
-use quote::{quote, ToTokens};
+use proc_macro2::{Ident, Literal, TokenStream};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::__private::Span;
+use syn::spanned::Spanned;
 use syn::{Data, DeriveInput, Field, Type};
 
 pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream> {
@@ -10,14 +11,16 @@ pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let fields = fields(input)
         .ok_or_else(|| utils::error(Span::call_site(), "only structs are supported"))?;
-    let field_idents = fields.iter().map(|(ident, _)| ident);
-    let field_types = fields.iter().map(|(_, ty)| ty);
+    let statements = fields
+        .iter()
+        .map(|(ident, ty)| create_statement(&crate_ident, ident, ty));
     Ok(quote! {
         #[automatically_derived]
+        #[allow(unused_qualifications)]
         impl #impl_generics ::#crate_ident::FromApp for #ident #type_generics #where_clause {
             fn from_app(app: &mut ::#crate_ident::App) -> Self {
                 Self {
-                    #(#field_idents: <#field_types as ::#crate_ident::FromApp>::from_app(app),)*
+                    #(#statements)*
                 }
             }
         }
@@ -42,6 +45,20 @@ fn field_ident(index: usize, field: &Field) -> TokenStream {
         ident.to_token_stream()
     } else {
         Literal::usize_unsuffixed(index).to_token_stream()
+    }
+}
+
+fn create_statement(crate_ident: &Ident, ident: &TokenStream, type_: &Type) -> TokenStream {
+    if utils::has_type_name_without_generic(type_, "Instant") {
+        quote_spanned! {
+            type_.span() =>
+            #ident: #type_::now(),
+        }
+    } else {
+        quote_spanned! {
+            type_.span() =>
+            #ident: <#type_ as ::#crate_ident::FromApp>::from_app(app),
+        }
     }
 }
 

@@ -1,6 +1,8 @@
 use log::Level;
 use modor::{App, FromApp};
 use modor_derive::State;
+use std::time;
+use std::time::Instant;
 
 #[modor::test]
 fn create_struct_with_named_fields() {
@@ -55,4 +57,12 @@ impl Default for DefaultInteger {
     fn default() -> Self {
         Self(10)
     }
+}
+
+// Verify that `Instant` is working well with and without path prefix.
+#[allow(dead_code, unused_qualifications)]
+#[derive(FromApp)]
+struct WithInstant {
+    instant1: Instant,
+    instant2: time::Instant,
 }
