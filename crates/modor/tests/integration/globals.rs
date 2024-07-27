@@ -143,7 +143,7 @@ fn access_all_globals_after_value_dropped() {
 #[modor::test]
 fn take_glob() {
     let mut app = App::new::<Root>(Level::Info);
-    let mut glob1 = Glob::from_app(&mut app);
+    let glob1 = Glob::from_app(&mut app);
     let glob2 = Glob::from_app(&mut app);
     *glob1.get_mut(&mut app) = "a";
     *glob2.get_mut(&mut app) = 42;
