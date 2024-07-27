@@ -4,7 +4,7 @@ use log::error;
 use std::iter::Flatten;
 use std::mem;
 use std::ops::Deref;
-use std::slice::Iter;
+use std::slice::{Iter, IterMut};
 use std::sync::{Arc, Mutex};
 
 /// A globally shared value of type `T`.
@@ -84,7 +84,7 @@ where
     ///
     /// This will panic if a shared value of type `T` is already mutably borrowed.
     pub fn get<'a>(&self, app: &'a App) -> &'a T {
-        &self.globals.get(app)[self.index()]
+        &self.globals.get(app)[self]
     }
 
     /// Returns a mutable reference to the shared value.
@@ -93,9 +93,7 @@ where
     ///
     /// This will panic if a shared value of type `T` is already mutably borrowed.
     pub fn get_mut<'a>(&self, app: &'a mut App) -> &'a mut T {
-        self.globals.get_mut(app).items[self.index()]
-            .as_mut()
-            .expect("internal error: invalid index")
+        &mut self.globals.get_mut(app)[self]
     }
 
     /// Borrows the shared value without borrowing the app.
@@ -223,22 +221,40 @@ impl<T> Globals<T> {
         &self.deleted_items
     }
 
-    /// Returns the value corresponding to a given `index` if it exists.
+    /// Returns an immutable reference to the value corresponding to a given `index` if it exists.
     pub fn get(&self, index: usize) -> Option<&T> {
         self.items.get(index).and_then(|item| item.as_ref())
     }
 
-    /// Returns an iterator on all values.
+    /// Returns a mutable reference to the value corresponding to a given `index` if it exists.
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        self.items.get_mut(index).and_then(|item| item.as_mut())
+    }
+
+    /// Returns an iterator on immutable references to all values.
     pub fn iter(&self) -> Flatten<Iter<'_, Option<T>>> {
         self.items.iter().flatten()
     }
 
-    /// Returns an iterator on all values with their index.
+    /// Returns an iterator on mutable references to all values.
+    pub fn iter_mut(&mut self) -> Flatten<IterMut<'_, Option<T>>> {
+        self.items.iter_mut().flatten()
+    }
+
+    /// Returns an iterator on immutable references to all values with their index.
     pub fn iter_enumerated(&self) -> impl Iterator<Item = (usize, &T)> {
         self.items
             .iter()
             .enumerate()
             .filter_map(|(index, item)| item.as_ref().map(|item| (index, item)))
+    }
+
+    /// Returns an iterator on mutable references to all values with their index.
+    pub fn iter_mut_enumerated(&mut self) -> impl Iterator<Item = (usize, &mut T)> {
+        self.items
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(index, item)| item.as_mut().map(|item| (index, item)))
     }
 
     fn register(&mut self, item: T) -> GlobLifetime {
@@ -267,11 +283,30 @@ impl<'a, T> IntoIterator for &'a Globals<T> {
     }
 }
 
-impl<T> std::ops::Index<usize> for Globals<T> {
+impl<'a, T> IntoIterator for &'a mut Globals<T> {
+    type Item = &'a mut T;
+    type IntoIter = Flatten<IterMut<'a, Option<T>>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+impl<T> std::ops::Index<&Glob<T>> for Globals<T> {
     type Output = T;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        self.items[index].as_ref().expect("invalid index")
+    fn index(&self, glob: &Glob<T>) -> &Self::Output {
+        self.items[glob.index]
+            .as_ref()
+            .expect("internal error: invalid index")
+    }
+}
+
+impl<T> std::ops::IndexMut<&Glob<T>> for Globals<T> {
+    fn index_mut(&mut self, glob: &Glob<T>) -> &mut Self::Output {
+        self.items[glob.index]
+            .as_mut()
+            .expect("internal error: invalid index")
     }
 }
 

@@ -8,8 +8,8 @@ use std::f32::consts::FRAC_PI_2;
 #[modor::test]
 fn retrieve_data() {
     let mut app = App::new::<Root>(Level::Info);
-    let body_index = body(&mut app).glob().index();
-    let data = &app.get_mut::<Globals<Body2DGlob>>()[body_index];
+    let body_glob = body(&mut app).glob().to_ref();
+    let data = &app.get_mut::<Globals<Body2DGlob>>()[&body_glob];
     assert_approx_eq!(data.position, Vec2::ZERO);
     assert_approx_eq!(data.size, Vec2::ONE);
     assert_approx_eq!(data.rotation, 0.);
@@ -17,7 +17,7 @@ fn retrieve_data() {
     body(&mut app).size = Vec2::new(3., 4.);
     body(&mut app).rotation = FRAC_PI_2;
     app.update();
-    let data = &app.get_mut::<Globals<Body2DGlob>>()[body_index];
+    let data = &app.get_mut::<Globals<Body2DGlob>>()[&body_glob];
     assert_approx_eq!(data.position, Vec2::new(1., 2.));
     assert_approx_eq!(data.size, Vec2::new(3., 4.));
     assert_approx_eq!(data.rotation, FRAC_PI_2);
