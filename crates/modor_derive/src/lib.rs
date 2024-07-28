@@ -6,6 +6,7 @@ use syn::{parse_macro_input, DeriveInput, ItemFn};
 mod builder;
 mod from_app;
 mod functions;
+mod global;
 mod state;
 mod updater;
 mod utils;
@@ -34,6 +35,13 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 pub fn state_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     state::impl_block(&input).into()
+}
+
+#[allow(missing_docs)] // doc available in `modor` crate
+#[proc_macro_derive(Global)]
+pub fn global_derive(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    global::impl_block(&input).into()
 }
 
 #[allow(missing_docs)] // doc available in `modor` crate

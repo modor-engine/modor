@@ -1,5 +1,6 @@
 use log::Level;
 use modor::{App, FromApp, Glob, GlobUpdater, State};
+use modor_derive::Global;
 
 #[modor::test]
 fn run_update() {
@@ -20,8 +21,8 @@ fn run_update() {
 #[derive(FromApp, State)]
 struct Root;
 
-#[derive(GlobUpdater)]
-struct Value<const N: usize, T: 'static> {
+#[derive(Global, GlobUpdater)]
+struct Value<const N: usize, T: 'static + Default> {
     #[updater(field)]
     integer: u8,
     #[updater(field)]

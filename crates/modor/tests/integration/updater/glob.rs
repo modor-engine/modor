@@ -1,6 +1,6 @@
 use log::Level;
 use modor::{App, FromApp, Glob, State};
-use modor_derive::GlobUpdater;
+use modor_derive::{GlobUpdater, Global};
 use std::marker::PhantomData;
 
 #[modor::test]
@@ -25,7 +25,7 @@ fn run_update() {
 #[derive(FromApp, State)]
 struct Root;
 
-#[derive(GlobUpdater)]
+#[derive(Global, GlobUpdater)]
 struct Value {
     #[updater(field, for_field = "default")]
     integer: u8,

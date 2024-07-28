@@ -7,6 +7,15 @@ use std::ops::Deref;
 use std::slice::{Iter, IterMut};
 use std::sync::{Arc, Mutex};
 
+/// A trait for defining a shared value.
+pub trait Global: FromApp {
+    /// Initializes the shared value.
+    ///
+    /// This method is called just after [`FromApp::from_app`].
+    #[allow(unused_variables)]
+    fn init(&mut self, app: &mut App) {}
+}
+
 /// A globally shared value of type `T`.
 ///
 /// # Examples
@@ -14,11 +23,14 @@ use std::sync::{Arc, Mutex};
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob(app: &mut App) -> Glob<&'static str> {
-///     let glob = Glob::from_app(app);
-///     assert_eq!(glob.get(app), &"");
-///     *glob.get_mut(app) = "shared value";
-///     assert_eq!(glob.get(app), &"shared value");
+/// #[derive(FromApp, Global)]
+/// struct SharedValue(usize);
+/// 
+/// fn create_glob(app: &mut App) -> Glob<SharedValue> {
+///     let glob = Glob::<SharedValue>::from_app(app);
+///     assert_eq!(glob.get(app).0, 0);
+///     glob.get_mut(app).0 = 42;
+///     assert_eq!(glob.get(app).0, 42);
 ///     glob
 /// }
 /// ```
@@ -51,11 +63,11 @@ pub struct Glob<T> {
 
 impl<T> FromApp for Glob<T>
 where
-    T: FromApp,
+    T: Global,
 {
     fn from_app(app: &mut App) -> Self {
         let globals = app.handle::<Globals<T>>();
-        let value = T::from_app(app);
+        let value = T::from_app_with(app, T::init);
         let lifetime = globals.get_mut(app).register(value);
         Self {
             index: lifetime.index,
@@ -141,11 +153,14 @@ where
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob_ref(app: &mut App) -> GlobRef<&'static str> {
-///     let glob = Glob::from_app(app);
+/// #[derive(FromApp, Global)]
+/// struct SharedValue(usize);
+///
+/// fn create_glob_ref(app: &mut App) -> GlobRef<SharedValue> {
+///     let glob = Glob::<SharedValue>::from_app(app);
 ///     let ref_ = glob.to_ref();
-///     *glob.get_mut(app) = "shared value";
-///     assert_eq!(ref_.get(app), &"shared value");
+///     glob.get_mut(app).0 = 42;
+///     assert_eq!(ref_.get(app).0, 42);
 ///     ref_
 /// }
 /// ```
