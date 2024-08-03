@@ -3,17 +3,31 @@ use crate::pong::paddle::Paddle;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
 use instant::Instant;
-use modor::{App, Globals, State};
+use modor::{App, FromApp, Glob, Globals, State, StateHandle};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
-use modor_physics::{Body2D, Body2DGlob};
+use modor_physics::Body2D;
 use rand::Rng;
 use std::f32::consts::FRAC_PI_4;
 
 pub(crate) struct Ball {
-    body: Body2D,
+    body: Glob<Body2D>,
     sprite: Sprite2D,
-    creation_instant: Instant,
+    init_instant: Instant,
+    collision_groups: StateHandle<CollisionGroups>,
+    bodies: StateHandle<Globals<Body2D>>,
+}
+
+impl FromApp for Ball {
+    fn from_app(app: &mut App) -> Self {
+        Self {
+            body: Glob::from_app(app),
+            sprite: Sprite2D::new(app),
+            init_instant: Instant::now(),
+            collision_groups: app.handle(),
+            bodies: app.handle(),
+        }
+    }
 }
 
 impl Ball {
@@ -21,33 +35,28 @@ impl Ball {
     const INITIAL_SPEED: f32 = 0.6;
     const ACCELERATION: f32 = 0.05;
 
-    pub(crate) fn new(app: &mut App) -> Self {
-        let group = app.get_mut::<CollisionGroups>().ball.glob().to_ref();
-        let body = Body2D::new(app)
-            .with_position(Vec2::ZERO)
-            .with_size(Self::SIZE)
-            .with_velocity(Self::generate_velocity())
-            .with_mass(1.)
-            .with_is_ccd_enabled(true)
-            .with_collision_group(Some(group));
-        Self {
-            sprite: Sprite2D::new(app)
-                .with_model(|m| m.body = Some(body.glob().to_ref()))
-                .with_material(|m| m.is_ellipse = true),
-            body,
-            creation_instant: Instant::now(),
-        }
+    pub(crate) fn init(&mut self, app: &mut App) {
+        self.body
+            .updater()
+            .position(Vec2::ZERO)
+            .size(Self::SIZE)
+            .velocity(Self::generate_velocity())
+            .mass(1.)
+            .is_ccd_enabled(true)
+            .collision_group(self.collision_groups.get(app).ball.to_ref())
+            .apply(app);
+        self.sprite.model.body = Some(self.body.to_ref());
+        self.sprite.material.is_ellipse = true;
+        self.init_instant = Instant::now();
     }
 
     pub(crate) fn update(&mut self, app: &mut App) {
-        self.body.update(app); // to use the latest state of the body
         self.handle_collision_with_paddle(app);
         self.handle_collision_with_ball(app);
-        self.apply_acceleration();
+        self.apply_acceleration(app);
         self.reset_on_score(app);
-        self.body.update(app); // to use the latest state of the body
         self.sprite.update(app);
-        app.get_mut::<BallProperties>().position = self.body.position;
+        app.get_mut::<BallProperties>().position = self.body.get(app).position(app);
     }
 
     fn generate_velocity() -> Vec2 {
@@ -57,59 +66,61 @@ impl Ball {
     }
 
     pub(crate) fn handle_collision_with_paddle(&mut self, app: &mut App) {
-        let Some(paddle) = Self::collided_paddle(&self.body, app) else {
+        let Some(paddle) = self.collided_paddle(app) else {
             return;
         };
-        let normalized_direction = -self.body.position.x.signum();
-        let direction = self.body.velocity.magnitude() * normalized_direction;
-        let relative_y_offset = normalized_direction * (self.body.position.y - paddle.position.y)
+        let body = self.body.get(app);
+        let normalized_direction = -body.position(app).x.signum();
+        let direction = body.velocity(app).magnitude() * normalized_direction;
+        let relative_y_offset = normalized_direction
+            * (body.position(app).y - paddle.position(app).y)
             / (Paddle::SIZE.y / 2.);
         let rotation = relative_y_offset * FRAC_PI_4;
-        self.body.velocity = Vec2::new(direction, 0.).with_rotation(rotation);
+        self.body
+            .updater()
+            .velocity(Vec2::new(direction, 0.).with_rotation(rotation))
+            .apply(app);
     }
 
     pub(crate) fn handle_collision_with_ball(&mut self, app: &mut App) {
-        let vertical_wall_group = app
-            .get_mut::<CollisionGroups>()
-            .vertical_wall
-            .glob()
-            .to_ref();
-        if self.body.is_colliding_with(&vertical_wall_group) {
-            app.get_mut::<Scores>()
-                .increment(if self.body.position.x < 0. {
-                    Side::Right
-                } else {
-                    Side::Left
-                });
+        let body = self.body.get(app);
+        let position = body.position(app);
+        let vertical_wall_group = &self.collision_groups.get(app).vertical_wall;
+        if body.is_colliding_with(vertical_wall_group) {
+            app.get_mut::<Scores>().increment(if position.x < 0. {
+                Side::Right
+            } else {
+                Side::Left
+            });
         }
     }
 
     pub(crate) fn reset_on_score(&mut self, app: &mut App) {
         if app.get_mut::<Scores>().is_reset_required {
-            self.body.position = Vec2::ZERO;
-            self.body.velocity = Self::generate_velocity();
-            self.creation_instant = Instant::now();
+            self.init(app);
         }
     }
 
-    fn apply_acceleration(&mut self) {
+    fn apply_acceleration(&mut self, app: &mut App) {
         let speed = self
-            .creation_instant
+            .init_instant
             .elapsed()
             .as_secs_f32()
             .mul_add(Self::ACCELERATION, Self::INITIAL_SPEED);
-        self.body.velocity = self
-            .body
-            .velocity
-            .with_magnitude(speed)
-            .expect("internal error: ball velocity is zero");
+        self.body
+            .updater()
+            .for_velocity(app, |v| {
+                *v = v
+                    .with_magnitude(speed)
+                    .expect("internal error: ball velocity is zero");
+            })
+            .apply(app);
     }
 
-    fn collided_paddle<'a>(body: &Body2D, app: &'a mut App) -> Option<&'a Body2DGlob> {
-        let paddle_group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
-        let collision = body.collisions_with(&paddle_group).next()?;
-        app.get_mut::<Globals<Body2DGlob>>()
-            .get(collision.other_index)
+    fn collided_paddle<'a>(&self, app: &'a App) -> Option<&'a Body2D> {
+        let paddle_group = &self.collision_groups.get(app).paddle;
+        let collision = self.body.get(app).collisions_with(paddle_group).next()?;
+        self.bodies.get(app).get(collision.other_index)
     }
 }
 

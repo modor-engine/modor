@@ -1,39 +1,23 @@
-use modor::{App, FromApp, State};
-use modor_physics::{CollisionGroup, CollisionType, Impulse};
+use modor::{App, FromApp, Glob, State};
+use modor_physics::{CollisionGroup, Impulse};
 
+#[derive(FromApp)]
 pub(crate) struct CollisionGroups {
-    pub(crate) horizontal_wall: CollisionGroup,
-    pub(crate) vertical_wall: CollisionGroup,
-    pub(crate) paddle: CollisionGroup,
-    pub(crate) ball: CollisionGroup,
-}
-
-impl FromApp for CollisionGroups {
-    fn from_app(app: &mut App) -> Self {
-        let horizontal_wall = CollisionGroup::new(app);
-        let vertical_wall = CollisionGroup::new(app);
-        let paddle = CollisionGroup::new(app);
-        let impulse = Impulse::new(0., 0.);
-        paddle.add_interaction(app, horizontal_wall.glob(), CollisionType::Impulse(impulse));
-        let ball = CollisionGroup::new(app);
-        let impulse = Impulse::new(1., 0.);
-        ball.add_interaction(app, horizontal_wall.glob(), CollisionType::Impulse(impulse));
-        ball.add_interaction(app, vertical_wall.glob(), CollisionType::Sensor);
-        ball.add_interaction(app, paddle.glob(), CollisionType::Sensor);
-        Self {
-            horizontal_wall,
-            vertical_wall,
-            paddle,
-            ball,
-        }
-    }
+    pub(crate) horizontal_wall: Glob<CollisionGroup>,
+    pub(crate) vertical_wall: Glob<CollisionGroup>,
+    pub(crate) paddle: Glob<CollisionGroup>,
+    pub(crate) ball: Glob<CollisionGroup>,
 }
 
 impl State for CollisionGroups {
-    fn update(&mut self, app: &mut App) {
-        self.horizontal_wall.update(app);
-        self.vertical_wall.update(app);
-        self.paddle.update(app);
-        self.ball.update(app);
+    fn init(&mut self, app: &mut App) {
+        self.paddle
+            .updater()
+            .add_impulse(app, &self.horizontal_wall, Impulse::new(0., 0.));
+        self.ball
+            .updater()
+            .add_impulse(app, &self.horizontal_wall, Impulse::new(1., 0.))
+            .add_sensor(app, &self.vertical_wall)
+            .add_sensor(app, &self.paddle);
     }
 }

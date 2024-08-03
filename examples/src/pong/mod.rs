@@ -28,24 +28,37 @@ struct Root {
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         app.create::<Scores>();
-        let groups = app.get_mut::<CollisionGroups>();
-        let vertical_wall_group = groups.vertical_wall.glob().to_ref();
-        let horizontal_wall_group = groups.horizontal_wall.glob().to_ref();
         Self {
-            left_wall: Wall::new(app, WallOrientation::Left, vertical_wall_group.clone()),
-            right_wall: Wall::new(app, WallOrientation::Right, vertical_wall_group),
-            top_wall: Wall::new(app, WallOrientation::Top, horizontal_wall_group.clone()),
-            bottom_wall: Wall::new(app, WallOrientation::Bottom, horizontal_wall_group),
+            left_wall: Wall::from_app(app),
+            right_wall: Wall::from_app(app),
+            top_wall: Wall::from_app(app),
+            bottom_wall: Wall::from_app(app),
             separator: Sprite2D::new(app)
                 .with_model(|m| m.size = Vec2::new(FIELD_BORDER_WIDTH / 4., FIELD_SIZE.y)),
-            ball: Ball::new(app),
-            left_paddle: Paddle::new_player(app, Side::Left),
-            right_paddle: Paddle::new_bot(app, Side::Right),
+            ball: Ball::from_app(app),
+            left_paddle: Paddle::from_app(app),
+            right_paddle: Paddle::from_app(app),
         }
     }
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        app.take::<CollisionGroups, _>(|groups, app| {
+            self.left_wall
+                .init(app, WallOrientation::Left, &groups.vertical_wall);
+            self.right_wall
+                .init(app, WallOrientation::Right, &groups.vertical_wall);
+            self.top_wall
+                .init(app, WallOrientation::Top, &groups.horizontal_wall);
+            self.bottom_wall
+                .init(app, WallOrientation::Bottom, &groups.horizontal_wall);
+        });
+        self.ball.init(app);
+        self.left_paddle.init_player(app, Side::Left);
+        self.right_paddle.init_bot(app, Side::Right);
+    }
+
     fn update(&mut self, app: &mut App) {
         self.left_wall.update(app);
         self.right_wall.update(app);

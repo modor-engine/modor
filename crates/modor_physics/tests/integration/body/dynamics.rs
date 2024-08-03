@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
 use modor_physics::{Body2D, Delta};
@@ -9,59 +9,55 @@ use std::time::Duration;
 #[modor::test]
 fn update_velocity() {
     let mut app = App::new::<Root>(Level::Info);
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater().velocity(Vec2::new(2., 1.)).apply(&mut app);
     app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::ZERO);
-    body(&mut app).velocity = Vec2::new(2., 1.);
+    assert_approx_eq!(body.get(&app).position(&app), Vec2::new(4., 2.));
     app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(4., 2.));
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(8., 4.));
+    assert_approx_eq!(body.get(&app).position(&app), Vec2::new(8., 4.));
 }
 
 #[modor::test]
 fn update_angular_velocity() {
     let mut app = App::new::<Root>(Level::Info);
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .angular_inertia(1.)
+        .angular_velocity(FRAC_PI_4)
+        .apply(&mut app);
     app.update();
-    assert_approx_eq!(body(&mut app).rotation, 0.);
-    body(&mut app).angular_inertia = 1.;
-    body(&mut app).angular_velocity = FRAC_PI_4;
+    assert_approx_eq!(body.get(&app).rotation(&app), FRAC_PI_2);
     app.update();
+    assert_approx_eq!(body.get(&app).rotation(&app), -PI);
     app.update();
-    assert_approx_eq!(body(&mut app).rotation, FRAC_PI_2);
+    assert_approx_eq!(body.get(&app).rotation(&app), -FRAC_PI_2);
     app.update();
-    assert_approx_eq!(body(&mut app).rotation, -PI);
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, -FRAC_PI_2);
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, 0.);
+    assert_approx_eq!(body.get(&app).rotation(&app), 0.);
 }
 
 #[modor::test]
 fn update_damping() {
     let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).velocity = Vec2::new(2., 1.);
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .velocity(Vec2::new(2., 1.))
+        .damping(0.5)
+        .apply(&mut app);
     app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(4., 2.));
-    body(&mut app).damping = 0.5;
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(11.2, 5.6));
+    assert_approx_eq!(body.get(&app).position(&app), Vec2::new(2., 1.) * 1.6);
 }
 
 #[modor::test]
 fn update_angular_damping() {
     let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).angular_inertia = 1.;
-    body(&mut app).angular_velocity = FRAC_PI_4;
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .angular_velocity(FRAC_PI_4)
+        .angular_damping(0.5)
+        .angular_inertia(1.)
+        .apply(&mut app);
     app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, FRAC_PI_2);
-    body(&mut app).angular_damping = 0.5;
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, -0.6 * PI);
+    assert_approx_eq!(body.get(&app).rotation(&app), FRAC_PI_4 * 1.6);
 }
 
 #[modor::test(cases(
@@ -70,16 +66,15 @@ fn update_angular_damping() {
 ))]
 fn update_force_and_mass(mass: f32, expected_position1: Vec2, expected_position2: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).mass = mass;
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .mass(mass)
+        .force(Vec2::new(2., 1.))
+        .apply(&mut app);
     app.update();
+    assert_approx_eq!(body.get(&app).position(&app), expected_position1);
     app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::ZERO);
-    body(&mut app).force = Vec2::new(2., 1.);
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).position, expected_position1);
-    app.update();
-    assert_approx_eq!(body(&mut app).position, expected_position2);
+    assert_approx_eq!(body.get(&app).position(&app), expected_position2);
 }
 
 #[modor::test(cases(
@@ -92,66 +87,22 @@ fn update_torque_and_angular_inertia(
     expected_rotation2: f32,
 ) {
     let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).angular_inertia = angular_inertia;
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .angular_inertia(angular_inertia)
+        .torque(FRAC_PI_8)
+        .apply(&mut app);
     app.update();
+    assert_approx_eq!(body.get(&app).rotation(&app), expected_rotation1);
     app.update();
-    assert_approx_eq!(body(&mut app).rotation, 0.);
-    body(&mut app).torque = FRAC_PI_8;
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, expected_rotation1);
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, expected_rotation2);
+    assert_approx_eq!(body.get(&app).rotation(&app), expected_rotation2);
 }
 
-#[modor::test]
-fn update_position() {
-    let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).velocity = Vec2::new(2., 1.);
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(4., 2.));
-    body(&mut app).position = Vec2::ZERO;
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::ZERO);
-    app.update();
-    assert_approx_eq!(body(&mut app).position, Vec2::new(4., 2.));
-}
-
-#[modor::test]
-fn update_rotation() {
-    let mut app = App::new::<Root>(Level::Info);
-    body(&mut app).angular_inertia = 1.;
-    body(&mut app).angular_velocity = FRAC_PI_4;
-    app.update();
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, FRAC_PI_2);
-    body(&mut app).rotation = 0.;
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, 0.);
-    app.update();
-    assert_approx_eq!(body(&mut app).rotation, FRAC_PI_2);
-}
-
-fn body(app: &mut App) -> &mut Body2D {
-    &mut app.get_mut::<Root>().body
-}
-
-struct Root {
-    body: Body2D,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        app.get_mut::<Delta>().duration = Duration::from_secs(2);
-        Self {
-            body: Body2D::new(app),
-        }
-    }
-}
+#[derive(FromApp)]
+struct Root;
 
 impl State for Root {
-    fn update(&mut self, app: &mut App) {
-        self.body.update(app);
+    fn init(&mut self, app: &mut App) {
+        app.get_mut::<Delta>().duration = Duration::from_secs(2);
     }
 }

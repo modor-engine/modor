@@ -1,94 +1,86 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
-use modor_physics::{Body2D, CollisionGroup, CollisionType, Delta, Impulse, Shape2D};
+use modor_physics::{Body2D, CollisionGroup, Delta, Impulse, Shape2D};
 use std::time::Duration;
 
 #[modor::test]
 fn colliding_bodies_without_collision_group() {
     let mut app = App::new::<Root>(Level::Info);
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, false));
     app.update();
-    app.update();
-    assert!(body1(&mut app).collisions().is_empty());
-    assert!(body2(&mut app).collisions().is_empty());
+    assert!(res.body1.get(&app).collisions().is_empty());
+    assert!(res.body2.get(&app).collisions().is_empty());
 }
 
 #[modor::test]
 fn colliding_bodies_with_no_interaction() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     app.update();
-    app.update();
-    assert!(body1(&mut app).collisions().is_empty());
-    assert!(body2(&mut app).collisions().is_empty());
+    assert!(res.body1.get(&app).collisions().is_empty());
+    assert!(res.body2.get(&app).collisions().is_empty());
 }
 
 #[modor::test]
 fn colliding_bodies_with_sensor() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Sensor);
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_sensor_interaction(&mut app);
     app.update();
-    app.update();
-    let group1 = body1(&mut app).collision_group.clone().unwrap();
-    let group2 = body2(&mut app).collision_group.clone().unwrap();
-    let body = body1(&mut app);
-    assert_approx_eq!(body.position, Vec2::ZERO);
+    let body = res.body1.get(&app);
+    assert_approx_eq!(body.position(&app), Vec2::ZERO);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.5);
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.75);
     assert_eq!(body.collisions()[0].other_index, 1);
-    assert_eq!(body.collisions()[0].other_group_index, group2.index());
-    assert!(body.is_colliding_with(&group2));
-    assert!(!body.is_colliding_with(&group1));
-    assert_eq!(body.collisions_with(&group2).count(), 1);
-    assert_eq!(body.collisions_with(&group1).count(), 0);
-    let body = body2(&mut app);
-    assert_approx_eq!(body.position, Vec2::X);
+    assert_eq!(body.collisions()[0].other_group_index, res.group2.index());
+    assert!(body.is_colliding_with(&res.group2));
+    assert!(!body.is_colliding_with(&res.group1));
+    assert_eq!(body.collisions_with(&res.group2).count(), 1);
+    assert_eq!(body.collisions_with(&res.group1).count(), 0);
+    let body = res.body2.get(&app);
+    assert_approx_eq!(body.position(&app), Vec2::X);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * -0.25);
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.75);
     assert_eq!(body.collisions()[0].other_index, 0);
-    assert_eq!(body.collisions()[0].other_group_index, group1.index());
-    assert!(body.is_colliding_with(&group1));
-    assert!(!body.is_colliding_with(&group2));
-    assert_eq!(body.collisions_with(&group1).count(), 1);
-    assert_eq!(body.collisions_with(&group2).count(), 0);
+    assert_eq!(body.collisions()[0].other_group_index, res.group1.index());
+    assert!(body.is_colliding_with(&res.group1));
+    assert!(!body.is_colliding_with(&res.group2));
+    assert_eq!(body.collisions_with(&res.group1).count(), 1);
+    assert_eq!(body.collisions_with(&res.group2).count(), 0);
 }
 
 #[modor::test]
 fn colliding_bodies_with_impulse() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::default()));
-    body2(&mut app).mass = 1.;
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_impulse_interaction(&mut app, Impulse::default());
     app.update();
-    app.update();
-    let group1 = body1(&mut app).collision_group.clone().unwrap();
-    let group2 = body2(&mut app).collision_group.clone().unwrap();
-    let body = body1(&mut app);
-    assert_approx_eq!(body.position, Vec2::ZERO);
+    let body = res.body1.get(&app);
+    assert_approx_eq!(body.position(&app), Vec2::ZERO);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.5);
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * 0.001_063);
     assert_eq!(body.collisions()[0].other_index, 1);
-    assert_eq!(body.collisions()[0].other_group_index, group2.index());
-    assert!(body.is_colliding_with(&group2));
-    assert!(!body.is_colliding_with(&group1));
-    assert_eq!(body.collisions_with(&group2).count(), 1);
-    assert_eq!(body.collisions_with(&group1).count(), 0);
-    let body = body2(&mut app);
-    assert!(body.position.x > 1.1);
+    assert_eq!(body.collisions()[0].other_group_index, res.group2.index());
+    assert!(body.is_colliding_with(&res.group2));
+    assert!(!body.is_colliding_with(&res.group1));
+    assert_eq!(body.collisions_with(&res.group2).count(), 1);
+    assert_eq!(body.collisions_with(&res.group1).count(), 0);
+    let body = res.body2.get(&app);
+    assert!(body.position(&app).x > 1.1);
     assert_eq!(body.collisions().len(), 1);
     assert_approx_eq!(body.collisions()[0].position, Vec2::X * 0.498_936);
     assert_approx_eq!(body.collisions()[0].penetration, Vec2::X * -0.001_063);
     assert_eq!(body.collisions()[0].other_index, 0);
-    assert_eq!(body.collisions()[0].other_group_index, group1.index());
-    assert!(body.is_colliding_with(&group1));
-    assert!(!body.is_colliding_with(&group2));
-    assert_eq!(body.collisions_with(&group1).count(), 1);
-    assert_eq!(body.collisions_with(&group2).count(), 0);
+    assert_eq!(body.collisions()[0].other_group_index, res.group1.index());
+    assert!(body.is_colliding_with(&res.group1));
+    assert!(!body.is_colliding_with(&res.group2));
+    assert_eq!(body.collisions_with(&res.group1).count(), 1);
+    assert_eq!(body.collisions_with(&res.group2).count(), 0);
 }
 
 #[modor::test(cases(
@@ -97,14 +89,13 @@ fn colliding_bodies_with_impulse() {
 ))]
 fn set_friction(friction: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(0., friction)));
-    configure_ground(&mut app);
-    configure_rolling_ball(&mut app);
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_impulse_interaction(&mut app, Impulse::new(0., friction));
+    res.configure_ground(&mut app);
+    res.configure_rolling_ball(&mut app);
     app.update();
-    app.update();
-    assert_approx_eq!(body1(&mut app).position, Vec2::ZERO);
-    assert_approx_eq!(body2(&mut app).position, expected_position);
+    assert_approx_eq!(res.body1.get(&app).position(&app), Vec2::ZERO);
+    assert_approx_eq!(res.body2.get(&app).position(&app), expected_position);
 }
 
 #[modor::test(cases(
@@ -114,16 +105,15 @@ fn set_friction(friction: f32, expected_position: Vec2) {
 fn set_restitution(restitution: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
-    let impulse = Impulse::new(restitution, 0.5);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Impulse(impulse));
-    configure_ground(&mut app);
-    configure_falling_ball(&mut app);
-    for _ in 0..11 {
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_impulse_interaction(&mut app, Impulse::new(restitution, 0.5));
+    res.configure_ground(&mut app);
+    res.configure_falling_ball(&mut app);
+    for _ in 0..10 {
         app.update();
     }
-    assert_approx_eq!(body1(&mut app).position, Vec2::ZERO);
-    assert_approx_eq!(body2(&mut app).position, expected_position);
+    assert_approx_eq!(res.body1.get(&app).position(&app), Vec2::ZERO);
+    assert_approx_eq!(res.body2.get(&app).position(&app), expected_position);
 }
 
 #[modor::test(cases(
@@ -134,16 +124,16 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
 fn set_dominance(dominance: i8, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
-    configure_ground(&mut app);
-    configure_falling_ball(&mut app);
-    body2(&mut app).dominance = dominance;
-    for _ in 0..11 {
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
+    res.configure_ground(&mut app);
+    res.configure_falling_ball(&mut app);
+    res.body2.updater().dominance(dominance).apply(&mut app);
+    for _ in 0..10 {
         app.update();
     }
-    assert_approx_eq!(body1(&mut app).position, Vec2::ZERO);
-    assert_approx_eq!(body2(&mut app).position, expected_position);
+    assert_approx_eq!(res.body1.get(&app).position(&app), Vec2::ZERO);
+    assert_approx_eq!(res.body2.get(&app).position(&app), expected_position);
 }
 
 #[modor::test(cases(
@@ -152,15 +142,17 @@ fn set_dominance(dominance: i8, expected_position: Vec2) {
 ))]
 fn set_ccd(is_enabled: bool, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Impulse(Impulse::new(1., 0.5)));
-    configure_ground(&mut app);
-    configure_falling_ball(&mut app);
-    body2(&mut app).is_ccd_enabled = is_enabled;
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
+    res.configure_ground(&mut app);
+    res.configure_falling_ball(&mut app);
+    res.body2
+        .updater()
+        .is_ccd_enabled(is_enabled)
+        .apply(&mut app);
     app.update();
-    app.update();
-    assert_approx_eq!(body1(&mut app).position, Vec2::ZERO);
-    assert_approx_eq!(body2(&mut app).position, expected_position);
+    assert_approx_eq!(res.body1.get(&app).position(&app), Vec2::ZERO);
+    assert_approx_eq!(res.body2.get(&app).position(&app), expected_position);
 }
 
 #[modor::test(cases(
@@ -175,128 +167,117 @@ fn set_ccd(is_enabled: bool, expected_position: Vec2) {
 ))]
 fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize) {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Sensor);
-    body2(&mut app).position = position;
-    body2(&mut app).size = size;
-    body2(&mut app).shape = shape;
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_sensor_interaction(&mut app);
+    res.body2
+        .updater()
+        .position(position)
+        .size(size)
+        .shape(shape)
+        .apply(&mut app);
     app.update();
-    app.update();
-    assert_eq!(body1(&mut app).collisions().len(), collision_count);
-    assert_eq!(body2(&mut app).collisions().len(), collision_count);
+    assert_eq!(res.body1.get(&app).collisions().len(), collision_count);
+    assert_eq!(res.body2.get(&app).collisions().len(), collision_count);
 }
 
 #[modor::test]
 fn update_size() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Sensor);
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_sensor_interaction(&mut app);
     app.update();
+    assert_eq!(res.body1.get(&app).collisions().len(), 1);
+    assert_eq!(res.body2.get(&app).collisions().len(), 1);
+    res.body2
+        .updater()
+        .for_size(&app, |size| size.x = 0.5)
+        .apply(&mut app);
     app.update();
-    assert_eq!(body1(&mut app).collisions().len(), 1);
-    assert_eq!(body2(&mut app).collisions().len(), 1);
-    body2(&mut app).size.x = 0.5;
-    app.update();
-    app.update();
-    assert_eq!(body1(&mut app).collisions().len(), 0);
-    assert_eq!(body2(&mut app).collisions().len(), 0);
+    assert_eq!(res.body1.get(&app).collisions().len(), 0);
+    assert_eq!(res.body2.get(&app).collisions().len(), 0);
 }
 
 #[modor::test]
 fn drop_body() {
     let mut app = App::new::<Root>(Level::Info);
-    configure_colliding_groups(&mut app);
-    configure_collision_type(&mut app, CollisionType::Sensor);
+    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    res.add_sensor_interaction(&mut app);
     app.update();
+    assert_eq!(res.body1.get(&app).collisions().len(), 1);
+    res.body2 = Glob::from_app(&mut app);
     app.update();
-    assert_eq!(body1(&mut app).collisions().len(), 1);
-    *body2(&mut app) = Body2D::new(&mut app);
-    app.update();
-    app.update();
-    assert_eq!(body1(&mut app).collisions().len(), 0);
+    assert_eq!(res.body1.get(&app).collisions().len(), 0);
 }
 
-fn configure_colliding_groups(app: &mut App) {
-    body1(app).collision_group = Some(group1(app).glob().to_ref());
-    body2(app).collision_group = Some(group2(app).glob().to_ref());
-}
+#[derive(FromApp)]
+struct Root;
 
-fn configure_ground(app: &mut App) {
-    body1(app).position = Vec2::ZERO;
-    body1(app).size = Vec2::new(1., 0.01);
-}
-
-fn configure_falling_ball(app: &mut App) {
-    body2(app).position = Vec2::Y * 1.;
-    body2(app).size = Vec2::ONE * 0.5;
-    body2(app).mass = 10.;
-    body2(app).force = -20. * Vec2::Y;
-    body2(app).shape = Shape2D::Circle;
-}
-
-fn configure_rolling_ball(app: &mut App) {
-    body2(app).position = Vec2::Y * 0.251;
-    body2(app).size = Vec2::ONE * 0.5;
-    body2(app).mass = 10.;
-    body2(app).force = Vec2::new(1., -0.1);
-    body2(app).shape = Shape2D::Circle;
-}
-
-fn group1(app: &mut App) -> &CollisionGroup {
-    &mut app.get_mut::<Root>().group1
-}
-
-fn group2(app: &mut App) -> &CollisionGroup {
-    &mut app.get_mut::<Root>().group2
-}
-
-fn body1(app: &mut App) -> &mut Body2D {
-    &mut app.get_mut::<Root>().body1
-}
-
-fn body2(app: &mut App) -> &mut Body2D {
-    &mut app.get_mut::<Root>().body2
-}
-
-fn configure_collision_type(app: &mut App, collision_type: CollisionType) {
-    app.get_mut::<Root>().collision_type = Some(collision_type);
-}
-
-struct Root {
-    group1: CollisionGroup,
-    group2: CollisionGroup,
-    body1: Body2D,
-    body2: Body2D,
-    collision_type: Option<CollisionType>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
+impl State for Root {
+    fn init(&mut self, app: &mut App) {
         app.get_mut::<Delta>().duration = Duration::from_secs(2);
-        let body1 = Body2D::new(app);
-        let mut body2 = Body2D::new(app)
-            .with_position(Vec2::X)
-            .with_size(Vec2::new(2.5, 0.5));
-        body2.update(app);
-        Self {
-            group1: CollisionGroup::new(app),
-            group2: CollisionGroup::new(app),
-            collision_type: None,
-            body1,
-            body2,
-        }
     }
 }
 
-impl State for Root {
-    fn update(&mut self, app: &mut App) {
-        if let Some(collision_type) = self.collision_type {
-            self.group1
-                .add_interaction(app, self.group2.glob(), collision_type);
-        }
-        self.group1.update(app);
-        self.group2.update(app);
-        self.body1.update(app);
-        self.body2.update(app);
+#[derive(FromApp)]
+struct Resources {
+    body1: Glob<Body2D>,
+    body2: Glob<Body2D>,
+    group1: Glob<CollisionGroup>,
+    group2: Glob<CollisionGroup>,
+}
+
+impl Resources {
+    fn init(&mut self, app: &mut App, assign_groups: bool) {
+        self.body1
+            .updater()
+            .collision_group(assign_groups.then(|| self.group1.to_ref()))
+            .apply(app);
+        self.body2
+            .updater()
+            .position(Vec2::X)
+            .size(Vec2::new(2.5, 0.5))
+            .collision_group(assign_groups.then(|| self.group2.to_ref()))
+            .mass(1.)
+            .apply(app);
+    }
+
+    fn add_sensor_interaction(&mut self, app: &mut App) {
+        self.group1.updater().add_sensor(app, &self.group2);
+    }
+
+    fn add_impulse_interaction(&mut self, app: &mut App, impulse: Impulse) {
+        self.group1
+            .updater()
+            .add_impulse(app, &self.group2, impulse);
+    }
+
+    fn configure_ground(&mut self, app: &mut App) {
+        self.body1
+            .updater()
+            .position(Vec2::ZERO)
+            .size(Vec2::new(1., 0.01))
+            .apply(app);
+    }
+
+    fn configure_rolling_ball(&mut self, app: &mut App) {
+        self.body2
+            .updater()
+            .position(Vec2::Y * 0.251)
+            .size(Vec2::ONE * 0.5)
+            .mass(10.)
+            .force(Vec2::new(1., -0.1))
+            .shape(Shape2D::Circle)
+            .apply(app);
+    }
+
+    fn configure_falling_ball(&mut self, app: &mut App) {
+        self.body2
+            .updater()
+            .position(Vec2::Y * 1.)
+            .size(Vec2::ONE * 0.5)
+            .mass(10.)
+            .force(-20. * Vec2::Y)
+            .shape(Shape2D::Circle)
+            .apply(app);
     }
 }

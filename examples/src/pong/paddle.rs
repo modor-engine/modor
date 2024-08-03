@@ -2,25 +2,37 @@ use crate::pong::ball::BallProperties;
 use crate::pong::collisions::CollisionGroups;
 use crate::pong::scores::Scores;
 use crate::pong::side::Side;
-use modor::{App, StateHandle};
+use modor::{App, FromApp, Glob, StateHandle};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Body2D;
 
 pub(crate) struct Paddle {
-    body: Body2D,
+    body: Glob<Body2D>,
     sprite: Sprite2D,
     controls: Option<PlayerControls>,
     window: StateHandle<Window>,
     inputs: StateHandle<Inputs>,
 }
 
+impl FromApp for Paddle {
+    fn from_app(app: &mut App) -> Self {
+        Self {
+            body: Glob::from_app(app),
+            sprite: Sprite2D::new(app),
+            controls: None,
+            window: app.handle(),
+            inputs: app.handle(),
+        }
+    }
+}
+
 impl Paddle {
     pub(crate) const SIZE: Vec2 = Vec2::new(0.04, 0.18);
     const SPEED: f32 = 0.9;
 
-    pub(crate) fn new_player(app: &mut App, side: Side) -> Self {
+    pub(crate) fn init_player(&mut self, app: &mut App, side: Side) {
         let controls = match side {
             Side::Left => PlayerControls {
                 up_key: Key::KeyW,
@@ -35,38 +47,38 @@ impl Paddle {
                 max_touch_zone_x: 1.,
             },
         };
-        Self::new(app, side, Some(controls))
+        self.init(app, side, Some(controls));
     }
 
-    pub(crate) fn new_bot(app: &mut App, side: Side) -> Self {
-        Self::new(app, side, None)
-    }
-
-    fn new(app: &mut App, side: Side, controller: Option<PlayerControls>) -> Self {
-        let group = app.get_mut::<CollisionGroups>().paddle.glob().to_ref();
-        let body = Body2D::new(app)
-            .with_position(Vec2::X * 0.4 * side.x_sign())
-            .with_size(Self::SIZE)
-            .with_collision_group(Some(group))
-            .with_mass(1.);
-        Self {
-            sprite: Sprite2D::new(app).with_model(|m| m.body = Some(body.glob().to_ref())),
-            body,
-            controls: controller,
-            window: app.handle(),
-            inputs: app.handle(),
-        }
+    pub(crate) fn init_bot(&mut self, app: &mut App, side: Side) {
+        self.init(app, side, None);
     }
 
     pub(crate) fn update(&mut self, app: &mut App) {
-        self.body.velocity.y = self.new_velocity(app);
+        let new_velocity = self.new_velocity(app);
+        self.body
+            .updater()
+            .for_velocity(app, |v| v.y = new_velocity)
+            .apply(app);
         self.reset_on_score(app);
-        self.body.update(app);
         self.sprite.update(app);
     }
 
-    fn speed(&self, objective_position: Vec2, precision: f32) -> f32 {
-        let objective_paddle_diff_y = objective_position.y - self.body.position.y;
+    fn init(&mut self, app: &mut App, side: Side, controller: Option<PlayerControls>) {
+        self.body
+            .updater()
+            .position(Vec2::X * 0.4 * side.x_sign())
+            .size(Self::SIZE)
+            .collision_group(app.get_mut::<CollisionGroups>().paddle.to_ref())
+            .mass(1.)
+            .apply(app);
+        self.sprite.model.body = Some(self.body.to_ref());
+        self.controls = controller;
+    }
+
+    fn speed(&self, app: &App, objective_position: Vec2, precision: f32) -> f32 {
+        let position = self.body.get(app).position(app);
+        let objective_paddle_diff_y = objective_position.y - position.y;
         if objective_paddle_diff_y > precision {
             Self::SPEED
         } else if objective_paddle_diff_y < -precision {
@@ -89,21 +101,24 @@ impl Paddle {
                     .map(|(_, finger)| camera.get(app).world_position(window_size, finger.position))
                     .filter(|position| position.x >= controls.min_touch_zone_x)
                     .filter(|position| position.x <= controls.max_touch_zone_x)
-                    .map(|position| self.speed(position, 0.02))
+                    .map(|position| self.speed(app, position, 0.02))
                     .next()
-                    .unwrap_or(self.body.velocity.y)
+                    .unwrap_or_else(|| self.body.get(app).velocity(app).y)
             } else {
                 inputs.keyboard.axis(controls.down_key, controls.up_key) * Self::SPEED
             }
         } else {
             let ball_position = app.get_mut::<BallProperties>().position;
-            self.speed(ball_position, 0.1)
+            self.speed(app, ball_position, 0.1)
         }
     }
 
-    pub(crate) fn reset_on_score(&mut self, app: &mut App) {
+    fn reset_on_score(&mut self, app: &mut App) {
         if app.get_mut::<Scores>().is_reset_required {
-            self.body.position.y = 0.;
+            self.body
+                .updater()
+                .for_position(app, |p| p.y = 0.)
+                .apply(app);
         }
     }
 }

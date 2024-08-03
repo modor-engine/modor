@@ -6,9 +6,9 @@ use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef, Globals, State, StateHandle};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Global, Globals, State, StateHandle};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
-use modor_physics::Body2DGlob;
+use modor_physics::Body2D;
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::mem;
@@ -73,7 +73,7 @@ pub struct Model2D<T> {
     ///
     /// Default is `None`.
     #[builder(form(value))]
-    pub body: Option<GlobRef<Body2DGlob>>,
+    pub body: Option<GlobRef<Body2D>>,
     /// The Z-index of the model.
     ///
     /// [`i16::MIN`] is the farthest from the camera, and [`i16::MAX`] the closest to the camera.
@@ -125,9 +125,9 @@ where
     pub fn update(&mut self, app: &mut App) {
         if let Some(body) = &self.body {
             let glob = body.get(app);
-            self.position = glob.position;
-            self.size = glob.size;
-            self.rotation = glob.rotation;
+            self.position = glob.position(app);
+            self.size = glob.size();
+            self.rotation = glob.rotation(app);
         }
         let data = T::instance_data(app, self.glob());
         self.groups.get_mut(app).update_model(self, data);
@@ -141,7 +141,7 @@ where
 
 /// The global data of a [`Model2D`].
 #[non_exhaustive]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Global)]
 pub struct Model2DGlob;
 
 /// The properties of an instance group.

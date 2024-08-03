@@ -1,5 +1,5 @@
 use ab_glyph::FontVec;
-use modor::{App, FromApp, Glob};
+use modor::{App, FromApp, Glob, Global};
 use modor_graphics::modor_resources::{ResSource, Resource, ResourceError, Source};
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
@@ -78,7 +78,7 @@ impl Source for FontSource {
 }
 
 /// The global data of a [`Font`].
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Global)]
 pub struct FontGlob {
     pub(crate) font: Option<FontVec>,
     pub(crate) has_changed: bool,
