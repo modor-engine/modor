@@ -180,11 +180,12 @@ fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize)
     assert_eq!(res.body2.get(&app).collisions().len(), collision_count);
 }
 
-#[modor::test]
-fn update_size() {
+#[modor::test(cases(rectangle = "Shape2D::Rectangle", circle = "Shape2D::Circle"))]
+fn update_size(shape: Shape2D) {
     let mut app = App::new::<Root>(Level::Info);
     let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
+    res.body2.updater().shape(shape).apply(&mut app);
     app.update();
     assert_eq!(res.body1.get(&app).collisions().len(), 1);
     assert_eq!(res.body2.get(&app).collisions().len(), 1);
@@ -235,7 +236,7 @@ impl Resources {
         self.body2
             .updater()
             .position(Vec2::X)
-            .size(Vec2::new(2.5, 0.5))
+            .size(Vec2::new(2.5, 3.))
             .collision_group(assign_groups.then(|| self.group2.to_ref()))
             .mass(1.)
             .apply(app);
