@@ -94,7 +94,7 @@ pub struct Res<T: Resource> {
     loading: Option<Loading<T>>,
     version: u64,
     state: ResourceState,
-    glob: Glob<ResGlob>,
+    properties: Glob<ResProperties>,
 }
 
 impl<T> Deref for Res<T>
@@ -141,7 +141,7 @@ where
             None => (),
         }
         self.inner.update(app, latest_loaded, &self.source);
-        self.glob.get_mut(app).state = self.state.clone();
+        self.properties.get_mut(app).state = self.state.clone();
     }
 
     /// Returns the state of the resource.
@@ -256,7 +256,7 @@ where
             loading: None,
             version: 0,
             state: ResourceState::Loading,
-            glob: Glob::from_app(app),
+            properties: Glob::from_app(app),
         };
         res.reload();
         res
@@ -269,7 +269,7 @@ where
             loading: None,
             version: 0,
             state: ResourceState::Loading,
-            glob: Glob::from_app(app),
+            properties: Glob::from_app(app),
         };
         res.reload();
         res
@@ -281,9 +281,10 @@ where
 /// # Examples
 ///
 /// See [`Res`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ResourceState {
     /// The resource is loading.
+    #[default]
     Loading,
     /// The resource is loaded.
     Loaded,
@@ -361,20 +362,12 @@ impl Display for ResourceError {
     }
 }
 
-/// The global data of a [`Res`].
-#[derive(Debug, Global)]
+/// The properties of a [`Res`].
+#[derive(Debug, FromApp, Global)]
 #[non_exhaustive]
-pub struct ResGlob {
+pub struct ResProperties {
     /// State of the resource.
     pub state: ResourceState,
-}
-
-impl Default for ResGlob {
-    fn default() -> Self {
-        Self {
-            state: ResourceState::Loading,
-        }
-    }
 }
 
 /// The source of a [`Res`].

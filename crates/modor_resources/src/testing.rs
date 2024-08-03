@@ -1,6 +1,6 @@
 //! Testing utilities.
 
-use crate::resource::ResGlob;
+use crate::resource::ResProperties;
 use crate::ResourceState;
 use modor::{App, Globals};
 use std::thread;
@@ -17,7 +17,7 @@ use std::time::Duration;
 pub fn wait_resources(app: &mut App) {
     app.update();
     while app
-        .get_mut::<Globals<ResGlob>>()
+        .get_mut::<Globals<ResProperties>>()
         .iter()
         .any(|res| res.state == ResourceState::Loading)
     {
