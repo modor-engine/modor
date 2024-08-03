@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture};
@@ -54,24 +54,20 @@ impl State for Root {
     }
 }
 
+#[derive(FromApp)]
 struct Resources {
-    background_texture: Res<Texture>,
-    smiley_texture: Res<Texture>,
-}
-
-impl FromApp for Resources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            background_texture: Texture::new(app).load_from_path(app, "background.png"),
-            smiley_texture: Texture::new(app).load_from_path(app, "smiley.png"),
-        }
-    }
+    background_texture: Glob<Res<Texture>>,
+    smiley_texture: Glob<Res<Texture>>,
 }
 
 impl State for Resources {
-    fn update(&mut self, app: &mut App) {
-        self.background_texture.update(app);
-        self.smiley_texture.update(app);
+    fn init(&mut self, app: &mut App) {
+        self.background_texture
+            .updater()
+            .path("background.png")
+            .resource(|r| r.is_smooth(false))
+            .resource(|r| r.is_repeated(true))
+            .apply(app);
     }
 }
 

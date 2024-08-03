@@ -94,7 +94,26 @@ pub struct Res<T: Resource> {
     loading: Option<Loading<T>>,
     version: u64,
     state: ResourceState,
-    properties: Glob<ResProperties>,
+    properties: Glob<ResProperties>, // TODO: delete
+}
+
+impl<T> FromApp for Res<T>
+where
+    T: FromApp + Resource,
+    T::Source: Default,
+{
+    fn from_app(app: &mut App) -> Self {
+        let mut res = Self {
+            inner: T::from_app(app),
+            source: ResSource::Source(T::Source::default()),
+            loading: None,
+            version: 0,
+            state: ResourceState::Loading,
+            properties: Glob::from_app(app),
+        };
+        res.reload();
+        res
+    }
 }
 
 impl<T> Deref for Res<T>
@@ -121,6 +140,7 @@ impl<T> Res<T>
 where
     T: Resource,
 {
+    // TODO: make it "automatic"
     /// Updates the resource.
     pub fn update(&mut self, app: &mut App) {
         let mut latest_loaded = None;
