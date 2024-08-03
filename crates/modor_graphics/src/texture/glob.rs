@@ -1,7 +1,7 @@
 use crate::gpu::{Gpu, GpuManager};
 use crate::texture::internal::TextureLoaded;
 use crate::{Color, Size, Texture};
-use modor::{App, FromApp, StateHandle};
+use modor::{App, FromApp, Global, StateHandle};
 use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
@@ -12,6 +12,7 @@ use wgpu::{
 };
 
 /// The global data of a [`Texture`](Texture).
+#[derive(Global)]
 pub struct TextureGlob {
     /// The size of the texture in pixels.
     pub size: Size,

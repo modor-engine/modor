@@ -126,8 +126,6 @@ pub use modor_derive::test;
 
 /// Implements [`State`].
 ///
-/// The type must implement [`Default`] trait.
-///
 /// Both structs and enums are supported.
 ///
 /// # Examples
@@ -141,6 +139,22 @@ pub use modor_derive::test;
 /// }
 /// ```
 pub use modor_derive::State;
+
+/// Implements [`Global`].
+///
+/// Both structs and enums are supported.
+///
+/// # Examples
+///
+/// ```rust
+/// # use modor::*;
+/// #
+/// #[derive(FromApp, Global)]
+/// struct Value {
+///     integer: u32,
+/// }
+/// ```
+pub use modor_derive::Global;
 
 /// Generates builder methods for a `struct` with named fields.
 ///
@@ -236,6 +250,7 @@ pub use modor_derive::FromApp;
 /// and an immutable reference to [`App`], and returns the current value of the field.
 ///
 /// The getter `"default"` retrieves the value directly from the object to update.
+/// The field type must implement `Clone`.
 ///
 /// ## `#[updater(inner_type)]`
 ///
@@ -323,6 +338,7 @@ pub use modor_derive::Updater;
 /// and an immutable reference to [`App`], and returns the current value of the field.
 ///
 /// The getter `"default"` retrieves the value directly from the glob to update.
+/// The field type must implement `Clone`.
 ///
 /// ## `#[updater(inner_type)]`
 ///

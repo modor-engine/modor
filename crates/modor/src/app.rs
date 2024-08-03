@@ -1,4 +1,4 @@
-use crate::{platform, State};
+use crate::{platform, FromApp, State};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use log::{debug, Level};
@@ -186,6 +186,15 @@ impl App {
 pub struct StateHandle<T> {
     index: usize,
     phantom: PhantomData<fn(T)>,
+}
+
+impl<T> FromApp for StateHandle<T>
+where
+    T: State,
+{
+    fn from_app(app: &mut App) -> Self {
+        app.handle()
+    }
 }
 
 impl<T> StateHandle<T>

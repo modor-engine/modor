@@ -7,6 +7,17 @@ use std::ops::Deref;
 use std::slice::{Iter, IterMut};
 use std::sync::{Arc, Mutex};
 
+/// A trait for defining a shared value.
+pub trait Global: FromApp {
+    /// Initializes the shared value.
+    ///
+    /// `index` is the unique index of the shared value.
+    ///
+    /// This method is called just after [`FromApp::from_app`].
+    #[allow(unused_variables)]
+    fn init(&mut self, app: &mut App, index: usize) {}
+}
+
 /// A globally shared value of type `T`.
 ///
 /// # Examples
@@ -14,11 +25,14 @@ use std::sync::{Arc, Mutex};
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob(app: &mut App) -> Glob<&'static str> {
-///     let glob = Glob::from_app(app);
-///     assert_eq!(glob.get(app), &"");
-///     *glob.get_mut(app) = "shared value";
-///     assert_eq!(glob.get(app), &"shared value");
+/// #[derive(FromApp, Global)]
+/// struct SharedValue(usize);
+///
+/// fn create_glob(app: &mut App) -> Glob<SharedValue> {
+///     let glob = Glob::<SharedValue>::from_app(app);
+///     assert_eq!(glob.get(app).0, 0);
+///     glob.get_mut(app).0 = 42;
+///     assert_eq!(glob.get(app).0, 42);
 ///     glob
 /// }
 /// ```
@@ -51,12 +65,13 @@ pub struct Glob<T> {
 
 impl<T> FromApp for Glob<T>
 where
-    T: FromApp,
+    T: Global,
 {
     fn from_app(app: &mut App) -> Self {
         let globals = app.handle::<Globals<T>>();
-        let value = T::from_app(app);
-        let lifetime = globals.get_mut(app).register(value);
+        let index = globals.get_mut(app).next_index();
+        let value = T::from_app_with(app, |value, app| value.init(app, index));
+        let lifetime = globals.get_mut(app).register(index, value);
         Self {
             index: lifetime.index,
             globals,
@@ -141,11 +156,14 @@ where
 /// ```
 /// # use modor::*;
 /// #
-/// fn create_glob_ref(app: &mut App) -> GlobRef<&'static str> {
-///     let glob = Glob::from_app(app);
+/// #[derive(FromApp, Global)]
+/// struct SharedValue(usize);
+///
+/// fn create_glob_ref(app: &mut App) -> GlobRef<SharedValue> {
+///     let glob = Glob::<SharedValue>::from_app(app);
 ///     let ref_ = glob.to_ref();
-///     *glob.get_mut(app) = "shared value";
-///     assert_eq!(ref_.get(app), &"shared value");
+///     glob.get_mut(app).0 = 42;
+///     assert_eq!(ref_.get(app).0, 42);
 ///     ref_
 /// }
 /// ```
@@ -267,19 +285,23 @@ impl<T> Globals<T> {
             .filter_map(|(index, item)| item.as_mut().map(|item| (index, item)))
     }
 
-    fn register(&mut self, item: T) -> GlobLifetime {
+    fn next_index(&mut self) -> usize {
+        self.available_indexes.pop().unwrap_or_else(|| {
+            let index = self.next_index;
+            self.next_index += 1;
+            index
+        })
+    }
+
+    fn register(&mut self, index: usize, item: T) -> GlobLifetime {
         let lifetime = GlobLifetime {
-            index: self.available_indexes.pop().unwrap_or_else(|| {
-                let index = self.next_index;
-                self.next_index += 1;
-                index
-            }),
+            index,
             deleted_indexes: self.deleted_indexes.clone(),
         };
-        for _ in self.items.len()..=lifetime.index {
+        for _ in self.items.len()..=index {
             self.items.push(None);
         }
-        self.items[lifetime.index] = Some(item);
+        self.items[index] = Some(item);
         lifetime
     }
 }

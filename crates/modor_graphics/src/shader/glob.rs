@@ -6,7 +6,7 @@ use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
 use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use fxhash::FxHashMap;
-use modor::{App, FromApp};
+use modor::{App, FromApp, Global};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -20,7 +20,7 @@ use wgpu::{
 };
 
 /// The global data of a [`Shader`](crate::Shader).
-#[derive(Debug)]
+#[derive(Debug, Global)]
 pub struct ShaderGlob {
     pub(crate) material_bind_group_layout: BindGroupLayout,
     pub(crate) texture_count: u32,

@@ -1,6 +1,5 @@
-use crate::physics_hooks::PhysicsHooks;
-use modor::{App, FromApp, Glob, StateHandle};
-use rapier2d::prelude::InteractionGroups;
+use crate::physics_hooks::{CollisionType, PhysicsHooks};
+use modor::{App, FromApp, Glob, GlobUpdater, Global};
 
 /// A collision group that can interact with other collision groups.
 ///
@@ -11,120 +10,97 @@ use rapier2d::prelude::InteractionGroups;
 /// # use modor_math::*;
 /// # use modor_physics::*;
 /// #
+/// #[derive(FromApp)]
 /// struct CollisionGroups {
-///     wall: CollisionGroup,
-///     ball: CollisionGroup,
-///     paddle: CollisionGroup,
-/// }
-///
-/// impl FromApp for CollisionGroups {
-///     fn from_app(app: &mut App) -> Self {
-///         let wall = CollisionGroup::new(app);
-///         let ball = CollisionGroup::new(app);
-///         ball.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(1., 0.)));
-///         let paddle = CollisionGroup::new(app);
-///         paddle.add_interaction(app, wall.glob(), CollisionType::Impulse(Impulse::new(0., 0.)));
-///         paddle.add_interaction(app, ball.glob(), CollisionType::Sensor);
-///         Self {
-///             wall,
-///             ball,
-///             paddle,
-///         }   
-///     }
+///     wall: Glob<CollisionGroup>,
+///     ball: Glob<CollisionGroup>,
+///     paddle: Glob<CollisionGroup>,
 /// }
 ///
 /// impl State for CollisionGroups {
-///     fn update(&mut self, app: &mut App) {
-///         self.wall.update(app);
-///         self.ball.update(app);
-///         self.paddle.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         self.ball
+///             .updater()
+///             .add_impulse(app, &self.wall, Impulse::new(1., 0.));
+///         self.paddle
+///             .updater()
+///             .add_impulse(app, &self.wall, Impulse::new(0., 0.))
+///             .add_sensor(app, &self.ball);
 ///     }
 /// }
 ///
-/// fn create_wall_body(app: &mut App, position: Vec2, size: Vec2) -> Body2D {
-///     Body2D::new(app)
-///         .with_position(position)
-///         .with_size(size)
-///         .with_collision_group(Some(app.get_mut::<CollisionGroups>().wall.glob().to_ref()))
+/// fn init_wall(app: &mut App, body: &Glob<Body2D>) {
+///     body.updater()
+///         .collision_group(app.get_mut::<CollisionGroups>().wall.to_ref())
+///         .apply(app);
 /// }
 /// ```
-#[derive(Debug)]
+#[derive(Debug, FromApp)]
+#[non_exhaustive]
 pub struct CollisionGroup {
-    pub(crate) glob: Glob<CollisionGroupGlob>,
-    physics_hooks: StateHandle<PhysicsHooks>,
+    index: usize,
 }
 
-impl CollisionGroup {
-    /// Creates and register a new collision group.
-    pub fn new(app: &mut App) -> Self {
-        Self {
-            glob: Glob::from_app(app),
-            physics_hooks: app.handle::<PhysicsHooks>(),
-        }
+impl Global for CollisionGroup {
+    fn init(&mut self, app: &mut App, index: usize) {
+        self.index = index;
+        app.get_mut::<PhysicsHooks>().register_group(index);
     }
+}
 
-    /// Updates the collision group.
-    pub fn update(&mut self, app: &mut App) {
-        let interactions = self
-            .physics_hooks
-            .get_mut(app)
-            .interactions(self.glob.index());
-        self.glob.get_mut(app).interactions = interactions;
+impl GlobUpdater for CollisionGroup {
+    type Updater<'a> = CollisionGroupUpdater<'a>;
+
+    fn updater(glob: &Glob<Self>) -> Self::Updater<'_> {
+        CollisionGroupUpdater { glob }
     }
+}
 
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> &Glob<CollisionGroupGlob> {
-        &self.glob
-    }
+/// An updater for [`CollisionGroup`].
+pub struct CollisionGroupUpdater<'a> {
+    glob: &'a Glob<CollisionGroup>,
+}
 
-    /// Register an interaction of a given `type_` between the group and an `other` group.
+impl CollisionGroupUpdater<'_> {
+    /// Register a sensor interaction between the group and an `other` group.
     ///
-    /// In case it already exists an interaction between these two groups, the collision type is
+    /// The collisions will be detected but don't produce forces.
+    ///
+    /// In case it already exists an interaction between these two groups, the interaction is
     /// overwritten.
-    pub fn add_interaction(
+    pub fn add_sensor(&self, app: &mut App, other: &Glob<CollisionGroup>) -> &Self {
+        app.get_mut::<PhysicsHooks>().add_interaction(
+            self.glob.index(),
+            other.index(),
+            CollisionType::Sensor,
+        );
+        self
+    }
+
+    /// Register a sensor interaction between the group and an `other` group.
+    ///
+    /// The collisions will be detected and produce forces. Note that there is no effect if
+    /// the body [`mass`](crate::Body2D::mass) and
+    /// [`angular_inertia`](crate::Body2D::angular_inertia) are equal to zero.
+    ///
+    /// In case it already exists an interaction between these two groups, the interaction is
+    /// overwritten.
+    pub fn add_impulse(
         &self,
         app: &mut App,
-        other: &Glob<CollisionGroupGlob>,
-        type_: CollisionType,
-    ) {
-        self.physics_hooks
-            .get_mut(app)
-            .add_interaction(self.glob.index(), other.index(), type_);
+        other: &Glob<CollisionGroup>,
+        impulse: Impulse,
+    ) -> &Self {
+        app.get_mut::<PhysicsHooks>().add_interaction(
+            self.glob.index(),
+            other.index(),
+            CollisionType::Impulse(impulse),
+        );
+        self
     }
 }
 
-/// The global data of a [`CollisionGroup`].
-#[derive(Debug)]
-pub struct CollisionGroupGlob {
-    pub(crate) interactions: InteractionGroups,
-}
-
-impl Default for CollisionGroupGlob {
-    fn default() -> Self {
-        Self {
-            interactions: InteractionGroups::none(),
-        }
-    }
-}
-
-/// The collision behavior that should happen between two objects.
-///
-/// # Examples
-///
-/// See [`CollisionGroup`].
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[non_exhaustive]
-pub enum CollisionType {
-    /// Collision should happen but it doesn't produce forces.
-    Sensor,
-    /// Collision should happen and it produces forces.
-    ///
-    /// Note that there is no effect if the body is not dynamic, or if its mass and angular inertia
-    /// are equal to zero.
-    Impulse(Impulse),
-}
-
-/// Properties of a collision of type [`CollisionType::Impulse`].
+/// Properties of an impulse interaction between two [`CollisionGroup`]s.
 ///
 /// # Examples
 ///

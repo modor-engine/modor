@@ -7,7 +7,7 @@ use crate::{
     MaterialGlob, Size, Texture,
 };
 use log::{error, trace};
-use modor::{App, FromApp, Glob, Globals, StateHandle};
+use modor::{App, FromApp, Glob, Global, Globals, StateHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -384,7 +384,7 @@ struct LoadedTarget {
 
 /// The global data of a [`Target`].
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Global)]
 pub struct TargetGlob {
     /// Size of the target in pixels.
     pub size: Size,

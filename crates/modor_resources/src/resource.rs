@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, FromApp, Glob};
+use modor::{App, FromApp, Glob, Global};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -362,7 +362,7 @@ impl Display for ResourceError {
 }
 
 /// The global data of a [`Res`].
-#[derive(Debug)]
+#[derive(Debug, Global)]
 #[non_exhaustive]
 pub struct ResGlob {
     /// State of the resource.

@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResLoad};
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -10,20 +10,17 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
+#[derive(FromApp)]
 struct Root {
     slime: Slime,
 }
 
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
-        Self {
-            slime: Slime::new(app),
-        }
-    }
-}
-
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        self.slime.init(app);
+        app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
+    }
+
     fn update(&mut self, app: &mut App) {
         self.slime.update(app);
     }
@@ -50,49 +47,53 @@ impl State for Resources {
 }
 
 struct Slime {
-    body: Body2D,
+    body: Glob<Body2D>,
     sprite: Sprite2D,
     animation: TextureAnimation,
     direction: Direction,
 }
 
-impl Slime {
-    fn new(app: &mut App) -> Self {
-        let texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
-        let body = Body2D::new(app).with_size(Vec2::ONE * 0.15);
-        let sprite = Sprite2D::new(app)
-            .with_model(|m| m.body = Some(body.glob().to_ref()))
-            .with_material(|m| m.texture = texture);
+impl FromApp for Slime {
+    fn from_app(app: &mut App) -> Self {
         Self {
-            body,
-            sprite,
-            animation: TextureAnimation::new(5, 9)
-                .with_parts(|p| *p = Direction::Down.stopped_texture_parts()),
+            body: Glob::from_app(app),
+            sprite: Sprite2D::new(app),
+            animation: TextureAnimation::new(5, 9),
             direction: Direction::Down,
         }
     }
+}
+
+impl Slime {
+    fn init(&mut self, app: &mut App) {
+        self.body.updater().size(Vec2::ONE * 0.15).apply(app);
+        self.sprite.model.body = Some(self.body.to_ref());
+        self.sprite.material.texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
+        self.animation.parts = Direction::Down.stopped_texture_parts();
+    }
 
     fn update(&mut self, app: &mut App) {
-        self.body.velocity = 0.2
-            * app.get_mut::<Inputs>().keyboard.direction(
-                Key::ArrowLeft,
-                Key::ArrowRight,
-                Key::ArrowUp,
-                Key::ArrowDown,
-            );
-        self.direction = Direction::from_vec(self.body.velocity).unwrap_or(self.direction);
-        self.body.size.x = self.direction.size_x_sign() * self.body.size.x.abs();
-        let is_stopped = self.body.velocity == Vec2::ZERO;
-        self.animation.parts = self.direction.texture_parts(is_stopped);
+        let direction = app.get_mut::<Inputs>().keyboard.direction(
+            Key::ArrowLeft,
+            Key::ArrowRight,
+            Key::ArrowUp,
+            Key::ArrowDown,
+        );
+        self.direction = Direction::from_vec(direction).unwrap_or(self.direction);
+        self.animation.parts = self.direction.texture_parts(direction == Vec2::ZERO);
         self.sprite.material.texture_size = self.animation.part_size();
         self.sprite.material.texture_position = self.animation.part_position();
-        self.body.update(app);
+        self.body
+            .updater()
+            .for_size(app, |s| s.x = self.direction.size_x_sign() * s.x.abs())
+            .velocity(0.2 * direction)
+            .apply(app);
         self.sprite.update(app);
         self.animation.update(app);
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Left,
     Right,

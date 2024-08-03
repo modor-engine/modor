@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, GlobRef, State};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
@@ -51,12 +51,13 @@ fn set_rotation() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_body() {
     let (mut app, target) = configure_app();
-    let mut body = Body2D::new(&mut app);
-    body.position = Vec2::new(-0.25, -0.25);
-    body.size = Vec2::new(0.5, 0.25);
-    body.rotation = FRAC_PI_2;
-    body.update(&mut app);
-    root(&mut app).models[0].body = Some(body.glob().to_ref());
+    let body = Glob::<Body2D>::from_app(&mut app);
+    body.updater()
+        .position(Vec2::new(-0.25, -0.25))
+        .size(Vec2::new(0.5, 0.25))
+        .rotation(FRAC_PI_2)
+        .apply(&mut app);
+    root(&mut app).models[0].body = Some(body.to_ref());
     app.update();
     assert_same(&app, &target, "model#with_body");
 }

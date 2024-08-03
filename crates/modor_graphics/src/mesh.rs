@@ -1,6 +1,6 @@
 use crate::buffer::Buffer;
 use crate::gpu::{Gpu, GpuManager};
-use modor::{App, FromApp, Glob};
+use modor::{App, FromApp, Glob, Global};
 use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
@@ -50,7 +50,7 @@ impl Mesh {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Global)]
 pub(crate) struct MeshGlob {
     pub(crate) vertex_buffer: Buffer<Vertex>,
     pub(crate) index_buffer: Buffer<u16>,

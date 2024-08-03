@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, State, StateHandle};
 
 #[modor::test]
 fn create_state() {
@@ -11,7 +11,7 @@ fn create_state() {
 #[modor::test]
 fn create_state_handle() {
     let mut app = App::new::<Root>(Level::Info);
-    let handle = app.handle::<Root>();
+    let handle = StateHandle::<Root>::from_app(&mut app);
     assert_eq!(app.get_mut::<Counter>().value, 1);
     assert_eq!(handle.get(&app).value, 42);
     assert_eq!(handle.get_mut(&mut app).value, 42);

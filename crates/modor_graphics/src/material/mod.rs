@@ -8,7 +8,7 @@ use crate::{DefaultMaterial2D, ShaderGlobRef};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, StateHandle};
+use modor::{App, FromApp, Glob, GlobRef, Global, StateHandle};
 use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -107,7 +107,7 @@ impl<T> Deref for MaterialGlobRef<T> {
 }
 
 /// The global data of a [`Mat`].
-#[derive(Debug)]
+#[derive(Debug, Global)]
 pub struct MaterialGlob {
     pub(crate) is_transparent: bool,
     pub(crate) bind_group: BufferBindGroup,

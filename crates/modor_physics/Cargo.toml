@@ -15,6 +15,7 @@ rust-version.workspace = true
 [dependencies]
 approx.workspace = true
 fxhash.workspace = true
+getset.workspace = true
 rapier2d.workspace = true
 modor.workspace = true
 modor_math.workspace = true

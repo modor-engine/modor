@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::{Size, TargetGlob};
 use fxhash::FxHashMap;
-use modor::{App, Builder, FromApp, Glob, GlobRef};
+use modor::{App, Builder, FromApp, Glob, GlobRef, Global};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
 use std::collections::hash_map::Entry;
 use wgpu::{BindGroup, BufferUsages};
@@ -132,7 +132,7 @@ impl Camera2D {
 }
 
 /// The global data of a [`Camera2D`].
-#[derive(Debug)]
+#[derive(Debug, Global)]
 pub struct Camera2DGlob {
     pub(crate) position: Vec2,
     pub(crate) size: Vec2,
