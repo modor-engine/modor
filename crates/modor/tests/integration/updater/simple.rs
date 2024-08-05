@@ -47,8 +47,8 @@ impl ValueUpdater<'_> {
     #[allow(clippy::cast_possible_truncation)]
     fn apply(self) {
         let mut is_updated = false;
-        modor::update_field(&mut self.updated.integer, self.integer, &mut is_updated);
-        modor::update_field(&mut self.updated.string, self.string, &mut is_updated);
+        is_updated |= modor::update_field(&mut self.updated.integer, self.integer);
+        is_updated |= modor::update_field(&mut self.updated.string, self.string);
         if let Some(additional_integer) = self.additional_integer {
             self.updated.integer += additional_integer as u8;
         }

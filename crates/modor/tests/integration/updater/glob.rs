@@ -50,8 +50,8 @@ impl ValueUpdater<'_> {
     fn apply(self, app: &mut App) {
         let glob = self.glob.get_mut(app);
         let mut is_updated = false;
-        modor::update_field(&mut glob.integer, self.integer, &mut is_updated);
-        modor::update_field(&mut glob.string, self.string, &mut is_updated);
+        is_updated |= modor::update_field(&mut glob.integer, self.integer);
+        is_updated |= modor::update_field(&mut glob.string, self.string);
         if let Some(additional_integer) = self.additional_integer {
             glob.integer += additional_integer as u8;
         }

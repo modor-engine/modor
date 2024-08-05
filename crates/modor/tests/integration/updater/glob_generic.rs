@@ -50,8 +50,8 @@ where
 {
     fn apply(self, app: &mut App) {
         let glob = self.glob.get_mut(app);
-        modor::update_field(&mut glob.integer, self.integer, &mut false);
-        modor::update_field(&mut glob.dynamic, self.dynamic, &mut false);
-        modor::update_field(&mut glob.array, self.array, &mut false);
+        modor::update_field(&mut glob.integer, self.integer);
+        modor::update_field(&mut glob.dynamic, self.dynamic);
+        modor::update_field(&mut glob.array, self.array);
     }
 }
