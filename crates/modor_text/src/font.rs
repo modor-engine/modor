@@ -1,6 +1,6 @@
 use ab_glyph::FontVec;
 use modor::{App, FromApp, Global, Globals, State};
-use modor_graphics::modor_resources::{ResSource, Resource, ResourceError, Source};
+use modor_graphics::modor_resources::{Res, ResSource, Resource, ResourceError, Source};
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
 ///
@@ -84,7 +84,7 @@ struct FontManager;
 
 impl State for FontManager {
     fn update(&mut self, app: &mut App) {
-        for font in app.get_mut::<Globals<Font>>() {
+        for font in app.get_mut::<Globals<Res<Font>>>() {
             if font.will_change {
                 font.will_change = false;
                 font.glob.has_changed = true;

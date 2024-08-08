@@ -174,7 +174,7 @@ where
                     }
                 }
             }
-            None => (),
+            None => self.state = ResourceState::Loaded,
         }
         self.update(app);
     }

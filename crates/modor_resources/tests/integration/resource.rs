@@ -121,7 +121,7 @@ fn load_resource_from_panicking_source() {
 }
 
 #[modor::test(disabled(wasm))]
-fn reload_with_source() {
+fn set_source() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
     res.updater()
@@ -137,7 +137,7 @@ fn reload_with_source() {
 }
 
 #[modor::test(disabled(wasm))]
-fn reload_with_path() {
+fn set_path() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
     res.updater()
@@ -150,6 +150,30 @@ fn reload_with_path() {
     assert_eq!(res.get(&app).state(), &ResourceState::Loading);
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, Some(12));
+    assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
+}
+
+#[modor::test(disabled(wasm))]
+fn reload_default() {
+    let mut app = App::new::<Root>(Level::Info);
+    let res = Glob::<Res<ContentSize>>::from_app(&mut app);
+    res.get_mut(&mut app).size = Some(42);
+    res.updater().reload().apply(&mut app);
+    assert_eq!(res.get(&app).size, Some(42));
+    assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
+}
+
+#[modor::test(disabled(wasm))]
+fn reload_not_default() {
+    let mut app = App::new::<Root>(Level::Info);
+    let res = Glob::<Res<ContentSize>>::from_app(&mut app);
+    res.updater()
+        .source(ContentSizeSource::SyncStr("content"))
+        .apply(&mut app);
+    assert_eq!(res.get(&app).size, Some(7));
+    res.get_mut(&mut app).size = None;
+    res.updater().reload().apply(&mut app);
+    assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
 }
 

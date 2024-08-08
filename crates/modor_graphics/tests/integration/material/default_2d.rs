@@ -14,6 +14,7 @@ fn create_default() {
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &target, "material#white");
+    assert_eq!(root(&mut app).material.color, Color::WHITE);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]

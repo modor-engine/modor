@@ -48,6 +48,29 @@ fn render_font_from_bytes() {
     assert_max_component_diff(&app, &target, "font#otf", 20, 2);
 }
 
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_source() {
+    let (mut app, target) = configure_app();
+    let font = Glob::<Res<Font>>::from_app(&mut app);
+    let font_ref = font.to_ref();
+    font.updater()
+        .path("../tests/assets/IrishGrover-Regular.ttf")
+        .apply(&mut app);
+    set_font(&mut app, font);
+    wait_resources(&mut app);
+    app.update();
+    assert_max_component_diff(&app, &target, "font#ttf", 20, 2);
+    font_ref
+        .updater()
+        .path("../tests/assets/Foglihtenno07.otf")
+        .apply(&mut app);
+    wait_resources(&mut app);
+    app.update();
+    app.update();
+    app.update();
+    assert_max_component_diff(&app, &target, "font#otf", 20, 2);
+}
+
 fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
     let target = root(&mut app).target.to_ref();
