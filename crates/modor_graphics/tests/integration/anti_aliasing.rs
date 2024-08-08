@@ -50,6 +50,7 @@ fn enable_unsupported_anti_aliasing() {
         })
         .apply(&mut app);
     app.update();
+    app.update();
     assert_same(&app, &target, "anti_aliasing#disabled");
     app.update();
 }
