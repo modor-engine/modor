@@ -1,8 +1,8 @@
 use crate::resources::TextResources;
-use crate::{FontGlob, TextMaterial2D};
+use crate::TextMaterial2D;
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{App, Builder, GlobRef};
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor::{App, Builder, FromApp, Glob, GlobRef};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
 use std::iter;
 
@@ -78,7 +78,7 @@ pub struct Text2D {
     ///
     /// Default is [Roboto](https://fonts.google.com/specimen/Roboto).
     #[builder(form(value))]
-    pub font: GlobRef<FontGlob>,
+    pub font: GlobRef<Res<crate::Font>>,
     /// Alignment of the rendered text.
     ///
     /// Default is [`Alignment::Center`].
@@ -88,7 +88,7 @@ pub struct Text2D {
     ///
     /// The size of the generated texture is calculated to exactly fit the text.
     #[builder(form(closure))]
-    pub texture: Res<Texture>,
+    pub texture: Glob<Res<Texture>>,
     /// Material of the rendered text.
     #[builder(form(closure))]
     pub material: Mat<TextMaterial2D>,
@@ -103,10 +103,13 @@ impl Text2D {
 
     /// Creates a new sprite.
     pub fn new(app: &mut App) -> Self {
-        let font = app.get_mut::<TextResources>().default_font.glob().to_ref();
-        let texture = Texture::new(app)
-            .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(app, texture.glob().to_ref()).into_mat(app);
+        let font = app.get_mut::<TextResources>().default_font.to_ref();
+        let texture = Glob::<Res<Texture>>::from_app(app);
+        texture
+            .updater()
+            .source(TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]))
+            .apply(app);
+        let material = TextMaterial2D::new(app, texture.to_ref()).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self {
             content: String::new(),
@@ -124,8 +127,8 @@ impl Text2D {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn update(&mut self, app: &mut App) {
         let font = self.font.get(app);
-        if let Some(font_vec) = &font.font {
-            if self.old_state.has_changed(self) || font.has_changed {
+        if let Some(font_vec) = &font.glob.font {
+            if self.old_state.has_changed(self) || font.glob.has_changed {
                 let scaled_font = font_vec.as_scaled(self.font_height);
                 let line_widths = self.line_widths(scaled_font);
                 let width = line_widths.iter().fold(0.0_f32, |a, &b| a.max(b)).max(1.);
@@ -140,11 +143,12 @@ impl Text2D {
                     .collect();
                 self.render_glyphs(scaled_font, width, &line_widths, &mut buffer, size);
                 self.texture
-                    .reload_with_source(TextureSource::Buffer(size, buffer));
+                    .updater()
+                    .source(TextureSource::Buffer(size, buffer))
+                    .apply(app);
                 self.update_old_state();
             }
         }
-        self.texture.update(app);
         self.material.update(app);
         self.model.update(app);
     }
@@ -260,12 +264,12 @@ pub enum Alignment {
 struct OldState {
     content: String,
     font_height: f32,
-    font: GlobRef<FontGlob>,
+    font: GlobRef<Res<crate::Font>>,
     alignment: Alignment,
 }
 
 impl OldState {
-    fn new(font: GlobRef<FontGlob>) -> Self {
+    fn new(font: GlobRef<Res<crate::Font>>) -> Self {
         Self {
             content: String::new(),
             font_height: 100.,

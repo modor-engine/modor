@@ -7,7 +7,7 @@ use rapier2d::math::Rotation;
 use rapier2d::na::Point2;
 
 impl Body2DUpdater<'_> {
-    /// Run the update.
+    /// Runs the update.
     pub fn apply(mut self, app: &mut App) {
         self.glob.take(app, |body, app| {
             self.update_body(body);
@@ -17,10 +17,10 @@ impl Body2DUpdater<'_> {
 
     fn update_body(&self, body: &mut Body2D) {
         let collision_group = self.collision_group.clone();
-        modor::update_field(&mut body.collision_group, collision_group, &mut false);
-        modor::update_field(&mut body.size, self.size, &mut false);
-        modor::update_field(&mut body.mass, self.mass, &mut false);
-        modor::update_field(&mut body.angular_inertia, self.angular_inertia, &mut false);
+        modor::update_field(&mut body.collision_group, collision_group);
+        modor::update_field(&mut body.size, self.size);
+        modor::update_field(&mut body.mass, self.mass);
+        modor::update_field(&mut body.angular_inertia, self.angular_inertia);
     }
 
     fn update_pipeline(&mut self, app: &mut App, body: &Body2D) {

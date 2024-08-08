@@ -26,17 +26,20 @@ pub trait GlobUpdater: Sized + 'static {
 ///
 /// `field` value is changed only if `new_value` is `Some`.
 ///
-/// `is_updated` is set to `true` if `field` is different than `new_value` inner value.
+/// The function returns `true` if `field` is different than `new_value` inner value.
 ///
 /// # Examples
 ///
 /// See [`Updater`](macro@crate::Updater) and [`GlobUpdater`](macro@crate::GlobUpdater).
-pub fn update_field<U>(field: &mut U, new_value: Option<U>, is_updated: &mut bool)
+pub fn update_field<U>(field: &mut U, new_value: Option<U>) -> bool
 where
     U: PartialEq,
 {
     if let Some(new_value) = new_value {
-        *is_updated |= field != &new_value;
+        let is_same = field == &new_value;
         *field = new_value;
+        !is_same
+    } else {
+        false
     }
 }

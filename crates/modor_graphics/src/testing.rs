@@ -1,9 +1,10 @@
 //! Testing utilities.
 
-use crate::TextureGlob;
+use crate::Texture;
 use image::imageops::FilterType;
 use image::{ColorType, ImageBuffer, Rgba};
 use modor::{App, Glob};
+use modor_resources::Res;
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -64,7 +65,7 @@ use std::{env, fs};
 /// }
 /// # }
 /// ```
-pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>) {
+pub fn assert_same(app: &App, texture: &Glob<Res<Texture>>, key: impl AsRef<str>) {
     assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
 }
 
@@ -131,7 +132,7 @@ pub fn assert_same(app: &App, texture: &Glob<TextureGlob>, key: impl AsRef<str>)
 /// ```
 pub fn assert_max_component_diff(
     app: &App,
-    texture: &Glob<TextureGlob>,
+    texture: &Glob<Res<Texture>>,
     key: impl AsRef<str>,
     max_component_diff: u8,
     downscale_factor: u8,
@@ -204,7 +205,7 @@ pub fn assert_max_component_diff(
 /// ```
 pub fn assert_max_pixel_diff(
     app: &App,
-    texture: &Glob<TextureGlob>,
+    texture: &Glob<Res<Texture>>,
     key: impl AsRef<str>,
     max_pixel_count_diff: usize,
 ) {
@@ -216,10 +217,10 @@ pub fn assert_max_pixel_diff(
     );
 }
 
-fn assert_texture(app: &App, texture: &Glob<TextureGlob>, key: &str, max_diff: MaxTextureDiff) {
-    let glob = texture.get(app);
-    let data = glob.buffer(app);
-    let size = glob.size;
+fn assert_texture(app: &App, texture: &Glob<Res<Texture>>, key: &str, max_diff: MaxTextureDiff) {
+    let texture = texture.get(app);
+    let data = texture.glob.buffer(app);
+    let size = texture.glob.size;
     assert!(!data.is_empty(), "texture buffer is empty");
     let expected_folder = env::var("CARGO_MANIFEST_DIR")
         .expect("`CARGO_MANIFEST_DIR` environment variable not set")

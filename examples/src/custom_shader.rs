@@ -1,10 +1,10 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::{
-    bytemuck, IntoMat, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, Shader, ShaderGlobRef,
-    Texture, TextureGlob,
+    bytemuck, IntoMat, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, ShaderGlob,
+    ShaderGlobRef, Texture,
 };
 use std::collections::HashMap;
 
@@ -13,16 +13,16 @@ pub fn main() {
 }
 
 struct Root {
-    texture: Res<Texture>,
-    shader: Res<Shader<BlurMaterial>>,
+    texture: Glob<Res<Texture>>,
+    shader: ShaderGlob<BlurMaterial>,
     material: Mat<BlurMaterial>,
     sprites: Vec<Sprite>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let texture = Texture::new(app).load_from_path(app, "smiley.png");
-        let shader = Shader::new(app).load_from_path(app, "blur.wgsl");
+        let texture = Glob::from_app(app);
+        let shader = ShaderGlob::from_app(app);
         let material = BlurMaterial::new(&texture, &shader).into_mat(app);
         Self {
             sprites: vec![
@@ -39,9 +39,12 @@ impl FromApp for Root {
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        self.texture.updater().path("smiley.png").apply(app);
+        self.shader.updater().path("blur.wgsl").apply(app);
+    }
+
     fn update(&mut self, app: &mut App) {
-        self.texture.update(app);
-        self.shader.update(app);
         self.material.update(app);
         for sprite in &mut self.sprites {
             sprite.update(app);
@@ -81,7 +84,7 @@ struct SpriteProperties {
 
 struct BlurMaterial {
     blur_factor: f32,
-    texture: GlobRef<TextureGlob>,
+    texture: GlobRef<Res<Texture>>,
     shader: ShaderGlobRef<Self>,
 }
 
@@ -93,7 +96,7 @@ impl Material for BlurMaterial {
         self.shader.clone()
     }
 
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
         vec![self.texture.clone()]
     }
 
@@ -118,11 +121,11 @@ impl Material for BlurMaterial {
 }
 
 impl BlurMaterial {
-    fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
+    fn new(texture: &Glob<Res<Texture>>, shader: &ShaderGlob<Self>) -> Self {
         Self {
             blur_factor: 0.005,
-            texture: texture.glob().to_ref(),
-            shader: shader.glob(),
+            texture: texture.to_ref(),
+            shader: shader.to_ref(),
         }
     }
 }

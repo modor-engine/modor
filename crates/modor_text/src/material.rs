@@ -1,7 +1,8 @@
 use crate::material::internal::TextMaterial2DData;
 use crate::resources::TextResources;
 use modor::{App, Glob, GlobRef};
-use modor_graphics::{Color, Material, Model2DGlob, ShaderGlobRef, TextureGlob};
+use modor_graphics::modor_resources::Res;
+use modor_graphics::{Color, Material, Model2DGlob, ShaderGlobRef, Texture};
 
 /// A material for 2D text rendering.
 ///
@@ -14,7 +15,7 @@ pub struct TextMaterial2D {
     ///
     /// Default is [`Color::WHITE`].
     pub color: Color,
-    texture: GlobRef<TextureGlob>,
+    texture: GlobRef<Res<Texture>>,
     shader: ShaderGlobRef<Self>,
 }
 
@@ -26,7 +27,7 @@ impl Material for TextMaterial2D {
         self.shader.clone()
     }
 
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
         vec![self.texture.clone()]
     }
 
@@ -44,12 +45,12 @@ impl Material for TextMaterial2D {
 }
 
 impl TextMaterial2D {
-    pub(crate) fn new(app: &mut App, texture: GlobRef<TextureGlob>) -> Self {
+    pub(crate) fn new(app: &mut App, texture: GlobRef<Res<Texture>>) -> Self {
         let resources = app.get_mut::<TextResources>();
         Self {
             color: Color::WHITE,
             texture,
-            shader: resources.text_shader.glob(),
+            shader: resources.text_shader.to_ref(),
         }
     }
 }

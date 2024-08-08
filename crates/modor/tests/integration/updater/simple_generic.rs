@@ -48,8 +48,8 @@ where
     T: 'static + Default + PartialEq,
 {
     fn apply(self) {
-        modor::update_field(&mut self.updated.integer, self.integer, &mut false);
-        modor::update_field(&mut self.updated.dynamic, self.dynamic, &mut false);
-        modor::update_field(&mut self.updated.array, self.array, &mut false);
+        modor::update_field(&mut self.updated.integer, self.integer);
+        modor::update_field(&mut self.updated.dynamic, self.dynamic);
+        modor::update_field(&mut self.updated.array, self.array);
     }
 }

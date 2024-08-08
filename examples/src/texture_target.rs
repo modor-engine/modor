@@ -1,6 +1,6 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor::{App, FromApp, Glob, State, Updater};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::{Camera2D, Color, Size, Sprite2D, Texture, TextureSource, Window};
 use modor_physics::modor_math::Vec2;
 
@@ -33,7 +33,7 @@ impl State for Root {
 
 impl Root {
     fn target_rectangle(app: &mut App) -> Sprite2D {
-        let target_texture = app.get_mut::<TextureTarget>().texture.glob().to_ref();
+        let target_texture = app.get_mut::<TextureTarget>().texture.to_ref();
         Sprite2D::new(app).with_material(|m| m.texture = target_texture)
     }
 
@@ -47,31 +47,37 @@ impl Root {
 }
 
 struct TextureTarget {
-    texture: Res<Texture>,
+    texture: Glob<Res<Texture>>,
     camera: Camera2D,
 }
 
 impl FromApp for TextureTarget {
     fn from_app(app: &mut App) -> Self {
-        let texture = Texture::new(app)
-            .with_is_target_enabled(true)
-            .with_target(|target| {
-                target.anti_aliasing = target
-                    .supported_anti_aliasing_modes()
-                    .iter()
-                    .copied()
-                    .max()
-                    .unwrap_or_default();
-            })
-            .load_from_source(app, TextureSource::Size(Size::new(300, 300)));
-        let camera = Camera2D::new(app, vec![texture.target.glob().to_ref()]);
+        let texture = Glob::<Res<Texture>>::from_app(app);
+        let camera = Camera2D::new(app, vec![texture.get(app).target.glob().to_ref()]);
         Self { texture, camera }
     }
 }
 
 impl State for TextureTarget {
+    fn init(&mut self, app: &mut App) {
+        self.texture
+            .updater()
+            .source(TextureSource::Size(Size::new(300, 300)))
+            .for_inner(app, |inner, app| {
+                inner.target.anti_aliasing = inner
+                    .target
+                    .supported_anti_aliasing_modes()
+                    .iter()
+                    .copied()
+                    .max()
+                    .unwrap_or_default();
+                inner.updater().is_target_enabled(true).apply(app)
+            })
+            .apply(app);
+    }
+
     fn update(&mut self, app: &mut App) {
-        self.texture.update(app);
         self.camera.update(app);
     }
 }

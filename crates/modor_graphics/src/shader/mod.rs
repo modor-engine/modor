@@ -1,12 +1,96 @@
 use crate::shader::loaded::ShaderLoaded;
-use crate::Material;
+use crate::{Material, ShaderGlobInner};
 use derivative::Derivative;
-use glob::ShaderGlob;
+use getset::CopyGetters;
 use log::error;
-use modor::{App, Builder, FromApp, Glob, GlobRef};
-use modor_resources::{ResSource, Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, GlobRef, Updater};
+use modor_resources::{Res, ResSource, Resource, ResourceError, Source};
 use std::marker::PhantomData;
+use std::mem;
 use std::ops::Deref;
+
+pub(crate) mod glob;
+mod loaded;
+
+/// A [`Shader`] glob.
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Hash(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = "")
+)]
+pub struct ShaderGlob<T: Material> {
+    inner: Glob<Res<Shader>>,
+    phantom: PhantomData<fn(T)>,
+}
+
+impl<T> FromApp for ShaderGlob<T>
+where
+    T: Material,
+{
+    fn from_app(app: &mut App) -> Self {
+        Self {
+            inner: Glob::<Res<Shader>>::from_app_with(app, |res, app| {
+                res.get_mut(app).instance_size = mem::size_of::<T::InstanceData>()
+            }),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> Deref for ShaderGlob<T>
+where
+    T: Material,
+{
+    type Target = Glob<Res<Shader>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> ShaderGlob<T>
+where
+    T: Material,
+{
+    /// Returns static reference to the glob.
+    pub fn to_ref(&self) -> ShaderGlobRef<T> {
+        ShaderGlobRef {
+            inner: self.inner.to_ref(),
+            phantom: Default::default(),
+        }
+    }
+}
+
+/// A [`Shader`] glob reference.
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Hash(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    PartialOrd(bound = ""),
+    Ord(bound = ""),
+    Clone(bound = "")
+)]
+pub struct ShaderGlobRef<T> {
+    inner: GlobRef<Res<Shader>>,
+    phantom: PhantomData<T>,
+}
+
+impl<T> Deref for ShaderGlobRef<T>
+where
+    T: Material,
+{
+    type Target = GlobRef<Res<Shader>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
 /// A shader that defines a rendering logic.
 ///
@@ -25,7 +109,7 @@ use std::ops::Deref;
 /// - location `5`: column 4 of the instance transform matrix.
 /// - location `6` or more: material data per instance. These locations must be defined
 ///     in a struct named `MaterialInstance` which corresponds to
-///     [`T::InstanceData`](Material::InstanceData) on Rust side.
+///     [`Material::InstanceData`] on Rust side.
 ///
 /// # Bindings
 ///
@@ -34,16 +118,15 @@ use std::ops::Deref;
 ///     - binding `0`: camera data
 /// - group `1`
 ///     - binding `0`: material data (`Material` struct corresponds to
-///         [`T::Data`](Material::Data) on Rust side)
+///         [`Material::Data`] on Rust side)
 ///     - binding `(i * 2)`: `texture_2d<f32>` value corresponding to texture `i`
 ///     - binding `(i * 2 + 1)`: `sampler` value corresponding to texture `i`
 ///
 /// # Examples
 ///
 /// See [`Material`].
-#[derive(Builder, Derivative)]
-#[derivative(Debug(bound = ""))]
-pub struct Shader<T> {
+#[derive(Debug, FromApp, Updater, CopyGetters)]
+pub struct Shader {
     /// Controls how alpha channel should be treated:
     /// - `false`: apply standard alpha blending with non-premultiplied alpha.
     ///     It means models rendered behind a transparent model might be visible.
@@ -51,19 +134,17 @@ pub struct Shader<T> {
     ///     It means models rendered behind a transparent model will never be visible.
     ///
     /// Default is `false`.
-    #[builder(form(value))]
-    pub is_alpha_replaced: bool,
+    #[getset(get_copy = "pub")]
+    #[updater(field, for_field = "default")]
+    is_alpha_replaced: bool,
+    instance_size: usize,
+    source: ResSource<Self>,
     loaded: ShaderLoaded,
-    glob: Glob<ShaderGlob>,
+    pub(crate) glob: ShaderGlobInner,
     is_invalid: bool,
-    old_is_alpha_replaced: bool,
-    phantom_data: PhantomData<T>,
 }
 
-impl<T> Resource for Shader<T>
-where
-    T: 'static + Material,
-{
+impl Resource for Shader {
     type Source = ShaderSource;
     type Loaded = ShaderLoaded;
 
@@ -73,89 +154,53 @@ where
         ShaderLoaded::new(code)
     }
 
-    fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
+    fn load_from_source(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
         ShaderLoaded::new(match source {
             ShaderSource::String(string) => string.clone(),
         })
     }
 
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, source: &ResSource<Self>) {
-        if let Some(loaded) = loaded {
-            self.loaded = loaded;
-            self.update(app, source);
-        } else if self.is_alpha_replaced != self.old_is_alpha_replaced {
-            self.update(app, source);
-        }
+    fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>) {
+        self.loaded = loaded;
+        self.source = source.clone();
+        self.update(app);
     }
 }
 
-impl<T> Shader<T>
-where
-    T: 'static + Material,
-{
-    const DEFAULT_IS_ALPHA_REPLACED: bool = false;
-
-    /// Creates a new shader.
-    pub fn new(app: &mut App) -> Self {
-        Self {
-            is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            glob: Glob::from_app(app),
-            loaded: ShaderLoaded::default(),
-            is_invalid: false,
-            old_is_alpha_replaced: Self::DEFAULT_IS_ALPHA_REPLACED,
-            phantom_data: PhantomData,
-        }
-    }
-
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> ShaderGlobRef<T> {
-        ShaderGlobRef {
-            inner: self.glob.to_ref(),
-            phantom: PhantomData,
-        }
-    }
-
+impl Shader {
     /// Whether an error occurred during parsing of the shader code.
     pub fn is_invalid(&self) -> bool {
         self.is_invalid
     }
 
-    fn update(&mut self, app: &mut App, source: &ResSource<Self>) {
-        match ShaderGlob::new::<T>(app, &self.loaded, self.is_alpha_replaced) {
+    fn update(&mut self, app: &mut App) {
+        match ShaderGlobInner::new(
+            app,
+            &self.loaded,
+            self.is_alpha_replaced,
+            self.instance_size,
+        ) {
             Ok(glob) => {
-                *self.glob.get_mut(app) = glob;
+                self.glob = glob;
                 self.is_invalid = false;
             }
             Err(err) => {
                 self.is_invalid = true;
-                error!("Loading of shader from `{source:?}` has failed: {err}");
+                error!(
+                    "Loading of shader from `{:?}` has failed: {err}",
+                    self.source
+                );
             }
         }
-        self.old_is_alpha_replaced = self.is_alpha_replaced;
     }
 }
 
-/// The global data of a [`Shader`] with material data of type `T`.
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = ""),
-    Clone(bound = ""),
-    Hash(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    PartialOrd(bound = ""),
-    Ord(bound = "")
-)]
-pub struct ShaderGlobRef<T> {
-    inner: GlobRef<ShaderGlob>,
-    phantom: PhantomData<fn(T)>,
-}
-
-impl<T> Deref for ShaderGlobRef<T> {
-    type Target = GlobRef<ShaderGlob>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl ShaderUpdater<'_> {
+    /// Runs the update.
+    pub fn apply(self, app: &mut App) {
+        if modor::update_field(&mut self.updated.is_alpha_replaced, self.is_alpha_replaced) {
+            self.updated.update(app);
+        }
     }
 }
 
@@ -171,11 +216,14 @@ pub enum ShaderSource {
     String(String),
 }
 
+impl Default for ShaderSource {
+    fn default() -> Self {
+        Self::String(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/empty.wgsl")).into())
+    }
+}
+
 impl Source for ShaderSource {
     fn is_async(&self) -> bool {
         false
     }
 }
-
-pub(crate) mod glob;
-mod loaded;

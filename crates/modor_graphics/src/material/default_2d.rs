@@ -1,9 +1,9 @@
 use crate::resources::Resources;
-use crate::texture::glob::TextureGlob;
-use crate::{Color, Material, Model2DGlob, ShaderGlobRef};
+use crate::{Color, Material, Model2DGlob, ShaderGlobRef, Texture};
 use internal::DefaultMaterial2DData;
 use modor::{App, Builder, Glob, GlobRef};
 use modor_input::modor_math::Vec2;
+use modor_resources::Res;
 
 /// The default material for 2D rendering.
 ///
@@ -25,7 +25,7 @@ pub struct DefaultMaterial2D {
     ///
     /// Default is a white texture.
     #[builder(form(value))]
-    pub texture: GlobRef<TextureGlob>,
+    pub texture: GlobRef<Res<Texture>>,
     /// Top-left position of the extracted texture section.
     ///
     /// [`Vec2::ZERO`] corresponds to top-left corner, and [`Vec2::ONE`] corresponds to bottom-right
@@ -64,7 +64,7 @@ impl Material for DefaultMaterial2D {
         }
     }
 
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
         vec![self.texture.clone()]
     }
 
@@ -89,12 +89,12 @@ impl DefaultMaterial2D {
         let resources = app.get_mut::<Resources>();
         Self {
             color: Color::WHITE,
-            texture: resources.white_texture.glob().to_ref(),
+            texture: resources.white_texture.to_ref(),
             texture_position: Vec2::ZERO,
             texture_size: Vec2::ONE,
             is_ellipse: false,
-            default_shader: resources.default_shader.glob(),
-            ellipse_shader: resources.ellipse_shader.glob(),
+            default_shader: resources.default_shader.to_ref(),
+            ellipse_shader: resources.ellipse_shader.to_ref(),
         }
     }
 }

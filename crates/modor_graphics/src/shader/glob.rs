@@ -4,10 +4,9 @@ use crate::mesh::Vertex;
 use crate::mesh::VertexBuffer;
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
-use crate::{validation, AntiAliasingMode, Material, Texture, Window};
+use crate::{validation, AntiAliasingMode, Texture, Window};
 use fxhash::FxHashMap;
 use modor::{App, FromApp, Global};
-use std::mem;
 use std::sync::Arc;
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
@@ -19,15 +18,17 @@ use wgpu::{
     VertexState, VertexStepMode,
 };
 
+// TODO: merge with mod.rs
+
 /// The global data of a [`Shader`](crate::Shader).
 #[derive(Debug, Global)]
-pub struct ShaderGlob {
+pub struct ShaderGlobInner {
     pub(crate) material_bind_group_layout: BindGroupLayout,
     pub(crate) texture_count: u32,
     pub(crate) pipelines: FxHashMap<(TextureFormat, AntiAliasingMode), RenderPipeline>,
 }
 
-impl FromApp for ShaderGlob {
+impl FromApp for ShaderGlobInner {
     fn from_app(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let loaded = ShaderLoaded::default();
@@ -39,7 +40,7 @@ impl FromApp for ShaderGlob {
     }
 }
 
-impl ShaderGlob {
+impl ShaderGlobInner {
     pub(crate) const CAMERA_GROUP: u32 = 0;
     pub(crate) const MATERIAL_GROUP: u32 = 1;
 
@@ -51,14 +52,12 @@ impl ShaderGlob {
         >>::LAYOUT,
     ];
 
-    pub(super) fn new<T>(
+    pub(super) fn new(
         app: &mut App,
         loaded: &ShaderLoaded,
         is_alpha_replaced: bool,
-    ) -> Result<Self, wgpu::Error>
-    where
-        T: 'static + Material,
-    {
+        instance_size: usize,
+    ) -> Result<Self, wgpu::Error> {
         let window_texture_format = app.get_mut::<Window>().texture_format();
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let material_bind_group_layout = Self::create_material_bind_group_layout(&gpu, loaded);
@@ -78,12 +77,13 @@ impl ShaderGlob {
                 .map(|(format, anti_aliasing)| {
                     Ok((
                         (format, anti_aliasing),
-                        Self::create_pipeline::<T>(
+                        Self::create_pipeline(
                             &gpu,
                             loaded,
                             format,
                             anti_aliasing,
                             is_alpha_replaced,
+                            instance_size,
                             &material_bind_group_layout,
                         )?,
                     ))
@@ -135,17 +135,15 @@ impl ShaderGlob {
         entries
     }
 
-    fn create_pipeline<T>(
+    fn create_pipeline(
         gpu: &Gpu,
         loaded: &ShaderLoaded,
         texture_format: TextureFormat,
         anti_aliasing: AntiAliasingMode,
         is_alpha_replaced: bool,
+        instance_size: usize,
         material_bind_group_layout: &BindGroupLayout,
-    ) -> Result<RenderPipeline, wgpu::Error>
-    where
-        T: 'static + Material,
-    {
+    ) -> Result<RenderPipeline, wgpu::Error> {
         validation::validate_wgpu(gpu, false, || {
             let module = gpu.device.create_shader_module(ShaderModuleDescriptor {
                 label: Some("modor_shader"),
@@ -162,7 +160,6 @@ impl ShaderGlob {
                     push_constant_ranges: &[],
                 });
             let mut buffer_layout = Self::VERTEX_BUFFER_LAYOUTS.to_vec();
-            let instance_size = mem::size_of::<T::InstanceData>();
             if instance_size > 0 {
                 buffer_layout.push(VertexBufferLayout {
                     array_stride: instance_size as BufferAddress,
