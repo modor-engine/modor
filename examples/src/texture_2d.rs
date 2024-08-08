@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::{Color, Sprite2D, Texture};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
@@ -16,11 +16,7 @@ struct Root {
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let background_texture = app
-            .get_mut::<Resources>()
-            .background_texture
-            .glob()
-            .to_ref();
+        let background_texture = app.get_mut::<Resources>().background_texture.to_ref();
         Self {
             background: Sprite2D::new(app).with_material(|m| m.texture = background_texture),
             smileys: vec![
@@ -65,9 +61,8 @@ impl State for Resources {
         self.background_texture
             .updater()
             .path("background.png")
-            .resource(|r| r.is_smooth(false))
-            .resource(|r| r.is_repeated(true))
             .apply(app);
+        self.smiley_texture.updater().path("smiley.png").apply(app);
     }
 }
 
@@ -86,7 +81,7 @@ impl Smiley {
         velocity: Vec2,
         angular_velocity: f32,
     ) -> Self {
-        let texture = app.get_mut::<Resources>().smiley_texture.glob().to_ref();
+        let texture = app.get_mut::<Resources>().smiley_texture.to_ref();
         Self {
             sprite: Sprite2D::new(app)
                 .with_model(|m| m.position = position)

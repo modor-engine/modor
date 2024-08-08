@@ -19,6 +19,7 @@ enum-iterator.workspace = true
 fxhash.workspace = true
 futures.workspace = true
 getrandom.workspace = true
+getset.workspace = true
 gilrs.workspace = true
 image.workspace = true
 instant.workspace = true

@@ -1,16 +1,18 @@
 use modor::log::Level;
-use modor::{App, FromApp, GlobRef, State};
+use modor::{App, FromApp, Glob, GlobRef, State, Updater};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::testing::assert_max_component_diff;
-use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
+use modor_graphics::{Size, Texture, TextureSource};
 use modor_text::{Font, FontSource, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_ttf_font_from_path() {
     let (mut app, target) = configure_app();
-    let font =
-        Font::new(&mut app).load_from_path(&mut app, "../tests/assets/IrishGrover-Regular.ttf");
+    let font = Glob::<Res<Font>>::from_app(&mut app);
+    font.updater()
+        .path("../tests/assets/IrishGrover-Regular.ttf")
+        .apply(&mut app);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -20,7 +22,10 @@ fn render_ttf_font_from_path() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_otf_font_from_path() {
     let (mut app, target) = configure_app();
-    let font = Font::new(&mut app).load_from_path(&mut app, "../tests/assets/Foglihtenno07.otf");
+    let font = Glob::<Res<Font>>::from_app(&mut app);
+    font.updater()
+        .path("../tests/assets/Foglihtenno07.otf")
+        .apply(&mut app);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -30,22 +35,22 @@ fn render_otf_font_from_path() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_font_from_bytes() {
     let (mut app, target) = configure_app();
-    let font = Font::new(&mut app).load_from_source(
-        &mut app,
-        FontSource::Bytes(include_bytes!(concat!(
+    let font = Glob::<Res<Font>>::from_app(&mut app);
+    font.updater()
+        .source(FontSource::Bytes(include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/assets/Foglihtenno07.otf"
-        ))),
-    );
+        ))))
+        .apply(&mut app);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
     assert_max_component_diff(&app, &target, "font#otf", 20, 2);
 }
 
-fn configure_app() -> (App, GlobRef<TextureGlob>) {
+fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = root(&mut app).target.glob().to_ref();
+    let target = root(&mut app).target.to_ref();
     (app, target)
 }
 
@@ -53,41 +58,53 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
-fn set_font(app: &mut App, font: Res<Font>) {
-    root(app).text.font = font.glob().to_ref();
+fn set_font(app: &mut App, font: Glob<Res<Font>>) {
+    root(app).text.font = font.to_ref();
     root(app).font = Some(font);
 }
 
 struct Root {
     text: Text2D,
-    target: Res<Texture>,
-    font: Option<Res<Font>>,
+    target: Glob<Res<Texture>>,
+    font: Option<Glob<Res<Font>>>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let target = Texture::new(app)
-            .with_is_buffer_enabled(true)
-            .with_is_target_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(60, 40)));
         Self {
-            text: Text2D::new(app)
-                .with_content("text".into())
-                .with_font_height(30.)
-                .with_texture(|t| t.is_smooth = false)
-                .with_model(|m| m.camera = target.camera.glob().to_ref()),
-            target,
+            text: Text2D::new(app),
+            target: Glob::from_app(app),
             font: None,
         }
     }
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        self.text.content = "text".into();
+        self.text.font_height = 30.;
+        self.text.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.text
+            .texture
+            .updater()
+            .for_inner(app, |inner, app| {
+                inner.updater().is_smooth(false).apply(app)
+            })
+            .apply(app);
+        self.target
+            .updater()
+            .source(TextureSource::Size(Size::new(60, 40)))
+            .for_inner(app, |inner, app| {
+                inner
+                    .updater()
+                    .is_buffer_enabled(true)
+                    .is_target_enabled(true)
+                    .apply(app)
+            })
+            .apply(app);
+    }
+
     fn update(&mut self, app: &mut App) {
         self.text.update(app);
-        self.target.update(app);
-        if let Some(font) = &mut self.font {
-            font.update(app);
-        }
     }
 }

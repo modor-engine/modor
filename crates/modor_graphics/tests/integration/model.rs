@@ -1,18 +1,19 @@
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State};
+use modor::{App, FromApp, Glob, GlobRef, State, Updater};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureGlob, TextureSource,
+    Camera2DGlob, Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource,
 };
 use modor_input::modor_math::Vec2;
 use modor_physics::Body2D;
 use modor_resources::testing::wait_resources;
-use modor_resources::{Res, ResLoad};
+use modor_resources::Res;
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
-    let (app, target) = configure_app();
+    let (mut app, target) = configure_app();
+    app.update();
     assert_same(&app, &target, "model#default");
 }
 
@@ -20,6 +21,7 @@ fn create_default() {
 fn delete_model() {
     let (mut app, target) = configure_app();
     root(&mut app).models.clear();
+    app.update();
     app.update();
     assert_same(&app, &target, "model#empty");
 }
@@ -29,6 +31,7 @@ fn set_position() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].position = Vec2::new(-0.5, 0.5);
     app.update();
+    app.update();
     assert_same(&app, &target, "model#moved");
 }
 
@@ -37,6 +40,7 @@ fn set_size() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].size = Vec2::new(0.5, 0.75);
     app.update();
+    app.update();
     assert_same(&app, &target, "model#scaled");
 }
 
@@ -44,6 +48,7 @@ fn set_size() {
 fn set_rotation() {
     let (mut app, target) = configure_app();
     root(&mut app).models[0].rotation = FRAC_PI_4;
+    app.update();
     app.update();
     assert_same(&app, &target, "model#rotated");
 }
@@ -59,13 +64,14 @@ fn set_body() {
         .apply(&mut app);
     root(&mut app).models[0].body = Some(body.to_ref());
     app.update();
+    app.update();
     assert_same(&app, &target, "model#with_body");
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_z_index() {
     let (mut app, target) = configure_app();
-    let camera = root(&mut app).target1.camera.glob().to_ref();
+    let camera = camera1(&mut app);
     let material1 = root(&mut app).material1.glob();
     let material2 = root(&mut app).material2.glob();
     let model2 = Model2D::new(&mut app, material2.clone());
@@ -105,8 +111,9 @@ fn set_z_index() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_camera() {
     let (mut app, target) = configure_app();
-    let camera = root(&mut app).target2.camera.glob().to_ref();
+    let camera = camera2(&mut app);
     root(&mut app).models[0].camera = camera;
+    app.update();
     app.update();
     assert_same(&app, &target, "model#empty");
 }
@@ -117,14 +124,23 @@ fn set_material() {
     let material = root(&mut app).material2.glob();
     root(&mut app).models[0].material = material;
     app.update();
+    app.update();
     assert_same(&app, &target, "model#other_material");
 }
 
-fn configure_app() -> (App, GlobRef<TextureGlob>) {
+fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target1.glob().to_ref();
+    let target = root(&mut app).target1.to_ref();
     (app, target)
+}
+
+fn camera1(app: &mut App) -> GlobRef<Camera2DGlob> {
+    root(app).target1.to_ref().get(app).camera.glob().to_ref()
+}
+
+fn camera2(app: &mut App) -> GlobRef<Camera2DGlob> {
+    root(app).target2.to_ref().get(app).camera.glob().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {
@@ -135,25 +151,17 @@ struct Root {
     material1: Mat<DefaultMaterial2D>,
     material2: Mat<DefaultMaterial2D>,
     models: Vec<Model2D<DefaultMaterial2D>>,
-    target1: Res<Texture>,
-    target2: Res<Texture>,
+    target1: Glob<Res<Texture>>,
+    target2: Glob<Res<Texture>>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let target1 = Texture::new(app)
-            .with_is_target_enabled(true)
-            .with_is_buffer_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let target2 = Texture::new(app)
-            .with_is_target_enabled(true)
-            .with_is_buffer_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
+        let target1 = Glob::from_app(app);
+        let target2 = Glob::from_app(app);
         let material1 = DefaultMaterial2D::new(app).into_mat(app);
-        let material2 = DefaultMaterial2D::new(app)
-            .with_color(Color::RED)
-            .into_mat(app);
-        let model = Model2D::new(app, material1.glob()).with_camera(target1.camera.glob().to_ref());
+        let material2 = DefaultMaterial2D::new(app).into_mat(app);
+        let model = Model2D::new(app, material1.glob());
         Self {
             material1,
             material2,
@@ -165,13 +173,38 @@ impl FromApp for Root {
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        self.material2.color = Color::RED;
+        self.models[0].camera = self.target1.get(app).camera.glob().to_ref();
+        self.target1
+            .updater()
+            .source(TextureSource::Size(Size::new(30, 20)))
+            .for_inner(app, |inner, app| {
+                inner
+                    .updater()
+                    .is_target_enabled(true)
+                    .is_buffer_enabled(true)
+                    .apply(app)
+            })
+            .apply(app);
+        self.target2
+            .updater()
+            .source(TextureSource::Size(Size::new(30, 20)))
+            .for_inner(app, |inner, app| {
+                inner
+                    .updater()
+                    .is_target_enabled(true)
+                    .is_buffer_enabled(true)
+                    .apply(app)
+            })
+            .apply(app);
+    }
+
     fn update(&mut self, app: &mut App) {
         self.material1.update(app);
         self.material2.update(app);
         for model in &mut self.models {
             model.update(app);
         }
-        self.target1.update(app);
-        self.target2.update(app);
     }
 }

@@ -1,6 +1,6 @@
 use crate::gpu::Gpu;
-use crate::mesh::MeshGlob;
-use crate::shader::glob::ShaderGlob;
+use crate::mesh::Mesh;
+use crate::shader::glob::ShaderGlobInner;
 use crate::size::NonZeroSize;
 use crate::{
     validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
@@ -55,7 +55,7 @@ pub struct Target {
     glob: Glob<TargetGlob>,
     cameras: StateHandle<Globals<Camera2DGlob>>,
     materials: StateHandle<Globals<MaterialGlob>>,
-    meshes: StateHandle<Globals<MeshGlob>>,
+    meshes: StateHandle<Globals<Mesh>>,
 }
 
 impl Target {
@@ -315,7 +315,9 @@ impl Target {
     ) -> Option<()> {
         let material = self.materials.get(app).get(group.material)?;
         let shader = material.shader.get(app);
-        if material.binding_ids.bind_group_layout != shader.material_bind_group_layout.global_id() {
+        if material.binding_ids.bind_group_layout
+            != shader.glob.material_bind_group_layout.global_id()
+        {
             return None;
         }
         let camera = self.cameras.get(app).get(group.camera)?;
@@ -323,13 +325,17 @@ impl Target {
         let group = &groups.groups[&group];
         let primary_buffer = group.primary_buffer()?;
         let pipeline_params = (self.texture_format, anti_aliasing);
-        pass.set_pipeline(shader.pipelines.get(&pipeline_params)?);
+        pass.set_pipeline(shader.glob.pipelines.get(&pipeline_params)?);
         pass.set_bind_group(
-            ShaderGlob::CAMERA_GROUP,
+            ShaderGlobInner::CAMERA_GROUP,
             camera.bind_group(self.glob())?,
             &[],
         );
-        pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
+        pass.set_bind_group(
+            ShaderGlobInner::MATERIAL_GROUP,
+            &material.bind_group.inner,
+            &[],
+        );
         pass.set_index_buffer(mesh.index_buffer.slice(), IndexFormat::Uint16);
         pass.set_vertex_buffer(0, mesh.vertex_buffer.slice());
         pass.set_vertex_buffer(1, primary_buffer.slice());

@@ -1,7 +1,7 @@
 use instant::Instant;
 use modor::log::Level;
-use modor::{App, FromApp, State};
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor::{App, FromApp, Glob, State};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_text::{Font, Text2D};
@@ -20,7 +20,7 @@ struct Root {
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         let size = Vec2::new(1., 0.2);
-        let font = app.get_mut::<Resources>().font.glob().to_ref();
+        let font = app.get_mut::<Resources>().font.to_ref();
         Self {
             background: Sprite2D::new(app)
                 .with_model(|m| m.size = size)
@@ -54,20 +54,16 @@ impl State for Root {
     }
 }
 
+#[derive(FromApp)]
 struct Resources {
-    font: Res<Font>,
-}
-
-impl FromApp for Resources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            font: Font::new(app).load_from_path(app, "IrishGrover-Regular.ttf"),
-        }
-    }
+    font: Glob<Res<Font>>,
 }
 
 impl State for Resources {
-    fn update(&mut self, app: &mut App) {
-        self.font.update(app);
+    fn init(&mut self, app: &mut App) {
+        self.font
+            .updater()
+            .path("IrishGrover-Regular.ttf")
+            .apply(app);
     }
 }

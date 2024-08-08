@@ -1,15 +1,16 @@
 use modor::log::Level;
-use modor::{App, FromApp, GlobRef, State};
+use modor::{App, FromApp, Glob, GlobRef, State, Updater};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::{Res, ResLoad};
+use modor_graphics::modor_resources::Res;
 use modor_graphics::testing::assert_max_component_diff;
-use modor_graphics::{Size, Texture, TextureGlob, TextureSource};
+use modor_graphics::{Size, Texture, TextureSource};
 use modor_text::{Alignment, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
     let (mut app, target) = configure_app();
     wait_resources(&mut app);
+    app.update();
     assert_max_component_diff(&app, &target, "text#default", 20, 2);
 }
 
@@ -19,6 +20,7 @@ fn set_content() {
     wait_resources(&mut app);
     text(&mut app).content = "Content".into();
     app.update();
+    app.update();
     assert_max_component_diff(&app, &target, "text#other_content", 20, 2);
 }
 
@@ -27,6 +29,7 @@ fn apply_left_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Left;
     wait_resources(&mut app);
+    app.update();
     assert_max_component_diff(&app, &target, "text#left_alignment", 20, 2);
 }
 
@@ -35,12 +38,13 @@ fn apply_right_alignment() {
     let (mut app, target) = configure_app();
     text(&mut app).alignment = Alignment::Right;
     wait_resources(&mut app);
+    app.update();
     assert_max_component_diff(&app, &target, "text#right_alignment", 20, 2);
 }
 
-fn configure_app() -> (App, GlobRef<TextureGlob>) {
+fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
-    let target = root(&mut app).target.glob().to_ref();
+    let target = root(&mut app).target.to_ref();
     (app, target)
 }
 
@@ -54,28 +58,43 @@ fn text(app: &mut App) -> &mut Text2D {
 
 struct Root {
     text: Text2D,
-    target: Res<Texture>,
+    target: Glob<Res<Texture>>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let target = Texture::new(app)
-            .with_is_buffer_enabled(true)
-            .with_is_target_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(100, 50)));
         Self {
-            text: Text2D::new(app)
-                .with_content("text\nto\nrender".into())
-                .with_texture(|t| t.is_smooth = false)
-                .with_model(|m| m.camera = target.camera.glob().to_ref()),
-            target,
+            text: Text2D::new(app),
+            target: Glob::from_app(app),
         }
     }
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        self.text.content = "text\nto\nrender".into();
+        self.text.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.text
+            .texture
+            .updater()
+            .for_inner(app, |inner, app| {
+                inner.updater().is_smooth(false).apply(app)
+            })
+            .apply(app);
+        self.target
+            .updater()
+            .source(TextureSource::Size(Size::new(100, 50)))
+            .for_inner(app, |inner, app| {
+                inner
+                    .updater()
+                    .is_buffer_enabled(true)
+                    .is_target_enabled(true)
+                    .apply(app)
+            })
+            .apply(app);
+    }
+
     fn update(&mut self, app: &mut App) {
         self.text.update(app);
-        self.target.update(app);
     }
 }

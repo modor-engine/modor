@@ -1,75 +1,44 @@
 use crate::buffer::Buffer;
-use crate::gpu::{Gpu, GpuManager};
-use modor::{App, FromApp, Glob, Global};
+use crate::gpu::GpuManager;
+use modor::{App, FromApp, Global};
 use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
     VertexStepMode,
 };
 
-#[derive(Debug)]
-pub(crate) struct Mesh {
-    glob: Glob<MeshGlob>,
-}
-
-impl Mesh {
-    fn new(app: &mut App, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
-        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let glob = Glob::<MeshGlob>::from_app(app);
-        glob.get_mut(app).load(&gpu, &vertices, &indices);
-        Self { glob }
-    }
-
-    pub(crate) fn rectangle(app: &mut App) -> Self {
-        Self::new(
-            app,
-            vec![
-                Vertex {
-                    position: [-0.5, 0.5, 0.],
-                    texture_position: [0., 0.],
-                },
-                Vertex {
-                    position: [-0.5, -0.5, 0.],
-                    texture_position: [0., 1.],
-                },
-                Vertex {
-                    position: [0.5, -0.5, 0.],
-                    texture_position: [1., 1.],
-                },
-                Vertex {
-                    position: [0.5, 0.5, 0.],
-                    texture_position: [1., 0.],
-                },
-            ],
-            vec![0, 1, 2, 0, 2, 3],
-        )
-    }
-
-    pub(crate) fn glob(&self) -> &Glob<MeshGlob> {
-        &self.glob
-    }
-}
-
 #[derive(Debug, Global)]
-pub(crate) struct MeshGlob {
+pub(crate) struct Mesh {
     pub(crate) vertex_buffer: Buffer<Vertex>,
     pub(crate) index_buffer: Buffer<u16>,
 }
 
-impl FromApp for MeshGlob {
+impl FromApp for Mesh {
     fn from_app(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init();
+        let vertices = &[
+            Vertex {
+                position: [-0.5, 0.5, 0.],
+                texture_position: [0., 0.],
+            },
+            Vertex {
+                position: [-0.5, -0.5, 0.],
+                texture_position: [0., 1.],
+            },
+            Vertex {
+                position: [0.5, -0.5, 0.],
+                texture_position: [1., 1.],
+            },
+            Vertex {
+                position: [0.5, 0.5, 0.],
+                texture_position: [1., 0.],
+            },
+        ];
+        let indices = &[0, 1, 2, 0, 2, 3];
         Self {
-            vertex_buffer: Buffer::new(gpu, &[], BufferUsages::VERTEX, "mesh_vertices"),
-            index_buffer: Buffer::new(gpu, &[], BufferUsages::INDEX, "mesh_indices"),
+            vertex_buffer: Buffer::new(gpu, vertices, BufferUsages::VERTEX, "mesh_vertices"),
+            index_buffer: Buffer::new(gpu, indices, BufferUsages::INDEX, "mesh_indices"),
         }
-    }
-}
-
-impl MeshGlob {
-    fn load(&mut self, gpu: &Gpu, vertices: &[Vertex], indices: &[u16]) {
-        self.vertex_buffer.update(gpu, vertices);
-        self.index_buffer.update(gpu, indices);
     }
 }
 

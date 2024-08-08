@@ -11,8 +11,10 @@ use wgpu::{
     TextureUsages, TextureView, TextureViewDescriptor,
 };
 
+// TODO: merge with glob
+
 /// The global data of a [`Texture`](Texture).
-#[derive(Global)]
+#[derive(Debug, Global)]
 pub struct TextureGlob {
     /// The size of the texture in pixels.
     pub size: Size,
