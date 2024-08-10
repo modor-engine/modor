@@ -165,6 +165,10 @@ impl Resource for Shader {
         self.source = source.clone();
         self.update(app);
     }
+
+    fn apply_updater(updater: Self::Updater<'_>, app: &mut App) {
+        updater.apply(app);
+    }
 }
 
 impl Shader {

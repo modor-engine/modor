@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{Color, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -187,9 +187,7 @@ fn retrieve_buffer_when_disabled() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_buffer_enabled(false).apply(app)
-        })
+        .inner(|i, _| i.is_buffer_enabled(false))
         .apply(&mut app);
     app.update();
     let buffer = glob.get(&app).glob.buffer(&app);
@@ -235,9 +233,7 @@ fn retrieve_color_when_buffer_disabled() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_buffer_enabled(false).apply(app)
-        })
+        .inner(|i, _| i.is_buffer_enabled(false))
         .apply(&mut app);
     app.update();
     assert_eq!(glob.get(&app).glob.color(&app, 0, 0), None);
@@ -259,9 +255,7 @@ fn set_smooth() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_smooth(false).apply(app)
-        })
+        .inner(|i, _| i.is_smooth(false))
         .apply(&mut app);
     app.update();
     app.update();
@@ -276,9 +270,7 @@ fn set_repeated() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_smooth(false).apply(app)
-        })
+        .inner(|i, _| i.is_smooth(false))
         .apply(&mut app);
     root(&mut app)
         .texture
@@ -294,9 +286,7 @@ fn set_repeated() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_repeated(true).apply(app)
-        })
+        .inner(|i, _| i.is_repeated(true))
         .apply(&mut app);
     app.update();
     app.update();
@@ -335,22 +325,15 @@ impl State for Root {
         self.texture
             .updater()
             .source(TextureSource::Size(Size::ONE))
-            .for_inner(app, |inner, app| {
-                inner.updater().is_buffer_enabled(true).apply(app)
-            })
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
         self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
         self.sprite.material.texture = self.texture.to_ref();
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(20, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
     }
 

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{Camera2D, Size, Sprite2D, TargetGlob, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -99,24 +99,14 @@ impl State for Root {
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(30, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
         self.other_target
             .updater()
             .source(TextureSource::Size(Size::new(30, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
         self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
     }

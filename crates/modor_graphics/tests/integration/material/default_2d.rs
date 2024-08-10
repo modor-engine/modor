@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource,
@@ -68,22 +68,15 @@ impl State for Root {
         self.texture
             .updater()
             .path("../tests/assets/opaque-texture.png")
-            .for_inner(app, |inner, app| {
-                inner.updater().is_smooth(false).apply(app)
-            })
+            .inner(|i, _| i.is_smooth(false))
             .apply(app);
         self.model.size = Vec2::ONE * 0.5;
         self.model.camera = self.target.get(app).camera.glob().to_ref();
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(30, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
     }
 

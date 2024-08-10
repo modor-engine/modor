@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, Glob, State, Updater};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_resources::Res;
 use modor_graphics::{Camera2D, Color, Size, Sprite2D, Texture, TextureSource, Window};
 use modor_physics::modor_math::Vec2;
@@ -61,19 +61,20 @@ impl FromApp for TextureTarget {
 
 impl State for TextureTarget {
     fn init(&mut self, app: &mut App) {
+        let anti_aliasing = self
+            .texture
+            .get(app)
+            .target
+            .supported_anti_aliasing_modes()
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or_default();
         self.texture
             .updater()
             .source(TextureSource::Size(Size::new(300, 300)))
-            .for_inner(app, |inner, app| {
-                inner.target.anti_aliasing = inner
-                    .target
-                    .supported_anti_aliasing_modes()
-                    .iter()
-                    .copied()
-                    .max()
-                    .unwrap_or_default();
-                inner.updater().is_target_enabled(true).apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.target_anti_aliasing(anti_aliasing))
             .apply(app);
     }
 

@@ -1,5 +1,5 @@
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
 use modor_input::modor_math::Vec2;
@@ -26,9 +26,7 @@ fn enable_supported_anti_aliasing() {
     assert_same(&app, &target, "anti_aliasing#disabled");
     target
         .updater()
-        .for_inner(&mut app, |inner, _| {
-            inner.target.anti_aliasing = AntiAliasingMode::MsaaX4
-        })
+        .inner(|i, _| i.target_anti_aliasing(AntiAliasingMode::MsaaX4))
         .apply(&mut app);
     app.update();
     app.update();
@@ -45,9 +43,7 @@ fn enable_unsupported_anti_aliasing() {
     }
     target
         .updater()
-        .for_inner(&mut app, |inner, _| {
-            inner.target.anti_aliasing = AntiAliasingMode::MsaaX16
-        })
+        .inner(|i, _| i.target_anti_aliasing(AntiAliasingMode::MsaaX16))
         .apply(&mut app);
     app.update();
     app.update();
@@ -78,14 +74,9 @@ impl State for Root {
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(30, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .is_smooth(false)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
+            .inner(|i, _| i.is_smooth(false))
             .apply(app);
         self.sprite.model.size = Vec2::ONE * 0.5;
         self.sprite.model.rotation = FRAC_PI_4;

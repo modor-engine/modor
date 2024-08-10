@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlob, ShaderGlobRef,
@@ -71,9 +71,7 @@ fn set_alpha_replaced() {
     app.update();
     shader_glob
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_alpha_replaced(true).apply(app)
-        })
+        .inner(|i, _| i.is_alpha_replaced(true))
         .apply(&mut app);
     app.update();
     assert_same(&app, &target, "shader#empty"); // because shader updated after material
@@ -133,13 +131,8 @@ impl State for Root {
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(30, 20)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_target_enabled(true)
-                    .is_buffer_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
     }
 

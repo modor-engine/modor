@@ -1,14 +1,14 @@
 use crate::testing::ResourceStates;
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, FromApp, Glob, GlobUpdater, Global, Globals, State};
+use modor::{App, FromApp, Glob, GlobUpdater, Global, Globals, State, Updater};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::{any, fmt};
 
-// TODO: update the example
+// TODO: update the examples
 /// A resource loaded from a path or a custom source.
 ///
 /// # Examples
@@ -138,6 +138,7 @@ where
             glob,
             source: None,
             reload: false,
+            inner_fns: vec![],
         }
     }
 }
@@ -254,7 +255,7 @@ impl ResourceState {
 /// # Examples
 ///
 /// See [`Res`].
-pub trait Resource: FromApp + Sized {
+pub trait Resource: FromApp + Sized + Updater {
     /// The custom source type.
     type Source: Source;
     /// The loaded resource type.
@@ -278,6 +279,9 @@ pub trait Resource: FromApp + Sized {
 
     /// Updates the resource when loading has successfully finished.
     fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>);
+
+    /// Runs resource update.
+    fn apply_updater(updater: Self::Updater<'_>, app: &mut App);
 }
 
 /// A trait for defining a source used to load a [`Resource`].
@@ -335,9 +339,12 @@ pub struct ResUpdater<'a, T: Resource> {
     glob: &'a Glob<Res<T>>,
     source: Option<ResSource<T>>,
     reload: bool,
+    // TODO: avoid dynamic allocation as much as possible
+    inner_fns:
+        Vec<Box<dyn for<'b> FnOnce(T::Updater<'b>, PhantomData<&'b ()>) -> T::Updater<'b> + 'a>>,
 }
 
-impl<T> ResUpdater<'_, T>
+impl<'a, T> ResUpdater<'a, T>
 where
     T: Resource,
 {
@@ -379,16 +386,23 @@ where
         self
     }
 
-    // TODO: improve API (maybe impl custom resource trait for ResUpdater to have "flat" API)
-    /// Configures the inner resource.
-    pub fn for_inner(self, app: &mut App, f: impl FnOnce(&mut T, &mut App)) -> Self {
-        self.glob.take(app, |res, app| f(res, app));
+    /// Updates the inner resource.
+    pub fn inner<F>(mut self, f: F) -> Self
+    where
+        F: for<'b> FnOnce(T::Updater<'b>, PhantomData<&'b ()>) -> T::Updater<'b> + 'a,
+    {
+        self.inner_fns.push(Box::new(f));
         self
     }
 
     /// Runs the update.
     pub fn apply(self, app: &mut App) {
         self.glob.take(app, |res, app| {
+            let mut updater = res.inner.updater();
+            for inner_fn in self.inner_fns {
+                updater = inner_fn(updater, PhantomData);
+            }
+            T::apply_updater(updater, app);
             if let Some(source) = self.source {
                 res.source = Some(source);
                 res.reload(app);

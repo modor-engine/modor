@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::Res;
 use modor_graphics::testing::assert_max_component_diff;
@@ -77,20 +77,13 @@ impl State for Root {
         self.text
             .texture
             .updater()
-            .for_inner(app, |inner, app| {
-                inner.updater().is_smooth(false).apply(app)
-            })
+            .inner(|i, _| i.is_smooth(false))
             .apply(app);
         self.target
             .updater()
             .source(TextureSource::Size(Size::new(100, 50)))
-            .for_inner(app, |inner, app| {
-                inner
-                    .updater()
-                    .is_buffer_enabled(true)
-                    .is_target_enabled(true)
-                    .apply(app)
-            })
+            .inner(|i, _| i.is_target_enabled(true))
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
     }
 

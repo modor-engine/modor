@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, Glob, State};
+use modor::{App, FromApp, Glob, State, Updater};
 use modor_jobs::AssetLoadingError;
 use modor_resources::{testing, Res, ResSource, Resource, ResourceError, ResourceState, Source};
 use std::sync::{Arc, Mutex};
@@ -11,9 +11,7 @@ fn update_inner() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
     assert_eq!(res.get(&app).size, None);
-    res.updater()
-        .for_inner(&mut app, |res, _| res.size = Some(1))
-        .apply(&mut app);
+    res.updater().inner(|i, _| i.size(Some(1))).apply(&mut app);
     assert_eq!(res.get(&app).size, Some(1));
 }
 
@@ -180,8 +178,9 @@ fn reload_not_default() {
 #[derive(FromApp, State)]
 struct Root;
 
-#[derive(Default)]
+#[derive(Default, Updater)]
 struct ContentSize {
+    #[updater(field)]
     size: Option<usize>,
 }
 
@@ -216,6 +215,10 @@ impl Resource for ContentSize {
 
     fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
         self.size = Some(loaded.size);
+    }
+
+    fn apply_updater(updater: Self::Updater<'_>, _app: &mut App) {
+        modor::update_field(&mut updater.updated.size, updater.size);
     }
 }
 

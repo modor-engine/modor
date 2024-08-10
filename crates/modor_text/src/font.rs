@@ -1,5 +1,5 @@
 use ab_glyph::FontVec;
-use modor::{App, FromApp, Global, Globals, State};
+use modor::{App, FromApp, Global, Globals, State, Updater};
 use modor_graphics::modor_resources::{Res, ResSource, Resource, ResourceError, Source};
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
@@ -11,7 +11,7 @@ use modor_graphics::modor_resources::{Res, ResSource, Resource, ResourceError, S
 /// # Examples
 ///
 /// See [`Text2D`](crate::Text2D).
-#[derive(Debug, Global)]
+#[derive(Debug, Global, Updater)]
 pub struct Font {
     pub(crate) glob: FontGlob,
     will_change: bool,
@@ -45,6 +45,10 @@ impl Resource for Font {
     fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
         self.glob.font = Some(loaded);
         self.will_change = true;
+    }
+
+    fn apply_updater(_updater: Self::Updater<'_>, _app: &mut App) {
+        // font has no parameter, so nothing is done
     }
 }
 

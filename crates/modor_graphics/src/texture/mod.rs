@@ -2,11 +2,12 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
-use crate::{Camera2D, Size, Target, TextureGlob};
+use crate::{AntiAliasingMode, Camera2D, Size, Target, TextureGlob};
 use getset::CopyGetters;
 use image::{DynamicImage, RgbaImage};
 use modor::{App, FromApp, Globals, State, Updater};
 use modor_resources::{Res, ResSource, Resource, ResourceError, Source};
+use std::marker::PhantomData;
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
 pub(crate) mod glob;
@@ -118,6 +119,12 @@ pub struct Texture {
     pub camera: Camera2D,
     loaded: TextureLoaded,
     pub glob: TextureGlob,
+    #[updater(
+        inner_type,
+        field,
+        for_field = "|texture, _| texture.target.anti_aliasing"
+    )]
+    target_anti_aliasing: PhantomData<AntiAliasingMode>,
 }
 
 impl FromApp for Texture {
@@ -139,6 +146,7 @@ impl FromApp for Texture {
             camera,
             loaded: TextureLoaded::default(),
             glob: TextureGlob::from_app(app),
+            target_anti_aliasing: PhantomData,
         }
     }
 }
@@ -169,6 +177,10 @@ impl Resource for Texture {
             self.is_buffer_enabled,
         );
         self.update(app);
+    }
+
+    fn apply_updater(updater: Self::Updater<'_>, app: &mut App) {
+        updater.apply(app);
     }
 }
 
@@ -243,6 +255,9 @@ impl TextureUpdater<'_> {
         is_updated |= modor::update_field(&mut texture.is_repeated, self.is_repeated);
         is_updated |= modor::update_field(&mut texture.is_buffer_enabled, self.is_buffer_enabled);
         is_updated |= modor::update_field(&mut texture.is_target_enabled, self.is_target_enabled);
+        if let Some(target_anti_aliasing) = self.target_anti_aliasing {
+            texture.target.anti_aliasing = target_anti_aliasing;
+        }
         if is_updated {
             texture.update(app);
         }

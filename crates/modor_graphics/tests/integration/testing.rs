@@ -1,6 +1,6 @@
 use image::ImageError;
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State, Updater};
+use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_max_pixel_diff, assert_same};
 use modor_graphics::{Size, Texture, TextureSource};
 use modor_resources::testing::wait_resources;
@@ -89,9 +89,7 @@ fn compare_to_empty_texture() {
         .texture
         .to_ref()
         .updater()
-        .for_inner(&mut app, |inner, app| {
-            inner.updater().is_buffer_enabled(false).apply(app)
-        })
+        .inner(|i, _| i.is_buffer_enabled(false))
         .apply(&mut app);
     app.update();
     assert_same(&app, &texture, "testing#texture");
@@ -185,9 +183,7 @@ impl State for Root {
         self.texture
             .updater()
             .source(TextureSource::Bytes(TEXTURE_BYTES))
-            .for_inner(app, |inner, app| {
-                inner.updater().is_buffer_enabled(true).apply(app)
-            })
+            .inner(|i, _| i.is_buffer_enabled(true))
             .apply(app);
     }
 }

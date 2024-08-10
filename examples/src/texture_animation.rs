@@ -1,5 +1,5 @@
 use modor::log::Level;
-use modor::{App, FromApp, Glob, State, Updater};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::Res;
 use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
@@ -36,9 +36,7 @@ impl State for Resources {
         self.slime_texture
             .updater()
             .path("slime.png")
-            .for_inner(app, |inner, app| {
-                inner.updater().is_smooth(false).apply(app)
-            })
+            .inner(|i, _| i.is_smooth(false))
             .apply(app);
     }
 }
