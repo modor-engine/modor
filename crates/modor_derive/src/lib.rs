@@ -66,16 +66,7 @@ pub fn from_app_derive(item: TokenStream) -> TokenStream {
 #[proc_macro_derive(Updater, attributes(updater))]
 pub fn updater_derive(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    updater::impl_block(&input, false)
-        .unwrap_or_else(Into::into)
-        .into()
-}
-
-#[allow(missing_docs)] // doc available in `modor` crate
-#[proc_macro_derive(GlobUpdater, attributes(updater))]
-pub fn glob_updater_derive(item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-    updater::impl_block(&input, true)
+    updater::impl_block(&input)
         .unwrap_or_else(Into::into)
         .into()
 }

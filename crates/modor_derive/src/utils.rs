@@ -1,6 +1,7 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::FoundCrate;
-use quote::ToTokens;
+use quote::{quote_spanned, ToTokens};
+use syn::spanned::Spanned;
 use syn::{GenericArgument, GenericParam, Generics, PathArguments, Type};
 
 pub(crate) fn crate_ident() -> Ident {
@@ -38,18 +39,16 @@ pub(crate) fn first_generic_type(ty: Type) -> Option<Type> {
     None
 }
 
-pub(crate) fn generic_type_idents(generics: &Generics) -> Vec<&Ident> {
-    generics
-        .params
-        .iter()
-        .filter_map(|param| {
-            if let GenericParam::Type(type_param) = param {
-                Some(&type_param.ident)
-            } else {
-                None
-            }
-        })
-        .collect()
+pub(crate) fn generic_phantom_type(generics: &Generics) -> TokenStream {
+    let types = generics.params.iter().filter_map(|param| match param {
+        GenericParam::Lifetime(lt) => Some(quote_spanned! {lt.span() => &#lt ()}),
+        GenericParam::Type(ty) => {
+            let ident = &ty.ident;
+            Some(quote_spanned! {ty.span() => fn(#ident)})
+        }
+        GenericParam::Const(_) => None,
+    });
+    quote_spanned! {generics.span() => ::std::marker::PhantomData<(#(#types,)*)>}
 }
 
 #[cfg(test)]

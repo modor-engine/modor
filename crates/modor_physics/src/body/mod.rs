@@ -3,7 +3,7 @@ use crate::pipeline::Pipeline;
 use crate::user_data::ColliderUserData;
 use crate::{Collision2D, CollisionGroup};
 use getset::{CopyGetters, Getters};
-use modor::{App, FromApp, Glob, GlobRef, GlobUpdater, Global, StateHandle};
+use modor::{App, FromApp, Glob, GlobRef, Global, StateHandle, Updater};
 use modor_math::Vec2;
 use rapier2d::dynamics::{RigidBody, RigidBodyBuilder, RigidBodyHandle, RigidBodyType};
 use rapier2d::geometry::{
@@ -36,93 +36,131 @@ mod updater;
 ///
 /// impl Character {
 ///     fn init(&mut self, app: &mut App, position: Vec2, group: &Glob<CollisionGroup>) {
-///         self.body
-///             .updater()
+///         Body2DUpdater::default()
 ///             .position(position)
 ///             .size(Vec2::ONE * 0.2)
 ///             .rotation(FRAC_PI_2)
 ///             .collision_group(group.to_ref())
 ///             .shape(Shape2D::Circle)
-///             .apply(app);
+///             .apply(app, &self.body);
 ///     }
 ///
 ///     fn update(&mut self, app: &mut App) {
-///         self.body
-///             .updater()
+///         Body2DUpdater::default()
 ///             .velocity(app.get_mut::<CharacterDirection>().0 * 0.5)
-///             .apply(app);
+///             .apply(app, &self.body);
 ///         for collision in self.body.get(app).collisions() {
 ///             println!("Character is colliding with body {}", collision.other_index);
 ///         }
 ///     }
 /// }
 /// ```
-#[derive(Debug, GlobUpdater, CopyGetters, Getters)]
+#[derive(Debug, Updater, CopyGetters, Getters)]
 pub struct Body2D {
     pub(crate) rigid_body_handle: RigidBodyHandle,
     pub(crate) collider_handle: ColliderHandle,
-    /// Collision group of the collider.<br>
+    /// Collision group of the collider.
+    ///
     /// Note that the collisions may not be updated when only the [`size`](Body2D::size) is
     /// changed. However, it is ensured the collision is detected when updating
-    /// the [`position`](Body2D::position) or the [`rotation`](Body2D::rotation).<br>
+    /// the [`position`](Body2D::position) or the [`rotation`](Body2D::rotation).
+    ///
     /// Default is `None` (no collision detection is performed).
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     #[getset(get = "pub")]
     pub(crate) collision_group: Option<GlobRef<CollisionGroup>>,
     pub(crate) collisions: Vec<Collision2D>,
     pipeline: StateHandle<Pipeline>,
     #[doc = field_doc!(position)]
-    #[updater(inner_type, field, for_field = "Body2D::position")]
+    #[updater(inner_type, field, for_field)]
     position: PhantomData<Vec2>,
     /// Size of the body in world units.<br>
     /// Default is [`Vec2::ONE`].
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     #[getset(get_copy = "pub")]
     size: Vec2,
     #[doc = field_doc!(rotation)]
-    #[updater(inner_type, field, for_field = "Body2D::rotation")]
+    #[updater(inner_type, field, for_field)]
     rotation: PhantomData<f32>,
     #[doc = field_doc!(velocity)]
-    #[updater(inner_type, field, for_field = "Body2D::velocity")]
+    #[updater(inner_type, field, for_field)]
     velocity: PhantomData<Vec2>,
     #[doc = field_doc!(angular_velocity)]
-    #[updater(inner_type, field, for_field = "Body2D::angular_velocity")]
+    #[updater(inner_type, field, for_field)]
     angular_velocity: PhantomData<f32>,
     #[doc = field_doc!(force)]
-    #[updater(inner_type, field, for_field = "Body2D::force")]
+    #[updater(inner_type, field, for_field)]
     force: PhantomData<Vec2>,
     #[doc = field_doc!(torque)]
-    #[updater(inner_type, field, for_field = "Body2D::torque")]
+    #[updater(inner_type, field, for_field)]
     torque: PhantomData<f32>,
-    /// Angular inertia of the body.<br>
-    /// An angular inertia of zero is considered as infinite. In this case, torque will not have
-    /// any effect (even in case of collisions).<br>
-    /// Default is `0.0`.
-    #[updater(field, for_field = "default")]
+    /// Mass of the body.
+    ///
+    /// A mass of zero is considered as infinite. In this case, force will not have any effect
+    /// (even in case of collisions).
+    ///
+    /// Default value is `0.0`.
+    #[updater(field, for_field)]
     #[getset(get_copy = "pub")]
     mass: f32, // stored locally so that Body2D::mass() gives immediately the new value
-    /// Angular inertia of the body.<br>
+    /// Angular inertia of the body.
+    ///
     /// An angular inertia of zero is considered as infinite. In this case, torque will not have
-    /// any effect (even in case of collisions).<br>
+    /// any effect (even in case of collisions).
+    ///
     /// Default is `0.0`.
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     #[getset(get_copy = "pub")]
     angular_inertia: f32, // stored locally so that Body2D::angular_inertia() gives immediately the new value
-    #[doc = field_doc!(damping)]
-    #[updater(inner_type, field, for_field = "Body2D::damping")]
-    damping: PhantomData<f32>,
-    #[doc = field_doc!(angular_damping)]
-    #[updater(inner_type, field, for_field = "Body2D::angular_damping")]
-    angular_damping: PhantomData<f32>,
-    #[doc = field_doc!(dominance)]
-    #[updater(inner_type, field, for_field = "Body2D::dominance")]
-    dominance: PhantomData<i8>,
-    #[doc = field_doc!(is_ccd_enabled)]
-    #[updater(inner_type, field, for_field = "Body2D::is_ccd_enabled")]
-    is_ccd_enabled: PhantomData<bool>,
-    #[doc = field_doc!(shape)]
-    #[updater(inner_type, field, for_field = "Body2D::shape")]
-    shape: PhantomData<Shape2D>,
+    /// Linear damping of the body.
+    ///
+    /// This coefficient is used to automatically slow down the translation of the body.
+    ///
+    /// Default is `0.0`.
+    #[updater(field, for_field)]
+    #[getset(get_copy = "pub")]
+    damping: f32,
+    /// Angular damping of the body.
+    ///
+    /// This coefficient is used to automatically slow down the rotation of the body.
+    ///
+    /// Default is `0.0`.
+    #[updater(field, for_field)]
+    #[getset(get_copy = "pub")]
+    angular_damping: f32,
+    /// Dominance of the body.
+    ///
+    /// In case of collision between two bodies, if both bodies have a different dominance
+    /// group, then collision forces will only be applied on the body with the smallest dominance.
+    ///
+    /// Has no effect if the [`collision_group`](Body2D::collision_group) is `None`.
+    ///
+    /// Default is `0`.
+    #[updater(field, for_field)]
+    #[getset(get_copy = "pub")]
+    dominance: i8,
+    /// Whether Continuous Collision Detection is enabled for the body.
+    ///
+    /// This option is used to detect a collision even if the body moves too fast.
+    /// CCD is performed using motion-clamping, which means each fast-moving body with CCD enabled
+    /// will be stopped at the moment of their first contact. Both angular and translational motions
+    /// are taken into account.
+    ///
+    /// Note that CCD require additional computation, so it is recommended to enable it only for
+    /// bodies that are expected to move fast.
+    ///
+    /// Has no effect if [`collision_group`](#structfield.collision_group) is `None`.
+    ///
+    /// Default is `false`.
+    #[updater(field, for_field)]
+    #[getset(get_copy = "pub")]
+    is_ccd_enabled: bool,
+    /// The shape of the body used to detect collisions.
+    ///
+    /// Default is [`Shape2D::Rectangle`].
+    #[updater(field, for_field)]
+    #[getset(get_copy = "pub")]
+    shape: Shape2D,
 }
 
 impl FromApp for Body2D {
@@ -146,11 +184,11 @@ impl FromApp for Body2D {
             torque: PhantomData,
             mass: 0.,
             angular_inertia: 0.,
-            damping: PhantomData,
-            angular_damping: PhantomData,
-            dominance: PhantomData,
-            is_ccd_enabled: PhantomData,
-            shape: PhantomData,
+            damping: 0.,
+            angular_damping: 0.,
+            dominance: 0,
+            is_ccd_enabled: false,
+            shape: Shape2D::Rectangle,
         }
     }
 }
@@ -195,38 +233,6 @@ impl Body2D {
         self.rigid_body(app).user_torque()
     }
 
-    #[doc=field_doc!(damping)]
-    pub fn damping(&self, app: &App) -> f32 {
-        self.rigid_body(app).linear_damping()
-    }
-
-    #[doc=field_doc!(angular_damping)]
-    pub fn angular_damping(&self, app: &App) -> f32 {
-        self.rigid_body(app).angular_damping()
-    }
-
-    #[doc=field_doc!(dominance)]
-    pub fn dominance(&self, app: &App) -> i8 {
-        self.rigid_body(app).dominance_group()
-    }
-
-    #[doc=field_doc!(is_ccd_enabled)]
-    pub fn is_ccd_enabled(&self, app: &App) -> bool {
-        self.rigid_body(app).is_ccd_enabled()
-    }
-
-    #[doc=field_doc!(shape)]
-    pub fn shape(&self, app: &App) -> Shape2D {
-        let shape = self.collider(app).shape();
-        if shape.as_cuboid().is_some() {
-            Shape2D::Rectangle
-        } else if shape.as_ball().is_some() {
-            Shape2D::Circle
-        } else {
-            unreachable!("internal error: unsupported body shape")
-        }
-    }
-
     /// Returns the detected collisions.
     pub fn collisions(&self) -> &[Collision2D] {
         &self.collisions
@@ -253,10 +259,6 @@ impl Body2D {
 
     fn rigid_body<'a>(&self, app: &'a App) -> &'a RigidBody {
         self.pipeline.get(app).rigid_body(self.rigid_body_handle)
-    }
-
-    fn collider<'a>(&self, app: &'a App) -> &'a Collider {
-        self.pipeline.get(app).collider(self.collider_handle)
     }
 
     fn collider_mut<'a>(&self, app: &'a mut App) -> &'a mut Collider {

@@ -1,5 +1,5 @@
 use crate::physics_hooks::{CollisionType, PhysicsHooks};
-use modor::{App, FromApp, Glob, GlobUpdater, Global};
+use modor::{App, FromApp, Glob, Global};
 
 /// A collision group that can interact with other collision groups.
 ///
@@ -19,20 +19,18 @@ use modor::{App, FromApp, Glob, GlobUpdater, Global};
 ///
 /// impl State for CollisionGroups {
 ///     fn init(&mut self, app: &mut App) {
-///         self.ball
-///             .updater()
+///         CollisionGroupUpdater::new(&self.ball)
 ///             .add_impulse(app, &self.wall, Impulse::new(1., 0.));
-///         self.paddle
-///             .updater()
+///         CollisionGroupUpdater::new(&self.paddle)
 ///             .add_impulse(app, &self.wall, Impulse::new(0., 0.))
 ///             .add_sensor(app, &self.ball);
 ///     }
 /// }
 ///
 /// fn init_wall(app: &mut App, body: &Glob<Body2D>) {
-///     body.updater()
+///     Body2DUpdater::default()
 ///         .collision_group(app.get_mut::<CollisionGroups>().wall.to_ref())
-///         .apply(app);
+///         .apply(app, &body);
 /// }
 /// ```
 #[derive(Debug, FromApp)]
@@ -48,20 +46,17 @@ impl Global for CollisionGroup {
     }
 }
 
-impl GlobUpdater for CollisionGroup {
-    type Updater<'a> = CollisionGroupUpdater<'a>;
-
-    fn updater(glob: &Glob<Self>) -> Self::Updater<'_> {
-        CollisionGroupUpdater { glob }
-    }
-}
-
 /// An updater for [`CollisionGroup`].
 pub struct CollisionGroupUpdater<'a> {
     glob: &'a Glob<CollisionGroup>,
 }
 
-impl CollisionGroupUpdater<'_> {
+impl<'a> CollisionGroupUpdater<'a> {
+    /// Creates a new updater.
+    pub fn new(glob: &'a Glob<CollisionGroup>) -> Self {
+        Self { glob }
+    }
+
     /// Register a sensor interaction between the group and an `other` group.
     ///
     /// The collisions will be detected but don't produce forces.
