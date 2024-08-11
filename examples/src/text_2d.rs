@@ -1,10 +1,10 @@
 use instant::Instant;
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::{Color, Sprite2D};
 use modor_physics::modor_math::Vec2;
-use modor_text::{Font, Text2D};
+use modor_text::{Font, FontUpdater, Text2D};
 use std::time::Duration;
 
 pub fn main() {
@@ -61,9 +61,8 @@ struct Resources {
 
 impl State for Resources {
     fn init(&mut self, app: &mut App) {
-        self.font
-            .updater()
-            .path("IrishGrover-Regular.ttf")
-            .apply(app);
+        FontUpdater::default()
+            .res(ResUpdater::default().path("IrishGrover-Regular.ttf"))
+            .apply(app, &self.font);
     }
 }

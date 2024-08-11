@@ -51,7 +51,7 @@ impl<T> Update<'_, T> {
     /// - `self` is [`Update::Value`] and the new value is different from the value returned by `f`.
     /// - `self` is [`Update::Closure`].
     ///
-    /// f` is used to get the current field value.
+    /// `f` is used to get the current field value.
     ///
     /// At the end of the method execution, `self` is [`Update::None`].
     pub fn take_value_checked(&mut self, f: impl FnOnce() -> T) -> Option<T>
@@ -93,11 +93,11 @@ impl<T> Update<'_, T> {
     {
         match mem::take(self) {
             Update::Value(value) => {
-                if value != *field {
+                if value == *field {
+                    false
+                } else {
                     *field = value;
                     true
-                } else {
-                    false
                 }
             }
             Update::Closure(closure) => {

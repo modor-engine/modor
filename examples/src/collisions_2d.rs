@@ -2,7 +2,9 @@ use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
-use modor_physics::{Body2D, Collision2D, CollisionGroup, Shape2D};
+use modor_physics::{
+    Body2D, Body2DUpdater, Collision2D, CollisionGroup, CollisionGroupUpdater, Shape2D,
+};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_8};
 
 pub fn main() {
@@ -41,7 +43,7 @@ struct CollisionGroups {
 
 impl State for CollisionGroups {
     fn init(&mut self, app: &mut App) {
-        self.cursor.updater().add_sensor(app, &self.shape);
+        CollisionGroupUpdater::new(&self.cursor).add_sensor(app, &self.shape);
     }
 }
 
@@ -63,8 +65,7 @@ impl FromApp for Shape {
 
 impl Shape {
     fn init(&mut self, app: &mut App, position: Vec2, size: Vec2, is_circle: bool) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(position)
             .size(size)
             .collision_group(app.get_mut::<CollisionGroups>().shape.to_ref())
@@ -73,7 +74,7 @@ impl Shape {
             } else {
                 Shape2D::Rectangle
             })
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.material.is_ellipse = is_circle;
         self.sprite.material.color = Color::CYAN;
@@ -111,12 +112,11 @@ impl FromApp for Cursor {
 
 impl Cursor {
     fn init(&mut self, app: &mut App) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .size(Vec2::new(0.05, 0.1))
             .rotation(FRAC_PI_8)
             .collision_group(app.get_mut::<CollisionGroups>().cursor.to_ref())
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.model.z_index = 1;
         self.sprite.material.color = Color::GREEN;
@@ -124,10 +124,9 @@ impl Cursor {
 
     fn update(&mut self, app: &mut App) {
         self.tracker.update(app);
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(self.tracker.position(app))
-            .apply(app);
+            .apply(app, &self.body);
         self.body.take(app, |body, app| {
             self.sprite.material.color = if body.collisions().is_empty() {
                 Color::GREEN

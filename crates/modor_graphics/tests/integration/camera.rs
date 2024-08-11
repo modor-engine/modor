@@ -30,7 +30,7 @@ fn remove_target() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn add_target() {
     let (mut app, target, other_target) = configure_app();
-    let other_target_glob = other_target_glob(&mut app);
+    let other_target_glob = other_target_glob(&app, &other_target);
     camera(&mut app).targets.push(other_target_glob);
     app.update();
     assert_same(&app, &target, "camera#default");
@@ -66,14 +66,8 @@ fn camera(app: &mut App) -> &mut Camera2D {
     &mut root(app).target.to_ref().get_mut(app).camera
 }
 
-fn other_target_glob(app: &mut App) -> GlobRef<TargetGlob> {
-    root(app)
-        .other_target
-        .to_ref()
-        .get(&app)
-        .target
-        .glob()
-        .to_ref()
+fn other_target_glob(app: &App, other_target: &Glob<Res<Texture>>) -> GlobRef<TargetGlob> {
+    other_target.get(app).target.glob().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {

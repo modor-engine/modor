@@ -8,7 +8,6 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::{any, fmt};
 
-// TODO: update the examples
 /// A resource loaded from a path or a custom source.
 ///
 /// # Examples

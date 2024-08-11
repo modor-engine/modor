@@ -1,10 +1,10 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::{
     bytemuck, IntoMat, Mat, Material, MaterialGlobRef, Model2D, Model2DGlob, ShaderGlob,
-    ShaderGlobRef, Texture,
+    ShaderGlobRef, ShaderUpdater, Texture, TextureUpdater,
 };
 use std::collections::HashMap;
 
@@ -40,8 +40,12 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.texture.updater().path("smiley.png").apply(app);
-        self.shader.updater().path("blur.wgsl").apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("smiley.png"))
+            .apply(app, &self.texture);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path("blur.wgsl"))
+            .apply(app, &self.shader);
     }
 
     fn update(&mut self, app: &mut App) {

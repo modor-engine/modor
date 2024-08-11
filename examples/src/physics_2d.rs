@@ -3,7 +3,9 @@ use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, MouseButton};
 use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
-use modor_physics::{Body2D, CollisionGroup, Impulse, Shape2D};
+use modor_physics::{
+    Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater, Impulse, Shape2D,
+};
 use rand::Rng;
 
 const GRAVITY: f32 = 2.;
@@ -70,8 +72,7 @@ struct CollisionGroups {
 impl State for CollisionGroups {
     fn init(&mut self, app: &mut App) {
         let impulse = Impulse::new(0.1, 0.8);
-        self.object
-            .updater()
+        CollisionGroupUpdater::new(&self.object)
             .add_impulse(app, &self.wall, impulse)
             .add_impulse(app, &self.object, impulse);
     }
@@ -93,12 +94,11 @@ impl FromApp for Wall {
 
 impl Wall {
     fn init(&mut self, app: &mut App, position: Vec2, size: Vec2) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(position)
             .size(size)
             .collision_group(app.get_mut::<CollisionGroups>().wall.to_ref())
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
     }
 
@@ -191,8 +191,7 @@ impl Object {
         } else {
             (RECTANGLE_INERTIA_FACTOR, Shape2D::Rectangle)
         };
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(position)
             .size(Vec2::ONE * OBJECT_RADIUS * 2.)
             .velocity(velocity)
@@ -201,7 +200,7 @@ impl Object {
             .angular_inertia(OBJECT_MASS * OBJECT_RADIUS.powi(2) / inertia_factor)
             .collision_group(app.get_mut::<CollisionGroups>().object.to_ref())
             .shape(shape)
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.material.is_ellipse = is_ball;
         self.sprite.material.color = Color::rgb(

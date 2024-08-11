@@ -34,7 +34,7 @@ where
     fn from_app(app: &mut App) -> Self {
         Self {
             inner: Glob::<Res<Shader>>::from_app_with(app, |res, app| {
-                res.get_mut(app).instance_size = mem::size_of::<T::InstanceData>()
+                res.get_mut(app).instance_size = mem::size_of::<T::InstanceData>();
             }),
             phantom: PhantomData,
         }
@@ -60,7 +60,7 @@ where
     pub fn to_ref(&self) -> ShaderGlobRef<T> {
         ShaderGlobRef {
             inner: self.inner.to_ref(),
-            phantom: Default::default(),
+            phantom: PhantomData,
         }
     }
 }

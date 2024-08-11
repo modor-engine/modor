@@ -1,18 +1,18 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::testing::assert_max_component_diff;
-use modor_graphics::{Size, Texture, TextureSource};
-use modor_text::{Font, FontSource, Text2D};
+use modor_graphics::{Size, Texture, TextureSource, TextureUpdater};
+use modor_text::{Font, FontSource, FontUpdater, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn render_ttf_font_from_path() {
     let (mut app, target) = configure_app();
     let font = Glob::<Res<Font>>::from_app(&mut app);
-    font.updater()
-        .path("../tests/assets/IrishGrover-Regular.ttf")
-        .apply(&mut app);
+    FontUpdater::default()
+        .res(ResUpdater::default().path("../tests/assets/IrishGrover-Regular.ttf"))
+        .apply(&mut app, &font);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -23,9 +23,9 @@ fn render_ttf_font_from_path() {
 fn render_otf_font_from_path() {
     let (mut app, target) = configure_app();
     let font = Glob::<Res<Font>>::from_app(&mut app);
-    font.updater()
-        .path("../tests/assets/Foglihtenno07.otf")
-        .apply(&mut app);
+    FontUpdater::default()
+        .res(ResUpdater::default().path("../tests/assets/Foglihtenno07.otf"))
+        .apply(&mut app, &font);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -36,12 +36,14 @@ fn render_otf_font_from_path() {
 fn render_font_from_bytes() {
     let (mut app, target) = configure_app();
     let font = Glob::<Res<Font>>::from_app(&mut app);
-    font.updater()
-        .source(FontSource::Bytes(include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/assets/Foglihtenno07.otf"
-        ))))
-        .apply(&mut app);
+    FontUpdater::default()
+        .res(
+            ResUpdater::default().source(FontSource::Bytes(include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/assets/Foglihtenno07.otf"
+            )))),
+        )
+        .apply(&mut app, &font);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
@@ -53,17 +55,16 @@ fn set_source() {
     let (mut app, target) = configure_app();
     let font = Glob::<Res<Font>>::from_app(&mut app);
     let font_ref = font.to_ref();
-    font.updater()
-        .path("../tests/assets/IrishGrover-Regular.ttf")
-        .apply(&mut app);
+    FontUpdater::default()
+        .res(ResUpdater::default().path("../tests/assets/IrishGrover-Regular.ttf"))
+        .apply(&mut app, &font_ref);
     set_font(&mut app, font);
     wait_resources(&mut app);
     app.update();
     assert_max_component_diff(&app, &target, "font#ttf", 20, 2);
-    font_ref
-        .updater()
-        .path("../tests/assets/Foglihtenno07.otf")
-        .apply(&mut app);
+    FontUpdater::default()
+        .res(ResUpdater::default().path("../tests/assets/Foglihtenno07.otf"))
+        .apply(&mut app, &font_ref);
     wait_resources(&mut app);
     app.update();
     app.update();
@@ -107,17 +108,14 @@ impl State for Root {
         self.text.content = "text".into();
         self.text.font_height = 30.;
         self.text.model.camera = self.target.get(app).camera.glob().to_ref();
-        self.text
-            .texture
-            .updater()
-            .inner(|i, _| i.is_smooth(false))
-            .apply(app);
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(60, 40)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .is_smooth(false)
+            .apply(app, &self.text.texture);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(60, 40))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
     }
 
     fn update(&mut self, app: &mut App) {

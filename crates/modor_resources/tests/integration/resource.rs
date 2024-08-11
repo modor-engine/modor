@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-// TODO: remove?
 #[modor::test(disabled(wasm))]
 fn update_inner() {
     let mut app = App::new::<Root>(Level::Info);

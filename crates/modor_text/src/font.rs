@@ -1,6 +1,9 @@
 use ab_glyph::FontVec;
-use modor::{App, FromApp, Global, Globals, State, Updater};
-use modor_graphics::modor_resources::{Res, ResSource, Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, Global, Globals, State, Updater};
+use modor_graphics::modor_resources::{
+    Res, ResSource, ResUpdater, Resource, ResourceError, Source,
+};
+use std::marker::PhantomData;
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
 ///
@@ -13,6 +16,8 @@ use modor_graphics::modor_resources::{Res, ResSource, Resource, ResourceError, S
 /// See [`Text2D`](crate::Text2D).
 #[derive(Debug, Global, Updater)]
 pub struct Font {
+    #[updater(inner_type, field)]
+    res: PhantomData<ResUpdater<Font>>,
     pub(crate) glob: FontGlob,
     will_change: bool,
 }
@@ -21,6 +26,7 @@ impl FromApp for Font {
     fn from_app(app: &mut App) -> Self {
         app.create::<FontManager>();
         Self {
+            res: PhantomData,
             glob: FontGlob::from_app(app),
             will_change: false,
         }
@@ -46,9 +52,14 @@ impl Resource for Font {
         self.glob.font = Some(loaded);
         self.will_change = true;
     }
+}
 
-    fn apply_updater(_updater: Self::Updater<'_>, _app: &mut App) {
-        // font has no parameter, so nothing is done
+impl FontUpdater<'_> {
+    /// Runs the update.
+    pub fn apply(mut self, app: &mut App, glob: &Glob<Res<Font>>) {
+        if let Some(res) = self.res.take_value(|| unreachable!()) {
+            res.apply(app, glob);
+        }
     }
 }
 

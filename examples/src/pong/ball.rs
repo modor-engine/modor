@@ -6,7 +6,7 @@ use instant::Instant;
 use modor::{App, FromApp, Glob, Globals, State, StateHandle};
 use modor_graphics::Sprite2D;
 use modor_physics::modor_math::Vec2;
-use modor_physics::Body2D;
+use modor_physics::{Body2D, Body2DUpdater};
 use rand::Rng;
 use std::f32::consts::FRAC_PI_4;
 
@@ -36,15 +36,14 @@ impl Ball {
     const ACCELERATION: f32 = 0.05;
 
     pub(crate) fn init(&mut self, app: &mut App) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::ZERO)
             .size(Self::SIZE)
             .velocity(Self::generate_velocity())
             .mass(1.)
             .is_ccd_enabled(true)
             .collision_group(self.collision_groups.get(app).ball.to_ref())
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.material.is_ellipse = true;
         self.init_instant = Instant::now();
@@ -76,10 +75,9 @@ impl Ball {
             * (body.position(app).y - paddle.position(app).y)
             / (Paddle::SIZE.y / 2.);
         let rotation = relative_y_offset * FRAC_PI_4;
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .velocity(Vec2::new(direction, 0.).with_rotation(rotation))
-            .apply(app);
+            .apply(app, &self.body);
     }
 
     pub(crate) fn handle_collision_with_ball(&mut self, app: &mut App) {
@@ -107,14 +105,13 @@ impl Ball {
             .elapsed()
             .as_secs_f32()
             .mul_add(Self::ACCELERATION, Self::INITIAL_SPEED);
-        self.body
-            .updater()
-            .for_velocity(app, |v| {
+        Body2DUpdater::default()
+            .for_velocity(|v| {
                 *v = v
                     .with_magnitude(speed)
                     .expect("internal error: ball velocity is zero");
             })
-            .apply(app);
+            .apply(app, &self.body);
     }
 
     fn collided_paddle<'a>(&self, app: &'a App) -> Option<&'a Body2D> {

@@ -1,7 +1,7 @@
 use modor::{App, FromApp, Glob};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::Sprite2D;
-use modor_physics::{Body2D, CollisionGroup};
+use modor_physics::{Body2D, Body2DUpdater, CollisionGroup};
 
 pub(crate) const FIELD_BORDER_WIDTH: f32 = 0.02;
 pub(crate) const FIELD_SIZE: Vec2 = Vec2::new(1. - FIELD_BORDER_WIDTH, 0.75);
@@ -27,12 +27,11 @@ impl Wall {
         orientation: WallOrientation,
         group: &Glob<CollisionGroup>,
     ) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(orientation.position())
             .size(orientation.size())
             .collision_group(group.to_ref())
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
     }
 

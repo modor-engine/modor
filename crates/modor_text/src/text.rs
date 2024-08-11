@@ -2,8 +2,8 @@ use crate::resources::TextResources;
 use crate::TextMaterial2D;
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::{App, Builder, FromApp, Glob, GlobRef};
-use modor_graphics::modor_resources::Res;
-use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource, TextureUpdater};
 use std::iter;
 
 /// A rendered 2D text.
@@ -22,11 +22,10 @@ use std::iter;
 ///
 /// impl FromApp for Root {
 ///     fn from_app(app: &mut App) -> Self {
-///         let font = app.get_mut::<Resources>().font.glob().to_ref();
 ///         Self {
 ///             text: Text2D::new(app)
 ///                 .with_content("Hello world!".into())
-///                 .with_font(font)
+///                 .with_font(app.get_mut::<Resources>().font.to_ref())
 ///                 .with_font_height(200.)
 ///                 .with_material(|m| m.color = Color::GREEN),
 ///         }
@@ -39,21 +38,16 @@ use std::iter;
 ///     }
 /// }
 ///
+/// #[derive(FromApp)]
 /// struct Resources {
-///     font: Res<Font>,
-/// }
-///
-/// impl FromApp for Resources {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             font: Font::new(app).load_from_path(app, "my-font.ttf"),
-///         }
-///     }
+///     font: Glob<Res<Font>>,
 /// }
 ///
 /// impl State for Resources {
-///     fn update(&mut self, app: &mut App) {
-///         self.font.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         FontUpdater::default()
+///             .res(ResUpdater::default().path("my-font.ttf"))
+///             .apply(app, &self.font);
 ///     }
 /// }
 /// ```
@@ -105,10 +99,9 @@ impl Text2D {
     pub fn new(app: &mut App) -> Self {
         let font = app.get_mut::<TextResources>().default_font.to_ref();
         let texture = Glob::<Res<Texture>>::from_app(app);
-        texture
-            .updater()
-            .source(TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0])))
+            .apply(app, &texture);
         let material = TextMaterial2D::new(app, texture.to_ref()).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self {
@@ -142,10 +135,9 @@ impl Text2D {
                     .flatten()
                     .collect();
                 self.render_glyphs(scaled_font, width, &line_widths, &mut buffer, size);
-                self.texture
-                    .updater()
-                    .source(TextureSource::Buffer(size, buffer))
-                    .apply(app);
+                TextureUpdater::default()
+                    .res(ResUpdater::default().source(TextureSource::Buffer(size, buffer)))
+                    .apply(app, &self.texture);
                 self.update_old_state();
             }
         }

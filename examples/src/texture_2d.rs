@@ -1,8 +1,8 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::Res;
-use modor_graphics::{Color, Sprite2D, Texture};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{Color, Sprite2D, Texture, TextureUpdater};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 pub fn main() {
@@ -58,11 +58,12 @@ struct Resources {
 
 impl State for Resources {
     fn init(&mut self, app: &mut App) {
-        self.background_texture
-            .updater()
-            .path("background.png")
-            .apply(app);
-        self.smiley_texture.updater().path("smiley.png").apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("background.png"))
+            .apply(app, &self.background_texture);
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("smiley.png"))
+            .apply(app, &self.smiley_texture);
     }
 }
 

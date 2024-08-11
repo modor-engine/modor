@@ -1,9 +1,9 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
-use modor_graphics::modor_resources::Res;
+use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::testing::assert_max_component_diff;
-use modor_graphics::{Size, Texture, TextureSource};
+use modor_graphics::{Size, Texture, TextureSource, TextureUpdater};
 use modor_text::{Alignment, Text2D};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -74,17 +74,14 @@ impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.text.content = "text\nto\nrender".into();
         self.text.model.camera = self.target.get(app).camera.glob().to_ref();
-        self.text
-            .texture
-            .updater()
-            .inner(|i, _| i.is_smooth(false))
-            .apply(app);
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(100, 50)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .is_smooth(false)
+            .apply(app, &self.text.texture);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(100, 50))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
     }
 
     fn update(&mut self, app: &mut App) {

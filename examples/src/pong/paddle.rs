@@ -6,7 +6,7 @@ use modor::{App, FromApp, Glob, StateHandle};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
-use modor_physics::Body2D;
+use modor_physics::{Body2D, Body2DUpdater};
 
 pub(crate) struct Paddle {
     body: Glob<Body2D>,
@@ -56,22 +56,20 @@ impl Paddle {
 
     pub(crate) fn update(&mut self, app: &mut App) {
         let new_velocity = self.new_velocity(app);
-        self.body
-            .updater()
-            .for_velocity(app, |v| v.y = new_velocity)
-            .apply(app);
+        Body2DUpdater::default()
+            .for_velocity(|v| v.y = new_velocity)
+            .apply(app, &self.body);
         self.reset_on_score(app);
         self.sprite.update(app);
     }
 
     fn init(&mut self, app: &mut App, side: Side, controller: Option<PlayerControls>) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::X * 0.4 * side.x_sign())
             .size(Self::SIZE)
             .collision_group(app.get_mut::<CollisionGroups>().paddle.to_ref())
             .mass(1.)
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.controls = controller;
     }
@@ -115,10 +113,9 @@ impl Paddle {
 
     fn reset_on_score(&mut self, app: &mut App) {
         if app.get_mut::<Scores>().is_reset_required {
-            self.body
-                .updater()
-                .for_position(app, |p| p.y = 0.)
-                .apply(app);
+            Body2DUpdater::default()
+                .for_position(|p| p.y = 0.)
+                .apply(app, &self.body);
         }
     }
 }

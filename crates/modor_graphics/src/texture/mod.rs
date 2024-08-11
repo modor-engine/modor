@@ -115,6 +115,7 @@ pub struct Texture {
     // TODO: add updater
     pub camera: Camera2D,
     loaded: TextureLoaded,
+    /// TODO: flatten
     pub glob: TextureGlob,
 }
 
@@ -209,7 +210,7 @@ impl Texture {
         if self.is_target_enabled {
             let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
             let size = self.glob.size.into();
-            self.target.enable(app, &gpu, size, Texture::DEFAULT_FORMAT);
+            self.target.enable(app, &gpu, size, Self::DEFAULT_FORMAT);
         } else {
             self.target.disable();
         }

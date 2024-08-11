@@ -1,7 +1,9 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
-use modor_graphics::modor_resources::Res;
-use modor_graphics::{Camera2D, Color, Size, Sprite2D, Texture, TextureSource, Window};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{
+    Camera2D, Color, Size, Sprite2D, Texture, TextureSource, TextureUpdater, Window,
+};
 use modor_physics::modor_math::Vec2;
 
 pub fn main() {
@@ -70,12 +72,11 @@ impl State for TextureTarget {
             .copied()
             .max()
             .unwrap_or_default();
-        self.texture
-            .updater()
-            .source(TextureSource::Size(Size::new(300, 300)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.target_anti_aliasing(anti_aliasing))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(300, 300))))
+            .is_target_enabled(true)
+            .target_anti_aliasing(anti_aliasing)
+            .apply(app, &self.texture);
     }
 
     fn update(&mut self, app: &mut App) {
