@@ -1,4 +1,4 @@
-use crate::{App, FromApp, GlobUpdater, State, StateHandle};
+use crate::{App, FromApp, State, StateHandle};
 use derivative::Derivative;
 use log::error;
 use std::iter::Flatten;
@@ -134,16 +134,6 @@ where
             globals: self.globals,
             lifetime: self.lifetime.clone(),
         })
-    }
-}
-
-impl<T> Glob<T>
-where
-    T: GlobUpdater,
-{
-    /// Creates an updater.
-    pub fn updater(&self) -> T::Updater<'_> {
-        T::updater(self)
     }
 }
 
