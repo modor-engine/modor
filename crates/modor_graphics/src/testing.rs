@@ -8,7 +8,7 @@ use modor_resources::Res;
 use std::path::PathBuf;
 use std::{env, fs};
 
-/// Asserts a [`Texture`](crate::Texture) buffer is the same as the expected texture.
+/// Asserts a [`Texture`] buffer is the same as the expected texture.
 ///
 /// If the expected texture is not yet generated, it is saved in
 /// `$CARGO_MANIFEST_DIR/tests/expected/{key}.png` and the function panics. At the next function
@@ -25,8 +25,8 @@ use std::{env, fs};
 ///
 /// This will panic if:
 /// - the expected and actual textures are different.
-/// - the [`Texture`](crate::Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// - the [`Texture`] buffer is empty.
+/// - the actual texture found in the [`Texture`] doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
@@ -41,26 +41,20 @@ use std::{env, fs};
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
+/// let texture = app.get_mut::<Root>().texture.to_ref();
 /// assert_same(&mut app, &texture, "expected_texture");
 ///
+/// #[derive(FromApp)]
 /// struct Root {
-///     texture: Res<Texture>,
-/// }
-///
-/// impl FromApp for Root {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             texture: Texture::new(app)
-///                 .with_is_target_enabled(true)
-///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
-///         }
-///     }
+///     texture: Glob<Res<Texture>>,
 /// }
 ///
 /// impl State for Root {
-///     fn update(&mut self, app: &mut App) {
-///         self.texture.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().source(TextureSource::Size(Size::new(10, 10))))
+///             .is_target_enabled(true)
+///             .apply(app, &self.texture);
 ///     }
 /// }
 /// # }
@@ -69,7 +63,7 @@ pub fn assert_same(app: &App, texture: &Glob<Res<Texture>>, key: impl AsRef<str>
     assert_texture(app, texture, key.as_ref(), MaxTextureDiff::Zero);
 }
 
-/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
+/// Asserts a [`Texture`] buffer is similar to the expected texture
 /// at component level.
 ///
 /// If the expected texture is not yet generated, it is saved in
@@ -90,8 +84,8 @@ pub fn assert_same(app: &App, texture: &Glob<Res<Texture>>, key: impl AsRef<str>
 ///
 /// This will panic if:
 /// - the expected and actual textures are not similar.
-/// - the [`Texture`](crate::Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// - the [`Texture`] buffer is empty.
+/// - the actual texture found in the [`Texture`] doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
@@ -106,26 +100,20 @@ pub fn assert_same(app: &App, texture: &Glob<Res<Texture>>, key: impl AsRef<str>
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
+/// let texture = app.get_mut::<Root>().texture.to_ref();
 /// assert_max_component_diff(&mut app, &texture, "expected_texture", 1, 1);
 ///
+/// #[derive(FromApp)]
 /// struct Root {
-///     texture: Res<Texture>,
-/// }
-///
-/// impl FromApp for Root {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             texture: Texture::new(app)
-///                 .with_is_target_enabled(true)
-///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
-///         }
-///     }
+///     texture: Glob<Res<Texture>>,
 /// }
 ///
 /// impl State for Root {
-///     fn update(&mut self, app: &mut App) {
-///         self.texture.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().source(TextureSource::Size(Size::new(10, 10))))
+///             .is_target_enabled(true)
+///             .apply(app, &self.texture);
 ///     }
 /// }
 /// # }
@@ -145,7 +133,7 @@ pub fn assert_max_component_diff(
     );
 }
 
-/// Asserts a [`Texture`](crate::Texture) buffer is similar to the expected texture
+/// Asserts a [`Texture`] buffer is similar to the expected texture
 /// at pixel level.
 ///
 /// If the expected texture is not yet generated, it is saved in
@@ -163,8 +151,8 @@ pub fn assert_max_component_diff(
 ///
 /// This will panic if:
 /// - the expected and actual textures are not similar.
-/// - the [`Texture`](crate::Texture) buffer is empty.
-/// - the actual texture found in the [`Texture`](crate::Texture) doesn't match the
+/// - the [`Texture`] buffer is empty.
+/// - the actual texture found in the [`Texture`] doesn't match the
 /// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
@@ -179,26 +167,20 @@ pub fn assert_max_component_diff(
 /// #
 /// # fn no_run() {
 /// let mut app = App::new::<Root>(Level::Info);
-/// let texture = app.get_mut::<Root>().texture.glob().to_ref();
+/// let texture = app.get_mut::<Root>().texture.to_ref();
 /// assert_max_pixel_diff(&mut app, &texture, "expected_texture", 10);
 ///
+/// #[derive(FromApp)]
 /// struct Root {
-///     texture: Res<Texture>,
-/// }
-///
-/// impl FromApp for Root {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             texture: Texture::new(app)
-///                 .with_is_target_enabled(true)
-///                 .load_from_source(app, TextureSource::Size(Size::new(10, 10)))
-///         }
-///     }
+///     texture: Glob<Res<Texture>>,
 /// }
 ///
 /// impl State for Root {
-///     fn update(&mut self, app: &mut App) {
-///         self.texture.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().source(TextureSource::Size(Size::new(10, 10))))
+///             .is_target_enabled(true)
+///             .apply(app, &self.texture);
 ///     }
 /// }
 /// # }

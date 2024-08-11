@@ -1,11 +1,13 @@
 use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
-use modor_graphics::{Camera2D, Size, Sprite2D, TargetGlob, Texture, TextureSource};
+use modor_graphics::{
+    Camera2D, Size, Sprite2D, TargetGlob, Texture, TextureSource, TextureUpdater,
+};
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
 use modor_resources::testing::wait_resources;
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 use std::f32::consts::FRAC_PI_4;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -96,18 +98,16 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
-        self.other_target
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.other_target);
         self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
     }
 

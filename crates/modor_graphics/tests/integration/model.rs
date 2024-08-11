@@ -3,11 +3,12 @@ use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
     Camera2DGlob, Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource,
+    TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
-use modor_physics::Body2D;
+use modor_physics::{Body2D, Body2DUpdater};
 use modor_resources::testing::wait_resources;
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -57,11 +58,11 @@ fn set_rotation() {
 fn set_body() {
     let (mut app, target) = configure_app();
     let body = Glob::<Body2D>::from_app(&mut app);
-    body.updater()
+    Body2DUpdater::default()
         .position(Vec2::new(-0.25, -0.25))
         .size(Vec2::new(0.5, 0.25))
         .rotation(FRAC_PI_2)
-        .apply(&mut app);
+        .apply(&mut app, &body);
     root(&mut app).models[0].body = Some(body.to_ref());
     app.update();
     app.update();
@@ -176,18 +177,16 @@ impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.material2.color = Color::RED;
         self.models[0].camera = self.target1.get(app).camera.glob().to_ref();
-        self.target1
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
-        self.target2
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target1);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target2);
     }
 
     fn update(&mut self, app: &mut App) {

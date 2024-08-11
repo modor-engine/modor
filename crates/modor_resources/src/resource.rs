@@ -1,7 +1,7 @@
 use crate::testing::ResourceStates;
 use derivative::Derivative;
 use modor::log::error;
-use modor::{App, FromApp, Glob, GlobUpdater, Global, Globals, State, Updater};
+use modor::{App, FromApp, Glob, Global, Globals, State};
 use modor_jobs::{AssetLoadingError, AssetLoadingJob, Job};
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
@@ -14,14 +14,18 @@ use std::{any, fmt};
 /// # Examples
 ///
 /// ```rust
+/// # use std::marker::PhantomData;
 /// # use modor::*;
 /// # use modor_resources::*;
 /// #
 /// // Definition
 ///
-/// #[derive(Default)]
+/// #[derive(Default, Updater)]
 /// struct ContentSize {
+///     #[updater(field, for_field)]
 ///     size: Option<usize>,
+///     #[updater(inner_type, field)]
+///     res: PhantomData<ResUpdater<ContentSize>>,
 /// }
 ///
 /// impl Resource for ContentSize {
@@ -46,6 +50,15 @@ use std::{any, fmt};
 ///     fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>) {
 ///         self.size = Some(loaded.size_in_bytes);
 ///         println!("Resource has been successfully loaded from `{source:?}`");
+///     }
+/// }
+///
+/// impl ContentSizeUpdater<'_> {
+///     fn apply(mut self, app: &mut App, glob: &Glob<Res<ContentSize>>) {
+///         self.size.apply(&mut glob.get_mut(app).size);
+///         if let Some(res) = self.res.take_value(|| unreachable!()) {
+///             res.apply(app, glob);
+///         }
 ///     }
 /// }
 ///
@@ -75,7 +88,9 @@ use std::{any, fmt};
 ///
 /// impl State for Content {
 ///     fn init(&mut self, app: &mut App) {
-///         self.size.updater().path("path/to/content").apply(app);
+///         ContentSizeUpdater::default()
+///             .res(ResUpdater::default().path("path/to/content"))
+///             .apply(app, &self.size);
 ///     }
 ///
 ///     fn update(&mut self, app: &mut App) {
@@ -124,22 +139,6 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
-    }
-}
-
-impl<T> GlobUpdater for Res<T>
-where
-    T: Resource,
-{
-    type Updater<'a> = ResUpdater<'a, T>;
-
-    fn updater(glob: &Glob<Self>) -> Self::Updater<'_> {
-        ResUpdater {
-            glob,
-            source: None,
-            reload: false,
-            inner_fns: vec![],
-        }
     }
 }
 
@@ -255,7 +254,7 @@ impl ResourceState {
 /// # Examples
 ///
 /// See [`Res`].
-pub trait Resource: FromApp + Sized + Updater {
+pub trait Resource: FromApp + Sized {
     /// The custom source type.
     type Source: Source;
     /// The loaded resource type.
@@ -279,9 +278,6 @@ pub trait Resource: FromApp + Sized + Updater {
 
     /// Updates the resource when loading has successfully finished.
     fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>);
-
-    /// Runs resource update.
-    fn apply_updater(updater: Self::Updater<'_>, app: &mut App);
 }
 
 /// A trait for defining a source used to load a [`Resource`].
@@ -335,16 +331,14 @@ where
 ///
 /// See [`Res`].
 #[must_use]
-pub struct ResUpdater<'a, T: Resource> {
-    glob: &'a Glob<Res<T>>,
+#[derive(Derivative)]
+#[derivative(Debug(bound = ""), Default(bound = ""))]
+pub struct ResUpdater<T: Resource> {
     source: Option<ResSource<T>>,
     reload: bool,
-    // TODO: avoid dynamic allocation as much as possible
-    inner_fns:
-        Vec<Box<dyn for<'b> FnOnce(T::Updater<'b>, PhantomData<&'b ()>) -> T::Updater<'b> + 'a>>,
 }
 
-impl<'a, T> ResUpdater<'a, T>
+impl<T> ResUpdater<T>
 where
     T: Resource,
 {
@@ -386,23 +380,9 @@ where
         self
     }
 
-    /// Updates the inner resource.
-    pub fn inner<F>(mut self, f: F) -> Self
-    where
-        F: for<'b> FnOnce(T::Updater<'b>, PhantomData<&'b ()>) -> T::Updater<'b> + 'a,
-    {
-        self.inner_fns.push(Box::new(f));
-        self
-    }
-
     /// Runs the update.
-    pub fn apply(self, app: &mut App) {
-        self.glob.take(app, |res, app| {
-            let mut updater = res.inner.updater();
-            for inner_fn in self.inner_fns {
-                updater = inner_fn(updater, PhantomData);
-            }
-            T::apply_updater(updater, app);
+    pub fn apply(self, app: &mut App, glob: &Glob<Res<T>>) {
+        glob.take(app, |res, app| {
             if let Some(source) = self.source {
                 res.source = Some(source);
                 res.reload(app);

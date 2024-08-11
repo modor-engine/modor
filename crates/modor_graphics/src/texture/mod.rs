@@ -5,22 +5,19 @@ use crate::texture::internal::TextureLoaded;
 use crate::{AntiAliasingMode, Camera2D, Size, Target, TextureGlob};
 use getset::CopyGetters;
 use image::{DynamicImage, RgbaImage};
-use modor::{App, FromApp, Globals, State, Updater};
-use modor_resources::{Res, ResSource, Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, Globals, State, Update, Updater};
+use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use wgpu::{TextureFormat, TextureViewDescriptor};
 
 pub(crate) mod glob;
-
-// TODO: add updater
 
 /// A texture that can be attached to a [material](crate::Mat).
 ///
 /// # Examples
 ///
 /// ```rust
-/// # use wgpu::core::command::CopySide::Source;
-/// use modor::*;
+/// # use modor::*;
 /// # use modor_graphics::*;
 /// # use modor_graphics::modor_resources::*;
 /// # use modor_physics::modor_math::*;
@@ -31,9 +28,10 @@ pub(crate) mod glob;
 ///
 /// impl TexturedRectangle {
 ///     fn new(app: &mut App, position: Vec2, size: Vec2) -> Self {
-///         let  resources = app.get_mut::<Resources>();
-///         let camera = resources.target.camera.glob().to_ref();
-///         let texture = resources.texture.glob().to_ref();
+///         let (camera, texture) = app.take::<Resources, _>(|resources, app| (
+///             resources.target.get(app).camera.glob().to_ref(),
+///             resources.texture.to_ref(),
+///         ));
 ///         Self {
 ///             sprite: Sprite2D::new(app)
 ///                 .with_material(|m| m.texture = texture)
@@ -48,26 +46,21 @@ pub(crate) mod glob;
 ///     }
 /// }
 ///
+/// #[derive(FromApp)]
 /// struct Resources {
-///     texture: Res<Texture>,
-///     target: Res<Texture>,
-/// }
-///
-/// impl FromApp for Resources {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             texture: Texture::new(app).load_from_path(app, "my-texture.png"),
-///             target: Texture::new(app)
-///                 .with_is_target_enabled(true)
-///                 .load_from_source(app, TextureSource::Size(Size::new(800, 600))),
-///         }
-///     }
+///     texture: Glob<Res<Texture>>,
+///     target: Glob<Res<Texture>>,
 /// }
 ///
 /// impl State for Resources {
-///     fn update(&mut self, app: &mut App) {
-///         self.texture.update(app);
-///         self.target.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().path("my-texture.png"))
+///             .apply(app, &self.texture);
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().source(TextureSource::Size(Size::new(800, 600))))
+///             .is_target_enabled(true)
+///             .apply(app, &self.target);
 ///     }
 /// }
 /// ```
@@ -81,7 +74,7 @@ pub struct Texture {
     ///
     /// Default is `true`.
     #[getset(get_copy = "pub")]
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     is_smooth: bool,
     /// Whether the texture is repeated.
     ///
@@ -90,7 +83,7 @@ pub struct Texture {
     ///
     /// Default is `false`.
     #[getset(get_copy = "pub")]
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     is_repeated: bool,
     /// Whether the texture buffer is enabled.
     ///
@@ -99,14 +92,18 @@ pub struct Texture {
     ///
     /// Default is `false`.
     #[getset(get_copy = "pub")]
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     is_buffer_enabled: bool,
     /// Whether the texture is a rendering [`target`](#structfield.target).
     ///
     /// Default is `false`.
     #[getset(get_copy = "pub")]
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     is_target_enabled: bool,
+    #[updater(inner_type, field, for_field)]
+    target_anti_aliasing: PhantomData<AntiAliasingMode>,
+    #[updater(inner_type, field)]
+    res: PhantomData<ResUpdater<Texture>>,
     /// Render target of the texture.
     ///
     /// Doesn't have effect if [`is_target_enabled`](#structfield.is_target_enabled) is `false`.
@@ -119,12 +116,6 @@ pub struct Texture {
     pub camera: Camera2D,
     loaded: TextureLoaded,
     pub glob: TextureGlob,
-    #[updater(
-        inner_type,
-        field,
-        for_field = "|texture, _| texture.target.anti_aliasing"
-    )]
-    target_anti_aliasing: PhantomData<AntiAliasingMode>,
 }
 
 impl FromApp for Texture {
@@ -142,11 +133,12 @@ impl FromApp for Texture {
             is_repeated: Self::DEFAULT_IS_REPEATED,
             is_buffer_enabled: Self::DEFAULT_IS_BUFFER_ENABLED,
             is_target_enabled: false,
+            target_anti_aliasing: PhantomData,
+            res: PhantomData,
             target,
             camera,
             loaded: TextureLoaded::default(),
             glob: TextureGlob::from_app(app),
-            target_anti_aliasing: PhantomData,
         }
     }
 }
@@ -177,10 +169,6 @@ impl Resource for Texture {
             self.is_buffer_enabled,
         );
         self.update(app);
-    }
-
-    fn apply_updater(updater: Self::Updater<'_>, app: &mut App) {
-        updater.apply(app);
     }
 }
 
@@ -222,6 +210,8 @@ impl Texture {
             let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
             let size = self.glob.size.into();
             self.target.enable(app, &gpu, size, Texture::DEFAULT_FORMAT);
+        } else {
+            self.target.disable();
         }
     }
 
@@ -245,21 +235,22 @@ impl Texture {
 
 impl TextureUpdater<'_> {
     /// Runs the update.
-    pub fn apply(self, app: &mut App) {
-        let texture = self.updated;
-        if self.is_buffer_enabled == Some(false) && texture.is_buffer_enabled {
-            texture.target.disable();
-        }
-        let mut is_updated = false;
-        is_updated |= modor::update_field(&mut texture.is_smooth, self.is_smooth);
-        is_updated |= modor::update_field(&mut texture.is_repeated, self.is_repeated);
-        is_updated |= modor::update_field(&mut texture.is_buffer_enabled, self.is_buffer_enabled);
-        is_updated |= modor::update_field(&mut texture.is_target_enabled, self.is_target_enabled);
-        if let Some(target_anti_aliasing) = self.target_anti_aliasing {
-            texture.target.anti_aliasing = target_anti_aliasing;
-        }
-        if is_updated {
-            texture.update(app);
+    pub fn apply(mut self, app: &mut App, glob: &Glob<Res<Texture>>) {
+        glob.take(app, |tex, app| {
+            Update::apply(
+                &mut self.target_anti_aliasing,
+                &mut tex.target.anti_aliasing,
+            );
+            if Update::apply_checked(&mut self.is_smooth, &mut tex.is_smooth)
+                | Update::apply_checked(&mut self.is_repeated, &mut tex.is_repeated)
+                | Update::apply_checked(&mut self.is_buffer_enabled, &mut tex.is_buffer_enabled)
+                | Update::apply_checked(&mut self.is_target_enabled, &mut tex.is_target_enabled)
+            {
+                tex.update(app);
+            }
+        });
+        if let Some(res) = self.res.take_value(|| unreachable!()) {
+            res.apply(app, glob);
         }
     }
 }

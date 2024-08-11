@@ -1,17 +1,23 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State, Updater};
 use modor_jobs::AssetLoadingError;
-use modor_resources::{testing, Res, ResSource, Resource, ResourceError, ResourceState, Source};
+use modor_resources::{
+    testing, Res, ResSource, ResUpdater, Resource, ResourceError, ResourceState, Source,
+};
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+// TODO: remove?
 #[modor::test(disabled(wasm))]
 fn update_inner() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
     assert_eq!(res.get(&app).size, None);
-    res.updater().inner(|i, _| i.size(Some(1))).apply(&mut app);
+    ContentSizeUpdater::default()
+        .size(Some(1))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(1));
 }
 
@@ -19,7 +25,9 @@ fn update_inner() {
 fn load_valid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater().path("not_empty.txt").apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().path("not_empty.txt"))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, None);
     assert_eq!(res.get(&app).state(), &ResourceState::Loading);
     testing::wait_resources(&mut app);
@@ -34,7 +42,9 @@ fn load_valid_resource_from_path() {
 fn load_invalid_resource_from_path() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater().path("empty.txt").apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().path("empty.txt"))
+        .apply(&mut app, &res);
     let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, None);
@@ -48,7 +58,9 @@ fn load_invalid_resource_from_path() {
 fn load_resource_from_invalid_path() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater().path("missing.txt").apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().path("missing.txt"))
+        .apply(&mut app, &res);
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, None);
     assert!(matches!(
@@ -73,7 +85,9 @@ fn load_resource_from_invalid_path() {
 fn load_valid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater().source(source).apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(source))
+        .apply(&mut app, &res);
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
@@ -92,7 +106,9 @@ fn load_valid_resource_from_source(source: ContentSizeSource) {
 fn load_invalid_resource_from_source(source: ContentSizeSource) {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater().source(source).apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(source))
+        .apply(&mut app, &res);
     let error = ResourceState::Error(ResourceError::Other("empty resource".into()));
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, None);
@@ -106,9 +122,9 @@ fn load_invalid_resource_from_source(source: ContentSizeSource) {
 fn load_resource_from_panicking_source() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater()
-        .source(ContentSizeSource::Panicking)
-        .apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(ContentSizeSource::Panicking))
+        .apply(&mut app, &res);
     let error = ResourceState::Error(ResourceError::Other("job has panicked".into()));
     testing::wait_resources(&mut app);
     assert_eq!(res.get(&app).size, None);
@@ -122,14 +138,14 @@ fn load_resource_from_panicking_source() {
 fn set_source() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater()
-        .source(ContentSizeSource::SyncStr("content"))
-        .apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(ContentSizeSource::SyncStr("content")))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
-    res.updater()
-        .source(ContentSizeSource::SyncStr("other content"))
-        .apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(ContentSizeSource::SyncStr("other content")))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(13));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
 }
@@ -138,12 +154,14 @@ fn set_source() {
 fn set_path() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater()
-        .source(ContentSizeSource::SyncStr("content"))
-        .apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(ContentSizeSource::SyncStr("content")))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
-    res.updater().path("not_empty.txt").apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().path("not_empty.txt"))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loading);
     testing::wait_resources(&mut app);
@@ -156,7 +174,9 @@ fn reload_default() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
     res.get_mut(&mut app).size = Some(42);
-    res.updater().reload().apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().reload())
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(42));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
 }
@@ -165,12 +185,14 @@ fn reload_default() {
 fn reload_not_default() {
     let mut app = App::new::<Root>(Level::Info);
     let res = Glob::<Res<ContentSize>>::from_app(&mut app);
-    res.updater()
-        .source(ContentSizeSource::SyncStr("content"))
-        .apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().source(ContentSizeSource::SyncStr("content")))
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(7));
     res.get_mut(&mut app).size = None;
-    res.updater().reload().apply(&mut app);
+    ContentSizeUpdater::default()
+        .res(ResUpdater::default().reload())
+        .apply(&mut app, &res);
     assert_eq!(res.get(&app).size, Some(7));
     assert_eq!(res.get(&app).state(), &ResourceState::Loaded);
 }
@@ -182,6 +204,8 @@ struct Root;
 struct ContentSize {
     #[updater(field)]
     size: Option<usize>,
+    #[updater(inner_type, field)]
+    res: PhantomData<ResUpdater<ContentSize>>,
 }
 
 impl Resource for ContentSize {
@@ -216,9 +240,14 @@ impl Resource for ContentSize {
     fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
         self.size = Some(loaded.size);
     }
+}
 
-    fn apply_updater(updater: Self::Updater<'_>, _app: &mut App) {
-        modor::update_field(&mut updater.updated.size, updater.size);
+impl ContentSizeUpdater<'_> {
+    fn apply(mut self, app: &mut App, glob: &Glob<Res<ContentSize>>) {
+        self.size.apply(&mut glob.get_mut(app).size);
+        if let Some(res) = self.res.take_value(|| unreachable!()) {
+            res.apply(app, glob);
+        }
     }
 }
 

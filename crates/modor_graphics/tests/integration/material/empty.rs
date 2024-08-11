@@ -5,12 +5,12 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, Size, Texture,
-    TextureSource,
+    IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater, Size,
+    Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn use_material_empty_struct() {
@@ -49,18 +49,16 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.shader
-            .updater()
-            .path("../tests/assets/red.wgsl")
-            .apply(app);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
+            .apply(app, &self.shader);
         self.model.size = Vec2::ONE * 0.5;
         self.model.camera = self.target.get(app).camera.glob().to_ref();
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
     }
 
     fn update(&mut self, app: &mut App) {

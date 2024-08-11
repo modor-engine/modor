@@ -4,11 +4,11 @@ use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
     Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlob, ShaderGlobRef,
-    ShaderSource, Size, Texture, TextureSource,
+    ShaderSource, ShaderUpdater, Size, Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 
 const SIMPLE_SHADER_PATH: &str = "../tests/assets/simple.wgsl";
 const INVALID_SHADER_PATH: &str = "../tests/assets/invalid.wgsl";
@@ -30,10 +30,9 @@ fn load_from_string() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/assets/red.wgsl"
     ));
-    shader_glob
-        .updater()
-        .source(ShaderSource::String(code.into()))
-        .apply(&mut app);
+    ShaderUpdater::default()
+        .res(ResUpdater::default().source(ShaderSource::String(code.into())))
+        .apply(&mut app, &shader_glob);
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &target, "shader#red");
@@ -45,18 +44,16 @@ fn load_invalid_code() {
     let (mut app, target) = configure_app();
     let shader_glob = root(&mut app).shader.to_ref();
     wait_resources(&mut app);
-    shader_glob
-        .updater()
-        .path(INVALID_SHADER_PATH)
-        .apply(&mut app);
+    ShaderUpdater::default()
+        .res(ResUpdater::default().path(INVALID_SHADER_PATH))
+        .apply(&mut app, &shader_glob);
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &target, "shader#default");
     assert!(shader(&mut app).is_invalid());
-    shader_glob
-        .updater()
-        .path(SIMPLE_SHADER_PATH)
-        .apply(&mut app);
+    ShaderUpdater::default()
+        .res(ResUpdater::default().path(SIMPLE_SHADER_PATH))
+        .apply(&mut app, &shader_glob);
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &target, "shader#default");
@@ -69,10 +66,9 @@ fn set_alpha_replaced() {
     let shader_glob = root(&mut app).shader.to_ref();
     wait_resources(&mut app);
     app.update();
-    shader_glob
-        .updater()
-        .inner(|i, _| i.is_alpha_replaced(true))
-        .apply(&mut app);
+    ShaderUpdater::default()
+        .is_alpha_replaced(true)
+        .apply(&mut app, &shader_glob);
     app.update();
     assert_same(&app, &target, "shader#empty"); // because shader updated after material
     app.update();
@@ -120,7 +116,9 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.shader.updater().path(SIMPLE_SHADER_PATH).apply(app);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path(SIMPLE_SHADER_PATH))
+            .apply(app, &self.shader);
         self.model1.position = Vec2::ZERO;
         self.model1.size = Vec2::ONE * 0.5;
         self.model1.camera = self.target.get(app).camera.glob().to_ref();
@@ -128,12 +126,11 @@ impl State for Root {
         self.model2.size = Vec2::ONE * 0.5;
         self.model2.z_index = -1;
         self.model2.camera = self.target.get(app).camera.glob().to_ref();
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
     }
 
     fn update(&mut self, app: &mut App) {

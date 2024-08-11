@@ -1,7 +1,10 @@
 use crate::mesh::Mesh;
-use crate::{DefaultMaterial2D, ShaderGlob, ShaderSource, Size, Texture, TextureSource};
+use crate::{
+    DefaultMaterial2D, ShaderGlob, ShaderSource, ShaderUpdater, Size, Texture, TextureSource,
+    TextureUpdater,
+};
 use modor::{App, FromApp, Glob, State};
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 
 #[non_exhaustive]
 #[derive(Debug, FromApp)]
@@ -15,27 +18,23 @@ pub(crate) struct Resources {
 
 impl State for Resources {
     fn init(&mut self, app: &mut App) {
-        self.empty_shader
-            .updater()
-            .source(ShaderSource::String(
+        ShaderUpdater::default()
+            .res(ResUpdater::default().source(ShaderSource::String(
                 include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/empty.wgsl")).into(),
-            ))
-            .apply(app);
-        self.default_shader
-            .updater()
-            .source(ShaderSource::String(
+            )))
+            .apply(app, &self.empty_shader);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().source(ShaderSource::String(
                 include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/default.wgsl")).into(),
-            ))
-            .apply(app);
-        self.ellipse_shader
-            .updater()
-            .source(ShaderSource::String(
+            )))
+            .apply(app, &self.default_shader);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().source(ShaderSource::String(
                 include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/ellipse.wgsl")).into(),
-            ))
-            .apply(app);
-        self.white_texture
-            .updater()
-            .source(TextureSource::Size(Size::ONE))
-            .apply(app);
+            )))
+            .apply(app, &self.ellipse_shader);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::ONE)))
+            .apply(app, &self.white_texture);
     }
 }

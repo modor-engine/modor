@@ -3,8 +3,8 @@ use crate::{Material, ShaderGlobInner};
 use derivative::Derivative;
 use getset::CopyGetters;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, Updater};
-use modor_resources::{Res, ResSource, Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, GlobRef, Update, Updater};
+use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
@@ -135,8 +135,10 @@ pub struct Shader {
     ///
     /// Default is `false`.
     #[getset(get_copy = "pub")]
-    #[updater(field, for_field = "default")]
+    #[updater(field, for_field)]
     is_alpha_replaced: bool,
+    #[updater(inner_type, field)]
+    res: PhantomData<ResUpdater<Shader>>,
     instance_size: usize,
     source: ResSource<Self>,
     loaded: ShaderLoaded,
@@ -164,10 +166,6 @@ impl Resource for Shader {
         self.loaded = loaded;
         self.source = source.clone();
         self.update(app);
-    }
-
-    fn apply_updater(updater: Self::Updater<'_>, app: &mut App) {
-        updater.apply(app);
     }
 }
 
@@ -201,9 +199,14 @@ impl Shader {
 
 impl ShaderUpdater<'_> {
     /// Runs the update.
-    pub fn apply(self, app: &mut App) {
-        if modor::update_field(&mut self.updated.is_alpha_replaced, self.is_alpha_replaced) {
-            self.updated.update(app);
+    pub fn apply(mut self, app: &mut App, glob: &Glob<Res<Shader>>) {
+        glob.take(app, |shader, app| {
+            if Update::apply_checked(&mut self.is_alpha_replaced, &mut shader.is_alpha_replaced) {
+                shader.update(app);
+            }
+        });
+        if let Some(res) = self.res.take_value(|| unreachable!()) {
+            res.apply(app, glob);
         }
     }
 }

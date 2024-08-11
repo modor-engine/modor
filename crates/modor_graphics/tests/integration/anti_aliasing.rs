@@ -1,9 +1,9 @@
 use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
-use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource};
+use modor_graphics::{AntiAliasingMode, Size, Sprite2D, Texture, TextureSource, TextureUpdater};
 use modor_input::modor_math::Vec2;
-use modor_resources::Res;
+use modor_resources::{Res, ResUpdater};
 use std::f32::consts::FRAC_PI_4;
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -24,10 +24,9 @@ fn enable_supported_anti_aliasing() {
     app.update();
     app.update();
     assert_same(&app, &target, "anti_aliasing#disabled");
-    target
-        .updater()
-        .inner(|i, _| i.target_anti_aliasing(AntiAliasingMode::MsaaX4))
-        .apply(&mut app);
+    TextureUpdater::default()
+        .target_anti_aliasing(AntiAliasingMode::MsaaX4)
+        .apply(&mut app, &target);
     app.update();
     app.update();
     assert_max_component_diff(&app, &target, "anti_aliasing#enabled", 30, 1);
@@ -41,10 +40,9 @@ fn enable_unsupported_anti_aliasing() {
     if supported_modes.contains(&AntiAliasingMode::MsaaX16) {
         return;
     }
-    target
-        .updater()
-        .inner(|i, _| i.target_anti_aliasing(AntiAliasingMode::MsaaX16))
-        .apply(&mut app);
+    TextureUpdater::default()
+        .target_anti_aliasing(AntiAliasingMode::MsaaX16)
+        .apply(&mut app, &target);
     app.update();
     app.update();
     assert_same(&app, &target, "anti_aliasing#disabled");
@@ -71,13 +69,12 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.target
-            .updater()
-            .source(TextureSource::Size(Size::new(30, 20)))
-            .inner(|i, _| i.is_target_enabled(true))
-            .inner(|i, _| i.is_buffer_enabled(true))
-            .inner(|i, _| i.is_smooth(false))
-            .apply(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .is_smooth(false)
+            .apply(app, &self.target);
         self.sprite.model.size = Vec2::ONE * 0.5;
         self.sprite.model.rotation = FRAC_PI_4;
         self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
