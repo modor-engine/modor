@@ -1,6 +1,11 @@
+use crate::anti_aliasing::SupportedAntiAliasingModes;
+use crate::gpu::{Gpu, GpuManager};
+use crate::mesh::{Vertex, VertexBuffer};
+use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
-use crate::{Material, ShaderGlobInner};
+use crate::{validation, AntiAliasingMode, Material, Texture, Window};
 use derivative::Derivative;
+use fxhash::FxHashMap;
 use getset::CopyGetters;
 use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Update, Updater};
@@ -8,8 +13,17 @@ use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Sourc
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
+use std::sync::Arc;
+use wgpu::{
+    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
+    BufferAddress, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction,
+    DepthBiasState, DepthStencilState, FragmentState, FrontFace, MultisampleState,
+    PipelineLayoutDescriptor, PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline,
+    RenderPipelineDescriptor, SamplerBindingType, ShaderModuleDescriptor, ShaderStages,
+    StencilState, TextureFormat, TextureSampleType, TextureViewDimension, VertexBufferLayout,
+    VertexState, VertexStepMode,
+};
 
-pub(crate) mod glob;
 mod loaded;
 
 /// A [`Shader`] glob.
@@ -125,7 +139,7 @@ where
 /// # Examples
 ///
 /// See [`Material`].
-#[derive(Debug, FromApp, Updater, CopyGetters)]
+#[derive(Debug, Updater, CopyGetters)]
 pub struct Shader {
     /// Controls how alpha channel should be treated:
     /// - `false`: apply standard alpha blending with non-premultiplied alpha.
@@ -137,13 +151,34 @@ pub struct Shader {
     #[getset(get_copy = "pub")]
     #[updater(field, for_field)]
     is_alpha_replaced: bool,
+    /// General resource parameters.
     #[updater(inner_type, field)]
     res: PhantomData<ResUpdater<Shader>>,
+    pub(crate) material_bind_group_layout: BindGroupLayout,
+    pub(crate) pipelines: FxHashMap<(TextureFormat, AntiAliasingMode), RenderPipeline>,
+    pub(crate) texture_count: u32,
     instance_size: usize,
     source: ResSource<Self>,
     loaded: ShaderLoaded,
-    pub(crate) glob: ShaderGlobInner,
     is_invalid: bool,
+}
+
+impl FromApp for Shader {
+    fn from_app(app: &mut App) -> Self {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let loaded = ShaderLoaded::default();
+        Self {
+            is_alpha_replaced: false,
+            res: PhantomData,
+            material_bind_group_layout: Self::create_material_bind_group_layout(&gpu, &loaded),
+            pipelines: FxHashMap::default(),
+            texture_count: loaded.texture_count,
+            instance_size: 0,
+            source: ResSource::from_app(app),
+            loaded,
+            is_invalid: false,
+        }
+    }
 }
 
 impl Resource for Shader {
@@ -170,30 +205,182 @@ impl Resource for Shader {
 }
 
 impl Shader {
+    pub(crate) const CAMERA_GROUP: u32 = 0;
+    pub(crate) const MATERIAL_GROUP: u32 = 1;
+
+    #[allow(clippy::cast_possible_truncation)]
+    const VERTEX_BUFFER_LAYOUTS: &'static [VertexBufferLayout<'static>] = &[
+        <Vertex as VertexBuffer<0>>::LAYOUT,
+        <Instance as VertexBuffer<
+            { <Vertex as VertexBuffer<0>>::ATTRIBUTES.len() as u32 },
+        >>::LAYOUT,
+    ];
+
     /// Whether an error occurred during parsing of the shader code.
     pub fn is_invalid(&self) -> bool {
         self.is_invalid
     }
 
     fn update(&mut self, app: &mut App) {
-        match ShaderGlobInner::new(
-            app,
-            &self.loaded,
-            self.is_alpha_replaced,
-            self.instance_size,
-        ) {
-            Ok(glob) => {
-                self.glob = glob;
-                self.is_invalid = false;
+        let window_texture_format = app.get_mut::<Window>().texture_format();
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let material_bind_group_layout =
+            Self::create_material_bind_group_layout(&gpu, &self.loaded);
+        let pipelines = [window_texture_format, Some(Texture::DEFAULT_FORMAT)]
+            .into_iter()
+            .flatten()
+            .flat_map(|format| {
+                app.get_mut::<SupportedAntiAliasingModes>()
+                    .get(&gpu, format)
+                    .iter()
+                    .copied()
+                    .map(move |anti_aliasing| (format, anti_aliasing))
+                    .collect::<Vec<_>>()
+            })
+            .map(|(format, anti_aliasing)| {
+                Ok((
+                    (format, anti_aliasing),
+                    self.create_pipeline(&gpu, format, anti_aliasing, &material_bind_group_layout)?,
+                ))
+            })
+            .collect::<Result<FxHashMap<_, _>, wgpu::Error>>();
+        self.is_invalid = pipelines.is_err();
+        match pipelines {
+            Ok(pipelines) => {
+                self.material_bind_group_layout = material_bind_group_layout;
+                self.pipelines = pipelines;
+                self.texture_count = self.loaded.texture_count;
             }
             Err(err) => {
-                self.is_invalid = true;
                 error!(
                     "Loading of shader from `{:?}` has failed: {err}",
                     self.source
                 );
             }
         }
+    }
+
+    fn create_material_bind_group_layout(gpu: &Arc<Gpu>, loaded: &ShaderLoaded) -> BindGroupLayout {
+        gpu.device
+            .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                entries: &Self::create_bind_group_layout_entries(loaded),
+                label: Some("modor_bind_group_layout_texture"),
+            })
+    }
+
+    fn create_bind_group_layout_entries(loaded: &ShaderLoaded) -> Vec<BindGroupLayoutEntry> {
+        let mut entries = vec![BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX_FRAGMENT,
+            ty: BindingType::Buffer {
+                ty: BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }];
+        for i in 0..loaded.texture_count {
+            entries.extend([
+                BindGroupLayoutEntry {
+                    binding: i * 2 + 1,
+                    visibility: ShaderStages::VERTEX_FRAGMENT,
+                    ty: BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: TextureViewDimension::D2,
+                        sample_type: TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                BindGroupLayoutEntry {
+                    binding: i * 2 + 2,
+                    visibility: ShaderStages::VERTEX_FRAGMENT,
+                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ]);
+        }
+        entries
+    }
+
+    fn create_pipeline(
+        &self,
+        gpu: &Gpu,
+        texture_format: TextureFormat,
+        anti_aliasing: AntiAliasingMode,
+        material_bind_group_layout: &BindGroupLayout,
+    ) -> Result<RenderPipeline, wgpu::Error> {
+        validation::validate_wgpu(gpu, false, || {
+            let module = gpu.device.create_shader_module(ShaderModuleDescriptor {
+                label: Some("modor_shader"),
+                source: wgpu::ShaderSource::Wgsl(self.loaded.code.as_str().into()),
+            });
+            let layout = gpu
+                .device
+                .create_pipeline_layout(&PipelineLayoutDescriptor {
+                    label: Some("modor_pipeline_layout"),
+                    bind_group_layouts: &[
+                        &gpu.camera_bind_group_layout,
+                        material_bind_group_layout,
+                    ],
+                    push_constant_ranges: &[],
+                });
+            let mut buffer_layout = Self::VERTEX_BUFFER_LAYOUTS.to_vec();
+            if self.instance_size > 0 {
+                buffer_layout.push(VertexBufferLayout {
+                    array_stride: self.instance_size as BufferAddress,
+                    step_mode: VertexStepMode::Instance,
+                    attributes: &self.loaded.instance_vertex_attributes,
+                });
+            }
+            gpu.device
+                .create_render_pipeline(&RenderPipelineDescriptor {
+                    label: Some("modor_render_pipeline"),
+                    layout: Some(&layout),
+                    vertex: VertexState {
+                        module: &module,
+                        entry_point: "vs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
+                        buffers: &buffer_layout,
+                    },
+                    fragment: Some(FragmentState {
+                        module: &module,
+                        entry_point: "fs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
+                        targets: &[Some(ColorTargetState {
+                            format: texture_format,
+                            blend: Some(if self.is_alpha_replaced {
+                                BlendState::REPLACE
+                            } else {
+                                BlendState::ALPHA_BLENDING
+                            }),
+                            write_mask: ColorWrites::ALL,
+                        })],
+                    }),
+                    primitive: PrimitiveState {
+                        topology: PrimitiveTopology::TriangleList,
+                        strip_index_format: None,
+                        front_face: FrontFace::Ccw,
+                        cull_mode: None,
+                        polygon_mode: PolygonMode::Fill,
+                        unclipped_depth: false,
+                        conservative: false,
+                    },
+                    depth_stencil: Some(DepthStencilState {
+                        format: TextureFormat::Depth32Float,
+                        depth_write_enabled: true,
+                        depth_compare: CompareFunction::Less,
+                        stencil: StencilState::default(),
+                        bias: DepthBiasState::default(),
+                    }),
+                    multisample: MultisampleState {
+                        count: anti_aliasing.sample_count(),
+                        mask: !0,
+                        alpha_to_coverage_enabled: false,
+                    },
+                    multiview: None,
+                    cache: None,
+                })
+        })
     }
 }
 

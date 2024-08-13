@@ -201,8 +201,8 @@ pub fn assert_max_pixel_diff(
 
 fn assert_texture(app: &App, texture: &Glob<Res<Texture>>, key: &str, max_diff: MaxTextureDiff) {
     let texture = texture.get(app);
-    let data = texture.glob.buffer(app);
-    let size = texture.glob.size;
+    let data = texture.buffer(app);
+    let size = texture.size();
     assert!(!data.is_empty(), "texture buffer is empty");
     let expected_folder = env::var("CARGO_MANIFEST_DIR")
         .expect("`CARGO_MANIFEST_DIR` environment variable not set")

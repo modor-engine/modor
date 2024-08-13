@@ -16,9 +16,11 @@ use std::marker::PhantomData;
 /// See [`Text2D`](crate::Text2D).
 #[derive(Debug, Global, Updater)]
 pub struct Font {
+    /// General resource parameters.
     #[updater(inner_type, field)]
     res: PhantomData<ResUpdater<Font>>,
-    pub(crate) glob: FontGlob,
+    pub(crate) font: Option<FontVec>,
+    pub(crate) has_changed: bool,
     will_change: bool,
 }
 
@@ -27,7 +29,8 @@ impl FromApp for Font {
         app.create::<FontManager>();
         Self {
             res: PhantomData,
-            glob: FontGlob::from_app(app),
+            font: None,
+            has_changed: false,
             will_change: false,
         }
     }
@@ -49,7 +52,7 @@ impl Resource for Font {
     }
 
     fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
-        self.glob.font = Some(loaded);
+        self.font = Some(loaded);
         self.will_change = true;
     }
 }
@@ -85,15 +88,6 @@ impl Source for FontSource {
     }
 }
 
-// TODO: merge with Font
-/// The global data of a [`Font`].
-#[derive(Debug, FromApp)]
-pub struct FontGlob {
-    pub(crate) font: Option<FontVec>,
-    pub(crate) has_changed: bool,
-}
-
-// TODO: make it more direct by iterating and updating on texts when font is reloaded
 #[derive(Debug, FromApp)]
 struct FontManager;
 
@@ -102,9 +96,9 @@ impl State for FontManager {
         for font in app.get_mut::<Globals<Res<Font>>>() {
             if font.will_change {
                 font.will_change = false;
-                font.glob.has_changed = true;
+                font.has_changed = true;
             } else {
-                font.glob.has_changed = false;
+                font.has_changed = false;
             }
         }
     }

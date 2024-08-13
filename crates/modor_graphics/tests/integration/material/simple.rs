@@ -110,7 +110,7 @@ impl State for Root {
             .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
             .apply(app, &self.red_shader);
         self.model.size = Vec2::ONE * 0.5;
-        self.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
             .is_target_enabled(true)

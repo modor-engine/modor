@@ -11,7 +11,7 @@ fn retrieve_supported_modes() {
     let mut app = App::new::<Root>(Level::Info);
     let supported_modes = target_glob(&mut app)
         .get(&app)
-        .target
+        .target()
         .supported_anti_aliasing_modes();
     assert_eq!(supported_modes[0], AntiAliasingMode::None);
     assert!(supported_modes.contains(&AntiAliasingMode::MsaaX4));
@@ -36,7 +36,7 @@ fn enable_supported_anti_aliasing() {
 fn enable_unsupported_anti_aliasing() {
     let mut app = App::new::<Root>(Level::Info);
     let target = target_glob(&mut app);
-    let supported_modes = target.get(&app).target.supported_anti_aliasing_modes();
+    let supported_modes = target.get(&app).target().supported_anti_aliasing_modes();
     if supported_modes.contains(&AntiAliasingMode::MsaaX16) {
         return;
     }
@@ -77,7 +77,7 @@ impl State for Root {
             .apply(app, &self.target);
         self.sprite.model.size = Vec2::ONE * 0.5;
         self.sprite.model.rotation = FRAC_PI_4;
-        self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.sprite.model.camera = self.target.get(app).camera().glob().to_ref();
     }
 
     fn update(&mut self, app: &mut App) {

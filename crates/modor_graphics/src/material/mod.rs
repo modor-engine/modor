@@ -155,8 +155,8 @@ impl MaterialGlob {
         let resources = app.handle();
         let white_texture = Self::white_texture(app, resources);
         let textures = Self::textures(app, &self.textures);
-        self.is_transparent =
-            material.is_transparent() || textures.iter().any(|texture| texture.glob.is_transparent);
+        self.is_transparent = material.is_transparent()
+            || textures.iter().any(|texture| texture.loaded.is_transparent);
         let shader = self.shader.get(app);
         let binding_ids = BindingGlobalIds::new(shader, &textures);
         if binding_ids != self.binding_ids {
@@ -188,12 +188,12 @@ impl MaterialGlob {
             buffer,
             textures,
             white_texture,
-            shader.glob.texture_count,
+            shader.texture_count,
         );
         BufferBindGroup::new(
             gpu,
             &entries,
-            &shader.glob.material_bind_group_layout,
+            &shader.material_bind_group_layout,
             "material",
         )
     }
@@ -223,11 +223,11 @@ impl MaterialGlob {
             entries.extend([
                 BindGroupEntry {
                     binding: i * 2 + 1,
-                    resource: BindingResource::TextureView(&texture.glob.view),
+                    resource: BindingResource::TextureView(&texture.view),
                 },
                 BindGroupEntry {
                     binding: i * 2 + 2,
-                    resource: BindingResource::Sampler(&texture.glob.sampler),
+                    resource: BindingResource::Sampler(&texture.sampler),
                 },
             ]);
         }
@@ -282,14 +282,14 @@ pub(crate) struct BindingGlobalIds {
 impl BindingGlobalIds {
     fn new(shader: &Shader, textures: &[&Texture]) -> Self {
         Self {
-            bind_group_layout: shader.glob.material_bind_group_layout.global_id(),
+            bind_group_layout: shader.material_bind_group_layout.global_id(),
             views: textures
                 .iter()
-                .map(|texture| texture.glob.view.global_id())
+                .map(|texture| texture.view.global_id())
                 .collect(),
             samplers: textures
                 .iter()
-                .map(|texture| texture.glob.sampler.global_id())
+                .map(|texture| texture.sampler.global_id())
                 .collect(),
         }
     }

@@ -45,12 +45,10 @@ pub use material::default_2d::*;
 pub use material::*;
 pub use model::*;
 pub use runner::*;
-pub use shader::glob::*;
 pub use shader::*;
 pub use size::*;
 pub use sprite::*;
 pub use target::*;
-pub use texture::glob::*;
 pub use texture::*;
 pub use window::*;
 

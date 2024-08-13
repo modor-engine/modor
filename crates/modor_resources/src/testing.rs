@@ -7,8 +7,9 @@ use std::time::Duration;
 
 /// Wait until all resources are loaded.
 ///
-/// A resource is considered as loaded if its state is [`ResourceState::Loaded`] or
-/// [`ResourceState::Error`].
+/// A resource is considered as loaded if its state is
+/// [`ResourceState::Loaded`](crate::ResourceState::Loaded) or
+/// [`ResourceState::Error`](crate::ResourceState::Error).
 ///
 /// # Platform-specific
 ///

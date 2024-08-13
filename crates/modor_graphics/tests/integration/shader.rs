@@ -121,11 +121,11 @@ impl State for Root {
             .apply(app, &self.shader);
         self.model1.position = Vec2::ZERO;
         self.model1.size = Vec2::ONE * 0.5;
-        self.model1.camera = self.target.get(app).camera.glob().to_ref();
+        self.model1.camera = self.target.get(app).camera().glob().to_ref();
         self.model2.position = Vec2::ONE * 0.25;
         self.model2.size = Vec2::ONE * 0.5;
         self.model2.z_index = -1;
-        self.model2.camera = self.target.get(app).camera.glob().to_ref();
+        self.model2.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
             .is_target_enabled(true)

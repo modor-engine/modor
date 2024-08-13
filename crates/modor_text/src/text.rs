@@ -120,8 +120,8 @@ impl Text2D {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn update(&mut self, app: &mut App) {
         let font = self.font.get(app);
-        if let Some(font_vec) = &font.glob.font {
-            if self.old_state.has_changed(self) || font.glob.has_changed {
+        if let Some(font_vec) = &font.font {
+            if self.old_state.has_changed(self) || font.has_changed {
                 let scaled_font = font_vec.as_scaled(self.font_height);
                 let line_widths = self.line_widths(scaled_font);
                 let width = line_widths.iter().fold(0.0_f32, |a, &b| a.max(b)).max(1.);

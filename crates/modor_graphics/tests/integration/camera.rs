@@ -21,7 +21,9 @@ fn create_with_one_target() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn remove_target() {
     let (mut app, target, other_target) = configure_app();
-    camera(&mut app).targets.clear();
+    TextureUpdater::default()
+        .camera_targets(vec![])
+        .apply(&mut app, &target);
     app.update();
     assert_same(&app, &target, "camera#empty");
     assert_same(&app, &other_target, "camera#empty");
@@ -31,7 +33,9 @@ fn remove_target() {
 fn add_target() {
     let (mut app, target, other_target) = configure_app();
     let other_target_glob = other_target_glob(&app, &other_target);
-    camera(&mut app).targets.push(other_target_glob);
+    TextureUpdater::default()
+        .for_camera_targets(|c| c.push(other_target_glob))
+        .apply(&mut app, &target);
     app.update();
     assert_same(&app, &target, "camera#default");
     assert_same(&app, &other_target, "camera#default");
@@ -40,11 +44,11 @@ fn add_target() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_position_size_rotation() {
     let (mut app, target, _) = configure_app();
-    let position = Vec2::new(-0.5, 0.5);
-    let size = Vec2::new(2., 1.5);
-    camera(&mut app).position = position;
-    camera(&mut app).size = size;
-    camera(&mut app).rotation = FRAC_PI_4;
+    TextureUpdater::default()
+        .camera_position(Vec2::new(-0.5, 0.5))
+        .camera_size(Vec2::new(2., 1.5))
+        .camera_rotation(FRAC_PI_4)
+        .apply(&mut app, &target);
     app.update();
     assert_same(&app, &target, "camera#transformed");
     let glob = camera(&mut app).glob().to_ref();
@@ -62,12 +66,12 @@ fn configure_app() -> (App, GlobRef<Res<Texture>>, GlobRef<Res<Texture>>) {
     (app, target, other_target)
 }
 
-fn camera(app: &mut App) -> &mut Camera2D {
-    &mut root(app).target.to_ref().get_mut(app).camera
+fn camera(app: &mut App) -> &Camera2D {
+    root(app).target.to_ref().get_mut(app).camera()
 }
 
 fn other_target_glob(app: &App, other_target: &Glob<Res<Texture>>) -> GlobRef<TargetGlob> {
-    other_target.get(app).target.glob().to_ref()
+    other_target.get(app).target().glob().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {
@@ -102,7 +106,7 @@ impl State for Root {
             .is_target_enabled(true)
             .is_buffer_enabled(true)
             .apply(app, &self.other_target);
-        self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.sprite.model.camera = self.target.get(app).camera().glob().to_ref();
     }
 
     fn update(&mut self, app: &mut App) {

@@ -56,7 +56,7 @@ struct TextureTarget {
 impl FromApp for TextureTarget {
     fn from_app(app: &mut App) -> Self {
         let texture = Glob::<Res<Texture>>::from_app(app);
-        let camera = Camera2D::new(app, vec![texture.get(app).target.glob().to_ref()]);
+        let camera = Camera2D::new(app, vec![texture.get(app).target().glob().to_ref()]);
         Self { texture, camera }
     }
 }
@@ -66,7 +66,7 @@ impl State for TextureTarget {
         let anti_aliasing = self
             .texture
             .get(app)
-            .target
+            .target()
             .supported_anti_aliasing_modes()
             .iter()
             .copied()

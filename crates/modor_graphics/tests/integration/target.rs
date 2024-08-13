@@ -25,10 +25,12 @@ fn set_size() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_background() {
     let (mut app, target) = configure_app();
-    target_ref(&mut app).background_color = Color::RED;
+    TextureUpdater::default()
+        .target_background_color(Color::RED)
+        .apply(&mut app, &target);
     app.update();
     assert_same(&app, &target, "target#other_background");
-    assert_eq!(target.get(&app).glob.size, Size::new(30, 20));
+    assert_eq!(target.get(&app).size(), Size::new(30, 20));
 }
 
 fn configure_app() -> (App, GlobRef<Res<Texture>>) {
@@ -40,8 +42,8 @@ fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     (app, target)
 }
 
-fn target_ref(app: &mut App) -> &mut Target {
-    &mut root(app).target.to_ref().get_mut(app).target
+fn target_ref(app: &mut App) -> &Target {
+    root(app).target.to_ref().get_mut(app).target()
 }
 
 fn root(app: &mut App) -> &mut Root {
@@ -63,7 +65,7 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.sprite.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
             .is_target_enabled(true)

@@ -137,11 +137,11 @@ fn configure_app() -> (App, GlobRef<Res<Texture>>) {
 }
 
 fn camera1(app: &mut App) -> GlobRef<Camera2DGlob> {
-    root(app).target1.to_ref().get(app).camera.glob().to_ref()
+    root(app).target1.to_ref().get(app).camera().glob().to_ref()
 }
 
 fn camera2(app: &mut App) -> GlobRef<Camera2DGlob> {
-    root(app).target2.to_ref().get(app).camera.glob().to_ref()
+    root(app).target2.to_ref().get(app).camera().glob().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {
@@ -176,7 +176,7 @@ impl FromApp for Root {
 impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.material2.color = Color::RED;
-        self.models[0].camera = self.target1.get(app).camera.glob().to_ref();
+        self.models[0].camera = self.target1.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
             .is_target_enabled(true)

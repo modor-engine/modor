@@ -73,7 +73,7 @@ impl FromApp for Root {
 impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.text.content = "text\nto\nrender".into();
-        self.text.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.text.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .is_smooth(false)
             .apply(app, &self.text.texture);

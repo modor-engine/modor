@@ -107,7 +107,7 @@ impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.text.content = "text".into();
         self.text.font_height = 30.;
-        self.text.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.text.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .is_smooth(false)
             .apply(app, &self.text.texture);

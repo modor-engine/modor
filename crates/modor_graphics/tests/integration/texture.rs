@@ -19,7 +19,7 @@ fn load_from_size() {
         .apply(&mut app, &glob);
     app.update();
     assert_same(&app, &glob, "texture#from_size");
-    assert_eq!(glob.get(&app).glob.size, Size::new(40, 20));
+    assert_eq!(glob.get(&app).size(), Size::new(40, 20));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -34,7 +34,7 @@ fn load_from_zero_size() {
         ResourceState::Loaded
     ));
     assert_same(&app, &glob, "texture#empty");
-    assert_eq!(glob.get(&app).glob.size, Size::ONE);
+    assert_eq!(glob.get(&app).size(), Size::ONE);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -48,7 +48,7 @@ fn load_from_buffer() {
         .apply(&mut app, &glob);
     app.update();
     assert_same(&app, &glob, "texture#from_buffer");
-    assert_eq!(glob.get(&app).glob.size, Size::new(3, 1));
+    assert_eq!(glob.get(&app).size(), Size::new(3, 1));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -86,7 +86,7 @@ fn load_from_bytes() {
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &glob, "texture#from_file");
-    assert_eq!(glob.get(&app).glob.size, Size::new(4, 4));
+    assert_eq!(glob.get(&app).size(), Size::new(4, 4));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -98,7 +98,7 @@ fn load_from_path() {
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &glob, "texture#from_file");
-    assert_eq!(glob.get(&app).glob.size, Size::new(4, 4));
+    assert_eq!(glob.get(&app).size(), Size::new(4, 4));
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -137,7 +137,7 @@ fn retrieve_buffer() {
         .apply(&mut app, &glob);
     wait_resources(&mut app);
     app.update();
-    let buffer = glob.get(&app).glob.buffer(&app);
+    let buffer = glob.get(&app).buffer(&app);
     assert_eq!(buffer.len(), 4 * 4 * 4);
     assert_eq!(buffer[0..4], [255, 0, 0, 255]);
 }
@@ -154,7 +154,7 @@ fn retrieve_buffer_when_disabled() {
         .is_buffer_enabled(false)
         .apply(&mut app, &glob);
     app.update();
-    let buffer = glob.get(&app).glob.buffer(&app);
+    let buffer = glob.get(&app).buffer(&app);
     assert_eq!(buffer.len(), 0);
 }
 
@@ -166,17 +166,17 @@ fn retrieve_color() {
         .apply(&mut app, &glob);
     wait_resources(&mut app);
     app.update();
-    assert_eq!(glob.get(&app).glob.color(&app, 0, 0), Some(Color::RED));
-    assert_eq!(glob.get(&app).glob.color(&app, 3, 0).map(|c| c.r), Some(1.));
-    assert!(glob.get(&app).glob.color(&app, 3, 0).map(|c| c.g) > Some(0.9));
-    assert_eq!(glob.get(&app).glob.color(&app, 3, 0).map(|c| c.b), Some(0.));
-    assert_eq!(glob.get(&app).glob.color(&app, 0, 3).map(|c| c.r), Some(0.));
-    assert_eq!(glob.get(&app).glob.color(&app, 0, 3).map(|c| c.g), Some(1.));
-    assert!(glob.get(&app).glob.color(&app, 0, 3).map(|c| c.b) < Some(0.1));
-    assert_eq!(glob.get(&app).glob.color(&app, 3, 3).map(|c| c.r), Some(0.));
-    assert!(glob.get(&app).glob.color(&app, 3, 3).map(|c| c.g) < Some(0.1));
-    assert_eq!(glob.get(&app).glob.color(&app, 3, 3).map(|c| c.b), Some(1.));
-    assert_eq!(glob.get(&app).glob.color(&app, 4, 4), None);
+    assert_eq!(glob.get(&app).color(&app, 0, 0), Some(Color::RED));
+    assert_eq!(glob.get(&app).color(&app, 3, 0).map(|c| c.r), Some(1.));
+    assert!(glob.get(&app).color(&app, 3, 0).map(|c| c.g) > Some(0.9));
+    assert_eq!(glob.get(&app).color(&app, 3, 0).map(|c| c.b), Some(0.));
+    assert_eq!(glob.get(&app).color(&app, 0, 3).map(|c| c.r), Some(0.));
+    assert_eq!(glob.get(&app).color(&app, 0, 3).map(|c| c.g), Some(1.));
+    assert!(glob.get(&app).color(&app, 0, 3).map(|c| c.b) < Some(0.1));
+    assert_eq!(glob.get(&app).color(&app, 3, 3).map(|c| c.r), Some(0.));
+    assert!(glob.get(&app).color(&app, 3, 3).map(|c| c.g) < Some(0.1));
+    assert_eq!(glob.get(&app).color(&app, 3, 3).map(|c| c.b), Some(1.));
+    assert_eq!(glob.get(&app).color(&app, 4, 4), None);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -191,7 +191,7 @@ fn retrieve_color_when_buffer_disabled() {
         .is_buffer_enabled(false)
         .apply(&mut app, &glob);
     app.update();
-    assert_eq!(glob.get(&app).glob.color(&app, 0, 0), None);
+    assert_eq!(glob.get(&app).color(&app, 0, 0), None);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
@@ -264,7 +264,7 @@ impl State for Root {
             .res(ResUpdater::default().source(TextureSource::Size(Size::ONE)))
             .is_buffer_enabled(true)
             .apply(app, &self.texture);
-        self.sprite.model.camera = self.target.get(app).camera.glob().to_ref();
+        self.sprite.model.camera = self.target.get(app).camera().glob().to_ref();
         self.sprite.material.texture = self.texture.to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(20, 20))))
