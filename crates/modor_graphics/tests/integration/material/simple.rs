@@ -3,17 +3,18 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
-    TextureGlob, TextureSource,
+    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater,
+    Size, Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
-use modor_resources::{Res, ResLoad};
+use modor_resources::{Res, ResUpdater};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_less_than_shader() {
     let (mut app, target) = configure_app();
     root(&mut app).material.textures = vec![];
+    app.update();
     app.update();
     assert_same(&app, &target, "material#no_texture");
 }
@@ -21,7 +22,7 @@ fn set_textures_less_than_shader() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_more_than_shader() {
     let (mut app, target) = configure_app();
-    let texture = root(&mut app).texture.glob().to_ref();
+    let texture = root(&mut app).texture.to_ref();
     root(&mut app).material.textures = vec![texture.clone(), texture];
     app.update();
     assert_same(&app, &target, "material#default");
@@ -32,6 +33,7 @@ fn set_color_opaque() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE;
     app.update();
+    app.update();
     assert_same(&app, &target, "material#lighter");
 }
 
@@ -40,22 +42,25 @@ fn set_color_transparent() {
     let (mut app, target) = configure_app();
     root(&mut app).material.color = Color::WHITE.with_alpha(0.5);
     app.update();
+    app.update();
     assert_max_component_diff(&app, &target, "material#alpha", 10, 1);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_shader() {
     let (mut app, target) = configure_app();
-    let shader = root(&mut app).red_shader.glob();
+    let shader = root(&mut app).red_shader.to_ref();
     root(&mut app).material.shader = shader;
+    app.update();
     app.update();
     assert_same(&app, &target, "material#red");
 }
 
-fn configure_app() -> (App, GlobRef<TextureGlob>) {
+fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().to_ref();
+    app.update();
+    let target = root(&mut app).target.to_ref();
     assert_same(&app, &target, "material#default");
     (app, target)
 }
@@ -65,29 +70,22 @@ fn root(app: &mut App) -> &mut Root {
 }
 
 struct Root {
-    texture: Res<Texture>,
-    shader: Res<Shader<TestMaterial>>,
-    red_shader: Res<Shader<TestMaterial>>,
+    texture: Glob<Res<Texture>>,
+    shader: ShaderGlob<TestMaterial>,
+    red_shader: ShaderGlob<TestMaterial>,
     material: Mat<TestMaterial>,
     model: Model2D<TestMaterial>,
-    target: Res<Texture>,
+    target: Glob<Res<Texture>>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let target = Texture::new(app)
-            .with_is_target_enabled(true)
-            .with_is_buffer_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let texture = Texture::new(app)
-            .with_is_smooth(false)
-            .load_from_path(app, "../tests/assets/opaque-texture.png");
-        let shader = Shader::new(app).load_from_path(app, "../tests/assets/simple.wgsl");
-        let red_shader = Shader::new(app).load_from_path(app, "../tests/assets/red.wgsl");
+        let target = Glob::from_app(app);
+        let texture = Glob::from_app(app);
+        let shader = ShaderGlob::from_app(app);
+        let red_shader = ShaderGlob::from_app(app);
         let material = TestMaterial::new(&texture, &shader).into_mat(app);
-        let model = Model2D::new(app, material.glob())
-            .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().to_ref());
+        let model = Model2D::new(app, material.glob());
         Self {
             texture,
             shader,
@@ -100,19 +98,35 @@ impl FromApp for Root {
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("../tests/assets/opaque-texture.png"))
+            .is_smooth(false)
+            .apply(app, &self.texture);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path("../tests/assets/simple.wgsl"))
+            .apply(app, &self.shader);
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
+            .apply(app, &self.red_shader);
+        self.model.size = Vec2::ONE * 0.5;
+        self.model.camera = self.target.get(app).camera().glob().to_ref();
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
+    }
+
     fn update(&mut self, app: &mut App) {
-        self.texture.update(app);
-        self.shader.update(app);
-        self.red_shader.update(app);
         self.material.update(app);
         self.model.update(app);
-        self.target.update(app);
     }
 }
 
 struct TestMaterial {
     color: Color,
-    textures: Vec<GlobRef<TextureGlob>>,
+    textures: Vec<GlobRef<Res<Texture>>>,
     shader: ShaderGlobRef<Self>,
 }
 
@@ -124,7 +138,7 @@ impl Material for TestMaterial {
         self.shader.clone()
     }
 
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
         self.textures.clone()
     }
 
@@ -142,11 +156,11 @@ impl Material for TestMaterial {
 }
 
 impl TestMaterial {
-    fn new(texture: &Res<Texture>, shader: &Res<Shader<Self>>) -> Self {
+    fn new(texture: &Glob<Res<Texture>>, shader: &ShaderGlob<Self>) -> Self {
         Self {
             color: Color::DARK_GRAY,
-            textures: vec![texture.glob().to_ref()],
-            shader: shader.glob(),
+            textures: vec![texture.to_ref()],
+            shader: shader.to_ref(),
         }
     }
 }

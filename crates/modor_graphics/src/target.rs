@@ -1,10 +1,9 @@
 use crate::gpu::Gpu;
-use crate::mesh::MeshGlob;
-use crate::shader::glob::ShaderGlob;
+use crate::mesh::Mesh;
 use crate::size::NonZeroSize;
 use crate::{
     validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
-    MaterialGlob, Size, Texture,
+    MaterialGlob, Shader, Size, Texture,
 };
 use log::{error, trace};
 use modor::{App, FromApp, Glob, Global, Globals, StateHandle};
@@ -37,7 +36,7 @@ use wgpu::{
 /// ```
 #[derive(Debug)]
 pub struct Target {
-    /// Background color of the rendering.
+    /// Background color used for rendering.
     ///
     /// Default is [`Color::BLACK`].
     pub background_color: Color,
@@ -55,7 +54,7 @@ pub struct Target {
     glob: Glob<TargetGlob>,
     cameras: StateHandle<Globals<Camera2DGlob>>,
     materials: StateHandle<Globals<MaterialGlob>>,
-    meshes: StateHandle<Globals<MeshGlob>>,
+    meshes: StateHandle<Globals<Mesh>>,
 }
 
 impl Target {
@@ -324,12 +323,8 @@ impl Target {
         let primary_buffer = group.primary_buffer()?;
         let pipeline_params = (self.texture_format, anti_aliasing);
         pass.set_pipeline(shader.pipelines.get(&pipeline_params)?);
-        pass.set_bind_group(
-            ShaderGlob::CAMERA_GROUP,
-            camera.bind_group(self.glob())?,
-            &[],
-        );
-        pass.set_bind_group(ShaderGlob::MATERIAL_GROUP, &material.bind_group.inner, &[]);
+        pass.set_bind_group(Shader::CAMERA_GROUP, camera.bind_group(self.glob())?, &[]);
+        pass.set_bind_group(Shader::MATERIAL_GROUP, &material.bind_group.inner, &[]);
         pass.set_index_buffer(mesh.index_buffer.slice(), IndexFormat::Uint16);
         pass.set_vertex_buffer(0, mesh.vertex_buffer.slice());
         pass.set_vertex_buffer(1, primary_buffer.slice());

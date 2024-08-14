@@ -1,6 +1,6 @@
 use crate::buffer::Buffer;
 use crate::gpu::Gpu;
-use crate::mesh::MeshGlob;
+use crate::mesh::Mesh;
 use crate::mesh::VertexBuffer;
 use crate::resources::Resources;
 use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
@@ -89,7 +89,7 @@ pub struct Model2D<T> {
     /// The material used to render the model.
     #[builder(form(value))]
     pub material: MaterialGlobRef<T>,
-    mesh: GlobRef<MeshGlob>,
+    mesh: GlobRef<Mesh>,
     glob: Glob<Model2DGlob>,
     groups: StateHandle<InstanceGroups2D>,
     phantom: PhantomData<fn(T)>,
@@ -102,7 +102,7 @@ where
     /// Creates a new model.
     pub fn new(app: &mut App, material: MaterialGlobRef<T>) -> Self {
         let camera = app.get_mut::<Window>().camera.glob().to_ref();
-        let mesh = app.get_mut::<Resources>().rectangle_mesh.glob().to_ref();
+        let mesh = app.get_mut::<Resources>().rectangle_mesh.to_ref();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,

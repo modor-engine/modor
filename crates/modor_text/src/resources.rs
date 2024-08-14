@@ -1,36 +1,28 @@
-use crate::{Font, FontSource, TextMaterial2D};
-use modor::{App, FromApp, State};
-use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::{Shader, ShaderSource};
+use crate::{Font, FontSource, FontUpdater, TextMaterial2D};
+use modor::{App, FromApp, Glob, State};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{ShaderGlob, ShaderSource, ShaderUpdater};
 
+#[derive(FromApp)]
 pub(crate) struct TextResources {
-    pub(crate) text_shader: Res<Shader<TextMaterial2D>>,
-    pub(crate) default_font: Res<Font>,
-}
-
-impl FromApp for TextResources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            text_shader: Shader::new(app).load_from_source(
-                app,
-                ShaderSource::String(
-                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/text.wgsl")).into(),
-                ),
-            ),
-            default_font: Font::new(app).load_from_source(
-                app,
-                FontSource::Bytes(include_bytes!(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/res/Roboto-Regular.ttf"
-                ))),
-            ),
-        }
-    }
+    pub(crate) text_shader: ShaderGlob<TextMaterial2D>,
+    pub(crate) default_font: Glob<Res<Font>>,
 }
 
 impl State for TextResources {
-    fn update(&mut self, app: &mut App) {
-        self.text_shader.update(app);
-        self.default_font.update(app);
+    fn init(&mut self, app: &mut App) {
+        ShaderUpdater::default()
+            .res(ResUpdater::default().source(ShaderSource::String(
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/text.wgsl")).into(),
+            )))
+            .apply(app, &self.text_shader);
+        FontUpdater::default()
+            .res(
+                ResUpdater::default().source(FontSource::Bytes(include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/res/Roboto-Regular.ttf"
+                )))),
+            )
+            .apply(app, &self.default_font);
     }
 }

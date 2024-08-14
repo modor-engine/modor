@@ -5,26 +5,19 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlobRef, Size, Texture,
-    TextureGlob, TextureSource,
+    IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater, Size,
+    Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
-use modor_resources::{Res, ResLoad};
-
-#[modor::test(disabled(windows, macos, android, wasm))]
-fn deref() {
-    let mut app = App::new::<Root>(Level::Info);
-    let shader = Shader::new(&mut app).load_from_path(&mut app, "../tests/assets/red.wgsl");
-    let material = TestMaterial::new(&shader).into_mat(&mut app);
-    assert_eq!(material.shader, shader.glob());
-}
+use modor_resources::{Res, ResUpdater};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn use_material_empty_struct() {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = root(&mut app).target.glob().to_ref();
+    app.update();
+    let target = root(&mut app).target.to_ref();
     assert_same(&app, &target, "material#red");
 }
 
@@ -33,23 +26,18 @@ fn root(app: &mut App) -> &mut Root {
 }
 
 struct Root {
-    shader: Res<Shader<TestMaterial>>,
+    shader: ShaderGlob<TestMaterial>,
     material: Mat<TestMaterial>,
     model: Model2D<TestMaterial>,
-    target: Res<Texture>,
+    target: Glob<Res<Texture>>,
 }
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let target = Texture::new(app)
-            .with_is_target_enabled(true)
-            .with_is_buffer_enabled(true)
-            .load_from_source(app, TextureSource::Size(Size::new(30, 20)));
-        let shader = Shader::new(app).load_from_path(app, "../tests/assets/red.wgsl");
+        let target = Glob::from_app(app);
+        let shader = ShaderGlob::from_app(app);
         let material = TestMaterial::new(&shader).into_mat(app);
-        let model = Model2D::new(app, material.glob())
-            .with_size(Vec2::ONE * 0.5)
-            .with_camera(target.camera.glob().to_ref());
+        let model = Model2D::new(app, material.glob());
         Self {
             shader,
             material,
@@ -60,11 +48,22 @@ impl FromApp for Root {
 }
 
 impl State for Root {
+    fn init(&mut self, app: &mut App) {
+        ShaderUpdater::default()
+            .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
+            .apply(app, &self.shader);
+        self.model.size = Vec2::ONE * 0.5;
+        self.model.camera = self.target.get(app).camera().glob().to_ref();
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
+            .is_target_enabled(true)
+            .is_buffer_enabled(true)
+            .apply(app, &self.target);
+    }
+
     fn update(&mut self, app: &mut App) {
-        self.shader.update(app);
         self.material.update(app);
         self.model.update(app);
-        self.target.update(app);
     }
 }
 
@@ -80,7 +79,7 @@ impl Material for TestMaterial {
         self.shader.clone()
     }
 
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>> {
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
         vec![]
     }
 
@@ -96,9 +95,9 @@ impl Material for TestMaterial {
 }
 
 impl TestMaterial {
-    fn new(shader: &Res<Shader<Self>>) -> Self {
+    fn new(shader: &ShaderGlob<Self>) -> Self {
         Self {
-            shader: shader.glob(),
+            shader: shader.to_ref(),
         }
     }
 }

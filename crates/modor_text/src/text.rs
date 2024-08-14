@@ -1,9 +1,9 @@
 use crate::resources::TextResources;
-use crate::{FontGlob, TextMaterial2D};
+use crate::TextMaterial2D;
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
-use modor::{App, Builder, GlobRef};
-use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource};
+use modor::{App, Builder, FromApp, Glob, GlobRef};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource, TextureUpdater};
 use std::iter;
 
 /// A rendered 2D text.
@@ -22,11 +22,10 @@ use std::iter;
 ///
 /// impl FromApp for Root {
 ///     fn from_app(app: &mut App) -> Self {
-///         let font = app.get_mut::<Resources>().font.glob().to_ref();
 ///         Self {
 ///             text: Text2D::new(app)
 ///                 .with_content("Hello world!".into())
-///                 .with_font(font)
+///                 .with_font(app.get_mut::<Resources>().font.to_ref())
 ///                 .with_font_height(200.)
 ///                 .with_material(|m| m.color = Color::GREEN),
 ///         }
@@ -39,21 +38,16 @@ use std::iter;
 ///     }
 /// }
 ///
+/// #[derive(FromApp)]
 /// struct Resources {
-///     font: Res<Font>,
-/// }
-///
-/// impl FromApp for Resources {
-///     fn from_app(app: &mut App) -> Self {
-///         Self {
-///             font: Font::new(app).load_from_path(app, "my-font.ttf"),
-///         }
-///     }
+///     font: Glob<Res<Font>>,
 /// }
 ///
 /// impl State for Resources {
-///     fn update(&mut self, app: &mut App) {
-///         self.font.update(app);
+///     fn init(&mut self, app: &mut App) {
+///         FontUpdater::default()
+///             .res(ResUpdater::default().path("my-font.ttf"))
+///             .apply(app, &self.font);
 ///     }
 /// }
 /// ```
@@ -78,7 +72,7 @@ pub struct Text2D {
     ///
     /// Default is [Roboto](https://fonts.google.com/specimen/Roboto).
     #[builder(form(value))]
-    pub font: GlobRef<FontGlob>,
+    pub font: GlobRef<Res<crate::Font>>,
     /// Alignment of the rendered text.
     ///
     /// Default is [`Alignment::Center`].
@@ -88,7 +82,7 @@ pub struct Text2D {
     ///
     /// The size of the generated texture is calculated to exactly fit the text.
     #[builder(form(closure))]
-    pub texture: Res<Texture>,
+    pub texture: Glob<Res<Texture>>,
     /// Material of the rendered text.
     #[builder(form(closure))]
     pub material: Mat<TextMaterial2D>,
@@ -103,10 +97,12 @@ impl Text2D {
 
     /// Creates a new sprite.
     pub fn new(app: &mut App) -> Self {
-        let font = app.get_mut::<TextResources>().default_font.glob().to_ref();
-        let texture = Texture::new(app)
-            .load_from_source(app, TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0]));
-        let material = TextMaterial2D::new(app, texture.glob().to_ref()).into_mat(app);
+        let font = app.get_mut::<TextResources>().default_font.to_ref();
+        let texture = Glob::<Res<Texture>>::from_app(app);
+        TextureUpdater::default()
+            .res(ResUpdater::default().source(TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0])))
+            .apply(app, &texture);
+        let material = TextMaterial2D::new(app, texture.to_ref()).into_mat(app);
         let model = Model2D::new(app, material.glob());
         Self {
             content: String::new(),
@@ -139,12 +135,12 @@ impl Text2D {
                     .flatten()
                     .collect();
                 self.render_glyphs(scaled_font, width, &line_widths, &mut buffer, size);
-                self.texture
-                    .reload_with_source(TextureSource::Buffer(size, buffer));
+                TextureUpdater::default()
+                    .res(ResUpdater::default().source(TextureSource::Buffer(size, buffer)))
+                    .apply(app, &self.texture);
                 self.update_old_state();
             }
         }
-        self.texture.update(app);
         self.material.update(app);
         self.model.update(app);
     }
@@ -260,12 +256,12 @@ pub enum Alignment {
 struct OldState {
     content: String,
     font_height: f32,
-    font: GlobRef<FontGlob>,
+    font: GlobRef<Res<crate::Font>>,
     alignment: Alignment,
 }
 
 impl OldState {
-    fn new(font: GlobRef<FontGlob>) -> Self {
+    fn new(font: GlobRef<Res<crate::Font>>) -> Self {
         Self {
             content: String::new(),
             font_height: 100.,

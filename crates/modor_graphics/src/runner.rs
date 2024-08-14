@@ -174,6 +174,7 @@ where
             gpu_manager.configure_window(&surface);
             let gpu = gpu_manager.get_or_init().clone();
             app.get_mut::<Window>().set_surface(&gpu, surface);
+            app.take::<Window, _>(State::update); // initialize before shaders
             app.get_mut::<T>();
             self.gamepads = Some(Gamepads::new(app));
             self.is_window_created = true;

@@ -1,6 +1,9 @@
 use ab_glyph::FontVec;
-use modor::{App, FromApp, Glob, Global};
-use modor_graphics::modor_resources::{ResSource, Resource, ResourceError, Source};
+use modor::{App, FromApp, Glob, Global, Globals, State, Updater};
+use modor_graphics::modor_resources::{
+    Res, ResSource, ResUpdater, Resource, ResourceError, Source,
+};
+use std::marker::PhantomData;
 
 /// A font that can be attached to a [`Text2D`](crate::Text2D).
 ///
@@ -11,8 +14,26 @@ use modor_graphics::modor_resources::{ResSource, Resource, ResourceError, Source
 /// # Examples
 ///
 /// See [`Text2D`](crate::Text2D).
+#[derive(Debug, Global, Updater)]
 pub struct Font {
-    glob: Glob<FontGlob>,
+    /// General resource parameters.
+    #[updater(inner_type, field)]
+    res: PhantomData<ResUpdater<Font>>,
+    pub(crate) font: Option<FontVec>,
+    pub(crate) has_changed: bool,
+    will_change: bool,
+}
+
+impl FromApp for Font {
+    fn from_app(app: &mut App) -> Self {
+        app.create::<FontManager>();
+        Self {
+            res: PhantomData,
+            font: None,
+            has_changed: false,
+            will_change: false,
+        }
+    }
 }
 
 impl Resource for Font {
@@ -23,35 +44,25 @@ impl Resource for Font {
         FontVec::try_from_vec(file_bytes).map_err(|_| ResourceError::Other("invalid font".into()))
     }
 
-    fn load(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
+    fn load_from_source(source: &Self::Source) -> Result<Self::Loaded, ResourceError> {
         match source {
             FontSource::Bytes(bytes) => FontVec::try_from_vec(bytes.to_vec())
                 .map_err(|_| ResourceError::Other("invalid font".into())),
         }
     }
 
-    fn update(&mut self, app: &mut App, loaded: Option<Self::Loaded>, _source: &ResSource<Self>) {
-        let glob = self.glob.get_mut(app);
-        if let Some(loaded) = loaded {
-            glob.font = Some(loaded);
-            glob.has_changed = true;
-        } else {
-            glob.has_changed = false;
-        }
+    fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
+        self.font = Some(loaded);
+        self.will_change = true;
     }
 }
 
-impl Font {
-    /// Creates a new font.
-    pub fn new(app: &mut App) -> Self {
-        Self {
-            glob: Glob::from_app(app),
+impl FontUpdater<'_> {
+    /// Runs the update.
+    pub fn apply(mut self, app: &mut App, glob: &Glob<Res<Font>>) {
+        if let Some(res) = self.res.take_value(|| unreachable!()) {
+            res.apply(app, glob);
         }
-    }
-
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> &Glob<FontGlob> {
-        &self.glob
     }
 }
 
@@ -77,9 +88,18 @@ impl Source for FontSource {
     }
 }
 
-/// The global data of a [`Font`].
-#[derive(Debug, Default, Global)]
-pub struct FontGlob {
-    pub(crate) font: Option<FontVec>,
-    pub(crate) has_changed: bool,
+#[derive(Debug, FromApp)]
+struct FontManager;
+
+impl State for FontManager {
+    fn update(&mut self, app: &mut App) {
+        for font in app.get_mut::<Globals<Res<Font>>>() {
+            if font.will_change {
+                font.will_change = false;
+                font.has_changed = true;
+            } else {
+                font.has_changed = false;
+            }
+        }
+    }
 }

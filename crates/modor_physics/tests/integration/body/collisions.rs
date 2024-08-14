@@ -2,7 +2,9 @@ use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_internal::assert_approx_eq;
 use modor_math::Vec2;
-use modor_physics::{Body2D, CollisionGroup, Delta, Impulse, Shape2D};
+use modor_physics::{
+    Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater, Delta, Impulse, Shape2D,
+};
 use std::time::Duration;
 
 #[modor::test]
@@ -128,7 +130,9 @@ fn set_dominance(dominance: i8, expected_position: Vec2) {
     res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
     res.configure_ground(&mut app);
     res.configure_falling_ball(&mut app);
-    res.body2.updater().dominance(dominance).apply(&mut app);
+    Body2DUpdater::default()
+        .dominance(dominance)
+        .apply(&mut app, &res.body2);
     for _ in 0..10 {
         app.update();
     }
@@ -146,10 +150,9 @@ fn set_ccd(is_enabled: bool, expected_position: Vec2) {
     res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
     res.configure_ground(&mut app);
     res.configure_falling_ball(&mut app);
-    res.body2
-        .updater()
+    Body2DUpdater::default()
         .is_ccd_enabled(is_enabled)
-        .apply(&mut app);
+        .apply(&mut app, &res.body2);
     app.update();
     assert_approx_eq!(res.body1.get(&app).position(&app), Vec2::ZERO);
     assert_approx_eq!(res.body2.get(&app).position(&app), expected_position);
@@ -169,12 +172,11 @@ fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize)
     let mut app = App::new::<Root>(Level::Info);
     let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
-    res.body2
-        .updater()
+    Body2DUpdater::default()
         .position(position)
         .size(size)
         .shape(shape)
-        .apply(&mut app);
+        .apply(&mut app, &res.body2);
     app.update();
     assert_eq!(res.body1.get(&app).collisions().len(), collision_count);
     assert_eq!(res.body2.get(&app).collisions().len(), collision_count);
@@ -185,14 +187,15 @@ fn update_size(shape: Shape2D) {
     let mut app = App::new::<Root>(Level::Info);
     let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
-    res.body2.updater().shape(shape).apply(&mut app);
+    Body2DUpdater::default()
+        .shape(shape)
+        .apply(&mut app, &res.body2);
     app.update();
     assert_eq!(res.body1.get(&app).collisions().len(), 1);
     assert_eq!(res.body2.get(&app).collisions().len(), 1);
-    res.body2
-        .updater()
-        .for_size(&app, |size| size.x = 0.5)
-        .apply(&mut app);
+    Body2DUpdater::default()
+        .for_size(|s| s.x = 0.5)
+        .apply(&mut app, &res.body2);
     app.update();
     assert_eq!(res.body1.get(&app).collisions().len(), 0);
     assert_eq!(res.body2.get(&app).collisions().len(), 0);
@@ -229,56 +232,49 @@ struct Resources {
 
 impl Resources {
     fn init(&mut self, app: &mut App, assign_groups: bool) {
-        self.body1
-            .updater()
+        Body2DUpdater::default()
             .collision_group(assign_groups.then(|| self.group1.to_ref()))
-            .apply(app);
-        self.body2
-            .updater()
+            .apply(app, &self.body1);
+        Body2DUpdater::default()
             .position(Vec2::X)
             .size(Vec2::new(2.5, 3.))
             .collision_group(assign_groups.then(|| self.group2.to_ref()))
             .mass(1.)
-            .apply(app);
+            .apply(app, &self.body2);
     }
 
     fn add_sensor_interaction(&mut self, app: &mut App) {
-        self.group1.updater().add_sensor(app, &self.group2);
+        CollisionGroupUpdater::new(&self.group1).add_sensor(app, &self.group2);
     }
 
     fn add_impulse_interaction(&mut self, app: &mut App, impulse: Impulse) {
-        self.group1
-            .updater()
-            .add_impulse(app, &self.group2, impulse);
+        CollisionGroupUpdater::new(&self.group1).add_impulse(app, &self.group2, impulse);
     }
 
     fn configure_ground(&mut self, app: &mut App) {
-        self.body1
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::ZERO)
             .size(Vec2::new(1., 0.01))
-            .apply(app);
+            .apply(app, &self.body1);
     }
 
     fn configure_rolling_ball(&mut self, app: &mut App) {
-        self.body2
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::Y * 0.251)
             .size(Vec2::ONE * 0.5)
             .mass(10.)
             .force(Vec2::new(1., -0.1))
             .shape(Shape2D::Circle)
-            .apply(app);
+            .apply(app, &self.body2);
     }
 
     fn configure_falling_ball(&mut self, app: &mut App) {
-        self.body2
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::Y * 1.)
             .size(Vec2::ONE * 0.5)
             .mass(10.)
             .force(-20. * Vec2::Y)
             .shape(Shape2D::Circle)
-            .apply(app);
+            .apply(app, &self.body2);
     }
 }

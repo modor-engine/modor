@@ -22,12 +22,15 @@ use std::time::Duration;
 /// struct AnimatedSprite {
 ///     sprite: Sprite2D,
 ///     animation: TextureAnimation,
-///     texture: Res<Texture>
+///     texture: Glob<Res<Texture>>,
 /// }
 ///
 /// impl AnimatedSprite {
 ///     fn new(app: &mut App) -> Self {
-///         let texture = Texture::new(app).load_from_path(app, "spritesheet.png");
+///         let texture = Glob::<Res<Texture>>::from_app(app);
+///         TextureUpdater::default()
+///             .res(ResUpdater::default().path("spritesheet.png"))
+///             .apply(app, &texture);
 ///         let animation_parts = vec![
 ///             TexturePart::new(0, 0),
 ///             TexturePart::new(1, 0),
@@ -38,7 +41,7 @@ use std::time::Duration;
 ///         ];
 ///         Self {
 ///             sprite: Sprite2D::new(app)
-///                 .with_material(|m| m.texture = texture.glob().to_ref()),
+///                 .with_material(|m| m.texture = texture.to_ref()),
 ///             animation: TextureAnimation::new(3, 2)
 ///                 .with_fps(5)
 ///                 .with_parts(|p| *p = animation_parts),
@@ -51,7 +54,6 @@ use std::time::Duration;
 ///         self.sprite.material.texture_position = self.animation.part_position();
 ///         self.sprite.update(app);
 ///         self.animation.update(app);
-///         self.texture.update(app);
 ///     }
 /// }
 /// ```

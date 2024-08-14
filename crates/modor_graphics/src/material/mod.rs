@@ -2,13 +2,12 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
 use crate::resources::Resources;
-use crate::shader::glob::ShaderGlob;
-use crate::texture::glob::TextureGlob;
-use crate::{DefaultMaterial2D, ShaderGlobRef};
+use crate::{DefaultMaterial2D, Shader, ShaderGlobRef, Texture};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Global, StateHandle};
+use modor_resources::Res;
 use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -112,20 +111,15 @@ pub struct MaterialGlob {
     pub(crate) is_transparent: bool,
     pub(crate) bind_group: BufferBindGroup,
     pub(crate) binding_ids: BindingGlobalIds,
-    pub(crate) shader: GlobRef<ShaderGlob>,
+    pub(crate) shader: GlobRef<Res<Shader>>,
     buffer: MaterialBuffer,
-    textures: Vec<GlobRef<TextureGlob>>,
+    textures: Vec<GlobRef<Res<Texture>>>,
 }
 
 impl FromApp for MaterialGlob {
     fn from_app(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let shader = app
-            .get_mut::<Resources>()
-            .empty_shader
-            .glob()
-            .deref()
-            .clone();
+        let shader = app.get_mut::<Resources>().empty_shader.deref().to_ref();
         let textures = vec![];
         let resources = app.handle();
         let white_texture = Self::white_texture(app, resources);
@@ -155,14 +149,14 @@ impl MaterialGlob {
         T: Material,
     {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        self.shader = material.shader().deref().clone();
+        self.shader = material.shader().deref().to_ref();
         self.textures = material.textures();
         self.buffer.update(&gpu, material);
         let resources = app.handle();
         let white_texture = Self::white_texture(app, resources);
         let textures = Self::textures(app, &self.textures);
-        self.is_transparent =
-            material.is_transparent() || textures.iter().any(|texture| texture.is_transparent);
+        self.is_transparent = material.is_transparent()
+            || textures.iter().any(|texture| texture.loaded.is_transparent);
         let shader = self.shader.get(app);
         let binding_ids = BindingGlobalIds::new(shader, &textures);
         if binding_ids != self.binding_ids {
@@ -172,20 +166,20 @@ impl MaterialGlob {
         }
     }
 
-    fn textures<'a>(app: &'a App, textures: &[GlobRef<TextureGlob>]) -> Vec<&'a TextureGlob> {
-        textures.iter().map(|texture| texture.get(app)).collect()
+    fn textures<'a>(app: &'a App, textures: &[GlobRef<Res<Texture>>]) -> Vec<&'a Texture> {
+        textures.iter().map(|texture| &**texture.get(app)).collect()
     }
 
-    fn white_texture(app: &App, handle: StateHandle<Resources>) -> &TextureGlob {
-        handle.get(app).white_texture.glob().get(app)
+    fn white_texture(app: &App, handle: StateHandle<Resources>) -> &Texture {
+        handle.get(app).white_texture.get(app)
     }
 
     fn create_bind_group<T>(
         gpu: &Gpu,
         buffer: &MaterialBuffer,
-        textures: &[&TextureGlob],
-        white_texture: &TextureGlob,
-        shader: &ShaderGlob,
+        textures: &[&Texture],
+        white_texture: &Texture,
+        shader: &Shader,
     ) -> BufferBindGroup
     where
         T: Material,
@@ -207,8 +201,8 @@ impl MaterialGlob {
     #[allow(clippy::cast_possible_truncation)]
     fn create_bind_group_entries<'a, T>(
         buffer: &'a MaterialBuffer,
-        textures: &'a [&TextureGlob],
-        white_texture: &'a TextureGlob,
+        textures: &'a [&Texture],
+        white_texture: &'a Texture,
         shader_texture_count: u32,
     ) -> Vec<BindGroupEntry<'a>>
     where
@@ -286,7 +280,7 @@ pub(crate) struct BindingGlobalIds {
 }
 
 impl BindingGlobalIds {
-    fn new(shader: &ShaderGlob, textures: &[&TextureGlob]) -> Self {
+    fn new(shader: &Shader, textures: &[&Texture]) -> Self {
         Self {
             bind_group_layout: shader.material_bind_group_layout.global_id(),
             views: textures
@@ -321,7 +315,7 @@ pub trait Material: Sized + 'static {
     fn shader(&self) -> ShaderGlobRef<Self>;
 
     /// Returns the textures sent to the shader.
-    fn textures(&self) -> Vec<GlobRef<TextureGlob>>;
+    fn textures(&self) -> Vec<GlobRef<Res<Texture>>>;
 
     /// Returns whether the rendered models can be transparent.
     ///

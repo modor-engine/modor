@@ -1,8 +1,8 @@
 use modor::log::Level;
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::modor_math::Vec2;
-use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::{Color, Sprite2D, Texture};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{Color, Sprite2D, Texture, TextureUpdater};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 pub fn main() {
@@ -16,11 +16,7 @@ struct Root {
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        let background_texture = app
-            .get_mut::<Resources>()
-            .background_texture
-            .glob()
-            .to_ref();
+        let background_texture = app.get_mut::<Resources>().background_texture.to_ref();
         Self {
             background: Sprite2D::new(app).with_material(|m| m.texture = background_texture),
             smileys: vec![
@@ -54,24 +50,20 @@ impl State for Root {
     }
 }
 
+#[derive(FromApp)]
 struct Resources {
-    background_texture: Res<Texture>,
-    smiley_texture: Res<Texture>,
-}
-
-impl FromApp for Resources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            background_texture: Texture::new(app).load_from_path(app, "background.png"),
-            smiley_texture: Texture::new(app).load_from_path(app, "smiley.png"),
-        }
-    }
+    background_texture: Glob<Res<Texture>>,
+    smiley_texture: Glob<Res<Texture>>,
 }
 
 impl State for Resources {
-    fn update(&mut self, app: &mut App) {
-        self.background_texture.update(app);
-        self.smiley_texture.update(app);
+    fn init(&mut self, app: &mut App) {
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("background.png"))
+            .apply(app, &self.background_texture);
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("smiley.png"))
+            .apply(app, &self.smiley_texture);
     }
 }
 
@@ -90,7 +82,7 @@ impl Smiley {
         velocity: Vec2,
         angular_velocity: f32,
     ) -> Self {
-        let texture = app.get_mut::<Resources>().smiley_texture.glob().to_ref();
+        let texture = app.get_mut::<Resources>().smiley_texture.to_ref();
         Self {
             sprite: Sprite2D::new(app)
                 .with_model(|m| m.position = position)

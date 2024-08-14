@@ -1,10 +1,12 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, Key};
-use modor_graphics::modor_resources::{Res, ResLoad};
-use modor_graphics::{Color, Sprite2D, Texture, TextureAnimation, TexturePart, Window};
+use modor_graphics::modor_resources::{Res, ResUpdater};
+use modor_graphics::{
+    Color, Sprite2D, Texture, TextureAnimation, TexturePart, TextureUpdater, Window,
+};
 use modor_physics::modor_math::Vec2;
-use modor_physics::Body2D;
+use modor_physics::{Body2D, Body2DUpdater};
 
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
@@ -26,23 +28,17 @@ impl State for Root {
     }
 }
 
+#[derive(FromApp)]
 struct Resources {
-    smile_texture: Res<Texture>,
-}
-
-impl FromApp for Resources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            smile_texture: Texture::new(app)
-                .with_is_smooth(false)
-                .load_from_path(app, "slime.png"),
-        }
-    }
+    slime_texture: Glob<Res<Texture>>,
 }
 
 impl State for Resources {
-    fn update(&mut self, app: &mut App) {
-        self.smile_texture.update(app);
+    fn init(&mut self, app: &mut App) {
+        TextureUpdater::default()
+            .res(ResUpdater::default().path("slime.png"))
+            .is_smooth(false)
+            .apply(app, &self.slime_texture);
     }
 }
 
@@ -66,9 +62,11 @@ impl FromApp for Slime {
 
 impl Slime {
     fn init(&mut self, app: &mut App) {
-        self.body.updater().size(Vec2::ONE * 0.15).apply(app);
+        Body2DUpdater::default()
+            .size(Vec2::ONE * 0.15)
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.texture = app.get_mut::<Resources>().smile_texture.glob().to_ref();
+        self.sprite.material.texture = app.get_mut::<Resources>().slime_texture.to_ref();
         self.animation.parts = Direction::Down.stopped_texture_parts();
     }
 
@@ -83,11 +81,10 @@ impl Slime {
         self.animation.parts = self.direction.texture_parts(direction == Vec2::ZERO);
         self.sprite.material.texture_size = self.animation.part_size();
         self.sprite.material.texture_position = self.animation.part_position();
-        self.body
-            .updater()
-            .for_size(app, |s| s.x = self.direction.size_x_sign() * s.x.abs())
+        Body2DUpdater::default()
+            .for_size(|s| s.x = self.direction.size_x_sign() * s.x.abs())
             .velocity(0.2 * direction)
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.update(app);
         self.animation.update(app);
     }

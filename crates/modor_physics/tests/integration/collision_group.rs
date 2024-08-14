@@ -1,6 +1,6 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
-use modor_physics::{Body2D, CollisionGroup};
+use modor_physics::{Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater};
 
 #[modor::test]
 fn drop_group() {
@@ -9,7 +9,9 @@ fn drop_group() {
     app.update();
     assert_eq!(res.body2.get(&app).collisions().len(), 1);
     res.group2 = None;
-    res.body2.updater().collision_group(None).apply(&mut app);
+    Body2DUpdater::default()
+        .collision_group(None)
+        .apply(&mut app, &res.body2);
     app.update();
     res.recreate_group2(&mut app);
     app.update();
@@ -30,24 +32,21 @@ struct Resources {
 impl Resources {
     fn init(&mut self, app: &mut App) {
         let group2 = Glob::from_app(app);
-        self.group1.updater().add_sensor(app, &group2);
-        self.body1
-            .updater()
+        CollisionGroupUpdater::new(&self.group1).add_sensor(app, &group2);
+        Body2DUpdater::default()
             .collision_group(self.group1.to_ref())
-            .apply(app);
-        self.body2
-            .updater()
+            .apply(app, &self.body1);
+        Body2DUpdater::default()
             .collision_group(group2.to_ref())
-            .apply(app);
+            .apply(app, &self.body2);
         self.group2 = Some(group2);
     }
 
     fn recreate_group2(&mut self, app: &mut App) {
         let group2 = Glob::from_app(app);
-        self.body2
-            .updater()
+        Body2DUpdater::default()
             .collision_group(group2.to_ref())
-            .apply(app);
+            .apply(app, &self.body2);
         self.group2 = Some(group2);
     }
 }

@@ -69,10 +69,6 @@ impl Pipeline {
         &self.rigid_bodies[handle]
     }
 
-    pub(crate) fn collider(&self, handle: ColliderHandle) -> &Collider {
-        &self.colliders[handle]
-    }
-
     pub(crate) fn rigid_body_and_collider_mut(
         &mut self,
         body_handle: RigidBodyHandle,

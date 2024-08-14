@@ -5,7 +5,7 @@ use modor::{App, FromApp, Glob, State, StateHandle};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::{Color, Sprite2D};
-use modor_physics::{Body2D, CollisionGroup, Impulse};
+use modor_physics::{Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater, Impulse};
 use std::time::Duration;
 
 const PLATFORM_PERIOD: Duration = Duration::from_secs(4);
@@ -102,9 +102,11 @@ struct CollisionGroups {
 
 impl State for CollisionGroups {
     fn init(&mut self, app: &mut App) {
-        self.character
-            .updater()
-            .add_impulse(app, &self.platform, Impulse::new(0., 0.));
+        CollisionGroupUpdater::new(&self.character).add_impulse(
+            app,
+            &self.platform,
+            Impulse::new(0., 0.),
+        );
     }
 }
 
@@ -126,13 +128,12 @@ impl FromApp for Platform {
 
 impl Platform {
     fn init(&mut self, app: &mut App, position: Vec2, size: Vec2, velocity: Vec2) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(position)
             .size(size)
             .velocity(velocity)
             .collision_group(app.get_mut::<CollisionGroups>().platform.to_ref())
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.material.color = Color::GREEN;
     }
@@ -140,10 +141,9 @@ impl Platform {
     fn update(&mut self, app: &mut App) {
         if Instant::now() >= self.next_reverse_instant {
             self.next_reverse_instant = Instant::now() + PLATFORM_PERIOD;
-            self.body
-                .updater()
-                .for_velocity(app, |velocity| *velocity *= -1.)
-                .apply(app);
+            Body2DUpdater::default()
+                .for_velocity(|velocity| *velocity *= -1.)
+                .apply(app, &self.body);
         }
         self.sprite.update(app);
     }
@@ -167,14 +167,13 @@ impl FromApp for Character {
 
 impl State for Character {
     fn init(&mut self, app: &mut App) {
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .position(Vec2::new(0., 0.5))
             .size(Vec2::new(0.03, 0.1))
             .collision_group(Some(app.get_mut::<CollisionGroups>().character.to_ref()))
             .mass(CHARACTER_MASS)
             .force(Vec2::Y * GRAVITY_FACTOR * CHARACTER_MASS)
-            .apply(app);
+            .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
     }
 
@@ -185,11 +184,10 @@ impl State for Character {
         let touched_ground = self.touched_ground(app);
         let ground_velocity =
             touched_ground.map_or(0., |platform| platform.body.get(app).velocity(app).x);
-        self.body
-            .updater()
+        Body2DUpdater::default()
             .force(self.force(app, touched_ground.is_some(), is_jump_pressed))
-            .for_velocity(app, |v| v.x = 0.5f32.mul_add(x_movement, ground_velocity))
-            .apply(app);
+            .for_velocity(|v| v.x = 0.5f32.mul_add(x_movement, ground_velocity))
+            .apply(app, &self.body);
         self.sprite.update(app);
     }
 }
