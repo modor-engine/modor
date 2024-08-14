@@ -150,7 +150,6 @@ where
         &self.state
     }
 
-    // TODO: simplify case where loading is sync
     fn reload(&mut self, app: &mut App) {
         self.state = ResourceState::Loading;
         self.loading = None;
@@ -400,7 +399,6 @@ enum Loading<T: Resource> {
     Sync(#[derivative(Debug = "ignore")] T::Loaded),
 }
 
-// TODO: convert to list of in progress jobs (once loaded, the resource does not need to be updated)
 #[derive(FromApp)]
 struct ResManager<T: Resource>(PhantomData<T>);
 
