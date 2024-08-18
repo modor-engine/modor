@@ -2,11 +2,11 @@
 
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater, Size,
-    Texture, TextureSource, TextureUpdater,
+    MatGlob, MatUpdater, Material, Model2D, Model2DGlob, ShaderGlob, ShaderUpdater, Size, Texture,
+    TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
@@ -27,8 +27,8 @@ fn root(app: &mut App) -> &mut Root {
 
 struct Root {
     shader: ShaderGlob<TestMaterial>,
-    material: Mat<TestMaterial>,
-    model: Model2D<TestMaterial>,
+    material: MatGlob<TestMaterial>,
+    model: Model2D,
     target: Glob<Res<Texture>>,
 }
 
@@ -36,8 +36,8 @@ impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         let target = Glob::from_app(app);
         let shader = ShaderGlob::from_app(app);
-        let material = TestMaterial::new(&shader).into_mat(app);
-        let model = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        let model = Model2D::new(app).with_material(material.to_ref());
         Self {
             shader,
             material,
@@ -52,6 +52,9 @@ impl State for Root {
         ShaderUpdater::default()
             .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
             .apply(app, &self.shader);
+        MatUpdater::default()
+            .shader(self.shader.to_ref())
+            .apply(app, &self.material);
         self.model.size = Vec2::ONE * 0.5;
         self.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
@@ -62,46 +65,18 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model.update(app);
     }
 }
 
-struct TestMaterial {
-    shader: ShaderGlobRef<Self>,
-}
+#[repr(C)]
+#[derive(Clone, Copy, Zeroable, Pod, FromApp)]
+struct TestMaterial;
 
 impl Material for TestMaterial {
-    type Data = TestMaterialData;
     type InstanceData = ();
 
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        self.shader.clone()
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        vec![]
-    }
-
-    fn is_transparent(&self) -> bool {
-        false
-    }
-
-    fn data(&self) -> Self::Data {
-        TestMaterialData
-    }
+    fn init(self, _app: &mut App, _glob: &MatGlob<Self>) {}
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
-
-impl TestMaterial {
-    fn new(shader: &ShaderGlob<Self>) -> Self {
-        Self {
-            shader: shader.to_ref(),
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Zeroable, Pod)]
-struct TestMaterialData;

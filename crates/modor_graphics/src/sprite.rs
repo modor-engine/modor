@@ -1,5 +1,5 @@
-use crate::{DefaultMaterial2D, IntoMat, Mat, Model2D};
-use modor::{App, Builder};
+use crate::{DefaultMaterial2D, MatGlob, Model2D};
+use modor::{App, Builder, FromApp};
 
 /// A rendered 2D object that can be colored or textured.
 ///
@@ -13,23 +13,25 @@ use modor::{App, Builder};
 pub struct Sprite2D {
     /// Material of the sprite, i.e. the aspect.
     #[builder(form(closure))]
-    pub material: Mat<DefaultMaterial2D>,
+    pub material: MatGlob<DefaultMaterial2D>,
     /// Model of the sprite, i.e. where the sprite is rendered.
     #[builder(form(closure))]
-    pub model: Model2D<DefaultMaterial2D>,
+    pub model: Model2D,
+}
+
+impl FromApp for Sprite2D {
+    fn from_app(app: &mut App) -> Self {
+        let material = MatGlob::from_app(app);
+        Self {
+            model: Model2D::new(app).with_material(material.to_ref()),
+            material,
+        }
+    }
 }
 
 impl Sprite2D {
-    /// Creates a new sprite.
-    pub fn new(app: &mut App) -> Self {
-        let material = DefaultMaterial2D::new(app).into_mat(app);
-        let model = Model2D::new(app, material.glob());
-        Self { material, model }
-    }
-
     /// Updates the sprite.
     pub fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model.update(app);
     }
 }

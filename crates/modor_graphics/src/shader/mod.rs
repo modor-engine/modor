@@ -1,14 +1,15 @@
 use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
+use crate::material::MaterialManager;
 use crate::mesh::{Vertex, VertexBuffer};
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
-use crate::{validation, AntiAliasingMode, Material, Texture, Window};
+use crate::{validation, AntiAliasingMode, Mat, Material, Texture, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use getset::CopyGetters;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, Update, Updater};
+use modor::{App, FromApp, Glob, GlobRef, Globals, Update, Updater};
 use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
 use std::mem;
@@ -197,10 +198,18 @@ impl Resource for Shader {
         })
     }
 
-    fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>) {
+    fn on_load(
+        &mut self,
+        app: &mut App,
+        index: usize,
+        loaded: Self::Loaded,
+        source: &ResSource<Self>,
+    ) {
         self.loaded = loaded;
         self.source = source.clone();
         self.update(app);
+        app.get_mut::<MaterialManager>()
+            .register_loaded_shader(index);
     }
 }
 

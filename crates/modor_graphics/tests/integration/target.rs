@@ -50,17 +50,10 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
+#[derive(FromApp)]
 struct Root {
     sprite: Sprite2D,
     target: Glob<Res<Texture>>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        let target = Glob::from_app(app);
-        let sprite = Sprite2D::new(app);
-        Self { sprite, target }
-    }
 }
 
 impl State for Root {

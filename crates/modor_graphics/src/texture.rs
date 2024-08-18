@@ -1,5 +1,6 @@
 use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
+use crate::material::MaterialManager;
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
 use crate::{AntiAliasingMode, Camera2D, Color, Size, Target, TargetGlob};
@@ -219,7 +220,13 @@ impl Resource for Texture {
         }))
     }
 
-    fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
+    fn on_load(
+        &mut self,
+        app: &mut App,
+        index: usize,
+        loaded: Self::Loaded,
+        _source: &ResSource<Self>,
+    ) {
         let gpu = app.get_mut::<GpuManager>().get_or_init();
         self.loaded = loaded;
         self.texture = Self::create_texture(gpu, &self.loaded);
@@ -231,6 +238,8 @@ impl Resource for Texture {
             .then(|| Self::create_buffer(gpu, self.size()));
         self.submission_index = None;
         self.update(app);
+        app.get_mut::<MaterialManager>()
+            .register_loaded_texture(index);
     }
 }
 
@@ -345,7 +354,7 @@ impl Texture {
     fn render_target(&mut self, app: &mut App, gpu: &Gpu) {
         if self.is_target_enabled {
             let view = self.texture.create_view(&TextureViewDescriptor::default());
-            self.target.render(app, gpu, view);
+            self.target.render(app, gpu, view); // TODO: make Target a glob so that we don't need to borrow texture anymore
         }
     }
 

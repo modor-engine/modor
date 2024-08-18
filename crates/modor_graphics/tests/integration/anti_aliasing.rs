@@ -53,18 +53,10 @@ fn target_glob(app: &mut App) -> GlobRef<Res<Texture>> {
     app.get_mut::<Root>().target.to_ref()
 }
 
+#[derive(FromApp)]
 struct Root {
     sprite: Sprite2D,
     target: Glob<Res<Texture>>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            sprite: Sprite2D::new(app),
-            target: Glob::from_app(app),
-        }
-    }
 }
 
 impl State for Root {

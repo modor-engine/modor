@@ -236,7 +236,13 @@ impl Resource for ContentSize {
         }
     }
 
-    fn on_load(&mut self, _app: &mut App, loaded: Self::Loaded, _source: &ResSource<Self>) {
+    fn on_load(
+        &mut self,
+        _app: &mut App,
+        _index: usize,
+        loaded: Self::Loaded,
+        _source: &ResSource<Self>,
+    ) {
         self.size = Some(loaded.size);
     }
 }

@@ -2,7 +2,8 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource, TextureUpdater,
+    Color, DefaultMaterial2D, DefaultMaterial2DUpdater, MatGlob, Model2D, Size, Texture,
+    TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
@@ -14,21 +15,34 @@ fn create_default() {
     wait_resources(&mut app);
     app.update();
     assert_same(&app, &target, "material#white");
-    assert_eq!(root(&mut app).material.color, Color::WHITE);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_properties() {
     let (mut app, target) = configure_app();
     let texture = root(&mut app).texture.to_ref();
-    root(&mut app).material.texture = texture;
-    root(&mut app).material.is_ellipse = true;
-    root(&mut app).material.color = Color::DARK_GRAY;
-    root(&mut app).material.texture_size = Vec2::ONE * 0.75;
-    root(&mut app).material.texture_position = Vec2::ONE * 0.25;
     wait_resources(&mut app);
+    app.take::<Root, _>(|root, app| {
+        DefaultMaterial2DUpdater::default()
+            .texture(texture)
+            .is_ellipse(true)
+            .color(Color::DARK_GRAY)
+            .texture_size(Vec2::ONE * 0.75)
+            .texture_position(Vec2::ONE * 0.25)
+            .apply(app, &root.material);
+    });
     app.update();
     assert_same(&app, &target, "material#custom_default");
+    app.take::<Root, _>(|root, app| {
+        DefaultMaterial2DUpdater::default()
+            .is_ellipse(false)
+            .color(Color::WHITE)
+            .texture_size(Vec2::ONE * 0.25)
+            .texture_position(Vec2::ZERO)
+            .apply(app, &root.material);
+    });
+    app.update();
+    assert_same(&app, &target, "material#red");
 }
 
 fn configure_app() -> (App, GlobRef<Res<Texture>>) {
@@ -43,8 +57,8 @@ fn root(app: &mut App) -> &mut Root {
 
 struct Root {
     texture: Glob<Res<Texture>>,
-    material: Mat<DefaultMaterial2D>,
-    model: Model2D<DefaultMaterial2D>,
+    material: MatGlob<DefaultMaterial2D>,
+    model: Model2D,
     target: Glob<Res<Texture>>,
 }
 
@@ -52,8 +66,8 @@ impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         let target = Glob::from_app(app);
         let texture = Glob::from_app(app);
-        let material = DefaultMaterial2D::new(app).into_mat(app);
-        let model = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        let model = Model2D::new(app).with_material(material.to_ref());
         Self {
             texture,
             material,
@@ -79,7 +93,6 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model.update(app);
     }
 }

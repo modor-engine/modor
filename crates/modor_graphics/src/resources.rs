@@ -1,7 +1,7 @@
 use crate::mesh::Mesh;
 use crate::{
-    DefaultMaterial2D, ShaderGlob, ShaderSource, ShaderUpdater, Size, Texture, TextureSource,
-    TextureUpdater,
+    DefaultMaterial2D, MatGlob, ShaderGlob, ShaderSource, ShaderUpdater, Size, Texture,
+    TextureSource, TextureUpdater,
 };
 use modor::{App, FromApp, Glob, State};
 use modor_resources::{Res, ResUpdater};
@@ -37,4 +37,10 @@ impl State for Resources {
             .res(ResUpdater::default().source(TextureSource::Size(Size::ONE)))
             .apply(app, &self.white_texture);
     }
+}
+
+#[non_exhaustive]
+#[derive(Debug, FromApp, State)]
+pub(crate) struct Materials {
+    pub(crate) default_2d: MatGlob<DefaultMaterial2D>,
 }

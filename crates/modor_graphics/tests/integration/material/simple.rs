@@ -3,8 +3,8 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater,
-    Size, Texture, TextureSource, TextureUpdater,
+    Color, MatGlob, MatUpdater, Material, Model2D, Model2DGlob, ShaderGlob, ShaderUpdater, Size,
+    Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
@@ -13,7 +13,11 @@ use modor_resources::{Res, ResUpdater};
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_textures_less_than_shader() {
     let (mut app, target) = configure_app();
-    root(&mut app).material.textures = vec![];
+    app.take::<Root, _>(|root, app| {
+        MatUpdater::default()
+            .textures(vec![])
+            .apply(app, &root.material);
+    });
     app.update();
     app.update();
     assert_same(&app, &target, "material#no_texture");
@@ -23,7 +27,11 @@ fn set_textures_less_than_shader() {
 fn set_textures_more_than_shader() {
     let (mut app, target) = configure_app();
     let texture = root(&mut app).texture.to_ref();
-    root(&mut app).material.textures = vec![texture.clone(), texture];
+    app.take::<Root, _>(|root, app| {
+        MatUpdater::default()
+            .textures(vec![texture.clone(), texture])
+            .apply(app, &root.material);
+    });
     app.update();
     assert_same(&app, &target, "material#default");
 }
@@ -31,7 +39,13 @@ fn set_textures_more_than_shader() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_color_opaque() {
     let (mut app, target) = configure_app();
-    root(&mut app).material.color = Color::WHITE;
+    app.take::<Root, _>(|root, app| {
+        MatUpdater::default()
+            .data(TestMaterial {
+                color: Color::WHITE.into(),
+            })
+            .apply(app, &root.material);
+    });
     app.update();
     app.update();
     assert_same(&app, &target, "material#lighter");
@@ -40,7 +54,14 @@ fn set_color_opaque() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_color_transparent() {
     let (mut app, target) = configure_app();
-    root(&mut app).material.color = Color::WHITE.with_alpha(0.5);
+    app.take::<Root, _>(|root, app| {
+        MatUpdater::default()
+            .data(TestMaterial {
+                color: Color::WHITE.with_alpha(0.5).into(),
+            })
+            .is_transparent(true)
+            .apply(app, &root.material);
+    });
     app.update();
     app.update();
     assert_max_component_diff(&app, &target, "material#alpha", 10, 1);
@@ -50,7 +71,11 @@ fn set_color_transparent() {
 fn set_shader() {
     let (mut app, target) = configure_app();
     let shader = root(&mut app).red_shader.to_ref();
-    root(&mut app).material.shader = shader;
+    app.take::<Root, _>(|root, app| {
+        MatUpdater::default()
+            .shader(shader)
+            .apply(app, &root.material);
+    });
     app.update();
     app.update();
     assert_same(&app, &target, "material#red");
@@ -73,8 +98,8 @@ struct Root {
     texture: Glob<Res<Texture>>,
     shader: ShaderGlob<TestMaterial>,
     red_shader: ShaderGlob<TestMaterial>,
-    material: Mat<TestMaterial>,
-    model: Model2D<TestMaterial>,
+    material: MatGlob<TestMaterial>,
+    model: Model2D,
     target: Glob<Res<Texture>>,
 }
 
@@ -84,8 +109,8 @@ impl FromApp for Root {
         let texture = Glob::from_app(app);
         let shader = ShaderGlob::from_app(app);
         let red_shader = ShaderGlob::from_app(app);
-        let material = TestMaterial::new(&texture, &shader).into_mat(app);
-        let model = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        let model = Model2D::new(app).with_material(material.to_ref());
         Self {
             texture,
             shader,
@@ -109,6 +134,10 @@ impl State for Root {
         ShaderUpdater::default()
             .res(ResUpdater::default().path("../tests/assets/red.wgsl"))
             .apply(app, &self.red_shader);
+        MatUpdater::default()
+            .shader(self.shader.to_ref())
+            .textures(vec![self.texture.to_ref()])
+            .apply(app, &self.material);
         self.model.size = Vec2::ONE * 0.5;
         self.model.camera = self.target.get(app).camera().glob().to_ref();
         TextureUpdater::default()
@@ -119,54 +148,28 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model.update(app);
-    }
-}
-
-struct TestMaterial {
-    color: Color,
-    textures: Vec<GlobRef<Res<Texture>>>,
-    shader: ShaderGlobRef<Self>,
-}
-
-impl Material for TestMaterial {
-    type Data = TestMaterialData;
-    type InstanceData = ();
-
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        self.shader.clone()
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        self.textures.clone()
-    }
-
-    fn is_transparent(&self) -> bool {
-        self.color.a > 0. && self.color.a < 1.
-    }
-
-    fn data(&self) -> Self::Data {
-        TestMaterialData {
-            color: self.color.into(),
-        }
-    }
-
-    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
-}
-
-impl TestMaterial {
-    fn new(texture: &Glob<Res<Texture>>, shader: &ShaderGlob<Self>) -> Self {
-        Self {
-            color: Color::DARK_GRAY,
-            textures: vec![texture.to_ref()],
-            shader: shader.to_ref(),
-        }
     }
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Zeroable, Pod)]
-struct TestMaterialData {
+struct TestMaterial {
     color: [f32; 4],
+}
+
+impl Default for TestMaterial {
+    fn default() -> Self {
+        Self {
+            color: Color::DARK_GRAY.into(),
+        }
+    }
+}
+
+impl Material for TestMaterial {
+    type InstanceData = ();
+
+    fn init(self, _app: &mut App, _glob: &MatGlob<Self>) {}
+
+    fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }

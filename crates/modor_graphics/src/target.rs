@@ -1,9 +1,10 @@
 use crate::gpu::Gpu;
+use crate::material::MaterialManager;
 use crate::mesh::Mesh;
 use crate::size::NonZeroSize;
 use crate::{
     validation, AntiAliasingMode, Camera2DGlob, Color, InstanceGroup2DProperties, InstanceGroups2D,
-    MaterialGlob, Shader, Size, Texture,
+    Mat, Shader, Size, Texture,
 };
 use log::{error, trace};
 use modor::{App, FromApp, Glob, Global, Globals, StateHandle};
@@ -53,7 +54,7 @@ pub struct Target {
     is_incompatible_anti_aliasing_logged: bool,
     glob: Glob<TargetGlob>,
     cameras: StateHandle<Globals<Camera2DGlob>>,
-    materials: StateHandle<Globals<MaterialGlob>>,
+    materials: StateHandle<Globals<Mat>>,
     meshes: StateHandle<Globals<Mesh>>,
 }
 
@@ -112,6 +113,7 @@ impl Target {
     }
 
     pub(crate) fn render(&mut self, app: &mut App, gpu: &Gpu, view: TextureView) {
+        app.take::<MaterialManager, _>(|manager, app| manager.update_material_bind_groups(app));
         app.get_mut::<InstanceGroups2D>().sync(gpu);
         self.update_loaded(app, gpu);
         let anti_aliasing = self.fixed_anti_aliasing();
@@ -298,7 +300,10 @@ impl Target {
                     .materials
                     .get(app)
                     .get(group.material)
-                    .map_or(false, |material| material.is_transparent == is_transparent)
+                    .map_or(false, |material| {
+                        material.is_transparent
+                            || material.has_transparent_texture == is_transparent
+                    })
         })
     }
 
@@ -314,9 +319,6 @@ impl Target {
     ) -> Option<()> {
         let material = self.materials.get(app).get(group.material)?;
         let shader = material.shader.get(app);
-        if material.binding_ids.bind_group_layout != shader.material_bind_group_layout.global_id() {
-            return None;
-        }
         let camera = self.cameras.get(app).get(group.camera)?;
         let mesh = self.meshes.get(app).get(group.mesh)?;
         let group = &groups.groups[&group];

@@ -7,7 +7,7 @@ use proc_macro2::Span;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_quote, Attribute, DeriveInput, GenericParam, Generics, Type};
+use syn::{parse_quote, Attribute, DeriveInput, GenericParam, Generics, Type, Visibility};
 
 pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream> {
     let crate_ident = utils::crate_ident();
@@ -22,6 +22,7 @@ pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream
         .try_into()?;
     let field_idents = field_idents(&parsed.fields);
     let field_types = field_types(&parsed.fields);
+    let field_visibilities = field_visibilities(&parsed.fields);
     let updater_fns = all_field_fns(input, &crate_ident, &parsed.fields);
     let updater_ident = format_ident!("{}Updater", ident);
     let updater_doc = format!("An updater for [`{ident}`].");
@@ -29,7 +30,7 @@ pub(crate) fn impl_block(input: &DeriveInput) -> Result<TokenStream, TokenStream
         #[doc = #updater_doc]
         #[must_use]
         #vis struct #updater_ident #updater_generics {
-            #(#field_idents: ::#crate_ident::Update<'closures, #field_types>,)*
+            #(#field_visibilities #field_idents: ::#crate_ident::Update<'closures, #field_types>,)*
             phantom: #phantom_type,
         }
 
@@ -75,6 +76,14 @@ fn field_types(fields: &[ParsedUpdaterField]) -> Vec<&Type> {
         .iter()
         .filter(|field| field.is_field_method_generated || field.is_for_field_method_generated)
         .map(|field| &field.type_)
+        .collect()
+}
+
+fn field_visibilities(fields: &[ParsedUpdaterField]) -> Vec<&Visibility> {
+    fields
+        .iter()
+        .filter(|field| field.is_field_method_generated || field.is_for_field_method_generated)
+        .map(|field| &field.vis)
         .collect()
 }
 
@@ -144,6 +153,7 @@ struct UpdaterStruct {
 struct UpdaterField {
     ident: Option<Ident>,
     ty: Type,
+    vis: Visibility,
     attrs: Vec<Attribute>,
     #[darling(default)]
     inner_type: bool,
@@ -179,6 +189,7 @@ impl TryFrom<UpdaterStruct> for ParsedUpdaterStruct {
 struct ParsedUpdaterField {
     ident: Ident,
     type_: Type,
+    vis: Visibility,
     doc_attrs: Vec<Attribute>,
     is_field_method_generated: bool,
     is_for_field_method_generated: bool,
@@ -192,6 +203,7 @@ impl TryFrom<UpdaterField> for ParsedUpdaterField {
         Ok(Self {
             ident,
             type_: Self::parse_type(field.inner_type, field.ty)?,
+            vis: field.vis,
             doc_attrs: Self::parse_doc_attributes(field.attrs),
             is_field_method_generated: field.field,
             is_for_field_method_generated: field.for_field,

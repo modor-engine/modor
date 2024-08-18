@@ -1,110 +1,146 @@
 use crate::resources::Resources;
-use crate::{Color, Material, Model2DGlob, ShaderGlobRef, Texture};
-use internal::DefaultMaterial2DData;
-use modor::{App, Builder, Glob, GlobRef};
+use crate::{Color, MatGlob, MatUpdater, Material, Model2DGlob, Texture};
+use modor::{App, Glob, GlobRef, Updater};
 use modor_input::modor_math::Vec2;
 use modor_resources::Res;
+use std::marker::PhantomData;
 
 /// The default material for 2D rendering.
 ///
 /// # Examples
 ///
 /// See [`Model2D`](crate::Model2D).
-#[derive(Debug, Builder)]
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod, Updater)]
 pub struct DefaultMaterial2D {
+    pub(crate) shader_color: [f32; 4],
+    pub(crate) shader_texture_part_position: [f32; 2],
+    pub(crate) shader_texture_part_size: [f32; 2],
     /// Color of the rendered instance.
     ///
-    /// This color is multiplied to the [`texture`](#structfield.texture) pixel colors.
+    /// This color is multiplied to the [`texture`](DefaultMaterial2DUpdater::texture) pixel colors.
     ///
     /// Default is [`Color::WHITE`].
-    #[builder(form(value))]
-    pub color: Color,
+    #[updater(inner_type, field, for_field)]
+    color: PhantomData<Color>,
     /// Texture used to render the models.
     ///
     /// If the texture is not loaded, then the instances attached to the material are not rendered.
     ///
     /// Default is a white texture.
-    #[builder(form(value))]
-    pub texture: GlobRef<Res<Texture>>,
+    #[updater(inner_type, field, for_field)]
+    texture: PhantomData<GlobRef<Res<Texture>>>,
     /// Top-left position of the extracted texture section.
     ///
     /// [`Vec2::ZERO`] corresponds to top-left corner, and [`Vec2::ONE`] corresponds to bottom-right
     /// corner of the texture.
     ///
     /// Default is [`Vec2::ZERO`].
-    #[builder(form(value))]
-    pub texture_position: Vec2,
+    #[updater(inner_type, field, for_field)]
+    texture_position: PhantomData<Vec2>,
     /// Size of the extracted texture section.
     ///
     /// [`Vec2::ONE`] corresponds to the entire texture.
     ///
     /// Default is [`Vec2::ONE`].
-    #[builder(form(value))]
-    pub texture_size: Vec2,
+    #[updater(inner_type, field, for_field)]
+    texture_size: PhantomData<Vec2>,
     /// Whether the instance is rendered as an ellipse.
     ///
     /// If `false`, then the instance is displayed as a rectangle.
     ///
     /// Default is `false`.
-    #[builder(form(value))]
-    pub is_ellipse: bool,
-    default_shader: ShaderGlobRef<Self>,
-    ellipse_shader: ShaderGlobRef<Self>,
+    #[updater(inner_type, field, for_field)]
+    is_ellipse: PhantomData<bool>,
+}
+
+impl Default for DefaultMaterial2D {
+    fn default() -> Self {
+        Self {
+            shader_color: Color::WHITE.into(),
+            shader_texture_part_position: [0., 0.],
+            shader_texture_part_size: [1., 1.],
+            color: PhantomData,
+            texture: PhantomData,
+            texture_position: PhantomData,
+            texture_size: PhantomData,
+            is_ellipse: PhantomData,
+        }
+    }
 }
 
 impl Material for DefaultMaterial2D {
-    type Data = DefaultMaterial2DData;
     type InstanceData = ();
 
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        if self.is_ellipse {
-            self.ellipse_shader.clone()
-        } else {
-            self.default_shader.clone()
-        }
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        vec![self.texture.clone()]
-    }
-
-    fn is_transparent(&self) -> bool {
-        self.color.a > 0. && self.color.a < 1.
-    }
-
-    fn data(&self) -> Self::Data {
-        DefaultMaterial2DData {
-            color: self.color.into(),
-            texture_part_position: [self.texture_position.x, self.texture_position.y],
-            texture_part_size: [self.texture_size.x, self.texture_size.y],
-        }
+    fn init(self, app: &mut App, glob: &MatGlob<Self>) {
+        MatUpdater::default()
+            .shader(app.get_mut::<Resources>().default_shader.to_ref())
+            .textures(vec![app.get_mut::<Resources>().white_texture.to_ref()])
+            .is_transparent(false)
+            .apply(app, glob);
     }
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
-impl DefaultMaterial2D {
-    /// Creates a new material.
-    pub fn new(app: &mut App) -> Self {
-        let resources = app.get_mut::<Resources>();
-        Self {
-            color: Color::WHITE,
-            texture: resources.white_texture.to_ref(),
-            texture_position: Vec2::ZERO,
-            texture_size: Vec2::ONE,
-            is_ellipse: false,
-            default_shader: resources.default_shader.to_ref(),
-            ellipse_shader: resources.ellipse_shader.to_ref(),
+impl DefaultMaterial2DUpdater<'_> {
+    /// Runs the update.
+    pub fn apply(mut self, app: &mut App, glob: &MatGlob<DefaultMaterial2D>) {
+        let mut updater = MatUpdater::default();
+        if let Some(texture) = self
+            .texture
+            .take_value(|| Self::retrieve_texture(app, glob))
+        {
+            updater = updater.textures(vec![texture]);
         }
+        if let Some(is_ellipse) = self
+            .is_ellipse
+            .take_value(|| Self::retrieve_is_ellipse(app, glob))
+        {
+            updater = updater.shader(if is_ellipse {
+                app.get_mut::<Resources>().ellipse_shader.to_ref()
+            } else {
+                app.get_mut::<Resources>().default_shader.to_ref()
+            });
+        }
+        let mut data = glob.data(app);
+        let mut is_data_modified = false;
+        if let Some(color) = self.color.take_value(|| data.shader_color.into()) {
+            data.shader_color = color.into();
+            is_data_modified = true;
+        }
+        if let Some(texture_position) = self.texture_position.take_value(|| {
+            Vec2::new(
+                data.shader_texture_part_position[0],
+                data.shader_texture_part_position[1],
+            )
+        }) {
+            data.shader_texture_part_position = [texture_position.x, texture_position.y];
+            is_data_modified = true;
+        }
+        if let Some(texture_size) = self.texture_size.take_value(|| {
+            Vec2::new(
+                data.shader_texture_part_size[0],
+                data.shader_texture_part_size[1],
+            )
+        }) {
+            data.shader_texture_part_size = [texture_size.x, texture_size.y];
+            is_data_modified = true;
+        }
+        if is_data_modified {
+            updater = updater
+                .data(data)
+                .is_transparent(data.shader_color[3] > 0. && data.shader_color[3] < 1.);
+        }
+        updater.apply(app, glob);
     }
-}
 
-pub(super) mod internal {
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
-    pub struct DefaultMaterial2DData {
-        pub(crate) color: [f32; 4],
-        pub(crate) texture_part_position: [f32; 2],
-        pub(crate) texture_part_size: [f32; 2],
+    fn retrieve_texture(app: &mut App, glob: &MatGlob<DefaultMaterial2D>) -> GlobRef<Res<Texture>> {
+        let texture = glob.get(app).textures().next().cloned();
+        texture.unwrap_or_else(|| app.get_mut::<Resources>().white_texture.to_ref())
+    }
+
+    fn retrieve_is_ellipse(app: &mut App, glob: &MatGlob<DefaultMaterial2D>) -> bool {
+        glob.get(app).shader().index() == app.get_mut::<Resources>().ellipse_shader.index()
     }
 }

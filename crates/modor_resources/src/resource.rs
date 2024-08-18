@@ -46,9 +46,15 @@ use std::{any, fmt};
 ///         })
 ///     }
 ///
-///     fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>) {
+///     fn on_load(
+///         &mut self,
+///         app: &mut App,
+///         index: usize,
+///         loaded: Self::Loaded,
+///         source: &ResSource<Self>
+///     ) {
 ///         self.size = Some(loaded.size_in_bytes);
-///         println!("Resource has been successfully loaded from `{source:?}`");
+///         println!("`ContentSize` #{index} has been successfully loaded from `{source:?}`");
 ///     }
 /// }
 ///
@@ -107,13 +113,15 @@ pub struct Res<T: Resource> {
     source: Option<ResSource<T>>,
     loading: Option<Loading<T>>,
     state: ResourceState,
+    index: usize,
 }
 
 impl<T> Global for Res<T>
 where
     T: Resource,
 {
-    fn init(&mut self, app: &mut App, _index: usize) {
+    fn init(&mut self, app: &mut App, index: usize) {
+        self.index = index;
         app.create::<ResManager<T>>();
         app.get_mut::<ResourceStates>()
             .are_all_loaded_fns
@@ -202,7 +210,7 @@ where
             .as_ref()
             .expect("internal error: missing source");
         self.state = ResourceState::Loaded;
-        self.inner.on_load(app, loaded, source);
+        self.inner.on_load(app, self.index, loaded, source);
     }
 
     fn fail(&mut self, err: ResourceError) {
@@ -275,7 +283,15 @@ pub trait Resource: FromApp + Sized {
     fn load_from_source(source: &Self::Source) -> Result<Self::Loaded, ResourceError>;
 
     /// Updates the resource when loading has successfully finished.
-    fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>);
+    ///
+    /// `index` corresponds to the unique index of the [`Glob<Res<Self>>`].
+    fn on_load(
+        &mut self,
+        app: &mut App,
+        index: usize,
+        loaded: Self::Loaded,
+        source: &ResSource<Self>,
+    );
 }
 
 /// A trait for defining a source used to load a [`Resource`].
