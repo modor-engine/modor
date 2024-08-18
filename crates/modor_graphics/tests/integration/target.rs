@@ -36,14 +36,14 @@ fn set_background() {
 fn configure_app() -> (App, GlobRef<Res<Texture>>) {
     let mut app = App::new::<Root>(Level::Info);
     wait_resources(&mut app);
-    let target = target_ref(&mut app).glob().to_ref();
-    assert_eq!(target.get(&app).size, Size::new(30, 20));
+    let target = target_glob(&mut app);
+    assert_eq!(target.get(&app).size(), Size::new(30, 20));
     let target = root(&mut app).target.to_ref();
     (app, target)
 }
 
-fn target_ref(app: &mut App) -> &Target {
-    root(app).target.to_ref().get_mut(app).target()
+fn target_glob(app: &mut App) -> GlobRef<Target> {
+    root(app).target.to_ref().get_mut(app).target().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {

@@ -3,7 +3,7 @@ use crate::gpu::{Gpu, GpuManager};
 use crate::material::MaterialManager;
 use crate::size::NonZeroSize;
 use crate::texture::internal::TextureLoaded;
-use crate::{AntiAliasingMode, Camera2D, Color, Size, Target, TargetGlob};
+use crate::{AntiAliasingMode, Camera2D, Color, Size, Target};
 use getset::{CopyGetters, Getters};
 use image::{DynamicImage, RgbaImage};
 use modor::{App, FromApp, Glob, GlobRef, Globals, State, StateHandle, Update, Updater};
@@ -140,7 +140,7 @@ pub struct Texture {
     ///
     /// Doesn't have effect if [`is_target_enabled`](Texture::is_target_enabled) is `false`.
     #[updater(inner_type, field, for_field)]
-    camera_targets: PhantomData<Vec<GlobRef<TargetGlob>>>,
+    camera_targets: PhantomData<Vec<GlobRef<Target>>>,
     /// General resource parameters.
     #[updater(inner_type, field)]
     res: PhantomData<ResUpdater<Texture>>,
@@ -148,7 +148,7 @@ pub struct Texture {
     ///
     /// Doesn't have effect if [`is_target_enabled`](Texture::is_target_enabled) is `false`.
     #[getset(get = "pub")]
-    target: Target,
+    target: Glob<Target>,
     /// Default camera of the texture target.
     ///
     /// Doesn't have effect if [`is_target_enabled`](Texture::is_target_enabled) is `false`.
@@ -167,12 +167,12 @@ impl FromApp for Texture {
     fn from_app(app: &mut App) -> Self {
         app.create::<TextureManager>();
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        let mut target = Target::new(app);
-        target.supported_anti_aliasing_modes = app
+        let target = Glob::<Target>::from_app(app);
+        target.get_mut(app).supported_anti_aliasing_modes = app
             .get_mut::<SupportedAntiAliasingModes>()
             .get(&gpu, Self::DEFAULT_FORMAT)
             .to_vec();
-        let camera = Camera2D::new(app, vec![target.glob().to_ref()]);
+        let camera = Camera2D::new(app, vec![target.to_ref()]);
         let loaded = TextureLoaded::default();
         let texture = Self::create_texture(&gpu, &loaded);
         Self::write_texture(&gpu, &loaded, &texture);
@@ -227,19 +227,15 @@ impl Resource for Texture {
         loaded: Self::Loaded,
         _source: &ResSource<Self>,
     ) {
-        let gpu = app.get_mut::<GpuManager>().get_or_init();
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         self.loaded = loaded;
-        self.texture = Self::create_texture(gpu, &self.loaded);
-        Self::write_texture(gpu, &self.loaded, &self.texture);
+        self.texture = Self::create_texture(&gpu, &self.loaded);
+        Self::write_texture(&gpu, &self.loaded, &self.texture);
         self.view = self.texture.create_view(&TextureViewDescriptor::default());
-        self.sampler = Self::create_sampler(gpu, self.is_repeated, self.is_smooth);
-        self.buffer = self
-            .is_buffer_enabled
-            .then(|| Self::create_buffer(gpu, self.size()));
+        self.sampler = Self::create_sampler(&gpu, self.is_repeated, self.is_smooth);
         self.submission_index = None;
-        self.update(app);
-        app.get_mut::<MaterialManager>()
-            .register_loaded_texture(index);
+        self.update(app, true, index);
+        self.copy_texture_in_buffer(&gpu);
     }
 }
 
@@ -327,10 +323,10 @@ impl Texture {
         })
     }
 
-    fn update(&mut self, app: &mut App) {
+    fn update(&mut self, app: &mut App, is_reloaded: bool, texture_index: usize) {
         let gpu = app.get_mut::<GpuManager>().get_or_init();
         self.sampler = Self::create_sampler(gpu, self.is_repeated, self.is_smooth);
-        if self.buffer.is_none() && self.is_buffer_enabled {
+        if (self.buffer.is_none() || is_reloaded) && self.is_buffer_enabled {
             self.buffer = Some(Self::create_buffer(gpu, self.size()));
         } else if self.buffer.is_some() && !self.is_buffer_enabled {
             self.buffer = None;
@@ -338,24 +334,22 @@ impl Texture {
         if self.is_target_enabled {
             let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
             let size = self.size().into();
-            self.target.enable(app, &gpu, size, Self::DEFAULT_FORMAT);
+            self.target
+                .get_mut(app)
+                .enable(&gpu, size, Self::DEFAULT_FORMAT);
         } else {
-            self.target.disable();
+            self.target.get_mut(app).disable();
         }
+        app.get_mut::<MaterialManager>()
+            .register_loaded_texture(texture_index);
     }
 
-    fn render(&mut self, app: &mut App) {
-        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+    fn prepare_rendering(&mut self, app: &mut App) -> (GlobRef<Target>, TextureView) {
         self.camera.update(app);
-        self.render_target(app, &gpu);
-        self.copy_texture_in_buffer(&gpu);
-    }
-
-    fn render_target(&mut self, app: &mut App, gpu: &Gpu) {
-        if self.is_target_enabled {
-            let view = self.texture.create_view(&TextureViewDescriptor::default());
-            self.target.render(app, gpu, view); // TODO: make Target a glob so that we don't need to borrow texture anymore
-        }
+        (
+            self.target.to_ref(),
+            self.texture.create_view(&TextureViewDescriptor::default()),
+        )
     }
 
     fn create_texture(gpu: &Gpu, loaded: &TextureLoaded) -> wgpu::Texture {
@@ -532,11 +526,11 @@ impl TextureUpdater<'_> {
         glob.take(app, |tex, app| {
             Update::apply(
                 &mut self.target_anti_aliasing,
-                &mut tex.target.anti_aliasing,
+                &mut tex.target.get_mut(app).anti_aliasing,
             );
             Update::apply(
                 &mut self.target_background_color,
-                &mut tex.target.background_color,
+                &mut tex.target.get_mut(app).background_color,
             );
             Update::apply(&mut self.camera_position, &mut tex.camera.position);
             Update::apply(&mut self.camera_size, &mut tex.camera.size);
@@ -547,7 +541,7 @@ impl TextureUpdater<'_> {
                 | Update::apply_checked(&mut self.is_buffer_enabled, &mut tex.is_buffer_enabled)
                 | Update::apply_checked(&mut self.is_target_enabled, &mut tex.is_target_enabled)
             {
-                tex.update(app);
+                tex.update(app, false, glob.index());
             }
         });
         if let Some(res) = self.res.take_value(|| unreachable!()) {
@@ -592,11 +586,35 @@ struct TextureManager;
 
 impl State for TextureManager {
     fn update(&mut self, app: &mut App) {
-        app.take::<Globals<Res<Texture>>, _>(|textures, app| {
-            for texture in textures.iter_mut() {
-                texture.render(app);
-            }
-        });
+        let texture_indexes = app
+            .get_mut::<Globals<Res<Texture>>>()
+            .iter_enumerated()
+            .filter(|(_, texture)| texture.is_target_enabled)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        for texture_index in texture_indexes {
+            let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+            let (target, view) =
+                Self::run_on_texture(app, texture_index, |t, app| t.prepare_rendering(app));
+            target.take(app, |target, app| target.render(app, &gpu, view));
+            Self::run_on_texture(app, texture_index, |t, _| t.copy_texture_in_buffer(&gpu));
+        }
+    }
+}
+
+impl TextureManager {
+    fn run_on_texture<O>(
+        app: &mut App,
+        texture_index: usize,
+        f: impl FnOnce(&mut Texture, &mut App) -> O,
+    ) -> O {
+        app.take::<Globals<Res<Texture>>, _>(|glob, app| {
+            f(
+                glob.get_mut(texture_index)
+                    .expect("internal error: invalid texture index"),
+                app,
+            )
+        })
     }
 }
 

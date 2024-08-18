@@ -160,7 +160,7 @@ where
             let instance = gpu_manager.instance.clone();
             let gpu = gpu_manager.get_or_init().clone();
             let surface = app.get_mut::<Window>().create_surface(&instance, None);
-            app.get_mut::<Window>().set_surface(&gpu, surface);
+            app.take::<Window, _>(|window, app| window.set_surface(app, &gpu, surface));
         } else {
             let app = self
                 .app
@@ -173,7 +173,7 @@ where
             let gpu_manager = app.get_mut::<GpuManager>();
             gpu_manager.configure_window(&surface);
             let gpu = gpu_manager.get_or_init().clone();
-            app.get_mut::<Window>().set_surface(&gpu, surface);
+            app.take::<Window, _>(|window, app| window.set_surface(app, &gpu, surface));
             app.take::<Window, _>(State::update); // initialize before shaders
             app.get_mut::<T>();
             self.gamepads = Some(Gamepads::new(app));

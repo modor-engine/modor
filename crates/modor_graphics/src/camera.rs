@@ -1,6 +1,6 @@
 use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
-use crate::{Size, TargetGlob};
+use crate::{Size, Target};
 use fxhash::FxHashMap;
 use modor::{App, Builder, FromApp, Glob, GlobRef, Global};
 use modor_physics::modor_math::{Mat4, Quat, Vec2, Vec3};
@@ -77,13 +77,13 @@ pub struct Camera2D {
     /// If a camera is linked to a target, then all models linked to the camera are rendered in the
     /// target.
     #[builder(form(closure))]
-    pub targets: Vec<GlobRef<TargetGlob>>,
+    pub targets: Vec<GlobRef<Target>>,
     glob: Glob<Camera2DGlob>,
 }
 
 impl Camera2D {
     /// Creates a new camera.
-    pub fn new(app: &mut App, targets: Vec<GlobRef<TargetGlob>>) -> Self {
+    pub fn new(app: &mut App, targets: Vec<GlobRef<Target>>) -> Self {
         Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
@@ -126,7 +126,7 @@ impl Camera2D {
     fn target_sizes(&self, app: &App) -> Vec<(usize, Size)> {
         self.targets
             .iter()
-            .map(|target| (target.index(), target.get(app).size))
+            .map(|target| (target.index(), target.get(app).size()))
             .collect()
     }
 }
@@ -137,7 +137,7 @@ pub struct Camera2DGlob {
     pub(crate) position: Vec2,
     pub(crate) size: Vec2,
     pub(crate) rotation: f32,
-    pub(crate) targets: Vec<GlobRef<TargetGlob>>,
+    pub(crate) targets: Vec<GlobRef<Target>>,
     target_uniforms: FxHashMap<usize, CameraUniform>,
 }
 
@@ -168,13 +168,13 @@ impl Camera2DGlob {
             )
     }
 
-    pub(crate) fn bind_group(&self, target: &Glob<TargetGlob>) -> Option<&BindGroup> {
+    pub(crate) fn bind_group(&self, target_index: usize) -> Option<&BindGroup> {
         self.target_uniforms
-            .get(&target.index())
+            .get(&target_index)
             .map(|uniform| &uniform.bind_group.inner)
     }
 
-    fn register_targets(&mut self, targets: &[GlobRef<TargetGlob>]) {
+    fn register_targets(&mut self, targets: &[GlobRef<Target>]) {
         let target_indexes: Vec<_> = targets.iter().map(|target| target.index()).collect();
         self.target_uniforms
             .retain(|target_index, _| target_indexes.contains(target_index));

@@ -7,7 +7,7 @@ use crate::{
     Mat, Shader, Size, Texture,
 };
 use log::{error, trace};
-use modor::{App, FromApp, Glob, Global, Globals, StateHandle};
+use modor::{App, FromApp, Global, Globals, StateHandle};
 use wgpu::{
     CommandEncoder, CommandEncoderDescriptor, Extent3d, IndexFormat, LoadOp, Operations,
     RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
@@ -48,20 +48,48 @@ pub struct Target {
     /// Default is [`AntiAliasingMode::None`].
     pub anti_aliasing: AntiAliasingMode,
     pub(crate) supported_anti_aliasing_modes: Vec<AntiAliasingMode>,
+    size: Size,
     texture_format: TextureFormat,
     loaded: Option<LoadedTarget>,
     is_error_logged: bool,
     is_incompatible_anti_aliasing_logged: bool,
-    glob: Glob<TargetGlob>,
+    old_anti_aliasing: AntiAliasingMode,
+    index: usize,
     cameras: StateHandle<Globals<Camera2DGlob>>,
     materials: StateHandle<Globals<Mat>>,
     meshes: StateHandle<Globals<Mesh>>,
 }
 
+impl FromApp for Target {
+    fn from_app(app: &mut App) -> Self {
+        Self {
+            background_color: Color::BLACK,
+            anti_aliasing: AntiAliasingMode::None,
+            supported_anti_aliasing_modes: vec![AntiAliasingMode::None],
+            size: Size::ZERO,
+            texture_format: Texture::DEFAULT_FORMAT,
+            loaded: None,
+            is_error_logged: false,
+            is_incompatible_anti_aliasing_logged: false,
+            old_anti_aliasing: AntiAliasingMode::None,
+            index: 0,
+            cameras: app.handle(),
+            materials: app.handle(),
+            meshes: app.handle(),
+        }
+    }
+}
+
+impl Global for Target {
+    fn init(&mut self, _app: &mut App, index: usize) {
+        self.index = index;
+    }
+}
+
 impl Target {
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> &Glob<TargetGlob> {
-        &self.glob
+    /// Returns the size of the target in pixels.
+    pub fn size(&self) -> Size {
+        self.size
     }
 
     /// Returns the sorted list of all supported [`AntiAliasingMode`].
@@ -69,37 +97,13 @@ impl Target {
         &self.supported_anti_aliasing_modes
     }
 
-    pub(crate) fn new(app: &mut App) -> Self {
-        Self {
-            background_color: Color::BLACK,
-            anti_aliasing: AntiAliasingMode::None,
-            supported_anti_aliasing_modes: vec![AntiAliasingMode::None],
-            texture_format: Texture::DEFAULT_FORMAT,
-            loaded: None,
-            is_error_logged: false,
-            is_incompatible_anti_aliasing_logged: false,
-            glob: Glob::from_app(app),
-            cameras: app.handle(),
-            materials: app.handle(),
-            meshes: app.handle(),
-        }
-    }
-
     pub(crate) fn disable(&mut self) {
         self.loaded = None;
     }
 
-    pub(crate) fn enable(
-        &mut self,
-        app: &mut App,
-        gpu: &Gpu,
-        size: NonZeroSize,
-        format: TextureFormat,
-    ) {
-        let glob = self.glob.get_mut(app);
-        glob.size = size.into();
-        glob.anti_aliasing = self.anti_aliasing;
+    pub(crate) fn enable(&mut self, gpu: &Gpu, size: NonZeroSize, format: TextureFormat) {
         let anti_aliasing = self.fixed_anti_aliasing();
+        self.size = size.into();
         self.texture_format = format;
         self.loaded = Some(LoadedTarget {
             color_buffer_view: Self::create_color_buffer_view(
@@ -110,12 +114,13 @@ impl Target {
             ),
             depth_buffer_view: Self::create_depth_buffer_view(gpu, size, anti_aliasing),
         });
+        self.old_anti_aliasing = self.anti_aliasing;
     }
 
     pub(crate) fn render(&mut self, app: &mut App, gpu: &Gpu, view: TextureView) {
         app.take::<MaterialManager, _>(|manager, app| manager.update_material_bind_groups(app));
         app.get_mut::<InstanceGroups2D>().sync(gpu);
-        self.update_loaded(app, gpu);
+        self.update_loaded(gpu);
         let anti_aliasing = self.fixed_anti_aliasing();
         let loaded = self
             .loaded
@@ -141,12 +146,10 @@ impl Target {
         self.log_error(result);
     }
 
-    fn update_loaded(&mut self, app: &mut App, gpu: &Gpu) {
-        let glob = self.glob.get_mut(app);
-        if self.anti_aliasing != glob.anti_aliasing {
-            glob.anti_aliasing = self.anti_aliasing;
-            let size = glob.size.into();
-            self.enable(app, gpu, size, self.texture_format);
+    fn update_loaded(&mut self, gpu: &Gpu) {
+        if self.anti_aliasing != self.old_anti_aliasing {
+            let size = self.size.into();
+            self.enable(gpu, size, self.texture_format);
         }
     }
 
@@ -294,15 +297,18 @@ impl Target {
                 .get(app)
                 .get(group.camera)
                 .map_or(false, |camera| {
-                    camera.targets.contains(&self.glob().to_ref())
+                    camera
+                        .targets
+                        .iter()
+                        .any(|target| target.index() == self.index)
                 })
                 && self
                     .materials
                     .get(app)
                     .get(group.material)
                     .map_or(false, |material| {
-                        material.is_transparent
-                            || material.has_transparent_texture == is_transparent
+                        (material.is_transparent || material.has_transparent_texture)
+                            == is_transparent
                     })
         })
     }
@@ -325,7 +331,7 @@ impl Target {
         let primary_buffer = group.primary_buffer()?;
         let pipeline_params = (self.texture_format, anti_aliasing);
         pass.set_pipeline(shader.pipelines.get(&pipeline_params)?);
-        pass.set_bind_group(Shader::CAMERA_GROUP, camera.bind_group(self.glob())?, &[]);
+        pass.set_bind_group(Shader::CAMERA_GROUP, camera.bind_group(self.index)?, &[]);
         pass.set_bind_group(Shader::MATERIAL_GROUP, &material.bind_group.inner, &[]);
         pass.set_index_buffer(mesh.index_buffer.slice(), IndexFormat::Uint16);
         pass.set_vertex_buffer(0, mesh.vertex_buffer.slice());
@@ -377,22 +383,4 @@ struct LoadedTarget {
     #[allow(dead_code)] // will be used when supporting antialiasing
     color_buffer_view: TextureView,
     depth_buffer_view: TextureView,
-}
-
-/// The global data of a [`Target`].
-#[non_exhaustive]
-#[derive(Debug, Global)]
-pub struct TargetGlob {
-    /// Size of the target in pixels.
-    pub size: Size,
-    anti_aliasing: AntiAliasingMode,
-}
-
-impl Default for TargetGlob {
-    fn default() -> Self {
-        Self {
-            size: Size::ZERO,
-            anti_aliasing: AntiAliasingMode::None,
-        }
-    }
 }

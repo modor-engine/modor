@@ -2,7 +2,7 @@ use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
 use crate::size::NonZeroSize;
 use crate::{platform, Camera2D, FrameRate, Size, Target};
-use modor::{App, FromApp, State};
+use modor::{App, FromApp, Glob, State};
 use std::mem;
 use std::sync::Arc;
 use wgpu::{
@@ -52,7 +52,7 @@ pub struct Window {
     /// Default is `true`.
     pub is_cursor_visible: bool,
     /// Render target of the window.
-    pub target: Target,
+    pub target: Glob<Target>,
     /// The rendering frame rate limit.
     ///
     /// Default is [`FrameRate::VSync`](FrameRate::VSync).
@@ -67,8 +67,8 @@ pub struct Window {
 
 impl FromApp for Window {
     fn from_app(app: &mut App) -> Self {
-        let target = Target::new(app);
-        let camera = Camera2D::new(app, vec![target.glob().to_ref()]);
+        let target = Glob::from_app(app);
+        let camera = Camera2D::new(app, vec![target.to_ref()]);
         Self {
             title: String::new(),
             is_cursor_visible: true,
@@ -131,16 +131,17 @@ impl Window {
         surface
     }
 
-    pub(crate) fn set_surface(&mut self, gpu: &Gpu, surface: Surface<'static>) {
+    pub(crate) fn set_surface(&mut self, app: &mut App, gpu: &Gpu, surface: Surface<'static>) {
         let size = self
             .surface_size()
             .expect("internal error: not configured window");
         let surface = WindowSurface::new(gpu, surface, size);
         let format = surface.surface_config.format;
         self.surface = WindowSurfaceState::Loading(surface);
-        self.target.supported_anti_aliasing_modes = SupportedAntiAliasingModes::default()
-            .get(gpu, format)
-            .to_vec();
+        self.target.get_mut(app).supported_anti_aliasing_modes =
+            SupportedAntiAliasingModes::default()
+                .get(gpu, format)
+                .to_vec();
     }
 
     pub(crate) fn texture_format(&self) -> Option<TextureFormat> {
@@ -170,7 +171,9 @@ impl Window {
         let size = self.surface_size();
         if let Some(surface) = self.surface.take_new() {
             let texture_format = surface.surface_config.format;
-            self.target.enable(app, &gpu, surface.size, texture_format);
+            self.target
+                .get_mut(app)
+                .enable(&gpu, surface.size, texture_format);
             self.surface = WindowSurfaceState::Loaded(surface);
         }
         if let WindowSurfaceState::Loaded(surface) = &mut self.surface {
@@ -178,11 +181,11 @@ impl Window {
             surface.update(&gpu, size, self.frame_rate);
             if size != self.old_state.size {
                 let texture_format = surface.surface_config.format;
-                self.target.enable(app, &gpu, size, texture_format);
+                self.target.get_mut(app).enable(&gpu, size, texture_format);
                 self.old_state.size = size;
                 self.camera.update(app); // force camera update to avoid distortion
             }
-            surface.render(app, &gpu, &mut self.target);
+            surface.render(app, &gpu, &self.target);
         }
     }
 
@@ -259,7 +262,7 @@ impl WindowSurface {
         }
     }
 
-    fn render(&self, app: &mut App, gpu: &Gpu, target: &mut Target) {
+    fn render(&self, app: &mut App, gpu: &Gpu, target: &Glob<Target>) {
         let texture = self
             .surface
             .get_current_texture()
@@ -267,7 +270,7 @@ impl WindowSurface {
         let view = texture
             .texture
             .create_view(&TextureViewDescriptor::default());
-        target.render(app, gpu, view);
+        target.take(app, |target, app| target.render(app, gpu, view));
         texture.present();
     }
 

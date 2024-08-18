@@ -70,8 +70,6 @@ fn set_alpha_replaced() {
         .is_alpha_replaced(true)
         .apply(&mut app, &shader_glob);
     app.update();
-    assert_same(&app, &target, "shader#empty"); // because shader updated after material
-    app.update();
     assert_same(&app, &target, "shader#not_replaced_alpha");
 }
 
@@ -159,7 +157,9 @@ impl Default for TestMaterial {
 impl Material for TestMaterial {
     type InstanceData = ();
 
-    fn init(self, _app: &mut App, _glob: &MatGlob<Self>) {}
+    fn init(app: &mut App, glob: &MatGlob<Self>) {
+        MatUpdater::default().is_transparent(true).apply(app, glob)
+    }
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }

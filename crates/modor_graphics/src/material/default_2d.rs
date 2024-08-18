@@ -72,7 +72,7 @@ impl Default for DefaultMaterial2D {
 impl Material for DefaultMaterial2D {
     type InstanceData = ();
 
-    fn init(self, app: &mut App, glob: &MatGlob<Self>) {
+    fn init(app: &mut App, glob: &MatGlob<Self>) {
         MatUpdater::default()
             .shader(app.get_mut::<Resources>().default_shader.to_ref())
             .textures(vec![app.get_mut::<Resources>().white_texture.to_ref()])

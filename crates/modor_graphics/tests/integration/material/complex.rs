@@ -102,7 +102,7 @@ impl Default for TestMaterial {
 impl Material for TestMaterial {
     type InstanceData = TestMaterialInstance;
 
-    fn init(self, _app: &mut App, _glob: &MatGlob<Self>) {}
+    fn init(_app: &mut App, _glob: &MatGlob<Self>) {}
 
     fn instance_data(_app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData {
         vec![

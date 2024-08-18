@@ -38,11 +38,12 @@ where
     T: Material,
 {
     fn from_app(app: &mut App) -> Self {
-        Self {
+        let glob = Self {
             inner: Glob::<Mat>::from_app_with(app, |mat, app| {
                 mat.take(app, |mat, app| {
                     let data = T::from_app(app);
                     mat.buffer.update(app, data);
+                    mat.type_name = any::type_name::<T>();
                     mat.instance_data_type.type_id = TypeId::of::<T::InstanceData>();
                     mat.instance_data_type.size = mem::size_of::<T::InstanceData>();
                     mat.instance_data_type.create_fn =
@@ -50,7 +51,9 @@ where
                 });
             }),
             phantom: PhantomData,
-        }
+        };
+        T::init(app, &glob);
+        glob
     }
 }
 
@@ -132,15 +135,11 @@ impl<T> MatUpdater<'_, T>
 where
     T: Material,
 {
-    // TODO: when shader/texture reloaded, update all necessary material bind groups
     /// Runs the update.
     pub fn apply(mut self, app: &mut App, glob: &MatGlob<T>) {
         let data = self.data.take_value(|| glob.data(app));
         glob.take(app, |mat, app| {
             Update::apply(&mut self.is_transparent, &mut mat.is_transparent);
-            if mat.type_name.is_empty() {
-                mat.type_name = any::type_name::<T>();
-            }
             if let Some(data) = data {
                 mat.buffer.update(app, data);
             }
@@ -315,7 +314,7 @@ pub trait Material: FromApp + Pod + Sized + 'static {
     type InstanceData: Pod;
 
     /// Initializes the material.
-    fn init(self, app: &mut App, glob: &MatGlob<Self>);
+    fn init(app: &mut App, glob: &MatGlob<Self>);
 
     /// Returns the instance data of a given `model`.
     fn instance_data(app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData;
