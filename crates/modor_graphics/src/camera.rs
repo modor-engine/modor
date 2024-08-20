@@ -94,7 +94,7 @@ impl Camera2D {
     }
 
     /// Updates the camera.
-    pub fn update(&mut self, app: &mut App) {
+    pub fn update(&self, app: &mut App) {
         let target_sizes = self.target_sizes(app);
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let glob = self.glob.get_mut(app);

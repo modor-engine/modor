@@ -64,13 +64,13 @@ where
     /// # Platform-specific
     ///
     /// - Web: HTTP GET call is performed to retrieve the file from URL
-    /// `{current_browser_url}/assets/{path}`.
+    ///   `{current_browser_url}/assets/{path}`.
     /// - Android: the file is retrieved using the Android
-    /// [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
+    ///   [`AssetManager`](https://developer.android.com/reference/android/content/res/AssetManager).
     /// - Other: if `CARGO_MANIFEST_DIR` environment variable is set (this is the case if the
-    /// application is run using a `cargo` command), then the file is retrieved from path
-    /// `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
-    /// `{executable_folder_path}/assets/{path}`.
+    ///   application is run using a `cargo` command), then the file is retrieved from path
+    ///   `{CARGO_MANIFEST_DIR}/assets/{path}`. Else, the file path is
+    ///   `{executable_folder_path}/assets/{path}`.
     pub fn new<F>(path: impl AsRef<str>, f: impl FnOnce(Vec<u8>) -> F + VariableSend + Any) -> Self
     where
         F: Future<Output = T> + VariableSend,

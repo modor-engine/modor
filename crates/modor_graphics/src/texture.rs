@@ -10,7 +10,6 @@ use modor::{App, FromApp, Glob, GlobRef, Globals, State, StateHandle, Update, Up
 use modor_input::modor_math::Vec2;
 use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
-use std::mem;
 use std::num::NonZeroU32;
 use wgpu::{
     AddressMode, Buffer, BufferView, CommandEncoderDescriptor, Extent3d, FilterMode,
@@ -517,7 +516,7 @@ impl Texture {
 
     #[allow(clippy::cast_possible_truncation)]
     fn calculate_unpadded_row_bytes(width: u32) -> u32 {
-        let bytes_per_pixel = mem::size_of::<u32>() as u32;
+        let bytes_per_pixel = size_of::<u32>() as u32;
         width * bytes_per_pixel
     }
 }

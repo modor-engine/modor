@@ -55,7 +55,7 @@ impl Ball {
         Vec2::new(direction * Self::INITIAL_SPEED, 0.)
     }
 
-    pub(crate) fn handle_collision_with_paddle(&mut self, app: &mut App) {
+    pub(crate) fn handle_collision_with_paddle(&self, app: &mut App) {
         let Some(paddle) = self.collided_paddle(app) else {
             return;
         };
@@ -71,7 +71,7 @@ impl Ball {
             .apply(app, &self.body);
     }
 
-    pub(crate) fn handle_collision_with_ball(&mut self, app: &mut App) {
+    pub(crate) fn handle_collision_with_ball(&self, app: &mut App) {
         let body = self.body.get(app);
         let position = body.position(app);
         let vertical_wall_group = &self.collision_groups.get(app).vertical_wall;
@@ -90,7 +90,7 @@ impl Ball {
         }
     }
 
-    fn apply_acceleration(&mut self, app: &mut App) {
+    fn apply_acceleration(&self, app: &mut App) {
         let speed = self
             .init_instant
             .elapsed()

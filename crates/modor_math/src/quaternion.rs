@@ -115,6 +115,7 @@ impl Quat {
         self * other
     }
 
+    #[allow(clippy::while_float)]
     fn normalize_angle(mut angle: f32) -> f32 {
         while angle > 2. * PI {
             angle -= 2. * PI;

@@ -75,7 +75,7 @@ impl Paddle {
         }
     }
 
-    fn new_velocity(&mut self, app: &mut App) -> f32 {
+    fn new_velocity(&self, app: &mut App) -> f32 {
         if let Some(controls) = self.controls {
             let inputs = self.inputs.get(app);
             if inputs.fingers.pressed_iter().count() > 0 {
@@ -100,7 +100,7 @@ impl Paddle {
         }
     }
 
-    fn reset_on_score(&mut self, app: &mut App) {
+    fn reset_on_score(&self, app: &mut App) {
         if app.get_mut::<Scores>().is_reset_required {
             Body2DUpdater::default()
                 .for_position(|p| p.y = 0.)

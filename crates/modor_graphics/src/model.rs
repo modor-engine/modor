@@ -11,7 +11,6 @@ use modor::{App, Builder, FromApp, Glob, GlobRef, Global, Globals, State, StateH
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2D;
 use std::any::TypeId;
-use std::mem;
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
 /// The instance of a rendered 2D object.
@@ -252,7 +251,7 @@ impl InstanceGroup2D {
         self.model_indexes.push(model_index);
         let instance = Instance::new(model);
         self.z_indexes.push(instance.z());
-        self.buffer_mut(TypeId::of::<Instance>(), mem::size_of::<Instance>())
+        self.buffer_mut(TypeId::of::<Instance>(), size_of::<Instance>())
             .push(bytemuck::cast_slice(&[instance]));
         if data_type.size > 0 {
             self.buffer_mut(data_type.type_id, data_type.size)
@@ -265,7 +264,7 @@ impl InstanceGroup2D {
         let position = self.model_positions[&model.glob().index()];
         let instance = Instance::new(model);
         self.z_indexes[position] = instance.z();
-        self.buffer_mut(TypeId::of::<Instance>(), mem::size_of::<Instance>())
+        self.buffer_mut(TypeId::of::<Instance>(), size_of::<Instance>())
             .replace(position, bytemuck::cast_slice(&[instance]));
         if data_type.size > 0 {
             self.buffer_mut(data_type.type_id, data_type.size)

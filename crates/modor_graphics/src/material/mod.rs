@@ -8,10 +8,10 @@ use derivative::Derivative;
 use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Global, Globals, State, StateHandle, Update};
 use modor_resources::Res;
+use std::any;
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::ops::Deref;
-use std::{any, mem};
 use wgpu::{BindGroupEntry, BindingResource, BufferUsages};
 
 pub(crate) mod default_2d;
@@ -45,7 +45,7 @@ where
                     mat.buffer.update(app, data);
                     mat.type_name = any::type_name::<T>();
                     mat.instance_data_type.type_id = TypeId::of::<T::InstanceData>();
-                    mat.instance_data_type.size = mem::size_of::<T::InstanceData>();
+                    mat.instance_data_type.size = size_of::<T::InstanceData>();
                     mat.instance_data_type.create_fn =
                         |app, model| bytemuck::cast_slice(&[T::instance_data(app, model)]).to_vec();
                 });
@@ -309,7 +309,7 @@ pub trait Material: FromApp + Pod + Sized + 'static {
     ///
     /// Each rendered model has its own instance data.
     ///
-    /// In case this type has a size of zero with [`mem::size_of`](mem::size_of()),
+    /// In case this type has a size of zero with [`size_of`],
     /// then no instance data are sent to the shader.
     type InstanceData: Pod;
 

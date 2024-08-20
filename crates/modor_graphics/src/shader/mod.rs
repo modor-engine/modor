@@ -12,7 +12,6 @@ use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Update, Updater};
 use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
 use std::sync::Arc;
 use wgpu::{
@@ -49,7 +48,7 @@ where
     fn from_app(app: &mut App) -> Self {
         Self {
             inner: Glob::<Res<Shader>>::from_app_with(app, |res, app| {
-                res.get_mut(app).instance_size = mem::size_of::<T::InstanceData>();
+                res.get_mut(app).instance_size = size_of::<T::InstanceData>();
             }),
             phantom: PhantomData,
         }

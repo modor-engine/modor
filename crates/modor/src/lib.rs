@@ -108,7 +108,7 @@ pub use modor_derive::main;
 /// # Platform-specific
 ///
 /// - Web: function is annotated with `#[wasm_bindgen_test::wasm_bindgen_test]` instead of
-/// `#[test]`.
+///   `#[test]`.
 ///
 /// # Examples
 ///
