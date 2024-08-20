@@ -1,6 +1,6 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
-use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
+use modor_graphics::{Color, CursorTracker, DefaultMaterial2DUpdater, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{
     Body2D, Body2DUpdater, Collision2D, CollisionGroup, CollisionGroupUpdater, Shape2D,
@@ -57,7 +57,7 @@ impl FromApp for Shape {
     fn from_app(app: &mut App) -> Self {
         Self {
             body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
+            sprite: Sprite2D::from_app(app),
             collisions: vec![],
         }
     }
@@ -76,8 +76,10 @@ impl Shape {
             })
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.is_ellipse = is_circle;
-        self.sprite.material.color = Color::CYAN;
+        DefaultMaterial2DUpdater::default()
+            .is_ellipse(is_circle)
+            .color(Color::CYAN)
+            .apply(app, &self.sprite.material);
     }
 
     fn update(&mut self, app: &mut App) {
@@ -103,7 +105,7 @@ impl FromApp for Cursor {
     fn from_app(app: &mut App) -> Self {
         Self {
             body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
+            sprite: Sprite2D::from_app(app),
             collisions: vec![],
             tracker: CursorTracker::new(app),
         }
@@ -119,7 +121,9 @@ impl Cursor {
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
         self.sprite.model.z_index = 1;
-        self.sprite.material.color = Color::GREEN;
+        DefaultMaterial2DUpdater::default()
+            .color(Color::GREEN)
+            .apply(app, &self.sprite.material);
     }
 
     fn update(&mut self, app: &mut App) {
@@ -128,11 +132,13 @@ impl Cursor {
             .position(self.tracker.position(app))
             .apply(app, &self.body);
         self.body.take(app, |body, app| {
-            self.sprite.material.color = if body.collisions().is_empty() {
-                Color::GREEN
-            } else {
-                Color::RED
-            };
+            DefaultMaterial2DUpdater::default()
+                .color(if body.collisions().is_empty() {
+                    Color::GREEN
+                } else {
+                    Color::RED
+                })
+                .apply(app, &self.sprite.material);
             self.collisions.clear();
             for collision in body.collisions() {
                 self.collisions
@@ -162,19 +168,27 @@ impl CollisionNormal {
             .with_magnitude(0.0025)
             .unwrap_or_default();
         let penetration_position = collision.position - collision.penetration / 2. + lateral_offset;
-        let mut position = Sprite2D::new(app)
+        let mut position = Sprite2D::from_app(app)
             .with_model(|m| m.position = collision.position)
             .with_model(|m| m.size = Vec2::ONE * 0.02)
             .with_model(|m| m.z_index = z_index)
-            .with_material(|m| m.color = color)
-            .with_material(|m| m.is_ellipse = true);
+            .with_material(|m| {
+                DefaultMaterial2DUpdater::default()
+                    .color(color)
+                    .is_ellipse(true)
+                    .apply(app, m);
+            });
         position.update(app);
-        let mut penetration = Sprite2D::new(app)
+        let mut penetration = Sprite2D::from_app(app)
             .with_model(|m| m.position = penetration_position)
             .with_model(|m| m.size = Vec2::new(0.005, collision.penetration.magnitude()))
             .with_model(|m| m.rotation = Vec2::Y.rotation(-collision.penetration))
             .with_model(|m| m.z_index = z_index)
-            .with_material(|m| m.color = color);
+            .with_material(|m| {
+                DefaultMaterial2DUpdater::default()
+                    .color(color)
+                    .apply(app, m);
+            });
         penetration.update(app);
         Self {
             _position: position,

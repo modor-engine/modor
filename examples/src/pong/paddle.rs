@@ -8,24 +8,13 @@ use modor_graphics::{Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DUpdater};
 
+#[derive(FromApp)]
 pub(crate) struct Paddle {
     body: Glob<Body2D>,
     sprite: Sprite2D,
     controls: Option<PlayerControls>,
     window: StateHandle<Window>,
     inputs: StateHandle<Inputs>,
-}
-
-impl FromApp for Paddle {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-            controls: None,
-            window: app.handle(),
-            inputs: app.handle(),
-        }
-    }
 }
 
 impl Paddle {

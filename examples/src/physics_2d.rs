@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, MouseButton};
-use modor_graphics::{Color, CursorTracker, Sprite2D, Window};
+use modor_graphics::{Color, CursorTracker, DefaultMaterial2DUpdater, Sprite2D, Window};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{
     Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater, Impulse, Shape2D,
@@ -52,14 +52,15 @@ impl State for Root {
 
 impl Root {
     fn init_anti_aliasing(app: &mut App) {
-        let window = app.get_mut::<Window>();
-        window.target.anti_aliasing = window
-            .target
-            .supported_anti_aliasing_modes()
-            .iter()
-            .copied()
-            .max()
-            .unwrap_or_default();
+        app.take::<Window, _>(|window, app| {
+            let target = window.target.get_mut(app);
+            target.anti_aliasing = target
+                .supported_anti_aliasing_modes()
+                .iter()
+                .copied()
+                .max()
+                .unwrap_or_default();
+        });
     }
 }
 
@@ -78,18 +79,10 @@ impl State for CollisionGroups {
     }
 }
 
+#[derive(FromApp)]
 struct Wall {
     body: Glob<Body2D>,
     sprite: Sprite2D,
-}
-
-impl FromApp for Wall {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-        }
-    }
 }
 
 impl Wall {
@@ -115,7 +108,7 @@ struct Cannon {
 impl FromApp for Cannon {
     fn from_app(app: &mut App) -> Self {
         Self {
-            sprite: Sprite2D::new(app),
+            sprite: Sprite2D::from_app(app),
             cursor: CursorTracker::new(app),
         }
     }
@@ -169,18 +162,10 @@ impl State for Objects {
     }
 }
 
+#[derive(FromApp)]
 struct Object {
     body: Glob<Body2D>,
     sprite: Sprite2D,
-}
-
-impl FromApp for Object {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-        }
-    }
 }
 
 impl Object {
@@ -202,12 +187,14 @@ impl Object {
             .shape(shape)
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.is_ellipse = is_ball;
-        self.sprite.material.color = Color::rgb(
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-        );
+        DefaultMaterial2DUpdater::default()
+            .is_ellipse(is_ball)
+            .color(Color::rgb(
+                rng.gen_range(0.0..1.0),
+                rng.gen_range(0.0..1.0),
+                rng.gen_range(0.0..1.0),
+            ))
+            .apply(app, &self.sprite.material);
     }
 
     fn update(&mut self, app: &mut App) {

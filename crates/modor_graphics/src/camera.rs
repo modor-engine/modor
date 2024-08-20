@@ -29,7 +29,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///     fn new(app: &mut App) -> Self {
 ///         let camera = app.get_mut::<MovingCamera>().camera.glob().to_ref();
 ///         Self {
-///             sprite: Sprite2D::new(app)
+///             sprite: Sprite2D::from_app(app)
 ///                 .with_model(|m| m.size = Vec2::ONE * 0.2)
 ///                 .with_model(|m| m.camera = camera)
 ///         }
@@ -46,7 +46,7 @@ use wgpu::{BindGroup, BufferUsages};
 ///
 /// impl FromApp for MovingCamera {
 ///     fn from_app(app: &mut App) -> Self {
-///         let target = app.get_mut::<Window>().target.glob().to_ref();
+///         let target = app.get_mut::<Window>().target.to_ref();
 ///         Self {
 ///             camera: Camera2D::new(app, vec![target])
 ///                 .with_size(Vec2::ONE * 0.5) // zoom x2

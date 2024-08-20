@@ -3,7 +3,8 @@ use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_input::{Inputs, Key};
 use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::{
-    Color, Sprite2D, Texture, TextureAnimation, TexturePart, TextureUpdater, Window,
+    Color, DefaultMaterial2DUpdater, Sprite2D, Texture, TextureAnimation, TexturePart,
+    TextureUpdater, Window,
 };
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DUpdater};
@@ -20,7 +21,11 @@ struct Root {
 impl State for Root {
     fn init(&mut self, app: &mut App) {
         self.slime.init(app);
-        app.get_mut::<Window>().target.background_color = Color::DARK_GRAY;
+        app.get_mut::<Window>()
+            .target
+            .to_ref()
+            .get_mut(app)
+            .background_color = Color::DARK_GRAY;
     }
 
     fn update(&mut self, app: &mut App) {
@@ -53,7 +58,7 @@ impl FromApp for Slime {
     fn from_app(app: &mut App) -> Self {
         Self {
             body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
+            sprite: Sprite2D::from_app(app),
             animation: TextureAnimation::new(5, 9),
             direction: Direction::Down,
         }
@@ -66,7 +71,9 @@ impl Slime {
             .size(Vec2::ONE * 0.15)
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.texture = app.get_mut::<Resources>().slime_texture.to_ref();
+        DefaultMaterial2DUpdater::default()
+            .texture(app.get_mut::<Resources>().slime_texture.to_ref())
+            .apply(app, &self.sprite.material);
         self.animation.parts = Direction::Down.stopped_texture_parts();
     }
 
@@ -79,8 +86,10 @@ impl Slime {
         );
         self.direction = Direction::from_vec(direction).unwrap_or(self.direction);
         self.animation.parts = self.direction.texture_parts(direction == Vec2::ZERO);
-        self.sprite.material.texture_size = self.animation.part_size();
-        self.sprite.material.texture_position = self.animation.part_position();
+        DefaultMaterial2DUpdater::default()
+            .texture_size(self.animation.part_size())
+            .texture_position(self.animation.part_position())
+            .apply(app, &self.sprite.material);
         Body2DUpdater::default()
             .for_size(|s| s.x = self.direction.size_x_sign() * s.x.abs())
             .velocity(0.2 * direction)

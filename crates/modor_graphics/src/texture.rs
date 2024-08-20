@@ -40,8 +40,10 @@ use wgpu::{
 ///             resources.texture.to_ref(),
 ///         ));
 ///         Self {
-///             sprite: Sprite2D::new(app)
-///                 .with_material(|m| m.texture = texture)
+///             sprite: Sprite2D::from_app(app)
+///                 .with_material(|m| DefaultMaterial2DUpdater::default()
+///                     .texture(texture.to_ref())
+///                     .apply(app, m))
 ///                 .with_model(|m| m.position = position)
 ///                 .with_model(|m| m.size = size)
 ///                 .with_model(|m| m.camera = camera),
@@ -595,7 +597,7 @@ impl State for TextureManager {
         for texture_index in texture_indexes {
             let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
             let (target, view) =
-                Self::run_on_texture(app, texture_index, |t, app| t.prepare_rendering(app));
+                Self::run_on_texture(app, texture_index, Texture::prepare_rendering);
             target.take(app, |target, app| target.render(app, &gpu, view));
             Self::run_on_texture(app, texture_index, |t, _| t.copy_texture_in_buffer(&gpu));
         }

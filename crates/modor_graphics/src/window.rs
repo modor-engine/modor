@@ -27,18 +27,19 @@ use winit::dpi::PhysicalSize;
 ///
 /// impl State for Root {
 ///     fn init(&mut self, app: &mut App) {
-///         let window = app.get_mut::<Window>();
-///         window.title = "My App".into();
-///         window.frame_rate = FrameRate::Unlimited;
-///         window.target.background_color = Color::GRAY;
-///         // enable maximum supported anti-aliasing
-///         window.target.anti_aliasing = window
-///             .target
-///             .supported_anti_aliasing_modes()
-///             .iter()
-///             .copied()
-///             .max()
-///             .unwrap_or_default();
+///         app.take::<Window, _>(|window, app| {
+///             window.title = "My App".into();
+///             window.frame_rate = FrameRate::Unlimited;
+///             let target = window.target.get_mut(app);
+///             target.background_color = Color::GRAY;
+///             // enable maximum supported anti-aliasing
+///             target.anti_aliasing = target
+///                 .supported_anti_aliasing_modes()
+///                 .iter()
+///                 .copied()
+///                 .max()
+///                 .unwrap_or_default();      
+///         });
 ///     }
 /// }
 /// ```

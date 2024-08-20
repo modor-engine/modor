@@ -13,9 +13,9 @@ use std::marker::PhantomData;
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod, Updater)]
 pub struct DefaultMaterial2D {
-    pub(crate) shader_color: [f32; 4],
-    pub(crate) shader_texture_part_position: [f32; 2],
-    pub(crate) shader_texture_part_size: [f32; 2],
+    shader_color: [f32; 4],
+    shader_texture_part_position: [f32; 2],
+    shader_texture_part_size: [f32; 2],
     /// Color of the rendered instance.
     ///
     /// This color is multiplied to the [`texture`](DefaultMaterial2DUpdater::texture) pixel colors.

@@ -27,20 +27,21 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 /// # use modor_physics::modor_math::*;
 /// #
 /// struct Circle {
-///     material: Mat<DefaultMaterial2D>,
+///     material: MatGlob<DefaultMaterial2D>,
 ///     model: Model2D,
 /// }
 ///
 /// impl Circle {
 ///     fn new(app: &mut App, position: Vec2, radius: f32, color: Color) -> Self {
-///         let material = DefaultMaterial2D::new(app)
-///             .with_color(color)
-///             .with_is_ellipse(true)
-///             .into_mat(app);
+///         let material = MatGlob::<DefaultMaterial2D>::from_app(app);
+///         DefaultMaterial2DUpdater::default()
+///             .color(color)
+///             .is_ellipse(true)
+///             .apply(app, &material);
 ///         let model = Model2D::new(app)
 ///             .with_position(position)
 ///             .with_size(Vec2::ONE * radius * 2.)
-///             .with_material(material.glob());
+///             .with_material(material.to_ref());
 ///         Self { material, model }
 ///     }
 ///

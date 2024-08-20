@@ -40,8 +40,10 @@ use std::time::Duration;
 ///             TexturePart::new(2, 1),
 ///         ];
 ///         Self {
-///             sprite: Sprite2D::new(app)
-///                 .with_material(|m| m.texture = texture.to_ref()),
+///             sprite: Sprite2D::from_app(app)
+///                 .with_material(|m| DefaultMaterial2DUpdater::default()
+///                     .texture(texture.to_ref())
+///                     .apply(app, m)),
 ///             animation: TextureAnimation::new(3, 2)
 ///                 .with_fps(5)
 ///                 .with_parts(|p| *p = animation_parts),
@@ -50,8 +52,10 @@ use std::time::Duration;
 ///     }
 ///
 ///     fn update(&mut self, app: &mut App) {
-///         self.sprite.material.texture_size = self.animation.part_size();
-///         self.sprite.material.texture_position = self.animation.part_position();
+///         DefaultMaterial2DUpdater::default()
+///             .texture_size(self.animation.part_size())
+///             .texture_position(self.animation.part_position())
+///             .apply(app, &self.sprite.material);
 ///         self.sprite.update(app);
 ///         self.animation.update(app);
 ///     }

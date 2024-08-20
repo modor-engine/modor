@@ -31,7 +31,8 @@ use wgpu::{
 ///
 /// impl State for Root {
 ///     fn init(&mut self, app: &mut App) {
-///         app.get_mut::<Window>().target.background_color = Color::RED;
+///         let target = app.get_mut::<Window>().target.to_ref().get_mut(app);
+///         target.background_color = Color::RED;
 ///     }
 /// }
 /// ```
@@ -118,7 +119,7 @@ impl Target {
     }
 
     pub(crate) fn render(&mut self, app: &mut App, gpu: &Gpu, view: TextureView) {
-        app.take::<MaterialManager, _>(|manager, app| manager.update_material_bind_groups(app));
+        app.take(MaterialManager::update_material_bind_groups);
         app.get_mut::<InstanceGroups2D>().sync(gpu);
         self.update_loaded(gpu);
         let anti_aliasing = self.fixed_anti_aliasing();

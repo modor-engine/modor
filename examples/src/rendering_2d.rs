@@ -1,7 +1,9 @@
 use instant::Instant;
 use modor::log::{info, Level};
 use modor::{App, FromApp, State};
-use modor_graphics::{Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Window};
+use modor_graphics::{
+    Color, DefaultMaterial2D, DefaultMaterial2DUpdater, MatGlob, Model2D, Window,
+};
 use modor_physics::modor_math::Vec2;
 use modor_physics::Delta;
 use rand::Rng;
@@ -56,36 +58,29 @@ impl State for Root {
     }
 }
 
+#[derive(FromApp)]
 struct Resources {
-    materials: Vec<Mat<DefaultMaterial2D>>,
-}
-
-impl FromApp for Resources {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            materials: COLORS
-                .iter()
-                .map(|&color| {
-                    DefaultMaterial2D::new(app)
-                        .with_color(color)
-                        .with_is_ellipse(true)
-                        .into_mat(app)
-                })
-                .collect(),
-        }
-    }
+    materials: Vec<MatGlob<DefaultMaterial2D>>,
 }
 
 impl State for Resources {
-    fn update(&mut self, app: &mut App) {
-        for material in &mut self.materials {
-            material.update(app);
-        }
+    fn init(&mut self, app: &mut App) {
+        self.materials = COLORS
+            .iter()
+            .map(|&color| {
+                MatGlob::from_app_with(app, |mat, app| {
+                    DefaultMaterial2DUpdater::default()
+                        .color(color)
+                        .is_ellipse(true)
+                        .apply(app, mat);
+                })
+            })
+            .collect();
     }
 }
 
 struct Object {
-    model: Model2D<DefaultMaterial2D>,
+    model: Model2D,
     next_update: Instant,
     // A `Body2D` could be used instead of manually handle the velocity, but for performance reasons
     // this is not recommended with a large amount of objects (> 10K objects).
@@ -95,9 +90,10 @@ struct Object {
 impl Object {
     fn new(app: &mut App, index: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let material = app.get_mut::<Resources>().materials[index % COLORS.len()].glob();
+        let material = app.get_mut::<Resources>().materials[index % COLORS.len()].to_ref();
         let position = Vec2::new(rng.gen_range(-0.2..0.2), rng.gen_range(-0.2..0.2));
-        let model = Model2D::new(app, material)
+        let model = Model2D::new(app)
+            .with_material(material.to_ref())
             .with_position(position)
             .with_size(Vec2::ONE * 0.01)
             .with_z_index(rng.gen_range(i16::MIN..i16::MAX));

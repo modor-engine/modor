@@ -2,7 +2,8 @@ use modor::log::Level;
 use modor::{App, FromApp, Glob, State};
 use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::{
-    Camera2D, Color, Size, Sprite2D, Texture, TextureSource, TextureUpdater, Window,
+    Camera2D, Color, DefaultMaterial2DUpdater, Size, Sprite2D, Texture, TextureSource,
+    TextureUpdater, Window,
 };
 use modor_physics::modor_math::Vec2;
 
@@ -17,7 +18,11 @@ struct Root {
 
 impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
-        app.get_mut::<Window>().target.background_color = Color::GRAY;
+        app.get_mut::<Window>()
+            .target
+            .to_ref()
+            .get_mut(app)
+            .background_color = Color::GRAY;
         Self {
             target_rectangle: Self::target_rectangle(app),
             inner_rectangle: Self::inner_rectangle(app),
@@ -35,16 +40,23 @@ impl State for Root {
 
 impl Root {
     fn target_rectangle(app: &mut App) -> Sprite2D {
-        let target_texture = app.get_mut::<TextureTarget>().texture.to_ref();
-        Sprite2D::new(app).with_material(|m| m.texture = target_texture)
+        Sprite2D::from_app(app).with_material(|m| {
+            DefaultMaterial2DUpdater::default()
+                .texture(app.get_mut::<TextureTarget>().texture.to_ref())
+                .apply(app, m);
+        })
     }
 
     fn inner_rectangle(app: &mut App) -> Sprite2D {
         let target_camera = app.get_mut::<TextureTarget>().camera.glob().to_ref();
-        Sprite2D::new(app)
+        Sprite2D::from_app(app)
             .with_model(|m| m.size = Vec2::ONE * 0.2)
             .with_model(|m| m.camera = target_camera)
-            .with_material(|m| m.color = Color::RED)
+            .with_material(|m| {
+                DefaultMaterial2DUpdater::default()
+                    .color(Color::RED)
+                    .apply(app, m);
+            })
     }
 }
 
@@ -56,7 +68,7 @@ struct TextureTarget {
 impl FromApp for TextureTarget {
     fn from_app(app: &mut App) -> Self {
         let texture = Glob::<Res<Texture>>::from_app(app);
-        let camera = Camera2D::new(app, vec![texture.get(app).target().glob().to_ref()]);
+        let camera = Camera2D::new(app, vec![texture.get(app).target().to_ref()]);
         Self { texture, camera }
     }
 }
@@ -67,6 +79,7 @@ impl State for TextureTarget {
             .texture
             .get(app)
             .target()
+            .get(app)
             .supported_anti_aliasing_modes()
             .iter()
             .copied()

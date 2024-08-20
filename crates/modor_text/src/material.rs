@@ -1,64 +1,68 @@
-use crate::material::internal::TextMaterial2DData;
 use crate::resources::TextResources;
-use modor::{App, Glob, GlobRef};
+use modor::{App, Glob, GlobRef, Updater};
 use modor_graphics::modor_resources::Res;
-use modor_graphics::{Color, Material, Model2DGlob, ShaderGlobRef, Texture};
+use modor_graphics::{Color, MatGlob, MatUpdater, Material, Model2DGlob, Texture};
+use std::marker::PhantomData;
 
 /// A material for 2D text rendering.
 ///
 /// # Examples
 ///
 /// See [`Text2D`](crate::Text2D).
-#[derive(Debug)]
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod, Updater)]
 pub struct TextMaterial2D {
-    // The color of the rendered text.
+    shader_color: [f32; 4],
+    /// The color of the rendered text.
     ///
     /// Default is [`Color::WHITE`].
-    pub color: Color,
-    texture: GlobRef<Res<Texture>>,
-    shader: ShaderGlobRef<Self>,
+    #[updater(inner_type, field)]
+    color: PhantomData<Color>,
+    /// The texture containing the text the render.
+    ///
+    /// Default is a white texture.
+    #[updater(inner_type, field)]
+    texture: PhantomData<GlobRef<Res<Texture>>>,
+}
+
+impl Default for TextMaterial2D {
+    fn default() -> Self {
+        Self {
+            shader_color: Color::WHITE.into(),
+            color: PhantomData,
+            texture: PhantomData,
+        }
+    }
 }
 
 impl Material for TextMaterial2D {
-    type Data = TextMaterial2DData;
     type InstanceData = ();
 
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        self.shader.clone()
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        vec![self.texture.clone()]
-    }
-
-    fn is_transparent(&self) -> bool {
-        self.color.a > 0. && self.color.a < 1.
-    }
-
-    fn data(&self) -> Self::Data {
-        TextMaterial2DData {
-            color: self.color.into(),
-        }
+    fn init(app: &mut App, glob: &MatGlob<Self>) {
+        MatUpdater::default()
+            .shader(app.get_mut::<TextResources>().text_shader.to_ref())
+            .apply(app, glob);
     }
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
 }
 
-impl TextMaterial2D {
-    pub(crate) fn new(app: &mut App, texture: GlobRef<Res<Texture>>) -> Self {
-        let resources = app.get_mut::<TextResources>();
-        Self {
-            color: Color::WHITE,
-            texture,
-            shader: resources.text_shader.to_ref(),
+impl TextMaterial2DUpdater<'_> {
+    /// Runs the update.
+    pub fn apply(mut self, app: &mut App, glob: &MatGlob<TextMaterial2D>) {
+        let mut updater = MatUpdater::default();
+        if let Some(texture) = self.texture.take_value(|| unreachable!()) {
+            updater = updater.textures(vec![texture]);
         }
-    }
-}
-
-pub(super) mod internal {
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, bytemuck::Zeroable, bytemuck::Pod)]
-    pub struct TextMaterial2DData {
-        pub(crate) color: [f32; 4],
+        if let Some(color) = self.color.take_value(|| unreachable!()) {
+            updater = updater
+                .data(TextMaterial2D {
+                    shader_color: color.into(),
+                    color: PhantomData,
+                    texture: PhantomData,
+                })
+                .is_transparent(color.a > 0. && color.a < 1.);
+        }
+        updater.apply(app, glob);
     }
 }

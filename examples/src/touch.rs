@@ -2,7 +2,7 @@ use modor::log::Level;
 use modor::{App, FromApp, State};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::Inputs;
-use modor_graphics::{Sprite2D, Window};
+use modor_graphics::{DefaultMaterial2DUpdater, Sprite2D, Window};
 
 pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
@@ -37,9 +37,13 @@ impl Root {
         let window_size = window.size();
         let camera = window.camera.glob().to_ref();
         let position = camera.get(app).world_position(window_size, finger_position);
-        Sprite2D::new(app)
+        Sprite2D::from_app(app)
             .with_model(|m| m.position = position)
             .with_model(|m| m.size = Vec2::ONE * 0.3)
-            .with_material(|m| m.is_ellipse = true)
+            .with_material(|m| {
+                DefaultMaterial2DUpdater::default()
+                    .is_ellipse(true)
+                    .apply(app, m);
+            })
     }
 }

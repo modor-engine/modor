@@ -158,7 +158,7 @@ impl Material for TestMaterial {
     type InstanceData = ();
 
     fn init(app: &mut App, glob: &MatGlob<Self>) {
-        MatUpdater::default().is_transparent(true).apply(app, glob)
+        MatUpdater::default().is_transparent(true).apply(app, glob);
     }
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}

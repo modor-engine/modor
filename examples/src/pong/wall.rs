@@ -6,18 +6,10 @@ use modor_physics::{Body2D, Body2DUpdater, CollisionGroup};
 pub(crate) const FIELD_BORDER_WIDTH: f32 = 0.02;
 pub(crate) const FIELD_SIZE: Vec2 = Vec2::new(1. - FIELD_BORDER_WIDTH, 0.75);
 
+#[derive(FromApp)]
 pub(crate) struct Wall {
     body: Glob<Body2D>,
     sprite: Sprite2D,
-}
-
-impl FromApp for Wall {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-        }
-    }
 }
 
 impl Wall {
