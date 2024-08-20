@@ -1,7 +1,7 @@
 use instant::Instant;
 use modor::log::Level;
 use modor::{App, FromApp, State};
-use modor_graphics::{Color, Sprite2D};
+use modor_graphics::{Color, DefaultMaterial2DUpdater, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use std::time::Duration;
 
@@ -31,7 +31,7 @@ impl FromApp for Root {
         }
         Self {
             last_update: Instant::now(),
-            background: Sprite2D::new(app),
+            background: Sprite2D::from_app(app),
             are_cells_alive,
             cells: vec![],
         }
@@ -110,9 +110,13 @@ impl Root {
     }
 
     fn alive_cell(app: &mut App) -> Sprite2D {
-        Sprite2D::new(app)
+        Sprite2D::from_app(app)
             .with_model(|m| m.size = Vec2::ONE / GRID_SIZE as f32)
             .with_model(|m| m.z_index = 1)
-            .with_material(|m| m.color = Color::BLACK)
+            .with_material(|m| {
+                DefaultMaterial2DUpdater::default()
+                    .color(Color::BLACK)
+                    .apply(app, m);
+            })
     }
 }

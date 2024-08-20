@@ -29,6 +29,12 @@ impl From<Color> for [f32; 4] {
     }
 }
 
+impl From<[f32; 4]> for Color {
+    fn from(color: [f32; 4]) -> Self {
+        Self::rgba(color[0], color[1], color[2], color[3])
+    }
+}
+
 impl Color {
     /// <span style="color:black">█</span>
     pub const BLACK: Self = Self::rgb(0., 0., 0.);

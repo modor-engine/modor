@@ -14,6 +14,7 @@ pub fn main() {
     modor_graphics::run::<Root>(Level::Info);
 }
 
+#[derive(FromApp)]
 struct Root {
     left_wall: Wall,
     right_wall: Wall,
@@ -25,25 +26,9 @@ struct Root {
     right_paddle: Paddle,
 }
 
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        app.create::<Scores>();
-        Self {
-            left_wall: Wall::from_app(app),
-            right_wall: Wall::from_app(app),
-            top_wall: Wall::from_app(app),
-            bottom_wall: Wall::from_app(app),
-            separator: Sprite2D::new(app)
-                .with_model(|m| m.size = Vec2::new(FIELD_BORDER_WIDTH / 4., FIELD_SIZE.y)),
-            ball: Ball::from_app(app),
-            left_paddle: Paddle::from_app(app),
-            right_paddle: Paddle::from_app(app),
-        }
-    }
-}
-
 impl State for Root {
     fn init(&mut self, app: &mut App) {
+        app.create::<Scores>();
         app.take::<CollisionGroups, _>(|groups, app| {
             self.left_wall
                 .init(app, WallOrientation::Left, &groups.vertical_wall);
@@ -54,6 +39,7 @@ impl State for Root {
             self.bottom_wall
                 .init(app, WallOrientation::Bottom, &groups.horizontal_wall);
         });
+        self.separator.model.size = Vec2::new(FIELD_BORDER_WIDTH / 4., FIELD_SIZE.y);
         self.ball.init(app);
         self.left_paddle.init_player(app, Side::Left);
         self.right_paddle.init_bot(app, Side::Right);

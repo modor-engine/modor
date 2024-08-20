@@ -1,9 +1,9 @@
 use crate::resources::TextResources;
-use crate::TextMaterial2D;
+use crate::{TextMaterial2D, TextMaterial2DUpdater};
 use ab_glyph::{Font, FontVec, Glyph, PxScaleFont, ScaleFont};
 use modor::{App, Builder, FromApp, Glob, GlobRef};
 use modor_graphics::modor_resources::{Res, ResUpdater};
-use modor_graphics::{IntoMat, Mat, Model2D, Size, Texture, TextureSource, TextureUpdater};
+use modor_graphics::{MatGlob, Model2D, Size, Texture, TextureSource, TextureUpdater};
 use std::iter;
 
 /// A rendered 2D text.
@@ -27,7 +27,9 @@ use std::iter;
 ///                 .with_content("Hello world!".into())
 ///                 .with_font(app.get_mut::<Resources>().font.to_ref())
 ///                 .with_font_height(200.)
-///                 .with_material(|m| m.color = Color::GREEN),
+///                 .with_material(|m| TextMaterial2DUpdater::default()
+///                     .color(Color::GREEN)
+///                     .apply(app, m)),
 ///         }
 ///     }
 /// }
@@ -85,10 +87,10 @@ pub struct Text2D {
     pub texture: Glob<Res<Texture>>,
     /// Material of the rendered text.
     #[builder(form(closure))]
-    pub material: Mat<TextMaterial2D>,
+    pub material: MatGlob<TextMaterial2D>,
     /// Model of the rendered text.
     #[builder(form(closure))]
-    pub model: Model2D<TextMaterial2D>,
+    pub model: Model2D,
     old_state: OldState,
 }
 
@@ -102,8 +104,11 @@ impl Text2D {
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Buffer(Size::ONE, vec![0, 0, 0, 0])))
             .apply(app, &texture);
-        let material = TextMaterial2D::new(app, texture.to_ref()).into_mat(app);
-        let model = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        TextMaterial2DUpdater::default()
+            .texture(texture.to_ref())
+            .apply(app, &material);
+        let model = Model2D::new(app).with_material(material.to_ref());
         Self {
             content: String::new(),
             font_height: 100.,
@@ -141,7 +146,6 @@ impl Text2D {
                 self.update_old_state();
             }
         }
-        self.material.update(app);
         self.model.update(app);
     }
 

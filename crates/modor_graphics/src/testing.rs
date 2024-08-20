@@ -27,7 +27,7 @@ use std::{env, fs};
 /// - the expected and actual textures are different.
 /// - the [`Texture`] buffer is empty.
 /// - the actual texture found in the [`Texture`] doesn't match the
-/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+///   expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
 /// # Examples
@@ -86,7 +86,7 @@ pub fn assert_same(app: &App, texture: &Glob<Res<Texture>>, key: impl AsRef<str>
 /// - the expected and actual textures are not similar.
 /// - the [`Texture`] buffer is empty.
 /// - the actual texture found in the [`Texture`] doesn't match the
-/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+///   expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
 /// # Examples
@@ -153,7 +153,7 @@ pub fn assert_max_component_diff(
 /// - the expected and actual textures are not similar.
 /// - the [`Texture`] buffer is empty.
 /// - the actual texture found in the [`Texture`] doesn't match the
-/// expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
+///   expected one saved in `$CARGO_MANIFEST_DIR/tests/expected/{key}.png`.
 /// - there is an I/O error while reading or writing the expected or the diff texture.
 ///
 /// # Examples

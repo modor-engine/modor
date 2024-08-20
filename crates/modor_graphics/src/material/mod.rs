@@ -2,171 +2,193 @@ use crate::buffer::{Buffer, BufferBindGroup};
 use crate::gpu::{Gpu, GpuManager};
 use crate::model::Model2DGlob;
 use crate::resources::Resources;
-use crate::{DefaultMaterial2D, Shader, ShaderGlobRef, Texture};
+use crate::{Shader, Texture};
 use bytemuck::Pod;
 use derivative::Derivative;
 use log::error;
-use modor::{App, FromApp, Glob, GlobRef, Global, StateHandle};
+use modor::{App, FromApp, Glob, GlobRef, Global, Globals, State, StateHandle, Update};
 use modor_resources::Res;
 use std::any;
+use std::any::TypeId;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
-use wgpu::{
-    BindGroupEntry, BindGroupLayout, BindingResource, BufferUsages, Id, Sampler, TextureView,
-};
+use std::ops::Deref;
+use wgpu::{BindGroupEntry, BindingResource, BufferUsages};
 
-/// A material that defines the aspect of a rendered model.
-///
-/// # Examples
-///
-/// See [`Model2D`](crate::Model2D).
-#[derive(Debug)]
-pub struct Mat<T> {
-    data: T,
-    glob: Glob<MaterialGlob>,
-    phantom_data: PhantomData<T>,
-}
+pub(crate) mod default_2d;
 
-impl<T> Deref for Mat<T> {
-    type Target = T;
+pub use internal::MatUpdater;
 
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl<T> DerefMut for Mat<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-impl<T> Mat<T>
-where
-    T: Material,
-{
-    /// Updates the material.
-    pub fn update(&mut self, app: &mut App) {
-        self.glob
-            .take(app, |glob, app| glob.update(app, &self.data));
-    }
-
-    /// Returns a reference to global data.
-    pub fn glob(&self) -> MaterialGlobRef<T> {
-        MaterialGlobRef {
-            inner: self.glob.to_ref(),
-            phantom: PhantomData,
-        }
-    }
-}
-
-/// A trait implemented for types that can be converted to a [`Mat`].
-pub trait IntoMat: Sized {
-    /// Converts to a [`Mat`].
-    fn into_mat(self, app: &mut App) -> Mat<Self>;
-}
-
-impl<T> IntoMat for T
-where
-    T: Material,
-{
-    fn into_mat(self, app: &mut App) -> Mat<Self> {
-        let mut material = Mat {
-            data: self,
-            glob: Glob::from_app(app),
-            phantom_data: PhantomData,
-        };
-        material.update(app);
-        material
-    }
-}
-
-/// The global data of a [`Mat`] with data of type `T`.
+/// A [`Mat`] glob.
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = ""),
-    Clone(bound = ""),
     Hash(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     PartialOrd(bound = ""),
     Ord(bound = "")
 )]
-pub struct MaterialGlobRef<T> {
-    inner: GlobRef<MaterialGlob>,
+pub struct MatGlob<T: Material> {
+    inner: Glob<Mat>,
     phantom: PhantomData<fn(T)>,
 }
 
-impl<T> Deref for MaterialGlobRef<T> {
-    type Target = GlobRef<MaterialGlob>;
+impl<T> FromApp for MatGlob<T>
+where
+    T: Material,
+{
+    fn from_app(app: &mut App) -> Self {
+        let glob = Self {
+            inner: Glob::<Mat>::from_app_with(app, |mat, app| {
+                mat.take(app, |mat, app| {
+                    let data = T::from_app(app);
+                    mat.buffer.update(app, data);
+                    mat.type_name = any::type_name::<T>();
+                    mat.instance_data_type.type_id = TypeId::of::<T::InstanceData>();
+                    mat.instance_data_type.size = size_of::<T::InstanceData>();
+                    mat.instance_data_type.create_fn =
+                        |app, model| bytemuck::cast_slice(&[T::instance_data(app, model)]).to_vec();
+                });
+            }),
+            phantom: PhantomData,
+        };
+        T::init(app, &glob);
+        glob
+    }
+}
+
+impl<T> Deref for MatGlob<T>
+where
+    T: Material,
+{
+    type Target = Glob<Mat>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-/// The global data of a [`Mat`].
-#[derive(Debug, Global)]
-pub struct MaterialGlob {
-    pub(crate) is_transparent: bool,
-    pub(crate) bind_group: BufferBindGroup,
-    pub(crate) binding_ids: BindingGlobalIds,
-    pub(crate) shader: GlobRef<Res<Shader>>,
-    buffer: MaterialBuffer,
-    textures: Vec<GlobRef<Res<Texture>>>,
+impl<T> MatGlob<T>
+where
+    T: Material,
+{
+    /// Retrieves material [`data`](MatUpdater::data).
+    pub fn data(&self, app: &App) -> T {
+        *bytemuck::from_bytes(&self.get(app).buffer.data)
+    }
 }
 
-impl FromApp for MaterialGlob {
+/// A material that defines the aspect of a rendered model.
+///
+/// # Examples
+///
+/// See [`Model2D`](crate::Model2D).
+#[derive(Debug, Global)]
+pub struct Mat {
+    pub(crate) is_transparent: bool,
+    pub(crate) has_transparent_texture: bool,
+    pub(crate) bind_group: BufferBindGroup,
+    pub(crate) shader: GlobRef<Res<Shader>>,
+    pub(crate) instance_data_type: InstanceDataType,
+    buffer: MaterialBuffer,
+    textures: Vec<GlobRef<Res<Texture>>>,
+    type_name: &'static str,
+    resources: StateHandle<Resources>,
+}
+
+impl FromApp for Mat {
     fn from_app(app: &mut App) -> Self {
         let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
         let shader = app.get_mut::<Resources>().empty_shader.deref().to_ref();
         let textures = vec![];
         let resources = app.handle();
         let white_texture = Self::white_texture(app, resources);
-        let texture_refs = Self::textures(app, &textures);
+        let texture_refs = Self::retrieve_textures(app, &textures);
         let buffer = MaterialBuffer::new(&gpu);
         let shader_ref = shader.get(app);
         Self {
             is_transparent: false,
-            bind_group: Self::create_bind_group::<DefaultMaterial2D>(
+            has_transparent_texture: false,
+            bind_group: Self::create_bind_group(
                 &gpu,
                 &buffer,
                 &texture_refs,
                 white_texture,
                 shader_ref,
+                "",
             ),
-            binding_ids: BindingGlobalIds::new(shader_ref, &texture_refs),
             shader,
+            instance_data_type: InstanceDataType {
+                type_id: TypeId::of::<()>(),
+                size: 0,
+                create_fn: |_, _| panic!("material not created with `MatGlob`"),
+            },
             buffer,
             textures,
+            type_name: "",
+            resources,
         }
     }
 }
 
-impl MaterialGlob {
-    fn update<T>(&mut self, app: &mut App, material: &T)
-    where
-        T: Material,
-    {
-        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
-        self.shader = material.shader().deref().to_ref();
-        self.textures = material.textures();
-        self.buffer.update(&gpu, material);
-        let resources = app.handle();
-        let white_texture = Self::white_texture(app, resources);
-        let textures = Self::textures(app, &self.textures);
-        self.is_transparent = material.is_transparent()
-            || textures.iter().any(|texture| texture.loaded.is_transparent);
-        let shader = self.shader.get(app);
-        let binding_ids = BindingGlobalIds::new(shader, &textures);
-        if binding_ids != self.binding_ids {
-            self.bind_group =
-                Self::create_bind_group::<T>(&gpu, &self.buffer, &textures, white_texture, shader);
-            self.binding_ids = binding_ids;
-        }
+impl<T> MatUpdater<'_, T>
+where
+    T: Material,
+{
+    /// Runs the update.
+    pub fn apply(mut self, app: &mut App, glob: &MatGlob<T>) {
+        let data = self.data.take_value(|| glob.data(app));
+        glob.take(app, |mat, app| {
+            Update::apply(&mut self.is_transparent, &mut mat.is_transparent);
+            if let Some(data) = data {
+                mat.buffer.update(app, data);
+            }
+            let mut is_bind_group_changed = false;
+            if let Some(shader) = self.shader.take_value(|| unreachable!()) {
+                is_bind_group_changed = shader.index() != mat.shader.index();
+                mat.shader = shader.deref().to_ref();
+            }
+            if let Some(textures) = self.textures.take_value_checked(|| mat.textures.clone()) {
+                is_bind_group_changed = true;
+                mat.textures = textures;
+                mat.has_transparent_texture = Mat::retrieve_textures(app, &mat.textures)
+                    .iter()
+                    .any(|texture| texture.loaded.is_transparent);
+            }
+            if is_bind_group_changed {
+                mat.refresh_bind_group(app);
+            }
+        });
+    }
+}
+
+impl Mat {
+    /// Retrieves material [`shader`](MatUpdater::shader).
+    pub fn shader(&self) -> &GlobRef<Res<Shader>> {
+        &self.shader
     }
 
-    fn textures<'a>(app: &'a App, textures: &[GlobRef<Res<Texture>>]) -> Vec<&'a Texture> {
+    /// Retrieves material [`textures`](MatUpdater::textures).
+    pub fn textures(&self) -> impl Iterator<Item = &GlobRef<Res<Texture>>> {
+        self.textures.iter()
+    }
+
+    fn refresh_bind_group(&mut self, app: &mut App) {
+        let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+        let shader = self.shader.get(app);
+        let white_texture = self.resources.get(app).white_texture.get(app);
+        let textures = Self::retrieve_textures(app, &self.textures);
+        self.bind_group = Self::create_bind_group(
+            &gpu,
+            &self.buffer,
+            &textures,
+            white_texture,
+            shader,
+            self.type_name,
+        );
+    }
+
+    fn retrieve_textures<'a>(app: &'a App, textures: &[GlobRef<Res<Texture>>]) -> Vec<&'a Texture> {
         textures.iter().map(|texture| &**texture.get(app)).collect()
     }
 
@@ -174,21 +196,20 @@ impl MaterialGlob {
         handle.get(app).white_texture.get(app)
     }
 
-    fn create_bind_group<T>(
+    fn create_bind_group(
         gpu: &Gpu,
         buffer: &MaterialBuffer,
         textures: &[&Texture],
         white_texture: &Texture,
         shader: &Shader,
-    ) -> BufferBindGroup
-    where
-        T: Material,
-    {
-        let entries = Self::create_bind_group_entries::<T>(
+        material_type_name: &str,
+    ) -> BufferBindGroup {
+        let entries = Self::create_bind_group_entries(
             buffer,
             textures,
             white_texture,
             shader.texture_count,
+            material_type_name,
         );
         BufferBindGroup::new(
             gpu,
@@ -199,15 +220,13 @@ impl MaterialGlob {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn create_bind_group_entries<'a, T>(
+    fn create_bind_group_entries<'a>(
         buffer: &'a MaterialBuffer,
         textures: &'a [&Texture],
         white_texture: &'a Texture,
         shader_texture_count: u32,
-    ) -> Vec<BindGroupEntry<'a>>
-    where
-        T: Material,
-    {
+        material_type_name: &str,
+    ) -> Vec<BindGroupEntry<'a>> {
         let mut entries = vec![BindGroupEntry {
             binding: 0,
             resource: buffer.inner.resource(),
@@ -216,7 +235,7 @@ impl MaterialGlob {
             let texture = textures.get(i as usize).unwrap_or_else(|| {
                 error!(
                     "Invalid number of textures for material of type `{}`",
-                    any::type_name::<T>()
+                    material_type_name
                 );
                 &white_texture
             });
@@ -233,6 +252,13 @@ impl MaterialGlob {
         }
         entries
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct InstanceDataType {
+    pub(crate) type_id: TypeId,
+    pub(crate) size: usize,
+    pub(crate) create_fn: fn(&mut App, &Glob<Model2DGlob>) -> Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -254,91 +280,119 @@ impl MaterialBuffer {
         }
     }
 
-    fn update<T>(&mut self, gpu: &Gpu, material: &T)
+    fn update<T>(&mut self, app: &mut App, material: T)
     where
         T: Material,
     {
-        let data = Self::data(material);
+        let data = bytemuck::try_cast_slice(&[material])
+            .unwrap_or(&[])
+            .to_vec();
         if self.data != data {
-            self.inner.update(gpu, &data);
+            let gpu = app.get_mut::<GpuManager>().get_or_init().clone();
+            self.inner.update(&gpu, &data);
             self.data = data;
         }
     }
-
-    fn data(material: &impl Material) -> Vec<u8> {
-        bytemuck::try_cast_slice(&[material.data()])
-            .unwrap_or(&[])
-            .into()
-    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct BindingGlobalIds {
-    pub(crate) bind_group_layout: Id<BindGroupLayout>,
-    views: Vec<Id<TextureView>>,
-    samplers: Vec<Id<Sampler>>,
-}
-
-impl BindingGlobalIds {
-    fn new(shader: &Shader, textures: &[&Texture]) -> Self {
-        Self {
-            bind_group_layout: shader.material_bind_group_layout.global_id(),
-            views: textures
-                .iter()
-                .map(|texture| texture.view.global_id())
-                .collect(),
-            samplers: textures
-                .iter()
-                .map(|texture| texture.sampler.global_id())
-                .collect(),
-        }
-    }
-}
-
-/// A trait for defining [`Mat`] data.
+/// A trait for defining [`Mat`] data that are sent to a shader.
+///
+/// # Platform-specific
+///
+/// - Web: material type size in bytes should be a multiple of 16.
 ///
 /// # Examples
 ///
 /// See code of `custom_shader` example.
-pub trait Material: Sized + 'static {
-    /// Raw material data type.
-    type Data: Pod;
+pub trait Material: FromApp + Pod + Sized + 'static {
     /// Raw instance data type.
     ///
     /// Each rendered model has its own instance data.
     ///
-    /// In case this type has a size of zero with [`mem::size_of`](std::mem::size_of()),
+    /// In case this type has a size of zero with [`size_of`],
     /// then no instance data are sent to the shader.
     type InstanceData: Pod;
 
-    /// Returns the shader used to make the rendering.
-    fn shader(&self) -> ShaderGlobRef<Self>;
-
-    /// Returns the textures sent to the shader.
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>>;
-
-    /// Returns whether the rendered models can be transparent.
-    ///
-    /// In case `true` is returned, the models will be rendered in Z-index order.
-    /// This is less efficient than for opaque models, but this limits the risk of having
-    /// rendering artifacts caused by transparency.
-    ///
-    /// Note that transparency is automatically detected for textures returned by
-    /// [`Material::textures`].
-    /// It means that if [`Material::is_transparent`]
-    /// returns `false` but one of the textures contains transparent pixels, then the models
-    /// are considered as transparent.
-    fn is_transparent(&self) -> bool;
-
-    /// Returns the raw material data sent to the shader.
-    ///
-    /// # Platform-specific
-    ///
-    /// - Web: data size in bytes should be a multiple of 16.
-    fn data(&self) -> Self::Data;
+    /// Initializes the material.
+    fn init(app: &mut App, glob: &MatGlob<Self>);
 
     /// Returns the instance data of a given `model`.
     fn instance_data(app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData;
 }
 
-pub(crate) mod default_2d;
+#[derive(Debug, FromApp, State)]
+pub(crate) struct MaterialManager {
+    loaded_shader_indexes: Vec<usize>,
+    loaded_texture_indexes: Vec<usize>,
+}
+
+impl MaterialManager {
+    pub(crate) fn register_loaded_shader(&mut self, index: usize) {
+        self.loaded_shader_indexes.push(index);
+    }
+
+    pub(crate) fn register_loaded_texture(&mut self, index: usize) {
+        self.loaded_texture_indexes.push(index);
+    }
+
+    pub(crate) fn update_material_bind_groups(&mut self, app: &mut App) {
+        app.take::<Globals<Mat>, _>(|materials, app| {
+            for shader_index in self.loaded_shader_indexes.drain(..) {
+                for mat in materials.iter_mut() {
+                    if mat.shader.index() == shader_index {
+                        mat.refresh_bind_group(app);
+                    }
+                }
+            }
+            for texture_index in self.loaded_texture_indexes.drain(..) {
+                for mat in materials.iter_mut() {
+                    if mat
+                        .textures
+                        .iter()
+                        .any(|texture| texture.index() == texture_index)
+                    {
+                        mat.refresh_bind_group(app);
+                    }
+                }
+            }
+        });
+    }
+}
+
+mod internal {
+    use crate::{ShaderGlobRef, Texture};
+    use modor::{GlobRef, Updater};
+    use modor_resources::Res;
+
+    // this type is only used to generate `MatUpdater`
+    #[derive(Updater)]
+    #[allow(dead_code, unreachable_pub)]
+    pub struct Mat<T> {
+        /// Material data sent to the shader.
+        #[updater(field, for_field)]
+        pub(super) data: T,
+        /// Whether the rendered models can be transparent.
+        ///
+        /// If `true`, the models will be rendered in Z-index order.
+        /// This is less efficient than for opaque models, but this limits the risk of having
+        /// rendering artifacts caused by transparency.
+        ///
+        /// If [`is_transparent`](MatUpdater::is_transparent)
+        /// is `false` but one of the [`textures`](MatUpdater::textures) contains transparent
+        /// pixels, then the models are considered as transparent.
+        ///
+        /// Default is `false`.
+        #[updater(field, for_field)]
+        pub(super) is_transparent: bool,
+        /// Shader used to make the rendering.
+        ///
+        /// Default is a shader that doesn't render anything.
+        #[updater(field)]
+        pub(super) shader: ShaderGlobRef<T>,
+        /// Textures sent to the shader.
+        ///
+        /// Default is no texture.
+        #[updater(field, for_field)]
+        pub(super) textures: Vec<GlobRef<Res<Texture>>>,
+    }
+}

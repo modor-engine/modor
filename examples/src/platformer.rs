@@ -4,7 +4,7 @@ use modor::log::Level;
 use modor::{App, FromApp, Glob, State, StateHandle};
 use modor_graphics::modor_input::modor_math::Vec2;
 use modor_graphics::modor_input::{Inputs, Key};
-use modor_graphics::{Color, Sprite2D};
+use modor_graphics::{Color, DefaultMaterial2DUpdater, Sprite2D};
 use modor_physics::{Body2D, Body2DUpdater, CollisionGroup, CollisionGroupUpdater, Impulse};
 use std::time::Duration;
 
@@ -110,20 +110,11 @@ impl State for CollisionGroups {
     }
 }
 
+#[derive(FromApp)]
 struct Platform {
     body: Glob<Body2D>,
     sprite: Sprite2D,
-    next_reverse_instant: Instant,
-}
-
-impl FromApp for Platform {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-            next_reverse_instant: Instant::now() + PLATFORM_PERIOD,
-        }
-    }
+    latest_reverse_instant: Instant,
 }
 
 impl Platform {
@@ -135,12 +126,14 @@ impl Platform {
             .collision_group(app.get_mut::<CollisionGroups>().platform.to_ref())
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.color = Color::GREEN;
+        DefaultMaterial2DUpdater::default()
+            .color(Color::GREEN)
+            .apply(app, &self.sprite.material);
     }
 
     fn update(&mut self, app: &mut App) {
-        if Instant::now() >= self.next_reverse_instant {
-            self.next_reverse_instant = Instant::now() + PLATFORM_PERIOD;
+        if Instant::now() >= self.latest_reverse_instant + PLATFORM_PERIOD {
+            self.latest_reverse_instant = Instant::now();
             Body2DUpdater::default()
                 .for_velocity(|velocity| *velocity *= -1.)
                 .apply(app, &self.body);
@@ -149,20 +142,11 @@ impl Platform {
     }
 }
 
+#[derive(FromApp)]
 struct Character {
     body: Glob<Body2D>,
     sprite: Sprite2D,
     platforms: StateHandle<Platforms>,
-}
-
-impl FromApp for Character {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-            platforms: app.handle(),
-        }
-    }
 }
 
 impl State for Character {

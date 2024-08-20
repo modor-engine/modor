@@ -1,7 +1,9 @@
 use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
-use modor_graphics::{Color, Size, Sprite2D, Texture, TextureSource, TextureUpdater};
+use modor_graphics::{
+    Color, DefaultMaterial2DUpdater, Size, Sprite2D, Texture, TextureSource, TextureUpdater,
+};
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
 use modor_resources::{Res, ResUpdater, ResourceState};
@@ -214,7 +216,11 @@ fn set_smooth() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_repeated() {
     let (mut app, glob, target) = configure_app();
-    root(&mut app).sprite.material.texture_size = Vec2::ONE * 2.;
+    app.take::<Root, _>(|root, app| {
+        DefaultMaterial2DUpdater::default()
+            .texture_size(Vec2::ONE * 2.)
+            .apply(app, &root.sprite.material);
+    });
     TextureUpdater::default()
         .res(ResUpdater::default().source(TextureSource::Bytes(TEXTURE_BYTES)))
         .is_smooth(false)
@@ -242,20 +248,11 @@ fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
+#[derive(FromApp)]
 struct Root {
     texture: Glob<Res<Texture>>,
     sprite: Sprite2D,
     target: Glob<Res<Texture>>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            texture: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-            target: Glob::from_app(app),
-        }
-    }
 }
 
 impl State for Root {
@@ -265,7 +262,9 @@ impl State for Root {
             .is_buffer_enabled(true)
             .apply(app, &self.texture);
         self.sprite.model.camera = self.target.get(app).camera().glob().to_ref();
-        self.sprite.material.texture = self.texture.to_ref();
+        DefaultMaterial2DUpdater::default()
+            .texture(self.texture.to_ref())
+            .apply(app, &self.sprite.material);
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(20, 20))))
             .is_target_enabled(true)

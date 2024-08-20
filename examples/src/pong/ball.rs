@@ -4,30 +4,19 @@ use crate::pong::scores::Scores;
 use crate::pong::side::Side;
 use instant::Instant;
 use modor::{App, FromApp, Glob, Globals, State, StateHandle};
-use modor_graphics::Sprite2D;
+use modor_graphics::{DefaultMaterial2DUpdater, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DUpdater};
 use rand::Rng;
 use std::f32::consts::FRAC_PI_4;
 
+#[derive(FromApp)]
 pub(crate) struct Ball {
     body: Glob<Body2D>,
     sprite: Sprite2D,
     init_instant: Instant,
     collision_groups: StateHandle<CollisionGroups>,
     bodies: StateHandle<Globals<Body2D>>,
-}
-
-impl FromApp for Ball {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            body: Glob::from_app(app),
-            sprite: Sprite2D::new(app),
-            init_instant: Instant::now(),
-            collision_groups: app.handle(),
-            bodies: app.handle(),
-        }
-    }
 }
 
 impl Ball {
@@ -45,7 +34,9 @@ impl Ball {
             .collision_group(self.collision_groups.get(app).ball.to_ref())
             .apply(app, &self.body);
         self.sprite.model.body = Some(self.body.to_ref());
-        self.sprite.material.is_ellipse = true;
+        DefaultMaterial2DUpdater::default()
+            .is_ellipse(true)
+            .apply(app, &self.sprite.material);
         self.init_instant = Instant::now();
     }
 
@@ -64,7 +55,7 @@ impl Ball {
         Vec2::new(direction * Self::INITIAL_SPEED, 0.)
     }
 
-    pub(crate) fn handle_collision_with_paddle(&mut self, app: &mut App) {
+    pub(crate) fn handle_collision_with_paddle(&self, app: &mut App) {
         let Some(paddle) = self.collided_paddle(app) else {
             return;
         };
@@ -80,7 +71,7 @@ impl Ball {
             .apply(app, &self.body);
     }
 
-    pub(crate) fn handle_collision_with_ball(&mut self, app: &mut App) {
+    pub(crate) fn handle_collision_with_ball(&self, app: &mut App) {
         let body = self.body.get(app);
         let position = body.position(app);
         let vertical_wall_group = &self.collision_groups.get(app).vertical_wall;
@@ -99,7 +90,7 @@ impl Ball {
         }
     }
 
-    fn apply_acceleration(&mut self, app: &mut App) {
+    fn apply_acceleration(&self, app: &mut App) {
         let speed = self
             .init_instant
             .elapsed()

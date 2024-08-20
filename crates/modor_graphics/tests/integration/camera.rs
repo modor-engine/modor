@@ -1,9 +1,7 @@
 use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
-use modor_graphics::{
-    Camera2D, Size, Sprite2D, TargetGlob, Texture, TextureSource, TextureUpdater,
-};
+use modor_graphics::{Camera2D, Size, Sprite2D, Target, Texture, TextureSource, TextureUpdater};
 use modor_input::modor_math::Vec2;
 use modor_internal::assert_approx_eq;
 use modor_resources::testing::wait_resources;
@@ -70,28 +68,19 @@ fn camera(app: &mut App) -> &Camera2D {
     root(app).target.to_ref().get_mut(app).camera()
 }
 
-fn other_target_glob(app: &App, other_target: &Glob<Res<Texture>>) -> GlobRef<TargetGlob> {
-    other_target.get(app).target().glob().to_ref()
+fn other_target_glob(app: &App, other_target: &Glob<Res<Texture>>) -> GlobRef<Target> {
+    other_target.get(app).target().to_ref()
 }
 
 fn root(app: &mut App) -> &mut Root {
     app.get_mut::<Root>()
 }
 
+#[derive(FromApp)]
 struct Root {
     sprite: Sprite2D,
     target: Glob<Res<Texture>>,
     other_target: Glob<Res<Texture>>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            sprite: Sprite2D::new(app),
-            target: Glob::from_app(app),
-            other_target: Glob::from_app(app),
-        }
-    }
 }
 
 impl State for Root {

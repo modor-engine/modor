@@ -2,8 +2,8 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::{assert_max_component_diff, assert_same};
 use modor_graphics::{
-    Camera2DGlob, Color, DefaultMaterial2D, IntoMat, Mat, Model2D, Size, Texture, TextureSource,
-    TextureUpdater,
+    Camera2DGlob, Color, DefaultMaterial2D, DefaultMaterial2DUpdater, MatGlob, Model2D, Size,
+    Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_physics::{Body2D, Body2DUpdater};
@@ -73,14 +73,20 @@ fn set_body() {
 fn set_z_index() {
     let (mut app, target) = configure_app();
     let camera = camera1(&mut app);
-    let material1 = root(&mut app).material1.glob();
-    let material2 = root(&mut app).material2.glob();
-    let model2 = Model2D::new(&mut app, material2.clone());
-    let model3 = Model2D::new(&mut app, material1);
-    let model4 = Model2D::new(&mut app, material2);
+    let material1 = root(&mut app).material1.to_ref();
+    let material2 = root(&mut app).material2.to_ref();
+    let model2 = Model2D::new(&mut app).with_material(material2.clone());
+    let model3 = Model2D::new(&mut app).with_material(material1);
+    let model4 = Model2D::new(&mut app).with_material(material2);
     root(&mut app).models.extend([model2, model3, model4]);
-    root(&mut app).material1.color = Color::BLUE.with_alpha(0.5);
-    root(&mut app).material2.color = Color::GREEN;
+    app.take::<Root, _>(|root, app| {
+        DefaultMaterial2DUpdater::default()
+            .color(Color::BLUE.with_alpha(0.5))
+            .apply(app, &root.material1);
+        DefaultMaterial2DUpdater::default()
+            .color(Color::GREEN)
+            .apply(app, &root.material2);
+    });
     root(&mut app).models[0].camera = camera.clone();
     root(&mut app).models[0].z_index = -2;
     root(&mut app).models[0].position = Vec2::ONE * -0.15;
@@ -122,7 +128,7 @@ fn set_camera() {
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn set_material() {
     let (mut app, target) = configure_app();
-    let material = root(&mut app).material2.glob();
+    let material = root(&mut app).material2.to_ref();
     root(&mut app).models[0].material = material;
     app.update();
     app.update();
@@ -149,9 +155,9 @@ fn root(app: &mut App) -> &mut Root {
 }
 
 struct Root {
-    material1: Mat<DefaultMaterial2D>,
-    material2: Mat<DefaultMaterial2D>,
-    models: Vec<Model2D<DefaultMaterial2D>>,
+    material1: MatGlob<DefaultMaterial2D>,
+    material2: MatGlob<DefaultMaterial2D>,
+    models: Vec<Model2D>,
     target1: Glob<Res<Texture>>,
     target2: Glob<Res<Texture>>,
 }
@@ -160,9 +166,9 @@ impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         let target1 = Glob::from_app(app);
         let target2 = Glob::from_app(app);
-        let material1 = DefaultMaterial2D::new(app).into_mat(app);
-        let material2 = DefaultMaterial2D::new(app).into_mat(app);
-        let model = Model2D::new(app, material1.glob());
+        let material1 = MatGlob::from_app(app);
+        let material2 = MatGlob::from_app(app);
+        let model = Model2D::new(app).with_material(material1.to_ref());
         Self {
             material1,
             material2,
@@ -175,7 +181,9 @@ impl FromApp for Root {
 
 impl State for Root {
     fn init(&mut self, app: &mut App) {
-        self.material2.color = Color::RED;
+        DefaultMaterial2DUpdater::default()
+            .color(Color::RED)
+            .apply(app, &self.material2);
         self.models[0].camera = self.target1.get(app).camera().glob().to_ref();
         TextureUpdater::default()
             .res(ResUpdater::default().source(TextureSource::Size(Size::new(30, 20))))
@@ -190,8 +198,6 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material1.update(app);
-        self.material2.update(app);
         for model in &mut self.models {
             model.update(app);
         }

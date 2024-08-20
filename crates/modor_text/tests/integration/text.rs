@@ -3,8 +3,8 @@ use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::modor_resources::testing::wait_resources;
 use modor_graphics::modor_resources::{Res, ResUpdater};
 use modor_graphics::testing::assert_max_component_diff;
-use modor_graphics::{Size, Texture, TextureSource, TextureUpdater};
-use modor_text::{Alignment, Text2D};
+use modor_graphics::{Color, Size, Texture, TextureSource, TextureUpdater};
+use modor_text::{Alignment, Text2D, TextMaterial2DUpdater};
 
 #[modor::test(disabled(windows, macos, android, wasm))]
 fn create_default() {
@@ -22,6 +22,19 @@ fn set_content() {
     app.update();
     app.update();
     assert_max_component_diff(&app, &target, "text#other_content", 20, 2);
+}
+
+#[modor::test(disabled(windows, macos, android, wasm))]
+fn set_color() {
+    let (mut app, target) = configure_app();
+    app.take::<Root, _>(|root, app| {
+        TextMaterial2DUpdater::default()
+            .color(Color::RED)
+            .apply(app, &root.text.material);
+    });
+    wait_resources(&mut app);
+    app.update();
+    assert_max_component_diff(&app, &target, "text#red", 20, 2);
 }
 
 #[modor::test(disabled(windows, macos, android, wasm))]

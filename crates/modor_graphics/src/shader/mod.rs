@@ -1,5 +1,6 @@
 use crate::anti_aliasing::SupportedAntiAliasingModes;
 use crate::gpu::{Gpu, GpuManager};
+use crate::material::MaterialManager;
 use crate::mesh::{Vertex, VertexBuffer};
 use crate::model::Instance;
 use crate::shader::loaded::ShaderLoaded;
@@ -11,7 +12,6 @@ use log::error;
 use modor::{App, FromApp, Glob, GlobRef, Update, Updater};
 use modor_resources::{Res, ResSource, ResUpdater, Resource, ResourceError, Source};
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
 use std::sync::Arc;
 use wgpu::{
@@ -48,7 +48,7 @@ where
     fn from_app(app: &mut App) -> Self {
         Self {
             inner: Glob::<Res<Shader>>::from_app_with(app, |res, app| {
-                res.get_mut(app).instance_size = mem::size_of::<T::InstanceData>();
+                res.get_mut(app).instance_size = size_of::<T::InstanceData>();
             }),
             phantom: PhantomData,
         }
@@ -132,7 +132,7 @@ where
 ///     - binding `0`: camera data
 /// - group `1`
 ///     - binding `0`: material data (`Material` struct corresponds to
-///         [`Material::Data`] on Rust side)
+///       the Rust struct implementing [`Material`] trait)
 ///     - binding `(i * 2)`: `texture_2d<f32>` value corresponding to texture `i`
 ///     - binding `(i * 2 + 1)`: `sampler` value corresponding to texture `i`
 ///
@@ -197,10 +197,18 @@ impl Resource for Shader {
         })
     }
 
-    fn on_load(&mut self, app: &mut App, loaded: Self::Loaded, source: &ResSource<Self>) {
+    fn on_load(
+        &mut self,
+        app: &mut App,
+        index: usize,
+        loaded: Self::Loaded,
+        source: &ResSource<Self>,
+    ) {
         self.loaded = loaded;
         self.source = source.clone();
         self.update(app);
+        app.get_mut::<MaterialManager>()
+            .register_loaded_shader(index);
     }
 }
 

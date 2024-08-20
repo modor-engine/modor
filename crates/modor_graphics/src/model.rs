@@ -1,17 +1,16 @@
 use crate::buffer::Buffer;
 use crate::gpu::Gpu;
+use crate::material::InstanceDataType;
 use crate::mesh::Mesh;
 use crate::mesh::VertexBuffer;
-use crate::resources::Resources;
-use crate::{Camera2DGlob, Material, MaterialGlobRef, Window};
+use crate::resources::{Materials, Resources};
+use crate::{Camera2DGlob, Mat, Window};
 use derivative::Derivative;
 use fxhash::FxHashMap;
 use modor::{App, Builder, FromApp, Glob, GlobRef, Global, Globals, State, StateHandle};
 use modor_input::modor_math::{Mat4, Quat, Vec2};
 use modor_physics::Body2D;
 use std::any::TypeId;
-use std::marker::PhantomData;
-use std::mem;
 use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 
 /// The instance of a rendered 2D object.
@@ -27,31 +26,32 @@ use wgpu::{vertex_attr_array, BufferUsages, VertexAttribute, VertexStepMode};
 /// # use modor_physics::modor_math::*;
 /// #
 /// struct Circle {
-///     material: Mat<DefaultMaterial2D>,
-///     model: Model2D<DefaultMaterial2D>,
+///     material: MatGlob<DefaultMaterial2D>,
+///     model: Model2D,
 /// }
 ///
 /// impl Circle {
 ///     fn new(app: &mut App, position: Vec2, radius: f32, color: Color) -> Self {
-///         let material = DefaultMaterial2D::new(app)
-///             .with_color(color)
-///             .with_is_ellipse(true)
-///             .into_mat(app);
-///         let model = Model2D::new(app, material.glob())
+///         let material = MatGlob::<DefaultMaterial2D>::from_app(app);
+///         DefaultMaterial2DUpdater::default()
+///             .color(color)
+///             .is_ellipse(true)
+///             .apply(app, &material);
+///         let model = Model2D::new(app)
 ///             .with_position(position)
-///             .with_size(Vec2::ONE * radius * 2.);
+///             .with_size(Vec2::ONE * radius * 2.)
+///             .with_material(material.to_ref());
 ///         Self { material, model }
 ///     }
 ///
 ///     fn update(&mut self, app: &mut App) {
-///          self.material.update(app);
 ///          self.model.update(app);
 ///     }
 /// }
 /// ```
 #[derive(Derivative, Builder)]
 #[derivative(Debug(bound = ""))]
-pub struct Model2D<T> {
+pub struct Model2D {
     /// The position of the model is world units.
     ///
     /// Default is [`Vec2::ZERO`].
@@ -88,21 +88,18 @@ pub struct Model2D<T> {
     pub camera: GlobRef<Camera2DGlob>,
     /// The material used to render the model.
     #[builder(form(value))]
-    pub material: MaterialGlobRef<T>,
+    pub material: GlobRef<Mat>,
     mesh: GlobRef<Mesh>,
     glob: Glob<Model2DGlob>,
     groups: StateHandle<InstanceGroups2D>,
-    phantom: PhantomData<fn(T)>,
 }
 
-impl<T> Model2D<T>
-where
-    T: Material,
-{
+impl Model2D {
     /// Creates a new model.
-    pub fn new(app: &mut App, material: MaterialGlobRef<T>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         let camera = app.get_mut::<Window>().camera.glob().to_ref();
         let mesh = app.get_mut::<Resources>().rectangle_mesh.to_ref();
+        let material = app.get_mut::<Materials>().default_2d.to_ref();
         let model = Self {
             position: Vec2::ZERO,
             size: Vec2::ONE,
@@ -114,10 +111,13 @@ where
             material,
             mesh,
             groups: app.handle::<InstanceGroups2D>(),
-            phantom: PhantomData,
         };
-        let data = T::instance_data(app, model.glob());
-        model.groups.get_mut(app).register_model(&model, data);
+        let data_type = model.material.get(app).instance_data_type;
+        let data = (data_type.create_fn)(app, &model.glob);
+        model
+            .groups
+            .get_mut(app)
+            .register_model(&model, data, data_type);
         model
     }
 
@@ -129,8 +129,9 @@ where
             self.size = glob.size();
             self.rotation = glob.rotation(app);
         }
-        let data = T::instance_data(app, self.glob());
-        self.groups.get_mut(app).update_model(self, data);
+        let data_type = self.material.get(app).instance_data_type;
+        let data = (data_type.create_fn)(app, &self.glob);
+        self.groups.get_mut(app).update_model(self, data, data_type);
     }
 
     /// Returns a reference to global data.
@@ -149,15 +150,15 @@ pub struct Model2DGlob;
 /// An instance group contains all models that are rendered with the same material, camera and mesh.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InstanceGroup2DProperties {
-    /// The index of the [`Mat`](crate::Mat) global data.
+    /// The index of the [`Mat`](Mat).
     pub material: usize,
-    /// The index of the [`Camera2D`](crate::Camera2D) global data.
+    /// The index of the [`Camera2D`](crate::Camera2D).
     pub camera: usize,
     pub(crate) mesh: usize,
 }
 
 impl InstanceGroup2DProperties {
-    fn new<T>(model: &Model2D<T>) -> Self {
+    fn new(model: &Model2D) -> Self {
         Self {
             mesh: model.mesh.index(),
             camera: model.camera.index(),
@@ -197,30 +198,24 @@ impl InstanceGroups2D {
         }
     }
 
-    fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
-        T: Material,
-    {
+    fn register_model(&mut self, model: &Model2D, data: Vec<u8>, data_type: InstanceDataType) {
         let group = InstanceGroup2DProperties::new(model);
-        self.group_mut(group).register_model(model, data);
+        self.group_mut(group).register_model(model, data, data_type);
         let model_index = model.glob.index();
         (self.model_groups.len()..=model_index).for_each(|_| self.model_groups.push(None));
         self.model_groups[model_index] = Some(group);
     }
 
-    fn update_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
-        T: Material,
-    {
+    fn update_model(&mut self, model: &Model2D, data: Vec<u8>, data_type: InstanceDataType) {
         let model_index = model.glob.index();
         let old_group =
             self.model_groups[model_index].expect("internal error: missing model groups");
         let group = InstanceGroup2DProperties::new(model);
         if group == old_group {
-            self.group_mut(group).update_model(model, data);
+            self.group_mut(group).update_model(model, data, data_type);
         } else {
             self.group_mut(old_group).delete_model(model.glob().index());
-            self.group_mut(group).register_model(model, data);
+            self.group_mut(group).register_model(model, data, data_type);
             self.model_groups[model_index] = Some(group);
         }
     }
@@ -249,37 +244,31 @@ impl InstanceGroup2D {
             .and_then(|type_id| self.buffers[&type_id].buffer.as_ref())
     }
 
-    fn register_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
-        T: Material,
-    {
+    fn register_model(&mut self, model: &Model2D, data: Vec<u8>, data_type: InstanceDataType) {
         let model_index = model.glob().index();
         self.model_positions
             .insert(model_index, self.model_indexes.len());
         self.model_indexes.push(model_index);
         let instance = Instance::new(model);
         self.z_indexes.push(instance.z());
-        self.buffer_mut::<Instance>()
+        self.buffer_mut(TypeId::of::<Instance>(), size_of::<Instance>())
             .push(bytemuck::cast_slice(&[instance]));
-        if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T::InstanceData>()
-                .push(bytemuck::cast_slice(&[data]));
-            self.secondary_type = Some(TypeId::of::<T::InstanceData>());
+        if data_type.size > 0 {
+            self.buffer_mut(data_type.type_id, data_type.size)
+                .push(&data);
+            self.secondary_type = Some(data_type.type_id);
         }
     }
 
-    fn update_model<T>(&mut self, model: &Model2D<T>, data: T::InstanceData)
-    where
-        T: Material,
-    {
+    fn update_model(&mut self, model: &Model2D, data: Vec<u8>, data_type: InstanceDataType) {
         let position = self.model_positions[&model.glob().index()];
         let instance = Instance::new(model);
         self.z_indexes[position] = instance.z();
-        self.buffer_mut::<Instance>()
+        self.buffer_mut(TypeId::of::<Instance>(), size_of::<Instance>())
             .replace(position, bytemuck::cast_slice(&[instance]));
-        if mem::size_of::<T::InstanceData>() > 0 {
-            self.buffer_mut::<T::InstanceData>()
-                .replace(position, bytemuck::cast_slice(&[data]));
+        if data_type.size > 0 {
+            self.buffer_mut(data_type.type_id, data_type.size)
+                .replace(position, bytemuck::cast_slice(&data));
         }
     }
 
@@ -304,13 +293,10 @@ impl InstanceGroup2D {
         }
     }
 
-    fn buffer_mut<T>(&mut self) -> &mut InstanceGroupBuffer
-    where
-        T: 'static,
-    {
+    fn buffer_mut(&mut self, type_id: TypeId, type_size: usize) -> &mut InstanceGroupBuffer {
         self.buffers
-            .entry(TypeId::of::<T>())
-            .or_insert_with(|| InstanceGroupBuffer::new::<T>())
+            .entry(type_id)
+            .or_insert_with(|| InstanceGroupBuffer::new(type_size))
     }
 }
 
@@ -323,11 +309,11 @@ pub(crate) struct InstanceGroupBuffer {
 }
 
 impl InstanceGroupBuffer {
-    fn new<T>() -> Self {
+    fn new(item_size: usize) -> Self {
         Self {
             buffer: None,
             data: vec![],
-            item_size: mem::size_of::<T>(),
+            item_size,
             is_updated: false,
         }
     }
@@ -377,7 +363,7 @@ pub(crate) struct Instance {
 }
 
 impl Instance {
-    pub(crate) fn new<T>(model: &Model2D<T>) -> Self {
+    pub(crate) fn new(model: &Model2D) -> Self {
         let z = (f32::from(model.z_index) + 0.5) / (f32::from(u16::MAX) + 1.) + 0.5;
         Self {
             transform: (Mat4::from_scale(model.size.with_z(0.))

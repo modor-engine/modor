@@ -3,8 +3,8 @@ use log::Level;
 use modor::{App, FromApp, Glob, GlobRef, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, Shader, ShaderGlob, ShaderGlobRef,
-    ShaderSource, ShaderUpdater, Size, Texture, TextureSource, TextureUpdater,
+    Color, MatGlob, MatUpdater, Material, Model2D, Model2DGlob, Shader, ShaderGlob, ShaderSource,
+    ShaderUpdater, Size, Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
@@ -70,8 +70,6 @@ fn set_alpha_replaced() {
         .is_alpha_replaced(true)
         .apply(&mut app, &shader_glob);
     app.update();
-    assert_same(&app, &target, "shader#empty"); // because shader updated after material
-    app.update();
     assert_same(&app, &target, "shader#not_replaced_alpha");
 }
 
@@ -90,10 +88,10 @@ fn shader(app: &mut App) -> &Res<Shader> {
 }
 
 struct Root {
-    material: Mat<TestMaterial>,
+    material: MatGlob<TestMaterial>,
     shader: ShaderGlob<TestMaterial>,
-    model1: Model2D<TestMaterial>,
-    model2: Model2D<TestMaterial>,
+    model1: Model2D,
+    model2: Model2D,
     target: Glob<Res<Texture>>,
 }
 
@@ -101,9 +99,9 @@ impl FromApp for Root {
     fn from_app(app: &mut App) -> Self {
         let target = Glob::from_app(app);
         let shader = ShaderGlob::from_app(app);
-        let material = TestMaterial::new(&shader).into_mat(app);
-        let model1 = Model2D::new(app, material.glob());
-        let model2 = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        let model1 = Model2D::new(app).with_material(material.to_ref());
+        let model2 = Model2D::new(app).with_material(material.to_ref());
         Self {
             material,
             shader,
@@ -119,6 +117,9 @@ impl State for Root {
         ShaderUpdater::default()
             .res(ResUpdater::default().path(SIMPLE_SHADER_PATH))
             .apply(app, &self.shader);
+        MatUpdater::default()
+            .shader(self.shader.to_ref())
+            .apply(app, &self.material);
         self.model1.position = Vec2::ZERO;
         self.model1.size = Vec2::ONE * 0.5;
         self.model1.camera = self.target.get(app).camera().glob().to_ref();
@@ -134,53 +135,31 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model1.update(app);
         self.model2.update(app);
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Zeroable, Pod)]
 struct TestMaterial {
-    color: Color,
-    shader: ShaderGlobRef<Self>,
+    color: [f32; 4],
+}
+
+impl Default for TestMaterial {
+    fn default() -> Self {
+        Self {
+            color: Color::RED.with_alpha(0.25).into(),
+        }
+    }
 }
 
 impl Material for TestMaterial {
-    type Data = TestMaterialData;
     type InstanceData = ();
 
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        self.shader.clone()
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        vec![]
-    }
-
-    fn is_transparent(&self) -> bool {
-        true
-    }
-
-    fn data(&self) -> Self::Data {
-        TestMaterialData {
-            color: self.color.into(),
-        }
+    fn init(app: &mut App, glob: &MatGlob<Self>) {
+        MatUpdater::default().is_transparent(true).apply(app, glob);
     }
 
     fn instance_data(_app: &mut App, _model: &Glob<Model2DGlob>) -> Self::InstanceData {}
-}
-
-impl TestMaterial {
-    fn new(shader: &ShaderGlob<Self>) -> Self {
-        Self {
-            color: Color::RED.with_alpha(0.25),
-            shader: shader.to_ref(),
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Zeroable, Pod)]
-struct TestMaterialData {
-    color: [f32; 4],
 }

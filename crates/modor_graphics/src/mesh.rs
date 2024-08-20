@@ -1,7 +1,6 @@
 use crate::buffer::Buffer;
 use crate::gpu::GpuManager;
 use modor::{App, FromApp, Global};
-use std::mem;
 use wgpu::{
     vertex_attr_array, BufferAddress, BufferUsages, VertexAttribute, VertexBufferLayout,
     VertexStepMode,
@@ -46,7 +45,7 @@ pub(crate) trait VertexBuffer<const L: u32>: Sized {
     const ATTRIBUTES: &'static [VertexAttribute];
     const STEP_MODE: VertexStepMode;
     const LAYOUT: VertexBufferLayout<'static> = VertexBufferLayout {
-        array_stride: mem::size_of::<Self>() as BufferAddress,
+        array_stride: size_of::<Self>() as BufferAddress,
         step_mode: Self::STEP_MODE,
         attributes: <Self as VertexBuffer<L>>::ATTRIBUTES,
     };

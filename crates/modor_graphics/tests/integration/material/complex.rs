@@ -1,10 +1,10 @@
 use bytemuck::{Pod, Zeroable};
 use log::Level;
-use modor::{App, FromApp, Glob, GlobRef, State};
+use modor::{App, FromApp, Glob, State};
 use modor_graphics::testing::assert_same;
 use modor_graphics::{
-    Color, IntoMat, Mat, Material, Model2D, Model2DGlob, ShaderGlob, ShaderGlobRef, ShaderUpdater,
-    Size, Texture, TextureSource, TextureUpdater,
+    Color, MatGlob, MatUpdater, Material, Model2D, Model2DGlob, ShaderGlob, ShaderUpdater, Size,
+    Texture, TextureSource, TextureUpdater,
 };
 use modor_input::modor_math::Vec2;
 use modor_resources::testing::wait_resources;
@@ -28,9 +28,9 @@ fn root(app: &mut App) -> &mut Root {
 struct Root {
     texture: Glob<Res<Texture>>,
     shader: ShaderGlob<TestMaterial>,
-    material: Mat<TestMaterial>,
-    model1: Model2D<TestMaterial>,
-    model2: Model2D<TestMaterial>,
+    material: MatGlob<TestMaterial>,
+    model1: Model2D,
+    model2: Model2D,
     target: Glob<Res<Texture>>,
 }
 
@@ -39,9 +39,9 @@ impl FromApp for Root {
         let target = Glob::from_app(app);
         let texture = Glob::from_app(app);
         let shader = ShaderGlob::from_app(app);
-        let material = TestMaterial::new(&texture, &shader).into_mat(app);
-        let model1 = Model2D::new(app, material.glob());
-        let model2 = Model2D::new(app, material.glob());
+        let material = MatGlob::from_app(app);
+        let model1 = Model2D::new(app).with_material(material.to_ref());
+        let model2 = Model2D::new(app).with_material(material.to_ref());
         Self {
             texture,
             shader,
@@ -62,6 +62,10 @@ impl State for Root {
         ShaderUpdater::default()
             .res(ResUpdater::default().path("../tests/assets/complex.wgsl"))
             .apply(app, &self.shader);
+        MatUpdater::default()
+            .textures(vec![self.texture.to_ref()])
+            .shader(self.shader.to_ref())
+            .apply(app, &self.material);
         self.model1.position = Vec2::new(-0.25, 0.);
         self.model1.size = Vec2::new(0.25, 0.5);
         self.model1.camera = self.target.get(app).camera().glob().to_ref();
@@ -76,70 +80,44 @@ impl State for Root {
     }
 
     fn update(&mut self, app: &mut App) {
-        self.material.update(app);
         self.model1.update(app);
         self.model2.update(app);
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Zeroable, Pod)]
 struct TestMaterial {
-    color: Color,
-    texture: GlobRef<Res<Texture>>,
-    shader: ShaderGlobRef<Self>,
+    color: [f32; 4],
+}
+
+impl Default for TestMaterial {
+    fn default() -> Self {
+        Self {
+            color: Color::DARK_GRAY.into(),
+        }
+    }
 }
 
 impl Material for TestMaterial {
-    type Data = TestMaterialData;
-    type InstanceData = TestInstanceData;
+    type InstanceData = TestMaterialInstance;
 
-    fn shader(&self) -> ShaderGlobRef<Self> {
-        self.shader.clone()
-    }
-
-    fn textures(&self) -> Vec<GlobRef<Res<Texture>>> {
-        vec![self.texture.clone()]
-    }
-
-    fn is_transparent(&self) -> bool {
-        self.color.a > 0. && self.color.a < 1.
-    }
-
-    fn data(&self) -> Self::Data {
-        TestMaterialData {
-            color: self.color.into(),
-        }
-    }
+    fn init(_app: &mut App, _glob: &MatGlob<Self>) {}
 
     fn instance_data(_app: &mut App, model: &Glob<Model2DGlob>) -> Self::InstanceData {
         vec![
-            TestInstanceData {
+            TestMaterialInstance {
                 color: [0., 0., 1., 1.],
             },
-            TestInstanceData {
+            TestMaterialInstance {
                 color: [0., 1., 0., 1.],
             },
         ][model.index()]
     }
 }
 
-impl TestMaterial {
-    fn new(texture: &Glob<Res<Texture>>, shader: &ShaderGlob<Self>) -> Self {
-        Self {
-            color: Color::DARK_GRAY,
-            texture: texture.to_ref(),
-            shader: shader.to_ref(),
-        }
-    }
-}
-
 #[repr(C)]
 #[derive(Clone, Copy, Zeroable, Pod)]
-struct TestMaterialData {
-    color: [f32; 4],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Zeroable, Pod)]
-struct TestInstanceData {
+struct TestMaterialInstance {
     color: [f32; 4],
 }

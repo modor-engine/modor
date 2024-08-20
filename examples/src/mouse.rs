@@ -1,7 +1,7 @@
 use modor::log::Level;
 use modor::{App, FromApp, State};
 use modor_graphics::modor_input::Inputs;
-use modor_graphics::{CursorTracker, Sprite2D};
+use modor_graphics::{CursorTracker, DefaultMaterial2DUpdater, Sprite2D};
 use modor_physics::modor_math::Vec2;
 use modor_text::Text2D;
 
@@ -21,9 +21,13 @@ impl FromApp for Root {
         Self {
             pressed_buttons_label: text(app, 0.25, "Pressed buttons:"),
             pressed_buttons: text(app, -0.25, ""),
-            cursor: Sprite2D::new(app)
+            cursor: Sprite2D::from_app(app)
                 .with_model(|m| m.size = Vec2::ONE * 0.02)
-                .with_material(|m| m.is_ellipse = true),
+                .with_material(|m| {
+                    DefaultMaterial2DUpdater::default()
+                        .is_ellipse(true)
+                        .apply(app, m);
+                }),
             tracker: CursorTracker::new(app),
         }
     }

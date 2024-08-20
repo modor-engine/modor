@@ -28,7 +28,7 @@ fn colliding_bodies_with_no_interaction() {
 #[modor::test]
 fn colliding_bodies_with_sensor() {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
     app.update();
     let body = res.body1.get(&app);
@@ -58,7 +58,7 @@ fn colliding_bodies_with_sensor() {
 #[modor::test]
 fn colliding_bodies_with_impulse() {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_impulse_interaction(&mut app, Impulse::default());
     app.update();
     let body = res.body1.get(&app);
@@ -91,7 +91,7 @@ fn colliding_bodies_with_impulse() {
 ))]
 fn set_friction(friction: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_impulse_interaction(&mut app, Impulse::new(0., friction));
     res.configure_ground(&mut app);
     res.configure_rolling_ball(&mut app);
@@ -107,7 +107,7 @@ fn set_friction(friction: f32, expected_position: Vec2) {
 fn set_restitution(restitution: f32, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_impulse_interaction(&mut app, Impulse::new(restitution, 0.5));
     res.configure_ground(&mut app);
     res.configure_falling_ball(&mut app);
@@ -126,7 +126,7 @@ fn set_restitution(restitution: f32, expected_position: Vec2) {
 fn set_dominance(dominance: i8, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
     app.get_mut::<Delta>().duration = Duration::from_secs_f32(0.1);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
     res.configure_ground(&mut app);
     res.configure_falling_ball(&mut app);
@@ -146,7 +146,7 @@ fn set_dominance(dominance: i8, expected_position: Vec2) {
 ))]
 fn set_ccd(is_enabled: bool, expected_position: Vec2) {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_impulse_interaction(&mut app, Impulse::new(1., 0.5));
     res.configure_ground(&mut app);
     res.configure_falling_ball(&mut app);
@@ -170,7 +170,7 @@ fn set_ccd(is_enabled: bool, expected_position: Vec2) {
 ))]
 fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize) {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
     Body2DUpdater::default()
         .position(position)
@@ -185,7 +185,7 @@ fn set_shape(position: Vec2, size: Vec2, shape: Shape2D, collision_count: usize)
 #[modor::test(cases(rectangle = "Shape2D::Rectangle", circle = "Shape2D::Circle"))]
 fn update_size(shape: Shape2D) {
     let mut app = App::new::<Root>(Level::Info);
-    let mut res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
+    let res = Resources::from_app_with(&mut app, |res, app| res.init(app, true));
     res.add_sensor_interaction(&mut app);
     Body2DUpdater::default()
         .shape(shape)
@@ -231,7 +231,7 @@ struct Resources {
 }
 
 impl Resources {
-    fn init(&mut self, app: &mut App, assign_groups: bool) {
+    fn init(&self, app: &mut App, assign_groups: bool) {
         Body2DUpdater::default()
             .collision_group(assign_groups.then(|| self.group1.to_ref()))
             .apply(app, &self.body1);
@@ -243,22 +243,22 @@ impl Resources {
             .apply(app, &self.body2);
     }
 
-    fn add_sensor_interaction(&mut self, app: &mut App) {
+    fn add_sensor_interaction(&self, app: &mut App) {
         CollisionGroupUpdater::new(&self.group1).add_sensor(app, &self.group2);
     }
 
-    fn add_impulse_interaction(&mut self, app: &mut App, impulse: Impulse) {
+    fn add_impulse_interaction(&self, app: &mut App, impulse: Impulse) {
         CollisionGroupUpdater::new(&self.group1).add_impulse(app, &self.group2, impulse);
     }
 
-    fn configure_ground(&mut self, app: &mut App) {
+    fn configure_ground(&self, app: &mut App) {
         Body2DUpdater::default()
             .position(Vec2::ZERO)
             .size(Vec2::new(1., 0.01))
             .apply(app, &self.body1);
     }
 
-    fn configure_rolling_ball(&mut self, app: &mut App) {
+    fn configure_rolling_ball(&self, app: &mut App) {
         Body2DUpdater::default()
             .position(Vec2::Y * 0.251)
             .size(Vec2::ONE * 0.5)
@@ -268,7 +268,7 @@ impl Resources {
             .apply(app, &self.body2);
     }
 
-    fn configure_falling_ball(&mut self, app: &mut App) {
+    fn configure_falling_ball(&self, app: &mut App) {
         Body2DUpdater::default()
             .position(Vec2::Y * 1.)
             .size(Vec2::ONE * 0.5)

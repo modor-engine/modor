@@ -12,6 +12,7 @@ fn retrieve_supported_modes() {
     let supported_modes = target_glob(&mut app)
         .get(&app)
         .target()
+        .get(&app)
         .supported_anti_aliasing_modes();
     assert_eq!(supported_modes[0], AntiAliasingMode::None);
     assert!(supported_modes.contains(&AntiAliasingMode::MsaaX4));
@@ -36,7 +37,11 @@ fn enable_supported_anti_aliasing() {
 fn enable_unsupported_anti_aliasing() {
     let mut app = App::new::<Root>(Level::Info);
     let target = target_glob(&mut app);
-    let supported_modes = target.get(&app).target().supported_anti_aliasing_modes();
+    let supported_modes = target
+        .get(&app)
+        .target()
+        .get(&app)
+        .supported_anti_aliasing_modes();
     if supported_modes.contains(&AntiAliasingMode::MsaaX16) {
         return;
     }
@@ -53,18 +58,10 @@ fn target_glob(app: &mut App) -> GlobRef<Res<Texture>> {
     app.get_mut::<Root>().target.to_ref()
 }
 
+#[derive(FromApp)]
 struct Root {
     sprite: Sprite2D,
     target: Glob<Res<Texture>>,
-}
-
-impl FromApp for Root {
-    fn from_app(app: &mut App) -> Self {
-        Self {
-            sprite: Sprite2D::new(app),
-            target: Glob::from_app(app),
-        }
-    }
 }
 
 impl State for Root {
