@@ -132,7 +132,7 @@ where
 ///     - binding `0`: camera data
 /// - group `1`
 ///     - binding `0`: material data (`Material` struct corresponds to
-///         [`Material::Data`] on Rust side)
+///       the Rust struct implementing [`Material`] trait)
 ///     - binding `(i * 2)`: `texture_2d<f32>` value corresponding to texture `i`
 ///     - binding `(i * 2 + 1)`: `sampler` value corresponding to texture `i`
 ///

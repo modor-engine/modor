@@ -35,10 +35,11 @@ fn set_properties() {
     assert_same(&app, &target, "material#custom_default");
     app.take::<Root, _>(|root, app| {
         DefaultMaterial2DUpdater::default()
-            .is_ellipse(false)
-            .color(Color::WHITE)
-            .texture_size(Vec2::ONE * 0.25)
-            .texture_position(Vec2::ZERO)
+            .for_texture(|_| ())
+            .for_is_ellipse(|e| *e = false)
+            .for_color(|c| *c = Color::WHITE)
+            .for_texture_size(|s| *s = Vec2::ONE * 0.25)
+            .for_texture_position(|p| *p = Vec2::ZERO)
             .apply(app, &root.material);
     });
     app.update();
