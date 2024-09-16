@@ -28,7 +28,7 @@ futures = "0.3"
 fxhash = "0.2"
 getrandom = { version = "*", features = ["js"] } # To fix this issue: https://github.com/rust-random/getrandom/issues/208
 getset = "0.1"
-gilrs = "0.10"
+gilrs = "0.11"
 image = "0.25"
 instant = "0.1"
 log = "0.4"
